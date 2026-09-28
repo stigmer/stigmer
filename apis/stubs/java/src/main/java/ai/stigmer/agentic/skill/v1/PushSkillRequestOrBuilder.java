@@ -78,12 +78,6 @@ public interface PushSkillRequestOrBuilder extends
    * <pre>
    * Git provenance for this skill version.
    * Absent when pushed from a non-git directory.
-   *
-   * &#64;internal
-   * Populated by CLI during push:
-   * - For local pushes: auto-detected if directory is within a git repository
-   * - For git pushes: resolved from user-provided URL/ref
-   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -94,12 +88,6 @@ public interface PushSkillRequestOrBuilder extends
    * <pre>
    * Git provenance for this skill version.
    * Absent when pushed from a non-git directory.
-   *
-   * &#64;internal
-   * Populated by CLI during push:
-   * - For local pushes: auto-detected if directory is within a git repository
-   * - For git pushes: resolved from user-provided URL/ref
-   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -110,12 +98,6 @@ public interface PushSkillRequestOrBuilder extends
    * <pre>
    * Git provenance for this skill version.
    * Absent when pushed from a non-git directory.
-   *
-   * &#64;internal
-   * Populated by CLI during push:
-   * - For local pushes: auto-detected if directory is within a git repository
-   * - For git pushes: resolved from user-provided URL/ref
-   * Stored in SkillStatus.git_provenance for traceability.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -180,14 +162,6 @@ public interface PushSkillRequestOrBuilder extends
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
-   *
-   * &#64;internal
-   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
-   * GuardReservedLabels step every other write boundary runs: a client may
-   * not introduce or change them; a server-composed push (a plugin
-   * materialising its skills as the installing caller) stamps them by
-   * design. Visibility is deliberately NOT carried here: it lands through
-   * updateVisibility, the one door metadata.proto names.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
@@ -197,14 +171,6 @@ public interface PushSkillRequestOrBuilder extends
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
-   *
-   * &#64;internal
-   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
-   * GuardReservedLabels step every other write boundary runs: a client may
-   * not introduce or change them; a server-composed push (a plugin
-   * materialising its skills as the installing caller) stamps them by
-   * design. Visibility is deliberately NOT carried here: it lands through
-   * updateVisibility, the one door metadata.proto names.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
@@ -221,14 +187,6 @@ public interface PushSkillRequestOrBuilder extends
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
-   *
-   * &#64;internal
-   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
-   * GuardReservedLabels step every other write boundary runs: a client may
-   * not introduce or change them; a server-composed push (a plugin
-   * materialising its skills as the installing caller) stamps them by
-   * design. Visibility is deliberately NOT carried here: it lands through
-   * updateVisibility, the one door metadata.proto names.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
@@ -239,14 +197,6 @@ public interface PushSkillRequestOrBuilder extends
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
-   *
-   * &#64;internal
-   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
-   * GuardReservedLabels step every other write boundary runs: a client may
-   * not introduce or change them; a server-composed push (a plugin
-   * materialising its skills as the installing caller) stamps them by
-   * design. Visibility is deliberately NOT carried here: it lands through
-   * updateVisibility, the one door metadata.proto names.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>
@@ -260,14 +210,6 @@ java.lang.String defaultValue);
    * <pre>
    * Labels to set on the skill, replacing any stored labels: a push is the
    * skill's definition, so the labels it carries are the labels it has.
-   *
-   * &#64;internal
-   * Keys in the reserved stigmer.ai/&#42; namespace pass the same
-   * GuardReservedLabels step every other write boundary runs: a client may
-   * not introduce or change them; a server-composed push (a plugin
-   * materialising its skills as the installing caller) stamps them by
-   * design. Visibility is deliberately NOT carried here: it lands through
-   * updateVisibility, the one door metadata.proto names.
    * </pre>
    *
    * <code>map&lt;string, string&gt; labels = 8 [json_name = "labels"];</code>

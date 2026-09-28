@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * EvalScoringMode defines how the LLM judge scores the subject.
- *
- * &#64;internal
- * The scoring mode determines the response schema enforced on the judge
- * LLM and how the threshold is applied.
- *
- * &#64;since T17 (Advanced Agentic Orchestration)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.tasks.EvalScoringMode}

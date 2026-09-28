@@ -213,17 +213,6 @@ public final class PluginCommandControllerGrpc {
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
      * or Codex layout; the response's status names what was materialised and
      * what was skipped.
-     * &#64;internal
-     * Authorization: can_create_plugin in the organization; each materialised
-     * child runs its own create chain in-process AS THE CALLER, so the child
-     * kinds' create permissions are evaluated too.
-     * The backend reads the package, refuses reserved labels in the overlay,
-     * plans every child slug against the organization, stores the archive
-     * (deduplicated by digest), archives the previous version, persists the
-     * head as INSTALLING, materialises skills, MCP servers, the agent and
-     * workflows, removes members the new archive dropped, and persists the
-     * head as READY. A re-push whose digest, state and members already
-     * converge returns the head with no child writes.
      * </pre>
      */
     default void push(ai.stigmer.agentic.plugin.v1.PushPluginRequest request,
@@ -238,10 +227,6 @@ public final class PluginCommandControllerGrpc {
      * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
      * 2. HTTP PUT the ZIP bytes to url
      * 3. push(PushPluginRequest{ artifact_upload_ref })
-     * &#64;internal
-     * Authorization matches push(): the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it. The slots
-     * are the skill transfer lane's, one upload surface for every archive.
      * </pre>
      */
     default void createArtifactUploadUrl(ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest request,
@@ -253,13 +238,6 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * &#64;internal
-     * Authorization: can_edit on the plugin for every transition. The level
-     * is checked against the plugin's and every member kind's VisibilityConfig
-     * (visibility_public is refused for every kind). The fan-out to members
-     * rides each kind's own updateVisibility chain in-process as the caller,
-     * skills and MCP servers before the agents and workflows that reference
-     * them, so every member meets its reference floor.
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -272,11 +250,6 @@ public final class PluginCommandControllerGrpc {
      * Delete a plugin and every resource it materialised.
      * Refused when a resource outside the plugin still references a member;
      * the error names the referencing resources.
-     * &#64;internal
-     * Members are deleted through their own delete chains in-process (agent,
-     * workflows, MCP servers, skills, in that order), then the head; a
-     * failure part-way leaves a plugin whose remaining members are still
-     * listed, and a retry converges. Audit history is preserved.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -326,17 +299,6 @@ public final class PluginCommandControllerGrpc {
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
      * or Codex layout; the response's status names what was materialised and
      * what was skipped.
-     * &#64;internal
-     * Authorization: can_create_plugin in the organization; each materialised
-     * child runs its own create chain in-process AS THE CALLER, so the child
-     * kinds' create permissions are evaluated too.
-     * The backend reads the package, refuses reserved labels in the overlay,
-     * plans every child slug against the organization, stores the archive
-     * (deduplicated by digest), archives the previous version, persists the
-     * head as INSTALLING, materialises skills, MCP servers, the agent and
-     * workflows, removes members the new archive dropped, and persists the
-     * head as READY. A re-push whose digest, state and members already
-     * converge returns the head with no child writes.
      * </pre>
      */
     public void push(ai.stigmer.agentic.plugin.v1.PushPluginRequest request,
@@ -352,10 +314,6 @@ public final class PluginCommandControllerGrpc {
      * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
      * 2. HTTP PUT the ZIP bytes to url
      * 3. push(PushPluginRequest{ artifact_upload_ref })
-     * &#64;internal
-     * Authorization matches push(): the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it. The slots
-     * are the skill transfer lane's, one upload surface for every archive.
      * </pre>
      */
     public void createArtifactUploadUrl(ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest request,
@@ -368,13 +326,6 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * &#64;internal
-     * Authorization: can_edit on the plugin for every transition. The level
-     * is checked against the plugin's and every member kind's VisibilityConfig
-     * (visibility_public is refused for every kind). The fan-out to members
-     * rides each kind's own updateVisibility chain in-process as the caller,
-     * skills and MCP servers before the agents and workflows that reference
-     * them, so every member meets its reference floor.
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -388,11 +339,6 @@ public final class PluginCommandControllerGrpc {
      * Delete a plugin and every resource it materialised.
      * Refused when a resource outside the plugin still references a member;
      * the error names the referencing resources.
-     * &#64;internal
-     * Members are deleted through their own delete chains in-process (agent,
-     * workflows, MCP servers, skills, in that order), then the head; a
-     * failure part-way leaves a plugin whose remaining members are still
-     * listed, and a retry converges. Audit history is preserved.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -429,17 +375,6 @@ public final class PluginCommandControllerGrpc {
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
      * or Codex layout; the response's status names what was materialised and
      * what was skipped.
-     * &#64;internal
-     * Authorization: can_create_plugin in the organization; each materialised
-     * child runs its own create chain in-process AS THE CALLER, so the child
-     * kinds' create permissions are evaluated too.
-     * The backend reads the package, refuses reserved labels in the overlay,
-     * plans every child slug against the organization, stores the archive
-     * (deduplicated by digest), archives the previous version, persists the
-     * head as INSTALLING, materialises skills, MCP servers, the agent and
-     * workflows, removes members the new archive dropped, and persists the
-     * head as READY. A re-push whose digest, state and members already
-     * converge returns the head with no child writes.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin push(ai.stigmer.agentic.plugin.v1.PushPluginRequest request) throws io.grpc.StatusException {
@@ -454,10 +389,6 @@ public final class PluginCommandControllerGrpc {
      * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
      * 2. HTTP PUT the ZIP bytes to url
      * 3. push(PushPluginRequest{ artifact_upload_ref })
-     * &#64;internal
-     * Authorization matches push(): the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it. The slots
-     * are the skill transfer lane's, one upload surface for every archive.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl createArtifactUploadUrl(ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest request) throws io.grpc.StatusException {
@@ -469,13 +400,6 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * &#64;internal
-     * Authorization: can_edit on the plugin for every transition. The level
-     * is checked against the plugin's and every member kind's VisibilityConfig
-     * (visibility_public is refused for every kind). The fan-out to members
-     * rides each kind's own updateVisibility chain in-process as the caller,
-     * skills and MCP servers before the agents and workflows that reference
-     * them, so every member meets its reference floor.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -488,11 +412,6 @@ public final class PluginCommandControllerGrpc {
      * Delete a plugin and every resource it materialised.
      * Refused when a resource outside the plugin still references a member;
      * the error names the referencing resources.
-     * &#64;internal
-     * Members are deleted through their own delete chains in-process (agent,
-     * workflows, MCP servers, skills, in that order), then the head; a
-     * failure part-way leaves a plugin whose remaining members are still
-     * listed, and a retry converges. Audit history is preserved.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) throws io.grpc.StatusException {
@@ -528,17 +447,6 @@ public final class PluginCommandControllerGrpc {
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
      * or Codex layout; the response's status names what was materialised and
      * what was skipped.
-     * &#64;internal
-     * Authorization: can_create_plugin in the organization; each materialised
-     * child runs its own create chain in-process AS THE CALLER, so the child
-     * kinds' create permissions are evaluated too.
-     * The backend reads the package, refuses reserved labels in the overlay,
-     * plans every child slug against the organization, stores the archive
-     * (deduplicated by digest), archives the previous version, persists the
-     * head as INSTALLING, materialises skills, MCP servers, the agent and
-     * workflows, removes members the new archive dropped, and persists the
-     * head as READY. A re-push whose digest, state and members already
-     * converge returns the head with no child writes.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin push(ai.stigmer.agentic.plugin.v1.PushPluginRequest request) {
@@ -553,10 +461,6 @@ public final class PluginCommandControllerGrpc {
      * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
      * 2. HTTP PUT the ZIP bytes to url
      * 3. push(PushPluginRequest{ artifact_upload_ref })
-     * &#64;internal
-     * Authorization matches push(): the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it. The slots
-     * are the skill transfer lane's, one upload surface for every archive.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl createArtifactUploadUrl(ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest request) {
@@ -568,13 +472,6 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * &#64;internal
-     * Authorization: can_edit on the plugin for every transition. The level
-     * is checked against the plugin's and every member kind's VisibilityConfig
-     * (visibility_public is refused for every kind). The fan-out to members
-     * rides each kind's own updateVisibility chain in-process as the caller,
-     * skills and MCP servers before the agents and workflows that reference
-     * them, so every member meets its reference floor.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -587,11 +484,6 @@ public final class PluginCommandControllerGrpc {
      * Delete a plugin and every resource it materialised.
      * Refused when a resource outside the plugin still references a member;
      * the error names the referencing resources.
-     * &#64;internal
-     * Members are deleted through their own delete chains in-process (agent,
-     * workflows, MCP servers, skills, in that order), then the head; a
-     * failure part-way leaves a plugin whose remaining members are still
-     * listed, and a retry converges. Audit history is preserved.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) {
@@ -627,17 +519,6 @@ public final class PluginCommandControllerGrpc {
      * The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
      * or Codex layout; the response's status names what was materialised and
      * what was skipped.
-     * &#64;internal
-     * Authorization: can_create_plugin in the organization; each materialised
-     * child runs its own create chain in-process AS THE CALLER, so the child
-     * kinds' create permissions are evaluated too.
-     * The backend reads the package, refuses reserved labels in the overlay,
-     * plans every child slug against the organization, stores the archive
-     * (deduplicated by digest), archives the previous version, persists the
-     * head as INSTALLING, materialises skills, MCP servers, the agent and
-     * workflows, removes members the new archive dropped, and persists the
-     * head as READY. A re-push whose digest, state and members already
-     * converge returns the head with no child writes.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> push(
@@ -653,10 +534,6 @@ public final class PluginCommandControllerGrpc {
      * 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }
      * 2. HTTP PUT the ZIP bytes to url
      * 3. push(PushPluginRequest{ artifact_upload_ref })
-     * &#64;internal
-     * Authorization matches push(): the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it. The slots
-     * are the skill transfer lane's, one upload surface for every archive.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl> createArtifactUploadUrl(
@@ -669,13 +546,6 @@ public final class PluginCommandControllerGrpc {
      * <pre>
      * Update the visibility of a plugin and of every resource it materialised.
      * Only modifies metadata.visibility on the plugin and its members.
-     * &#64;internal
-     * Authorization: can_edit on the plugin for every transition. The level
-     * is checked against the plugin's and every member kind's VisibilityConfig
-     * (visibility_public is refused for every kind). The fan-out to members
-     * rides each kind's own updateVisibility chain in-process as the caller,
-     * skills and MCP servers before the agents and workflows that reference
-     * them, so every member meets its reference floor.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> updateVisibility(
@@ -689,11 +559,6 @@ public final class PluginCommandControllerGrpc {
      * Delete a plugin and every resource it materialised.
      * Refused when a resource outside the plugin still references a member;
      * the error names the referencing resources.
-     * &#64;internal
-     * Members are deleted through their own delete chains in-process (agent,
-     * workflows, MCP servers, skills, in that order), then the head; a
-     * failure part-way leaves a plugin whose remaining members are still
-     * listed, and a retry converges. Audit history is preserved.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> delete(

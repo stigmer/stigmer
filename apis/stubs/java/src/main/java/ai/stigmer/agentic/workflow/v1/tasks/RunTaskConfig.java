@@ -12,13 +12,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * The run_workflow kind is not supported yet: a Workflow that contains one is
  * refused when it is saved, because nothing resolves the child name to a
  * Workflow the platform can run.
- *
- * &#64;internal
- * The server's converter emits the child reference as `run.workflow` with
- * `name` and, when set, `input`, the shape the runner's run task reads. The
- * runner would start the name as a Temporal workflow type, and no worker
- * registers user workflows as types, so the write refuses the kind
- * (stigmer/stigmer#1311).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig}
@@ -332,13 +325,6 @@ private static final long serialVersionUID = 0L;
    * The run_workflow kind is not supported yet: a Workflow that contains one is
    * refused when it is saved, because nothing resolves the child name to a
    * Workflow the platform can run.
-   *
-   * &#64;internal
-   * The server's converter emits the child reference as `run.workflow` with
-   * `name` and, when set, `input`, the shape the runner's run task reads. The
-   * runner would start the name as a Temporal workflow type, and no worker
-   * registers user workflows as types, so the write refuses the kind
-   * (stigmer/stigmer#1311).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig}

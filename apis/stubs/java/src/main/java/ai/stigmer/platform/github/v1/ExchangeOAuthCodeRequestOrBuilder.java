@@ -53,9 +53,6 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
   /**
    * <pre>
    * Redirect URI used in the original authorize request.
-   *
-   * &#64;internal
-   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -65,9 +62,6 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
   /**
    * <pre>
    * Redirect URI used in the original authorize request.
-   *
-   * &#64;internal
-   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>

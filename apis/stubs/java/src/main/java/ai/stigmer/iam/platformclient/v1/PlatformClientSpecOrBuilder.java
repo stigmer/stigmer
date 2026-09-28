@@ -322,22 +322,6 @@ public interface PlatformClientSpecOrBuilder extends
    * runtime, at the lowest priority, so the agent instance's environments
    * and the request's runtime values win on a key conflict. The agent and
    * its default instance stay untouched.
-   *
-   * &#64;internal
-   * The fifth application of the connection-resource credential mechanism
-   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381),
-   * restored by stigmer/stigmer#1256: the execution-context builder
-   * (domain/agentexecution/create-execution-context-step.ts) prepends it
-   * below every other layer for an execution whose audit created_by names
-   * this client (ApiResourceAuditActor.platform_client_id), on create and
-   * on recover alike. The references follow the one write-time reference
-   * rule (pipeline/steps/references.ts): same-organization only, and an
-   * environment's own visibility is not consulted, because the server
-   * resolves it on the run's behalf. An execution in an organization other
-   * than the client's receives nothing. A referenced environment that no
-   * longer exists fails the execution's create, as the instance layer's
-   * does. Edits apply to the next execution: the client is read, not
-   * cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -354,22 +338,6 @@ public interface PlatformClientSpecOrBuilder extends
    * runtime, at the lowest priority, so the agent instance's environments
    * and the request's runtime values win on a key conflict. The agent and
    * its default instance stay untouched.
-   *
-   * &#64;internal
-   * The fifth application of the connection-resource credential mechanism
-   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381),
-   * restored by stigmer/stigmer#1256: the execution-context builder
-   * (domain/agentexecution/create-execution-context-step.ts) prepends it
-   * below every other layer for an execution whose audit created_by names
-   * this client (ApiResourceAuditActor.platform_client_id), on create and
-   * on recover alike. The references follow the one write-time reference
-   * rule (pipeline/steps/references.ts): same-organization only, and an
-   * environment's own visibility is not consulted, because the server
-   * resolves it on the run's behalf. An execution in an organization other
-   * than the client's receives nothing. A referenced environment that no
-   * longer exists fails the execution's create, as the instance layer's
-   * does. Edits apply to the next execution: the client is read, not
-   * cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -385,22 +353,6 @@ public interface PlatformClientSpecOrBuilder extends
    * runtime, at the lowest priority, so the agent instance's environments
    * and the request's runtime values win on a key conflict. The agent and
    * its default instance stay untouched.
-   *
-   * &#64;internal
-   * The fifth application of the connection-resource credential mechanism
-   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381),
-   * restored by stigmer/stigmer#1256: the execution-context builder
-   * (domain/agentexecution/create-execution-context-step.ts) prepends it
-   * below every other layer for an execution whose audit created_by names
-   * this client (ApiResourceAuditActor.platform_client_id), on create and
-   * on recover alike. The references follow the one write-time reference
-   * rule (pipeline/steps/references.ts): same-organization only, and an
-   * environment's own visibility is not consulted, because the server
-   * resolves it on the run's behalf. An execution in an organization other
-   * than the client's receives nothing. A referenced environment that no
-   * longer exists fails the execution's create, as the instance layer's
-   * does. Edits apply to the next execution: the client is read, not
-   * cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -416,22 +368,6 @@ public interface PlatformClientSpecOrBuilder extends
    * runtime, at the lowest priority, so the agent instance's environments
    * and the request's runtime values win on a key conflict. The agent and
    * its default instance stay untouched.
-   *
-   * &#64;internal
-   * The fifth application of the connection-resource credential mechanism
-   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381),
-   * restored by stigmer/stigmer#1256: the execution-context builder
-   * (domain/agentexecution/create-execution-context-step.ts) prepends it
-   * below every other layer for an execution whose audit created_by names
-   * this client (ApiResourceAuditActor.platform_client_id), on create and
-   * on recover alike. The references follow the one write-time reference
-   * rule (pipeline/steps/references.ts): same-organization only, and an
-   * environment's own visibility is not consulted, because the server
-   * resolves it on the run's behalf. An execution in an organization other
-   * than the client's receives nothing. A referenced environment that no
-   * longer exists fails the execution's create, as the instance layer's
-   * does. Edits apply to the next execution: the client is read, not
-   * cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -448,22 +384,6 @@ public interface PlatformClientSpecOrBuilder extends
    * runtime, at the lowest priority, so the agent instance's environments
    * and the request's runtime values win on a key conflict. The agent and
    * its default instance stay untouched.
-   *
-   * &#64;internal
-   * The fifth application of the connection-resource credential mechanism
-   * (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381),
-   * restored by stigmer/stigmer#1256: the execution-context builder
-   * (domain/agentexecution/create-execution-context-step.ts) prepends it
-   * below every other layer for an execution whose audit created_by names
-   * this client (ApiResourceAuditActor.platform_client_id), on create and
-   * on recover alike. The references follow the one write-time reference
-   * rule (pipeline/steps/references.ts): same-organization only, and an
-   * environment's own visibility is not consulted, because the server
-   * resolves it on the run's behalf. An execution in an organization other
-   * than the client's receives nothing. A referenced environment that no
-   * longer exists fails the execution's create, as the instance layer's
-   * does. Edits apply to the next execution: the client is read, not
-   * cached.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

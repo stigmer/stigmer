@@ -9,17 +9,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * <pre>
  * HumanInputOutcome defines a named outcome that a reviewer can select
  * when responding to a human_input task.
- *
- * &#64;internal
- * Outcomes enable rich branching beyond binary approve/deny. Each outcome
- * can route to a different downstream task via the `then` field, enabling
- * patterns like "approve → continue", "deny → re_classify", "needs_revision
- * → gather_more_context".
- *
- * When no outcomes are defined, the task defaults to binary approve/deny
- * behavior: approve continues to the next task, deny fails the task.
- *
- * &#64;since T03 (P0 New Task Types)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.HumanInputOutcome}
@@ -400,17 +389,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * HumanInputOutcome defines a named outcome that a reviewer can select
    * when responding to a human_input task.
-   *
-   * &#64;internal
-   * Outcomes enable rich branching beyond binary approve/deny. Each outcome
-   * can route to a different downstream task via the `then` field, enabling
-   * patterns like "approve → continue", "deny → re_classify", "needs_revision
-   * → gather_more_context".
-   *
-   * When no outcomes are defined, the task defaults to binary approve/deny
-   * behavior: approve continues to the next task, deny fails the task.
-   *
-   * &#64;since T03 (P0 New Task Types)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.HumanInputOutcome}

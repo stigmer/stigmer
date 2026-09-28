@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * GitProvenance tracks the git origin of a workflow version.
- *
- * &#64;internal
- * Reuses the same structure as Skill's GitProvenance for consistency.
- * Populated by the CLI during apply when the directory is a git repo.
- *
- * &#64;since Workflow Versioning
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.GitProvenance}
@@ -439,12 +433,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GitProvenance tracks the git origin of a workflow version.
-   *
-   * &#64;internal
-   * Reuses the same structure as Skill's GitProvenance for consistency.
-   * Populated by the CLI during apply when the directory is a git repo.
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.GitProvenance}

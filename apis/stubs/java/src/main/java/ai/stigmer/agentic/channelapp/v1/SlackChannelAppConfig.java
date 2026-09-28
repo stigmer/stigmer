@@ -14,14 +14,6 @@ package ai.stigmer.agentic.channelapp.v1;
  * api.slack.com. The app must be configured with Stigmer's OAuth
  * redirect URL and this ChannelApp's events webhook URL — the console
  * shows both, along with a ready-to-paste app manifest.
- *
- * &#64;internal
- * No api_app_id and no redirect/webhook URLs here: webhook attribution
- * is by the per-app request path (/webhook/slack/{channelAppId}), chosen
- * over envelope api_app_id sniffing because Slack's url_verification
- * handshake carries no app identity and the raw body must verify before
- * any parse. The redirect URI is platform-derived, mirroring OAuthApp's
- * deliberate omission.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig}
@@ -399,14 +391,6 @@ private static final long serialVersionUID = 0L;
    * api.slack.com. The app must be configured with Stigmer's OAuth
    * redirect URL and this ChannelApp's events webhook URL — the console
    * shows both, along with a ready-to-paste app manifest.
-   *
-   * &#64;internal
-   * No api_app_id and no redirect/webhook URLs here: webhook attribution
-   * is by the per-app request path (/webhook/slack/{channelAppId}), chosen
-   * over envelope api_app_id sniffing because Slack's url_verification
-   * handshake carries no app identity and the raw body must verify before
-   * any parse. The redirect URI is platform-derived, mirroring OAuthApp's
-   * deliberate omission.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig}

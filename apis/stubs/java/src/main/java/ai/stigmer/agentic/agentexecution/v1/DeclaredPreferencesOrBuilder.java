@@ -33,10 +33,6 @@ public interface DeclaredPreferencesOrBuilder extends
   /**
    * <pre>
    * The calling user's standing context, verbatim.
-   *
-   * &#64;internal
-   * Cloud-only: the OSS server never sets it — OSS has no per-request user
-   * identity, so the user scope collapses into the org scope (DD-002 D1).
    * </pre>
    *
    * <code>string user_context = 2 [json_name = "userContext"];</code>
@@ -46,10 +42,6 @@ public interface DeclaredPreferencesOrBuilder extends
   /**
    * <pre>
    * The calling user's standing context, verbatim.
-   *
-   * &#64;internal
-   * Cloud-only: the OSS server never sets it — OSS has no per-request user
-   * identity, so the user scope collapses into the org scope (DD-002 D1).
    * </pre>
    *
    * <code>string user_context = 2 [json_name = "userContext"];</code>

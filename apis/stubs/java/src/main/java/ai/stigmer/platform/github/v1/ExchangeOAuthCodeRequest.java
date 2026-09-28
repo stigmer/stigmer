@@ -155,9 +155,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Redirect URI used in the original authorize request.
-   *
-   * &#64;internal
-   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -179,9 +176,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Redirect URI used in the original authorize request.
-   *
-   * &#64;internal
-   * GitHub requires this to match the value from the authorize step.
    * </pre>
    *
    * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -736,9 +730,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Redirect URI used in the original authorize request.
-     *
-     * &#64;internal
-     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -759,9 +750,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Redirect URI used in the original authorize request.
-     *
-     * &#64;internal
-     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -783,9 +771,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Redirect URI used in the original authorize request.
-     *
-     * &#64;internal
-     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -803,9 +788,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Redirect URI used in the original authorize request.
-     *
-     * &#64;internal
-     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -820,9 +802,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Redirect URI used in the original authorize request.
-     *
-     * &#64;internal
-     * GitHub requires this to match the value from the authorize step.
      * </pre>
      *
      * <code>string redirect_uri = 3 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>

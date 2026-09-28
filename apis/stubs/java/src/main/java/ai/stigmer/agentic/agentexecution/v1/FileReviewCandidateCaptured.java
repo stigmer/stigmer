@@ -9,12 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * The candidate workspace state captured at the turn boundary, carrying the
  * computed authoritative diff.
- *
- * &#64;internal
- * Authored by the runner's turn-boundary capture activity. Large before/after
- * bodies are offloaded (FileContent.ref) before this event is persisted.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured}
@@ -564,12 +558,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The candidate workspace state captured at the turn boundary, carrying the
    * computed authoritative diff.
-   *
-   * &#64;internal
-   * Authored by the runner's turn-boundary capture activity. Large before/after
-   * bodies are offloaded (FileContent.ref) before this event is persisted.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured}

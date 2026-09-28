@@ -8,16 +8,6 @@ package ai.stigmer.agentic.schedule.v1;
 /**
  * <pre>
  * ScheduleStatus contains system-managed state for a schedule.
- *
- * &#64;internal
- * Platform-owned; written only by the scheduling runtime (tick +
- * lifecycle sync) and by the explicit resume command (DD-013 D-D).
- * Preserved VERBATIM across apply and update (the AgentChannel
- * decision-004 posture) — load-bearing for DD-008 D7's auto-pause,
- * which records on status precisely so the platform never writes spec.
- * A routine manifest apply must never reset the failure streak or
- * un-pause a schedule; both editions carry a regression test for this
- * (DD-009 pinned behaviors).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleStatus}
@@ -150,11 +140,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the agent execution created by the most recent fire.
-   *
-   * &#64;internal
-   * The reverse pointer of the stigmer.ai/schedule-id label stamped on
-   * every schedule-created execution (DD-008 D4) — the audit link is
-   * queryable from either end.
    * </pre>
    *
    * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
@@ -176,11 +161,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the agent execution created by the most recent fire.
-   *
-   * &#64;internal
-   * The reverse pointer of the stigmer.ai/schedule-id label stamped on
-   * every schedule-created execution (DD-008 D4) — the audit link is
-   * queryable from either end.
    * </pre>
    *
    * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
@@ -206,9 +186,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Number of consecutive failed runs. A successful run resets it.
-   *
-   * &#64;internal
-   * Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).
    * </pre>
    *
    * <code>int32 consecutive_failures = 4 [json_name = "consecutiveFailures"];</code>
@@ -226,15 +203,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Why the platform paused this schedule; empty when not paused.
    * Cleared only by the resume RPC — the owner's explicit act.
-   *
-   * &#64;internal
-   * "Paused" is the platform's latch, distinct from the owner's switch
-   * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-   * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-   * spec.enabled (DD-009 pinned behaviors: one writer per field;
-   * consoles derive owner-disabled state from spec on read). Updates
-   * and applies preserve it verbatim; resume is deliberately the ONE
-   * clearing path (DD-013 D-D).
    * </pre>
    *
    * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -257,15 +225,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Why the platform paused this schedule; empty when not paused.
    * Cleared only by the resume RPC — the owner's explicit act.
-   *
-   * &#64;internal
-   * "Paused" is the platform's latch, distinct from the owner's switch
-   * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-   * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-   * spec.enabled (DD-009 pinned behaviors: one writer per field;
-   * consoles derive owner-disabled state from spec on read). Updates
-   * and applies preserve it verbatim; resume is deliberately the ONE
-   * clearing path (DD-013 D-D).
    * </pre>
    *
    * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -552,16 +511,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ScheduleStatus contains system-managed state for a schedule.
-   *
-   * &#64;internal
-   * Platform-owned; written only by the scheduling runtime (tick +
-   * lifecycle sync) and by the explicit resume command (DD-013 D-D).
-   * Preserved VERBATIM across apply and update (the AgentChannel
-   * decision-004 posture) — load-bearing for DD-008 D7's auto-pause,
-   * which records on status precisely so the platform never writes spec.
-   * A routine manifest apply must never reset the failure streak or
-   * un-pause a schedule; both editions carry a regression test for this
-   * (DD-009 pinned behaviors).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleStatus}
@@ -1127,11 +1076,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution created by the most recent fire.
-     *
-     * &#64;internal
-     * The reverse pointer of the stigmer.ai/schedule-id label stamped on
-     * every schedule-created execution (DD-008 D4) — the audit link is
-     * queryable from either end.
      * </pre>
      *
      * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
@@ -1152,11 +1096,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution created by the most recent fire.
-     *
-     * &#64;internal
-     * The reverse pointer of the stigmer.ai/schedule-id label stamped on
-     * every schedule-created execution (DD-008 D4) — the audit link is
-     * queryable from either end.
      * </pre>
      *
      * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
@@ -1178,11 +1117,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution created by the most recent fire.
-     *
-     * &#64;internal
-     * The reverse pointer of the stigmer.ai/schedule-id label stamped on
-     * every schedule-created execution (DD-008 D4) — the audit link is
-     * queryable from either end.
      * </pre>
      *
      * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
@@ -1200,11 +1134,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution created by the most recent fire.
-     *
-     * &#64;internal
-     * The reverse pointer of the stigmer.ai/schedule-id label stamped on
-     * every schedule-created execution (DD-008 D4) — the audit link is
-     * queryable from either end.
      * </pre>
      *
      * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
@@ -1219,11 +1148,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution created by the most recent fire.
-     *
-     * &#64;internal
-     * The reverse pointer of the stigmer.ai/schedule-id label stamped on
-     * every schedule-created execution (DD-008 D4) — the audit link is
-     * queryable from either end.
      * </pre>
      *
      * <code>string last_execution_id = 3 [json_name = "lastExecutionId"];</code>
@@ -1244,9 +1168,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Number of consecutive failed runs. A successful run resets it.
-     *
-     * &#64;internal
-     * Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).
      * </pre>
      *
      * <code>int32 consecutive_failures = 4 [json_name = "consecutiveFailures"];</code>
@@ -1259,9 +1180,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Number of consecutive failed runs. A successful run resets it.
-     *
-     * &#64;internal
-     * Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).
      * </pre>
      *
      * <code>int32 consecutive_failures = 4 [json_name = "consecutiveFailures"];</code>
@@ -1278,9 +1196,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Number of consecutive failed runs. A successful run resets it.
-     *
-     * &#64;internal
-     * Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).
      * </pre>
      *
      * <code>int32 consecutive_failures = 4 [json_name = "consecutiveFailures"];</code>
@@ -1298,15 +1213,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
      * Cleared only by the resume RPC — the owner's explicit act.
-     *
-     * &#64;internal
-     * "Paused" is the platform's latch, distinct from the owner's switch
-     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-     * spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read). Updates
-     * and applies preserve it verbatim; resume is deliberately the ONE
-     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1328,15 +1234,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
      * Cleared only by the resume RPC — the owner's explicit act.
-     *
-     * &#64;internal
-     * "Paused" is the platform's latch, distinct from the owner's switch
-     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-     * spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read). Updates
-     * and applies preserve it verbatim; resume is deliberately the ONE
-     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1359,15 +1256,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
      * Cleared only by the resume RPC — the owner's explicit act.
-     *
-     * &#64;internal
-     * "Paused" is the platform's latch, distinct from the owner's switch
-     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-     * spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read). Updates
-     * and applies preserve it verbatim; resume is deliberately the ONE
-     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1386,15 +1274,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
      * Cleared only by the resume RPC — the owner's explicit act.
-     *
-     * &#64;internal
-     * "Paused" is the platform's latch, distinct from the owner's switch
-     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-     * spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read). Updates
-     * and applies preserve it verbatim; resume is deliberately the ONE
-     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1410,15 +1289,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
      * Cleared only by the resume RPC — the owner's explicit act.
-     *
-     * &#64;internal
-     * "Paused" is the platform's latch, distinct from the owner's switch
-     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
-     * spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read). Updates
-     * and applies preserve it verbatim; resume is deliberately the ONE
-     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>

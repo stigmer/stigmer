@@ -8,12 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ArtifactId wraps an artifact identifier.
- *
- * &#64;internal
- * Using a wrapper (instead of a raw string) provides validation,
- * clear field naming, and extensibility.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactId}
@@ -267,12 +261,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ArtifactId wraps an artifact identifier.
-   *
-   * &#64;internal
-   * Using a wrapper (instead of a raw string) provides validation,
-   * clear field naming, and extensibility.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactId}

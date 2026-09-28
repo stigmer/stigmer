@@ -12,17 +12,6 @@ package ai.stigmer.agentic.agentshare.v1;
  * A share is a distribution channel for an agent's hosted chat experience.
  * It carries its own audience, embed origins, visitor-facing messages, and
  * tool credentials — all independent of the agent blueprint it references.
- *
- * &#64;internal
- * Sharing is channel configuration, not agent behavior (decision 011):
- * applying an agent manifest never touches a share, and the share has its
- * own writer, lifecycle, and change cadence. Guest admission is enforced
- * app-level in the shared-profile/mint/create-time gates — a share writes
- * NO FGA visibility tuples, because a public wildcard viewer tuple would
- * expose the referenced agent's full blueprint (instructions included) to
- * any authenticated account, conflating blueprint visibility with chat
- * access. The overview.md file provides the SDK-facing description and
- * example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentshare.v1.AgentShareSpec}
@@ -82,16 +71,6 @@ private static final long serialVersionUID = 0L;
    * offers an agent its own organization owns, billed to that organization,
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
-   *
-   * &#64;internal
-   * agent_ref.org must equal metadata.org, enforced app-level in both
-   * editions (spec-level CEL cannot see metadata.org), the same rule the
-   * schedule and channel kinds apply to their agent reference. The sharing
-   * org is the billing org (decision 001) and guest tool credentials
-   * resolve in the share's org (secrets never cross orgs — org A's
-   * environments are structurally unreachable from org B's executions via
-   * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-   * against slug-reuse rebind.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -109,16 +88,6 @@ private static final long serialVersionUID = 0L;
    * offers an agent its own organization owns, billed to that organization,
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
-   *
-   * &#64;internal
-   * agent_ref.org must equal metadata.org, enforced app-level in both
-   * editions (spec-level CEL cannot see metadata.org), the same rule the
-   * schedule and channel kinds apply to their agent reference. The sharing
-   * org is the billing org (decision 001) and guest tool credentials
-   * resolve in the share's org (secrets never cross orgs — org A's
-   * environments are structurally unreachable from org B's executions via
-   * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-   * against slug-reuse rebind.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -136,16 +105,6 @@ private static final long serialVersionUID = 0L;
    * offers an agent its own organization owns, billed to that organization,
    * with tool credentials bound from it. To share another organization's
    * agent, install the plugin that carries it and share the installed copy.
-   *
-   * &#64;internal
-   * agent_ref.org must equal metadata.org, enforced app-level in both
-   * editions (spec-level CEL cannot see metadata.org), the same rule the
-   * schedule and channel kinds apply to their agent reference. The sharing
-   * org is the billing org (decision 001) and guest tool credentials
-   * resolve in the share's org (secrets never cross orgs — org A's
-   * environments are structurally unreachable from org B's executions via
-   * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-   * against slug-reuse rebind.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -185,14 +144,6 @@ private static final long serialVersionUID = 0L;
    * To keep a share org-only, audience must be present in every apply:
    * update/apply replace the spec wholesale, so a manifest that sets
    * enabled without audience resets the share to public.
-   *
-   * &#64;internal
-   * Org audience is enforced cloud-side only (org membership is a
-   * multi-tenant IAM concept): the guest mint and public profile handlers
-   * treat audience=org as NOT_FOUND, and the create-time blueprint gate
-   * admits authenticated org members via an app-level FGA member check
-   * (no visibility tuples written). The OSS single-user server stores and
-   * echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -209,14 +160,6 @@ private static final long serialVersionUID = 0L;
    * To keep a share org-only, audience must be present in every apply:
    * update/apply replace the spec wholesale, so a manifest that sets
    * enabled without audience resets the share to public.
-   *
-   * &#64;internal
-   * Org audience is enforced cloud-side only (org membership is a
-   * multi-tenant IAM concept): the guest mint and public profile handlers
-   * treat audience=org as NOT_FOUND, and the create-time blueprint gate
-   * admits authenticated org members via an app-level FGA member check
-   * (no visibility tuples written). The OSS single-user server stores and
-   * echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -239,22 +182,6 @@ private static final long serialVersionUID = 0L;
    * for example "https://docs.example.com". An empty list allows embedding
    * from any site; listing origins restricts embedding to those sites. The
    * first-party hosted chat page is always exempt.
-   *
-   * &#64;internal
-   * Enforced since T04 against the embed_origin the widget reports at
-   * mintGuestToken time (stamped into the guest JWT as a claim) and
-   * re-validated against this live list by the guest create-time gate
-   * (SharedSessionBlueprintAccess) on every session/execution create — the
-   * same gate that re-checks enabled, so revocation latency is identical
-   * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-   * the self-report against the request's browser-enforced Origin header
-   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-   * authoritative origin — a lying or omitted embed_origin no longer
-   * bypasses this list — while requests from Stigmer's own hosted page
-   * keep the widget's browser-authentic self-report as the embedder
-   * signal. Exact origins only — loosening to wildcards later is a
-   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -272,22 +199,6 @@ private static final long serialVersionUID = 0L;
    * for example "https://docs.example.com". An empty list allows embedding
    * from any site; listing origins restricts embedding to those sites. The
    * first-party hosted chat page is always exempt.
-   *
-   * &#64;internal
-   * Enforced since T04 against the embed_origin the widget reports at
-   * mintGuestToken time (stamped into the guest JWT as a claim) and
-   * re-validated against this live list by the guest create-time gate
-   * (SharedSessionBlueprintAccess) on every session/execution create — the
-   * same gate that re-checks enabled, so revocation latency is identical
-   * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-   * the self-report against the request's browser-enforced Origin header
-   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-   * authoritative origin — a lying or omitted embed_origin no longer
-   * bypasses this list — while requests from Stigmer's own hosted page
-   * keep the widget's browser-authentic self-report as the embedder
-   * signal. Exact origins only — loosening to wildcards later is a
-   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -304,22 +215,6 @@ private static final long serialVersionUID = 0L;
    * for example "https://docs.example.com". An empty list allows embedding
    * from any site; listing origins restricts embedding to those sites. The
    * first-party hosted chat page is always exempt.
-   *
-   * &#64;internal
-   * Enforced since T04 against the embed_origin the widget reports at
-   * mintGuestToken time (stamped into the guest JWT as a claim) and
-   * re-validated against this live list by the guest create-time gate
-   * (SharedSessionBlueprintAccess) on every session/execution create — the
-   * same gate that re-checks enabled, so revocation latency is identical
-   * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-   * the self-report against the request's browser-enforced Origin header
-   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-   * authoritative origin — a lying or omitted embed_origin no longer
-   * bypasses this list — while requests from Stigmer's own hosted page
-   * keep the widget's browser-authentic self-report as the embedder
-   * signal. Exact origins only — loosening to wildcards later is a
-   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -337,22 +232,6 @@ private static final long serialVersionUID = 0L;
    * for example "https://docs.example.com". An empty list allows embedding
    * from any site; listing origins restricts embedding to those sites. The
    * first-party hosted chat page is always exempt.
-   *
-   * &#64;internal
-   * Enforced since T04 against the embed_origin the widget reports at
-   * mintGuestToken time (stamped into the guest JWT as a claim) and
-   * re-validated against this live list by the guest create-time gate
-   * (SharedSessionBlueprintAccess) on every session/execution create — the
-   * same gate that re-checks enabled, so revocation latency is identical
-   * (immediate). Unframed hosted-page visitors report no origin and are
-   * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-   * the self-report against the request's browser-enforced Origin header
-   * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-   * authoritative origin — a lying or omitted embed_origin no longer
-   * bypasses this list — while requests from Stigmer's own hosted page
-   * keep the widget's browser-authentic self-report as the embedder
-   * signal. Exact origins only — loosening to wildcards later is a
-   * non-breaking change, tightening would not be.
    * </pre>
    *
    * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -370,12 +249,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Owner-customizable copy shown to visitors when a launch-gate limit
    * refuses their message. Unset fields fall back to platform defaults.
-   *
-   * &#64;internal
-   * Resolved server-side at the refusal point and carried in the gRPC
-   * status description — deliberately NOT surfaced on SharedAgentProfile
-   * and NOT mapped client-side, so the copy reaches every client (web,
-   * embed, CLI) through the existing error-message path.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -389,12 +262,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Owner-customizable copy shown to visitors when a launch-gate limit
    * refuses their message. Unset fields fall back to platform defaults.
-   *
-   * &#64;internal
-   * Resolved server-side at the refusal point and carried in the gRPC
-   * status description — deliberately NOT surfaced on SharedAgentProfile
-   * and NOT mapped client-side, so the copy reaches every client (web,
-   * embed, CLI) through the existing error-message path.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -408,12 +275,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Owner-customizable copy shown to visitors when a launch-gate limit
    * refuses their message. Unset fields fall back to platform defaults.
-   *
-   * &#64;internal
-   * Resolved server-side at the refusal point and carried in the gRPC
-   * status description — deliberately NOT surfaced on SharedAgentProfile
-   * and NOT mapped client-side, so the copy reaches every client (web,
-   * embed, CLI) through the existing error-message path.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -436,18 +297,6 @@ private static final long serialVersionUID = 0L;
    * example a read-only API token), and guest executions receive its
    * values at runtime. The agent and its default instance stay untouched.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * Resolved in the share's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-   * must be visibility_org in the share's org, or the merge skips it with
-   * a diagnostic. Merged at guest execution-context build time only —
-   * never bound to the agent's system-managed default instance, which is
-   * recreated empty on lifecycle events and shared by every org member's
-   * casual chat (decision 011). Org-audience shares reject this field via
-   * the message-level CEL rule: member sessions carry no share linkage in
-   * Phase A, so bound credentials would silently never apply.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -466,18 +315,6 @@ private static final long serialVersionUID = 0L;
    * example a read-only API token), and guest executions receive its
    * values at runtime. The agent and its default instance stay untouched.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * Resolved in the share's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-   * must be visibility_org in the share's org, or the merge skips it with
-   * a diagnostic. Merged at guest execution-context build time only —
-   * never bound to the agent's system-managed default instance, which is
-   * recreated empty on lifecycle events and shared by every org member's
-   * casual chat (decision 011). Org-audience shares reject this field via
-   * the message-level CEL rule: member sessions carry no share linkage in
-   * Phase A, so bound credentials would silently never apply.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -497,18 +334,6 @@ private static final long serialVersionUID = 0L;
    * example a read-only API token), and guest executions receive its
    * values at runtime. The agent and its default instance stay untouched.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * Resolved in the share's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-   * must be visibility_org in the share's org, or the merge skips it with
-   * a diagnostic. Merged at guest execution-context build time only —
-   * never bound to the agent's system-managed default instance, which is
-   * recreated empty on lifecycle events and shared by every org member's
-   * casual chat (decision 011). Org-audience shares reject this field via
-   * the message-level CEL rule: member sessions carry no share linkage in
-   * Phase A, so bound credentials would silently never apply.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -527,18 +352,6 @@ private static final long serialVersionUID = 0L;
    * example a read-only API token), and guest executions receive its
    * values at runtime. The agent and its default instance stay untouched.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * Resolved in the share's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-   * must be visibility_org in the share's org, or the merge skips it with
-   * a diagnostic. Merged at guest execution-context build time only —
-   * never bound to the agent's system-managed default instance, which is
-   * recreated empty on lifecycle events and shared by every org member's
-   * casual chat (decision 011). Org-audience shares reject this field via
-   * the message-level CEL rule: member sessions carry no share linkage in
-   * Phase A, so bound credentials would silently never apply.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -557,18 +370,6 @@ private static final long serialVersionUID = 0L;
    * example a read-only API token), and guest executions receive its
    * values at runtime. The agent and its default instance stay untouched.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * Resolved in the share's org through the org-shared environment
-   * resolution seam (EnvironmentRuntimeResolutionService /
-   * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-   * must be visibility_org in the share's org, or the merge skips it with
-   * a diagnostic. Merged at guest execution-context build time only —
-   * never bound to the agent's system-managed default instance, which is
-   * recreated empty on lifecycle events and shared by every org member's
-   * casual chat (decision 011). Org-audience shares reject this field via
-   * the message-level CEL rule: member sessions carry no share linkage in
-   * Phase A, so bound credentials would silently never apply.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -591,19 +392,6 @@ private static final long serialVersionUID = 0L;
    * only lower the platform caps — a share owner can reduce what one
    * guest turn may spend, never raise it past the platform profile.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-   * OWNER's stored config, not the guest's: the guest scope step still
-   * discards caller-supplied execution_config unconditionally, then
-   * merges this field — loaded server-side from the share — over the
-   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-   * promise recorded on GuestExecutionProfileProperties). The trust
-   * posture is unchanged. Org-audience shares reject the field via the
-   * message-level CEL rule for the same reason as environment_refs:
-   * member sessions carry no share linkage, so it would be stored but
-   * silently never applied. Enforcement is cloud-only — guest runtime
-   * is a cloud concept; OSS stores and echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -623,19 +411,6 @@ private static final long serialVersionUID = 0L;
    * only lower the platform caps — a share owner can reduce what one
    * guest turn may spend, never raise it past the platform profile.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-   * OWNER's stored config, not the guest's: the guest scope step still
-   * discards caller-supplied execution_config unconditionally, then
-   * merges this field — loaded server-side from the share — over the
-   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-   * promise recorded on GuestExecutionProfileProperties). The trust
-   * posture is unchanged. Org-audience shares reject the field via the
-   * message-level CEL rule for the same reason as environment_refs:
-   * member sessions carry no share linkage, so it would be stored but
-   * silently never applied. Enforcement is cloud-only — guest runtime
-   * is a cloud concept; OSS stores and echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -655,19 +430,6 @@ private static final long serialVersionUID = 0L;
    * only lower the platform caps — a share owner can reduce what one
    * guest turn may spend, never raise it past the platform profile.
    * Valid on public-audience shares only.
-   *
-   * &#64;internal
-   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-   * OWNER's stored config, not the guest's: the guest scope step still
-   * discards caller-supplied execution_config unconditionally, then
-   * merges this field — loaded server-side from the share — over the
-   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-   * promise recorded on GuestExecutionProfileProperties). The trust
-   * posture is unchanged. Org-audience shares reject the field via the
-   * message-level CEL rule for the same reason as environment_refs:
-   * member sessions carry no share linkage, so it would be stored but
-   * silently never applied. Enforcement is cloud-only — guest runtime
-   * is a cloud concept; OSS stores and echoes the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -935,17 +697,6 @@ private static final long serialVersionUID = 0L;
    * A share is a distribution channel for an agent's hosted chat experience.
    * It carries its own audience, embed origins, visitor-facing messages, and
    * tool credentials — all independent of the agent blueprint it references.
-   *
-   * &#64;internal
-   * Sharing is channel configuration, not agent behavior (decision 011):
-   * applying an agent manifest never touches a share, and the share has its
-   * own writer, lifecycle, and change cadence. Guest admission is enforced
-   * app-level in the shared-profile/mint/create-time gates — a share writes
-   * NO FGA visibility tuples, because a public wildcard viewer tuple would
-   * expose the referenced agent's full blueprint (instructions included) to
-   * any authenticated account, conflating blueprint visibility with chat
-   * access. The overview.md file provides the SDK-facing description and
-   * example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentshare.v1.AgentShareSpec}
@@ -1260,16 +1011,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1286,16 +1027,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1316,16 +1047,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1351,16 +1072,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1384,16 +1095,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1424,16 +1125,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1456,16 +1147,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1483,16 +1164,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1513,16 +1184,6 @@ private static final long serialVersionUID = 0L;
      * offers an agent its own organization owns, billed to that organization,
      * with tool credentials bound from it. To share another organization's
      * agent, install the plugin that carries it and share the installed copy.
-     *
-     * &#64;internal
-     * agent_ref.org must equal metadata.org, enforced app-level in both
-     * editions (spec-level CEL cannot see metadata.org), the same rule the
-     * schedule and channel kinds apply to their agent reference. The sharing
-     * org is the billing org (decision 001) and guest tool credentials
-     * resolve in the share's org (secrets never cross orgs — org A's
-     * environments are structurally unreachable from org B's executions via
-     * OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
-     * against slug-reuse rebind.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [json_name = "agentRef", (.buf.validate.field) = { ... }</code>
@@ -1609,14 +1270,6 @@ private static final long serialVersionUID = 0L;
      * To keep a share org-only, audience must be present in every apply:
      * update/apply replace the spec wholesale, so a manifest that sets
      * enabled without audience resets the share to public.
-     *
-     * &#64;internal
-     * Org audience is enforced cloud-side only (org membership is a
-     * multi-tenant IAM concept): the guest mint and public profile handlers
-     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
-     * admits authenticated org members via an app-level FGA member check
-     * (no visibility tuples written). The OSS single-user server stores and
-     * echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -1633,14 +1286,6 @@ private static final long serialVersionUID = 0L;
      * To keep a share org-only, audience must be present in every apply:
      * update/apply replace the spec wholesale, so a manifest that sets
      * enabled without audience resets the share to public.
-     *
-     * &#64;internal
-     * Org audience is enforced cloud-side only (org membership is a
-     * multi-tenant IAM concept): the guest mint and public profile handlers
-     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
-     * admits authenticated org members via an app-level FGA member check
-     * (no visibility tuples written). The OSS single-user server stores and
-     * echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -1662,14 +1307,6 @@ private static final long serialVersionUID = 0L;
      * To keep a share org-only, audience must be present in every apply:
      * update/apply replace the spec wholesale, so a manifest that sets
      * enabled without audience resets the share to public.
-     *
-     * &#64;internal
-     * Org audience is enforced cloud-side only (org membership is a
-     * multi-tenant IAM concept): the guest mint and public profile handlers
-     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
-     * admits authenticated org members via an app-level FGA member check
-     * (no visibility tuples written). The OSS single-user server stores and
-     * echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -1688,14 +1325,6 @@ private static final long serialVersionUID = 0L;
      * To keep a share org-only, audience must be present in every apply:
      * update/apply replace the spec wholesale, so a manifest that sets
      * enabled without audience resets the share to public.
-     *
-     * &#64;internal
-     * Org audience is enforced cloud-side only (org membership is a
-     * multi-tenant IAM concept): the guest mint and public profile handlers
-     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
-     * admits authenticated org members via an app-level FGA member check
-     * (no visibility tuples written). The OSS single-user server stores and
-     * echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -1717,14 +1346,6 @@ private static final long serialVersionUID = 0L;
      * To keep a share org-only, audience must be present in every apply:
      * update/apply replace the spec wholesale, so a manifest that sets
      * enabled without audience resets the share to public.
-     *
-     * &#64;internal
-     * Org audience is enforced cloud-side only (org membership is a
-     * multi-tenant IAM concept): the guest mint and public profile handlers
-     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
-     * admits authenticated org members via an app-level FGA member check
-     * (no visibility tuples written). The OSS single-user server stores and
-     * echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -1753,22 +1374,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -1787,22 +1392,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -1819,22 +1408,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -1852,22 +1425,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -1886,22 +1443,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -1926,22 +1467,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -1965,22 +1490,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -2004,22 +1513,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -2040,22 +1533,6 @@ private static final long serialVersionUID = 0L;
      * for example "https://docs.example.com". An empty list allows embedding
      * from any site; listing origins restricts embedding to those sites. The
      * first-party hosted chat page is always exempt.
-     *
-     * &#64;internal
-     * Enforced since T04 against the embed_origin the widget reports at
-     * mintGuestToken time (stamped into the guest JWT as a claim) and
-     * re-validated against this live list by the guest create-time gate
-     * (SharedSessionBlueprintAccess) on every session/execution create — the
-     * same gate that re-checks enabled, so revocation latency is identical
-     * (immediate). Unframed hosted-page visitors report no origin and are
-     * exempt by construction. Since stigmer-cloud#341 both gates cross-check
-     * the self-report against the request's browser-enforced Origin header
-     * (SharingRequestOriginPolicy): for direct SDK embeds the header is the
-     * authoritative origin — a lying or omitted embed_origin no longer
-     * bypasses this list — while requests from Stigmer's own hosted page
-     * keep the widget's browser-authentic self-report as the embedder
-     * signal. Exact origins only — loosening to wildcards later is a
-     * non-breaking change, tightening would not be.
      * </pre>
      *
      * <code>repeated string allowed_origins = 4 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
@@ -2080,12 +1557,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2098,12 +1569,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2120,12 +1585,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2147,12 +1606,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2172,12 +1625,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2204,12 +1651,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2228,12 +1669,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2247,12 +1682,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2269,12 +1698,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Owner-customizable copy shown to visitors when a launch-gate limit
      * refuses their message. Unset fields fall back to platform defaults.
-     *
-     * &#64;internal
-     * Resolved server-side at the refusal point and carried in the gRPC
-     * status description — deliberately NOT surfaced on SharedAgentProfile
-     * and NOT mapped client-side, so the copy reaches every client (web,
-     * embed, CLI) through the existing error-message path.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareMessages messages = 5 [json_name = "messages"];</code>
@@ -2315,18 +1738,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2348,18 +1759,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2381,18 +1780,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2414,18 +1801,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2454,18 +1829,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2491,18 +1854,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2530,18 +1881,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2570,18 +1909,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2607,18 +1934,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2644,18 +1959,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2682,18 +1985,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2718,18 +2009,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2754,18 +2033,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2784,18 +2051,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2817,18 +2072,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2851,18 +2094,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2881,18 +2112,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2912,18 +2131,6 @@ private static final long serialVersionUID = 0L;
      * example a read-only API token), and guest executions receive its
      * values at runtime. The agent and its default instance stay untouched.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * Resolved in the share's org through the org-shared environment
-     * resolution seam (EnvironmentRuntimeResolutionService /
-     * OrgSharedEnvironmentPolicy — decision 006): each referenced environment
-     * must be visibility_org in the share's org, or the merge skips it with
-     * a diagnostic. Merged at guest execution-context build time only —
-     * never bound to the agent's system-managed default instance, which is
-     * recreated empty on lifecycle events and shared by every org member's
-     * casual chat (decision 011). Org-audience shares reject this field via
-     * the message-level CEL rule: member sessions carry no share linkage in
-     * Phase A, so bound credentials would silently never apply.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -2960,19 +2167,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -2991,19 +2185,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -3026,19 +2207,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -3066,19 +2234,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -3104,19 +2259,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -3149,19 +2291,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -3186,19 +2315,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -3218,19 +2334,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
@@ -3253,19 +2356,6 @@ private static final long serialVersionUID = 0L;
      * only lower the platform caps — a share owner can reduce what one
      * guest turn may spend, never raise it past the platform profile.
      * Valid on public-audience shares only.
-     *
-     * &#64;internal
-     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
-     * OWNER's stored config, not the guest's: the guest scope step still
-     * discards caller-supplied execution_config unconditionally, then
-     * merges this field — loaded server-side from the share — over the
-     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
-     * promise recorded on GuestExecutionProfileProperties). The trust
-     * posture is unchanged. Org-audience shares reject the field via the
-     * message-level CEL rule for the same reason as environment_refs:
-     * member sessions carry no share linkage, so it would be stored but
-     * silently never applied. Enforcement is cloud-only — guest runtime
-     * is a cloud concept; OSS stores and echoes the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>

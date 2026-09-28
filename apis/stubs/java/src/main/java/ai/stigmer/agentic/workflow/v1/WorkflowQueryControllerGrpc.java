@@ -222,9 +222,6 @@ public final class WorkflowQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -238,10 +235,6 @@ public final class WorkflowQueryControllerGrpc {
      * Returns all historical versions ordered by applied_at (newest first).
      * Each entry includes the version hash, applied timestamp, actor, tag,
      * git provenance, and the validated CNCF YAML for historical access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the workflow.
-     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-     * &#64;since Workflow Versioning
      * </pre>
      */
     default void listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request,
@@ -254,9 +247,6 @@ public final class WorkflowQueryControllerGrpc {
      * Get a specific historical version of a workflow by its content hash.
      * Used by the runner (to hydrate execution from a pinned version) and
      * the execution viewer (to render the graph for historical executions).
-     * &#64;internal
-     * Authorization uses can_view on the workflow resource.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     default void getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request,
@@ -316,9 +306,6 @@ public final class WorkflowQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -333,10 +320,6 @@ public final class WorkflowQueryControllerGrpc {
      * Returns all historical versions ordered by applied_at (newest first).
      * Each entry includes the version hash, applied timestamp, actor, tag,
      * git provenance, and the validated CNCF YAML for historical access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the workflow.
-     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public void listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request,
@@ -350,9 +333,6 @@ public final class WorkflowQueryControllerGrpc {
      * Get a specific historical version of a workflow by its content hash.
      * Used by the runner (to hydrate execution from a pinned version) and
      * the execution viewer (to render the graph for historical executions).
-     * &#64;internal
-     * Authorization uses can_view on the workflow resource.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public void getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request,
@@ -398,9 +378,6 @@ public final class WorkflowQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -414,10 +391,6 @@ public final class WorkflowQueryControllerGrpc {
      * Returns all historical versions ordered by applied_at (newest first).
      * Each entry includes the version hash, applied timestamp, actor, tag,
      * git provenance, and the validated CNCF YAML for historical access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the workflow.
-     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request) throws io.grpc.StatusException {
@@ -430,9 +403,6 @@ public final class WorkflowQueryControllerGrpc {
      * Get a specific historical version of a workflow by its content hash.
      * Used by the runner (to hydrate execution from a pinned version) and
      * the execution viewer (to render the graph for historical executions).
-     * &#64;internal
-     * Authorization uses can_view on the workflow resource.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request) throws io.grpc.StatusException {
@@ -477,9 +447,6 @@ public final class WorkflowQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -493,10 +460,6 @@ public final class WorkflowQueryControllerGrpc {
      * Returns all historical versions ordered by applied_at (newest first).
      * Each entry includes the version hash, applied timestamp, actor, tag,
      * git provenance, and the validated CNCF YAML for historical access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the workflow.
-     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse listVersions(ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsInput request) {
@@ -509,9 +472,6 @@ public final class WorkflowQueryControllerGrpc {
      * Get a specific historical version of a workflow by its content hash.
      * Used by the runner (to hydrate execution from a pinned version) and
      * the execution viewer (to render the graph for historical executions).
-     * &#64;internal
-     * Authorization uses can_view on the workflow resource.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request) {
@@ -557,9 +517,6 @@ public final class WorkflowQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> getByReference(
@@ -574,10 +531,6 @@ public final class WorkflowQueryControllerGrpc {
      * Returns all historical versions ordered by applied_at (newest first).
      * Each entry includes the version hash, applied timestamp, actor, tag,
      * git provenance, and the validated CNCF YAML for historical access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the workflow.
-     * (Input uses org+slug, not workflow ID, so proto-level auth cannot work)
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.ListWorkflowVersionsResponse> listVersions(
@@ -591,9 +544,6 @@ public final class WorkflowQueryControllerGrpc {
      * Get a specific historical version of a workflow by its content hash.
      * Used by the runner (to hydrate execution from a pinned version) and
      * the execution viewer (to render the graph for historical executions).
-     * &#64;internal
-     * Authorization uses can_view on the workflow resource.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> getVersion(

@@ -8,9 +8,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * A license carries a customer's name and a ticket that unlocks a server, so
  * every read is a platform operator act on the static platform target, with
  * the same permission that issues.
- * &#64;internal
- * Served by the cloud composition only (the kind is cloud_only). Authorizes
- * against platform:stigmer with can_issue_license.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -148,9 +145,6 @@ public final class LicenseQueryControllerGrpc {
    * A license carries a customer's name and a ticket that unlocks a server, so
    * every read is a platform operator act on the static platform target, with
    * the same permission that issues.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license.
    * </pre>
    */
   public interface AsyncService {
@@ -183,9 +177,6 @@ public final class LicenseQueryControllerGrpc {
    * A license carries a customer's name and a ticket that unlocks a server, so
    * every read is a platform operator act on the static platform target, with
    * the same permission that issues.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license.
    * </pre>
    */
   public static abstract class LicenseQueryControllerImplBase
@@ -203,9 +194,6 @@ public final class LicenseQueryControllerGrpc {
    * A license carries a customer's name and a ticket that unlocks a server, so
    * every read is a platform operator act on the static platform target, with
    * the same permission that issues.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license.
    * </pre>
    */
   public static final class LicenseQueryControllerStub
@@ -251,9 +239,6 @@ public final class LicenseQueryControllerGrpc {
    * A license carries a customer's name and a ticket that unlocks a server, so
    * every read is a platform operator act on the static platform target, with
    * the same permission that issues.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license.
    * </pre>
    */
   public static final class LicenseQueryControllerBlockingV2Stub
@@ -297,9 +282,6 @@ public final class LicenseQueryControllerGrpc {
    * A license carries a customer's name and a ticket that unlocks a server, so
    * every read is a platform operator act on the static platform target, with
    * the same permission that issues.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license.
    * </pre>
    */
   public static final class LicenseQueryControllerBlockingStub
@@ -343,9 +325,6 @@ public final class LicenseQueryControllerGrpc {
    * A license carries a customer's name and a ticket that unlocks a server, so
    * every read is a platform operator act on the static platform target, with
    * the same permission that issues.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license.
    * </pre>
    */
   public static final class LicenseQueryControllerFutureStub

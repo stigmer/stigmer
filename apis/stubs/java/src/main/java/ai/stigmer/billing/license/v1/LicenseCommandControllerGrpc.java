@@ -10,12 +10,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Issuing is a platform operator act on the static platform target. A
  * self-serve trial door, if one is offered, is a separate public entry the
  * issuer adds beside this controller; it is not this RPC relaxed.
- * &#64;internal
- * Served by the cloud composition only (the kind is cloud_only). Authorizes
- * against platform:stigmer with can_issue_license; the relation lands in
- * the authorization model with the entry that serves the kind. The
- * issuer signs with an Ed25519 key held in the platform's vault, distinct
- * from the runtime token-signing key, and records the ticket in the status.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -124,12 +118,6 @@ public final class LicenseCommandControllerGrpc {
    * Issuing is a platform operator act on the static platform target. A
    * self-serve trial door, if one is offered, is a separate public entry the
    * issuer adds beside this controller; it is not this RPC relaxed.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license; the relation lands in
-   * the authorization model with the entry that serves the kind. The
-   * issuer signs with an Ed25519 key held in the platform's vault, distinct
-   * from the runtime token-signing key, and records the ticket in the status.
    * </pre>
    */
   public interface AsyncService {
@@ -157,12 +145,6 @@ public final class LicenseCommandControllerGrpc {
    * Issuing is a platform operator act on the static platform target. A
    * self-serve trial door, if one is offered, is a separate public entry the
    * issuer adds beside this controller; it is not this RPC relaxed.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license; the relation lands in
-   * the authorization model with the entry that serves the kind. The
-   * issuer signs with an Ed25519 key held in the platform's vault, distinct
-   * from the runtime token-signing key, and records the ticket in the status.
    * </pre>
    */
   public static abstract class LicenseCommandControllerImplBase
@@ -182,12 +164,6 @@ public final class LicenseCommandControllerGrpc {
    * Issuing is a platform operator act on the static platform target. A
    * self-serve trial door, if one is offered, is a separate public entry the
    * issuer adds beside this controller; it is not this RPC relaxed.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license; the relation lands in
-   * the authorization model with the entry that serves the kind. The
-   * issuer signs with an Ed25519 key held in the platform's vault, distinct
-   * from the runtime token-signing key, and records the ticket in the status.
    * </pre>
    */
   public static final class LicenseCommandControllerStub
@@ -227,12 +203,6 @@ public final class LicenseCommandControllerGrpc {
    * Issuing is a platform operator act on the static platform target. A
    * self-serve trial door, if one is offered, is a separate public entry the
    * issuer adds beside this controller; it is not this RPC relaxed.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license; the relation lands in
-   * the authorization model with the entry that serves the kind. The
-   * issuer signs with an Ed25519 key held in the platform's vault, distinct
-   * from the runtime token-signing key, and records the ticket in the status.
    * </pre>
    */
   public static final class LicenseCommandControllerBlockingV2Stub
@@ -271,12 +241,6 @@ public final class LicenseCommandControllerGrpc {
    * Issuing is a platform operator act on the static platform target. A
    * self-serve trial door, if one is offered, is a separate public entry the
    * issuer adds beside this controller; it is not this RPC relaxed.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license; the relation lands in
-   * the authorization model with the entry that serves the kind. The
-   * issuer signs with an Ed25519 key held in the platform's vault, distinct
-   * from the runtime token-signing key, and records the ticket in the status.
    * </pre>
    */
   public static final class LicenseCommandControllerBlockingStub
@@ -315,12 +279,6 @@ public final class LicenseCommandControllerGrpc {
    * Issuing is a platform operator act on the static platform target. A
    * self-serve trial door, if one is offered, is a separate public entry the
    * issuer adds beside this controller; it is not this RPC relaxed.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). Authorizes
-   * against platform:stigmer with can_issue_license; the relation lands in
-   * the authorization model with the entry that serves the kind. The
-   * issuer signs with an Ed25519 key held in the platform's vault, distinct
-   * from the runtime token-signing key, and records the ticket in the status.
    * </pre>
    */
   public static final class LicenseCommandControllerFutureStub

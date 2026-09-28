@@ -8,13 +8,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * The baseline workspace state captured at turn start.
- *
- * &#64;internal
- * Authored by the runner's turn-begin capture activity. The first event of a
- * change set's lifecycle; carries the change set's stable identity so the
- * projection can materialize the set before any candidate exists.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured}
@@ -437,13 +430,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The baseline workspace state captured at turn start.
-   *
-   * &#64;internal
-   * Authored by the runner's turn-begin capture activity. The first event of a
-   * change set's lifecycle; carries the change set's stable identity so the
-   * projection can materialize the set before any candidate exists.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured}

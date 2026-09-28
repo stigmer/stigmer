@@ -9,8 +9,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Platform-gated like the command controller: even redacted, the resource
  * reveals team structure and per-member spend, which are
  * platform-internal.
- * &#64;internal
- * Cloud-only; not implemented by the OSS Go server.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -149,8 +147,6 @@ public final class CursorAccountQueryControllerGrpc {
    * Platform-gated like the command controller: even redacted, the resource
    * reveals team structure and per-member spend, which are
    * platform-internal.
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public interface AsyncService {
@@ -188,8 +184,6 @@ public final class CursorAccountQueryControllerGrpc {
    * Platform-gated like the command controller: even redacted, the resource
    * reveals team structure and per-member spend, which are
    * platform-internal.
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static abstract class CursorAccountQueryControllerImplBase
@@ -208,8 +202,6 @@ public final class CursorAccountQueryControllerGrpc {
    * Platform-gated like the command controller: even redacted, the resource
    * reveals team structure and per-member spend, which are
    * platform-internal.
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class CursorAccountQueryControllerStub
@@ -260,8 +252,6 @@ public final class CursorAccountQueryControllerGrpc {
    * Platform-gated like the command controller: even redacted, the resource
    * reveals team structure and per-member spend, which are
    * platform-internal.
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class CursorAccountQueryControllerBlockingV2Stub
@@ -310,8 +300,6 @@ public final class CursorAccountQueryControllerGrpc {
    * Platform-gated like the command controller: even redacted, the resource
    * reveals team structure and per-member spend, which are
    * platform-internal.
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class CursorAccountQueryControllerBlockingStub
@@ -360,8 +348,6 @@ public final class CursorAccountQueryControllerGrpc {
    * Platform-gated like the command controller: even redacted, the resource
    * reveals team structure and per-member spend, which are
    * platform-internal.
-   * &#64;internal
-   * Cloud-only; not implemented by the OSS Go server.
    * </pre>
    */
   public static final class CursorAccountQueryControllerFutureStub

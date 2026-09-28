@@ -9,8 +9,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Every read is keyed by the organization, because an organization has at
  * most one active subscription, and authorizes on the organization with
  * can_view_billing, the permission the billing account's reads use.
- * &#64;internal
- * Served by the cloud composition only (the kind is cloud_only).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -180,8 +178,6 @@ public final class SubscriptionQueryControllerGrpc {
    * Every read is keyed by the organization, because an organization has at
    * most one active subscription, and authorizes on the organization with
    * can_view_billing, the permission the billing account's reads use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only).
    * </pre>
    */
   public interface AsyncService {
@@ -245,8 +241,6 @@ public final class SubscriptionQueryControllerGrpc {
    * Every read is keyed by the organization, because an organization has at
    * most one active subscription, and authorizes on the organization with
    * can_view_billing, the permission the billing account's reads use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only).
    * </pre>
    */
   public static abstract class SubscriptionQueryControllerImplBase
@@ -265,8 +259,6 @@ public final class SubscriptionQueryControllerGrpc {
    * Every read is keyed by the organization, because an organization has at
    * most one active subscription, and authorizes on the organization with
    * can_view_billing, the permission the billing account's reads use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only).
    * </pre>
    */
   public static final class SubscriptionQueryControllerStub
@@ -344,8 +336,6 @@ public final class SubscriptionQueryControllerGrpc {
    * Every read is keyed by the organization, because an organization has at
    * most one active subscription, and authorizes on the organization with
    * can_view_billing, the permission the billing account's reads use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only).
    * </pre>
    */
   public static final class SubscriptionQueryControllerBlockingV2Stub
@@ -420,8 +410,6 @@ public final class SubscriptionQueryControllerGrpc {
    * Every read is keyed by the organization, because an organization has at
    * most one active subscription, and authorizes on the organization with
    * can_view_billing, the permission the billing account's reads use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only).
    * </pre>
    */
   public static final class SubscriptionQueryControllerBlockingStub
@@ -496,8 +484,6 @@ public final class SubscriptionQueryControllerGrpc {
    * Every read is keyed by the organization, because an organization has at
    * most one active subscription, and authorizes on the organization with
    * can_view_billing, the permission the billing account's reads use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only).
    * </pre>
    */
   public static final class SubscriptionQueryControllerFutureStub

@@ -47,18 +47,6 @@ public interface AgentShareStatusOrBuilder extends
    * rotateShareLink RPC generates a fresh value, killing the old link
    * immediately. Applies to public-audience shares only (org-audience
    * access is governed by live membership instead).
-   *
-   * &#64;internal
-   * Server-generated (rotateShareLink is the sole writer) and deliberately
-   * in status, not spec: status survives every apply/update verbatim in
-   * both editions, so a routine manifest apply can never wipe the token
-   * and silently fail open to the guessable URL. Enforced with the
-   * allowed_origins pattern — validated at guest mint, stamped into the
-   * guest JWT, and re-validated against this live value on every
-   * session/execution create, so rotation revokes live guest tokens on
-   * their next message. Not a security boundary: rate limits and the org
-   * credit cap remain the abuse controls; this is a traffic lever for
-   * over-shared links.
    * </pre>
    *
    * <code>string share_link_token = 1 [json_name = "shareLinkToken"];</code>
@@ -75,18 +63,6 @@ public interface AgentShareStatusOrBuilder extends
    * rotateShareLink RPC generates a fresh value, killing the old link
    * immediately. Applies to public-audience shares only (org-audience
    * access is governed by live membership instead).
-   *
-   * &#64;internal
-   * Server-generated (rotateShareLink is the sole writer) and deliberately
-   * in status, not spec: status survives every apply/update verbatim in
-   * both editions, so a routine manifest apply can never wipe the token
-   * and silently fail open to the guessable URL. Enforced with the
-   * allowed_origins pattern — validated at guest mint, stamped into the
-   * guest JWT, and re-validated against this live value on every
-   * session/execution create, so rotation revokes live guest tokens on
-   * their next message. Not a security boundary: rate limits and the org
-   * credit cap remain the abuse controls; this is a traffic lever for
-   * over-shared links.
    * </pre>
    *
    * <code>string share_link_token = 1 [json_name = "shareLinkToken"];</code>
@@ -103,20 +79,6 @@ public interface AgentShareStatusOrBuilder extends
    * resolved to at creation. If that agent is deleted and a different one
    * is later created at the same org/slug, the share stops resolving
    * instead of silently attaching to the new agent.
-   *
-   * &#64;internal
-   * Server-owned rebind guard (decision 013): agent_ref is org+slug, and
-   * slugs are reusable after delete — without the pin, a stale share's
-   * audience, link token, and bound credentials would transfer to whatever
-   * agent later claims the slug. Stamped once at create (the defaults
-   * resolver already loads the referenced agent); immutable like agent_ref
-   * itself; in status so no apply can wipe or forge it (the
-   * share_link_token posture). Every share-resolution gate (shared
-   * profile, guest mint, create-time gate, runner elevation) verifies it
-   * WHEN PRESENT; shares created before this field exists carry an empty
-   * pin and are tolerated — the same-org delete cascade already guarantees
-   * a same-org share never outlives its agent, so no backfill is needed.
-   * Cross-org shares (Phase B) always carry the pin.
    * </pre>
    *
    * <code>string agent_id = 2 [json_name = "agentId"];</code>
@@ -131,20 +93,6 @@ public interface AgentShareStatusOrBuilder extends
    * resolved to at creation. If that agent is deleted and a different one
    * is later created at the same org/slug, the share stops resolving
    * instead of silently attaching to the new agent.
-   *
-   * &#64;internal
-   * Server-owned rebind guard (decision 013): agent_ref is org+slug, and
-   * slugs are reusable after delete — without the pin, a stale share's
-   * audience, link token, and bound credentials would transfer to whatever
-   * agent later claims the slug. Stamped once at create (the defaults
-   * resolver already loads the referenced agent); immutable like agent_ref
-   * itself; in status so no apply can wipe or forge it (the
-   * share_link_token posture). Every share-resolution gate (shared
-   * profile, guest mint, create-time gate, runner elevation) verifies it
-   * WHEN PRESENT; shares created before this field exists carry an empty
-   * pin and are tolerated — the same-org delete cascade already guarantees
-   * a same-org share never outlives its agent, so no backfill is needed.
-   * Cross-org shares (Phase B) always carry the pin.
    * </pre>
    *
    * <code>string agent_id = 2 [json_name = "agentId"];</code>

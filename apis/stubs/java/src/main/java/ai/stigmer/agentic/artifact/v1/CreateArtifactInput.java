@@ -8,23 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * CreateArtifactInput provides the data needed to create an artifact.
- *
- * &#64;internal
- * Used by the runner (stigmer-runner) to persist task outputs.
- * This is a system-level RPC — not exposed to end users or the SDK.
- *
- * The backend:
- * 1. Computes SHA-256 hash of content
- * 2. Checks if a blob with that hash already exists (deduplication)
- * 3. If not, writes blob to storage (filesystem in OSS, S3 in Cloud)
- * 4. Creates the Artifact metadata record
- * 5. Returns the created Artifact with status populated
- *
- * Size limit: 50MB per request. This matches Temporal's max history size
- * and covers all practical workflow task outputs. For larger artifacts,
- * multipart upload will be added in a future phase.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.CreateArtifactInput}
@@ -114,11 +97,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Raw artifact content bytes.
-   *
-   * &#64;internal
-   * Maximum size: 50MB (52,428,800 bytes).
-   * The backend computes the SHA-256 hash of this content for
-   * content-addressable storage and deduplication.
    * </pre>
    *
    * <code>bytes content = 2 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -305,23 +283,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * CreateArtifactInput provides the data needed to create an artifact.
-   *
-   * &#64;internal
-   * Used by the runner (stigmer-runner) to persist task outputs.
-   * This is a system-level RPC — not exposed to end users or the SDK.
-   *
-   * The backend:
-   * 1. Computes SHA-256 hash of content
-   * 2. Checks if a blob with that hash already exists (deduplication)
-   * 3. If not, writes blob to storage (filesystem in OSS, S3 in Cloud)
-   * 4. Creates the Artifact metadata record
-   * 5. Returns the created Artifact with status populated
-   *
-   * Size limit: 50MB per request. This matches Temporal's max history size
-   * and covers all practical workflow task outputs. For larger artifacts,
-   * multipart upload will be added in a future phase.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.CreateArtifactInput}
@@ -649,11 +610,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Raw artifact content bytes.
-     *
-     * &#64;internal
-     * Maximum size: 50MB (52,428,800 bytes).
-     * The backend computes the SHA-256 hash of this content for
-     * content-addressable storage and deduplication.
      * </pre>
      *
      * <code>bytes content = 2 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -666,11 +622,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Raw artifact content bytes.
-     *
-     * &#64;internal
-     * Maximum size: 50MB (52,428,800 bytes).
-     * The backend computes the SHA-256 hash of this content for
-     * content-addressable storage and deduplication.
      * </pre>
      *
      * <code>bytes content = 2 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -687,11 +638,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Raw artifact content bytes.
-     *
-     * &#64;internal
-     * Maximum size: 50MB (52,428,800 bytes).
-     * The backend computes the SHA-256 hash of this content for
-     * content-addressable storage and deduplication.
      * </pre>
      *
      * <code>bytes content = 2 [json_name = "content", (.buf.validate.field) = { ... }</code>

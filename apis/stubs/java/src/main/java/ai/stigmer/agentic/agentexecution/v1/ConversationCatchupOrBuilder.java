@@ -14,12 +14,6 @@ public interface ConversationCatchupOrBuilder extends
    * <pre>
    * Plain-text digest of what the agent missed, oldest first; empty when
    * nothing was missed.
-   *
-   * &#64;internal
-   * Bare content lines ("Customer: ..." / "Teammate: ..." / "System: ..." /
-   * "You escalated: ..." / "Note: ..."), no model-facing framing — the
-   * runner owns the preamble and the prompt placement. Blank means "inject
-   * nothing" (the shared-module blank-is-absent convention).
    * </pre>
    *
    * <code>string digest = 1 [json_name = "digest"];</code>
@@ -30,12 +24,6 @@ public interface ConversationCatchupOrBuilder extends
    * <pre>
    * Plain-text digest of what the agent missed, oldest first; empty when
    * nothing was missed.
-   *
-   * &#64;internal
-   * Bare content lines ("Customer: ..." / "Teammate: ..." / "System: ..." /
-   * "You escalated: ..." / "Note: ..."), no model-facing framing — the
-   * runner owns the preamble and the prompt placement. Blank means "inject
-   * nothing" (the shared-module blank-is-absent convention).
    * </pre>
    *
    * <code>string digest = 1 [json_name = "digest"];</code>
@@ -47,14 +35,6 @@ public interface ConversationCatchupOrBuilder extends
   /**
    * <pre>
    * The timeline instant this digest conveys through.
-   *
-   * &#64;internal
-   * Cloud bookkeeping, NEVER read by the runner. The delivery settle path
-   * advances the conversation's agent_witnessed_through watermark to this
-   * instant when the execution COMPLETED and the settle won (DD-007 D-b as
-   * sharpened by A26). Set on every channel turn, digest or not (A21); its
-   * value is the broker's compose instant, which is strictly later than the
-   * turn's own inbound message (A24).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp window_end = 2 [json_name = "windowEnd"];</code>
@@ -64,14 +44,6 @@ public interface ConversationCatchupOrBuilder extends
   /**
    * <pre>
    * The timeline instant this digest conveys through.
-   *
-   * &#64;internal
-   * Cloud bookkeeping, NEVER read by the runner. The delivery settle path
-   * advances the conversation's agent_witnessed_through watermark to this
-   * instant when the execution COMPLETED and the settle won (DD-007 D-b as
-   * sharpened by A26). Set on every channel turn, digest or not (A21); its
-   * value is the broker's compose instant, which is strictly later than the
-   * turn's own inbound message (A24).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp window_end = 2 [json_name = "windowEnd"];</code>
@@ -81,14 +53,6 @@ public interface ConversationCatchupOrBuilder extends
   /**
    * <pre>
    * The timeline instant this digest conveys through.
-   *
-   * &#64;internal
-   * Cloud bookkeeping, NEVER read by the runner. The delivery settle path
-   * advances the conversation's agent_witnessed_through watermark to this
-   * instant when the execution COMPLETED and the settle won (DD-007 D-b as
-   * sharpened by A26). Set on every channel turn, digest or not (A21); its
-   * value is the broker's compose instant, which is strictly later than the
-   * turn's own inbound message (A24).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp window_end = 2 [json_name = "windowEnd"];</code>

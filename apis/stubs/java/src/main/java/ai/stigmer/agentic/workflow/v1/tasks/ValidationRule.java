@@ -8,20 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * ValidationRule defines a business rule evaluated as a boolean expression.
- *
- * &#64;internal
- * Rules complement JSON Schema validation by expressing constraints that
- * schema alone cannot: cross-field dependencies, conditional requirements,
- * and domain-specific invariants.
- *
- * The expression must evaluate to a boolean. When it evaluates to false,
- * the rule is considered violated and the message (if provided) is included
- * in the validation error output.
- *
- * Expressions use the same expression engine as switch_case.when for
- * consistency across the workflow domain.
- *
- * &#64;since T03 (P0 New Task Types)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ValidationRule}
@@ -407,20 +393,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ValidationRule defines a business rule evaluated as a boolean expression.
-   *
-   * &#64;internal
-   * Rules complement JSON Schema validation by expressing constraints that
-   * schema alone cannot: cross-field dependencies, conditional requirements,
-   * and domain-specific invariants.
-   *
-   * The expression must evaluate to a boolean. When it evaluates to false,
-   * the rule is considered violated and the message (if provided) is included
-   * in the validation error output.
-   *
-   * Expressions use the same expression engine as switch_case.when for
-   * consistency across the workflow domain.
-   *
-   * &#64;since T03 (P0 New Task Types)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ValidationRule}

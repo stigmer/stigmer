@@ -14,12 +14,6 @@ package ai.stigmer.agentic.plugin.v1;
  * materialises ordinary Stigmer resources in the organization, each labelled
  * with the plugin's id; the plugin owns their grouping, version and removal
  * while execution, authorization and sharing stay on the resources.
- *
- * &#64;internal
- * Identity is the archive: the SHA-256 of the pushed ZIP is the version
- * (status.digest, metadata.version.id) and the previous head is archived on
- * every push, the skill discipline. Membership is derived on read from the
- * stigmer.ai/plugin label on the children and is never stored here.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.Plugin}
@@ -501,12 +495,6 @@ private static final long serialVersionUID = 0L;
    * materialises ordinary Stigmer resources in the organization, each labelled
    * with the plugin's id; the plugin owns their grouping, version and removal
    * while execution, authorization and sharing stay on the resources.
-   *
-   * &#64;internal
-   * Identity is the archive: the SHA-256 of the pushed ZIP is the version
-   * (status.digest, metadata.version.id) and the previous head is archived on
-   * every push, the skill discipline. Membership is derived on read from the
-   * stigmer.ai/plugin label on the children and is never stored here.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.Plugin}

@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * Agent defines an AI assistant's identity, tools, skills, and delegation model.
- *
- * &#64;internal
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.Agent}
@@ -482,8 +480,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Agent defines an AI assistant's identity, tools, skills, and delegation model.
-   *
-   * &#64;internal
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.Agent}

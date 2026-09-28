@@ -8,12 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.
- *
- * &#64;internal
- * Supports listing by either workflow_execution_id or agent_execution_id.
- * At least one must be provided.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest}
@@ -417,12 +411,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.
-   *
-   * &#64;internal
-   * Supports listing by either workflow_execution_id or agent_execution_id.
-   * At least one must be provided.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest}

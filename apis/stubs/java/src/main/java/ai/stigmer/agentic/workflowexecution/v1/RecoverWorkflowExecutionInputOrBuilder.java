@@ -13,9 +13,6 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
   /**
    * <pre>
    * Workflow execution ID to recover (must be in FAILED phase).
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface RecoverWorkflowExecutionInputOrBuilder extends
   /**
    * <pre>
    * Workflow execution ID to recover (must be in FAILED phase).
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>

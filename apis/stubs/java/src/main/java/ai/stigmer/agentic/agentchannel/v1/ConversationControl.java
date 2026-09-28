@@ -9,12 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ConversationControl names who may speak to the customer on a
  * conversation's public lane.
- *
- * &#64;internal
- * channel-conversations DD-002 (lane x control): exactly one holder at a
- * time; transitions are CAS-guarded through the participation writer
- * (DD-007 D-f). Values carry the control_ prefix — proto3 enum values are
- * package-scoped and bare names invite collisions (the receipt_ precedent).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ConversationControl}

@@ -109,9 +109,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The permission to check (e.g., "can_edit", "can_grant_access").
-   *
-   * &#64;internal
-   * This is the FGA relation checked against the resource object.
    * </pre>
    *
    * <code>string relation = 2 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -133,9 +130,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The permission to check (e.g., "can_edit", "can_grant_access").
-   *
-   * &#64;internal
-   * This is the FGA relation checked against the resource object.
    * </pre>
    *
    * <code>string relation = 2 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -809,9 +803,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The permission to check (e.g., "can_edit", "can_grant_access").
-     *
-     * &#64;internal
-     * This is the FGA relation checked against the resource object.
      * </pre>
      *
      * <code>string relation = 2 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -832,9 +823,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The permission to check (e.g., "can_edit", "can_grant_access").
-     *
-     * &#64;internal
-     * This is the FGA relation checked against the resource object.
      * </pre>
      *
      * <code>string relation = 2 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -856,9 +844,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The permission to check (e.g., "can_edit", "can_grant_access").
-     *
-     * &#64;internal
-     * This is the FGA relation checked against the resource object.
      * </pre>
      *
      * <code>string relation = 2 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -876,9 +861,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The permission to check (e.g., "can_edit", "can_grant_access").
-     *
-     * &#64;internal
-     * This is the FGA relation checked against the resource object.
      * </pre>
      *
      * <code>string relation = 2 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -893,9 +875,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The permission to check (e.g., "can_edit", "can_grant_access").
-     *
-     * &#64;internal
-     * This is the FGA relation checked against the resource object.
      * </pre>
      *
      * <code>string relation = 2 [json_name = "relation", (.buf.validate.field) = { ... }</code>

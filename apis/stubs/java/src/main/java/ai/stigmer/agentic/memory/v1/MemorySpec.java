@@ -9,16 +9,6 @@ package ai.stigmer.agentic.memory.v1;
  * <pre>
  * MemorySpec holds the remembered fact, who it is about, and where it
  * came from.
- *
- * &#64;internal
- * Field ownership (DD-004; provenance revised by the Stage 3 decision,
- * owner-ratified 2026-08-22): content is the subject's after capture
- * (editable via the update RPC); subject_identity_account_id is
- * server-derived at create; provenance is capture-path-supplied at
- * create (see its field doc). Both are immutable forever after — the
- * update pipeline refuses changes to them (metadata-guard pattern).
- * The consent lifecycle deliberately lives in status, not here: a spec
- * field would let a full-spec update rewrite consent.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.memory.v1.MemorySpec}
@@ -73,17 +63,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The remembered fact, verbatim. Proposed by an agent, owned by the
    * subject after confirmation.
-   *
-   * &#64;internal
-   * max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
-   * security property — the confirmation UI shows this exact text, byte
-   * for byte, and what the user confirms is what future prompts inject
-   * (DD-005 D6). Enforced by protovalidate at every write; recall never
-   * truncates a fact's content (write-time caps, never compose-time —
-   * the audit property outweighs pathological-case tokens). The semantic
-   * retriever may inject a SELECTED SUBSET of whole facts, recorded on
-   * the execution's status.recalled_memories_report — never silent,
-   * never a content truncation (DD-008 D3/D5).
    * </pre>
    *
    * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -106,17 +85,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The remembered fact, verbatim. Proposed by an agent, owned by the
    * subject after confirmation.
-   *
-   * &#64;internal
-   * max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
-   * security property — the confirmation UI shows this exact text, byte
-   * for byte, and what the user confirms is what future prompts inject
-   * (DD-005 D6). Enforced by protovalidate at every write; recall never
-   * truncates a fact's content (write-time caps, never compose-time —
-   * the audit property outweighs pathological-case tokens). The semantic
-   * retriever may inject a SELECTED SUBSET of whole facts, recorded on
-   * the execution's status.recalled_memories_report — never silent,
-   * never a content truncation (DD-008 D3/D5).
    * </pre>
    *
    * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -143,14 +111,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The identity account this memory is about.
-   *
-   * &#64;internal
-   * Server-derived from the calling credential at create — never
-   * client-supplied, so a forged subject is structurally impossible
-   * (DD-005 D2). OSS local mode stores the empty string (the
-   * single-user sentinel, matching the OAuth grant store). Named
-   * "subject" because the memory is ABOUT them — an agent authored it,
-   * so creator/owner vocabulary would misname the relationship (DD-004).
    * </pre>
    *
    * <code>string subject_identity_account_id = 2 [json_name = "subjectIdentityAccountId"];</code>
@@ -172,14 +132,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The identity account this memory is about.
-   *
-   * &#64;internal
-   * Server-derived from the calling credential at create — never
-   * client-supplied, so a forged subject is structurally impossible
-   * (DD-005 D2). OSS local mode stores the empty string (the
-   * single-user sentinel, matching the OAuth grant store). Named
-   * "subject" because the memory is ABOUT them — an agent authored it,
-   * so creator/owner vocabulary would misname the relationship (DD-004).
    * </pre>
    *
    * <code>string subject_identity_account_id = 2 [json_name = "subjectIdentityAccountId"];</code>
@@ -206,22 +158,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Where this fact came from — displayed beside the fact everywhere it
    * appears.
-   *
-   * &#64;internal
-   * Capture-path-supplied at create (the Stage 3 provenance decision,
-   * owner-ratified 2026-08-22): the remember tool threads the
-   * agent/session/execution triple from the runner-synthesized
-   * attachment's capture context; a direct API create supplies none and
-   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-   * cannot carry the harness's tool-call identity to the tool handler.
-   * Trust is per edition: the cloud create handler accepts the triple
-   * only from a session-sandbox credential and overrides session_id
-   * with the token's own claim; OSS single-user local mode stores it as
-   * supplied (every caller is the trusted local operator). Immutable
-   * after create: provenance is attribution, and attribution that can
-   * be edited is not attribution. Trust requires "where did this come
-   * from" beside every fact (DD-004); out-of-character proposals carry
-   * their origin (DD-005 D6).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -235,22 +171,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Where this fact came from — displayed beside the fact everywhere it
    * appears.
-   *
-   * &#64;internal
-   * Capture-path-supplied at create (the Stage 3 provenance decision,
-   * owner-ratified 2026-08-22): the remember tool threads the
-   * agent/session/execution triple from the runner-synthesized
-   * attachment's capture context; a direct API create supplies none and
-   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-   * cannot carry the harness's tool-call identity to the tool handler.
-   * Trust is per edition: the cloud create handler accepts the triple
-   * only from a session-sandbox credential and overrides session_id
-   * with the token's own claim; OSS single-user local mode stores it as
-   * supplied (every caller is the trusted local operator). Immutable
-   * after create: provenance is attribution, and attribution that can
-   * be edited is not attribution. Trust requires "where did this come
-   * from" beside every fact (DD-004); out-of-character proposals carry
-   * their origin (DD-005 D6).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -264,22 +184,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Where this fact came from — displayed beside the fact everywhere it
    * appears.
-   *
-   * &#64;internal
-   * Capture-path-supplied at create (the Stage 3 provenance decision,
-   * owner-ratified 2026-08-22): the remember tool threads the
-   * agent/session/execution triple from the runner-synthesized
-   * attachment's capture context; a direct API create supplies none and
-   * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-   * cannot carry the harness's tool-call identity to the tool handler.
-   * Trust is per edition: the cloud create handler accepts the triple
-   * only from a session-sandbox credential and overrides session_id
-   * with the token's own claim; OSS single-user local mode stores it as
-   * supplied (every caller is the trusted local operator). Immutable
-   * after create: provenance is attribution, and attribution that can
-   * be edited is not attribution. Trust requires "where did this come
-   * from" beside every fact (DD-004); out-of-character proposals carry
-   * their origin (DD-005 D6).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -475,16 +379,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * MemorySpec holds the remembered fact, who it is about, and where it
    * came from.
-   *
-   * &#64;internal
-   * Field ownership (DD-004; provenance revised by the Stage 3 decision,
-   * owner-ratified 2026-08-22): content is the subject's after capture
-   * (editable via the update RPC); subject_identity_account_id is
-   * server-derived at create; provenance is capture-path-supplied at
-   * create (see its field doc). Both are immutable forever after — the
-   * update pipeline refuses changes to them (metadata-guard pattern).
-   * The consent lifecycle deliberately lives in status, not here: a spec
-   * field would let a full-spec update rewrite consent.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.memory.v1.MemorySpec}
@@ -672,17 +566,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The remembered fact, verbatim. Proposed by an agent, owned by the
      * subject after confirmation.
-     *
-     * &#64;internal
-     * max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
-     * security property — the confirmation UI shows this exact text, byte
-     * for byte, and what the user confirms is what future prompts inject
-     * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates a fact's content (write-time caps, never compose-time —
-     * the audit property outweighs pathological-case tokens). The semantic
-     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
-     * the execution's status.recalled_memories_report — never silent,
-     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -704,17 +587,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The remembered fact, verbatim. Proposed by an agent, owned by the
      * subject after confirmation.
-     *
-     * &#64;internal
-     * max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
-     * security property — the confirmation UI shows this exact text, byte
-     * for byte, and what the user confirms is what future prompts inject
-     * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates a fact's content (write-time caps, never compose-time —
-     * the audit property outweighs pathological-case tokens). The semantic
-     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
-     * the execution's status.recalled_memories_report — never silent,
-     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -737,17 +609,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The remembered fact, verbatim. Proposed by an agent, owned by the
      * subject after confirmation.
-     *
-     * &#64;internal
-     * max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
-     * security property — the confirmation UI shows this exact text, byte
-     * for byte, and what the user confirms is what future prompts inject
-     * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates a fact's content (write-time caps, never compose-time —
-     * the audit property outweighs pathological-case tokens). The semantic
-     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
-     * the execution's status.recalled_memories_report — never silent,
-     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -766,17 +627,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The remembered fact, verbatim. Proposed by an agent, owned by the
      * subject after confirmation.
-     *
-     * &#64;internal
-     * max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
-     * security property — the confirmation UI shows this exact text, byte
-     * for byte, and what the user confirms is what future prompts inject
-     * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates a fact's content (write-time caps, never compose-time —
-     * the audit property outweighs pathological-case tokens). The semantic
-     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
-     * the execution's status.recalled_memories_report — never silent,
-     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -792,17 +642,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The remembered fact, verbatim. Proposed by an agent, owned by the
      * subject after confirmation.
-     *
-     * &#64;internal
-     * max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
-     * security property — the confirmation UI shows this exact text, byte
-     * for byte, and what the user confirms is what future prompts inject
-     * (DD-005 D6). Enforced by protovalidate at every write; recall never
-     * truncates a fact's content (write-time caps, never compose-time —
-     * the audit property outweighs pathological-case tokens). The semantic
-     * retriever may inject a SELECTED SUBSET of whole facts, recorded on
-     * the execution's status.recalled_memories_report — never silent,
-     * never a content truncation (DD-008 D3/D5).
      * </pre>
      *
      * <code>string content = 1 [json_name = "content", (.buf.validate.field) = { ... }</code>
@@ -823,14 +662,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The identity account this memory is about.
-     *
-     * &#64;internal
-     * Server-derived from the calling credential at create — never
-     * client-supplied, so a forged subject is structurally impossible
-     * (DD-005 D2). OSS local mode stores the empty string (the
-     * single-user sentinel, matching the OAuth grant store). Named
-     * "subject" because the memory is ABOUT them — an agent authored it,
-     * so creator/owner vocabulary would misname the relationship (DD-004).
      * </pre>
      *
      * <code>string subject_identity_account_id = 2 [json_name = "subjectIdentityAccountId"];</code>
@@ -851,14 +682,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The identity account this memory is about.
-     *
-     * &#64;internal
-     * Server-derived from the calling credential at create — never
-     * client-supplied, so a forged subject is structurally impossible
-     * (DD-005 D2). OSS local mode stores the empty string (the
-     * single-user sentinel, matching the OAuth grant store). Named
-     * "subject" because the memory is ABOUT them — an agent authored it,
-     * so creator/owner vocabulary would misname the relationship (DD-004).
      * </pre>
      *
      * <code>string subject_identity_account_id = 2 [json_name = "subjectIdentityAccountId"];</code>
@@ -880,14 +703,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The identity account this memory is about.
-     *
-     * &#64;internal
-     * Server-derived from the calling credential at create — never
-     * client-supplied, so a forged subject is structurally impossible
-     * (DD-005 D2). OSS local mode stores the empty string (the
-     * single-user sentinel, matching the OAuth grant store). Named
-     * "subject" because the memory is ABOUT them — an agent authored it,
-     * so creator/owner vocabulary would misname the relationship (DD-004).
      * </pre>
      *
      * <code>string subject_identity_account_id = 2 [json_name = "subjectIdentityAccountId"];</code>
@@ -905,14 +720,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The identity account this memory is about.
-     *
-     * &#64;internal
-     * Server-derived from the calling credential at create — never
-     * client-supplied, so a forged subject is structurally impossible
-     * (DD-005 D2). OSS local mode stores the empty string (the
-     * single-user sentinel, matching the OAuth grant store). Named
-     * "subject" because the memory is ABOUT them — an agent authored it,
-     * so creator/owner vocabulary would misname the relationship (DD-004).
      * </pre>
      *
      * <code>string subject_identity_account_id = 2 [json_name = "subjectIdentityAccountId"];</code>
@@ -927,14 +734,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The identity account this memory is about.
-     *
-     * &#64;internal
-     * Server-derived from the calling credential at create — never
-     * client-supplied, so a forged subject is structurally impossible
-     * (DD-005 D2). OSS local mode stores the empty string (the
-     * single-user sentinel, matching the OAuth grant store). Named
-     * "subject" because the memory is ABOUT them — an agent authored it,
-     * so creator/owner vocabulary would misname the relationship (DD-004).
      * </pre>
      *
      * <code>string subject_identity_account_id = 2 [json_name = "subjectIdentityAccountId"];</code>
@@ -958,22 +757,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -986,22 +769,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -1018,22 +785,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -1055,22 +806,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -1090,22 +825,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -1132,22 +851,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -1166,22 +869,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -1195,22 +882,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>
@@ -1227,22 +898,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Where this fact came from — displayed beside the fact everywhere it
      * appears.
-     *
-     * &#64;internal
-     * Capture-path-supplied at create (the Stage 3 provenance decision,
-     * owner-ratified 2026-08-22): the remember tool threads the
-     * agent/session/execution triple from the runner-synthesized
-     * attachment's capture context; a direct API create supplies none and
-     * the field stays empty. tool_call_id is force-cleared in v1 — MCP
-     * cannot carry the harness's tool-call identity to the tool handler.
-     * Trust is per edition: the cloud create handler accepts the triple
-     * only from a session-sandbox credential and overrides session_id
-     * with the token's own claim; OSS single-user local mode stores it as
-     * supplied (every caller is the trusted local operator). Immutable
-     * after create: provenance is attribution, and attribution that can
-     * be edited is not attribution. Trust requires "where did this come
-     * from" beside every fact (DD-004); out-of-character proposals carry
-     * their origin (DD-005 D6).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.memory.v1.MemoryProvenance provenance = 3 [json_name = "provenance"];</code>

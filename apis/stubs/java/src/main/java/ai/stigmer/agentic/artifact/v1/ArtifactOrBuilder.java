@@ -53,17 +53,6 @@ public interface ArtifactOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Naming Pattern:
-   * - ID Format: "art_{unique-suffix}" (auto-generated)
-   * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-   * - Org: inherited from the producing execution's organization
-   *
-   * Labels:
-   * - source_type: "workflow_execution" or "agent_execution"
-   * - source_id: the execution ID that produced this artifact
-   * - task_name: the task that produced this artifact (if applicable)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -73,17 +62,6 @@ public interface ArtifactOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Naming Pattern:
-   * - ID Format: "art_{unique-suffix}" (auto-generated)
-   * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-   * - Org: inherited from the producing execution's organization
-   *
-   * Labels:
-   * - source_type: "workflow_execution" or "agent_execution"
-   * - source_id: the execution ID that produced this artifact
-   * - task_name: the task that produced this artifact (if applicable)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -93,17 +71,6 @@ public interface ArtifactOrBuilder extends
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Naming Pattern:
-   * - ID Format: "art_{unique-suffix}" (auto-generated)
-   * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-   * - Org: inherited from the producing execution's organization
-   *
-   * Labels:
-   * - source_type: "workflow_execution" or "agent_execution"
-   * - source_id: the execution ID that produced this artifact
-   * - task_name: the task that produced this artifact (if applicable)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

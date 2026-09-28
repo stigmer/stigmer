@@ -8,18 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for task_skipped events.
- *
- * &#64;internal
- * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED. Two scenarios:
- *
- * 1. Conditional logic — switch_case evaluated to a different branch, or a
- * task-level condition evaluated to false.
- * 2. Recovery — the task completed successfully in a prior run and is being
- * skipped during recovery mode (outputs restored from the event log).
- *
- * The `reason` field distinguishes the cause for UI rendering and debugging.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskSkippedPayload}
@@ -310,18 +298,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for task_skipped events.
-   *
-   * &#64;internal
-   * Emitted when a task transitions to WORKFLOW_TASK_SKIPPED. Two scenarios:
-   *
-   * 1. Conditional logic — switch_case evaluated to a different branch, or a
-   * task-level condition evaluated to false.
-   * 2. Recovery — the task completed successfully in a prior run and is being
-   * skipped during recovery mode (outputs restored from the event log).
-   *
-   * The `reason` field distinguishes the cause for UI rendering and debugging.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TaskSkippedPayload}

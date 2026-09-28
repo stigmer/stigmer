@@ -13,9 +13,6 @@ public interface SubmitWorkflowFileDecisionInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface SubmitWorkflowFileDecisionInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -39,10 +33,6 @@ public interface SubmitWorkflowFileDecisionInputOrBuilder extends
   /**
    * <pre>
    * ID of the child agent execution holding the file-review gate.
-   *
-   * &#64;internal
-   * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-   * status.pending_file_reviews. Format: AgentExecution.metadata.id.
    * </pre>
    *
    * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -52,10 +42,6 @@ public interface SubmitWorkflowFileDecisionInputOrBuilder extends
   /**
    * <pre>
    * ID of the child agent execution holding the file-review gate.
-   *
-   * &#64;internal
-   * Must match a WorkflowPendingFileReview.child_agent_execution_id in
-   * status.pending_file_reviews. Format: AgentExecution.metadata.id.
    * </pre>
    *
    * <code>string child_agent_execution_id = 2 [json_name = "childAgentExecutionId", (.buf.validate.field) = { ... }</code>
@@ -67,10 +53,6 @@ public interface SubmitWorkflowFileDecisionInputOrBuilder extends
   /**
    * <pre>
    * ID of the change set this decision targets.
-   *
-   * &#64;internal
-   * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-   * and match a FileChangeSet.id on the child's status.file_change_sets.
    * </pre>
    *
    * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>
@@ -80,10 +62,6 @@ public interface SubmitWorkflowFileDecisionInputOrBuilder extends
   /**
    * <pre>
    * ID of the change set this decision targets.
-   *
-   * &#64;internal
-   * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
-   * and match a FileChangeSet.id on the child's status.file_change_sets.
    * </pre>
    *
    * <code>string change_set_id = 3 [json_name = "changeSetId", (.buf.validate.field) = { ... }</code>

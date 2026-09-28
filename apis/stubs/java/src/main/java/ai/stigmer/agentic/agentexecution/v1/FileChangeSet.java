@@ -17,16 +17,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * pending_approvals — recomputed on every status write from the file_review
  * event ledger, never merged, so it is always consistent with the authoritative
  * stream.
- *
- * &#64;internal
- *
- * Server-authored: the runner never sends this; it is derived server-side in
- * both editions through one projection seam. status and decisions are DERIVED
- * folds over the ledger, not stored-mutable state. A terminal execution
- * projects no actionable review (the workflow that would reconcile is gone),
- * mirroring the phase-aware pending_approvals rule.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChangeSet}
@@ -898,16 +888,6 @@ private static final long serialVersionUID = 0L;
    * pending_approvals — recomputed on every status write from the file_review
    * event ledger, never merged, so it is always consistent with the authoritative
    * stream.
-   *
-   * &#64;internal
-   *
-   * Server-authored: the runner never sends this; it is derived server-side in
-   * both editions through one projection seam. status and decisions are DERIVED
-   * folds over the ledger, not stored-mutable state. A terminal execution
-   * projects no actionable review (the workflow that would reconcile is gone),
-   * mirroring the phase-aware pending_approvals rule.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChangeSet}

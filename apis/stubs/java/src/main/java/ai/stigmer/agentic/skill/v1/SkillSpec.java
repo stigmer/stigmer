@@ -8,12 +8,6 @@ package ai.stigmer.agentic.skill.v1;
 /**
  * <pre>
  * SkillSpec defines the desired state of a skill.
- *
- * &#64;internal
- * All fields are extracted from the skill artifact by the backend.
- * This follows the Kubernetes spec pattern — contains user's desired state.
- * Source/provenance information is NOT stored here — it's in SkillStatus
- * as GitProvenance (observed state). See synth.proto for SDK input structure.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.skill.v1.SkillSpec}
@@ -473,12 +467,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SkillSpec defines the desired state of a skill.
-   *
-   * &#64;internal
-   * All fields are extracted from the skill artifact by the backend.
-   * This follows the Kubernetes spec pattern — contains user's desired state.
-   * Source/provenance information is NOT stored here — it's in SkillStatus
-   * as GitProvenance (observed state). See synth.proto for SDK input structure.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.skill.v1.SkillSpec}

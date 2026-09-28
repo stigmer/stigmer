@@ -5,12 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * MemoryCommandController handles write operations for memories.
- * &#64;internal
- * No apply RPC by design (DD-004): a memory is system-generated — an
- * agent proposes it, a person decides on it — so there is no manifest
- * lane, no SDK apply registry entry, and no CLI apply verb. The kind
- * belongs to the Session/AgentExecution/Artifact family: records the
- * platform creates that users inspect and manage.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -238,12 +232,6 @@ public final class MemoryCommandControllerGrpc {
   /**
    * <pre>
    * MemoryCommandController handles write operations for memories.
-   * &#64;internal
-   * No apply RPC by design (DD-004): a memory is system-generated — an
-   * agent proposes it, a person decides on it — so there is no manifest
-   * lane, no SDK apply registry entry, and no CLI apply verb. The kind
-   * belongs to the Session/AgentExecution/Artifact family: records the
-   * platform creates that users inspect and manage.
    * </pre>
    */
   public interface AsyncService {
@@ -256,35 +244,6 @@ public final class MemoryCommandControllerGrpc {
      * it. The subject and provenance are derived by the server from the
      * calling credential and request context — values supplied on the
      * request are overwritten.
-     * &#64;internal
-     * Authorization: skip standard resource authorization — the record
-     * does not exist yet and the subject IS the caller. In-handler
-     * enforcement instead (DD-005 D2, both editions where applicable):
-     * 1. Capture-eligibility gate (cloud): a first-party human operator
-     *    (no token_type, no platform_client_id, not machine, not
-     *    impersonated) OR the remember tool's session-scoped sandbox
-     *    credential (token_type=sandbox — isSessionSandbox(), acting as
-     *    its human subject; the Stage 3 decision, owner-ratified
-     *    2026-08-22).
-     * 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (cloud
-     *    only) the caller's memory_enabled must both be true —
-     *    FAILED_PRECONDITION otherwise. The runner-side tool attachment
-     *    is convenience, never authorization; the server refuses.
-     * 3. subject_identity_account_id = caller's identity account (cloud)
-     *    / "" (OSS single-user sentinel); caller-supplied value ignored.
-     * 4. spec.provenance is capture-path-supplied (see MemorySpec): cloud
-     *    accepts the agent/session/execution triple only from a sandbox
-     *    credential and overrides session_id with the token's claim; OSS
-     *    stores it as supplied (local single-user trust). tool_call_id is
-     *    force-cleared in v1 on both editions.
-     * 5. Per-subject-per-org count cap (100, all lifecycle states):
-     *    FAILED_PRECONDITION "memory is full — review and delete existing
-     *    memories" (visible-full, never silent eviction — DD-006 D5).
-     * Error Cases:
-     * - INVALID_ARGUMENT: content missing or over 500 characters
-     * - FAILED_PRECONDITION: memory not enabled, or the subject's memory
-     *   is full
-     * - PERMISSION_DENIED: caller is not a first-party human operator
      * </pre>
      */
     default void create(ai.stigmer.agentic.memory.v1.Memory request,
@@ -299,13 +258,6 @@ public final class MemoryCommandControllerGrpc {
      * change: the subject and provenance are immutable, and the consent
      * lifecycle in status is never touched by updates — use confirm or
      * reject to decide on a proposal.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (FGA: subject-only —
-     * DD-004 as ratified). Immutability of spec.subject_identity_account_id
-     * and spec.provenance is enforced by a validate step with
-     * FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
-     * subject would re-aim a record at another person, and editable
-     * provenance is no provenance at all. Status preserved verbatim.
      * </pre>
      */
     default void update(ai.stigmer.agentic.memory.v1.Memory request,
@@ -320,10 +272,6 @@ public final class MemoryCommandControllerGrpc {
      * how consent is revoked, and the fact stops reaching future
      * executions immediately. Past executions that already recalled it
      * keep their immutable snapshots.
-     * &#64;internal
-     * Authorization: requires can_delete on the memory (subject-only).
-     * Any-state delete is load-bearing for the trust story: "delete this
-     * one" must never be refused on lifecycle grounds (DD-004).
      * </pre>
      */
     default void delete(ai.stigmer.agentic.memory.v1.MemoryId request,
@@ -339,16 +287,6 @@ public final class MemoryCommandControllerGrpc {
      * already-confirmed memory succeeds and changes nothing. Confirming a
      * rejected memory is refused — delete it instead and let the agent
      * propose again.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (subject-only) — the
-     * ONLY consent gate in the system; client-side approval mechanisms
-     * are never trusted with retention (DD-005 D3, three recorded
-     * bypasses). The cloud handler loads before authorizing (#224: a
-     * missing memory answers NOT_FOUND, not PERMISSION_DENIED) and
-     * patches status leaves rather than saving the row. OSS excludes the
-     * authorization step per its recorded single-user posture. Both
-     * editions write the transition atomically (status has one writer,
-     * but the discipline is free and the store supports it).
      * </pre>
      */
     default void confirm(ai.stigmer.agentic.memory.v1.MemoryId request,
@@ -364,11 +302,6 @@ public final class MemoryCommandControllerGrpc {
      * entirely. Rejecting an already-rejected memory succeeds and changes
      * nothing. Rejecting a confirmed memory is refused — deleting it is
      * how a confirmed fact is revoked.
-     * &#64;internal
-     * Authorization and implementation posture identical to confirm (one
-     * command pair, one contract). Rejection is deliberately one click on
-     * every surface — expensive review teaches users to ignore the queue
-     * (DD-005 D4).
      * </pre>
      */
     default void reject(ai.stigmer.agentic.memory.v1.MemoryId request,
@@ -381,12 +314,6 @@ public final class MemoryCommandControllerGrpc {
    * Base class for the server implementation of the service MemoryCommandController.
    * <pre>
    * MemoryCommandController handles write operations for memories.
-   * &#64;internal
-   * No apply RPC by design (DD-004): a memory is system-generated — an
-   * agent proposes it, a person decides on it — so there is no manifest
-   * lane, no SDK apply registry entry, and no CLI apply verb. The kind
-   * belongs to the Session/AgentExecution/Artifact family: records the
-   * platform creates that users inspect and manage.
    * </pre>
    */
   public static abstract class MemoryCommandControllerImplBase
@@ -401,12 +328,6 @@ public final class MemoryCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service MemoryCommandController.
    * <pre>
    * MemoryCommandController handles write operations for memories.
-   * &#64;internal
-   * No apply RPC by design (DD-004): a memory is system-generated — an
-   * agent proposes it, a person decides on it — so there is no manifest
-   * lane, no SDK apply registry entry, and no CLI apply verb. The kind
-   * belongs to the Session/AgentExecution/Artifact family: records the
-   * platform creates that users inspect and manage.
    * </pre>
    */
   public static final class MemoryCommandControllerStub
@@ -430,35 +351,6 @@ public final class MemoryCommandControllerGrpc {
      * it. The subject and provenance are derived by the server from the
      * calling credential and request context — values supplied on the
      * request are overwritten.
-     * &#64;internal
-     * Authorization: skip standard resource authorization — the record
-     * does not exist yet and the subject IS the caller. In-handler
-     * enforcement instead (DD-005 D2, both editions where applicable):
-     * 1. Capture-eligibility gate (cloud): a first-party human operator
-     *    (no token_type, no platform_client_id, not machine, not
-     *    impersonated) OR the remember tool's session-scoped sandbox
-     *    credential (token_type=sandbox — isSessionSandbox(), acting as
-     *    its human subject; the Stage 3 decision, owner-ratified
-     *    2026-08-22).
-     * 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (cloud
-     *    only) the caller's memory_enabled must both be true —
-     *    FAILED_PRECONDITION otherwise. The runner-side tool attachment
-     *    is convenience, never authorization; the server refuses.
-     * 3. subject_identity_account_id = caller's identity account (cloud)
-     *    / "" (OSS single-user sentinel); caller-supplied value ignored.
-     * 4. spec.provenance is capture-path-supplied (see MemorySpec): cloud
-     *    accepts the agent/session/execution triple only from a sandbox
-     *    credential and overrides session_id with the token's claim; OSS
-     *    stores it as supplied (local single-user trust). tool_call_id is
-     *    force-cleared in v1 on both editions.
-     * 5. Per-subject-per-org count cap (100, all lifecycle states):
-     *    FAILED_PRECONDITION "memory is full — review and delete existing
-     *    memories" (visible-full, never silent eviction — DD-006 D5).
-     * Error Cases:
-     * - INVALID_ARGUMENT: content missing or over 500 characters
-     * - FAILED_PRECONDITION: memory not enabled, or the subject's memory
-     *   is full
-     * - PERMISSION_DENIED: caller is not a first-party human operator
      * </pre>
      */
     public void create(ai.stigmer.agentic.memory.v1.Memory request,
@@ -474,13 +366,6 @@ public final class MemoryCommandControllerGrpc {
      * change: the subject and provenance are immutable, and the consent
      * lifecycle in status is never touched by updates — use confirm or
      * reject to decide on a proposal.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (FGA: subject-only —
-     * DD-004 as ratified). Immutability of spec.subject_identity_account_id
-     * and spec.provenance is enforced by a validate step with
-     * FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
-     * subject would re-aim a record at another person, and editable
-     * provenance is no provenance at all. Status preserved verbatim.
      * </pre>
      */
     public void update(ai.stigmer.agentic.memory.v1.Memory request,
@@ -496,10 +381,6 @@ public final class MemoryCommandControllerGrpc {
      * how consent is revoked, and the fact stops reaching future
      * executions immediately. Past executions that already recalled it
      * keep their immutable snapshots.
-     * &#64;internal
-     * Authorization: requires can_delete on the memory (subject-only).
-     * Any-state delete is load-bearing for the trust story: "delete this
-     * one" must never be refused on lifecycle grounds (DD-004).
      * </pre>
      */
     public void delete(ai.stigmer.agentic.memory.v1.MemoryId request,
@@ -516,16 +397,6 @@ public final class MemoryCommandControllerGrpc {
      * already-confirmed memory succeeds and changes nothing. Confirming a
      * rejected memory is refused — delete it instead and let the agent
      * propose again.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (subject-only) — the
-     * ONLY consent gate in the system; client-side approval mechanisms
-     * are never trusted with retention (DD-005 D3, three recorded
-     * bypasses). The cloud handler loads before authorizing (#224: a
-     * missing memory answers NOT_FOUND, not PERMISSION_DENIED) and
-     * patches status leaves rather than saving the row. OSS excludes the
-     * authorization step per its recorded single-user posture. Both
-     * editions write the transition atomically (status has one writer,
-     * but the discipline is free and the store supports it).
      * </pre>
      */
     public void confirm(ai.stigmer.agentic.memory.v1.MemoryId request,
@@ -542,11 +413,6 @@ public final class MemoryCommandControllerGrpc {
      * entirely. Rejecting an already-rejected memory succeeds and changes
      * nothing. Rejecting a confirmed memory is refused — deleting it is
      * how a confirmed fact is revoked.
-     * &#64;internal
-     * Authorization and implementation posture identical to confirm (one
-     * command pair, one contract). Rejection is deliberately one click on
-     * every surface — expensive review teaches users to ignore the queue
-     * (DD-005 D4).
      * </pre>
      */
     public void reject(ai.stigmer.agentic.memory.v1.MemoryId request,
@@ -560,12 +426,6 @@ public final class MemoryCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service MemoryCommandController.
    * <pre>
    * MemoryCommandController handles write operations for memories.
-   * &#64;internal
-   * No apply RPC by design (DD-004): a memory is system-generated — an
-   * agent proposes it, a person decides on it — so there is no manifest
-   * lane, no SDK apply registry entry, and no CLI apply verb. The kind
-   * belongs to the Session/AgentExecution/Artifact family: records the
-   * platform creates that users inspect and manage.
    * </pre>
    */
   public static final class MemoryCommandControllerBlockingV2Stub
@@ -589,35 +449,6 @@ public final class MemoryCommandControllerGrpc {
      * it. The subject and provenance are derived by the server from the
      * calling credential and request context — values supplied on the
      * request are overwritten.
-     * &#64;internal
-     * Authorization: skip standard resource authorization — the record
-     * does not exist yet and the subject IS the caller. In-handler
-     * enforcement instead (DD-005 D2, both editions where applicable):
-     * 1. Capture-eligibility gate (cloud): a first-party human operator
-     *    (no token_type, no platform_client_id, not machine, not
-     *    impersonated) OR the remember tool's session-scoped sandbox
-     *    credential (token_type=sandbox — isSessionSandbox(), acting as
-     *    its human subject; the Stage 3 decision, owner-ratified
-     *    2026-08-22).
-     * 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (cloud
-     *    only) the caller's memory_enabled must both be true —
-     *    FAILED_PRECONDITION otherwise. The runner-side tool attachment
-     *    is convenience, never authorization; the server refuses.
-     * 3. subject_identity_account_id = caller's identity account (cloud)
-     *    / "" (OSS single-user sentinel); caller-supplied value ignored.
-     * 4. spec.provenance is capture-path-supplied (see MemorySpec): cloud
-     *    accepts the agent/session/execution triple only from a sandbox
-     *    credential and overrides session_id with the token's claim; OSS
-     *    stores it as supplied (local single-user trust). tool_call_id is
-     *    force-cleared in v1 on both editions.
-     * 5. Per-subject-per-org count cap (100, all lifecycle states):
-     *    FAILED_PRECONDITION "memory is full — review and delete existing
-     *    memories" (visible-full, never silent eviction — DD-006 D5).
-     * Error Cases:
-     * - INVALID_ARGUMENT: content missing or over 500 characters
-     * - FAILED_PRECONDITION: memory not enabled, or the subject's memory
-     *   is full
-     * - PERMISSION_DENIED: caller is not a first-party human operator
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory create(ai.stigmer.agentic.memory.v1.Memory request) throws io.grpc.StatusException {
@@ -632,13 +463,6 @@ public final class MemoryCommandControllerGrpc {
      * change: the subject and provenance are immutable, and the consent
      * lifecycle in status is never touched by updates — use confirm or
      * reject to decide on a proposal.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (FGA: subject-only —
-     * DD-004 as ratified). Immutability of spec.subject_identity_account_id
-     * and spec.provenance is enforced by a validate step with
-     * FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
-     * subject would re-aim a record at another person, and editable
-     * provenance is no provenance at all. Status preserved verbatim.
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory update(ai.stigmer.agentic.memory.v1.Memory request) throws io.grpc.StatusException {
@@ -653,10 +477,6 @@ public final class MemoryCommandControllerGrpc {
      * how consent is revoked, and the fact stops reaching future
      * executions immediately. Past executions that already recalled it
      * keep their immutable snapshots.
-     * &#64;internal
-     * Authorization: requires can_delete on the memory (subject-only).
-     * Any-state delete is load-bearing for the trust story: "delete this
-     * one" must never be refused on lifecycle grounds (DD-004).
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory delete(ai.stigmer.agentic.memory.v1.MemoryId request) throws io.grpc.StatusException {
@@ -672,16 +492,6 @@ public final class MemoryCommandControllerGrpc {
      * already-confirmed memory succeeds and changes nothing. Confirming a
      * rejected memory is refused — delete it instead and let the agent
      * propose again.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (subject-only) — the
-     * ONLY consent gate in the system; client-side approval mechanisms
-     * are never trusted with retention (DD-005 D3, three recorded
-     * bypasses). The cloud handler loads before authorizing (#224: a
-     * missing memory answers NOT_FOUND, not PERMISSION_DENIED) and
-     * patches status leaves rather than saving the row. OSS excludes the
-     * authorization step per its recorded single-user posture. Both
-     * editions write the transition atomically (status has one writer,
-     * but the discipline is free and the store supports it).
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory confirm(ai.stigmer.agentic.memory.v1.MemoryId request) throws io.grpc.StatusException {
@@ -697,11 +507,6 @@ public final class MemoryCommandControllerGrpc {
      * entirely. Rejecting an already-rejected memory succeeds and changes
      * nothing. Rejecting a confirmed memory is refused — deleting it is
      * how a confirmed fact is revoked.
-     * &#64;internal
-     * Authorization and implementation posture identical to confirm (one
-     * command pair, one contract). Rejection is deliberately one click on
-     * every surface — expensive review teaches users to ignore the queue
-     * (DD-005 D4).
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory reject(ai.stigmer.agentic.memory.v1.MemoryId request) throws io.grpc.StatusException {
@@ -714,12 +519,6 @@ public final class MemoryCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service MemoryCommandController.
    * <pre>
    * MemoryCommandController handles write operations for memories.
-   * &#64;internal
-   * No apply RPC by design (DD-004): a memory is system-generated — an
-   * agent proposes it, a person decides on it — so there is no manifest
-   * lane, no SDK apply registry entry, and no CLI apply verb. The kind
-   * belongs to the Session/AgentExecution/Artifact family: records the
-   * platform creates that users inspect and manage.
    * </pre>
    */
   public static final class MemoryCommandControllerBlockingStub
@@ -743,35 +542,6 @@ public final class MemoryCommandControllerGrpc {
      * it. The subject and provenance are derived by the server from the
      * calling credential and request context — values supplied on the
      * request are overwritten.
-     * &#64;internal
-     * Authorization: skip standard resource authorization — the record
-     * does not exist yet and the subject IS the caller. In-handler
-     * enforcement instead (DD-005 D2, both editions where applicable):
-     * 1. Capture-eligibility gate (cloud): a first-party human operator
-     *    (no token_type, no platform_client_id, not machine, not
-     *    impersonated) OR the remember tool's session-scoped sandbox
-     *    credential (token_type=sandbox — isSessionSandbox(), acting as
-     *    its human subject; the Stage 3 decision, owner-ratified
-     *    2026-08-22).
-     * 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (cloud
-     *    only) the caller's memory_enabled must both be true —
-     *    FAILED_PRECONDITION otherwise. The runner-side tool attachment
-     *    is convenience, never authorization; the server refuses.
-     * 3. subject_identity_account_id = caller's identity account (cloud)
-     *    / "" (OSS single-user sentinel); caller-supplied value ignored.
-     * 4. spec.provenance is capture-path-supplied (see MemorySpec): cloud
-     *    accepts the agent/session/execution triple only from a sandbox
-     *    credential and overrides session_id with the token's claim; OSS
-     *    stores it as supplied (local single-user trust). tool_call_id is
-     *    force-cleared in v1 on both editions.
-     * 5. Per-subject-per-org count cap (100, all lifecycle states):
-     *    FAILED_PRECONDITION "memory is full — review and delete existing
-     *    memories" (visible-full, never silent eviction — DD-006 D5).
-     * Error Cases:
-     * - INVALID_ARGUMENT: content missing or over 500 characters
-     * - FAILED_PRECONDITION: memory not enabled, or the subject's memory
-     *   is full
-     * - PERMISSION_DENIED: caller is not a first-party human operator
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory create(ai.stigmer.agentic.memory.v1.Memory request) {
@@ -786,13 +556,6 @@ public final class MemoryCommandControllerGrpc {
      * change: the subject and provenance are immutable, and the consent
      * lifecycle in status is never touched by updates — use confirm or
      * reject to decide on a proposal.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (FGA: subject-only —
-     * DD-004 as ratified). Immutability of spec.subject_identity_account_id
-     * and spec.provenance is enforced by a validate step with
-     * FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
-     * subject would re-aim a record at another person, and editable
-     * provenance is no provenance at all. Status preserved verbatim.
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory update(ai.stigmer.agentic.memory.v1.Memory request) {
@@ -807,10 +570,6 @@ public final class MemoryCommandControllerGrpc {
      * how consent is revoked, and the fact stops reaching future
      * executions immediately. Past executions that already recalled it
      * keep their immutable snapshots.
-     * &#64;internal
-     * Authorization: requires can_delete on the memory (subject-only).
-     * Any-state delete is load-bearing for the trust story: "delete this
-     * one" must never be refused on lifecycle grounds (DD-004).
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory delete(ai.stigmer.agentic.memory.v1.MemoryId request) {
@@ -826,16 +585,6 @@ public final class MemoryCommandControllerGrpc {
      * already-confirmed memory succeeds and changes nothing. Confirming a
      * rejected memory is refused — delete it instead and let the agent
      * propose again.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (subject-only) — the
-     * ONLY consent gate in the system; client-side approval mechanisms
-     * are never trusted with retention (DD-005 D3, three recorded
-     * bypasses). The cloud handler loads before authorizing (#224: a
-     * missing memory answers NOT_FOUND, not PERMISSION_DENIED) and
-     * patches status leaves rather than saving the row. OSS excludes the
-     * authorization step per its recorded single-user posture. Both
-     * editions write the transition atomically (status has one writer,
-     * but the discipline is free and the store supports it).
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory confirm(ai.stigmer.agentic.memory.v1.MemoryId request) {
@@ -851,11 +600,6 @@ public final class MemoryCommandControllerGrpc {
      * entirely. Rejecting an already-rejected memory succeeds and changes
      * nothing. Rejecting a confirmed memory is refused — deleting it is
      * how a confirmed fact is revoked.
-     * &#64;internal
-     * Authorization and implementation posture identical to confirm (one
-     * command pair, one contract). Rejection is deliberately one click on
-     * every surface — expensive review teaches users to ignore the queue
-     * (DD-005 D4).
      * </pre>
      */
     public ai.stigmer.agentic.memory.v1.Memory reject(ai.stigmer.agentic.memory.v1.MemoryId request) {
@@ -868,12 +612,6 @@ public final class MemoryCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service MemoryCommandController.
    * <pre>
    * MemoryCommandController handles write operations for memories.
-   * &#64;internal
-   * No apply RPC by design (DD-004): a memory is system-generated — an
-   * agent proposes it, a person decides on it — so there is no manifest
-   * lane, no SDK apply registry entry, and no CLI apply verb. The kind
-   * belongs to the Session/AgentExecution/Artifact family: records the
-   * platform creates that users inspect and manage.
    * </pre>
    */
   public static final class MemoryCommandControllerFutureStub
@@ -897,35 +635,6 @@ public final class MemoryCommandControllerGrpc {
      * it. The subject and provenance are derived by the server from the
      * calling credential and request context — values supplied on the
      * request are overwritten.
-     * &#64;internal
-     * Authorization: skip standard resource authorization — the record
-     * does not exist yet and the subject IS the caller. In-handler
-     * enforcement instead (DD-005 D2, both editions where applicable):
-     * 1. Capture-eligibility gate (cloud): a first-party human operator
-     *    (no token_type, no platform_client_id, not machine, not
-     *    impersonated) OR the remember tool's session-scoped sandbox
-     *    credential (token_type=sandbox — isSessionSandbox(), acting as
-     *    its human subject; the Stage 3 decision, owner-ratified
-     *    2026-08-22).
-     * 2. Enablement re-check, FAIL-CLOSED: org memory_enabled AND (cloud
-     *    only) the caller's memory_enabled must both be true —
-     *    FAILED_PRECONDITION otherwise. The runner-side tool attachment
-     *    is convenience, never authorization; the server refuses.
-     * 3. subject_identity_account_id = caller's identity account (cloud)
-     *    / "" (OSS single-user sentinel); caller-supplied value ignored.
-     * 4. spec.provenance is capture-path-supplied (see MemorySpec): cloud
-     *    accepts the agent/session/execution triple only from a sandbox
-     *    credential and overrides session_id with the token's claim; OSS
-     *    stores it as supplied (local single-user trust). tool_call_id is
-     *    force-cleared in v1 on both editions.
-     * 5. Per-subject-per-org count cap (100, all lifecycle states):
-     *    FAILED_PRECONDITION "memory is full — review and delete existing
-     *    memories" (visible-full, never silent eviction — DD-006 D5).
-     * Error Cases:
-     * - INVALID_ARGUMENT: content missing or over 500 characters
-     * - FAILED_PRECONDITION: memory not enabled, or the subject's memory
-     *   is full
-     * - PERMISSION_DENIED: caller is not a first-party human operator
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.memory.v1.Memory> create(
@@ -941,13 +650,6 @@ public final class MemoryCommandControllerGrpc {
      * change: the subject and provenance are immutable, and the consent
      * lifecycle in status is never touched by updates — use confirm or
      * reject to decide on a proposal.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (FGA: subject-only —
-     * DD-004 as ratified). Immutability of spec.subject_identity_account_id
-     * and spec.provenance is enforced by a validate step with
-     * FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
-     * subject would re-aim a record at another person, and editable
-     * provenance is no provenance at all. Status preserved verbatim.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.memory.v1.Memory> update(
@@ -963,10 +665,6 @@ public final class MemoryCommandControllerGrpc {
      * how consent is revoked, and the fact stops reaching future
      * executions immediately. Past executions that already recalled it
      * keep their immutable snapshots.
-     * &#64;internal
-     * Authorization: requires can_delete on the memory (subject-only).
-     * Any-state delete is load-bearing for the trust story: "delete this
-     * one" must never be refused on lifecycle grounds (DD-004).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.memory.v1.Memory> delete(
@@ -983,16 +681,6 @@ public final class MemoryCommandControllerGrpc {
      * already-confirmed memory succeeds and changes nothing. Confirming a
      * rejected memory is refused — delete it instead and let the agent
      * propose again.
-     * &#64;internal
-     * Authorization: requires can_edit on the memory (subject-only) — the
-     * ONLY consent gate in the system; client-side approval mechanisms
-     * are never trusted with retention (DD-005 D3, three recorded
-     * bypasses). The cloud handler loads before authorizing (#224: a
-     * missing memory answers NOT_FOUND, not PERMISSION_DENIED) and
-     * patches status leaves rather than saving the row. OSS excludes the
-     * authorization step per its recorded single-user posture. Both
-     * editions write the transition atomically (status has one writer,
-     * but the discipline is free and the store supports it).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.memory.v1.Memory> confirm(
@@ -1009,11 +697,6 @@ public final class MemoryCommandControllerGrpc {
      * entirely. Rejecting an already-rejected memory succeeds and changes
      * nothing. Rejecting a confirmed memory is refused — deleting it is
      * how a confirmed fact is revoked.
-     * &#64;internal
-     * Authorization and implementation posture identical to confirm (one
-     * command pair, one contract). Rejection is deliberately one click on
-     * every surface — expensive review teaches users to ignore the queue
-     * (DD-005 D4).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.memory.v1.Memory> reject(

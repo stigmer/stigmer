@@ -13,13 +13,6 @@ package ai.stigmer.agentic.session.v1;
  * client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
  * Set at session creation time and immutable once an execution has run —
  * workspace state may not be portable between local and cloud environments.
- *
- * &#64;internal
- * The control plane uses this field in dispatch to decide whether to route
- * activities to a client-polled per-session queue (LOCAL) or provision a
- * cloud sandbox (CLOUD). Both use task queues named "session:{session_id}".
- * The difference is who provides the runner: the client (LOCAL) or the
- * server (CLOUD).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.session.v1.ExecutionTarget}
@@ -30,9 +23,6 @@ public enum ExecutionTarget
   /**
    * <pre>
    * Platform default — server decides based on deployment context.
-   *
-   * &#64;internal
-   * Resolves to LOCAL for OSS/self-hosted, CLOUD for managed cloud service.
    * </pre>
    *
    * <code>EXECUTION_TARGET_UNSPECIFIED = 0;</code>
@@ -75,9 +65,6 @@ public enum ExecutionTarget
   /**
    * <pre>
    * Platform default — server decides based on deployment context.
-   *
-   * &#64;internal
-   * Resolves to LOCAL for OSS/self-hosted, CLOUD for managed cloud service.
    * </pre>
    *
    * <code>EXECUTION_TARGET_UNSPECIFIED = 0;</code>

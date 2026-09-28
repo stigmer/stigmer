@@ -5,14 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * WorkflowInstanceCommandController handles write operations for workflow instances.
- * &#64;internal
- * This service provides the CUD (Create, Update, Delete) operations following the
- * Command-Query Separation pattern. All RPCs that modify state go through this controller.
- * Authorization:
- * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
- * - update: Standard authorization (requires update permission on the instance)
- * - delete: Standard authorization (requires delete permission on the instance)
- * All workflow instances belong to an organization.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -271,14 +263,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
   /**
    * <pre>
    * WorkflowInstanceCommandController handles write operations for workflow instances.
-   * &#64;internal
-   * This service provides the CUD (Create, Update, Delete) operations following the
-   * Command-Query Separation pattern. All RPCs that modify state go through this controller.
-   * Authorization:
-   * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
-   * - update: Standard authorization (requires update permission on the instance)
-   * - delete: Standard authorization (requires delete permission on the instance)
-   * All workflow instances belong to an organization.
    * </pre>
    */
   public interface AsyncService {
@@ -286,9 +270,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -299,16 +280,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow instance.
-     * &#64;internal
-     * Input validation:
-     * - metadata.org must be specified
-     * - spec.workflow_id must be a valid Workflow resource ID
-     * - spec.environment_refs must reference valid Environment resources
-     * Authorization:
-     * Uses custom authorization logic to verify:
-     * 1. User has permission to access the referenced Workflow template
-     * 2. User has permission to access all referenced Environment resources
-     * 3. Owner scope is valid for the user's organization/identity
      * </pre>
      */
     default void create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -319,17 +290,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * &#64;internal
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.workflow_id, metadata.id, metadata.org
-     * Authorization:
-     * Requires "update" permission on the specific WorkflowInstance resource.
-     * Field path "metadata.id" identifies which resource to authorize.
-     * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
     default void update(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -347,13 +307,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * &#64;internal
-     * Authorization: can_edit on the workflow instance for every transition.
-     * The level is checked against the kind's VisibilityConfig
-     * (visibility_public is refused for every kind). Visibility transitions
-     * trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -370,14 +323,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
      * ORGANIZATION (all org members). Platform is unsupported.
-     * &#64;internal
-     * Authorization: requires can_grant_access on the workflow instance —
-     * sharing run history is an access-granting action, consistent with the
-     * per-execution share flow. In Cloud mode the transition reconciles the
-     * instance's `execution_viewer` FGA relation:
-     * - PRIVATE -&gt; ORGANIZATION: creates
-     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
-     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
      * </pre>
      */
     default void updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request,
@@ -388,17 +333,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
-     * &#64;internal
-     * Permanently removes a WorkflowInstance resource.
-     * - Does NOT delete the referenced Workflow template (templates are reusable)
-     * - Does NOT delete the referenced Environment resources (environments are reusable)
-     * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
-     * Authorization:
-     * Requires "delete" permission on the specific WorkflowInstance resource.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Returns the deleted WorkflowInstance (final state before deletion).
-     * Error: PERMISSION_DENIED if user lacks delete permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     default void delete(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request,
@@ -411,14 +345,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
    * Base class for the server implementation of the service WorkflowInstanceCommandController.
    * <pre>
    * WorkflowInstanceCommandController handles write operations for workflow instances.
-   * &#64;internal
-   * This service provides the CUD (Create, Update, Delete) operations following the
-   * Command-Query Separation pattern. All RPCs that modify state go through this controller.
-   * Authorization:
-   * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
-   * - update: Standard authorization (requires update permission on the instance)
-   * - delete: Standard authorization (requires delete permission on the instance)
-   * All workflow instances belong to an organization.
    * </pre>
    */
   public static abstract class WorkflowInstanceCommandControllerImplBase
@@ -433,14 +359,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service WorkflowInstanceCommandController.
    * <pre>
    * WorkflowInstanceCommandController handles write operations for workflow instances.
-   * &#64;internal
-   * This service provides the CUD (Create, Update, Delete) operations following the
-   * Command-Query Separation pattern. All RPCs that modify state go through this controller.
-   * Authorization:
-   * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
-   * - update: Standard authorization (requires update permission on the instance)
-   * - delete: Standard authorization (requires delete permission on the instance)
-   * All workflow instances belong to an organization.
    * </pre>
    */
   public static final class WorkflowInstanceCommandControllerStub
@@ -459,9 +377,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -473,16 +388,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow instance.
-     * &#64;internal
-     * Input validation:
-     * - metadata.org must be specified
-     * - spec.workflow_id must be a valid Workflow resource ID
-     * - spec.environment_refs must reference valid Environment resources
-     * Authorization:
-     * Uses custom authorization logic to verify:
-     * 1. User has permission to access the referenced Workflow template
-     * 2. User has permission to access all referenced Environment resources
-     * 3. Owner scope is valid for the user's organization/identity
      * </pre>
      */
     public void create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -494,17 +399,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * &#64;internal
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.workflow_id, metadata.id, metadata.org
-     * Authorization:
-     * Requires "update" permission on the specific WorkflowInstance resource.
-     * Field path "metadata.id" identifies which resource to authorize.
-     * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
     public void update(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request,
@@ -523,13 +417,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * &#64;internal
-     * Authorization: can_edit on the workflow instance for every transition.
-     * The level is checked against the kind's VisibilityConfig
-     * (visibility_public is refused for every kind). Visibility transitions
-     * trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -547,14 +434,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
      * ORGANIZATION (all org members). Platform is unsupported.
-     * &#64;internal
-     * Authorization: requires can_grant_access on the workflow instance —
-     * sharing run history is an access-granting action, consistent with the
-     * per-execution share flow. In Cloud mode the transition reconciles the
-     * instance's `execution_viewer` FGA relation:
-     * - PRIVATE -&gt; ORGANIZATION: creates
-     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
-     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
      * </pre>
      */
     public void updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request,
@@ -566,17 +445,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
-     * &#64;internal
-     * Permanently removes a WorkflowInstance resource.
-     * - Does NOT delete the referenced Workflow template (templates are reusable)
-     * - Does NOT delete the referenced Environment resources (environments are reusable)
-     * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
-     * Authorization:
-     * Requires "delete" permission on the specific WorkflowInstance resource.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Returns the deleted WorkflowInstance (final state before deletion).
-     * Error: PERMISSION_DENIED if user lacks delete permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public void delete(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request,
@@ -590,14 +458,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service WorkflowInstanceCommandController.
    * <pre>
    * WorkflowInstanceCommandController handles write operations for workflow instances.
-   * &#64;internal
-   * This service provides the CUD (Create, Update, Delete) operations following the
-   * Command-Query Separation pattern. All RPCs that modify state go through this controller.
-   * Authorization:
-   * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
-   * - update: Standard authorization (requires update permission on the instance)
-   * - delete: Standard authorization (requires delete permission on the instance)
-   * All workflow instances belong to an organization.
    * </pre>
    */
   public static final class WorkflowInstanceCommandControllerBlockingV2Stub
@@ -616,9 +476,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance apply(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) throws io.grpc.StatusException {
@@ -629,16 +486,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow instance.
-     * &#64;internal
-     * Input validation:
-     * - metadata.org must be specified
-     * - spec.workflow_id must be a valid Workflow resource ID
-     * - spec.environment_refs must reference valid Environment resources
-     * Authorization:
-     * Uses custom authorization logic to verify:
-     * 1. User has permission to access the referenced Workflow template
-     * 2. User has permission to access all referenced Environment resources
-     * 3. Owner scope is valid for the user's organization/identity
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) throws io.grpc.StatusException {
@@ -649,17 +496,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * &#64;internal
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.workflow_id, metadata.id, metadata.org
-     * Authorization:
-     * Requires "update" permission on the specific WorkflowInstance resource.
-     * Field path "metadata.id" identifies which resource to authorize.
-     * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance update(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) throws io.grpc.StatusException {
@@ -677,13 +513,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * &#64;internal
-     * Authorization: can_edit on the workflow instance for every transition.
-     * The level is checked against the kind's VisibilityConfig
-     * (visibility_public is refused for every kind). Visibility transitions
-     * trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -700,14 +529,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
      * ORGANIZATION (all org members). Platform is unsupported.
-     * &#64;internal
-     * Authorization: requires can_grant_access on the workflow instance —
-     * sharing run history is an access-granting action, consistent with the
-     * per-execution share flow. In Cloud mode the transition reconciles the
-     * instance's `execution_viewer` FGA relation:
-     * - PRIVATE -&gt; ORGANIZATION: creates
-     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
-     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request) throws io.grpc.StatusException {
@@ -718,17 +539,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
-     * &#64;internal
-     * Permanently removes a WorkflowInstance resource.
-     * - Does NOT delete the referenced Workflow template (templates are reusable)
-     * - Does NOT delete the referenced Environment resources (environments are reusable)
-     * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
-     * Authorization:
-     * Requires "delete" permission on the specific WorkflowInstance resource.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Returns the deleted WorkflowInstance (final state before deletion).
-     * Error: PERMISSION_DENIED if user lacks delete permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance delete(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request) throws io.grpc.StatusException {
@@ -741,14 +551,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service WorkflowInstanceCommandController.
    * <pre>
    * WorkflowInstanceCommandController handles write operations for workflow instances.
-   * &#64;internal
-   * This service provides the CUD (Create, Update, Delete) operations following the
-   * Command-Query Separation pattern. All RPCs that modify state go through this controller.
-   * Authorization:
-   * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
-   * - update: Standard authorization (requires update permission on the instance)
-   * - delete: Standard authorization (requires delete permission on the instance)
-   * All workflow instances belong to an organization.
    * </pre>
    */
   public static final class WorkflowInstanceCommandControllerBlockingStub
@@ -767,9 +569,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance apply(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) {
@@ -780,16 +579,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow instance.
-     * &#64;internal
-     * Input validation:
-     * - metadata.org must be specified
-     * - spec.workflow_id must be a valid Workflow resource ID
-     * - spec.environment_refs must reference valid Environment resources
-     * Authorization:
-     * Uses custom authorization logic to verify:
-     * 1. User has permission to access the referenced Workflow template
-     * 2. User has permission to access all referenced Environment resources
-     * 3. Owner scope is valid for the user's organization/identity
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance create(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) {
@@ -800,17 +589,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * &#64;internal
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.workflow_id, metadata.id, metadata.org
-     * Authorization:
-     * Requires "update" permission on the specific WorkflowInstance resource.
-     * Field path "metadata.id" identifies which resource to authorize.
-     * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance update(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance request) {
@@ -828,13 +606,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * &#64;internal
-     * Authorization: can_edit on the workflow instance for every transition.
-     * The level is checked against the kind's VisibilityConfig
-     * (visibility_public is refused for every kind). Visibility transitions
-     * trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -851,14 +622,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
      * ORGANIZATION (all org members). Platform is unsupported.
-     * &#64;internal
-     * Authorization: requires can_grant_access on the workflow instance —
-     * sharing run history is an access-granting action, consistent with the
-     * per-execution share flow. In Cloud mode the transition reconciles the
-     * instance's `execution_viewer` FGA relation:
-     * - PRIVATE -&gt; ORGANIZATION: creates
-     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
-     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance updateExecutionVisibility(ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput request) {
@@ -869,17 +632,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
-     * &#64;internal
-     * Permanently removes a WorkflowInstance resource.
-     * - Does NOT delete the referenced Workflow template (templates are reusable)
-     * - Does NOT delete the referenced Environment resources (environments are reusable)
-     * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
-     * Authorization:
-     * Requires "delete" permission on the specific WorkflowInstance resource.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Returns the deleted WorkflowInstance (final state before deletion).
-     * Error: PERMISSION_DENIED if user lacks delete permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance delete(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId request) {
@@ -892,14 +644,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service WorkflowInstanceCommandController.
    * <pre>
    * WorkflowInstanceCommandController handles write operations for workflow instances.
-   * &#64;internal
-   * This service provides the CUD (Create, Update, Delete) operations following the
-   * Command-Query Separation pattern. All RPCs that modify state go through this controller.
-   * Authorization:
-   * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
-   * - update: Standard authorization (requires update permission on the instance)
-   * - delete: Standard authorization (requires delete permission on the instance)
-   * All workflow instances belong to an organization.
    * </pre>
    */
   public static final class WorkflowInstanceCommandControllerFutureStub
@@ -918,9 +662,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow instance.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow instance
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> apply(
@@ -932,16 +673,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow instance.
-     * &#64;internal
-     * Input validation:
-     * - metadata.org must be specified
-     * - spec.workflow_id must be a valid Workflow resource ID
-     * - spec.environment_refs must reference valid Environment resources
-     * Authorization:
-     * Uses custom authorization logic to verify:
-     * 1. User has permission to access the referenced Workflow template
-     * 2. User has permission to access all referenced Environment resources
-     * 3. Owner scope is valid for the user's organization/identity
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> create(
@@ -953,17 +684,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing workflow instance.
-     * &#64;internal
-     * Mutable fields:
-     * - spec.description, spec.environment_refs
-     * - metadata.labels, metadata.tags, metadata.annotations
-     * Immutable fields (must delete and recreate to change):
-     * - spec.workflow_id, metadata.id, metadata.org
-     * Authorization:
-     * Requires "update" permission on the specific WorkflowInstance resource.
-     * Field path "metadata.id" identifies which resource to authorize.
-     * Each update increments status.audit.version and updates status.audit.updated_at.
-     * Error: PERMISSION_DENIED if user lacks update permission
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> update(
@@ -982,13 +702,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * observability: workflow executions inherit visibility from their parent
      * instance via FGA. An ORG-visible instance means all org members can see
      * all executions — zero per-execution tuples needed.
-     * &#64;internal
-     * Authorization: can_edit on the workflow instance for every transition.
-     * The level is checked against the kind's VisibilityConfig
-     * (visibility_public is refused for every kind). Visibility transitions
-     * trigger FGA tuple management in Cloud mode:
-     * - PRIVATE → ORG: creates workflow_instance#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> updateVisibility(
@@ -1006,14 +719,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
      * other users' run history — that requires this opt-in.
      * Supported levels: PRIVATE (only the user who ran each execution) and
      * ORGANIZATION (all org members). Platform is unsupported.
-     * &#64;internal
-     * Authorization: requires can_grant_access on the workflow instance —
-     * sharing run history is an access-granting action, consistent with the
-     * per-execution share flow. In Cloud mode the transition reconciles the
-     * instance's `execution_viewer` FGA relation:
-     * - PRIVATE -&gt; ORGANIZATION: creates
-     *   workflow_instance#execution_viewer&#64;organization:&lt;org&gt;#member
-     * - ORGANIZATION -&gt; PRIVATE: deletes that tuple
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> updateExecutionVisibility(
@@ -1025,17 +730,6 @@ public final class WorkflowInstanceCommandControllerGrpc {
     /**
      * <pre>
      * Delete a workflow instance.
-     * &#64;internal
-     * Permanently removes a WorkflowInstance resource.
-     * - Does NOT delete the referenced Workflow template (templates are reusable)
-     * - Does NOT delete the referenced Environment resources (environments are reusable)
-     * - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)
-     * Authorization:
-     * Requires "delete" permission on the specific WorkflowInstance resource.
-     * Field path "value" extracts the resource ID from WorkflowInstanceId wrapper.
-     * Returns the deleted WorkflowInstance (final state before deletion).
-     * Error: PERMISSION_DENIED if user lacks delete permission
-     * Error: NOT_FOUND if instance ID doesn't exist
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance> delete(

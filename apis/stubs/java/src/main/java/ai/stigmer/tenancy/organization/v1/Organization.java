@@ -13,13 +13,6 @@ package ai.stigmer.tenancy.organization.v1;
  * resource (which is assigned a generated prefixed id), the tenancy root is
  * addressed by its slug, which is globally unique and never reused, even
  * after the organization is deleted.
- *
- * &#64;internal
- * Similar to GitHub organizations, all agents, workflows, sessions, and other
- * resources are scoped under an organization. This enables multi-tenancy and
- * proper resource isolation. Child resources reference their owning org by slug
- * (metadata.org), which is why the org's id is set to its slug rather than a
- * minted org_&lt;ulid&gt; (see OrganizationCommandController create pipeline).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.tenancy.organization.v1.Organization}
@@ -497,13 +490,6 @@ private static final long serialVersionUID = 0L;
    * resource (which is assigned a generated prefixed id), the tenancy root is
    * addressed by its slug, which is globally unique and never reused, even
    * after the organization is deleted.
-   *
-   * &#64;internal
-   * Similar to GitHub organizations, all agents, workflows, sessions, and other
-   * resources are scoped under an organization. This enables multi-tenancy and
-   * proper resource isolation. Child resources reference their owning org by slug
-   * (metadata.org), which is why the org's id is set to its slug rather than a
-   * minted org_&lt;ulid&gt; (see OrganizationCommandController create pipeline).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.tenancy.organization.v1.Organization}

@@ -9,15 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * RecalledMemoriesReport records the semantic retriever's injection outcome
  * for one execution.
- *
- * &#64;internal
- * Runner-owned, written at most once per execution at prompt build
- * (DD-008 D5). Selection activates only when the candidate set exceeds the
- * retriever's threshold (k); every other path — at-or-below threshold, no
- * embeddings-capable provider, embed/rank failure — injects the snapshot
- * wholesale and reports selection_active=false. Wholesale is never worse
- * than the shipped Phase 2 behavior: selection is an optimization, its
- * absence is not a degradation.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport}
@@ -89,13 +80,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -108,13 +92,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -126,13 +103,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -145,13 +115,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -403,15 +366,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * RecalledMemoriesReport records the semantic retriever's injection outcome
    * for one execution.
-   *
-   * &#64;internal
-   * Runner-owned, written at most once per execution at prompt build
-   * (DD-008 D5). Selection activates only when the candidate set exceeds the
-   * retriever's threshold (k); every other path — at-or-below threshold, no
-   * embeddings-capable provider, embed/rank failure — injects the snapshot
-   * wholesale and reports selection_active=false. Wholesale is never worse
-   * than the shipped Phase 2 behavior: selection is an optimization, its
-   * absence is not a degradation.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.RecalledMemoriesReport}
@@ -645,13 +599,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -665,13 +612,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -683,13 +623,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -702,13 +635,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -722,13 +648,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -748,13 +667,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -773,13 +685,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -798,13 +703,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -820,13 +718,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * IDs of the injected memories when selection was active.
-     *
-     * &#64;internal
-     * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-     * in SNAPSHOT order (oldest-first): selection is by relevance, but
-     * presentation preserves the stable prompt order both editions pin
-     * (DD-008 D3). Empty when selection_active is false — readers fall back
-     * to the snapshot, which is exactly correct.
      * </pre>
      *
      * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>

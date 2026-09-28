@@ -13,9 +13,6 @@ public interface CallActivityTaskConfigOrBuilder extends
   /**
    * <pre>
    * Activity name to execute.
-   *
-   * &#64;internal
-   * Must match a registered Temporal activity.
    * </pre>
    *
    * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface CallActivityTaskConfigOrBuilder extends
   /**
    * <pre>
    * Activity name to execute.
-   *
-   * &#64;internal
-   * Must match a registered Temporal activity.
    * </pre>
    *
    * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>

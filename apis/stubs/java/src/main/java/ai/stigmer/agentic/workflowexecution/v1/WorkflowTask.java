@@ -8,20 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowTask represents a single task within a workflow execution.
- *
- * &#64;internal
- * Tasks are the atomic units of work in a workflow. Each task:
- * - Has a specific type (agent invocation, API call, approval, conditional, etc.)
- * - Receives input parameters from the workflow context or previous tasks
- * - Executes its specific logic (invoke an agent, call an API, wait for approval)
- * - Produces output that can be used by subsequent tasks
- * - Tracks its own execution state (pending, in-progress, completed, failed, skipped)
- *
- * Task Execution Flow:
- * 1. Task is in PENDING state when workflow starts
- * 2. When task dependencies are met, task_status changes to IN_PROGRESS
- * 3. Task executes its logic (invoke agent, call API, etc.)
- * 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowTask}
@@ -83,13 +69,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique task identifier within this workflow execution.
-   *
-   * &#64;internal
-   * Format: Typically "task-{number}" or a descriptive slug
-   * Examples: "task-1", "task-validate-email", "task-send-notification"
-   *
-   * The task_id is unique within this WorkflowExecution but may repeat across
-   * different executions of the same WorkflowInstance (same task, different run).
    * </pre>
    *
    * <code>string task_id = 1 [json_name = "taskId"];</code>
@@ -111,13 +90,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique task identifier within this workflow execution.
-   *
-   * &#64;internal
-   * Format: Typically "task-{number}" or a descriptive slug
-   * Examples: "task-1", "task-validate-email", "task-send-notification"
-   *
-   * The task_id is unique within this WorkflowExecution but may repeat across
-   * different executions of the same WorkflowInstance (same task, different run).
    * </pre>
    *
    * <code>string task_id = 1 [json_name = "taskId"];</code>
@@ -144,15 +116,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable task name.
-   *
-   * &#64;internal
-   * Describes what this task does in plain language.
-   * Used in UI to show task progress and in logs for debugging.
-   *
-   * Naming conventions:
-   * - Use verb phrases (validate, create, send, wait)
-   * - Be specific about what's being operated on
-   * - Keep it concise (under 50 characters)
    * </pre>
    *
    * <code>string task_name = 2 [json_name = "taskName"];</code>
@@ -174,15 +137,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable task name.
-   *
-   * &#64;internal
-   * Describes what this task does in plain language.
-   * Used in UI to show task progress and in logs for debugging.
-   *
-   * Naming conventions:
-   * - Use verb phrases (validate, create, send, wait)
-   * - Be specific about what's being operated on
-   * - Keep it concise (under 50 characters)
    * </pre>
    *
    * <code>string task_name = 2 [json_name = "taskName"];</code>
@@ -208,15 +162,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Type of task (agent invocation, API call, approval, etc.).
-   *
-   * &#64;internal
-   * Determines how the task is executed by the workflow engine.
-   * The task_type influences:
-   * - How task.input is structured (different types expect different input schemas)
-   * - How task.output is produced (different types produce different outputs)
-   * - How errors are handled (retry policies, timeout behaviors)
-   *
-   * Validation: Must be a defined enum value (no unspecified).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType task_type = 3 [json_name = "taskType", (.buf.validate.field) = { ... }</code>
@@ -228,15 +173,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Type of task (agent invocation, API call, approval, etc.).
-   *
-   * &#64;internal
-   * Determines how the task is executed by the workflow engine.
-   * The task_type influences:
-   * - How task.input is structured (different types expect different input schemas)
-   * - How task.output is produced (different types produce different outputs)
-   * - How errors are handled (retry policies, timeout behaviors)
-   *
-   * Validation: Must be a defined enum value (no unspecified).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType task_type = 3 [json_name = "taskType", (.buf.validate.field) = { ... }</code>
@@ -252,15 +188,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task input parameters, structured as JSON.
-   *
-   * &#64;internal
-   * Contains the configuration and data needed for this task to execute.
-   * The structure varies by task_type.
-   *
-   * Input can reference:
-   * - Workflow inputs: {{workflow.input.field_name}}
-   * - Previous task outputs: {{tasks.task-1.output.field_name}}
-   * - Environment variables: {{env.VARIABLE_NAME}}
    * </pre>
    *
    * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -273,15 +200,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task input parameters, structured as JSON.
-   *
-   * &#64;internal
-   * Contains the configuration and data needed for this task to execute.
-   * The structure varies by task_type.
-   *
-   * Input can reference:
-   * - Workflow inputs: {{workflow.input.field_name}}
-   * - Previous task outputs: {{tasks.task-1.output.field_name}}
-   * - Environment variables: {{env.VARIABLE_NAME}}
    * </pre>
    *
    * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -294,15 +212,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task input parameters, structured as JSON.
-   *
-   * &#64;internal
-   * Contains the configuration and data needed for this task to execute.
-   * The structure varies by task_type.
-   *
-   * Input can reference:
-   * - Workflow inputs: {{workflow.input.field_name}}
-   * - Previous task outputs: {{tasks.task-1.output.field_name}}
-   * - Environment variables: {{env.VARIABLE_NAME}}
    * </pre>
    *
    * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -317,10 +226,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-   *
-   * &#64;internal
-   * Contains the data produced by this task after successful execution.
-   * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -333,10 +238,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-   *
-   * &#64;internal
-   * Contains the data produced by this task after successful execution.
-   * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -349,10 +250,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-   *
-   * &#64;internal
-   * Contains the data produced by this task after successful execution.
-   * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -367,14 +264,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Current task execution status.
-   *
-   * &#64;internal
-   * Status Transitions:
-   * PENDING → IN_PROGRESS → COMPLETED
-   * ↓              ↘ FAILED
-   * ↓              ↘ SKIPPED (if conditional)
-   *
-   * Validation: Must be a defined enum value (no unspecified).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus status = 6 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -386,14 +275,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Current task execution status.
-   *
-   * &#64;internal
-   * Status Transitions:
-   * PENDING → IN_PROGRESS → COMPLETED
-   * ↓              ↘ FAILED
-   * ↓              ↘ SKIPPED (if conditional)
-   *
-   * Validation: Must be a defined enum value (no unspecified).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus status = 6 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -410,10 +291,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when the task started executing.
-   *
-   * &#64;internal
-   * Set when task status changes from PENDING to IN_PROGRESS.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -435,10 +312,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when the task started executing.
-   *
-   * &#64;internal
-   * Set when task status changes from PENDING to IN_PROGRESS.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -465,11 +338,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when the task reached a terminal state.
-   *
-   * &#64;internal
-   * Set when task reaches COMPLETED, FAILED, or SKIPPED.
-   * Not set for PENDING or IN_PROGRESS tasks.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -491,11 +359,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when the task reached a terminal state.
-   *
-   * &#64;internal
-   * Set when task reaches COMPLETED, FAILED, or SKIPPED.
-   * Not set for PENDING or IN_PROGRESS tasks.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -522,15 +385,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Error message, populated only when status is WORKFLOW_TASK_FAILED.
-   *
-   * &#64;internal
-   * Contains a human-readable description of why the task failed.
-   *
-   * Error message includes:
-   * - What operation failed (API call, agent invocation, etc.)
-   * - Error type (validation error, network error, timeout, etc.)
-   * - Error details (status code, exception message, stacktrace)
-   * - How to fix it (if known)
    * </pre>
    *
    * <code>string error = 9 [json_name = "error"];</code>
@@ -552,15 +406,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Error message, populated only when status is WORKFLOW_TASK_FAILED.
-   *
-   * &#64;internal
-   * Contains a human-readable description of why the task failed.
-   *
-   * Error message includes:
-   * - What operation failed (API call, agent invocation, etc.)
-   * - Error type (validation error, network error, timeout, etc.)
-   * - Error details (status code, exception message, stacktrace)
-   * - How to fix it (if known)
    * </pre>
    *
    * <code>string error = 9 [json_name = "error"];</code>
@@ -586,15 +431,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task-specific metadata as arbitrary JSON.
-   *
-   * &#64;internal
-   * Contains task-specific information that doesn't fit in other fields.
-   * Used for:
-   * - Retry count (how many times this task was retried)
-   * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-   * - API response headers (for WORKFLOW_TASK_API_CALL)
-   * - Approval history (who approved, when, comments)
-   * - Performance metrics (execution time, memory usage)
    * </pre>
    *
    * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -607,15 +443,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task-specific metadata as arbitrary JSON.
-   *
-   * &#64;internal
-   * Contains task-specific information that doesn't fit in other fields.
-   * Used for:
-   * - Retry count (how many times this task was retried)
-   * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-   * - API response headers (for WORKFLOW_TASK_API_CALL)
-   * - Approval history (who approved, when, comments)
-   * - Performance metrics (execution time, memory usage)
    * </pre>
    *
    * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -628,15 +455,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Task-specific metadata as arbitrary JSON.
-   *
-   * &#64;internal
-   * Contains task-specific information that doesn't fit in other fields.
-   * Used for:
-   * - Retry count (how many times this task was retried)
-   * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-   * - API response headers (for WORKFLOW_TASK_API_CALL)
-   * - Approval history (who approved, when, comments)
-   * - Performance metrics (execution time, memory usage)
    * </pre>
    *
    * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -653,21 +471,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Artifact IDs produced by this task.
-   *
-   * &#64;internal
-   * Populated when the task's output (or portions of it) is auto-promoted
-   * to the artifact store because it exceeds the size threshold (256KB),
-   * or when the workflow author explicitly declares artifact persistence.
-   *
-   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-   *
-   * When artifact_ids is non-empty, the task's output field contains
-   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-   * the original inline data. Consumers (execution viewer, SDK hooks)
-   * detect these references and resolve them via the Artifact APIs.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -680,21 +483,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Artifact IDs produced by this task.
-   *
-   * &#64;internal
-   * Populated when the task's output (or portions of it) is auto-promoted
-   * to the artifact store because it exceeds the size threshold (256KB),
-   * or when the workflow author explicitly declares artifact persistence.
-   *
-   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-   *
-   * When artifact_ids is non-empty, the task's output field contains
-   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-   * the original inline data. Consumers (execution viewer, SDK hooks)
-   * detect these references and resolve them via the Artifact APIs.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -706,21 +494,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Artifact IDs produced by this task.
-   *
-   * &#64;internal
-   * Populated when the task's output (or portions of it) is auto-promoted
-   * to the artifact store because it exceeds the size threshold (256KB),
-   * or when the workflow author explicitly declares artifact persistence.
-   *
-   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-   *
-   * When artifact_ids is non-empty, the task's output field contains
-   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-   * the original inline data. Consumers (execution viewer, SDK hooks)
-   * detect these references and resolve them via the Artifact APIs.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -733,21 +506,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Artifact IDs produced by this task.
-   *
-   * &#64;internal
-   * Populated when the task's output (or portions of it) is auto-promoted
-   * to the artifact store because it exceeds the size threshold (256KB),
-   * or when the workflow author explicitly declares artifact persistence.
-   *
-   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-   *
-   * When artifact_ids is non-empty, the task's output field contains
-   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-   * the original inline data. Consumers (execution viewer, SDK hooks)
-   * detect these references and resolve them via the Artifact APIs.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -764,13 +522,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
-   *
-   * &#64;internal
-   * Non-zero for cost-incurring task kinds (llm_call, agent_call).
-   * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
-   * Set by the runner when the task completes.
-   *
-   * &#64;since Cost Data Pipeline
    * </pre>
    *
    * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
@@ -786,11 +537,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input (prompt/context) tokens consumed by this task.
-   *
-   * &#64;internal
-   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-   *
-   * &#64;since Cost Data Pipeline
    * </pre>
    *
    * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
@@ -806,11 +552,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Output (completion/generation) tokens produced by this task.
-   *
-   * &#64;internal
-   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-   *
-   * &#64;since Cost Data Pipeline
    * </pre>
    *
    * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
@@ -834,20 +575,6 @@ private static final long serialVersionUID = 0L;
    * event log. Empty for non-human_input tasks and for executions
    * persisted before this field existed — consumers treat empty as a
    * generic review.
-   *
-   * &#64;internal
-   * Written by the runner's task status accumulator on the
-   * waiting_approval transition and retained after the gate resolves
-   * (the record of what kind of review was performed). The user-input
-   * length constraint (max 63 chars) is enforced at the source field,
-   * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-   * matching the other string fields on this message.
-   *
-   * Not to be confused with WorkflowExecutionStatus.pending_approvals,
-   * which carries forwarded child-agent *tool* approvals — workflow-native
-   * human_input gates live only here, on tasks[].
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
@@ -876,20 +603,6 @@ private static final long serialVersionUID = 0L;
    * event log. Empty for non-human_input tasks and for executions
    * persisted before this field existed — consumers treat empty as a
    * generic review.
-   *
-   * &#64;internal
-   * Written by the runner's task status accumulator on the
-   * waiting_approval transition and retained after the gate resolves
-   * (the record of what kind of review was performed). The user-input
-   * length constraint (max 63 chars) is enforced at the source field,
-   * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-   * matching the other string fields on this message.
-   *
-   * Not to be confused with WorkflowExecutionStatus.pending_approvals,
-   * which carries forwarded child-agent *tool* approvals — workflow-native
-   * human_input gates live only here, on tasks[].
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
@@ -1240,20 +953,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowTask represents a single task within a workflow execution.
-   *
-   * &#64;internal
-   * Tasks are the atomic units of work in a workflow. Each task:
-   * - Has a specific type (agent invocation, API call, approval, conditional, etc.)
-   * - Receives input parameters from the workflow context or previous tasks
-   * - Executes its specific logic (invoke an agent, call an API, wait for approval)
-   * - Produces output that can be used by subsequent tasks
-   * - Tracks its own execution state (pending, in-progress, completed, failed, skipped)
-   *
-   * Task Execution Flow:
-   * 1. Task is in PENDING state when workflow starts
-   * 2. When task dependencies are met, task_status changes to IN_PROGRESS
-   * 3. Task executes its logic (invoke agent, call API, etc.)
-   * 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowTask}
@@ -1621,13 +1320,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique task identifier within this workflow execution.
-     *
-     * &#64;internal
-     * Format: Typically "task-{number}" or a descriptive slug
-     * Examples: "task-1", "task-validate-email", "task-send-notification"
-     *
-     * The task_id is unique within this WorkflowExecution but may repeat across
-     * different executions of the same WorkflowInstance (same task, different run).
      * </pre>
      *
      * <code>string task_id = 1 [json_name = "taskId"];</code>
@@ -1648,13 +1340,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique task identifier within this workflow execution.
-     *
-     * &#64;internal
-     * Format: Typically "task-{number}" or a descriptive slug
-     * Examples: "task-1", "task-validate-email", "task-send-notification"
-     *
-     * The task_id is unique within this WorkflowExecution but may repeat across
-     * different executions of the same WorkflowInstance (same task, different run).
      * </pre>
      *
      * <code>string task_id = 1 [json_name = "taskId"];</code>
@@ -1676,13 +1361,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique task identifier within this workflow execution.
-     *
-     * &#64;internal
-     * Format: Typically "task-{number}" or a descriptive slug
-     * Examples: "task-1", "task-validate-email", "task-send-notification"
-     *
-     * The task_id is unique within this WorkflowExecution but may repeat across
-     * different executions of the same WorkflowInstance (same task, different run).
      * </pre>
      *
      * <code>string task_id = 1 [json_name = "taskId"];</code>
@@ -1700,13 +1378,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique task identifier within this workflow execution.
-     *
-     * &#64;internal
-     * Format: Typically "task-{number}" or a descriptive slug
-     * Examples: "task-1", "task-validate-email", "task-send-notification"
-     *
-     * The task_id is unique within this WorkflowExecution but may repeat across
-     * different executions of the same WorkflowInstance (same task, different run).
      * </pre>
      *
      * <code>string task_id = 1 [json_name = "taskId"];</code>
@@ -1721,13 +1392,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique task identifier within this workflow execution.
-     *
-     * &#64;internal
-     * Format: Typically "task-{number}" or a descriptive slug
-     * Examples: "task-1", "task-validate-email", "task-send-notification"
-     *
-     * The task_id is unique within this WorkflowExecution but may repeat across
-     * different executions of the same WorkflowInstance (same task, different run).
      * </pre>
      *
      * <code>string task_id = 1 [json_name = "taskId"];</code>
@@ -1748,15 +1412,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable task name.
-     *
-     * &#64;internal
-     * Describes what this task does in plain language.
-     * Used in UI to show task progress and in logs for debugging.
-     *
-     * Naming conventions:
-     * - Use verb phrases (validate, create, send, wait)
-     * - Be specific about what's being operated on
-     * - Keep it concise (under 50 characters)
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName"];</code>
@@ -1777,15 +1432,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable task name.
-     *
-     * &#64;internal
-     * Describes what this task does in plain language.
-     * Used in UI to show task progress and in logs for debugging.
-     *
-     * Naming conventions:
-     * - Use verb phrases (validate, create, send, wait)
-     * - Be specific about what's being operated on
-     * - Keep it concise (under 50 characters)
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName"];</code>
@@ -1807,15 +1453,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable task name.
-     *
-     * &#64;internal
-     * Describes what this task does in plain language.
-     * Used in UI to show task progress and in logs for debugging.
-     *
-     * Naming conventions:
-     * - Use verb phrases (validate, create, send, wait)
-     * - Be specific about what's being operated on
-     * - Keep it concise (under 50 characters)
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName"];</code>
@@ -1833,15 +1470,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable task name.
-     *
-     * &#64;internal
-     * Describes what this task does in plain language.
-     * Used in UI to show task progress and in logs for debugging.
-     *
-     * Naming conventions:
-     * - Use verb phrases (validate, create, send, wait)
-     * - Be specific about what's being operated on
-     * - Keep it concise (under 50 characters)
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName"];</code>
@@ -1856,15 +1484,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable task name.
-     *
-     * &#64;internal
-     * Describes what this task does in plain language.
-     * Used in UI to show task progress and in logs for debugging.
-     *
-     * Naming conventions:
-     * - Use verb phrases (validate, create, send, wait)
-     * - Be specific about what's being operated on
-     * - Keep it concise (under 50 characters)
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName"];</code>
@@ -1885,15 +1504,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
-     *
-     * &#64;internal
-     * Determines how the task is executed by the workflow engine.
-     * The task_type influences:
-     * - How task.input is structured (different types expect different input schemas)
-     * - How task.output is produced (different types produce different outputs)
-     * - How errors are handled (retry policies, timeout behaviors)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType task_type = 3 [json_name = "taskType", (.buf.validate.field) = { ... }</code>
@@ -1905,15 +1515,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
-     *
-     * &#64;internal
-     * Determines how the task is executed by the workflow engine.
-     * The task_type influences:
-     * - How task.input is structured (different types expect different input schemas)
-     * - How task.output is produced (different types produce different outputs)
-     * - How errors are handled (retry policies, timeout behaviors)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType task_type = 3 [json_name = "taskType", (.buf.validate.field) = { ... }</code>
@@ -1930,15 +1531,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
-     *
-     * &#64;internal
-     * Determines how the task is executed by the workflow engine.
-     * The task_type influences:
-     * - How task.input is structured (different types expect different input schemas)
-     * - How task.output is produced (different types produce different outputs)
-     * - How errors are handled (retry policies, timeout behaviors)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType task_type = 3 [json_name = "taskType", (.buf.validate.field) = { ... }</code>
@@ -1952,15 +1544,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
-     *
-     * &#64;internal
-     * Determines how the task is executed by the workflow engine.
-     * The task_type influences:
-     * - How task.input is structured (different types expect different input schemas)
-     * - How task.output is produced (different types produce different outputs)
-     * - How errors are handled (retry policies, timeout behaviors)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType task_type = 3 [json_name = "taskType", (.buf.validate.field) = { ... }</code>
@@ -1977,15 +1560,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Type of task (agent invocation, API call, approval, etc.).
-     *
-     * &#64;internal
-     * Determines how the task is executed by the workflow engine.
-     * The task_type influences:
-     * - How task.input is structured (different types expect different input schemas)
-     * - How task.output is produced (different types produce different outputs)
-     * - How errors are handled (retry policies, timeout behaviors)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType task_type = 3 [json_name = "taskType", (.buf.validate.field) = { ... }</code>
@@ -2004,15 +1578,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2024,15 +1589,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2048,15 +1604,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2077,15 +1624,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2104,15 +1642,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2138,15 +1667,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2164,15 +1684,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2185,15 +1696,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2209,15 +1711,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task input parameters, structured as JSON.
-     *
-     * &#64;internal
-     * Contains the configuration and data needed for this task to execute.
-     * The structure varies by task_type.
-     *
-     * Input can reference:
-     * - Workflow inputs: {{workflow.input.field_name}}
-     * - Previous task outputs: {{tasks.task-1.output.field_name}}
-     * - Environment variables: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>.google.protobuf.Struct input = 4 [json_name = "input"];</code>
@@ -2242,10 +1735,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2257,10 +1746,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2276,10 +1761,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2300,10 +1781,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2322,10 +1799,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2351,10 +1824,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2372,10 +1841,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2388,10 +1853,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2407,10 +1868,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
-     *
-     * &#64;internal
-     * Contains the data produced by this task after successful execution.
-     * Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 5 [json_name = "output"];</code>
@@ -2433,14 +1890,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current task execution status.
-     *
-     * &#64;internal
-     * Status Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ SKIPPED (if conditional)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus status = 6 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2452,14 +1901,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current task execution status.
-     *
-     * &#64;internal
-     * Status Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ SKIPPED (if conditional)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus status = 6 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2476,14 +1917,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current task execution status.
-     *
-     * &#64;internal
-     * Status Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ SKIPPED (if conditional)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus status = 6 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2497,14 +1930,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current task execution status.
-     *
-     * &#64;internal
-     * Status Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ SKIPPED (if conditional)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus status = 6 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2521,14 +1946,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current task execution status.
-     *
-     * &#64;internal
-     * Status Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ SKIPPED (if conditional)
-     *
-     * Validation: Must be a defined enum value (no unspecified).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus status = 6 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2545,10 +1962,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task started executing.
-     *
-     * &#64;internal
-     * Set when task status changes from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -2569,10 +1982,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task started executing.
-     *
-     * &#64;internal
-     * Set when task status changes from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -2594,10 +2003,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task started executing.
-     *
-     * &#64;internal
-     * Set when task status changes from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -2615,10 +2020,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task started executing.
-     *
-     * &#64;internal
-     * Set when task status changes from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -2633,10 +2034,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task started executing.
-     *
-     * &#64;internal
-     * Set when task status changes from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 7 [json_name = "startedAt"];</code>
@@ -2657,11 +2054,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task reached a terminal state.
-     *
-     * &#64;internal
-     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
-     * Not set for PENDING or IN_PROGRESS tasks.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -2682,11 +2074,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task reached a terminal state.
-     *
-     * &#64;internal
-     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
-     * Not set for PENDING or IN_PROGRESS tasks.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -2708,11 +2095,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task reached a terminal state.
-     *
-     * &#64;internal
-     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
-     * Not set for PENDING or IN_PROGRESS tasks.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -2730,11 +2112,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task reached a terminal state.
-     *
-     * &#64;internal
-     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
-     * Not set for PENDING or IN_PROGRESS tasks.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -2749,11 +2126,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when the task reached a terminal state.
-     *
-     * &#64;internal
-     * Set when task reaches COMPLETED, FAILED, or SKIPPED.
-     * Not set for PENDING or IN_PROGRESS tasks.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 8 [json_name = "completedAt"];</code>
@@ -2774,15 +2146,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when status is WORKFLOW_TASK_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of why the task failed.
-     *
-     * Error message includes:
-     * - What operation failed (API call, agent invocation, etc.)
-     * - Error type (validation error, network error, timeout, etc.)
-     * - Error details (status code, exception message, stacktrace)
-     * - How to fix it (if known)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -2803,15 +2166,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when status is WORKFLOW_TASK_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of why the task failed.
-     *
-     * Error message includes:
-     * - What operation failed (API call, agent invocation, etc.)
-     * - Error type (validation error, network error, timeout, etc.)
-     * - Error details (status code, exception message, stacktrace)
-     * - How to fix it (if known)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -2833,15 +2187,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when status is WORKFLOW_TASK_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of why the task failed.
-     *
-     * Error message includes:
-     * - What operation failed (API call, agent invocation, etc.)
-     * - Error type (validation error, network error, timeout, etc.)
-     * - Error details (status code, exception message, stacktrace)
-     * - How to fix it (if known)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -2859,15 +2204,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when status is WORKFLOW_TASK_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of why the task failed.
-     *
-     * Error message includes:
-     * - What operation failed (API call, agent invocation, etc.)
-     * - Error type (validation error, network error, timeout, etc.)
-     * - Error details (status code, exception message, stacktrace)
-     * - How to fix it (if known)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -2882,15 +2218,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when status is WORKFLOW_TASK_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of why the task failed.
-     *
-     * Error message includes:
-     * - What operation failed (API call, agent invocation, etc.)
-     * - Error type (validation error, network error, timeout, etc.)
-     * - Error details (status code, exception message, stacktrace)
-     * - How to fix it (if known)
      * </pre>
      *
      * <code>string error = 9 [json_name = "error"];</code>
@@ -2913,15 +2240,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -2933,15 +2251,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -2957,15 +2266,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -2986,15 +2286,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3013,15 +2304,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3047,15 +2329,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3073,15 +2346,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3094,15 +2358,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3118,15 +2373,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Task-specific metadata as arbitrary JSON.
-     *
-     * &#64;internal
-     * Contains task-specific information that doesn't fit in other fields.
-     * Used for:
-     * - Retry count (how many times this task was retried)
-     * - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)
-     * - API response headers (for WORKFLOW_TASK_API_CALL)
-     * - Approval history (who approved, when, comments)
-     * - Performance metrics (execution time, memory usage)
      * </pre>
      *
      * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
@@ -3156,21 +2402,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3184,21 +2415,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3210,21 +2426,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3237,21 +2438,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3265,21 +2451,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3299,21 +2470,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3332,21 +2488,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3365,21 +2506,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3395,21 +2521,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Artifact IDs produced by this task.
-     *
-     * &#64;internal
-     * Populated when the task's output (or portions of it) is auto-promoted
-     * to the artifact store because it exceeds the size threshold (256KB),
-     * or when the workflow author explicitly declares artifact persistence.
-     *
-     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
-     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
-     *
-     * When artifact_ids is non-empty, the task's output field contains
-     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-     * the original inline data. Consumers (execution viewer, SDK hooks)
-     * detect these references and resolve them via the Artifact APIs.
-     *
-     * &#64;since T07 (Artifact Store)
      * </pre>
      *
      * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
@@ -3431,13 +2542,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
-     *
-     * &#64;internal
-     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
-     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
-     * Set by the runner when the task completes.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
@@ -3450,13 +2554,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
-     *
-     * &#64;internal
-     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
-     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
-     * Set by the runner when the task completes.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
@@ -3473,13 +2570,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
-     *
-     * &#64;internal
-     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
-     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
-     * Set by the runner when the task completes.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
@@ -3496,11 +2586,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Input (prompt/context) tokens consumed by this task.
-     *
-     * &#64;internal
-     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
@@ -3513,11 +2598,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Input (prompt/context) tokens consumed by this task.
-     *
-     * &#64;internal
-     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
@@ -3534,11 +2614,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Input (prompt/context) tokens consumed by this task.
-     *
-     * &#64;internal
-     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
@@ -3555,11 +2630,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Output (completion/generation) tokens produced by this task.
-     *
-     * &#64;internal
-     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
@@ -3572,11 +2642,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Output (completion/generation) tokens produced by this task.
-     *
-     * &#64;internal
-     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
@@ -3593,11 +2658,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Output (completion/generation) tokens produced by this task.
-     *
-     * &#64;internal
-     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
@@ -3621,20 +2681,6 @@ private static final long serialVersionUID = 0L;
      * event log. Empty for non-human_input tasks and for executions
      * persisted before this field existed — consumers treat empty as a
      * generic review.
-     *
-     * &#64;internal
-     * Written by the runner's task status accumulator on the
-     * waiting_approval transition and retained after the gate resolves
-     * (the record of what kind of review was performed). The user-input
-     * length constraint (max 63 chars) is enforced at the source field,
-     * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-     * matching the other string fields on this message.
-     *
-     * Not to be confused with WorkflowExecutionStatus.pending_approvals,
-     * which carries forwarded child-agent *tool* approvals — workflow-native
-     * human_input gates live only here, on tasks[].
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
@@ -3662,20 +2708,6 @@ private static final long serialVersionUID = 0L;
      * event log. Empty for non-human_input tasks and for executions
      * persisted before this field existed — consumers treat empty as a
      * generic review.
-     *
-     * &#64;internal
-     * Written by the runner's task status accumulator on the
-     * waiting_approval transition and retained after the gate resolves
-     * (the record of what kind of review was performed). The user-input
-     * length constraint (max 63 chars) is enforced at the source field,
-     * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-     * matching the other string fields on this message.
-     *
-     * Not to be confused with WorkflowExecutionStatus.pending_approvals,
-     * which carries forwarded child-agent *tool* approvals — workflow-native
-     * human_input gates live only here, on tasks[].
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
@@ -3704,20 +2736,6 @@ private static final long serialVersionUID = 0L;
      * event log. Empty for non-human_input tasks and for executions
      * persisted before this field existed — consumers treat empty as a
      * generic review.
-     *
-     * &#64;internal
-     * Written by the runner's task status accumulator on the
-     * waiting_approval transition and retained after the gate resolves
-     * (the record of what kind of review was performed). The user-input
-     * length constraint (max 63 chars) is enforced at the source field,
-     * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-     * matching the other string fields on this message.
-     *
-     * Not to be confused with WorkflowExecutionStatus.pending_approvals,
-     * which carries forwarded child-agent *tool* approvals — workflow-native
-     * human_input gates live only here, on tasks[].
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
@@ -3742,20 +2760,6 @@ private static final long serialVersionUID = 0L;
      * event log. Empty for non-human_input tasks and for executions
      * persisted before this field existed — consumers treat empty as a
      * generic review.
-     *
-     * &#64;internal
-     * Written by the runner's task status accumulator on the
-     * waiting_approval transition and retained after the gate resolves
-     * (the record of what kind of review was performed). The user-input
-     * length constraint (max 63 chars) is enforced at the source field,
-     * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-     * matching the other string fields on this message.
-     *
-     * Not to be confused with WorkflowExecutionStatus.pending_approvals,
-     * which carries forwarded child-agent *tool* approvals — workflow-native
-     * human_input gates live only here, on tasks[].
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
@@ -3777,20 +2781,6 @@ private static final long serialVersionUID = 0L;
      * event log. Empty for non-human_input tasks and for executions
      * persisted before this field existed — consumers treat empty as a
      * generic review.
-     *
-     * &#64;internal
-     * Written by the runner's task status accumulator on the
-     * waiting_approval transition and retained after the gate resolves
-     * (the record of what kind of review was performed). The user-input
-     * length constraint (max 63 chars) is enforced at the source field,
-     * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
-     * matching the other string fields on this message.
-     *
-     * Not to be confused with WorkflowExecutionStatus.pending_approvals,
-     * which carries forwarded child-agent *tool* approvals — workflow-native
-     * human_input gates live only here, on tasks[].
-     *
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      *
      * <code>string ui_hint = 15 [json_name = "uiHint"];</code>

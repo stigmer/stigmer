@@ -13,9 +13,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Execution ID to fetch events for.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Execution ID to fetch events for.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -39,11 +33,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Return events with sequence_number strictly greater than this value.
-   *
-   * &#64;internal
-   * Cursor-based pagination: set to 0 for the first page, then to
-   * latest_sequence from the previous response for subsequent pages.
-   * Also used by subscribeEvents for replay + live tail positioning.
    * </pre>
    *
    * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -54,11 +43,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -68,11 +52,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -82,11 +61,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -97,11 +71,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -112,11 +81,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: return only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are returned. When populated, only events
-   * whose event_type matches one of the specified values are included.
-   * Useful for filtering to only task lifecycle events, or only budget events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -128,11 +92,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: return only events for this task.
-   *
-   * &#64;internal
-   * When empty, events for all tasks (and execution-level events) are returned.
-   * When populated, only events where task_name matches are included.
-   * Execution-level events (empty task_name) are excluded when this filter is set.
    * </pre>
    *
    * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -142,11 +101,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: return only events for this task.
-   *
-   * &#64;internal
-   * When empty, events for all tasks (and execution-level events) are returned.
-   * When populated, only events where task_name matches are included.
-   * Execution-level events (empty task_name) are excluded when this filter is set.
    * </pre>
    *
    * <code>string task_name = 4 [json_name = "taskName"];</code>
@@ -158,10 +112,6 @@ public interface GetEventLogRequestOrBuilder extends
   /**
    * <pre>
    * Maximum number of events to return per page.
-   *
-   * &#64;internal
-   * Default: 100. Maximum: 500 (backend enforces this limit).
-   * Events are always returned in sequence_number ascending order.
    * </pre>
    *
    * <code>int32 page_size = 5 [json_name = "pageSize"];</code>

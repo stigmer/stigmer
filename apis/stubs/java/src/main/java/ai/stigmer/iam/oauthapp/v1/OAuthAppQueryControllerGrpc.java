@@ -177,8 +177,6 @@ public final class OAuthAppQueryControllerGrpc {
     /**
      * <pre>
      * Get an OAuth app by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the oauth_app resource.
      * </pre>
      */
     default void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -191,9 +189,6 @@ public final class OAuthAppQueryControllerGrpc {
      * Get an OAuth app by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/slack-oauth" to the full
      * OAuthApp resource.
-     * &#64;internal
-     * Authorization: the resolved app is authorized exactly as get is —
-     * can_view on the oauth app, with get's refusal copy.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -206,9 +201,6 @@ public final class OAuthAppQueryControllerGrpc {
      * List all OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
      * first. Typically a small set (1-5 per org), so results are not paginated.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource;
-     * the result is then narrowed to the apps a get would return.
      * </pre>
      */
     default void listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request,
@@ -253,8 +245,6 @@ public final class OAuthAppQueryControllerGrpc {
     /**
      * <pre>
      * Get an OAuth app by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the oauth_app resource.
      * </pre>
      */
     public void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -268,9 +258,6 @@ public final class OAuthAppQueryControllerGrpc {
      * Get an OAuth app by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/slack-oauth" to the full
      * OAuthApp resource.
-     * &#64;internal
-     * Authorization: the resolved app is authorized exactly as get is —
-     * can_view on the oauth app, with get's refusal copy.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -284,9 +271,6 @@ public final class OAuthAppQueryControllerGrpc {
      * List all OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
      * first. Typically a small set (1-5 per org), so results are not paginated.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource;
-     * the result is then narrowed to the apps a get would return.
      * </pre>
      */
     public void listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request,
@@ -318,8 +302,6 @@ public final class OAuthAppQueryControllerGrpc {
     /**
      * <pre>
      * Get an OAuth app by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the oauth_app resource.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp get(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -332,9 +314,6 @@ public final class OAuthAppQueryControllerGrpc {
      * Get an OAuth app by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/slack-oauth" to the full
      * OAuthApp resource.
-     * &#64;internal
-     * Authorization: the resolved app is authorized exactly as get is —
-     * can_view on the oauth app, with get's refusal copy.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -347,9 +326,6 @@ public final class OAuthAppQueryControllerGrpc {
      * List all OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
      * first. Typically a small set (1-5 per org), so results are not paginated.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource;
-     * the result is then narrowed to the apps a get would return.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApps listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request) throws io.grpc.StatusException {
@@ -380,8 +356,6 @@ public final class OAuthAppQueryControllerGrpc {
     /**
      * <pre>
      * Get an OAuth app by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the oauth_app resource.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp get(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -394,9 +368,6 @@ public final class OAuthAppQueryControllerGrpc {
      * Get an OAuth app by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/slack-oauth" to the full
      * OAuthApp resource.
-     * &#64;internal
-     * Authorization: the resolved app is authorized exactly as get is —
-     * can_view on the oauth app, with get's refusal copy.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -409,9 +380,6 @@ public final class OAuthAppQueryControllerGrpc {
      * List all OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
      * first. Typically a small set (1-5 per org), so results are not paginated.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource;
-     * the result is then narrowed to the apps a get would return.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApps listByOrg(ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput request) {
@@ -442,8 +410,6 @@ public final class OAuthAppQueryControllerGrpc {
     /**
      * <pre>
      * Get an OAuth app by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the oauth_app resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> get(
@@ -457,9 +423,6 @@ public final class OAuthAppQueryControllerGrpc {
      * Get an OAuth app by its organization-scoped reference (org/slug).
      * Resolves a human-readable reference like "acme/slack-oauth" to the full
      * OAuthApp resource.
-     * &#64;internal
-     * Authorization: the resolved app is authorized exactly as get is —
-     * can_view on the oauth app, with get's refusal copy.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> getByReference(
@@ -473,9 +436,6 @@ public final class OAuthAppQueryControllerGrpc {
      * List all OAuth apps belonging to an organization.
      * Returns the OAuthApps of the input org that the caller may view, newest
      * first. Typically a small set (1-5 per org), so results are not paginated.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the organization resource;
-     * the result is then narrowed to the apps a get would return.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApps> listByOrg(

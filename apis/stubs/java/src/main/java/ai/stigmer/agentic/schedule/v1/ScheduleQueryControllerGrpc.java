@@ -5,10 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ScheduleQueryController handles read operations for schedules.
- * &#64;internal
- * No anonymous/public RPC by design (the AgentChannel posture): a
- * schedule has no public surface at all — its only runtime effect is the
- * executions its fires create.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -236,10 +232,6 @@ public final class ScheduleQueryControllerGrpc {
   /**
    * <pre>
    * ScheduleQueryController handles read operations for schedules.
-   * &#64;internal
-   * No anonymous/public RPC by design (the AgentChannel posture): a
-   * schedule has no public surface at all — its only runtime effect is the
-   * executions its fires create.
    * </pre>
    */
   public interface AsyncService {
@@ -257,10 +249,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * Get a schedule by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the AgentShare /
-     * AgentChannel pattern).
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -274,10 +262,6 @@ public final class ScheduleQueryControllerGrpc {
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-     * (the getByAgent family convention — agent channels, agent shares,
-     * agent instances).
      * </pre>
      */
     default void getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request,
@@ -288,9 +272,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * List schedules with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     default void list(ai.stigmer.agentic.schedule.v1.ListSchedulesRequest request,
@@ -305,15 +286,6 @@ public final class ScheduleQueryControllerGrpc {
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
-     * &#64;internal
-     * Backed by the fire ledger (project DD-017 D-7). Authorization:
-     * can_view on the schedule — run history is the schedule's own
-     * operational record; the linked executions keep their own bars. Rows
-     * carrying an execution id but no terminal outcome are enriched with
-     * the execution's live phase at read time (one join), so manual fires
-     * need no tracker and outcome columns never lie. OSS implements the
-     * same contract against its store; the conformance suite holds both
-     * editions to it.
      * </pre>
      */
     default void listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request,
@@ -326,10 +298,6 @@ public final class ScheduleQueryControllerGrpc {
    * Base class for the server implementation of the service ScheduleQueryController.
    * <pre>
    * ScheduleQueryController handles read operations for schedules.
-   * &#64;internal
-   * No anonymous/public RPC by design (the AgentChannel posture): a
-   * schedule has no public surface at all — its only runtime effect is the
-   * executions its fires create.
    * </pre>
    */
   public static abstract class ScheduleQueryControllerImplBase
@@ -344,10 +312,6 @@ public final class ScheduleQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ScheduleQueryController.
    * <pre>
    * ScheduleQueryController handles read operations for schedules.
-   * &#64;internal
-   * No anonymous/public RPC by design (the AgentChannel posture): a
-   * schedule has no public surface at all — its only runtime effect is the
-   * executions its fires create.
    * </pre>
    */
   public static final class ScheduleQueryControllerStub
@@ -377,10 +341,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * Get a schedule by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the AgentShare /
-     * AgentChannel pattern).
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -395,10 +355,6 @@ public final class ScheduleQueryControllerGrpc {
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-     * (the getByAgent family convention — agent channels, agent shares,
-     * agent instances).
      * </pre>
      */
     public void getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request,
@@ -410,9 +366,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * List schedules with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public void list(ai.stigmer.agentic.schedule.v1.ListSchedulesRequest request,
@@ -428,15 +381,6 @@ public final class ScheduleQueryControllerGrpc {
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
-     * &#64;internal
-     * Backed by the fire ledger (project DD-017 D-7). Authorization:
-     * can_view on the schedule — run history is the schedule's own
-     * operational record; the linked executions keep their own bars. Rows
-     * carrying an execution id but no terminal outcome are enriched with
-     * the execution's live phase at read time (one join), so manual fires
-     * need no tracker and outcome columns never lie. OSS implements the
-     * same contract against its store; the conformance suite holds both
-     * editions to it.
      * </pre>
      */
     public void listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request,
@@ -450,10 +394,6 @@ public final class ScheduleQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ScheduleQueryController.
    * <pre>
    * ScheduleQueryController handles read operations for schedules.
-   * &#64;internal
-   * No anonymous/public RPC by design (the AgentChannel posture): a
-   * schedule has no public surface at all — its only runtime effect is the
-   * executions its fires create.
    * </pre>
    */
   public static final class ScheduleQueryControllerBlockingV2Stub
@@ -482,10 +422,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * Get a schedule by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the AgentShare /
-     * AgentChannel pattern).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -499,10 +435,6 @@ public final class ScheduleQueryControllerGrpc {
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-     * (the getByAgent family convention — agent channels, agent shares,
-     * agent instances).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.ScheduleList getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request) throws io.grpc.StatusException {
@@ -513,9 +445,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * List schedules with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.ScheduleList list(ai.stigmer.agentic.schedule.v1.ListSchedulesRequest request) throws io.grpc.StatusException {
@@ -530,15 +459,6 @@ public final class ScheduleQueryControllerGrpc {
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
-     * &#64;internal
-     * Backed by the fire ledger (project DD-017 D-7). Authorization:
-     * can_view on the schedule — run history is the schedule's own
-     * operational record; the linked executions keep their own bars. Rows
-     * carrying an execution id but no terminal outcome are enriched with
-     * the execution's live phase at read time (one join), so manual fires
-     * need no tracker and outcome columns never lie. OSS implements the
-     * same contract against its store; the conformance suite holds both
-     * editions to it.
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.ScheduleRunList listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) throws io.grpc.StatusException {
@@ -551,10 +471,6 @@ public final class ScheduleQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ScheduleQueryController.
    * <pre>
    * ScheduleQueryController handles read operations for schedules.
-   * &#64;internal
-   * No anonymous/public RPC by design (the AgentChannel posture): a
-   * schedule has no public surface at all — its only runtime effect is the
-   * executions its fires create.
    * </pre>
    */
   public static final class ScheduleQueryControllerBlockingStub
@@ -583,10 +499,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * Get a schedule by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the AgentShare /
-     * AgentChannel pattern).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -600,10 +512,6 @@ public final class ScheduleQueryControllerGrpc {
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-     * (the getByAgent family convention — agent channels, agent shares,
-     * agent instances).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.ScheduleList getByAgent(ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest request) {
@@ -614,9 +522,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * List schedules with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.ScheduleList list(ai.stigmer.agentic.schedule.v1.ListSchedulesRequest request) {
@@ -631,15 +536,6 @@ public final class ScheduleQueryControllerGrpc {
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
-     * &#64;internal
-     * Backed by the fire ledger (project DD-017 D-7). Authorization:
-     * can_view on the schedule — run history is the schedule's own
-     * operational record; the linked executions keep their own bars. Rows
-     * carrying an execution id but no terminal outcome are enriched with
-     * the execution's live phase at read time (one join), so manual fires
-     * need no tracker and outcome columns never lie. OSS implements the
-     * same contract against its store; the conformance suite holds both
-     * editions to it.
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.ScheduleRunList listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) {
@@ -652,10 +548,6 @@ public final class ScheduleQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ScheduleQueryController.
    * <pre>
    * ScheduleQueryController handles read operations for schedules.
-   * &#64;internal
-   * No anonymous/public RPC by design (the AgentChannel posture): a
-   * schedule has no public surface at all — its only runtime effect is the
-   * executions its fires create.
    * </pre>
    */
   public static final class ScheduleQueryControllerFutureStub
@@ -685,10 +577,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * Get a schedule by its organization-scoped reference (org/slug).
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the AgentShare /
-     * AgentChannel pattern).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> getByReference(
@@ -703,10 +591,6 @@ public final class ScheduleQueryControllerGrpc {
      * Returns only schedules the caller has access to.
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
-     * &#64;internal
-     * Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-     * (the getByAgent family convention — agent channels, agent shares,
-     * agent instances).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleList> getByAgent(
@@ -718,9 +602,6 @@ public final class ScheduleQueryControllerGrpc {
     /**
      * <pre>
      * List schedules with optional label filtering.
-     * &#64;internal
-     * Authorization in-handler via FGA-filtered queries (cloud) or
-     * unrestricted store queries (OSS).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleList> list(
@@ -736,15 +617,6 @@ public final class ScheduleQueryControllerGrpc {
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
-     * &#64;internal
-     * Backed by the fire ledger (project DD-017 D-7). Authorization:
-     * can_view on the schedule — run history is the schedule's own
-     * operational record; the linked executions keep their own bars. Rows
-     * carrying an execution id but no terminal outcome are enriched with
-     * the execution's live phase at read time (one join), so manual fires
-     * need no tracker and outcome columns never lie. OSS implements the
-     * same contract against its store; the conformance suite holds both
-     * editions to it.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleRunList> listRuns(

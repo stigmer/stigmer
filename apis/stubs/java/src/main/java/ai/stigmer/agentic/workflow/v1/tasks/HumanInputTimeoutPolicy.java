@@ -9,13 +9,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * <pre>
  * HumanInputTimeoutPolicy defines what happens when a human_input task's
  * timeout expires without a response from any approver.
- *
- * &#64;internal
- * Timeout behavior is a workflow design decision: should the workflow fail
- * (safest), auto-approve (for non-critical gates), auto-deny (for opt-in
- * flows), or escalate to a different handler?
- *
- * &#64;since T03 (P0 New Task Types)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.tasks.HumanInputTimeoutPolicy}

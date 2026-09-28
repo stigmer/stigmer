@@ -65,11 +65,6 @@ public interface GetWorkflowInstancesByWorkflowRequestOrBuilder extends
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Filtering happens in the query/list step of each edition's
-   * handler, never client-side.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -84,11 +79,6 @@ public interface GetWorkflowInstancesByWorkflowRequestOrBuilder extends
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Filtering happens in the query/list step of each edition's
-   * handler, never client-side.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>

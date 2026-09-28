@@ -11,12 +11,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * can_manage_cursor_accounts on platform:stigmer (human operators only):
  * the resource holds provider key material and per-member spend, which
  * are platform-internal and never org-visible.
- * &#64;internal
- * Cloud-only. The OSS Go server does not implement this service — in the
- * OSS edition Cursor credentials are the user's own (BYOK env var), so
- * there is nothing to manage. Handlers refuse writes when secret
- * encryption is not enabled on the deployment (FAILED_PRECONDITION):
- * silently persisting plaintext keys is never acceptable for this store.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -281,12 +275,6 @@ public final class CursorAccountCommandControllerGrpc {
    * can_manage_cursor_accounts on platform:stigmer (human operators only):
    * the resource holds provider key material and per-member spend, which
    * are platform-internal and never org-visible.
-   * &#64;internal
-   * Cloud-only. The OSS Go server does not implement this service — in the
-   * OSS edition Cursor credentials are the user's own (BYOK env var), so
-   * there is nothing to manage. Handlers refuse writes when secret
-   * encryption is not enabled on the deployment (FAILED_PRECONDITION):
-   * silently persisting plaintext keys is never acceptable for this store.
    * </pre>
    */
   public interface AsyncService {
@@ -373,12 +361,6 @@ public final class CursorAccountCommandControllerGrpc {
    * can_manage_cursor_accounts on platform:stigmer (human operators only):
    * the resource holds provider key material and per-member spend, which
    * are platform-internal and never org-visible.
-   * &#64;internal
-   * Cloud-only. The OSS Go server does not implement this service — in the
-   * OSS edition Cursor credentials are the user's own (BYOK env var), so
-   * there is nothing to manage. Handlers refuse writes when secret
-   * encryption is not enabled on the deployment (FAILED_PRECONDITION):
-   * silently persisting plaintext keys is never acceptable for this store.
    * </pre>
    */
   public static abstract class CursorAccountCommandControllerImplBase
@@ -399,12 +381,6 @@ public final class CursorAccountCommandControllerGrpc {
    * can_manage_cursor_accounts on platform:stigmer (human operators only):
    * the resource holds provider key material and per-member spend, which
    * are platform-internal and never org-visible.
-   * &#64;internal
-   * Cloud-only. The OSS Go server does not implement this service — in the
-   * OSS edition Cursor credentials are the user's own (BYOK env var), so
-   * there is nothing to manage. Handlers refuse writes when secret
-   * encryption is not enabled on the deployment (FAILED_PRECONDITION):
-   * silently persisting plaintext keys is never acceptable for this store.
    * </pre>
    */
   public static final class CursorAccountCommandControllerStub
@@ -508,12 +484,6 @@ public final class CursorAccountCommandControllerGrpc {
    * can_manage_cursor_accounts on platform:stigmer (human operators only):
    * the resource holds provider key material and per-member spend, which
    * are platform-internal and never org-visible.
-   * &#64;internal
-   * Cloud-only. The OSS Go server does not implement this service — in the
-   * OSS edition Cursor credentials are the user's own (BYOK env var), so
-   * there is nothing to manage. Handlers refuse writes when secret
-   * encryption is not enabled on the deployment (FAILED_PRECONDITION):
-   * silently persisting plaintext keys is never acceptable for this store.
    * </pre>
    */
   public static final class CursorAccountCommandControllerBlockingV2Stub
@@ -611,12 +581,6 @@ public final class CursorAccountCommandControllerGrpc {
    * can_manage_cursor_accounts on platform:stigmer (human operators only):
    * the resource holds provider key material and per-member spend, which
    * are platform-internal and never org-visible.
-   * &#64;internal
-   * Cloud-only. The OSS Go server does not implement this service — in the
-   * OSS edition Cursor credentials are the user's own (BYOK env var), so
-   * there is nothing to manage. Handlers refuse writes when secret
-   * encryption is not enabled on the deployment (FAILED_PRECONDITION):
-   * silently persisting plaintext keys is never acceptable for this store.
    * </pre>
    */
   public static final class CursorAccountCommandControllerBlockingStub
@@ -714,12 +678,6 @@ public final class CursorAccountCommandControllerGrpc {
    * can_manage_cursor_accounts on platform:stigmer (human operators only):
    * the resource holds provider key material and per-member spend, which
    * are platform-internal and never org-visible.
-   * &#64;internal
-   * Cloud-only. The OSS Go server does not implement this service — in the
-   * OSS edition Cursor credentials are the user's own (BYOK env var), so
-   * there is nothing to manage. Handlers refuse writes when secret
-   * encryption is not enabled on the deployment (FAILED_PRECONDITION):
-   * silently persisting plaintext keys is never acceptable for this store.
    * </pre>
    */
   public static final class CursorAccountCommandControllerFutureStub

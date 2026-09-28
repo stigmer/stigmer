@@ -52,11 +52,6 @@ public enum ValidationState
    * <pre>
    * Validation process failed due to a system error (not a user error).
    * Retry validation or contact support.
-   *
-   * &#64;internal
-   * Reserved for a genuine validator fault (e.g., the converter panics or an
-   * unexpected internal error prevents validation from completing) — not a
-   * user-fixable spec problem.
    * </pre>
    *
    * <code>FAILED = 4;</code>
@@ -111,11 +106,6 @@ public enum ValidationState
    * <pre>
    * Validation process failed due to a system error (not a user error).
    * Retry validation or contact support.
-   *
-   * &#64;internal
-   * Reserved for a genuine validator fault (e.g., the converter panics or an
-   * unexpected internal error prevents validation from completing) — not a
-   * user-fixable spec problem.
    * </pre>
    *
    * <code>FAILED = 4;</code>

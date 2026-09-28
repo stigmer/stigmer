@@ -10,24 +10,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
  *
  * Supports both relative durations and absolute timestamps.
- *
- * &#64;internal
- * Implemented via Temporal timers.
- *
- * YAML Examples:
- *
- * Relative duration:
- * - waitForApproval:
- * wait:
- * duration:
- * days: 7
- *
- * Absolute timestamp:
- * - waitUntilMarketOpen:
- * wait:
- * until: "2026-03-02T09:30:00Z"
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig}
@@ -420,24 +402,6 @@ private static final long serialVersionUID = 0L;
    * WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
    *
    * Supports both relative durations and absolute timestamps.
-   *
-   * &#64;internal
-   * Implemented via Temporal timers.
-   *
-   * YAML Examples:
-   *
-   * Relative duration:
-   * - waitForApproval:
-   * wait:
-   * duration:
-   * days: 7
-   *
-   * Absolute timestamp:
-   * - waitUntilMarketOpen:
-   * wait:
-   * until: "2026-03-02T09:30:00Z"
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig}

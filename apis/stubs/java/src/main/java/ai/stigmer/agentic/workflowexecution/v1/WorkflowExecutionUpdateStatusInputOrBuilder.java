@@ -13,9 +13,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution to update.
-   *
-   * &#64;internal
-   * Format: "wex_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution to update.
-   *
-   * &#64;internal
-   * Format: "wex_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -39,9 +33,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Status fields to merge into the existing execution status.
-   *
-   * &#64;internal
-   * Only the fields present in this status object will be updated.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -51,9 +42,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Status fields to merge into the existing execution status.
-   *
-   * &#64;internal
-   * Only the fields present in this status object will be updated.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -63,9 +51,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Status fields to merge into the existing execution status.
-   *
-   * &#64;internal
-   * Only the fields present in this status object will be updated.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -75,21 +60,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Execution events to append to the event log alongside this status update.
-   *
-   * &#64;internal
-   * Append-only: events are added to the persistent event log, never replaced.
-   * This contrasts with status.tasks which uses full-replace protocol.
-   *
-   * The runner appends events atomically with each status update,
-   * ensuring the event log stays consistent with the status snapshot.
-   * Events must have monotonically increasing sequence_numbers — the handler
-   * rejects batches where any event's sequence_number is &lt;= the current
-   * highest persisted sequence for this execution.
-   *
-   * Empty list means no new events (backward compatible — existing runners
-   * that do not yet emit events continue to work without changes).
-   *
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
@@ -99,21 +69,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Execution events to append to the event log alongside this status update.
-   *
-   * &#64;internal
-   * Append-only: events are added to the persistent event log, never replaced.
-   * This contrasts with status.tasks which uses full-replace protocol.
-   *
-   * The runner appends events atomically with each status update,
-   * ensuring the event log stays consistent with the status snapshot.
-   * Events must have monotonically increasing sequence_numbers — the handler
-   * rejects batches where any event's sequence_number is &lt;= the current
-   * highest persisted sequence for this execution.
-   *
-   * Empty list means no new events (backward compatible — existing runners
-   * that do not yet emit events continue to work without changes).
-   *
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
@@ -122,21 +77,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Execution events to append to the event log alongside this status update.
-   *
-   * &#64;internal
-   * Append-only: events are added to the persistent event log, never replaced.
-   * This contrasts with status.tasks which uses full-replace protocol.
-   *
-   * The runner appends events atomically with each status update,
-   * ensuring the event log stays consistent with the status snapshot.
-   * Events must have monotonically increasing sequence_numbers — the handler
-   * rejects batches where any event's sequence_number is &lt;= the current
-   * highest persisted sequence for this execution.
-   *
-   * Empty list means no new events (backward compatible — existing runners
-   * that do not yet emit events continue to work without changes).
-   *
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
@@ -145,21 +85,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Execution events to append to the event log alongside this status update.
-   *
-   * &#64;internal
-   * Append-only: events are added to the persistent event log, never replaced.
-   * This contrasts with status.tasks which uses full-replace protocol.
-   *
-   * The runner appends events atomically with each status update,
-   * ensuring the event log stays consistent with the status snapshot.
-   * Events must have monotonically increasing sequence_numbers — the handler
-   * rejects batches where any event's sequence_number is &lt;= the current
-   * highest persisted sequence for this execution.
-   *
-   * Empty list means no new events (backward compatible — existing runners
-   * that do not yet emit events continue to work without changes).
-   *
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
@@ -169,21 +94,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Execution events to append to the event log alongside this status update.
-   *
-   * &#64;internal
-   * Append-only: events are added to the persistent event log, never replaced.
-   * This contrasts with status.tasks which uses full-replace protocol.
-   *
-   * The runner appends events atomically with each status update,
-   * ensuring the event log stays consistent with the status snapshot.
-   * Events must have monotonically increasing sequence_numbers — the handler
-   * rejects batches where any event's sequence_number is &lt;= the current
-   * highest persisted sequence for this execution.
-   *
-   * Empty list means no new events (backward compatible — existing runners
-   * that do not yet emit events continue to work without changes).
-   *
-   * &#64;since T06 (Execution Event Stream Model)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
@@ -196,20 +106,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * When true, status.pending_approvals is merged for the single child named by
    * pending_update_child_agent_execution_id. When false (default), the stored
    * list is preserved unchanged.
-   *
-   * &#64;internal
-   * Per-child merge (NOT full-replace): the write replaces the entries for the
-   * scoped child and preserves every sibling child's entries, so parallel child
-   * agents never clobber each other's approval gates. A scoped write with an
-   * empty incoming list clears just that child's entries. The guard still
-   * prevents concurrent event emissions (which don't include approvals) from
-   * disturbing active gates set by call-agent-status.
-   *
-   * Only call-agent-status.ts sets this to true — both when populating approvals
-   * from a child_approval_required signal and when clearing them after the child
-   * agent completes.
-   *
-   * &#64;since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
    * </pre>
    *
    * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
@@ -223,12 +119,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * by pending_update_child_agent_execution_id, with the same per-child merge
    * semantics as update_pending_approvals. When false (default), the stored list
    * is preserved unchanged.
-   *
-   * &#64;internal
-   * Only call-agent-status.ts sets this to true — when surfacing a child's
-   * AWAITING_REVIEW change sets and when clearing them.
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>bool update_pending_file_reviews = 12 [json_name = "updatePendingFileReviews"];</code>
@@ -244,11 +134,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * update_pending_approvals or update_pending_file_reviews is true — including
    * the clear case, where the scoped incoming list is empty (the child id is the
    * only way to know which child to clear).
-   *
-   * &#64;internal
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
@@ -263,11 +148,6 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
    * update_pending_approvals or update_pending_file_reviews is true — including
    * the clear case, where the scoped incoming list is empty (the child id is the
    * only way to know which child to clear).
-   *
-   * &#64;internal
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>

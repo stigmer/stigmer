@@ -9,12 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ChannelTemplate is one message template as the channel's provider
  * registry reports it.
- *
- * &#64;internal
- * proactive-messaging DD-003 D6: provider vocabulary verbatim — status,
- * category, format, and rejection copy are the provider's own strings,
- * never re-encoded into a Stigmer enum. The provider is the registry
- * and the send-time authority; this projection is a read-through view.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelTemplate}
@@ -522,16 +516,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Why this platform version cannot send the template. Empty when the
    * template can be sent.
-   *
-   * &#64;internal
-   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-   * rejection_reason: that is the PROVIDER's verdict on the template;
-   * this is Stigmer's verdict on its own ability to supply the
-   * template's send payload (e.g. a text-header variable or dynamic-URL
-   * button the TemplatePayload contract cannot express). Sendability is
-   * derived — empty means sendable — and deliberately NOT a second
-   * boolean field: one writer (the provider mapper), nothing to drift.
-   * The runner's prompt section and the send pre-check both key off it.
    * </pre>
    *
    * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
@@ -554,16 +538,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Why this platform version cannot send the template. Empty when the
    * template can be sent.
-   *
-   * &#64;internal
-   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-   * rejection_reason: that is the PROVIDER's verdict on the template;
-   * this is Stigmer's verdict on its own ability to supply the
-   * template's send payload (e.g. a text-header variable or dynamic-URL
-   * button the TemplatePayload contract cannot express). Sendability is
-   * derived — empty means sendable — and deliberately NOT a second
-   * boolean field: one writer (the provider mapper), nothing to drift.
-   * The runner's prompt section and the send pre-check both key off it.
    * </pre>
    *
    * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
@@ -841,12 +815,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ChannelTemplate is one message template as the channel's provider
    * registry reports it.
-   *
-   * &#64;internal
-   * proactive-messaging DD-003 D6: provider vocabulary verbatim — status,
-   * category, format, and rejection copy are the provider's own strings,
-   * never re-encoded into a Stigmer enum. The provider is the registry
-   * and the send-time authority; this projection is a read-through view.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelTemplate}
@@ -2046,16 +2014,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why this platform version cannot send the template. Empty when the
      * template can be sent.
-     *
-     * &#64;internal
-     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-     * rejection_reason: that is the PROVIDER's verdict on the template;
-     * this is Stigmer's verdict on its own ability to supply the
-     * template's send payload (e.g. a text-header variable or dynamic-URL
-     * button the TemplatePayload contract cannot express). Sendability is
-     * derived — empty means sendable — and deliberately NOT a second
-     * boolean field: one writer (the provider mapper), nothing to drift.
-     * The runner's prompt section and the send pre-check both key off it.
      * </pre>
      *
      * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
@@ -2077,16 +2035,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why this platform version cannot send the template. Empty when the
      * template can be sent.
-     *
-     * &#64;internal
-     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-     * rejection_reason: that is the PROVIDER's verdict on the template;
-     * this is Stigmer's verdict on its own ability to supply the
-     * template's send payload (e.g. a text-header variable or dynamic-URL
-     * button the TemplatePayload contract cannot express). Sendability is
-     * derived — empty means sendable — and deliberately NOT a second
-     * boolean field: one writer (the provider mapper), nothing to drift.
-     * The runner's prompt section and the send pre-check both key off it.
      * </pre>
      *
      * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
@@ -2109,16 +2057,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why this platform version cannot send the template. Empty when the
      * template can be sent.
-     *
-     * &#64;internal
-     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-     * rejection_reason: that is the PROVIDER's verdict on the template;
-     * this is Stigmer's verdict on its own ability to supply the
-     * template's send payload (e.g. a text-header variable or dynamic-URL
-     * button the TemplatePayload contract cannot express). Sendability is
-     * derived — empty means sendable — and deliberately NOT a second
-     * boolean field: one writer (the provider mapper), nothing to drift.
-     * The runner's prompt section and the send pre-check both key off it.
      * </pre>
      *
      * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
@@ -2137,16 +2075,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why this platform version cannot send the template. Empty when the
      * template can be sent.
-     *
-     * &#64;internal
-     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-     * rejection_reason: that is the PROVIDER's verdict on the template;
-     * this is Stigmer's verdict on its own ability to supply the
-     * template's send payload (e.g. a text-header variable or dynamic-URL
-     * button the TemplatePayload contract cannot express). Sendability is
-     * derived — empty means sendable — and deliberately NOT a second
-     * boolean field: one writer (the provider mapper), nothing to drift.
-     * The runner's prompt section and the send pre-check both key off it.
      * </pre>
      *
      * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
@@ -2162,16 +2090,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why this platform version cannot send the template. Empty when the
      * template can be sent.
-     *
-     * &#64;internal
-     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
-     * rejection_reason: that is the PROVIDER's verdict on the template;
-     * this is Stigmer's verdict on its own ability to supply the
-     * template's send payload (e.g. a text-header variable or dynamic-URL
-     * button the TemplatePayload contract cannot express). Sendability is
-     * derived — empty means sendable — and deliberately NOT a second
-     * boolean field: one writer (the provider mapper), nothing to drift.
-     * The runner's prompt section and the send pre-check both key off it.
      * </pre>
      *
      * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>

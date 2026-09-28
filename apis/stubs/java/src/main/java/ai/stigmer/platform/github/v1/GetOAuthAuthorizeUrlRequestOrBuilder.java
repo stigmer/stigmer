@@ -13,9 +13,6 @@ public interface GetOAuthAuthorizeUrlRequestOrBuilder extends
   /**
    * <pre>
    * Callback URI that GitHub redirects to after the user authorizes.
-   *
-   * &#64;internal
-   * Must match one of the callback URLs registered on the GitHub App.
    * </pre>
    *
    * <code>string redirect_uri = 1 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface GetOAuthAuthorizeUrlRequestOrBuilder extends
   /**
    * <pre>
    * Callback URI that GitHub redirects to after the user authorizes.
-   *
-   * &#64;internal
-   * Must match one of the callback URLs registered on the GitHub App.
    * </pre>
    *
    * <code>string redirect_uri = 1 [json_name = "redirectUri", (.buf.validate.field) = { ... }</code>

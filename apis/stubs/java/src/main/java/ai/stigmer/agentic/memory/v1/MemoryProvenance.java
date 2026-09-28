@@ -9,12 +9,6 @@ package ai.stigmer.agentic.memory.v1;
  * <pre>
  * MemoryProvenance records which agent proposed a memory and in which
  * conversation.
- *
- * &#64;internal
- * The tool_call_id joins back to the ToolCall on the session's message
- * thread — the capture act itself stays auditable (DD-004). All fields
- * are optional-empty: a memory created directly via the API (rather
- * than by the remember tool) has no session context to record.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.memory.v1.MemoryProvenance}
@@ -441,12 +435,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * MemoryProvenance records which agent proposed a memory and in which
    * conversation.
-   *
-   * &#64;internal
-   * The tool_call_id joins back to the ToolCall on the session's message
-   * thread — the capture act itself stays auditable (DD-004). All fields
-   * are optional-empty: a memory created directly via the API (rather
-   * than by the remember tool) has no session context to record.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.memory.v1.MemoryProvenance}

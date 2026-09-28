@@ -24,18 +24,6 @@ public interface RecalledMemoriesOrBuilder extends
    * <pre>
    * The confirmed facts — every confirmed memory of the caller in this
    * organization, the candidate set for prompt injection.
-   *
-   * &#64;internal
-   * The compose steps stamp EVERY confirmed fact, never a compose-time
-   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
-   * CANDIDATE set, not necessarily the injected set. Above the
-   * retriever's activation threshold the runner selects the most
-   * relevant subset at prompt build and records it in
-   * status.recalled_memories_report (DD-008 D3/D5); at or below the
-   * threshold, or with no embeddings-capable provider, injection is
-   * wholesale and the report (when present) says so. Selection is
-   * recorded, never silent: what the model saw always equals what the
-   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -46,18 +34,6 @@ public interface RecalledMemoriesOrBuilder extends
    * <pre>
    * The confirmed facts — every confirmed memory of the caller in this
    * organization, the candidate set for prompt injection.
-   *
-   * &#64;internal
-   * The compose steps stamp EVERY confirmed fact, never a compose-time
-   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
-   * CANDIDATE set, not necessarily the injected set. Above the
-   * retriever's activation threshold the runner selects the most
-   * relevant subset at prompt build and records it in
-   * status.recalled_memories_report (DD-008 D3/D5); at or below the
-   * threshold, or with no embeddings-capable provider, injection is
-   * wholesale and the report (when present) says so. Selection is
-   * recorded, never silent: what the model saw always equals what the
-   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -67,18 +43,6 @@ public interface RecalledMemoriesOrBuilder extends
    * <pre>
    * The confirmed facts — every confirmed memory of the caller in this
    * organization, the candidate set for prompt injection.
-   *
-   * &#64;internal
-   * The compose steps stamp EVERY confirmed fact, never a compose-time
-   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
-   * CANDIDATE set, not necessarily the injected set. Above the
-   * retriever's activation threshold the runner selects the most
-   * relevant subset at prompt build and records it in
-   * status.recalled_memories_report (DD-008 D3/D5); at or below the
-   * threshold, or with no embeddings-capable provider, injection is
-   * wholesale and the report (when present) says so. Selection is
-   * recorded, never silent: what the model saw always equals what the
-   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -88,18 +52,6 @@ public interface RecalledMemoriesOrBuilder extends
    * <pre>
    * The confirmed facts — every confirmed memory of the caller in this
    * organization, the candidate set for prompt injection.
-   *
-   * &#64;internal
-   * The compose steps stamp EVERY confirmed fact, never a compose-time
-   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
-   * CANDIDATE set, not necessarily the injected set. Above the
-   * retriever's activation threshold the runner selects the most
-   * relevant subset at prompt build and records it in
-   * status.recalled_memories_report (DD-008 D3/D5); at or below the
-   * threshold, or with no embeddings-capable provider, injection is
-   * wholesale and the report (when present) says so. Selection is
-   * recorded, never silent: what the model saw always equals what the
-   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>
@@ -110,18 +62,6 @@ public interface RecalledMemoriesOrBuilder extends
    * <pre>
    * The confirmed facts — every confirmed memory of the caller in this
    * organization, the candidate set for prompt injection.
-   *
-   * &#64;internal
-   * The compose steps stamp EVERY confirmed fact, never a compose-time
-   * truncation (DD-006 D5 as revised by DD-008): this is the auditable
-   * CANDIDATE set, not necessarily the injected set. Above the
-   * retriever's activation threshold the runner selects the most
-   * relevant subset at prompt build and records it in
-   * status.recalled_memories_report (DD-008 D3/D5); at or below the
-   * threshold, or with no embeddings-capable provider, injection is
-   * wholesale and the report (when present) says so. Selection is
-   * recorded, never silent: what the model saw always equals what the
-   * user can audit — this snapshot joined to the report.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.RecalledMemoryFact facts = 2 [json_name = "facts"];</code>

@@ -13,13 +13,6 @@ public interface WhatsAppInstallStatusOrBuilder extends
   /**
    * <pre>
    * Phone number ID the install validated and bound, e.g. "106540352242922".
-   *
-   * &#64;internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's metadata.phone_number_id. One
-   * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-   * a compound partial-unique index on installed rows — the
-   * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
    * </pre>
    *
    * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -29,13 +22,6 @@ public interface WhatsAppInstallStatusOrBuilder extends
   /**
    * <pre>
    * Phone number ID the install validated and bound, e.g. "106540352242922".
-   *
-   * &#64;internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's metadata.phone_number_id. One
-   * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
-   * a compound partial-unique index on installed rows — the
-   * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
    * </pre>
    *
    * <code>string phone_number_id = 1 [json_name = "phoneNumberId"];</code>
@@ -88,10 +74,6 @@ public interface WhatsAppInstallStatusOrBuilder extends
    * <pre>
    * ID of the ChannelApp the install went through. Always set for
    * WhatsApp — every WhatsApp channel installs through your own Meta app.
-   *
-   * &#64;internal
-   * Same discriminator role as SlackInstallStatus.channel_app_id; never
-   * empty because WhatsApp has no platform app (DD-WA-2).
    * </pre>
    *
    * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>
@@ -102,10 +84,6 @@ public interface WhatsAppInstallStatusOrBuilder extends
    * <pre>
    * ID of the ChannelApp the install went through. Always set for
    * WhatsApp — every WhatsApp channel installs through your own Meta app.
-   *
-   * &#64;internal
-   * Same discriminator role as SlackInstallStatus.channel_app_id; never
-   * empty because WhatsApp has no platform app (DD-WA-2).
    * </pre>
    *
    * <code>string channel_app_id = 4 [json_name = "channelAppId"];</code>

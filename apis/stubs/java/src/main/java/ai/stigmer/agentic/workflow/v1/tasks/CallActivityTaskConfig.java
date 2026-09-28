@@ -8,19 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
- *
- * &#64;internal
- * Executes Temporal activities.
- *
- * YAML Example:
- * - taskName:
- * call: activity
- * with:
- * activity: "ProcessDataActivity"
- * input:
- * data: ${ .data }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig}
@@ -73,9 +60,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Activity name to execute.
-   *
-   * &#64;internal
-   * Must match a registered Temporal activity.
    * </pre>
    *
    * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -97,9 +81,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Activity name to execute.
-   *
-   * &#64;internal
-   * Must match a registered Temporal activity.
    * </pre>
    *
    * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -339,19 +320,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
-   *
-   * &#64;internal
-   * Executes Temporal activities.
-   *
-   * YAML Example:
-   * - taskName:
-   * call: activity
-   * with:
-   * activity: "ProcessDataActivity"
-   * input:
-   * data: ${ .data }
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig}
@@ -524,9 +492,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     *
-     * &#64;internal
-     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -547,9 +512,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     *
-     * &#64;internal
-     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -571,9 +533,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     *
-     * &#64;internal
-     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -591,9 +550,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     *
-     * &#64;internal
-     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -608,9 +564,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     *
-     * &#64;internal
-     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>

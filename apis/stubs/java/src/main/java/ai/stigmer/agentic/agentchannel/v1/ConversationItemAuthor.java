@@ -51,12 +51,6 @@ public enum ConversationItemAuthor
    * <pre>
    * Platform-authored conversation copy (e.g. the takeover
    * acknowledgment), neither the agent's words nor a teammate's.
-   *
-   * &#64;internal
-   * channel-conversations DD-005 D-d: acknowledgment rows carry the
-   * platform outbound origin (lands in T03); rendering them as the agent
-   * would be a lie. The value exists from day one so the item vocabulary
-   * never needs a patch when the first platform row appears.
    * </pre>
    *
    * <code>author_platform = 4;</code>
@@ -110,12 +104,6 @@ public enum ConversationItemAuthor
    * <pre>
    * Platform-authored conversation copy (e.g. the takeover
    * acknowledgment), neither the agent's words nor a teammate's.
-   *
-   * &#64;internal
-   * channel-conversations DD-005 D-d: acknowledgment rows carry the
-   * platform outbound origin (lands in T03); rendering them as the agent
-   * would be a lie. The value exists from day one so the item vocabulary
-   * never needs a patch when the first platform row appears.
    * </pre>
    *
    * <code>author_platform = 4;</code>

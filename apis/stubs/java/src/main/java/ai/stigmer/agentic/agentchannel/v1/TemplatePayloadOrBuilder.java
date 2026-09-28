@@ -36,11 +36,6 @@ public interface TemplatePayloadOrBuilder extends
    * <pre>
    * Template language code (e.g. "en", "en_US"). Optional when the
    * template name exists in exactly one language.
-   *
-   * &#64;internal
-   * Omitted-language resolution echoes SendChannelMessageInput.channel:
-   * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-   * candidate languages in the detail (DD-003 D4).
    * </pre>
    *
    * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>
@@ -51,11 +46,6 @@ public interface TemplatePayloadOrBuilder extends
    * <pre>
    * Template language code (e.g. "en", "en_US"). Optional when the
    * template name exists in exactly one language.
-   *
-   * &#64;internal
-   * Omitted-language resolution echoes SendChannelMessageInput.channel:
-   * unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-   * candidate languages in the detail (DD-003 D4).
    * </pre>
    *
    * <code>string language = 2 [json_name = "language", (.buf.validate.field) = { ... }</code>

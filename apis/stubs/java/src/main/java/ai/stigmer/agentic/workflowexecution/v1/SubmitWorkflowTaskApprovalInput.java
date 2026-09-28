@@ -9,21 +9,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
  * workflow-level human_input task.
- *
- * &#64;internal
- * Unlike submitApproval (which forwards agent-level tool approvals to a child
- * AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:
- *
- * 1. Validates that the named task exists in the execution and is a human_input task
- * 2. Validates the outcome against the task's configured outcomes (if any)
- * 3. Constructs the Temporal signal name ("human_input_{task_name}")
- * 4. Builds the signal payload matching HumanInputSignalPayload
- * 5. Sends the signal via SignalWithStart for race-proof delivery
- *
- * The reviewer's decision (outcome + form_data) becomes the task output after
- * the runner receives and processes the signal.
- *
- * &#64;since T13b (Java/Cloud Backend Parity)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput}
@@ -80,9 +65,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution containing the human_input task.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -104,9 +86,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the workflow execution containing the human_input task.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -133,11 +112,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the human_input task to respond to.
-   *
-   * &#64;internal
-   * Must match a task in the workflow whose kind is human_input and whose
-   * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
-   * The handler constructs the signal name as "human_input_{task_name}".
    * </pre>
    *
    * <code>string task_name = 2 [json_name = "taskName", (.buf.validate.field) = { ... }</code>
@@ -159,11 +133,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the human_input task to respond to.
-   *
-   * &#64;internal
-   * Must match a task in the workflow whose kind is human_input and whose
-   * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
-   * The handler constructs the signal name as "human_input_{task_name}".
    * </pre>
    *
    * <code>string task_name = 2 [json_name = "taskName", (.buf.validate.field) = { ... }</code>
@@ -190,11 +159,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Outcome selected by the reviewer.
-   *
-   * &#64;internal
-   * If the human_input task defines custom outcomes, this must match one of
-   * the configured outcome names (e.g., "approve", "deny", "needs_revision").
-   * If no custom outcomes are defined, must be "approve" or "deny".
    * </pre>
    *
    * <code>string outcome = 3 [json_name = "outcome", (.buf.validate.field) = { ... }</code>
@@ -216,11 +180,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Outcome selected by the reviewer.
-   *
-   * &#64;internal
-   * If the human_input task defines custom outcomes, this must match one of
-   * the configured outcome names (e.g., "approve", "deny", "needs_revision").
-   * If no custom outcomes are defined, must be "approve" or "deny".
    * </pre>
    *
    * <code>string outcome = 3 [json_name = "outcome", (.buf.validate.field) = { ... }</code>
@@ -246,11 +205,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Form data collected from the reviewer's response form.
-   *
-   * &#64;internal
-   * Populated when the human_input task defines a form_schema. The form data
-   * is delivered to the Go runner as-is and becomes part of the task output.
-   * Validation against the form_schema is a runtime concern (Go runner side).
    * </pre>
    *
    * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -263,11 +217,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Form data collected from the reviewer's response form.
-   *
-   * &#64;internal
-   * Populated when the human_input task defines a form_schema. The form data
-   * is delivered to the Go runner as-is and becomes part of the task output.
-   * Validation against the form_schema is a runtime concern (Go runner side).
    * </pre>
    *
    * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -280,11 +229,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Form data collected from the reviewer's response form.
-   *
-   * &#64;internal
-   * Populated when the human_input task defines a form_schema. The form data
-   * is delivered to the Go runner as-is and becomes part of the task output.
-   * Validation against the form_schema is a runtime concern (Go runner side).
    * </pre>
    *
    * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -300,18 +244,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Identity of the reviewer submitting the decision.
-   *
-   * &#64;internal
-   * Attribution contract:
-   * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-   * The server attributes the decision from the authenticated caller —
-   * a client-supplied identity is spoofable and is overridden for human
-   * callers.
-   * - Machine-account callers MAY set it for delegated attribution, e.g.
-   * a channel broker submitting a decision on behalf of an external
-   * reviewer (Slack user) where the caller identity is the service
-   * account and this field is the only truthful source.
-   * Stored in the task output and the approval_resolved event for audit.
    * </pre>
    *
    * <code>string reviewer = 5 [json_name = "reviewer"];</code>
@@ -333,18 +265,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Identity of the reviewer submitting the decision.
-   *
-   * &#64;internal
-   * Attribution contract:
-   * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-   * The server attributes the decision from the authenticated caller —
-   * a client-supplied identity is spoofable and is overridden for human
-   * callers.
-   * - Machine-account callers MAY set it for delegated attribution, e.g.
-   * a channel broker submitting a decision on behalf of an external
-   * reviewer (Slack user) where the caller identity is the service
-   * account and this field is the only truthful source.
-   * Stored in the task output and the approval_resolved event for audit.
    * </pre>
    *
    * <code>string reviewer = 5 [json_name = "reviewer"];</code>
@@ -628,21 +548,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
    * workflow-level human_input task.
-   *
-   * &#64;internal
-   * Unlike submitApproval (which forwards agent-level tool approvals to a child
-   * AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:
-   *
-   * 1. Validates that the named task exists in the execution and is a human_input task
-   * 2. Validates the outcome against the task's configured outcomes (if any)
-   * 3. Constructs the Temporal signal name ("human_input_{task_name}")
-   * 4. Builds the signal payload matching HumanInputSignalPayload
-   * 5. Sends the signal via SignalWithStart for race-proof delivery
-   *
-   * The reviewer's decision (outcome + form_data) becomes the task output after
-   * the runner receives and processes the signal.
-   *
-   * &#64;since T13b (Java/Cloud Backend Parity)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput}
@@ -871,9 +776,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution containing the human_input task.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -894,9 +796,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution containing the human_input task.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -918,9 +817,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution containing the human_input task.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -938,9 +834,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution containing the human_input task.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -955,9 +848,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the workflow execution containing the human_input task.
-     *
-     * &#64;internal
-     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -978,11 +868,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the human_input task to respond to.
-     *
-     * &#64;internal
-     * Must match a task in the workflow whose kind is human_input and whose
-     * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
-     * The handler constructs the signal name as "human_input_{task_name}".
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName", (.buf.validate.field) = { ... }</code>
@@ -1003,11 +888,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the human_input task to respond to.
-     *
-     * &#64;internal
-     * Must match a task in the workflow whose kind is human_input and whose
-     * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
-     * The handler constructs the signal name as "human_input_{task_name}".
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName", (.buf.validate.field) = { ... }</code>
@@ -1029,11 +909,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the human_input task to respond to.
-     *
-     * &#64;internal
-     * Must match a task in the workflow whose kind is human_input and whose
-     * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
-     * The handler constructs the signal name as "human_input_{task_name}".
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName", (.buf.validate.field) = { ... }</code>
@@ -1051,11 +926,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the human_input task to respond to.
-     *
-     * &#64;internal
-     * Must match a task in the workflow whose kind is human_input and whose
-     * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
-     * The handler constructs the signal name as "human_input_{task_name}".
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName", (.buf.validate.field) = { ... }</code>
@@ -1070,11 +940,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the human_input task to respond to.
-     *
-     * &#64;internal
-     * Must match a task in the workflow whose kind is human_input and whose
-     * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
-     * The handler constructs the signal name as "human_input_{task_name}".
      * </pre>
      *
      * <code>string task_name = 2 [json_name = "taskName", (.buf.validate.field) = { ... }</code>
@@ -1095,11 +960,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Outcome selected by the reviewer.
-     *
-     * &#64;internal
-     * If the human_input task defines custom outcomes, this must match one of
-     * the configured outcome names (e.g., "approve", "deny", "needs_revision").
-     * If no custom outcomes are defined, must be "approve" or "deny".
      * </pre>
      *
      * <code>string outcome = 3 [json_name = "outcome", (.buf.validate.field) = { ... }</code>
@@ -1120,11 +980,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Outcome selected by the reviewer.
-     *
-     * &#64;internal
-     * If the human_input task defines custom outcomes, this must match one of
-     * the configured outcome names (e.g., "approve", "deny", "needs_revision").
-     * If no custom outcomes are defined, must be "approve" or "deny".
      * </pre>
      *
      * <code>string outcome = 3 [json_name = "outcome", (.buf.validate.field) = { ... }</code>
@@ -1146,11 +1001,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Outcome selected by the reviewer.
-     *
-     * &#64;internal
-     * If the human_input task defines custom outcomes, this must match one of
-     * the configured outcome names (e.g., "approve", "deny", "needs_revision").
-     * If no custom outcomes are defined, must be "approve" or "deny".
      * </pre>
      *
      * <code>string outcome = 3 [json_name = "outcome", (.buf.validate.field) = { ... }</code>
@@ -1168,11 +1018,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Outcome selected by the reviewer.
-     *
-     * &#64;internal
-     * If the human_input task defines custom outcomes, this must match one of
-     * the configured outcome names (e.g., "approve", "deny", "needs_revision").
-     * If no custom outcomes are defined, must be "approve" or "deny".
      * </pre>
      *
      * <code>string outcome = 3 [json_name = "outcome", (.buf.validate.field) = { ... }</code>
@@ -1187,11 +1032,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Outcome selected by the reviewer.
-     *
-     * &#64;internal
-     * If the human_input task defines custom outcomes, this must match one of
-     * the configured outcome names (e.g., "approve", "deny", "needs_revision").
-     * If no custom outcomes are defined, must be "approve" or "deny".
      * </pre>
      *
      * <code>string outcome = 3 [json_name = "outcome", (.buf.validate.field) = { ... }</code>
@@ -1214,11 +1054,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1230,11 +1065,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1250,11 +1080,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1275,11 +1100,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1298,11 +1118,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1328,11 +1143,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1350,11 +1160,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1367,11 +1172,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1387,11 +1187,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Form data collected from the reviewer's response form.
-     *
-     * &#64;internal
-     * Populated when the human_input task defines a form_schema. The form data
-     * is delivered to the Go runner as-is and becomes part of the task output.
-     * Validation against the form_schema is a runtime concern (Go runner side).
      * </pre>
      *
      * <code>.google.protobuf.Struct form_data = 4 [json_name = "formData"];</code>
@@ -1414,18 +1209,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identity of the reviewer submitting the decision.
-     *
-     * &#64;internal
-     * Attribution contract:
-     * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-     * The server attributes the decision from the authenticated caller —
-     * a client-supplied identity is spoofable and is overridden for human
-     * callers.
-     * - Machine-account callers MAY set it for delegated attribution, e.g.
-     * a channel broker submitting a decision on behalf of an external
-     * reviewer (Slack user) where the caller identity is the service
-     * account and this field is the only truthful source.
-     * Stored in the task output and the approval_resolved event for audit.
      * </pre>
      *
      * <code>string reviewer = 5 [json_name = "reviewer"];</code>
@@ -1446,18 +1229,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identity of the reviewer submitting the decision.
-     *
-     * &#64;internal
-     * Attribution contract:
-     * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-     * The server attributes the decision from the authenticated caller —
-     * a client-supplied identity is spoofable and is overridden for human
-     * callers.
-     * - Machine-account callers MAY set it for delegated attribution, e.g.
-     * a channel broker submitting a decision on behalf of an external
-     * reviewer (Slack user) where the caller identity is the service
-     * account and this field is the only truthful source.
-     * Stored in the task output and the approval_resolved event for audit.
      * </pre>
      *
      * <code>string reviewer = 5 [json_name = "reviewer"];</code>
@@ -1479,18 +1250,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identity of the reviewer submitting the decision.
-     *
-     * &#64;internal
-     * Attribution contract:
-     * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-     * The server attributes the decision from the authenticated caller —
-     * a client-supplied identity is spoofable and is overridden for human
-     * callers.
-     * - Machine-account callers MAY set it for delegated attribution, e.g.
-     * a channel broker submitting a decision on behalf of an external
-     * reviewer (Slack user) where the caller identity is the service
-     * account and this field is the only truthful source.
-     * Stored in the task output and the approval_resolved event for audit.
      * </pre>
      *
      * <code>string reviewer = 5 [json_name = "reviewer"];</code>
@@ -1508,18 +1267,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identity of the reviewer submitting the decision.
-     *
-     * &#64;internal
-     * Attribution contract:
-     * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-     * The server attributes the decision from the authenticated caller —
-     * a client-supplied identity is spoofable and is overridden for human
-     * callers.
-     * - Machine-account callers MAY set it for delegated attribution, e.g.
-     * a channel broker submitting a decision on behalf of an external
-     * reviewer (Slack user) where the caller identity is the service
-     * account and this field is the only truthful source.
-     * Stored in the task output and the approval_resolved event for audit.
      * </pre>
      *
      * <code>string reviewer = 5 [json_name = "reviewer"];</code>
@@ -1534,18 +1281,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Identity of the reviewer submitting the decision.
-     *
-     * &#64;internal
-     * Attribution contract:
-     * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-     * The server attributes the decision from the authenticated caller —
-     * a client-supplied identity is spoofable and is overridden for human
-     * callers.
-     * - Machine-account callers MAY set it for delegated attribution, e.g.
-     * a channel broker submitting a decision on behalf of an external
-     * reviewer (Slack user) where the caller identity is the service
-     * account and this field is the only truthful source.
-     * Stored in the task output and the approval_resolved event for audit.
      * </pre>
      *
      * <code>string reviewer = 5 [json_name = "reviewer"];</code>

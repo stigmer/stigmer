@@ -70,9 +70,6 @@ public interface ApiResourceRefOrBuilder extends
    *
    * This field qualifies HOW the principal relates to this resource reference,
    * NOT the permission being granted (that's IamPolicySpec.relation).
-   *
-   * &#64;internal
-   * In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
    * </pre>
    *
    * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -91,9 +88,6 @@ public interface ApiResourceRefOrBuilder extends
    *
    * This field qualifies HOW the principal relates to this resource reference,
    * NOT the permission being granted (that's IamPolicySpec.relation).
-   *
-   * &#64;internal
-   * In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
    * </pre>
    *
    * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>

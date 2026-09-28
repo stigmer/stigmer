@@ -18,19 +18,6 @@ public interface ScheduleSpecOrBuilder extends
    * &#64;daily, &#64;weekly, &#64;monthly, and &#64;yearly are also accepted. Timezone
    * prefixes (CRON_TZ=/TZ=), &#64;every intervals, 6- or 7-field forms, and
    * trailing comments are rejected.
-   *
-   * &#64;internal
-   * DD-009 C-4: deliberately narrower than the Temporal server's cron
-   * grammar. CRON_TZ=/TZ= would carry a second timezone authority beside
-   * `time_zone` (Temporal itself rejects the combination at
-   * schedule-create time — accepting it here would store a spec that
-   * detonates when the clock lands); &#64;every compiles to an interval spec
-   * and bypasses the calendar model; the 7-field form has a seconds
-   * column. The 5-field restriction is a structural one-minute firing
-   * floor with zero cron parsing. The configurable interval floor
-   * (stigmer.schedules.limits, DD-008 D7) lands with the clock, enforced
-   * against Temporal's own computed fire times. Widening this grammar
-   * later is additive; narrowing it would break stored specs.
    * </pre>
    *
    * <code>string cron = 1 [json_name = "cron", (.buf.validate.field) = { ... }</code>
@@ -45,19 +32,6 @@ public interface ScheduleSpecOrBuilder extends
    * &#64;daily, &#64;weekly, &#64;monthly, and &#64;yearly are also accepted. Timezone
    * prefixes (CRON_TZ=/TZ=), &#64;every intervals, 6- or 7-field forms, and
    * trailing comments are rejected.
-   *
-   * &#64;internal
-   * DD-009 C-4: deliberately narrower than the Temporal server's cron
-   * grammar. CRON_TZ=/TZ= would carry a second timezone authority beside
-   * `time_zone` (Temporal itself rejects the combination at
-   * schedule-create time — accepting it here would store a spec that
-   * detonates when the clock lands); &#64;every compiles to an interval spec
-   * and bypasses the calendar model; the 7-field form has a seconds
-   * column. The 5-field restriction is a structural one-minute firing
-   * floor with zero cron parsing. The configurable interval floor
-   * (stigmer.schedules.limits, DD-008 D7) lands with the clock, enforced
-   * against Temporal's own computed fire times. Widening this grammar
-   * later is additive; narrowing it would break stored specs.
    * </pre>
    *
    * <code>string cron = 1 [json_name = "cron", (.buf.validate.field) = { ... }</code>
@@ -69,13 +43,6 @@ public interface ScheduleSpecOrBuilder extends
   /**
    * <pre>
    * IANA time zone the cron is evaluated in, e.g. "Asia/Kolkata".
-   *
-   * &#64;internal
-   * The single timezone authority (DD-009 C-4): validation refuses cron
-   * strings carrying their own CRON_TZ=/TZ= prefix. Zone-name validity is
-   * checked against the platform tz database in both editions
-   * (time.LoadLocation / ZoneId.of); DST evaluation semantics are the
-   * Temporal server's concern (DD-008 D2), identical for both editions.
    * </pre>
    *
    * <code>string time_zone = 2 [json_name = "timeZone", (.buf.validate.field) = { ... }</code>
@@ -85,13 +52,6 @@ public interface ScheduleSpecOrBuilder extends
   /**
    * <pre>
    * IANA time zone the cron is evaluated in, e.g. "Asia/Kolkata".
-   *
-   * &#64;internal
-   * The single timezone authority (DD-009 C-4): validation refuses cron
-   * strings carrying their own CRON_TZ=/TZ= prefix. Zone-name validity is
-   * checked against the platform tz database in both editions
-   * (time.LoadLocation / ZoneId.of); DST evaluation semantics are the
-   * Temporal server's concern (DD-008 D2), identical for both editions.
    * </pre>
    *
    * <code>string time_zone = 2 [json_name = "timeZone", (.buf.validate.field) = { ... }</code>
@@ -104,16 +64,6 @@ public interface ScheduleSpecOrBuilder extends
    * <pre>
    * Whether the schedule fires. Off disables firing without deleting
    * the schedule or its history.
-   *
-   * &#64;internal
-   * The owner's switch — "disabled", deliberately distinct from
-   * "paused", the platform's failure-streak latch recorded on
-   * status.paused_reason and never on spec (DD-008 D7, DD-013 D-E:
-   * the two words name two levers with two writers). Sibling
-   * bool shape (AgentShareSpec/AgentChannelSpec.enabled): manifests set
-   * `enabled: true` explicitly, no edition defaults it, and no status
-   * field echoes it (DD-009 pinned behaviors — consoles derive
-   * owner-disabled state from spec on read).
    * </pre>
    *
    * <code>bool enabled = 3 [json_name = "enabled"];</code>
@@ -124,25 +74,6 @@ public interface ScheduleSpecOrBuilder extends
   /**
    * <pre>
    * Run an agent with a configured prompt at each fire.
-   *
-   * &#64;internal
-   * The shared owner-settable run shape (DD-018 D-3), replacing the
-   * deleted schedule-only AgentTarget/ScheduleRunConfig pair.
-   * Schedule-specific invariants enforced in create/update/apply
-   * handlers of both editions, never on the shared message:
-   * agent_ref.org must equal metadata.org (the schedule-owning org
-   * is the billing org for every fire; creation requires can_edit
-   * on the referenced agent, DD-009 C-6); workspace sources must be
-   * git_repo (no client is connected at fire time to serve a
-   * local_path); agent_ref is immutable across updates while
-   * harness, model, workspace, message, and environments stay
-   * mutable — every fire builds a fresh session, so nothing
-   * session-immutable is ever mutated mid-flight. environment_refs
-   * resolution is unchanged from DD-017 D-2/D-4: claim-driven in
-   * the execution-context step, org-shared environments only,
-   * LOWEST merge priority, enforcement solely at runtime
-   * resolution. run_config clamping is unchanged from DD-017 D-3:
-   * per-field min(owner, platform) in the run starter.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
@@ -152,25 +83,6 @@ public interface ScheduleSpecOrBuilder extends
   /**
    * <pre>
    * Run an agent with a configured prompt at each fire.
-   *
-   * &#64;internal
-   * The shared owner-settable run shape (DD-018 D-3), replacing the
-   * deleted schedule-only AgentTarget/ScheduleRunConfig pair.
-   * Schedule-specific invariants enforced in create/update/apply
-   * handlers of both editions, never on the shared message:
-   * agent_ref.org must equal metadata.org (the schedule-owning org
-   * is the billing org for every fire; creation requires can_edit
-   * on the referenced agent, DD-009 C-6); workspace sources must be
-   * git_repo (no client is connected at fire time to serve a
-   * local_path); agent_ref is immutable across updates while
-   * harness, model, workspace, message, and environments stay
-   * mutable — every fire builds a fresh session, so nothing
-   * session-immutable is ever mutated mid-flight. environment_refs
-   * resolution is unchanged from DD-017 D-2/D-4: claim-driven in
-   * the execution-context step, org-shared environments only,
-   * LOWEST merge priority, enforcement solely at runtime
-   * resolution. run_config clamping is unchanged from DD-017 D-3:
-   * per-field min(owner, platform) in the run starter.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
@@ -180,25 +92,6 @@ public interface ScheduleSpecOrBuilder extends
   /**
    * <pre>
    * Run an agent with a configured prompt at each fire.
-   *
-   * &#64;internal
-   * The shared owner-settable run shape (DD-018 D-3), replacing the
-   * deleted schedule-only AgentTarget/ScheduleRunConfig pair.
-   * Schedule-specific invariants enforced in create/update/apply
-   * handlers of both editions, never on the shared message:
-   * agent_ref.org must equal metadata.org (the schedule-owning org
-   * is the billing org for every fire; creation requires can_edit
-   * on the referenced agent, DD-009 C-6); workspace sources must be
-   * git_repo (no client is connected at fire time to serve a
-   * local_path); agent_ref is immutable across updates while
-   * harness, model, workspace, message, and environments stay
-   * mutable — every fire builds a fresh session, so nothing
-   * session-immutable is ever mutated mid-flight. environment_refs
-   * resolution is unchanged from DD-017 D-2/D-4: claim-driven in
-   * the execution-context step, org-shared environments only,
-   * LOWEST merge priority, enforcement solely at runtime
-   * resolution. run_config clamping is unchanged from DD-017 D-3:
-   * per-field min(owner, platform) in the run starter.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>

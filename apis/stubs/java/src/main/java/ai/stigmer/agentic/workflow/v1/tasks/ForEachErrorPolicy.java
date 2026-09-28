@@ -9,13 +9,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * <pre>
  * ForEachErrorPolicy defines what happens when an individual iteration fails
  * during parallel or sequential for_each execution.
- *
- * &#64;internal
- * When max_parallelism &gt; 0 (parallel mode), error handling becomes critical
- * because multiple iterations are in-flight simultaneously. This policy
- * governs whether the entire loop fails fast or continues processing.
- *
- * &#64;since T17 (Advanced Agentic Orchestration)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy}

@@ -8,10 +8,6 @@ package ai.stigmer.agentic.executioncontext.v1;
 /**
  * <pre>
  * Ephemeral runtime configuration and secrets scoped to a single execution.
- *
- * &#64;internal
- * Created by the execution engine at start, deleted when execution completes.
- * Used for B2B scenarios where secrets are injected at runtime.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContext}
@@ -484,10 +480,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Ephemeral runtime configuration and secrets scoped to a single execution.
-   *
-   * &#64;internal
-   * Created by the execution engine at start, deleted when execution completes.
-   * Used for B2B scenarios where secrets are injected at runtime.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContext}

@@ -9,22 +9,6 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * CompleteOAuthConnectInput finishes the OAuth flow by exchanging the
  * authorization code for tokens.
- *
- * &#64;internal
- * Called by the frontend after the user is redirected back from the
- * OAuth authorization server. The frontend extracts the authorization
- * code and state from the callback URL and passes them here.
- *
- * The backend:
- * 1. Validates the state parameter against the stored PendingOAuthState
- * 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
- * 3. Stores the access token in the user's personal environment
- * 4. Stores the refresh token (if present) in the personal environment
- * 5. Creates an OAuthGrant record for pre-flight expiry checks
- *
- * After this succeeds, the frontend should call the regular connect RPC
- * to trigger tool discovery (which will find the fresh token in the
- * personal environment).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput}
@@ -397,22 +381,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * CompleteOAuthConnectInput finishes the OAuth flow by exchanging the
    * authorization code for tokens.
-   *
-   * &#64;internal
-   * Called by the frontend after the user is redirected back from the
-   * OAuth authorization server. The frontend extracts the authorization
-   * code and state from the callback URL and passes them here.
-   *
-   * The backend:
-   * 1. Validates the state parameter against the stored PendingOAuthState
-   * 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
-   * 3. Stores the access token in the user's personal environment
-   * 4. Stores the refresh token (if present) in the personal environment
-   * 5. Creates an OAuthGrant record for pre-flight expiry checks
-   *
-   * After this succeeds, the frontend should call the regular connect RPC
-   * to trigger tool discovery (which will find the fresh token in the
-   * personal environment).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput}

@@ -8,15 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
- *
- * &#64;internal
- * YAML Example:
- * - taskName:
- * raise:
- * error: ValidationError
- * message: ${ .errorMessage }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig}
@@ -334,15 +325,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
-   *
-   * &#64;internal
-   * YAML Example:
-   * - taskName:
-   * raise:
-   * error: ValidationError
-   * message: ${ .errorMessage }
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig}

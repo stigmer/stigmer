@@ -34,9 +34,6 @@ public interface ServerlessWorkflowValidationOrBuilder extends
    * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
    * Empty if validation has not started yet.
-   *
-   * &#64;internal
-   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -48,9 +45,6 @@ public interface ServerlessWorkflowValidationOrBuilder extends
    * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
    * Empty if validation has not started yet.
-   *
-   * &#64;internal
-   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -171,11 +165,6 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   /**
    * <pre>
    * Optional identifier for tracking a validation run.
-   *
-   * &#64;internal
-   * Legacy field from when validation ran as a separate async process. In-process
-   * validation is synchronous and does not populate this; retained for wire
-   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -185,11 +174,6 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   /**
    * <pre>
    * Optional identifier for tracking a validation run.
-   *
-   * &#64;internal
-   * Legacy field from when validation ran as a separate async process. In-process
-   * validation is synchronous and does not populate this; retained for wire
-   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>

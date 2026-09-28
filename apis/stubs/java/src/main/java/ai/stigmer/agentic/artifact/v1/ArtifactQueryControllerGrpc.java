@@ -5,15 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ArtifactQueryController handles read operations for Artifact resources.
- * &#64;internal
- * Follows the Command-Query Separation (CQS) pattern.
- * These RPCs are exposed to the SDK and consumed by:
- * - Execution viewer (T09): lists artifacts per execution, provides download links
- * - CLI: `stigmer workflow artifacts &lt;execution-id&gt;`
- * - React SDK: useArtifact() hook for artifact metadata and download
- * Authorization follows the parent execution's access model:
- * if a user can view an execution, they can view its artifacts.
- * &#64;since T07 (Artifact Store)
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -210,15 +201,6 @@ public final class ArtifactQueryControllerGrpc {
   /**
    * <pre>
    * ArtifactQueryController handles read operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are exposed to the SDK and consumed by:
-   * - Execution viewer (T09): lists artifacts per execution, provides download links
-   * - CLI: `stigmer workflow artifacts &lt;execution-id&gt;`
-   * - React SDK: useArtifact() hook for artifact metadata and download
-   * Authorization follows the parent execution's access model:
-   * if a user can view an execution, they can view its artifacts.
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public interface AsyncService {
@@ -312,16 +294,6 @@ public final class ArtifactQueryControllerGrpc {
      * inside an embedded approval gate.
      * For direct file downloads, use getDownloadUrl instead — it returns a
      * presigned URL that avoids proxying bytes through the server.
-     * &#64;internal
-     * Mirrors AgentExecutionQueryController.getArtifactContent (same
-     * truncation contract). Content is truncated to max_bytes (default:
-     * 512 KB); the response includes total_size_bytes and a truncated flag
-     * so callers can decide whether to offer a full download.
-     * Error Cases:
-     * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
-     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      */
     default void getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request,
@@ -334,15 +306,6 @@ public final class ArtifactQueryControllerGrpc {
    * Base class for the server implementation of the service ArtifactQueryController.
    * <pre>
    * ArtifactQueryController handles read operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are exposed to the SDK and consumed by:
-   * - Execution viewer (T09): lists artifacts per execution, provides download links
-   * - CLI: `stigmer workflow artifacts &lt;execution-id&gt;`
-   * - React SDK: useArtifact() hook for artifact metadata and download
-   * Authorization follows the parent execution's access model:
-   * if a user can view an execution, they can view its artifacts.
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static abstract class ArtifactQueryControllerImplBase
@@ -357,15 +320,6 @@ public final class ArtifactQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ArtifactQueryController.
    * <pre>
    * ArtifactQueryController handles read operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are exposed to the SDK and consumed by:
-   * - Execution viewer (T09): lists artifacts per execution, provides download links
-   * - CLI: `stigmer workflow artifacts &lt;execution-id&gt;`
-   * - React SDK: useArtifact() hook for artifact metadata and download
-   * Authorization follows the parent execution's access model:
-   * if a user can view an execution, they can view its artifacts.
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactQueryControllerStub
@@ -473,16 +427,6 @@ public final class ArtifactQueryControllerGrpc {
      * inside an embedded approval gate.
      * For direct file downloads, use getDownloadUrl instead — it returns a
      * presigned URL that avoids proxying bytes through the server.
-     * &#64;internal
-     * Mirrors AgentExecutionQueryController.getArtifactContent (same
-     * truncation contract). Content is truncated to max_bytes (default:
-     * 512 KB); the response includes total_size_bytes and a truncated flag
-     * so callers can decide whether to offer a full download.
-     * Error Cases:
-     * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
-     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      */
     public void getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request,
@@ -496,15 +440,6 @@ public final class ArtifactQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ArtifactQueryController.
    * <pre>
    * ArtifactQueryController handles read operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are exposed to the SDK and consumed by:
-   * - Execution viewer (T09): lists artifacts per execution, provides download links
-   * - CLI: `stigmer workflow artifacts &lt;execution-id&gt;`
-   * - React SDK: useArtifact() hook for artifact metadata and download
-   * Authorization follows the parent execution's access model:
-   * if a user can view an execution, they can view its artifacts.
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactQueryControllerBlockingV2Stub
@@ -609,16 +544,6 @@ public final class ArtifactQueryControllerGrpc {
      * inside an embedded approval gate.
      * For direct file downloads, use getDownloadUrl instead — it returns a
      * presigned URL that avoids proxying bytes through the server.
-     * &#64;internal
-     * Mirrors AgentExecutionQueryController.getArtifactContent (same
-     * truncation contract). Content is truncated to max_bytes (default:
-     * 512 KB); the response includes total_size_bytes and a truncated flag
-     * so callers can decide whether to offer a full download.
-     * Error Cases:
-     * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
-     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request) throws io.grpc.StatusException {
@@ -631,15 +556,6 @@ public final class ArtifactQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ArtifactQueryController.
    * <pre>
    * ArtifactQueryController handles read operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are exposed to the SDK and consumed by:
-   * - Execution viewer (T09): lists artifacts per execution, provides download links
-   * - CLI: `stigmer workflow artifacts &lt;execution-id&gt;`
-   * - React SDK: useArtifact() hook for artifact metadata and download
-   * Authorization follows the parent execution's access model:
-   * if a user can view an execution, they can view its artifacts.
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactQueryControllerBlockingStub
@@ -744,16 +660,6 @@ public final class ArtifactQueryControllerGrpc {
      * inside an embedded approval gate.
      * For direct file downloads, use getDownloadUrl instead — it returns a
      * presigned URL that avoids proxying bytes through the server.
-     * &#64;internal
-     * Mirrors AgentExecutionQueryController.getArtifactContent (same
-     * truncation contract). Content is truncated to max_bytes (default:
-     * 512 KB); the response includes total_size_bytes and a truncated flag
-     * so callers can decide whether to offer a full download.
-     * Error Cases:
-     * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
-     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request) {
@@ -766,15 +672,6 @@ public final class ArtifactQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ArtifactQueryController.
    * <pre>
    * ArtifactQueryController handles read operations for Artifact resources.
-   * &#64;internal
-   * Follows the Command-Query Separation (CQS) pattern.
-   * These RPCs are exposed to the SDK and consumed by:
-   * - Execution viewer (T09): lists artifacts per execution, provides download links
-   * - CLI: `stigmer workflow artifacts &lt;execution-id&gt;`
-   * - React SDK: useArtifact() hook for artifact metadata and download
-   * Authorization follows the parent execution's access model:
-   * if a user can view an execution, they can view its artifacts.
-   * &#64;since T07 (Artifact Store)
    * </pre>
    */
   public static final class ArtifactQueryControllerFutureStub
@@ -882,16 +779,6 @@ public final class ArtifactQueryControllerGrpc {
      * inside an embedded approval gate.
      * For direct file downloads, use getDownloadUrl instead — it returns a
      * presigned URL that avoids proxying bytes through the server.
-     * &#64;internal
-     * Mirrors AgentExecutionQueryController.getArtifactContent (same
-     * truncation contract). Content is truncated to max_bytes (default:
-     * 512 KB); the response includes total_size_bytes and a truncated flag
-     * so callers can decide whether to offer a full download.
-     * Error Cases:
-     * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
-     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
-     * &#64;since Review Payloads (stigmer/stigmer#234)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse> getContent(

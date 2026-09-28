@@ -14,23 +14,6 @@ package ai.stigmer.iam.identityaccount.v1;
  * through an external identity provider), machine (service-to-service
  * credentials), or platform_client (provisioned via a PlatformClient's
  * mintUserToken endpoint).
- *
- * &#64;internal
- * All FGA tuples use identity_account as the principal type.
- * Provisioning details:
- * - direct: the subject (`sub`) the server's own issuer released — Stigmer
- * Cloud's Auth0 tenant or a self-hosted server's OIDC provider (e.g.,
- * "auth0|abc123"); under the trusted-local posture the operator account's
- * subject is "local|&lt;operator email&gt;"
- * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
- * scoped by identity_provider_ref
- * - machine: Auth0 client ID with "&#64;clients" suffix
- * - platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
- * is the Stigmer org that owns the PlatformClient(s) and external_user_id
- * is the platform builder's stable identifier for the user. Scoping by org
- * (not by PlatformClient) means a customer's end user resolves to a single
- * IdentityAccount across all of that customer's PlatformClients. Globally
- * unique by construction.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}
@@ -753,23 +736,6 @@ private static final long serialVersionUID = 0L;
    * through an external identity provider), machine (service-to-service
    * credentials), or platform_client (provisioned via a PlatformClient's
    * mintUserToken endpoint).
-   *
-   * &#64;internal
-   * All FGA tuples use identity_account as the principal type.
-   * Provisioning details:
-   * - direct: the subject (`sub`) the server's own issuer released — Stigmer
-   * Cloud's Auth0 tenant or a self-hosted server's OIDC provider (e.g.,
-   * "auth0|abc123"); under the trusted-local posture the operator account's
-   * subject is "local|&lt;operator email&gt;"
-   * - federated: raw OIDC sub claim (e.g., "google-oauth2|109876543210"),
-   * scoped by identity_provider_ref
-   * - machine: Auth0 client ID with "&#64;clients" suffix
-   * - platform_client: composite "stgm_pc|{org}|{external_user_id}" where org
-   * is the Stigmer org that owns the PlatformClient(s) and external_user_id
-   * is the platform builder's stable identifier for the user. Scoping by org
-   * (not by PlatformClient) means a customer's end user resolves to a single
-   * IdentityAccount across all of that customer's PlatformClients. Globally
-   * unique by construction.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec}

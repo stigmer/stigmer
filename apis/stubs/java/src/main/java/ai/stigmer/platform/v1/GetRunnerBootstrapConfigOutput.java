@@ -171,11 +171,6 @@ private static final long serialVersionUID = 0L;
    * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
    * server with no signing key configured. The runner keeps using its existing
    * token in that case.
-   *
-   * &#64;internal
-   * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-   * runner treats this as its proxy credential, distinct from the control-plane
-   * token it authenticated this call with, and refreshes it before expiry.
    * </pre>
    *
    * <code>string runner_access_token = 3 [json_name = "runnerAccessToken"];</code>
@@ -202,11 +197,6 @@ private static final long serialVersionUID = 0L;
    * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
    * server with no signing key configured. The runner keeps using its existing
    * token in that case.
-   *
-   * &#64;internal
-   * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-   * runner treats this as its proxy credential, distinct from the control-plane
-   * token it authenticated this call with, and refreshes it before expiry.
    * </pre>
    *
    * <code>string runner_access_token = 3 [json_name = "runnerAccessToken"];</code>
@@ -309,13 +299,6 @@ private static final long serialVersionUID = 0L;
    * management. The runner then falls back to its env-configured key, or runs
    * without payload encryption. An explicitly env-configured key always wins
    * over this field.
-   *
-   * &#64;internal
-   * Cloud-only. Per-identity rather than platform-wide because a desktop
-   * runner must never hold the platform key: compromise of one user's machine
-   * exposes only payloads encrypted under that identity's key. The control
-   * plane's decode-only codec resolves these keys by key id, so the service
-   * can read every runner's results while runners cannot read each other's.
    * </pre>
    *
    * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
@@ -348,13 +331,6 @@ private static final long serialVersionUID = 0L;
    * management. The runner then falls back to its env-configured key, or runs
    * without payload encryption. An explicitly env-configured key always wins
    * over this field.
-   *
-   * &#64;internal
-   * Cloud-only. Per-identity rather than platform-wide because a desktop
-   * runner must never hold the platform key: compromise of one user's machine
-   * exposes only payloads encrypted under that identity's key. The control
-   * plane's decode-only codec resolves these keys by key id, so the service
-   * can read every runner's results while runners cannot read each other's.
    * </pre>
    *
    * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
@@ -1212,11 +1188,6 @@ private static final long serialVersionUID = 0L;
      * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-     * runner treats this as its proxy credential, distinct from the control-plane
-     * token it authenticated this call with, and refreshes it before expiry.
      * </pre>
      *
      * <code>string runner_access_token = 3 [json_name = "runnerAccessToken"];</code>
@@ -1242,11 +1213,6 @@ private static final long serialVersionUID = 0L;
      * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-     * runner treats this as its proxy credential, distinct from the control-plane
-     * token it authenticated this call with, and refreshes it before expiry.
      * </pre>
      *
      * <code>string runner_access_token = 3 [json_name = "runnerAccessToken"];</code>
@@ -1273,11 +1239,6 @@ private static final long serialVersionUID = 0L;
      * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-     * runner treats this as its proxy credential, distinct from the control-plane
-     * token it authenticated this call with, and refreshes it before expiry.
      * </pre>
      *
      * <code>string runner_access_token = 3 [json_name = "runnerAccessToken"];</code>
@@ -1300,11 +1261,6 @@ private static final long serialVersionUID = 0L;
      * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-     * runner treats this as its proxy credential, distinct from the control-plane
-     * token it authenticated this call with, and refreshes it before expiry.
      * </pre>
      *
      * <code>string runner_access_token = 3 [json_name = "runnerAccessToken"];</code>
@@ -1324,11 +1280,6 @@ private static final long serialVersionUID = 0L;
      * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
-     *
-     * &#64;internal
-     * iss=stigmer, sub=caller identity account, token_type=embedded_runner. The
-     * runner treats this as its proxy credential, distinct from the control-plane
-     * token it authenticated this call with, and refreshes it before expiry.
      * </pre>
      *
      * <code>string runner_access_token = 3 [json_name = "runnerAccessToken"];</code>
@@ -1504,13 +1455,6 @@ private static final long serialVersionUID = 0L;
      * management. The runner then falls back to its env-configured key, or runs
      * without payload encryption. An explicitly env-configured key always wins
      * over this field.
-     *
-     * &#64;internal
-     * Cloud-only. Per-identity rather than platform-wide because a desktop
-     * runner must never hold the platform key: compromise of one user's machine
-     * exposes only payloads encrypted under that identity's key. The control
-     * plane's decode-only codec resolves these keys by key id, so the service
-     * can read every runner's results while runners cannot read each other's.
      * </pre>
      *
      * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
@@ -1542,13 +1486,6 @@ private static final long serialVersionUID = 0L;
      * management. The runner then falls back to its env-configured key, or runs
      * without payload encryption. An explicitly env-configured key always wins
      * over this field.
-     *
-     * &#64;internal
-     * Cloud-only. Per-identity rather than platform-wide because a desktop
-     * runner must never hold the platform key: compromise of one user's machine
-     * exposes only payloads encrypted under that identity's key. The control
-     * plane's decode-only codec resolves these keys by key id, so the service
-     * can read every runner's results while runners cannot read each other's.
      * </pre>
      *
      * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
@@ -1581,13 +1518,6 @@ private static final long serialVersionUID = 0L;
      * management. The runner then falls back to its env-configured key, or runs
      * without payload encryption. An explicitly env-configured key always wins
      * over this field.
-     *
-     * &#64;internal
-     * Cloud-only. Per-identity rather than platform-wide because a desktop
-     * runner must never hold the platform key: compromise of one user's machine
-     * exposes only payloads encrypted under that identity's key. The control
-     * plane's decode-only codec resolves these keys by key id, so the service
-     * can read every runner's results while runners cannot read each other's.
      * </pre>
      *
      * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
@@ -1616,13 +1546,6 @@ private static final long serialVersionUID = 0L;
      * management. The runner then falls back to its env-configured key, or runs
      * without payload encryption. An explicitly env-configured key always wins
      * over this field.
-     *
-     * &#64;internal
-     * Cloud-only. Per-identity rather than platform-wide because a desktop
-     * runner must never hold the platform key: compromise of one user's machine
-     * exposes only payloads encrypted under that identity's key. The control
-     * plane's decode-only codec resolves these keys by key id, so the service
-     * can read every runner's results while runners cannot read each other's.
      * </pre>
      *
      * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>
@@ -1648,13 +1571,6 @@ private static final long serialVersionUID = 0L;
      * management. The runner then falls back to its env-configured key, or runs
      * without payload encryption. An explicitly env-configured key always wins
      * over this field.
-     *
-     * &#64;internal
-     * Cloud-only. Per-identity rather than platform-wide because a desktop
-     * runner must never hold the platform key: compromise of one user's machine
-     * exposes only payloads encrypted under that identity's key. The control
-     * plane's decode-only codec resolves these keys by key id, so the service
-     * can read every runner's results while runners cannot read each other's.
      * </pre>
      *
      * <code>string payload_encryption_key = 6 [json_name = "payloadEncryptionKey"];</code>

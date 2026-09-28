@@ -8,11 +8,6 @@ package ai.stigmer.iam.identityaccount.v1;
 /**
  * <pre>
  * Auth0Webhook represents a log-stream event payload from Auth0.
- *
- * &#64;internal
- * Stigmer receives these events via a custom Auth0 log stream to trigger
- * identity account provisioning on signup.
- * See: https://auth0.com/docs/customize/log-streams/custom-log-streams
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.Auth0Webhook}
@@ -670,11 +665,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Auth0Webhook represents a log-stream event payload from Auth0.
-   *
-   * &#64;internal
-   * Stigmer receives these events via a custom Auth0 log stream to trigger
-   * identity account provisioning on signup.
-   * See: https://auth0.com/docs/customize/log-streams/custom-log-streams
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.Auth0Webhook}

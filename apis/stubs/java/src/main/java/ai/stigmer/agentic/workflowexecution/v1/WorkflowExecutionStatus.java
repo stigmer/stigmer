@@ -8,26 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowExecutionStatus contains all system-managed execution state and results.
- *
- * &#64;internal
- * Everything populated during or after execution goes here, not in spec.
- * This message follows the standard pattern: audit information at field 99, custom fields at 1-98.
- *
- * Status Lifecycle:
- * 1. Created: audit.created_at set, phase = EXECUTION_PENDING
- * 2. Started: started_at set, phase = EXECUTION_IN_PROGRESS, tasks populated
- * 3. Progress: tasks updated as workflow runner sends status updates
- * 4. Completed: completed_at set, phase = EXECUTION_COMPLETED, output populated
- * 5. Failed: completed_at set, phase = EXECUTION_FAILED, error populated
- * 6. Cancelled: completed_at set, phase = EXECUTION_CANCELLED
- *
- * The status is read-only to users and continuously updated by the workflow execution engine.
- *
- * Progress Tracking Pattern (Matches Agent Execution):
- * - Agent execution: messages[], tool_calls[], sub_agent_executions[] (transformed from LLM streaming events)
- * - Workflow execution: tasks[] (transformed from workflow task execution)
- * - Both store structured state, not raw streaming events
- * - Both use updateStatus RPC for progressive updates during execution
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus}
@@ -87,14 +67,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Standard audit information including timestamps and created-by identity.
-   *
-   * &#64;internal
-   * Always at field 99 for consistency across all Stigmer API resources.
-   *
-   * Contains:
-   * - created_at: When this execution was created (ISO 8601 timestamp)
-   * - updated_at: Last time status was updated (ISO 8601 timestamp)
-   * - created_by: User or system that created this execution
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -107,14 +79,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Standard audit information including timestamps and created-by identity.
-   *
-   * &#64;internal
-   * Always at field 99 for consistency across all Stigmer API resources.
-   *
-   * Contains:
-   * - created_at: When this execution was created (ISO 8601 timestamp)
-   * - updated_at: Last time status was updated (ISO 8601 timestamp)
-   * - created_by: User or system that created this execution
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -127,14 +91,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Standard audit information including timestamps and created-by identity.
-   *
-   * &#64;internal
-   * Always at field 99 for consistency across all Stigmer API resources.
-   *
-   * Contains:
-   * - created_at: When this execution was created (ISO 8601 timestamp)
-   * - updated_at: Last time status was updated (ISO 8601 timestamp)
-   * - created_by: User or system that created this execution
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -149,20 +105,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Current execution lifecycle phase.
-   *
-   * &#64;internal
-   * Phase Transitions:
-   * PENDING → IN_PROGRESS → COMPLETED
-   * ↓              ↘ FAILED
-   * ↓              ↘ CANCELLED
-   *
-   * The phase is used for:
-   * - UI status indicators (progress bars, badges)
-   * - Filtering executions (show only failed, show only in-progress)
-   * - Alerting and notifications (notify on failure)
-   * - Retry logic (retry failed executions)
-   *
-   * Validation: Must be a defined enum value (no unspecified/unknown).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -174,20 +116,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Current execution lifecycle phase.
-   *
-   * &#64;internal
-   * Phase Transitions:
-   * PENDING → IN_PROGRESS → COMPLETED
-   * ↓              ↘ FAILED
-   * ↓              ↘ CANCELLED
-   *
-   * The phase is used for:
-   * - UI status indicators (progress bars, badges)
-   * - Filtering executions (show only failed, show only in-progress)
-   * - Alerting and notifications (notify on failure)
-   * - Retry logic (retry failed executions)
-   *
-   * Validation: Must be a defined enum value (no unspecified/unknown).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -204,28 +132,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow tasks with their individual execution state.
-   *
-   * &#64;internal
-   * Tasks represent the atomic units of work within the workflow.
-   * Each task has:
-   * - task_id: Unique identifier within this execution
-   * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-   * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-   * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-   * - input: Task input parameters (JSON structure)
-   * - output: Task output results (JSON structure, only for COMPLETED tasks)
-   * - error: Error message (only for FAILED tasks)
-   * - started_at: When task started executing
-   * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-   *
-   * Tasks are populated as the workflow progresses through its task graph.
-   * The order in this list reflects the execution order (sequential or parallel).
-   *
-   * Progress Calculation:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   * - Current task: tasks.find(status == IN_PROGRESS)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -237,28 +143,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow tasks with their individual execution state.
-   *
-   * &#64;internal
-   * Tasks represent the atomic units of work within the workflow.
-   * Each task has:
-   * - task_id: Unique identifier within this execution
-   * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-   * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-   * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-   * - input: Task input parameters (JSON structure)
-   * - output: Task output results (JSON structure, only for COMPLETED tasks)
-   * - error: Error message (only for FAILED tasks)
-   * - started_at: When task started executing
-   * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-   *
-   * Tasks are populated as the workflow progresses through its task graph.
-   * The order in this list reflects the execution order (sequential or parallel).
-   *
-   * Progress Calculation:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   * - Current task: tasks.find(status == IN_PROGRESS)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -271,28 +155,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow tasks with their individual execution state.
-   *
-   * &#64;internal
-   * Tasks represent the atomic units of work within the workflow.
-   * Each task has:
-   * - task_id: Unique identifier within this execution
-   * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-   * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-   * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-   * - input: Task input parameters (JSON structure)
-   * - output: Task output results (JSON structure, only for COMPLETED tasks)
-   * - error: Error message (only for FAILED tasks)
-   * - started_at: When task started executing
-   * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-   *
-   * Tasks are populated as the workflow progresses through its task graph.
-   * The order in this list reflects the execution order (sequential or parallel).
-   *
-   * Progress Calculation:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   * - Current task: tasks.find(status == IN_PROGRESS)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -304,28 +166,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow tasks with their individual execution state.
-   *
-   * &#64;internal
-   * Tasks represent the atomic units of work within the workflow.
-   * Each task has:
-   * - task_id: Unique identifier within this execution
-   * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-   * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-   * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-   * - input: Task input parameters (JSON structure)
-   * - output: Task output results (JSON structure, only for COMPLETED tasks)
-   * - error: Error message (only for FAILED tasks)
-   * - started_at: When task started executing
-   * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-   *
-   * Tasks are populated as the workflow progresses through its task graph.
-   * The order in this list reflects the execution order (sequential or parallel).
-   *
-   * Progress Calculation:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   * - Current task: tasks.find(status == IN_PROGRESS)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -337,28 +177,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Workflow tasks with their individual execution state.
-   *
-   * &#64;internal
-   * Tasks represent the atomic units of work within the workflow.
-   * Each task has:
-   * - task_id: Unique identifier within this execution
-   * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-   * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-   * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-   * - input: Task input parameters (JSON structure)
-   * - output: Task output results (JSON structure, only for COMPLETED tasks)
-   * - error: Error message (only for FAILED tasks)
-   * - started_at: When task started executing
-   * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-   *
-   * Tasks are populated as the workflow progresses through its task graph.
-   * The order in this list reflects the execution order (sequential or parallel).
-   *
-   * Progress Calculation:
-   * - Total tasks: tasks.length
-   * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-   * - Progress percentage: (completed_tasks / total_tasks) * 100
-   * - Current task: tasks.find(status == IN_PROGRESS)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -374,14 +192,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-   *
-   * &#64;internal
-   * The output structure is workflow-specific and defined by the Workflow template.
-   * Common patterns:
-   * - API response data (e.g., created user ID, order confirmation)
-   * - Aggregated results from multiple tasks
-   * - Links to generated artifacts (reports, files)
-   * - Summary statistics (items processed, duration)
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -394,14 +204,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-   *
-   * &#64;internal
-   * The output structure is workflow-specific and defined by the Workflow template.
-   * Common patterns:
-   * - API response data (e.g., created user ID, order confirmation)
-   * - Aggregated results from multiple tasks
-   * - Links to generated artifacts (reports, files)
-   * - Summary statistics (items processed, duration)
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -414,14 +216,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-   *
-   * &#64;internal
-   * The output structure is workflow-specific and defined by the Workflow template.
-   * Common patterns:
-   * - API response data (e.g., created user ID, order confirmation)
-   * - Aggregated results from multiple tasks
-   * - Links to generated artifacts (reports, files)
-   * - Summary statistics (items processed, duration)
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -437,16 +231,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Error message, populated only when phase is EXECUTION_FAILED.
-   *
-   * &#64;internal
-   * Contains a human-readable description of what went wrong.
-   *
-   * Error message includes:
-   * - What failed (which task or workflow step)
-   * - Why it failed (validation error, API error, timeout, etc.)
-   * - How to fix it (if known)
-   *
-   * For detailed debugging, inspect tasks[].error for task-specific error messages.
    * </pre>
    *
    * <code>string error = 4 [json_name = "error"];</code>
@@ -468,16 +252,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Error message, populated only when phase is EXECUTION_FAILED.
-   *
-   * &#64;internal
-   * Contains a human-readable description of what went wrong.
-   *
-   * Error message includes:
-   * - What failed (which task or workflow step)
-   * - Why it failed (validation error, API error, timeout, etc.)
-   * - How to fix it (if known)
-   *
-   * For detailed debugging, inspect tasks[].error for task-specific error messages.
    * </pre>
    *
    * <code>string error = 4 [json_name = "error"];</code>
@@ -504,10 +278,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when execution started processing.
-   *
-   * &#64;internal
-   * Set when phase transitions from PENDING to IN_PROGRESS.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -529,10 +299,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when execution started processing.
-   *
-   * &#64;internal
-   * Set when phase transitions from PENDING to IN_PROGRESS.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -559,15 +325,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when execution reached a terminal state.
-   *
-   * &#64;internal
-   * Set when the workflow reaches a terminal state:
-   * - EXECUTION_COMPLETED: Successfully finished
-   * - EXECUTION_FAILED: Failed during execution
-   * - EXECUTION_CANCELLED: Cancelled by user or system
-   *
-   * Not set for PENDING or IN_PROGRESS executions.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -589,15 +346,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ISO 8601 timestamp when execution reached a terminal state.
-   *
-   * &#64;internal
-   * Set when the workflow reaches a terminal state:
-   * - EXECUTION_COMPLETED: Successfully finished
-   * - EXECUTION_FAILED: Failed during execution
-   * - EXECUTION_CANCELLED: Cancelled by user or system
-   *
-   * Not set for PENDING or IN_PROGRESS executions.
-   * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -624,18 +372,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Correlation ID for the underlying workflow engine.
-   *
-   * &#64;internal
-   * This is the workflow ID in Temporal, used for:
-   * - Correlation between Stigmer and Temporal (for debugging)
-   * - Querying Temporal directly (for advanced troubleshooting)
-   * - Signaling or cancelling Temporal workflows
-   *
-   * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-   * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-   *
-   * This field is optional and only relevant when Temporal is used as the execution engine.
-   * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
    * </pre>
    *
    * <code>string temporal_workflow_id = 7 [json_name = "temporalWorkflowId"];</code>
@@ -657,18 +393,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Correlation ID for the underlying workflow engine.
-   *
-   * &#64;internal
-   * This is the workflow ID in Temporal, used for:
-   * - Correlation between Stigmer and Temporal (for debugging)
-   * - Querying Temporal directly (for advanced troubleshooting)
-   * - Signaling or cancelling Temporal workflows
-   *
-   * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-   * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-   *
-   * This field is optional and only relevant when Temporal is used as the execution engine.
-   * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
    * </pre>
    *
    * <code>string temporal_workflow_id = 7 [json_name = "temporalWorkflowId"];</code>
@@ -695,26 +419,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Pending approvals from child agent tool executions.
-   *
-   * &#64;internal
-   * Populated when workflow tasks invoke agents that enter
-   * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-   * requests at the workflow level for UI visibility.
-   *
-   * Guarded Update Protocol:
-   * This field is only modified when UpdateStatusInput.update_pending_approvals
-   * is explicitly set to true. Normal event emissions (which don't concern
-   * approvals) leave this field untouched, preventing race conditions between
-   * concurrent status writers.
-   *
-   * Only call-agent-status manages this field:
-   * - Non-empty list: child agent(s) need approval
-   * - Empty list + update_pending_approvals=true: all approvals resolved
-   *
-   * Parallel Agents:
-   * When multiple child agents run in parallel, entries from different children
-   * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-   * the source.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -726,26 +430,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Pending approvals from child agent tool executions.
-   *
-   * &#64;internal
-   * Populated when workflow tasks invoke agents that enter
-   * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-   * requests at the workflow level for UI visibility.
-   *
-   * Guarded Update Protocol:
-   * This field is only modified when UpdateStatusInput.update_pending_approvals
-   * is explicitly set to true. Normal event emissions (which don't concern
-   * approvals) leave this field untouched, preventing race conditions between
-   * concurrent status writers.
-   *
-   * Only call-agent-status manages this field:
-   * - Non-empty list: child agent(s) need approval
-   * - Empty list + update_pending_approvals=true: all approvals resolved
-   *
-   * Parallel Agents:
-   * When multiple child agents run in parallel, entries from different children
-   * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-   * the source.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -758,26 +442,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Pending approvals from child agent tool executions.
-   *
-   * &#64;internal
-   * Populated when workflow tasks invoke agents that enter
-   * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-   * requests at the workflow level for UI visibility.
-   *
-   * Guarded Update Protocol:
-   * This field is only modified when UpdateStatusInput.update_pending_approvals
-   * is explicitly set to true. Normal event emissions (which don't concern
-   * approvals) leave this field untouched, preventing race conditions between
-   * concurrent status writers.
-   *
-   * Only call-agent-status manages this field:
-   * - Non-empty list: child agent(s) need approval
-   * - Empty list + update_pending_approvals=true: all approvals resolved
-   *
-   * Parallel Agents:
-   * When multiple child agents run in parallel, entries from different children
-   * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-   * the source.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -789,26 +453,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Pending approvals from child agent tool executions.
-   *
-   * &#64;internal
-   * Populated when workflow tasks invoke agents that enter
-   * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-   * requests at the workflow level for UI visibility.
-   *
-   * Guarded Update Protocol:
-   * This field is only modified when UpdateStatusInput.update_pending_approvals
-   * is explicitly set to true. Normal event emissions (which don't concern
-   * approvals) leave this field untouched, preventing race conditions between
-   * concurrent status writers.
-   *
-   * Only call-agent-status manages this field:
-   * - Non-empty list: child agent(s) need approval
-   * - Empty list + update_pending_approvals=true: all approvals resolved
-   *
-   * Parallel Agents:
-   * When multiple child agents run in parallel, entries from different children
-   * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-   * the source.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -820,26 +464,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Pending approvals from child agent tool executions.
-   *
-   * &#64;internal
-   * Populated when workflow tasks invoke agents that enter
-   * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-   * requests at the workflow level for UI visibility.
-   *
-   * Guarded Update Protocol:
-   * This field is only modified when UpdateStatusInput.update_pending_approvals
-   * is explicitly set to true. Normal event emissions (which don't concern
-   * approvals) leave this field untouched, preventing race conditions between
-   * concurrent status writers.
-   *
-   * Only call-agent-status manages this field:
-   * - Non-empty list: child agent(s) need approval
-   * - Empty list + update_pending_approvals=true: all approvals resolved
-   *
-   * Parallel Agents:
-   * When multiple child agents run in parallel, entries from different children
-   * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-   * the source.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -855,16 +479,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
-   *
-   * &#64;internal
-   * Updated by the runner alongside each status update. Reflects the
-   * budget tracker's accumulated cost at the time of the last status write.
-   * Used by getExecutionSummary for fast aggregation without scanning events.
-   *
-   * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
-   * micro-USD convention (CostStamp.provider_cost_micros, etc.).
-   *
-   * &#64;since Cost Data Pipeline
    * </pre>
    *
    * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
@@ -880,12 +494,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Cumulative input tokens consumed across all LLM and agent tasks.
-   *
-   * &#64;internal
-   * Input tokens represent prompt/context tokens sent to the model.
-   * Updated alongside total_cost_micros from the budget tracker.
-   *
-   * &#64;since Cost Data Pipeline
    * </pre>
    *
    * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
@@ -901,12 +509,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Cumulative output tokens consumed across all LLM and agent tasks.
-   *
-   * &#64;internal
-   * Output tokens represent completion/generation tokens returned by the model.
-   * Updated alongside total_cost_micros from the budget tracker.
-   *
-   * &#64;since Cost Data Pipeline
    * </pre>
    *
    * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
@@ -923,24 +525,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SHA-256 hash identifying which workflow version was used for this execution.
-   *
-   * &#64;internal
-   * Pinned at execution creation time from Workflow.status.version_hash.
-   * Immutable after creation — represents the exact workflow definition this
-   * execution ran (or will run, if still pending).
-   *
-   * Consumers:
-   * - Runner: fetches the version-specific CNCF YAML via getVersion() during
-   * hydration, ensuring the execution runs the intended definition even if
-   * the workflow has been updated since creation.
-   * - Execution viewer: fetches the version entry to render the correct graph
-   * for historical executions, eliminating the version mismatch problem.
-   *
-   * Empty for executions created before workflow versioning was introduced.
-   * In that case, consumers fall back to fetching the current workflow
-   * definition (legacy behavior with mismatch warning).
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
@@ -962,24 +546,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SHA-256 hash identifying which workflow version was used for this execution.
-   *
-   * &#64;internal
-   * Pinned at execution creation time from Workflow.status.version_hash.
-   * Immutable after creation — represents the exact workflow definition this
-   * execution ran (or will run, if still pending).
-   *
-   * Consumers:
-   * - Runner: fetches the version-specific CNCF YAML via getVersion() during
-   * hydration, ensuring the execution runs the intended definition even if
-   * the workflow has been updated since creation.
-   * - Execution viewer: fetches the version entry to render the correct graph
-   * for historical executions, eliminating the version mismatch problem.
-   *
-   * Empty for executions created before workflow versioning was introduced.
-   * In that case, consumers fall back to fetching the current workflow
-   * definition (legacy behavior with mismatch warning).
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
@@ -1007,23 +573,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Pending file reviews from child agent executions, surfaced for
    * workflow-level visibility and in-place keep/discard decisioning.
-   *
-   * &#64;internal
-   * A reference-only sibling of pending_approvals (field 9): each entry names a
-   * child agent execution and the change_set ids it currently has
-   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-   * stays single-sourced on the child's
-   * AgentExecution.status.file_change_sets and is read on demand by the UI.
-   *
-   * Guarded, per-child merge protocol:
-   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-   * is true, scoped by pending_update_child_agent_execution_id. The write
-   * replaces the entry for that one child and preserves every sibling child's
-   * entry, so parallel child agents never clobber each other. A scoped write with
-   * an empty change_set list removes that child's entry. Only call-agent-status
-   * manages this field.
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -1036,23 +585,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Pending file reviews from child agent executions, surfaced for
    * workflow-level visibility and in-place keep/discard decisioning.
-   *
-   * &#64;internal
-   * A reference-only sibling of pending_approvals (field 9): each entry names a
-   * child agent execution and the change_set ids it currently has
-   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-   * stays single-sourced on the child's
-   * AgentExecution.status.file_change_sets and is read on demand by the UI.
-   *
-   * Guarded, per-child merge protocol:
-   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-   * is true, scoped by pending_update_child_agent_execution_id. The write
-   * replaces the entry for that one child and preserves every sibling child's
-   * entry, so parallel child agents never clobber each other. A scoped write with
-   * an empty change_set list removes that child's entry. Only call-agent-status
-   * manages this field.
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -1066,23 +598,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Pending file reviews from child agent executions, surfaced for
    * workflow-level visibility and in-place keep/discard decisioning.
-   *
-   * &#64;internal
-   * A reference-only sibling of pending_approvals (field 9): each entry names a
-   * child agent execution and the change_set ids it currently has
-   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-   * stays single-sourced on the child's
-   * AgentExecution.status.file_change_sets and is read on demand by the UI.
-   *
-   * Guarded, per-child merge protocol:
-   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-   * is true, scoped by pending_update_child_agent_execution_id. The write
-   * replaces the entry for that one child and preserves every sibling child's
-   * entry, so parallel child agents never clobber each other. A scoped write with
-   * an empty change_set list removes that child's entry. Only call-agent-status
-   * manages this field.
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -1095,23 +610,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Pending file reviews from child agent executions, surfaced for
    * workflow-level visibility and in-place keep/discard decisioning.
-   *
-   * &#64;internal
-   * A reference-only sibling of pending_approvals (field 9): each entry names a
-   * child agent execution and the change_set ids it currently has
-   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-   * stays single-sourced on the child's
-   * AgentExecution.status.file_change_sets and is read on demand by the UI.
-   *
-   * Guarded, per-child merge protocol:
-   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-   * is true, scoped by pending_update_child_agent_execution_id. The write
-   * replaces the entry for that one child and preserves every sibling child's
-   * entry, so parallel child agents never clobber each other. A scoped write with
-   * an empty change_set list removes that child's entry. Only call-agent-status
-   * manages this field.
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -1124,23 +622,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Pending file reviews from child agent executions, surfaced for
    * workflow-level visibility and in-place keep/discard decisioning.
-   *
-   * &#64;internal
-   * A reference-only sibling of pending_approvals (field 9): each entry names a
-   * child agent execution and the change_set ids it currently has
-   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-   * stays single-sourced on the child's
-   * AgentExecution.status.file_change_sets and is read on demand by the UI.
-   *
-   * Guarded, per-child merge protocol:
-   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-   * is true, scoped by pending_update_child_agent_execution_id. The write
-   * replaces the entry for that one child and preserves every sibling child's
-   * entry, so parallel child agents never clobber each other. A scoped write with
-   * an empty change_set list removes that child's entry. Only call-agent-status
-   * manages this field.
-   *
-   * &#64;since Workflow-Parent File Review
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -1482,26 +963,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowExecutionStatus contains all system-managed execution state and results.
-   *
-   * &#64;internal
-   * Everything populated during or after execution goes here, not in spec.
-   * This message follows the standard pattern: audit information at field 99, custom fields at 1-98.
-   *
-   * Status Lifecycle:
-   * 1. Created: audit.created_at set, phase = EXECUTION_PENDING
-   * 2. Started: started_at set, phase = EXECUTION_IN_PROGRESS, tasks populated
-   * 3. Progress: tasks updated as workflow runner sends status updates
-   * 4. Completed: completed_at set, phase = EXECUTION_COMPLETED, output populated
-   * 5. Failed: completed_at set, phase = EXECUTION_FAILED, error populated
-   * 6. Cancelled: completed_at set, phase = EXECUTION_CANCELLED
-   *
-   * The status is read-only to users and continuously updated by the workflow execution engine.
-   *
-   * Progress Tracking Pattern (Matches Agent Execution):
-   * - Agent execution: messages[], tool_calls[], sub_agent_executions[] (transformed from LLM streaming events)
-   * - Workflow execution: tasks[] (transformed from workflow task execution)
-   * - Both store structured state, not raw streaming events
-   * - Both use updateStatus RPC for progressive updates during execution
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus}
@@ -1974,14 +1435,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1993,14 +1446,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2016,14 +1461,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2044,14 +1481,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2070,14 +1499,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2103,14 +1524,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2128,14 +1541,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2148,14 +1553,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2171,14 +1568,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information including timestamps and created-by identity.
-     *
-     * &#64;internal
-     * Always at field 99 for consistency across all Stigmer API resources.
-     *
-     * Contains:
-     * - created_at: When this execution was created (ISO 8601 timestamp)
-     * - updated_at: Last time status was updated (ISO 8601 timestamp)
-     * - created_by: User or system that created this execution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -2201,20 +1590,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current execution lifecycle phase.
-     *
-     * &#64;internal
-     * Phase Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ CANCELLED
-     *
-     * The phase is used for:
-     * - UI status indicators (progress bars, badges)
-     * - Filtering executions (show only failed, show only in-progress)
-     * - Alerting and notifications (notify on failure)
-     * - Retry logic (retry failed executions)
-     *
-     * Validation: Must be a defined enum value (no unspecified/unknown).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -2226,20 +1601,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current execution lifecycle phase.
-     *
-     * &#64;internal
-     * Phase Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ CANCELLED
-     *
-     * The phase is used for:
-     * - UI status indicators (progress bars, badges)
-     * - Filtering executions (show only failed, show only in-progress)
-     * - Alerting and notifications (notify on failure)
-     * - Retry logic (retry failed executions)
-     *
-     * Validation: Must be a defined enum value (no unspecified/unknown).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -2256,20 +1617,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current execution lifecycle phase.
-     *
-     * &#64;internal
-     * Phase Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ CANCELLED
-     *
-     * The phase is used for:
-     * - UI status indicators (progress bars, badges)
-     * - Filtering executions (show only failed, show only in-progress)
-     * - Alerting and notifications (notify on failure)
-     * - Retry logic (retry failed executions)
-     *
-     * Validation: Must be a defined enum value (no unspecified/unknown).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -2283,20 +1630,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current execution lifecycle phase.
-     *
-     * &#64;internal
-     * Phase Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ CANCELLED
-     *
-     * The phase is used for:
-     * - UI status indicators (progress bars, badges)
-     * - Filtering executions (show only failed, show only in-progress)
-     * - Alerting and notifications (notify on failure)
-     * - Retry logic (retry failed executions)
-     *
-     * Validation: Must be a defined enum value (no unspecified/unknown).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -2313,20 +1646,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Current execution lifecycle phase.
-     *
-     * &#64;internal
-     * Phase Transitions:
-     * PENDING → IN_PROGRESS → COMPLETED
-     * ↓              ↘ FAILED
-     * ↓              ↘ CANCELLED
-     *
-     * The phase is used for:
-     * - UI status indicators (progress bars, badges)
-     * - Filtering executions (show only failed, show only in-progress)
-     * - Alerting and notifications (notify on failure)
-     * - Retry logic (retry failed executions)
-     *
-     * Validation: Must be a defined enum value (no unspecified/unknown).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -2354,28 +1673,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2390,28 +1687,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2426,28 +1701,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2462,28 +1715,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2505,28 +1736,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2545,28 +1754,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2587,28 +1774,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2630,28 +1795,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2670,28 +1813,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2710,28 +1831,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2751,28 +1850,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2790,28 +1867,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2829,28 +1884,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2862,28 +1895,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2898,28 +1909,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2935,28 +1924,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -2968,28 +1935,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -3002,28 +1947,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Workflow tasks with their individual execution state.
-     *
-     * &#64;internal
-     * Tasks represent the atomic units of work within the workflow.
-     * Each task has:
-     * - task_id: Unique identifier within this execution
-     * - task_name: Human-readable name (e.g., "validate_email", "send_notification")
-     * - task_type: Type of task (agent_invocation, api_call, approval, etc.)
-     * - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
-     * - input: Task input parameters (JSON structure)
-     * - output: Task output results (JSON structure, only for COMPLETED tasks)
-     * - error: Error message (only for FAILED tasks)
-     * - started_at: When task started executing
-     * - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
-     *
-     * Tasks are populated as the workflow progresses through its task graph.
-     * The order in this list reflects the execution order (sequential or parallel).
-     *
-     * Progress Calculation:
-     * - Total tasks: tasks.length
-     * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
-     * - Progress percentage: (completed_tasks / total_tasks) * 100
-     * - Current task: tasks.find(status == IN_PROGRESS)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -3053,14 +1976,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3072,14 +1987,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3095,14 +2002,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3123,14 +2022,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3149,14 +2040,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3182,14 +2065,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3207,14 +2082,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3227,14 +2094,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3250,14 +2109,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
-     *
-     * &#64;internal
-     * The output structure is workflow-specific and defined by the Workflow template.
-     * Common patterns:
-     * - API response data (e.g., created user ID, order confirmation)
-     * - Aggregated results from multiple tasks
-     * - Links to generated artifacts (reports, files)
-     * - Summary statistics (items processed, duration)
      * </pre>
      *
      * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -3280,16 +2131,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when phase is EXECUTION_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of what went wrong.
-     *
-     * Error message includes:
-     * - What failed (which task or workflow step)
-     * - Why it failed (validation error, API error, timeout, etc.)
-     * - How to fix it (if known)
-     *
-     * For detailed debugging, inspect tasks[].error for task-specific error messages.
      * </pre>
      *
      * <code>string error = 4 [json_name = "error"];</code>
@@ -3310,16 +2151,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when phase is EXECUTION_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of what went wrong.
-     *
-     * Error message includes:
-     * - What failed (which task or workflow step)
-     * - Why it failed (validation error, API error, timeout, etc.)
-     * - How to fix it (if known)
-     *
-     * For detailed debugging, inspect tasks[].error for task-specific error messages.
      * </pre>
      *
      * <code>string error = 4 [json_name = "error"];</code>
@@ -3341,16 +2172,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when phase is EXECUTION_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of what went wrong.
-     *
-     * Error message includes:
-     * - What failed (which task or workflow step)
-     * - Why it failed (validation error, API error, timeout, etc.)
-     * - How to fix it (if known)
-     *
-     * For detailed debugging, inspect tasks[].error for task-specific error messages.
      * </pre>
      *
      * <code>string error = 4 [json_name = "error"];</code>
@@ -3368,16 +2189,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when phase is EXECUTION_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of what went wrong.
-     *
-     * Error message includes:
-     * - What failed (which task or workflow step)
-     * - Why it failed (validation error, API error, timeout, etc.)
-     * - How to fix it (if known)
-     *
-     * For detailed debugging, inspect tasks[].error for task-specific error messages.
      * </pre>
      *
      * <code>string error = 4 [json_name = "error"];</code>
@@ -3392,16 +2203,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Error message, populated only when phase is EXECUTION_FAILED.
-     *
-     * &#64;internal
-     * Contains a human-readable description of what went wrong.
-     *
-     * Error message includes:
-     * - What failed (which task or workflow step)
-     * - Why it failed (validation error, API error, timeout, etc.)
-     * - How to fix it (if known)
-     *
-     * For detailed debugging, inspect tasks[].error for task-specific error messages.
      * </pre>
      *
      * <code>string error = 4 [json_name = "error"];</code>
@@ -3422,10 +2223,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution started processing.
-     *
-     * &#64;internal
-     * Set when phase transitions from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -3446,10 +2243,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution started processing.
-     *
-     * &#64;internal
-     * Set when phase transitions from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -3471,10 +2264,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution started processing.
-     *
-     * &#64;internal
-     * Set when phase transitions from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -3492,10 +2281,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution started processing.
-     *
-     * &#64;internal
-     * Set when phase transitions from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -3510,10 +2295,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution started processing.
-     *
-     * &#64;internal
-     * Set when phase transitions from PENDING to IN_PROGRESS.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -3534,15 +2315,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution reached a terminal state.
-     *
-     * &#64;internal
-     * Set when the workflow reaches a terminal state:
-     * - EXECUTION_COMPLETED: Successfully finished
-     * - EXECUTION_FAILED: Failed during execution
-     * - EXECUTION_CANCELLED: Cancelled by user or system
-     *
-     * Not set for PENDING or IN_PROGRESS executions.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -3563,15 +2335,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution reached a terminal state.
-     *
-     * &#64;internal
-     * Set when the workflow reaches a terminal state:
-     * - EXECUTION_COMPLETED: Successfully finished
-     * - EXECUTION_FAILED: Failed during execution
-     * - EXECUTION_CANCELLED: Cancelled by user or system
-     *
-     * Not set for PENDING or IN_PROGRESS executions.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -3593,15 +2356,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution reached a terminal state.
-     *
-     * &#64;internal
-     * Set when the workflow reaches a terminal state:
-     * - EXECUTION_COMPLETED: Successfully finished
-     * - EXECUTION_FAILED: Failed during execution
-     * - EXECUTION_CANCELLED: Cancelled by user or system
-     *
-     * Not set for PENDING or IN_PROGRESS executions.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -3619,15 +2373,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution reached a terminal state.
-     *
-     * &#64;internal
-     * Set when the workflow reaches a terminal state:
-     * - EXECUTION_COMPLETED: Successfully finished
-     * - EXECUTION_FAILED: Failed during execution
-     * - EXECUTION_CANCELLED: Cancelled by user or system
-     *
-     * Not set for PENDING or IN_PROGRESS executions.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -3642,15 +2387,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ISO 8601 timestamp when execution reached a terminal state.
-     *
-     * &#64;internal
-     * Set when the workflow reaches a terminal state:
-     * - EXECUTION_COMPLETED: Successfully finished
-     * - EXECUTION_FAILED: Failed during execution
-     * - EXECUTION_CANCELLED: Cancelled by user or system
-     *
-     * Not set for PENDING or IN_PROGRESS executions.
-     * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -3671,18 +2407,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Correlation ID for the underlying workflow engine.
-     *
-     * &#64;internal
-     * This is the workflow ID in Temporal, used for:
-     * - Correlation between Stigmer and Temporal (for debugging)
-     * - Querying Temporal directly (for advanced troubleshooting)
-     * - Signaling or cancelling Temporal workflows
-     *
-     * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-     *
-     * This field is optional and only relevant when Temporal is used as the execution engine.
-     * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
      * </pre>
      *
      * <code>string temporal_workflow_id = 7 [json_name = "temporalWorkflowId"];</code>
@@ -3703,18 +2427,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Correlation ID for the underlying workflow engine.
-     *
-     * &#64;internal
-     * This is the workflow ID in Temporal, used for:
-     * - Correlation between Stigmer and Temporal (for debugging)
-     * - Querying Temporal directly (for advanced troubleshooting)
-     * - Signaling or cancelling Temporal workflows
-     *
-     * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-     *
-     * This field is optional and only relevant when Temporal is used as the execution engine.
-     * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
      * </pre>
      *
      * <code>string temporal_workflow_id = 7 [json_name = "temporalWorkflowId"];</code>
@@ -3736,18 +2448,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Correlation ID for the underlying workflow engine.
-     *
-     * &#64;internal
-     * This is the workflow ID in Temporal, used for:
-     * - Correlation between Stigmer and Temporal (for debugging)
-     * - Querying Temporal directly (for advanced troubleshooting)
-     * - Signaling or cancelling Temporal workflows
-     *
-     * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-     *
-     * This field is optional and only relevant when Temporal is used as the execution engine.
-     * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
      * </pre>
      *
      * <code>string temporal_workflow_id = 7 [json_name = "temporalWorkflowId"];</code>
@@ -3765,18 +2465,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Correlation ID for the underlying workflow engine.
-     *
-     * &#64;internal
-     * This is the workflow ID in Temporal, used for:
-     * - Correlation between Stigmer and Temporal (for debugging)
-     * - Querying Temporal directly (for advanced troubleshooting)
-     * - Signaling or cancelling Temporal workflows
-     *
-     * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-     *
-     * This field is optional and only relevant when Temporal is used as the execution engine.
-     * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
      * </pre>
      *
      * <code>string temporal_workflow_id = 7 [json_name = "temporalWorkflowId"];</code>
@@ -3791,18 +2479,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Correlation ID for the underlying workflow engine.
-     *
-     * &#64;internal
-     * This is the workflow ID in Temporal, used for:
-     * - Correlation between Stigmer and Temporal (for debugging)
-     * - Querying Temporal directly (for advanced troubleshooting)
-     * - Signaling or cancelling Temporal workflows
-     *
-     * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-     * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
-     *
-     * This field is optional and only relevant when Temporal is used as the execution engine.
-     * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
      * </pre>
      *
      * <code>string temporal_workflow_id = 7 [json_name = "temporalWorkflowId"];</code>
@@ -3834,26 +2510,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -3868,26 +2524,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -3902,26 +2538,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -3936,26 +2552,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -3977,26 +2573,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4015,26 +2591,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4055,26 +2611,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4096,26 +2632,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4134,26 +2650,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4172,26 +2668,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4211,26 +2687,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4248,26 +2704,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4285,26 +2721,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4316,26 +2732,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4350,26 +2746,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4385,26 +2761,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4416,26 +2772,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4448,26 +2784,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Pending approvals from child agent tool executions.
-     *
-     * &#64;internal
-     * Populated when workflow tasks invoke agents that enter
-     * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
-     * requests at the workflow level for UI visibility.
-     *
-     * Guarded Update Protocol:
-     * This field is only modified when UpdateStatusInput.update_pending_approvals
-     * is explicitly set to true. Normal event emissions (which don't concern
-     * approvals) leave this field untouched, preventing race conditions between
-     * concurrent status writers.
-     *
-     * Only call-agent-status manages this field:
-     * - Non-empty list: child agent(s) need approval
-     * - Empty list + update_pending_approvals=true: all approvals resolved
-     *
-     * Parallel Agents:
-     * When multiple child agents run in parallel, entries from different children
-     * accumulate in this list. Each entry's child_agent_execution_id distinguishes
-     * the source.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -4495,16 +2811,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
-     *
-     * &#64;internal
-     * Updated by the runner alongside each status update. Reflects the
-     * budget tracker's accumulated cost at the time of the last status write.
-     * Used by getExecutionSummary for fast aggregation without scanning events.
-     *
-     * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
-     * micro-USD convention (CostStamp.provider_cost_micros, etc.).
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
@@ -4517,16 +2823,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
-     *
-     * &#64;internal
-     * Updated by the runner alongside each status update. Reflects the
-     * budget tracker's accumulated cost at the time of the last status write.
-     * Used by getExecutionSummary for fast aggregation without scanning events.
-     *
-     * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
-     * micro-USD convention (CostStamp.provider_cost_micros, etc.).
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
@@ -4543,16 +2839,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
-     *
-     * &#64;internal
-     * Updated by the runner alongside each status update. Reflects the
-     * budget tracker's accumulated cost at the time of the last status write.
-     * Used by getExecutionSummary for fast aggregation without scanning events.
-     *
-     * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
-     * micro-USD convention (CostStamp.provider_cost_micros, etc.).
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
@@ -4569,12 +2855,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative input tokens consumed across all LLM and agent tasks.
-     *
-     * &#64;internal
-     * Input tokens represent prompt/context tokens sent to the model.
-     * Updated alongside total_cost_micros from the budget tracker.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
@@ -4587,12 +2867,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative input tokens consumed across all LLM and agent tasks.
-     *
-     * &#64;internal
-     * Input tokens represent prompt/context tokens sent to the model.
-     * Updated alongside total_cost_micros from the budget tracker.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
@@ -4609,12 +2883,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative input tokens consumed across all LLM and agent tasks.
-     *
-     * &#64;internal
-     * Input tokens represent prompt/context tokens sent to the model.
-     * Updated alongside total_cost_micros from the budget tracker.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
@@ -4631,12 +2899,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative output tokens consumed across all LLM and agent tasks.
-     *
-     * &#64;internal
-     * Output tokens represent completion/generation tokens returned by the model.
-     * Updated alongside total_cost_micros from the budget tracker.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
@@ -4649,12 +2911,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative output tokens consumed across all LLM and agent tasks.
-     *
-     * &#64;internal
-     * Output tokens represent completion/generation tokens returned by the model.
-     * Updated alongside total_cost_micros from the budget tracker.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
@@ -4671,12 +2927,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cumulative output tokens consumed across all LLM and agent tasks.
-     *
-     * &#64;internal
-     * Output tokens represent completion/generation tokens returned by the model.
-     * Updated alongside total_cost_micros from the budget tracker.
-     *
-     * &#64;since Cost Data Pipeline
      * </pre>
      *
      * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
@@ -4693,24 +2943,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash identifying which workflow version was used for this execution.
-     *
-     * &#64;internal
-     * Pinned at execution creation time from Workflow.status.version_hash.
-     * Immutable after creation — represents the exact workflow definition this
-     * execution ran (or will run, if still pending).
-     *
-     * Consumers:
-     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
-     * hydration, ensuring the execution runs the intended definition even if
-     * the workflow has been updated since creation.
-     * - Execution viewer: fetches the version entry to render the correct graph
-     * for historical executions, eliminating the version mismatch problem.
-     *
-     * Empty for executions created before workflow versioning was introduced.
-     * In that case, consumers fall back to fetching the current workflow
-     * definition (legacy behavior with mismatch warning).
-     *
-     * &#64;since Workflow Versioning
      * </pre>
      *
      * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
@@ -4731,24 +2963,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash identifying which workflow version was used for this execution.
-     *
-     * &#64;internal
-     * Pinned at execution creation time from Workflow.status.version_hash.
-     * Immutable after creation — represents the exact workflow definition this
-     * execution ran (or will run, if still pending).
-     *
-     * Consumers:
-     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
-     * hydration, ensuring the execution runs the intended definition even if
-     * the workflow has been updated since creation.
-     * - Execution viewer: fetches the version entry to render the correct graph
-     * for historical executions, eliminating the version mismatch problem.
-     *
-     * Empty for executions created before workflow versioning was introduced.
-     * In that case, consumers fall back to fetching the current workflow
-     * definition (legacy behavior with mismatch warning).
-     *
-     * &#64;since Workflow Versioning
      * </pre>
      *
      * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
@@ -4770,24 +2984,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash identifying which workflow version was used for this execution.
-     *
-     * &#64;internal
-     * Pinned at execution creation time from Workflow.status.version_hash.
-     * Immutable after creation — represents the exact workflow definition this
-     * execution ran (or will run, if still pending).
-     *
-     * Consumers:
-     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
-     * hydration, ensuring the execution runs the intended definition even if
-     * the workflow has been updated since creation.
-     * - Execution viewer: fetches the version entry to render the correct graph
-     * for historical executions, eliminating the version mismatch problem.
-     *
-     * Empty for executions created before workflow versioning was introduced.
-     * In that case, consumers fall back to fetching the current workflow
-     * definition (legacy behavior with mismatch warning).
-     *
-     * &#64;since Workflow Versioning
      * </pre>
      *
      * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
@@ -4805,24 +3001,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash identifying which workflow version was used for this execution.
-     *
-     * &#64;internal
-     * Pinned at execution creation time from Workflow.status.version_hash.
-     * Immutable after creation — represents the exact workflow definition this
-     * execution ran (or will run, if still pending).
-     *
-     * Consumers:
-     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
-     * hydration, ensuring the execution runs the intended definition even if
-     * the workflow has been updated since creation.
-     * - Execution viewer: fetches the version entry to render the correct graph
-     * for historical executions, eliminating the version mismatch problem.
-     *
-     * Empty for executions created before workflow versioning was introduced.
-     * In that case, consumers fall back to fetching the current workflow
-     * definition (legacy behavior with mismatch warning).
-     *
-     * &#64;since Workflow Versioning
      * </pre>
      *
      * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
@@ -4837,24 +3015,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash identifying which workflow version was used for this execution.
-     *
-     * &#64;internal
-     * Pinned at execution creation time from Workflow.status.version_hash.
-     * Immutable after creation — represents the exact workflow definition this
-     * execution ran (or will run, if still pending).
-     *
-     * Consumers:
-     * - Runner: fetches the version-specific CNCF YAML via getVersion() during
-     * hydration, ensuring the execution runs the intended definition even if
-     * the workflow has been updated since creation.
-     * - Execution viewer: fetches the version entry to render the correct graph
-     * for historical executions, eliminating the version mismatch problem.
-     *
-     * Empty for executions created before workflow versioning was introduced.
-     * In that case, consumers fall back to fetching the current workflow
-     * definition (legacy behavior with mismatch warning).
-     *
-     * &#64;since Workflow Versioning
      * </pre>
      *
      * <code>string workflow_version_hash = 13 [json_name = "workflowVersionHash"];</code>
@@ -4887,23 +3047,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -4919,23 +3062,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -4951,23 +3077,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -4983,23 +3092,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5022,23 +3114,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5058,23 +3133,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5096,23 +3154,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5135,23 +3176,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5171,23 +3195,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5207,23 +3214,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5244,23 +3234,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5279,23 +3252,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5314,23 +3270,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5343,23 +3282,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5375,23 +3297,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5408,23 +3313,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5437,23 +3325,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
@@ -5467,23 +3338,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Pending file reviews from child agent executions, surfaced for
      * workflow-level visibility and in-place keep/discard decisioning.
-     *
-     * &#64;internal
-     * A reference-only sibling of pending_approvals (field 9): each entry names a
-     * child agent execution and the change_set ids it currently has
-     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
-     * stays single-sourced on the child's
-     * AgentExecution.status.file_change_sets and is read on demand by the UI.
-     *
-     * Guarded, per-child merge protocol:
-     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
-     * is true, scoped by pending_update_child_agent_execution_id. The write
-     * replaces the entry for that one child and preserves every sibling child's
-     * entry, so parallel child agents never clobber each other. A scoped write with
-     * an empty change_set list removes that child's entry. Only call-agent-status
-     * manages this field.
-     *
-     * &#64;since Workflow-Parent File Review
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>

@@ -10,19 +10,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * ChannelConversation is the durable identity and participation state of
  * one channel conversation: one external customer on one agent channel,
  * spanning sessions.
- *
- * &#64;internal
- * channel-conversations DD-001/DD-003: the Conversation aggregate.
- * Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery
- * posture) — but WITH a public query/command surface, because the console
- * reads conversations and operates the control token (the
- * ChannelMessageQueryController precedent for channel-scoped public RPCs
- * without a kind). Identity is (agent_channel_id, conversation_key), the
- * same key channel_conversation_binding anchors (DD-013 of
- * agent-channel-integrations); the binding stays a separate aggregate (the
- * session pointer) and never carries participation state. Field ownership
- * is single-writer per DD-003 D-c; last_activity_at is the documented
- * commutative-max exception.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelConversation}
@@ -175,10 +162,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns the channel.
-   *
-   * &#64;internal
-   * Denormalized from the channel (its metadata.org) so the org-wide
-   * list never joins — the schedule_fire.org precedent.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -200,10 +183,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns the channel.
-   *
-   * &#64;internal
-   * Denormalized from the channel (its metadata.org) so the org-wide
-   * list never joins — the schedule_fire.org precedent.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org"];</code>
@@ -340,12 +319,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * True when the conversation is flagged for human attention.
-   *
-   * &#64;internal
-   * DD-008 D-e: a projection of the latest escalation event, updated by
-   * the participation writer in the same motion that appends the event.
-   * Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
-   * never touches it.
    * </pre>
    *
    * <code>bool needs_attention = 7 [json_name = "needsAttention"];</code>
@@ -572,20 +545,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * True when the customer's last message has not yet received a real
    * answer — from the agent or from a teammate.
-   *
-   * &#64;internal
-   * channel-conversations DD-011 D-b/D-c: derived on read from
-   * last_customer_message_at vs the server-side last_answered_at fact
-   * column — never stored, so no boolean exists to drift. Only real
-   * answers stamp the fact (an agent turn delivered with Outcome.OK; a
-   * participant-origin staff reply at its Delivered settle); apology,
-   * cancellation, and limit copy, the platform acknowledgment, operator
-   * sends, and escalations never count. Ties go to answered. The raw
-   * instant stays server-side deliberately: carrying the derived boolean
-   * keeps the NULL-and-compare rule in one place instead of re-implemented
-   * per client, and "waiting since" already rides field 11. proto3
-   * default (false) degrades to the pre-T05 surface in both skew
-   * directions.
    * </pre>
    *
    * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
@@ -905,19 +864,6 @@ private static final long serialVersionUID = 0L;
    * ChannelConversation is the durable identity and participation state of
    * one channel conversation: one external customer on one agent channel,
    * spanning sessions.
-   *
-   * &#64;internal
-   * channel-conversations DD-001/DD-003: the Conversation aggregate.
-   * Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery
-   * posture) — but WITH a public query/command surface, because the console
-   * reads conversations and operates the control token (the
-   * ChannelMessageQueryController precedent for channel-scoped public RPCs
-   * without a kind). Identity is (agent_channel_id, conversation_key), the
-   * same key channel_conversation_binding anchors (DD-013 of
-   * agent-channel-integrations); the binding stays a separate aggregate (the
-   * session pointer) and never carries participation state. Field ownership
-   * is single-writer per DD-003 D-c; last_activity_at is the documented
-   * commutative-max exception.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelConversation}
@@ -1446,10 +1392,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns the channel.
-     *
-     * &#64;internal
-     * Denormalized from the channel (its metadata.org) so the org-wide
-     * list never joins — the schedule_fire.org precedent.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -1470,10 +1412,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns the channel.
-     *
-     * &#64;internal
-     * Denormalized from the channel (its metadata.org) so the org-wide
-     * list never joins — the schedule_fire.org precedent.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -1495,10 +1433,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns the channel.
-     *
-     * &#64;internal
-     * Denormalized from the channel (its metadata.org) so the org-wide
-     * list never joins — the schedule_fire.org precedent.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -1516,10 +1450,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns the channel.
-     *
-     * &#64;internal
-     * Denormalized from the channel (its metadata.org) so the org-wide
-     * list never joins — the schedule_fire.org precedent.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -1534,10 +1464,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns the channel.
-     *
-     * &#64;internal
-     * Denormalized from the channel (its metadata.org) so the org-wide
-     * list never joins — the schedule_fire.org precedent.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org"];</code>
@@ -1879,12 +1805,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * True when the conversation is flagged for human attention.
-     *
-     * &#64;internal
-     * DD-008 D-e: a projection of the latest escalation event, updated by
-     * the participation writer in the same motion that appends the event.
-     * Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
-     * never touches it.
      * </pre>
      *
      * <code>bool needs_attention = 7 [json_name = "needsAttention"];</code>
@@ -1897,12 +1817,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * True when the conversation is flagged for human attention.
-     *
-     * &#64;internal
-     * DD-008 D-e: a projection of the latest escalation event, updated by
-     * the participation writer in the same motion that appends the event.
-     * Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
-     * never touches it.
      * </pre>
      *
      * <code>bool needs_attention = 7 [json_name = "needsAttention"];</code>
@@ -1919,12 +1833,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * True when the conversation is flagged for human attention.
-     *
-     * &#64;internal
-     * DD-008 D-e: a projection of the latest escalation event, updated by
-     * the participation writer in the same motion that appends the event.
-     * Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
-     * never touches it.
      * </pre>
      *
      * <code>bool needs_attention = 7 [json_name = "needsAttention"];</code>
@@ -2602,20 +2510,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * True when the customer's last message has not yet received a real
      * answer — from the agent or from a teammate.
-     *
-     * &#64;internal
-     * channel-conversations DD-011 D-b/D-c: derived on read from
-     * last_customer_message_at vs the server-side last_answered_at fact
-     * column — never stored, so no boolean exists to drift. Only real
-     * answers stamp the fact (an agent turn delivered with Outcome.OK; a
-     * participant-origin staff reply at its Delivered settle); apology,
-     * cancellation, and limit copy, the platform acknowledgment, operator
-     * sends, and escalations never count. Ties go to answered. The raw
-     * instant stays server-side deliberately: carrying the derived boolean
-     * keeps the NULL-and-compare rule in one place instead of re-implemented
-     * per client, and "waiting since" already rides field 11. proto3
-     * default (false) degrades to the pre-T05 surface in both skew
-     * directions.
      * </pre>
      *
      * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
@@ -2629,20 +2523,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * True when the customer's last message has not yet received a real
      * answer — from the agent or from a teammate.
-     *
-     * &#64;internal
-     * channel-conversations DD-011 D-b/D-c: derived on read from
-     * last_customer_message_at vs the server-side last_answered_at fact
-     * column — never stored, so no boolean exists to drift. Only real
-     * answers stamp the fact (an agent turn delivered with Outcome.OK; a
-     * participant-origin staff reply at its Delivered settle); apology,
-     * cancellation, and limit copy, the platform acknowledgment, operator
-     * sends, and escalations never count. Ties go to answered. The raw
-     * instant stays server-side deliberately: carrying the derived boolean
-     * keeps the NULL-and-compare rule in one place instead of re-implemented
-     * per client, and "waiting since" already rides field 11. proto3
-     * default (false) degrades to the pre-T05 surface in both skew
-     * directions.
      * </pre>
      *
      * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
@@ -2660,20 +2540,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * True when the customer's last message has not yet received a real
      * answer — from the agent or from a teammate.
-     *
-     * &#64;internal
-     * channel-conversations DD-011 D-b/D-c: derived on read from
-     * last_customer_message_at vs the server-side last_answered_at fact
-     * column — never stored, so no boolean exists to drift. Only real
-     * answers stamp the fact (an agent turn delivered with Outcome.OK; a
-     * participant-origin staff reply at its Delivered settle); apology,
-     * cancellation, and limit copy, the platform acknowledgment, operator
-     * sends, and escalations never count. Ties go to answered. The raw
-     * instant stays server-side deliberately: carrying the derived boolean
-     * keeps the NULL-and-compare rule in one place instead of re-implemented
-     * per client, and "waiting since" already rides field 11. proto3
-     * default (false) degrades to the pre-T05 surface in both skew
-     * directions.
      * </pre>
      *
      * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>

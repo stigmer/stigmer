@@ -8,14 +8,6 @@ package ai.stigmer.agentic.agentchannel.v1;
 /**
  * <pre>
  * ChannelDeliveryStatus is the delivery record lifecycle.
- *
- * &#64;internal
- * pending -&gt; delivering is the atomic claim (single winner across
- * replicas). delivering -&gt; delivered | pending (retry, with backoff via
- * next_attempt_at) | failed (dead-lettered after max attempts, or
- * immediately on a known-terminal provider refusal — cloud#263) |
- * suppressed (withheld under human control — channel-conversations
- * DD-005 D-e; terminal, intended behavior, never an alert condition).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus}
@@ -69,13 +61,6 @@ public enum ChannelDeliveryStatus
    * <pre>
    * Withheld because a human held the conversation when the reply came
    * due; the customer never received it.
-   *
-   * &#64;internal
-   * channel-conversations DD-005 D-e: terminal like delivered/failed,
-   * but intended behavior — a suppressed settle records its own metric
-   * and never feeds the bad-turn alert. The reply text is deliberately
-   * NOT extracted or persisted (the customer never saw any words, and
-   * the timeline's reply lane excludes this status by contract).
    * </pre>
    *
    * <code>suppressed = 5;</code>
@@ -139,13 +124,6 @@ public enum ChannelDeliveryStatus
    * <pre>
    * Withheld because a human held the conversation when the reply came
    * due; the customer never received it.
-   *
-   * &#64;internal
-   * channel-conversations DD-005 D-e: terminal like delivered/failed,
-   * but intended behavior — a suppressed settle records its own metric
-   * and never feeds the bad-turn alert. The reply text is deliberately
-   * NOT extracted or persisted (the customer never saw any words, and
-   * the timeline's reply lane excludes this status by contract).
    * </pre>
    *
    * <code>suppressed = 5;</code>

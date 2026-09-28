@@ -9,14 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ConversationTimeline contains one page of a conversation's timeline,
  * newest first.
- *
- * &#64;internal
- * Cursor pagination, not PageInfo, deliberately (DD-004 D-b): the
- * timeline is stitched across three stores at read time, so an offset is
- * neither cheap nor stable while new items land; the cursor encodes
- * (instant, item_id). No total_count for the same reason — a
- * cross-store count would be a second full stitch pretending to be a
- * number.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationTimeline}
@@ -349,14 +341,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ConversationTimeline contains one page of a conversation's timeline,
    * newest first.
-   *
-   * &#64;internal
-   * Cursor pagination, not PageInfo, deliberately (DD-004 D-b): the
-   * timeline is stitched across three stores at read time, so an offset is
-   * neither cheap nor stable while new items land; the cursor encodes
-   * (instant, item_id). No total_count for the same reason — a
-   * cross-store count would be a second full stitch pretending to be a
-   * number.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationTimeline}

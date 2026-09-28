@@ -15,12 +15,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * record can therefore never disagree with what was sent on the wire. The
  * CursorAccount store is the only credential source, so MANAGED_KEY is the
  * only source a current proxy can report.
- *
- * &#64;internal
- * UNSPECIFIED doubles as the legacy marker: records written before the
- * serving identity was threaded through the proxy payload (when the
- * billing handler re-read the session's key pin at stamp time) carry no
- * source and must not be re-interpreted.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.CursorKeySource}

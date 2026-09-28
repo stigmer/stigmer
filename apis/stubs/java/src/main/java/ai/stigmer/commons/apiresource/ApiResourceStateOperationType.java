@@ -8,10 +8,6 @@ package ai.stigmer.commons.apiresource;
 /**
  * <pre>
  * Operation type for API resource state transitions.
- *
- * &#64;internal
- * Used by the state machine to classify RPC operations and enforce
- * transition rules (e.g., a resource in "deleting" state rejects create).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceStateOperationType}

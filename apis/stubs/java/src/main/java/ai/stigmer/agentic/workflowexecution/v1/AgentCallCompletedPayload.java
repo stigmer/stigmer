@@ -8,11 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for agent_call_completed events.
- *
- * &#64;internal
- * Emitted when the child AgentExecution reaches a terminal phase.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload}
@@ -440,11 +435,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for agent_call_completed events.
-   *
-   * &#64;internal
-   * Emitted when the child AgentExecution reaches a terminal phase.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload}

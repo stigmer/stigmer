@@ -8,11 +8,6 @@ package ai.stigmer.agentic.agentchannel.v1;
 /**
  * <pre>
  * ConversationLane distinguishes customer-visible items from internal ones.
- *
- * &#64;internal
- * channel-conversations DD-002: every timeline item has a lane. lane_internal
- * carries the internal event store's items — escalations and attention clears
- * since T03 Sitting 4, notes when their writer lands (the v1-stretch decision).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ConversationLane}

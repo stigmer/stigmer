@@ -13,9 +13,6 @@ public interface PluginStatusOrBuilder extends
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -25,9 +22,6 @@ public interface PluginStatusOrBuilder extends
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -37,9 +31,6 @@ public interface PluginStatusOrBuilder extends
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -49,12 +40,6 @@ public interface PluginStatusOrBuilder extends
   /**
    * <pre>
    * SHA-256 of the plugin archive, the immutable version identifier.
-   *
-   * &#64;internal
-   * Calculated by the server from the pushed ZIP bytes; equals
-   * metadata.version.id. Every child carries it as the
-   * stigmer.ai/plugin-version label, the per-child convergence marker a
-   * re-push compares against before deciding it has nothing to do.
    * </pre>
    *
    * <code>string digest = 1 [json_name = "digest", (.buf.validate.field) = { ... }</code>
@@ -64,12 +49,6 @@ public interface PluginStatusOrBuilder extends
   /**
    * <pre>
    * SHA-256 of the plugin archive, the immutable version identifier.
-   *
-   * &#64;internal
-   * Calculated by the server from the pushed ZIP bytes; equals
-   * metadata.version.id. Every child carries it as the
-   * stigmer.ai/plugin-version label, the per-child convergence marker a
-   * re-push compares against before deciding it has nothing to do.
    * </pre>
    *
    * <code>string digest = 1 [json_name = "digest", (.buf.validate.field) = { ... }</code>
@@ -120,11 +99,6 @@ public interface PluginStatusOrBuilder extends
   /**
    * <pre>
    * One sentence naming what failed when state is FAILED; empty otherwise.
-   *
-   * &#64;internal
-   * The child's own refusal wrapped as "failed to materialize &lt;kind&gt;
-   * '&lt;slug&gt;' from plugin '&lt;slug&gt;': &lt;cause&gt;". A retry of the same archive
-   * re-materialises; apply and push are idempotent.
    * </pre>
    *
    * <code>string error = 4 [json_name = "error"];</code>
@@ -134,11 +108,6 @@ public interface PluginStatusOrBuilder extends
   /**
    * <pre>
    * One sentence naming what failed when state is FAILED; empty otherwise.
-   *
-   * &#64;internal
-   * The child's own refusal wrapped as "failed to materialize &lt;kind&gt;
-   * '&lt;slug&gt;' from plugin '&lt;slug&gt;': &lt;cause&gt;". A retry of the same archive
-   * re-materialises; apply and push are idempotent.
    * </pre>
    *
    * <code>string error = 4 [json_name = "error"];</code>

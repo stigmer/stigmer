@@ -107,10 +107,6 @@ public interface WorkflowInstanceOrBuilder extends
   /**
    * <pre>
    * System-managed audit information.
-   *
-   * &#64;internal
-   * This is a simple status (no custom execution state) since WorkflowInstance
-   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -120,10 +116,6 @@ public interface WorkflowInstanceOrBuilder extends
   /**
    * <pre>
    * System-managed audit information.
-   *
-   * &#64;internal
-   * This is a simple status (no custom execution state) since WorkflowInstance
-   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -133,10 +125,6 @@ public interface WorkflowInstanceOrBuilder extends
   /**
    * <pre>
    * System-managed audit information.
-   *
-   * &#64;internal
-   * This is a simple status (no custom execution state) since WorkflowInstance
-   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

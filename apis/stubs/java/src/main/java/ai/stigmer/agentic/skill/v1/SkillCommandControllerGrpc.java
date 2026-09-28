@@ -241,18 +241,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill artifact.
      * Creates a skill if it does not exist, or creates a new version of an
      * existing skill. The artifact must contain a SKILL.md file.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator
-     * The backend will:
-     * 1. Normalize the name to a slug
-     * 2. Find or create the skill resource
-     * 3. Extract SKILL.md from the artifact
-     * 4. Calculate SHA256 hash (version identifier)
-     * 5. Store the artifact (deduplicated by hash)
-     * 6. Update skill spec and status
-     * 7. Archive the previous version (if updating)
      * </pre>
      */
     default void push(ai.stigmer.agentic.skill.v1.PushSkillRequest request,
@@ -269,9 +257,6 @@ public final class SkillCommandControllerGrpc {
      * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
      *    validation, and versioning as an inline push
      * The server refuses over-limit size_bytes here, before any bytes move.
-     * &#64;internal
-     * Authorization matches push() — the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it.
      * </pre>
      */
     default void createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request,
@@ -284,13 +269,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
-     * &#64;internal
-     * Server-side equivalent of push() — reads the ZIP directly from artifact
-     * storage instead of receiving bytes from the client. This eliminates
-     * CORS concerns for SDK consumers.
-     * Authorization:
-     * - Requires can_view on the referenced execution (to read the artifact)
-     * - Requires can_create_skill in the target organization (to push the skill)
      * </pre>
      */
     default void pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request,
@@ -304,10 +282,6 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to widen or narrow who can read
      * the skill.
-     * &#64;internal
-     * Authorization: can_edit on the skill for every transition. The level is
-     * checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind).
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -318,8 +292,6 @@ public final class SkillCommandControllerGrpc {
     /**
      * <pre>
      * Delete a skill and all its versions.
-     * &#64;internal
-     * Removes the skill from the main collection but preserves audit history.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.skill.v1.SkillId request,
@@ -366,18 +338,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill artifact.
      * Creates a skill if it does not exist, or creates a new version of an
      * existing skill. The artifact must contain a SKILL.md file.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator
-     * The backend will:
-     * 1. Normalize the name to a slug
-     * 2. Find or create the skill resource
-     * 3. Extract SKILL.md from the artifact
-     * 4. Calculate SHA256 hash (version identifier)
-     * 5. Store the artifact (deduplicated by hash)
-     * 6. Update skill spec and status
-     * 7. Archive the previous version (if updating)
      * </pre>
      */
     public void push(ai.stigmer.agentic.skill.v1.PushSkillRequest request,
@@ -395,9 +355,6 @@ public final class SkillCommandControllerGrpc {
      * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
      *    validation, and versioning as an inline push
      * The server refuses over-limit size_bytes here, before any bytes move.
-     * &#64;internal
-     * Authorization matches push() — the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it.
      * </pre>
      */
     public void createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request,
@@ -411,13 +368,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
-     * &#64;internal
-     * Server-side equivalent of push() — reads the ZIP directly from artifact
-     * storage instead of receiving bytes from the client. This eliminates
-     * CORS concerns for SDK consumers.
-     * Authorization:
-     * - Requires can_view on the referenced execution (to read the artifact)
-     * - Requires can_create_skill in the target organization (to push the skill)
      * </pre>
      */
     public void pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request,
@@ -432,10 +382,6 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to widen or narrow who can read
      * the skill.
-     * &#64;internal
-     * Authorization: can_edit on the skill for every transition. The level is
-     * checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind).
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -447,8 +393,6 @@ public final class SkillCommandControllerGrpc {
     /**
      * <pre>
      * Delete a skill and all its versions.
-     * &#64;internal
-     * Removes the skill from the main collection but preserves audit history.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.skill.v1.SkillId request,
@@ -482,18 +426,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill artifact.
      * Creates a skill if it does not exist, or creates a new version of an
      * existing skill. The artifact must contain a SKILL.md file.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator
-     * The backend will:
-     * 1. Normalize the name to a slug
-     * 2. Find or create the skill resource
-     * 3. Extract SKILL.md from the artifact
-     * 4. Calculate SHA256 hash (version identifier)
-     * 5. Store the artifact (deduplicated by hash)
-     * 6. Update skill spec and status
-     * 7. Archive the previous version (if updating)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill push(ai.stigmer.agentic.skill.v1.PushSkillRequest request) throws io.grpc.StatusException {
@@ -510,9 +442,6 @@ public final class SkillCommandControllerGrpc {
      * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
      *    validation, and versioning as an inline push
      * The server refuses over-limit size_bytes here, before any bytes move.
-     * &#64;internal
-     * Authorization matches push() — the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request) throws io.grpc.StatusException {
@@ -525,13 +454,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
-     * &#64;internal
-     * Server-side equivalent of push() — reads the ZIP directly from artifact
-     * storage instead of receiving bytes from the client. This eliminates
-     * CORS concerns for SDK consumers.
-     * Authorization:
-     * - Requires can_view on the referenced execution (to read the artifact)
-     * - Requires can_create_skill in the target organization (to push the skill)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request) throws io.grpc.StatusException {
@@ -545,10 +467,6 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to widen or narrow who can read
      * the skill.
-     * &#64;internal
-     * Authorization: can_edit on the skill for every transition. The level is
-     * checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind).
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -559,8 +477,6 @@ public final class SkillCommandControllerGrpc {
     /**
      * <pre>
      * Delete a skill and all its versions.
-     * &#64;internal
-     * Removes the skill from the main collection but preserves audit history.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill delete(ai.stigmer.agentic.skill.v1.SkillId request) throws io.grpc.StatusException {
@@ -593,18 +509,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill artifact.
      * Creates a skill if it does not exist, or creates a new version of an
      * existing skill. The artifact must contain a SKILL.md file.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator
-     * The backend will:
-     * 1. Normalize the name to a slug
-     * 2. Find or create the skill resource
-     * 3. Extract SKILL.md from the artifact
-     * 4. Calculate SHA256 hash (version identifier)
-     * 5. Store the artifact (deduplicated by hash)
-     * 6. Update skill spec and status
-     * 7. Archive the previous version (if updating)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill push(ai.stigmer.agentic.skill.v1.PushSkillRequest request) {
@@ -621,9 +525,6 @@ public final class SkillCommandControllerGrpc {
      * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
      *    validation, and versioning as an inline push
      * The server refuses over-limit size_bytes here, before any bytes move.
-     * &#64;internal
-     * Authorization matches push() — the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl createArtifactUploadUrl(ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest request) {
@@ -636,13 +537,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
-     * &#64;internal
-     * Server-side equivalent of push() — reads the ZIP directly from artifact
-     * storage instead of receiving bytes from the client. This eliminates
-     * CORS concerns for SDK consumers.
-     * Authorization:
-     * - Requires can_view on the referenced execution (to read the artifact)
-     * - Requires can_create_skill in the target organization (to push the skill)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request) {
@@ -656,10 +550,6 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to widen or narrow who can read
      * the skill.
-     * &#64;internal
-     * Authorization: can_edit on the skill for every transition. The level is
-     * checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind).
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -670,8 +560,6 @@ public final class SkillCommandControllerGrpc {
     /**
      * <pre>
      * Delete a skill and all its versions.
-     * &#64;internal
-     * Removes the skill from the main collection but preserves audit history.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill delete(ai.stigmer.agentic.skill.v1.SkillId request) {
@@ -704,18 +592,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill artifact.
      * Creates a skill if it does not exist, or creates a new version of an
      * existing skill. The artifact must contain a SKILL.md file.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator
-     * The backend will:
-     * 1. Normalize the name to a slug
-     * 2. Find or create the skill resource
-     * 3. Extract SKILL.md from the artifact
-     * 4. Calculate SHA256 hash (version identifier)
-     * 5. Store the artifact (deduplicated by hash)
-     * 6. Update skill spec and status
-     * 7. Archive the previous version (if updating)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> push(
@@ -733,9 +609,6 @@ public final class SkillCommandControllerGrpc {
      * 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,
      *    validation, and versioning as an inline push
      * The server refuses over-limit size_bytes here, before any bytes move.
-     * &#64;internal
-     * Authorization matches push() — the URL is a capability to stage bytes,
-     * so minting one requires the same permission as consuming it.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl> createArtifactUploadUrl(
@@ -749,13 +622,6 @@ public final class SkillCommandControllerGrpc {
      * Push a skill from an execution artifact already in storage.
      * Use this when an agent execution has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
-     * &#64;internal
-     * Server-side equivalent of push() — reads the ZIP directly from artifact
-     * storage instead of receiving bytes from the client. This eliminates
-     * CORS concerns for SDK consumers.
-     * Authorization:
-     * - Requires can_view on the referenced execution (to read the artifact)
-     * - Requires can_create_skill in the target organization (to push the skill)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> pushFromExecutionArtifact(
@@ -770,10 +636,6 @@ public final class SkillCommandControllerGrpc {
      * Only modifies metadata.visibility, leaving spec, status, and other
      * metadata fields untouched. Use this to widen or narrow who can read
      * the skill.
-     * &#64;internal
-     * Authorization: can_edit on the skill for every transition. The level is
-     * checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> updateVisibility(
@@ -785,8 +647,6 @@ public final class SkillCommandControllerGrpc {
     /**
      * <pre>
      * Delete a skill and all its versions.
-     * &#64;internal
-     * Removes the skill from the main collection but preserves audit history.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> delete(

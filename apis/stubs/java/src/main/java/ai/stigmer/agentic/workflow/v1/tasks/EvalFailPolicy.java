@@ -9,15 +9,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * <pre>
  * EvalFailPolicy defines what happens when an eval task determines that
  * the evaluated subject does not meet the quality threshold.
- *
- * &#64;internal
- * Mirrors ValidationFailPolicy from validate tasks, since evaluation
- * failure is semantically analogous to validation failure — the subject
- * did not pass a quality gate. The only difference is that eval uses an
- * LLM judge to assess semantic quality rather than deterministic schema
- * checks.
- *
- * &#64;since T17 (Advanced Agentic Orchestration)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.tasks.EvalFailPolicy}

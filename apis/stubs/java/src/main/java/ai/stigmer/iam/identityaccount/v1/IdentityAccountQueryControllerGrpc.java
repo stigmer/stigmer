@@ -281,8 +281,6 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get the identity account of the currently authenticated user.
      * Returns the full identity account for the caller based on the auth header.
-     * &#64;internal
-     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     default void whoAmI(com.google.protobuf.Empty request,
@@ -334,15 +332,6 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get lightweight actor information for an identity account.
-     * &#64;internal
-     * The contract-shaped actor behind every audit stamp (created_by,
-     * updated_by): id, avatar, display_name, email — what a console renders
-     * as a person instead of an ida_ id. Authorized exactly like `get`
-     * (can_view on the account named by `value`); a caller who may view an
-     * account may render it as an actor. The annotation-driven Authorize step
-     * reads `field_path` for the id: an annotation that names a kind and no
-     * id is a check against an empty id, which an enforcing authorizer
-     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     default void getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -399,8 +388,6 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get the identity account of the currently authenticated user.
      * Returns the full identity account for the caller based on the auth header.
-     * &#64;internal
-     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public void whoAmI(com.google.protobuf.Empty request,
@@ -456,15 +443,6 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get lightweight actor information for an identity account.
-     * &#64;internal
-     * The contract-shaped actor behind every audit stamp (created_by,
-     * updated_by): id, avatar, display_name, email — what a console renders
-     * as a person instead of an ida_ id. Authorized exactly like `get`
-     * (can_view on the account named by `value`); a caller who may view an
-     * account may render it as an actor. The annotation-driven Authorize step
-     * reads `field_path` for the id: an annotation that names a kind and no
-     * id is a check against an empty id, which an enforcing authorizer
-     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public void getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -507,8 +485,6 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get the identity account of the currently authenticated user.
      * Returns the full identity account for the caller based on the auth header.
-     * &#64;internal
-     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount whoAmI(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -560,15 +536,6 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get lightweight actor information for an identity account.
-     * &#64;internal
-     * The contract-shaped actor behind every audit stamp (created_by,
-     * updated_by): id, avatar, display_name, email — what a console renders
-     * as a person instead of an ida_ id. Authorized exactly like `get`
-     * (can_view on the account named by `value`); a caller who may view an
-     * account may render it as an actor. The annotation-driven Authorize step
-     * reads `field_path` for the id: an annotation that names a kind and no
-     * id is a check against an empty id, which an enforcing authorizer
-     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAuditActor getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) throws io.grpc.StatusException {
@@ -610,8 +577,6 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get the identity account of the currently authenticated user.
      * Returns the full identity account for the caller based on the auth header.
-     * &#64;internal
-     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount whoAmI(com.google.protobuf.Empty request) {
@@ -663,15 +628,6 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get lightweight actor information for an identity account.
-     * &#64;internal
-     * The contract-shaped actor behind every audit stamp (created_by,
-     * updated_by): id, avatar, display_name, email — what a console renders
-     * as a person instead of an ida_ id. Authorized exactly like `get`
-     * (can_view on the account named by `value`); a caller who may view an
-     * account may render it as an actor. The annotation-driven Authorize step
-     * reads `field_path` for the id: an annotation that names a kind and no
-     * id is a check against an empty id, which an enforcing authorizer
-     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAuditActor getActorInfo(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) {
@@ -714,8 +670,6 @@ public final class IdentityAccountQueryControllerGrpc {
      * <pre>
      * Get the identity account of the currently authenticated user.
      * Returns the full identity account for the caller based on the auth header.
-     * &#64;internal
-     * Scoped to the caller's own account, so authorization is skipped.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> whoAmI(
@@ -771,15 +725,6 @@ public final class IdentityAccountQueryControllerGrpc {
     /**
      * <pre>
      * Get lightweight actor information for an identity account.
-     * &#64;internal
-     * The contract-shaped actor behind every audit stamp (created_by,
-     * updated_by): id, avatar, display_name, email — what a console renders
-     * as a person instead of an ida_ id. Authorized exactly like `get`
-     * (can_view on the account named by `value`); a caller who may view an
-     * account may render it as an actor. The annotation-driven Authorize step
-     * reads `field_path` for the id: an annotation that names a kind and no
-     * id is a check against an empty id, which an enforcing authorizer
-     * refuses for every caller (stigmer#1073, found on the cloud readout).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.commons.apiresource.ApiResourceAuditActor> getActorInfo(

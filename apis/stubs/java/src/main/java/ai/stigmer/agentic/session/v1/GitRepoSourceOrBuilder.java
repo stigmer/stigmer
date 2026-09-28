@@ -88,10 +88,6 @@ public interface GitRepoSourceOrBuilder extends
    *
    * When not set, defaults to a shallow clone with depth 1. Set to 0 for
    * a full clone with complete history.
-   *
-   * &#64;internal
-   * Uses proto3 optional to distinguish "not set" from "set to 0."
-   * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
    * </pre>
    *
    * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -104,10 +100,6 @@ public interface GitRepoSourceOrBuilder extends
    *
    * When not set, defaults to a shallow clone with depth 1. Set to 0 for
    * a full clone with complete history.
-   *
-   * &#64;internal
-   * Uses proto3 optional to distinguish "not set" from "set to 0."
-   * Absent: shallow clone depth 1; 0: full clone; N &gt; 0: shallow clone depth N.
    * </pre>
    *
    * <code>optional int32 depth = 4 [json_name = "depth", (.buf.validate.field) = { ... }</code>
@@ -118,19 +110,6 @@ public interface GitRepoSourceOrBuilder extends
   /**
    * <pre>
    * Controls whether the platform creates a branch and pull request from the agent's file changes.
-   *
-   * &#64;internal
-   * This is a platform-level workflow, not an agent-level decision. The
-   * agent focuses on making code changes; the platform packages them
-   * incrementally — the PR appears the moment the first file is written
-   * and the diff grows in real time as the agent works.
-   *
-   * Requires GITHUB_TOKEN in the execution environment. If credentials
-   * are not available, the write-back is silently skipped regardless of
-   * this setting.
-   *
-   * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
@@ -140,19 +119,6 @@ public interface GitRepoSourceOrBuilder extends
   /**
    * <pre>
    * Controls whether the platform creates a branch and pull request from the agent's file changes.
-   *
-   * &#64;internal
-   * This is a platform-level workflow, not an agent-level decision. The
-   * agent focuses on making code changes; the platform packages them
-   * incrementally — the PR appears the moment the first file is written
-   * and the diff grows in real time as the agent works.
-   *
-   * Requires GITHUB_TOKEN in the execution environment. If credentials
-   * are not available, the write-back is silently skipped regardless of
-   * this setting.
-   *
-   * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>

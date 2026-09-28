@@ -8,15 +8,6 @@ package ai.stigmer.agentic.agentchannel.v1;
 /**
  * <pre>
  * Input for sending a business-initiated message on an agent channel.
- *
- * &#64;internal
- * proactive-messaging DD-002 D4, amended: channel + org are separate
- * fields, never a slug-or-id union. Dispatch is token-class-driven:
- * session-bound runner credentials leave both empty and the server
- * derives them from the session's serving channel; direct principals
- * (console, CLI, SDK) set them. Ambiguity — the caller's agent has more
- * than one proactive-enabled channel and no channel is named — is an
- * INVALID_ARGUMENT whose detail lists the candidates (D7).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput}
@@ -445,15 +436,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input for sending a business-initiated message on an agent channel.
-   *
-   * &#64;internal
-   * proactive-messaging DD-002 D4, amended: channel + org are separate
-   * fields, never a slug-or-id union. Dispatch is token-class-driven:
-   * session-bound runner credentials leave both empty and the server
-   * derives them from the session's serving channel; direct principals
-   * (console, CLI, SDK) set them. Ambiguity — the caller's agent has more
-   * than one proactive-enabled channel and no channel is named — is an
-   * INVALID_ARGUMENT whose detail lists the candidates (D7).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput}

@@ -13,12 +13,6 @@ public interface SlackInstallStatusOrBuilder extends
   /**
    * <pre>
    * Slack workspace (team) ID, e.g. "T0123ABCD".
-   *
-   * &#64;internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's team_id. One INSTALLED channel
-   * per workspace, enforced by a partial-unique index on installed rows
-   * (decision 007).
    * </pre>
    *
    * <code>string team_id = 1 [json_name = "teamId"];</code>
@@ -28,12 +22,6 @@ public interface SlackInstallStatusOrBuilder extends
   /**
    * <pre>
    * Slack workspace (team) ID, e.g. "T0123ABCD".
-   *
-   * &#64;internal
-   * The inbound routing key: the webhook receiver resolves the
-   * AgentChannel from the event payload's team_id. One INSTALLED channel
-   * per workspace, enforced by a partial-unique index on installed rows
-   * (decision 007).
    * </pre>
    *
    * <code>string team_id = 1 [json_name = "teamId"];</code>
@@ -176,15 +164,6 @@ public interface SlackInstallStatusOrBuilder extends
    * <pre>
    * ID of the ChannelApp the install went through; empty for installs
    * of the platform's shared Stigmer app.
-   *
-   * &#64;internal
-   * Written by the install completion path from the resolved
-   * spec.app_ref (sole writer, like every install fact). Discriminates
-   * routing and workspace uniqueness once multiple apps can serve one
-   * workspace: lookups key on (team_id, channel_app_id) and the
-   * partial-unique installed index is compound over both (decision 007
-   * as amended by T04 item 2). Existing platform installs predate the
-   * field; a missing value means the platform app — no backfill.
    * </pre>
    *
    * <code>string channel_app_id = 7 [json_name = "channelAppId"];</code>
@@ -195,15 +174,6 @@ public interface SlackInstallStatusOrBuilder extends
    * <pre>
    * ID of the ChannelApp the install went through; empty for installs
    * of the platform's shared Stigmer app.
-   *
-   * &#64;internal
-   * Written by the install completion path from the resolved
-   * spec.app_ref (sole writer, like every install fact). Discriminates
-   * routing and workspace uniqueness once multiple apps can serve one
-   * workspace: lookups key on (team_id, channel_app_id) and the
-   * partial-unique installed index is compound over both (decision 007
-   * as amended by T04 item 2). Existing platform installs predate the
-   * field; a missing value means the platform app — no backfill.
    * </pre>
    *
    * <code>string channel_app_id = 7 [json_name = "channelAppId"];</code>

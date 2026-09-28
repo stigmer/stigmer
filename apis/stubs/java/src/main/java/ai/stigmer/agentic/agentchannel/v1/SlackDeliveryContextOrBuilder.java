@@ -53,11 +53,6 @@ public interface SlackDeliveryContextOrBuilder extends
   /**
    * <pre>
    * Timestamp of the placeholder ("thinking") message to chat.update.
-   *
-   * &#64;internal
-   * Set on the &#64;mention and degraded-DM paths only (decision 008); the
-   * Assistant DM path uses assistant.threads.setStatus and carries no
-   * placeholder timestamp.
    * </pre>
    *
    * <code>string placeholder_ts = 3 [json_name = "placeholderTs"];</code>
@@ -67,11 +62,6 @@ public interface SlackDeliveryContextOrBuilder extends
   /**
    * <pre>
    * Timestamp of the placeholder ("thinking") message to chat.update.
-   *
-   * &#64;internal
-   * Set on the &#64;mention and degraded-DM paths only (decision 008); the
-   * Assistant DM path uses assistant.threads.setStatus and carries no
-   * placeholder timestamp.
    * </pre>
    *
    * <code>string placeholder_ts = 3 [json_name = "placeholderTs"];</code>

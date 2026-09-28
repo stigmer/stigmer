@@ -14,16 +14,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * ChannelApp: `spec.app_ref` is required for this provider (there is no
  * shared platform WhatsApp app). Installing validates the number against
  * the Meta Cloud API and records the observed facts in status.
- *
- * &#64;internal
- * DD-WA-2: unlike Slack, WhatsApp v1 is BYO-only — app_ref presence is
- * enforced in the create/update/apply handlers of both editions (the
- * oneof-conditional rule does not fit a field-level CEL). phone_number_id
- * lives in SPEC because it is genuinely user-declared (a WABA holds many
- * numbers; the owner picks which one this agent serves) — the P1
- * honest-modeling rule, not an exception to it. The install flow echoes it
- * into status.whatsapp as the routing/uniqueness fact, mirroring
- * status.slack.team_id.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig}
@@ -289,16 +279,6 @@ private static final long serialVersionUID = 0L;
    * ChannelApp: `spec.app_ref` is required for this provider (there is no
    * shared platform WhatsApp app). Installing validates the number against
    * the Meta Cloud API and records the observed facts in status.
-   *
-   * &#64;internal
-   * DD-WA-2: unlike Slack, WhatsApp v1 is BYO-only — app_ref presence is
-   * enforced in the create/update/apply handlers of both editions (the
-   * oneof-conditional rule does not fit a field-level CEL). phone_number_id
-   * lives in SPEC because it is genuinely user-declared (a WABA holds many
-   * numbers; the owner picks which one this agent serves) — the P1
-   * honest-modeling rule, not an exception to it. The install flow echoes it
-   * into status.whatsapp as the routing/uniqueness fact, mirroring
-   * status.slack.team_id.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig}

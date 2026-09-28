@@ -15,12 +15,6 @@ package ai.stigmer.agentic.plugin.v1;
  * - artifact: inline ZIP bytes, bounded by the gRPC message-size cap (10MB).
  * - artifact_upload_ref: a reference to bytes staged via
  * createArtifactUploadUrl() + HTTP PUT, for archives above the cap.
- *
- * &#64;internal
- * The manifest, skills, servers, sub-agents, variables and overlay are read
- * by the backend from the archive with &#64;stigmer/plugin-package, the same
- * library `stigmer validate -f` runs offline, so a refusal here carries the
- * sentences the CLI already printed. The client sends no metadata.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.PushPluginRequest}
@@ -192,10 +186,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Visibility for the plugin and every resource it materialises.
    * Unspecified means the kind's default (organization).
-   *
-   * &#64;internal
-   * PUBLIC is operator-gated exactly as on every other kind; the same gates
-   * run on the head and, in-process, on each child.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -208,10 +198,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Visibility for the plugin and every resource it materialises.
    * Unspecified means the kind's default (organization).
-   *
-   * &#64;internal
-   * PUBLIC is operator-gated exactly as on every other kind; the same gates
-   * run on the head and, in-process, on each child.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -478,12 +464,6 @@ private static final long serialVersionUID = 0L;
    * - artifact: inline ZIP bytes, bounded by the gRPC message-size cap (10MB).
    * - artifact_upload_ref: a reference to bytes staged via
    * createArtifactUploadUrl() + HTTP PUT, for archives above the cap.
-   *
-   * &#64;internal
-   * The manifest, skills, servers, sub-agents, variables and overlay are read
-   * by the backend from the archive with &#64;stigmer/plugin-package, the same
-   * library `stigmer validate -f` runs offline, so a refusal here carries the
-   * sentences the CLI already printed. The client sends no metadata.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.PushPluginRequest}
@@ -927,10 +907,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Visibility for the plugin and every resource it materialises.
      * Unspecified means the kind's default (organization).
-     *
-     * &#64;internal
-     * PUBLIC is operator-gated exactly as on every other kind; the same gates
-     * run on the head and, in-process, on each child.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -943,10 +919,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Visibility for the plugin and every resource it materialises.
      * Unspecified means the kind's default (organization).
-     *
-     * &#64;internal
-     * PUBLIC is operator-gated exactly as on every other kind; the same gates
-     * run on the head and, in-process, on each child.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -964,10 +936,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Visibility for the plugin and every resource it materialises.
      * Unspecified means the kind's default (organization).
-     *
-     * &#64;internal
-     * PUBLIC is operator-gated exactly as on every other kind; the same gates
-     * run on the head and, in-process, on each child.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -982,10 +950,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Visibility for the plugin and every resource it materialises.
      * Unspecified means the kind's default (organization).
-     *
-     * &#64;internal
-     * PUBLIC is operator-gated exactly as on every other kind; the same gates
-     * run on the head and, in-process, on each child.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1003,10 +967,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Visibility for the plugin and every resource it materialises.
      * Unspecified means the kind's default (organization).
-     *
-     * &#64;internal
-     * PUBLIC is operator-gated exactly as on every other kind; the same gates
-     * run on the head and, in-process, on each child.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

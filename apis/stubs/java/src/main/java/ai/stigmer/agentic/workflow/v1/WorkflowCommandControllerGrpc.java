@@ -301,9 +301,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.agentic.workflow.v1.Workflow request,
@@ -314,10 +311,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
-     * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     default void create(ai.stigmer.agentic.workflow.v1.Workflow request,
@@ -345,14 +338,6 @@ public final class WorkflowCommandControllerGrpc {
      * Raising the level is refused while an agent an agent_call task names is
      * less visible than the requested level: what a person can run they must
      * also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the workflow for every transition. The level
-     * is checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind); the reference floor is a pipeline step on this
-     * chain. Visibility transitions trigger FGA tuple management in Cloud
-     * mode:
-     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -387,11 +372,6 @@ public final class WorkflowCommandControllerGrpc {
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
      * authorize, or create instances. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
-     * &#64;internal
-     * Authorization: Uses the same permission as create — caller must have
-     * can_create_workflow in the org. This prevents unauthenticated abuse
-     * of the validation pipeline while allowing any user who could create
-     * a workflow to also validate one.
      * </pre>
      */
     default void validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request,
@@ -405,11 +385,6 @@ public final class WorkflowCommandControllerGrpc {
      * Tags are human-readable pointers to immutable versions. Calling this
      * with an existing tag name moves it from the previous version to the
      * specified version. Common tags: "stable", "production", "v2.0".
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow resource.
-     * The handler validates that the version_hash exists in the workflow's
-     * audit history before assigning the tag.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     default void tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request,
@@ -454,9 +429,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.agentic.workflow.v1.Workflow request,
@@ -468,10 +440,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
-     * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public void create(ai.stigmer.agentic.workflow.v1.Workflow request,
@@ -501,14 +469,6 @@ public final class WorkflowCommandControllerGrpc {
      * Raising the level is refused while an agent an agent_call task names is
      * less visible than the requested level: what a person can run they must
      * also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the workflow for every transition. The level
-     * is checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind); the reference floor is a pipeline step on this
-     * chain. Visibility transitions trigger FGA tuple management in Cloud
-     * mode:
-     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
@@ -545,11 +505,6 @@ public final class WorkflowCommandControllerGrpc {
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
      * authorize, or create instances. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
-     * &#64;internal
-     * Authorization: Uses the same permission as create — caller must have
-     * can_create_workflow in the org. This prevents unauthenticated abuse
-     * of the validation pipeline while allowing any user who could create
-     * a workflow to also validate one.
      * </pre>
      */
     public void validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request,
@@ -564,11 +519,6 @@ public final class WorkflowCommandControllerGrpc {
      * Tags are human-readable pointers to immutable versions. Calling this
      * with an existing tag name moves it from the previous version to the
      * specified version. Common tags: "stable", "production", "v2.0".
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow resource.
-     * The handler validates that the version_hash exists in the workflow's
-     * audit history before assigning the tag.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public void tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request,
@@ -600,9 +550,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow apply(ai.stigmer.agentic.workflow.v1.Workflow request) throws io.grpc.StatusException {
@@ -613,10 +560,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
-     * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow create(ai.stigmer.agentic.workflow.v1.Workflow request) throws io.grpc.StatusException {
@@ -644,14 +587,6 @@ public final class WorkflowCommandControllerGrpc {
      * Raising the level is refused while an agent an agent_call task names is
      * less visible than the requested level: what a person can run they must
      * also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the workflow for every transition. The level
-     * is checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind); the reference floor is a pipeline step on this
-     * chain. Visibility transitions trigger FGA tuple management in Cloud
-     * mode:
-     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
@@ -686,11 +621,6 @@ public final class WorkflowCommandControllerGrpc {
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
      * authorize, or create instances. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
-     * &#64;internal
-     * Authorization: Uses the same permission as create — caller must have
-     * can_create_workflow in the org. This prevents unauthenticated abuse
-     * of the validation pipeline while allowing any user who could create
-     * a workflow to also validate one.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request) throws io.grpc.StatusException {
@@ -704,11 +634,6 @@ public final class WorkflowCommandControllerGrpc {
      * Tags are human-readable pointers to immutable versions. Calling this
      * with an existing tag name moves it from the previous version to the
      * specified version. Common tags: "stable", "production", "v2.0".
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow resource.
-     * The handler validates that the version_hash exists in the workflow's
-     * audit history before assigning the tag.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request) throws io.grpc.StatusException {
@@ -739,9 +664,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow apply(ai.stigmer.agentic.workflow.v1.Workflow request) {
@@ -752,10 +674,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
-     * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow create(ai.stigmer.agentic.workflow.v1.Workflow request) {
@@ -783,14 +701,6 @@ public final class WorkflowCommandControllerGrpc {
      * Raising the level is refused while an agent an agent_call task names is
      * less visible than the requested level: what a person can run they must
      * also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the workflow for every transition. The level
-     * is checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind); the reference floor is a pipeline step on this
-     * chain. Visibility transitions trigger FGA tuple management in Cloud
-     * mode:
-     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
@@ -825,11 +735,6 @@ public final class WorkflowCommandControllerGrpc {
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
      * authorize, or create instances. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
-     * &#64;internal
-     * Authorization: Uses the same permission as create — caller must have
-     * can_create_workflow in the org. This prevents unauthenticated abuse
-     * of the validation pipeline while allowing any user who could create
-     * a workflow to also validate one.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request) {
@@ -843,11 +748,6 @@ public final class WorkflowCommandControllerGrpc {
      * Tags are human-readable pointers to immutable versions. Calling this
      * with an existing tag name moves it from the previous version to the
      * specified version. Common tags: "stable", "production", "v2.0".
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow resource.
-     * The handler validates that the version_hash exists in the workflow's
-     * audit history before assigning the tag.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow tagVersion(ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput request) {
@@ -878,9 +778,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a workflow.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the workflow
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> apply(
@@ -892,10 +789,6 @@ public final class WorkflowCommandControllerGrpc {
     /**
      * <pre>
      * Create a workflow.
-     * &#64;internal
-     * Authorization:
-     * - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization
-     * - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> create(
@@ -925,14 +818,6 @@ public final class WorkflowCommandControllerGrpc {
      * Raising the level is refused while an agent an agent_call task names is
      * less visible than the requested level: what a person can run they must
      * also be able to read.
-     * &#64;internal
-     * Authorization: can_edit on the workflow for every transition. The level
-     * is checked against the kind's VisibilityConfig (visibility_public is
-     * refused for every kind); the reference floor is a pipeline step on this
-     * chain. Visibility transitions trigger FGA tuple management in Cloud
-     * mode:
-     * - PRIVATE → ORG: creates workflow#viewer&#64;organization:&lt;org&gt;#member
-     * - ORG → PRIVATE: deletes the org member viewer tuple
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> updateVisibility(
@@ -969,11 +854,6 @@ public final class WorkflowCommandControllerGrpc {
      * workflow or spec) and to genuine internal faults. This RPC does NOT persist,
      * authorize, or create instances. It is a pure validation endpoint suitable for
      * iterative authoring where the caller needs fast feedback before committing.
-     * &#64;internal
-     * Authorization: Uses the same permission as create — caller must have
-     * can_create_workflow in the org. This prevents unauthenticated abuse
-     * of the validation pipeline while allowing any user who could create
-     * a workflow to also validate one.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> validateSpec(
@@ -988,11 +868,6 @@ public final class WorkflowCommandControllerGrpc {
      * Tags are human-readable pointers to immutable versions. Calling this
      * with an existing tag name moves it from the previous version to the
      * specified version. Common tags: "stable", "production", "v2.0".
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the workflow resource.
-     * The handler validates that the version_hash exists in the workflow's
-     * audit history before assigning the tag.
-     * &#64;since Workflow Versioning
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> tagVersion(

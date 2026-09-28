@@ -16,13 +16,6 @@ package ai.stigmer.search.v1;
  *
  * This is not the full resource. To get the complete resource, call the
  * get method for that resource kind (e.g., client.agent.get()).
- *
- * &#64;internal
- * The description field is populated by each resource's Searchable interface:
- * - Agent: spec.instructions (may be truncated)
- * - Skill: spec.description
- * - McpServer: spec.description
- * - Workflow: spec.description
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.search.v1.SearchResult}
@@ -164,9 +157,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable display name of the resource.
-   *
-   * &#64;internal
-   * From metadata.name.
    * </pre>
    *
    * <code>string name = 3 [json_name = "name"];</code>
@@ -188,9 +178,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Human-readable display name of the resource.
-   *
-   * &#64;internal
-   * From metadata.name.
    * </pre>
    *
    * <code>string name = 3 [json_name = "name"];</code>
@@ -219,9 +206,6 @@ private static final long serialVersionUID = 0L;
    * URL-friendly identifier, unique within the organization.
    *
    * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-   *
-   * &#64;internal
-   * From metadata.slug.
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -245,9 +229,6 @@ private static final long serialVersionUID = 0L;
    * URL-friendly identifier, unique within the organization.
    *
    * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-   *
-   * &#64;internal
-   * From metadata.slug.
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -331,9 +312,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-   *
-   * &#64;internal
-   * From metadata.org.
    * </pre>
    *
    * <code>string org = 6 [json_name = "org"];</code>
@@ -355,9 +333,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-   *
-   * &#64;internal
-   * From metadata.org.
    * </pre>
    *
    * <code>string org = 6 [json_name = "org"];</code>
@@ -386,15 +361,6 @@ private static final long serialVersionUID = 0L;
    * Brief description of the resource for display in search results.
    *
    * May be empty if the resource has no description.
-   *
-   * &#64;internal
-   * Extracted from the resource spec via the Searchable interface.
-   * The source field varies by resource type:
-   * - Agent: spec.instructions (may be truncated)
-   * - Skill: spec.description
-   * - McpServer: spec.description
-   * - Workflow: spec.description
-   * Truncation for display is a presentation concern (CLI/UI responsibility).
    * </pre>
    *
    * <code>string description = 7 [json_name = "description"];</code>
@@ -418,15 +384,6 @@ private static final long serialVersionUID = 0L;
    * Brief description of the resource for display in search results.
    *
    * May be empty if the resource has no description.
-   *
-   * &#64;internal
-   * Extracted from the resource spec via the Searchable interface.
-   * The source field varies by resource type:
-   * - Agent: spec.instructions (may be truncated)
-   * - Skill: spec.description
-   * - McpServer: spec.description
-   * - Workflow: spec.description
-   * Truncation for display is a presentation concern (CLI/UI responsibility).
    * </pre>
    *
    * <code>string description = 7 [json_name = "description"];</code>
@@ -490,9 +447,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -505,9 +459,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -519,9 +470,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -534,9 +482,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * User-provided tags for categorization and filtering.
-   *
-   * &#64;internal
-   * From metadata.tags.
    * </pre>
    *
    * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -555,9 +500,6 @@ private static final long serialVersionUID = 0L;
    * When the resource was created.
    *
    * Used for sorting in list mode (when no query is provided).
-   *
-   * &#64;internal
-   * From status.audit.created_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -572,9 +514,6 @@ private static final long serialVersionUID = 0L;
    * When the resource was created.
    *
    * Used for sorting in list mode (when no query is provided).
-   *
-   * &#64;internal
-   * From status.audit.created_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -589,9 +528,6 @@ private static final long serialVersionUID = 0L;
    * When the resource was created.
    *
    * Used for sorting in list mode (when no query is provided).
-   *
-   * &#64;internal
-   * From status.audit.created_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -606,9 +542,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * When the resource was last updated.
-   *
-   * &#64;internal
-   * From status.audit.updated_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -621,9 +554,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * When the resource was last updated.
-   *
-   * &#64;internal
-   * From status.audit.updated_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -636,9 +566,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * When the resource was last updated.
-   *
-   * &#64;internal
-   * From status.audit.updated_at.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -1037,13 +964,6 @@ private static final long serialVersionUID = 0L;
    *
    * This is not the full resource. To get the complete resource, call the
    * get method for that resource kind (e.g., client.agent.get()).
-   *
-   * &#64;internal
-   * The description field is populated by each resource's Searchable interface:
-   * - Agent: spec.instructions (may be truncated)
-   * - Skill: spec.description
-   * - McpServer: spec.description
-   * - Workflow: spec.description
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.search.v1.SearchResult}
@@ -1558,9 +1478,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name of the resource.
-     *
-     * &#64;internal
-     * From metadata.name.
      * </pre>
      *
      * <code>string name = 3 [json_name = "name"];</code>
@@ -1581,9 +1498,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name of the resource.
-     *
-     * &#64;internal
-     * From metadata.name.
      * </pre>
      *
      * <code>string name = 3 [json_name = "name"];</code>
@@ -1605,9 +1519,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name of the resource.
-     *
-     * &#64;internal
-     * From metadata.name.
      * </pre>
      *
      * <code>string name = 3 [json_name = "name"];</code>
@@ -1625,9 +1536,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name of the resource.
-     *
-     * &#64;internal
-     * From metadata.name.
      * </pre>
      *
      * <code>string name = 3 [json_name = "name"];</code>
@@ -1642,9 +1550,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Human-readable display name of the resource.
-     *
-     * &#64;internal
-     * From metadata.name.
      * </pre>
      *
      * <code>string name = 3 [json_name = "name"];</code>
@@ -1667,9 +1572,6 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier, unique within the organization.
      *
      * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-     *
-     * &#64;internal
-     * From metadata.slug.
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1692,9 +1594,6 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier, unique within the organization.
      *
      * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-     *
-     * &#64;internal
-     * From metadata.slug.
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1718,9 +1617,6 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier, unique within the organization.
      *
      * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-     *
-     * &#64;internal
-     * From metadata.slug.
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1740,9 +1636,6 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier, unique within the organization.
      *
      * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-     *
-     * &#64;internal
-     * From metadata.slug.
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1759,9 +1652,6 @@ private static final long serialVersionUID = 0L;
      * URL-friendly identifier, unique within the organization.
      *
      * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
-     *
-     * &#64;internal
-     * From metadata.slug.
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1899,9 +1789,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-     *
-     * &#64;internal
-     * From metadata.org.
      * </pre>
      *
      * <code>string org = 6 [json_name = "org"];</code>
@@ -1922,9 +1809,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-     *
-     * &#64;internal
-     * From metadata.org.
      * </pre>
      *
      * <code>string org = 6 [json_name = "org"];</code>
@@ -1946,9 +1830,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-     *
-     * &#64;internal
-     * From metadata.org.
      * </pre>
      *
      * <code>string org = 6 [json_name = "org"];</code>
@@ -1966,9 +1847,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-     *
-     * &#64;internal
-     * From metadata.org.
      * </pre>
      *
      * <code>string org = 6 [json_name = "org"];</code>
@@ -1983,9 +1861,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Organization that owns this resource (e.g., "stigmer", "acme-corp").
-     *
-     * &#64;internal
-     * From metadata.org.
      * </pre>
      *
      * <code>string org = 6 [json_name = "org"];</code>
@@ -2008,15 +1883,6 @@ private static final long serialVersionUID = 0L;
      * Brief description of the resource for display in search results.
      *
      * May be empty if the resource has no description.
-     *
-     * &#64;internal
-     * Extracted from the resource spec via the Searchable interface.
-     * The source field varies by resource type:
-     * - Agent: spec.instructions (may be truncated)
-     * - Skill: spec.description
-     * - McpServer: spec.description
-     * - Workflow: spec.description
-     * Truncation for display is a presentation concern (CLI/UI responsibility).
      * </pre>
      *
      * <code>string description = 7 [json_name = "description"];</code>
@@ -2039,15 +1905,6 @@ private static final long serialVersionUID = 0L;
      * Brief description of the resource for display in search results.
      *
      * May be empty if the resource has no description.
-     *
-     * &#64;internal
-     * Extracted from the resource spec via the Searchable interface.
-     * The source field varies by resource type:
-     * - Agent: spec.instructions (may be truncated)
-     * - Skill: spec.description
-     * - McpServer: spec.description
-     * - Workflow: spec.description
-     * Truncation for display is a presentation concern (CLI/UI responsibility).
      * </pre>
      *
      * <code>string description = 7 [json_name = "description"];</code>
@@ -2071,15 +1928,6 @@ private static final long serialVersionUID = 0L;
      * Brief description of the resource for display in search results.
      *
      * May be empty if the resource has no description.
-     *
-     * &#64;internal
-     * Extracted from the resource spec via the Searchable interface.
-     * The source field varies by resource type:
-     * - Agent: spec.instructions (may be truncated)
-     * - Skill: spec.description
-     * - McpServer: spec.description
-     * - Workflow: spec.description
-     * Truncation for display is a presentation concern (CLI/UI responsibility).
      * </pre>
      *
      * <code>string description = 7 [json_name = "description"];</code>
@@ -2099,15 +1947,6 @@ private static final long serialVersionUID = 0L;
      * Brief description of the resource for display in search results.
      *
      * May be empty if the resource has no description.
-     *
-     * &#64;internal
-     * Extracted from the resource spec via the Searchable interface.
-     * The source field varies by resource type:
-     * - Agent: spec.instructions (may be truncated)
-     * - Skill: spec.description
-     * - McpServer: spec.description
-     * - Workflow: spec.description
-     * Truncation for display is a presentation concern (CLI/UI responsibility).
      * </pre>
      *
      * <code>string description = 7 [json_name = "description"];</code>
@@ -2124,15 +1963,6 @@ private static final long serialVersionUID = 0L;
      * Brief description of the resource for display in search results.
      *
      * May be empty if the resource has no description.
-     *
-     * &#64;internal
-     * Extracted from the resource spec via the Searchable interface.
-     * The source field varies by resource type:
-     * - Agent: spec.instructions (may be truncated)
-     * - Skill: spec.description
-     * - McpServer: spec.description
-     * - Workflow: spec.description
-     * Truncation for display is a presentation concern (CLI/UI responsibility).
      * </pre>
      *
      * <code>string description = 7 [json_name = "description"];</code>
@@ -2257,9 +2087,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2273,9 +2100,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2287,9 +2111,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2302,9 +2123,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2318,9 +2136,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2340,9 +2155,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2361,9 +2173,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2382,9 +2191,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2400,9 +2206,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * User-provided tags for categorization and filtering.
-     *
-     * &#64;internal
-     * From metadata.tags.
      * </pre>
      *
      * <code>repeated string tags = 9 [json_name = "tags"];</code>
@@ -2428,9 +2231,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2444,9 +2244,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2464,9 +2261,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2489,9 +2283,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2512,9 +2303,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2542,9 +2330,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2564,9 +2349,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2581,9 +2363,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2601,9 +2380,6 @@ private static final long serialVersionUID = 0L;
      * When the resource was created.
      *
      * Used for sorting in list mode (when no query is provided).
-     *
-     * &#64;internal
-     * From status.audit.created_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp created_at = 10 [json_name = "createdAt"];</code>
@@ -2628,9 +2404,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2642,9 +2415,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2660,9 +2430,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2683,9 +2450,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2704,9 +2468,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2732,9 +2493,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2752,9 +2510,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2767,9 +2522,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
@@ -2785,9 +2537,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When the resource was last updated.
-     *
-     * &#64;internal
-     * From status.audit.updated_at.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>

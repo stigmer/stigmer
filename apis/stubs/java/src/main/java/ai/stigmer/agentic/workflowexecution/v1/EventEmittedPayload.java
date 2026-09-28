@@ -8,13 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for event_emitted events.
- *
- * &#64;internal
- * Emitted when an emit_event task publishes a CloudEvent. Documents the
- * emission in the execution timeline. The full CloudEvents envelope is
- * available in the task output.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload}
@@ -382,13 +375,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for event_emitted events.
-   *
-   * &#64;internal
-   * Emitted when an emit_event task publishes a CloudEvent. Documents the
-   * emission in the execution timeline. The full CloudEvents envelope is
-   * available in the task output.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload}

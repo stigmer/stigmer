@@ -14,12 +14,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Free-text standing context injected into this user's eligible agent
    * executions. Example: "Keep answers terse."
-   *
-   * &#64;internal
-   * Snapshotted verbatim into
-   * AgentExecutionSpec.declared_preferences.user_context at execution create
-   * (first-party human operators only, DD-002 D4 as amended). The runner
-   * frames it as context, not instructions that override the task.
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -30,12 +24,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Free-text standing context injected into this user's eligible agent
    * executions. Example: "Keep answers terse."
-   *
-   * &#64;internal
-   * Snapshotted verbatim into
-   * AgentExecutionSpec.declared_preferences.user_context at execution create
-   * (first-party human operators only, DD-002 D4 as amended). The runner
-   * frames it as context, not instructions that override the task.
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -48,12 +36,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Default harness for new sessions: "native" or "cursor".
    * Empty means no preference — the platform default applies.
-   *
-   * &#64;internal
-   * Deliberately a validated string, not the agentic Harness enum: importing
-   * agentic/session/v1 here would couple the iam bounded context to agentic,
-   * and the lowercase strings are already the client vocabulary (HarnessOption,
-   * model-registry harness field, workflow HARNESS_SHORTHANDS).
    * </pre>
    *
    * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
@@ -64,12 +46,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Default harness for new sessions: "native" or "cursor".
    * Empty means no preference — the platform default applies.
-   *
-   * &#64;internal
-   * Deliberately a validated string, not the agentic Harness enum: importing
-   * agentic/session/v1 here would couple the iam bounded context to agentic,
-   * and the lowercase strings are already the client vocabulary (HarnessOption,
-   * model-registry harness field, workflow HARNESS_SHORTHANDS).
    * </pre>
    *
    * <code>string default_harness = 2 [json_name = "defaultHarness", (.buf.validate.field) = { ... }</code>
@@ -82,13 +58,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Default model (registry model ID) for native-harness sessions.
    * Empty means no preference — the platform default applies.
-   *
-   * &#64;internal
-   * NOT registry-validated server-side, deliberately: clients validate
-   * against the harness-filtered registry on read and silently fall through
-   * to the platform default when the model is stale or removed
-   * (self-healing), so coupling the update RPC to the registry would add
-   * machinery without safety.
    * </pre>
    *
    * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
@@ -99,13 +68,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Default model (registry model ID) for native-harness sessions.
    * Empty means no preference — the platform default applies.
-   *
-   * &#64;internal
-   * NOT registry-validated server-side, deliberately: clients validate
-   * against the harness-filtered registry on read and silently fall through
-   * to the platform default when the model is stale or removed
-   * (self-healing), so coupling the update RPC to the registry would add
-   * machinery without safety.
    * </pre>
    *
    * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
@@ -118,9 +80,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Default model (registry model ID) for cursor-harness sessions.
    * Empty means no preference — the platform default applies.
-   *
-   * &#64;internal
-   * Same client-side validation contract as default_native_model.
    * </pre>
    *
    * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
@@ -131,9 +90,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Default model (registry model ID) for cursor-harness sessions.
    * Empty means no preference — the platform default applies.
-   *
-   * &#64;internal
-   * Same client-side validation contract as default_native_model.
    * </pre>
    *
    * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
@@ -147,16 +103,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * Whether the platform may remember confirmed facts about this
    * account. Off by default; operative only where the organization has
    * also enabled memory.
-   *
-   * &#64;internal
-   * The member half of memory's double opt-in (DD-006 D1): effective
-   * enablement = org memory_enabled AND this flag AND first-party human
-   * operator. Self-service under the account's own can_edit (FGA
-   * owner), like every field on this message. Enforced fail-closed at
-   * memory create (DD-005 D2) and read at recall compose (DD-006 D3).
-   * Toggling off stops capture and recall from the next execution on;
-   * existing records remain until the subject deletes them (deletion is
-   * the retention mechanism, DD-006).
    * </pre>
    *
    * <code>bool memory_enabled = 5 [json_name = "memoryEnabled"];</code>
@@ -168,16 +114,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * <pre>
    * Whether new interactive sessions start with "auto-approve tool calls"
    * armed. Off by default — sessions prompt at each approval gate.
-   *
-   * &#64;internal
-   * A CLIENT-READ seed like default_harness/default_*_model (DD-003's
-   * resolution-point rule): clients read it to seed the session-scoped
-   * auto-approve state, and an armed session rides each execution spec
-   * explicitly (execution_config.auto_approve_all). The server NEVER reads
-   * this field at execution create — it is a UI default, not a server-side
-   * blanket grant. Client precedence: explicit in-session flip &gt; this
-   * account default &gt; the host app's StigmerProvider approvalDefaults &gt;
-   * fail-closed (gated). Never applied to guest/observer surfaces.
    * </pre>
    *
    * <code>bool default_auto_approve = 6 [json_name = "defaultAutoApprove"];</code>

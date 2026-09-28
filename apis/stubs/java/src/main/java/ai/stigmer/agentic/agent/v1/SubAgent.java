@@ -12,9 +12,6 @@ package ai.stigmer.agentic.agent.v1;
  * A sub-agent can only access MCP servers that the parent has in
  * mcp_server_usages, and its tools must be a subset of the parent's
  * enabled tools. Skills are independent of the parent.
- *
- * &#64;internal
- * Permission model enforced at execution time by the delegation handler.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.SubAgent}
@@ -618,9 +615,6 @@ private static final long serialVersionUID = 0L;
    * A sub-agent can only access MCP servers that the parent has in
    * mcp_server_usages, and its tools must be a subset of the parent's
    * enabled tools. Skills are independent of the parent.
-   *
-   * &#64;internal
-   * Permission model enforced at execution time by the delegation handler.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.SubAgent}

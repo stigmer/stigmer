@@ -10,11 +10,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * system's (a checkout), so changePlan on an organization with none is the
  * act of subscribing. Every write authorizes on the organization with
  * can_manage_billing, the permission the billing account's writes use.
- * &#64;internal
- * Served by the cloud composition only (the kind is cloud_only). The
- * billing engine owns what each write does against the payment system;
- * this contract states only the organization-facing act and its
- * authorization.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -154,11 +149,6 @@ public final class SubscriptionCommandControllerGrpc {
    * system's (a checkout), so changePlan on an organization with none is the
    * act of subscribing. Every write authorizes on the organization with
    * can_manage_billing, the permission the billing account's writes use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). The
-   * billing engine owns what each write does against the payment system;
-   * this contract states only the organization-facing act and its
-   * authorization.
    * </pre>
    */
   public interface AsyncService {
@@ -205,11 +195,6 @@ public final class SubscriptionCommandControllerGrpc {
    * system's (a checkout), so changePlan on an organization with none is the
    * act of subscribing. Every write authorizes on the organization with
    * can_manage_billing, the permission the billing account's writes use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). The
-   * billing engine owns what each write does against the payment system;
-   * this contract states only the organization-facing act and its
-   * authorization.
    * </pre>
    */
   public static abstract class SubscriptionCommandControllerImplBase
@@ -229,11 +214,6 @@ public final class SubscriptionCommandControllerGrpc {
    * system's (a checkout), so changePlan on an organization with none is the
    * act of subscribing. Every write authorizes on the organization with
    * can_manage_billing, the permission the billing account's writes use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). The
-   * billing engine owns what each write does against the payment system;
-   * this contract states only the organization-facing act and its
-   * authorization.
    * </pre>
    */
   public static final class SubscriptionCommandControllerStub
@@ -293,11 +273,6 @@ public final class SubscriptionCommandControllerGrpc {
    * system's (a checkout), so changePlan on an organization with none is the
    * act of subscribing. Every write authorizes on the organization with
    * can_manage_billing, the permission the billing account's writes use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). The
-   * billing engine owns what each write does against the payment system;
-   * this contract states only the organization-facing act and its
-   * authorization.
    * </pre>
    */
   public static final class SubscriptionCommandControllerBlockingV2Stub
@@ -355,11 +330,6 @@ public final class SubscriptionCommandControllerGrpc {
    * system's (a checkout), so changePlan on an organization with none is the
    * act of subscribing. Every write authorizes on the organization with
    * can_manage_billing, the permission the billing account's writes use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). The
-   * billing engine owns what each write does against the payment system;
-   * this contract states only the organization-facing act and its
-   * authorization.
    * </pre>
    */
   public static final class SubscriptionCommandControllerBlockingStub
@@ -417,11 +387,6 @@ public final class SubscriptionCommandControllerGrpc {
    * system's (a checkout), so changePlan on an organization with none is the
    * act of subscribing. Every write authorizes on the organization with
    * can_manage_billing, the permission the billing account's writes use.
-   * &#64;internal
-   * Served by the cloud composition only (the kind is cloud_only). The
-   * billing engine owns what each write does against the payment system;
-   * this contract states only the organization-facing act and its
-   * authorization.
    * </pre>
    */
   public static final class SubscriptionCommandControllerFutureStub

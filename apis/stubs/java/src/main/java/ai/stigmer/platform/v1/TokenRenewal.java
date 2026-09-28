@@ -22,19 +22,6 @@ package ai.stigmer.platform.v1;
  * workflow-execution scope) comes from the presented credential's VERIFIED
  * claims, never from the client, so a renewed token is claim-identical to
  * the one it replaces.
- *
- * &#64;internal
- * Cloud authorizes against the live sandbox record, not FGA (a sandbox
- * token is structurally not an FGA principal — the pool_claim posture): a
- * token_type=sandbox caller requires its session_sandboxes row to exist and
- * not be archived/deleting; a token_type=workflow_sandbox caller requires
- * the same of its workflow_sandboxes row. The record IS the revocation
- * lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
- * it, so a credential's renewable lifetime is exactly its sandbox's
- * lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it
- * (stigmer-cloud#256), and renewal is what makes short TTLs sufficient. OSS
- * has no signing key and mints nothing (empty output, presence-based
- * contract).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.v1.TokenRenewal}
@@ -242,19 +229,6 @@ private static final long serialVersionUID = 0L;
    * workflow-execution scope) comes from the presented credential's VERIFIED
    * claims, never from the client, so a renewed token is claim-identical to
    * the one it replaces.
-   *
-   * &#64;internal
-   * Cloud authorizes against the live sandbox record, not FGA (a sandbox
-   * token is structurally not an FGA principal — the pool_claim posture): a
-   * token_type=sandbox caller requires its session_sandboxes row to exist and
-   * not be archived/deleting; a token_type=workflow_sandbox caller requires
-   * the same of its workflow_sandboxes row. The record IS the revocation
-   * lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
-   * it, so a credential's renewable lifetime is exactly its sandbox's
-   * lifetime. Minted TTL is the standard sandbox TTL — every mint path uses it
-   * (stigmer-cloud#256), and renewal is what makes short TTLs sufficient. OSS
-   * has no signing key and mints nothing (empty output, presence-based
-   * contract).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.v1.TokenRenewal}

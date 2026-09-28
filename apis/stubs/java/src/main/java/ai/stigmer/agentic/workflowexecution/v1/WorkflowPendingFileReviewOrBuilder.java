@@ -13,11 +13,6 @@ public interface WorkflowPendingFileReviewOrBuilder extends
   /**
    * <pre>
    * ID of the child agent execution that holds the file-review gate.
-   *
-   * &#64;internal
-   * WorkflowExecution.submitFileDecision uses this to route the decision to the
-   * correct AgentExecution.submitFileDecision RPC.
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
    * </pre>
    *
    * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -27,11 +22,6 @@ public interface WorkflowPendingFileReviewOrBuilder extends
   /**
    * <pre>
    * ID of the child agent execution that holds the file-review gate.
-   *
-   * &#64;internal
-   * WorkflowExecution.submitFileDecision uses this to route the decision to the
-   * correct AgentExecution.submitFileDecision RPC.
-   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
    * </pre>
    *
    * <code>string child_agent_execution_id = 1 [json_name = "childAgentExecutionId"];</code>
@@ -43,12 +33,6 @@ public interface WorkflowPendingFileReviewOrBuilder extends
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -59,12 +43,6 @@ public interface WorkflowPendingFileReviewOrBuilder extends
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -74,12 +52,6 @@ public interface WorkflowPendingFileReviewOrBuilder extends
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>
@@ -90,12 +62,6 @@ public interface WorkflowPendingFileReviewOrBuilder extends
   /**
    * <pre>
    * IDs of the child's change sets currently AWAITING_REVIEW.
-   *
-   * &#64;internal
-   * Each matches a FileChangeSet.id on the child's
-   * AgentExecution.status.file_change_sets. Empty means the child has no
-   * outstanding review (used transiently to clear this child's entry under the
-   * per-child merge protocol).
    * </pre>
    *
    * <code>repeated string change_set_id = 2 [json_name = "changeSetId"];</code>

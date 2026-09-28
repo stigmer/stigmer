@@ -13,9 +13,6 @@ public interface WorkflowIdOrBuilder extends
   /**
    * <pre>
    * Workflow or WorkflowInstance identifier.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface WorkflowIdOrBuilder extends
   /**
    * <pre>
    * Workflow or WorkflowInstance identifier.
-   *
-   * &#64;internal
-   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>

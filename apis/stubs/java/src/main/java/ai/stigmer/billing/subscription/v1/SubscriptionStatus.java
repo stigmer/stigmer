@@ -64,9 +64,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -79,9 +76,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -94,9 +88,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -712,9 +703,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -726,9 +714,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -744,9 +729,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -767,9 +749,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -788,9 +767,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -816,9 +792,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -836,9 +809,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -851,9 +821,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -869,9 +836,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Standard audit information tracking creation and modification.
-     *
-     * &#64;internal
-     * Field 99 follows Stigmer convention for audit placement.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>

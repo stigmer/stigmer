@@ -8,43 +8,6 @@ package ai.stigmer.iam.oauthapp.v1;
 /**
  * <pre>
  * OAuthAppSpec defines a registered OAuth application with an external vendor.
- *
- * &#64;internal
- * Represents Stigmer's (or a platform builder's) OAuth app registration
- * with an external vendor like Slack, Salesforce, or Figma.
- *
- * Created by org admins or platform operators. Referenced by McpServer
- * resources that need vendor OAuth authentication via McpServerAuth.
- *
- * Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
- * outbound auth — how Stigmer authenticates with external services on
- * behalf of users.
- *
- * The redirect URI is intentionally omitted: the platform derives its
- * OAuth callback URL from server configuration, not from per-app settings.
- * When registering the OAuth app with a vendor, the admin uses the
- * callback URL documented in Stigmer's deployment settings.
- *
- * Security:
- * - client_secret is encrypted at rest and redacted in logs.
- * - The resource should have visibility_private to prevent secret leakage.
- * - OAuthApp does not support public visibility.
- *
- * Example YAML:
- * apiVersion: iam.stigmer.ai/v1
- * kind: OAuthApp
- * metadata:
- * name: Slack OAuth
- * slug: slack-oauth
- * org: acme
- * spec:
- * provider: "Slack"
- * client_id: "1234567890.abcdef"
- * client_secret: "xoxs-..."
- * authorization_url: "https://slack.com/oauth/v2/authorize"
- * token_url: "https://slack.com/api/oauth.v2.access"
- * scopes: ["channels:read", "chat:write"]
- * scope_parameter_name: "user_scope"
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.oauthapp.v1.OAuthAppSpec}
@@ -936,43 +899,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * OAuthAppSpec defines a registered OAuth application with an external vendor.
-   *
-   * &#64;internal
-   * Represents Stigmer's (or a platform builder's) OAuth app registration
-   * with an external vendor like Slack, Salesforce, or Figma.
-   *
-   * Created by org admins or platform operators. Referenced by McpServer
-   * resources that need vendor OAuth authentication via McpServerAuth.
-   *
-   * Analogous to IdentityProvider (inbound auth trust), OAuthApp represents
-   * outbound auth — how Stigmer authenticates with external services on
-   * behalf of users.
-   *
-   * The redirect URI is intentionally omitted: the platform derives its
-   * OAuth callback URL from server configuration, not from per-app settings.
-   * When registering the OAuth app with a vendor, the admin uses the
-   * callback URL documented in Stigmer's deployment settings.
-   *
-   * Security:
-   * - client_secret is encrypted at rest and redacted in logs.
-   * - The resource should have visibility_private to prevent secret leakage.
-   * - OAuthApp does not support public visibility.
-   *
-   * Example YAML:
-   * apiVersion: iam.stigmer.ai/v1
-   * kind: OAuthApp
-   * metadata:
-   * name: Slack OAuth
-   * slug: slack-oauth
-   * org: acme
-   * spec:
-   * provider: "Slack"
-   * client_id: "1234567890.abcdef"
-   * client_secret: "xoxs-..."
-   * authorization_url: "https://slack.com/oauth/v2/authorize"
-   * token_url: "https://slack.com/api/oauth.v2.access"
-   * scopes: ["channels:read", "chat:write"]
-   * scope_parameter_name: "user_scope"
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.oauthapp.v1.OAuthAppSpec}

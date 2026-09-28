@@ -110,11 +110,6 @@ public interface ListAgentExecutionsRequestOrBuilder extends
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Every edition honours it in the store's indexed read, never
-   * client-side.
    * </pre>
    *
    * <code>string org = 5 [json_name = "org"];</code>
@@ -129,11 +124,6 @@ public interface ListAgentExecutionsRequestOrBuilder extends
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
-   *
-   * &#64;internal
-   * Optional by design: pre-existing callers rely on the permission-bounded
-   * behavior. Every edition honours it in the store's indexed read, never
-   * client-side.
    * </pre>
    *
    * <code>string org = 5 [json_name = "org"];</code>

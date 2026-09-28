@@ -8,11 +8,6 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * McpAccess grants a sub-agent access to one of the parent's MCP servers.
- *
- * &#64;internal
- * Permission model enforced at execution time: sub-agent can only access
- * servers in the parent's mcp_server_usages, and tools must be a subset
- * of the parent's enabled_tools.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpAccess}
@@ -346,11 +341,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * McpAccess grants a sub-agent access to one of the parent's MCP servers.
-   *
-   * &#64;internal
-   * Permission model enforced at execution time: sub-agent can only access
-   * servers in the parent's mcp_server_usages, and tools must be a subset
-   * of the parent's enabled_tools.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpAccess}

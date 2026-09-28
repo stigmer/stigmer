@@ -25,13 +25,6 @@ public interface RecalledMemoriesReportOrBuilder extends
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -42,13 +35,6 @@ public interface RecalledMemoriesReportOrBuilder extends
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -58,13 +44,6 @@ public interface RecalledMemoriesReportOrBuilder extends
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>
@@ -75,13 +54,6 @@ public interface RecalledMemoriesReportOrBuilder extends
   /**
    * <pre>
    * IDs of the injected memories when selection was active.
-   *
-   * &#64;internal
-   * Always a subset of the spec.recalled_memories snapshot's memory_ids,
-   * in SNAPSHOT order (oldest-first): selection is by relevance, but
-   * presentation preserves the stable prompt order both editions pin
-   * (DD-008 D3). Empty when selection_active is false — readers fall back
-   * to the snapshot, which is exactly correct.
    * </pre>
    *
    * <code>repeated string injected_memory_ids = 2 [json_name = "injectedMemoryIds"];</code>

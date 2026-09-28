@@ -9,12 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * A content-addressed snapshot manifest for paths git cannot capture
  * (gitignored or non-git workspaces).
- *
- * &#64;internal
- * Realized in Phase 3 (CAS). Present in the contract now so the snapshot shape
- * is stable before producers exist.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.CasManifestRef}
@@ -325,12 +319,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * A content-addressed snapshot manifest for paths git cannot capture
    * (gitignored or non-git workspaces).
-   *
-   * &#64;internal
-   * Realized in Phase 3 (CAS). Present in the contract now so the snapshot shape
-   * is stable before producers exist.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.CasManifestRef}

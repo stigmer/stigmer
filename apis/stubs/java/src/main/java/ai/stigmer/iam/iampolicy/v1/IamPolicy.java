@@ -161,11 +161,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, and labels.
-   *
-   * &#64;internal
-   * id format: iamp_&lt;ulid&gt;
-   * name: human-readable identifier (e.g., "john-vpc-admin")
-   * org: organization this policy belongs to
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -178,11 +173,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, and labels.
-   *
-   * &#64;internal
-   * id format: iamp_&lt;ulid&gt;
-   * name: human-readable identifier (e.g., "john-vpc-admin")
-   * org: organization this policy belongs to
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -195,11 +185,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, and labels.
-   *
-   * &#64;internal
-   * id format: iamp_&lt;ulid&gt;
-   * name: human-readable identifier (e.g., "john-vpc-admin")
-   * org: organization this policy belongs to
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -925,11 +910,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -941,11 +921,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -961,11 +936,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -986,11 +956,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1009,11 +974,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1039,11 +999,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1061,11 +1016,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1078,11 +1028,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1098,11 +1043,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, and labels.
-     *
-     * &#64;internal
-     * id format: iamp_&lt;ulid&gt;
-     * name: human-readable identifier (e.g., "john-vpc-admin")
-     * org: organization this policy belongs to
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>

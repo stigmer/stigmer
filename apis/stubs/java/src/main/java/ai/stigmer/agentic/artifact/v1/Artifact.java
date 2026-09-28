@@ -8,27 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * Artifact represents a persisted blob produced during execution.
- *
- * &#64;internal
- * Follows the standard Stigmer resource pattern:
- * api_version + kind + metadata + spec + status.
- *
- * Artifacts are created by the runner when task
- * outputs exceed the auto-promotion threshold or when the workflow author
- * explicitly declares an artifact (Phase 1).
- *
- * The content blob is stored externally (local filesystem in OSS, S3 in Cloud).
- * The Artifact resource holds metadata and a content hash that references
- * the blob in the content-addressable store.
- *
- * Artifact lifecycle:
- * 1. Runner calls create() with spec + content bytes
- * 2. Backend hashes content, stores blob, creates metadata record
- * 3. Runner replaces inline task output with artifact reference
- * 4. Clients retrieve artifact via get() or download via getDownloadUrl()
- * 5. Background GC deletes expired artifacts based on retention policy
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.Artifact}
@@ -175,17 +154,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Naming Pattern:
-   * - ID Format: "art_{unique-suffix}" (auto-generated)
-   * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-   * - Org: inherited from the producing execution's organization
-   *
-   * Labels:
-   * - source_type: "workflow_execution" or "agent_execution"
-   * - source_id: the execution ID that produced this artifact
-   * - task_name: the task that produced this artifact (if applicable)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -198,17 +166,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Naming Pattern:
-   * - ID Format: "art_{unique-suffix}" (auto-generated)
-   * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-   * - Org: inherited from the producing execution's organization
-   *
-   * Labels:
-   * - source_type: "workflow_execution" or "agent_execution"
-   * - source_id: the execution ID that produced this artifact
-   * - task_name: the task that produced this artifact (if applicable)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -221,17 +178,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Naming Pattern:
-   * - ID Format: "art_{unique-suffix}" (auto-generated)
-   * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-   * - Org: inherited from the producing execution's organization
-   *
-   * Labels:
-   * - source_type: "workflow_execution" or "agent_execution"
-   * - source_id: the execution ID that produced this artifact
-   * - task_name: the task that produced this artifact (if applicable)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -534,27 +480,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Artifact represents a persisted blob produced during execution.
-   *
-   * &#64;internal
-   * Follows the standard Stigmer resource pattern:
-   * api_version + kind + metadata + spec + status.
-   *
-   * Artifacts are created by the runner when task
-   * outputs exceed the auto-promotion threshold or when the workflow author
-   * explicitly declares an artifact (Phase 1).
-   *
-   * The content blob is stored externally (local filesystem in OSS, S3 in Cloud).
-   * The Artifact resource holds metadata and a content hash that references
-   * the blob in the content-addressable store.
-   *
-   * Artifact lifecycle:
-   * 1. Runner calls create() with spec + content bytes
-   * 2. Backend hashes content, stores blob, creates metadata record
-   * 3. Runner replaces inline task output with artifact reference
-   * 4. Clients retrieve artifact via get() or download via getDownloadUrl()
-   * 5. Background GC deletes expired artifacts based on retention policy
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.Artifact}
@@ -971,17 +896,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -993,17 +907,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1019,17 +922,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1050,17 +942,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1079,17 +960,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1115,17 +985,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1143,17 +1002,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1166,17 +1014,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1192,17 +1029,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Naming Pattern:
-     * - ID Format: "art_{unique-suffix}" (auto-generated)
-     * - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-     * - Org: inherited from the producing execution's organization
-     *
-     * Labels:
-     * - source_type: "workflow_execution" or "agent_execution"
-     * - source_id: the execution ID that produced this artifact
-     * - task_name: the task that produced this artifact (if applicable)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

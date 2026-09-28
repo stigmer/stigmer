@@ -13,10 +13,6 @@ public interface ArtifactDownloadUrlOrBuilder extends
   /**
    * <pre>
    * URL to download the artifact content via HTTP GET.
-   *
-   * &#64;internal
-   * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-   * OSS: http://localhost:{port}/artifacts/{hash}
    * </pre>
    *
    * <code>string url = 1 [json_name = "url"];</code>
@@ -26,10 +22,6 @@ public interface ArtifactDownloadUrlOrBuilder extends
   /**
    * <pre>
    * URL to download the artifact content via HTTP GET.
-   *
-   * &#64;internal
-   * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-   * OSS: http://localhost:{port}/artifacts/{hash}
    * </pre>
    *
    * <code>string url = 1 [json_name = "url"];</code>

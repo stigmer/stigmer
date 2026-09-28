@@ -5,10 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * OAuthAppCommandController provides write operations for OAuth app resources.
- * &#64;internal
- * OAuthApps hold vendor client credentials (client_secret) and are always
- * org-private. There is no updateVisibility RPC — public visibility is
- * intentionally unsupported to prevent credential leakage.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -205,10 +201,6 @@ public final class OAuthAppCommandControllerGrpc {
   /**
    * <pre>
    * OAuthAppCommandController provides write operations for OAuth app resources.
-   * &#64;internal
-   * OAuthApps hold vendor client credentials (client_secret) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public interface AsyncService {
@@ -218,10 +210,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * OAuth app is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -234,8 +222,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
      */
     default void create(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -246,8 +232,6 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the oauth_app resource.
      * </pre>
      */
     default void update(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -261,8 +245,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
      * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
      * like every read.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -275,10 +257,6 @@ public final class OAuthAppCommandControllerGrpc {
    * Base class for the server implementation of the service OAuthAppCommandController.
    * <pre>
    * OAuthAppCommandController provides write operations for OAuth app resources.
-   * &#64;internal
-   * OAuthApps hold vendor client credentials (client_secret) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static abstract class OAuthAppCommandControllerImplBase
@@ -293,10 +271,6 @@ public final class OAuthAppCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service OAuthAppCommandController.
    * <pre>
    * OAuthAppCommandController provides write operations for OAuth app resources.
-   * &#64;internal
-   * OAuthApps hold vendor client credentials (client_secret) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class OAuthAppCommandControllerStub
@@ -317,10 +291,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * OAuth app is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -334,8 +304,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
      */
     public void create(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -347,8 +315,6 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the oauth_app resource.
      * </pre>
      */
     public void update(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -363,8 +329,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
      * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
      * like every read.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -378,10 +342,6 @@ public final class OAuthAppCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service OAuthAppCommandController.
    * <pre>
    * OAuthAppCommandController provides write operations for OAuth app resources.
-   * &#64;internal
-   * OAuthApps hold vendor client credentials (client_secret) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class OAuthAppCommandControllerBlockingV2Stub
@@ -402,10 +362,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * OAuth app is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request) throws io.grpc.StatusException {
@@ -418,8 +374,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp create(ai.stigmer.iam.oauthapp.v1.OAuthApp request) throws io.grpc.StatusException {
@@ -430,8 +384,6 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the oauth_app resource.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.OAuthApp request) throws io.grpc.StatusException {
@@ -445,8 +397,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
      * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
      * like every read.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -459,10 +409,6 @@ public final class OAuthAppCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service OAuthAppCommandController.
    * <pre>
    * OAuthAppCommandController provides write operations for OAuth app resources.
-   * &#64;internal
-   * OAuthApps hold vendor client credentials (client_secret) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class OAuthAppCommandControllerBlockingStub
@@ -483,10 +429,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * OAuth app is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
@@ -499,8 +441,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp create(ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
@@ -511,8 +451,6 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the oauth_app resource.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
@@ -526,8 +464,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
      * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
      * like every read.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -540,10 +476,6 @@ public final class OAuthAppCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service OAuthAppCommandController.
    * <pre>
    * OAuthAppCommandController provides write operations for OAuth app resources.
-   * &#64;internal
-   * OAuthApps hold vendor client credentials (client_secret) and are always
-   * org-private. There is no updateVisibility RPC — public visibility is
-   * intentionally unsupported to prevent credential leakage.
    * </pre>
    */
   public static final class OAuthAppCommandControllerFutureStub
@@ -564,10 +496,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the
-     * OAuth app is going to be created or updated, which is determined as
-     * part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> apply(
@@ -581,8 +509,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
-     * &#64;internal
-     * Authorization: Requires can_create_oauth_app permission in the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> create(
@@ -594,8 +520,6 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the oauth_app resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> update(
@@ -610,8 +534,6 @@ public final class OAuthAppCommandControllerGrpc {
      * Refused while any McpServer's McpServerAuth.oauth_app_ref resolves to
      * this OAuth app. Returns the deleted OAuthApp, its client_secret redacted
      * like every read.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the oauth_app resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> delete(

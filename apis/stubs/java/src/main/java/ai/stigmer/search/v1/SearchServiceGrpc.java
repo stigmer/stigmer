@@ -10,24 +10,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * specify kinds to filter by resource type, provide a query for full-text
  * search, or leave both empty to list all accessible resources.
  * Results only include resources the caller has permission to view.
- * &#64;internal
- * This is a CQRS Query Service on the read-side. It queries multiple domain
- * aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
- * projections. It does not modify state.
- * Search is cross-aggregate query infrastructure, not a domain bounded context.
- * It lives in the query layer (CQRS read-side), not the domain layer.
- * Therefore, it does not have an api_resource_kind option like domain services.
- * Authorization is handled programmatically in the handler (not via
- * declarative authorization options like domain services):
- * 1. Call FGA to get authorized resource IDs per requested kind
- * 2. Apply filters (org, query) against authorized set
- * 3. Return only resources the caller has can_view permission on
- * Usage Patterns (all via single RPC):
- * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
- * - Search agents:         {kinds: [agent], query: "security"}
- * - Search in org:         {kinds: [agent], org: "acme", query: "security"}
- * - Discover all kinds:    {kinds: [], query: "kubernetes"}
- * - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -136,24 +118,6 @@ public final class SearchServiceGrpc {
    * specify kinds to filter by resource type, provide a query for full-text
    * search, or leave both empty to list all accessible resources.
    * Results only include resources the caller has permission to view.
-   * &#64;internal
-   * This is a CQRS Query Service on the read-side. It queries multiple domain
-   * aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-   * projections. It does not modify state.
-   * Search is cross-aggregate query infrastructure, not a domain bounded context.
-   * It lives in the query layer (CQRS read-side), not the domain layer.
-   * Therefore, it does not have an api_resource_kind option like domain services.
-   * Authorization is handled programmatically in the handler (not via
-   * declarative authorization options like domain services):
-   * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query) against authorized set
-   * 3. Return only resources the caller has can_view permission on
-   * Usage Patterns (all via single RPC):
-   * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-   * - Search agents:         {kinds: [agent], query: "security"}
-   * - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-   * - Discover all kinds:    {kinds: [], query: "kubernetes"}
-   * - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
    * </pre>
    */
   public interface AsyncService {
@@ -176,9 +140,6 @@ public final class SearchServiceGrpc {
      * Pagination:
      * Use page.num (1-indexed) and page.size to paginate results.
      * Response includes total_count and total_pages for pagination controls.
-     * &#64;internal
-     * Authorization: Returns only resources the caller has can_view permission on.
-     * The handler queries FGA per kind to get authorized IDs, then applies filters.
      * </pre>
      */
     default void search(ai.stigmer.search.v1.SearchRequest request,
@@ -196,24 +157,6 @@ public final class SearchServiceGrpc {
    * specify kinds to filter by resource type, provide a query for full-text
    * search, or leave both empty to list all accessible resources.
    * Results only include resources the caller has permission to view.
-   * &#64;internal
-   * This is a CQRS Query Service on the read-side. It queries multiple domain
-   * aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-   * projections. It does not modify state.
-   * Search is cross-aggregate query infrastructure, not a domain bounded context.
-   * It lives in the query layer (CQRS read-side), not the domain layer.
-   * Therefore, it does not have an api_resource_kind option like domain services.
-   * Authorization is handled programmatically in the handler (not via
-   * declarative authorization options like domain services):
-   * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query) against authorized set
-   * 3. Return only resources the caller has can_view permission on
-   * Usage Patterns (all via single RPC):
-   * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-   * - Search agents:         {kinds: [agent], query: "security"}
-   * - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-   * - Discover all kinds:    {kinds: [], query: "kubernetes"}
-   * - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
    * </pre>
    */
   public static abstract class SearchServiceImplBase
@@ -233,24 +176,6 @@ public final class SearchServiceGrpc {
    * specify kinds to filter by resource type, provide a query for full-text
    * search, or leave both empty to list all accessible resources.
    * Results only include resources the caller has permission to view.
-   * &#64;internal
-   * This is a CQRS Query Service on the read-side. It queries multiple domain
-   * aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-   * projections. It does not modify state.
-   * Search is cross-aggregate query infrastructure, not a domain bounded context.
-   * It lives in the query layer (CQRS read-side), not the domain layer.
-   * Therefore, it does not have an api_resource_kind option like domain services.
-   * Authorization is handled programmatically in the handler (not via
-   * declarative authorization options like domain services):
-   * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query) against authorized set
-   * 3. Return only resources the caller has can_view permission on
-   * Usage Patterns (all via single RPC):
-   * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-   * - Search agents:         {kinds: [agent], query: "security"}
-   * - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-   * - Discover all kinds:    {kinds: [], query: "kubernetes"}
-   * - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
    * </pre>
    */
   public static final class SearchServiceStub
@@ -284,9 +209,6 @@ public final class SearchServiceGrpc {
      * Pagination:
      * Use page.num (1-indexed) and page.size to paginate results.
      * Response includes total_count and total_pages for pagination controls.
-     * &#64;internal
-     * Authorization: Returns only resources the caller has can_view permission on.
-     * The handler queries FGA per kind to get authorized IDs, then applies filters.
      * </pre>
      */
     public void search(ai.stigmer.search.v1.SearchRequest request,
@@ -305,24 +227,6 @@ public final class SearchServiceGrpc {
    * specify kinds to filter by resource type, provide a query for full-text
    * search, or leave both empty to list all accessible resources.
    * Results only include resources the caller has permission to view.
-   * &#64;internal
-   * This is a CQRS Query Service on the read-side. It queries multiple domain
-   * aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-   * projections. It does not modify state.
-   * Search is cross-aggregate query infrastructure, not a domain bounded context.
-   * It lives in the query layer (CQRS read-side), not the domain layer.
-   * Therefore, it does not have an api_resource_kind option like domain services.
-   * Authorization is handled programmatically in the handler (not via
-   * declarative authorization options like domain services):
-   * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query) against authorized set
-   * 3. Return only resources the caller has can_view permission on
-   * Usage Patterns (all via single RPC):
-   * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-   * - Search agents:         {kinds: [agent], query: "security"}
-   * - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-   * - Discover all kinds:    {kinds: [], query: "kubernetes"}
-   * - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
    * </pre>
    */
   public static final class SearchServiceBlockingV2Stub
@@ -356,9 +260,6 @@ public final class SearchServiceGrpc {
      * Pagination:
      * Use page.num (1-indexed) and page.size to paginate results.
      * Response includes total_count and total_pages for pagination controls.
-     * &#64;internal
-     * Authorization: Returns only resources the caller has can_view permission on.
-     * The handler queries FGA per kind to get authorized IDs, then applies filters.
      * </pre>
      */
     public ai.stigmer.search.v1.SearchResponse search(ai.stigmer.search.v1.SearchRequest request) throws io.grpc.StatusException {
@@ -376,24 +277,6 @@ public final class SearchServiceGrpc {
    * specify kinds to filter by resource type, provide a query for full-text
    * search, or leave both empty to list all accessible resources.
    * Results only include resources the caller has permission to view.
-   * &#64;internal
-   * This is a CQRS Query Service on the read-side. It queries multiple domain
-   * aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-   * projections. It does not modify state.
-   * Search is cross-aggregate query infrastructure, not a domain bounded context.
-   * It lives in the query layer (CQRS read-side), not the domain layer.
-   * Therefore, it does not have an api_resource_kind option like domain services.
-   * Authorization is handled programmatically in the handler (not via
-   * declarative authorization options like domain services):
-   * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query) against authorized set
-   * 3. Return only resources the caller has can_view permission on
-   * Usage Patterns (all via single RPC):
-   * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-   * - Search agents:         {kinds: [agent], query: "security"}
-   * - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-   * - Discover all kinds:    {kinds: [], query: "kubernetes"}
-   * - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
    * </pre>
    */
   public static final class SearchServiceBlockingStub
@@ -427,9 +310,6 @@ public final class SearchServiceGrpc {
      * Pagination:
      * Use page.num (1-indexed) and page.size to paginate results.
      * Response includes total_count and total_pages for pagination controls.
-     * &#64;internal
-     * Authorization: Returns only resources the caller has can_view permission on.
-     * The handler queries FGA per kind to get authorized IDs, then applies filters.
      * </pre>
      */
     public ai.stigmer.search.v1.SearchResponse search(ai.stigmer.search.v1.SearchRequest request) {
@@ -447,24 +327,6 @@ public final class SearchServiceGrpc {
    * specify kinds to filter by resource type, provide a query for full-text
    * search, or leave both empty to list all accessible resources.
    * Results only include resources the caller has permission to view.
-   * &#64;internal
-   * This is a CQRS Query Service on the read-side. It queries multiple domain
-   * aggregates (Agent, Skill, McpServer, Workflow) and returns display-optimized
-   * projections. It does not modify state.
-   * Search is cross-aggregate query infrastructure, not a domain bounded context.
-   * It lives in the query layer (CQRS read-side), not the domain layer.
-   * Therefore, it does not have an api_resource_kind option like domain services.
-   * Authorization is handled programmatically in the handler (not via
-   * declarative authorization options like domain services):
-   * 1. Call FGA to get authorized resource IDs per requested kind
-   * 2. Apply filters (org, query) against authorized set
-   * 3. Return only resources the caller has can_view permission on
-   * Usage Patterns (all via single RPC):
-   * - List agents in org:    {kinds: [agent], org: "acme", query: ""}
-   * - Search agents:         {kinds: [agent], query: "security"}
-   * - Search in org:         {kinds: [agent], org: "acme", query: "security"}
-   * - Discover all kinds:    {kinds: [], query: "kubernetes"}
-   * - Discover specific:     {kinds: [agent, skill], query: "kubernetes"}
    * </pre>
    */
   public static final class SearchServiceFutureStub
@@ -498,9 +360,6 @@ public final class SearchServiceGrpc {
      * Pagination:
      * Use page.num (1-indexed) and page.size to paginate results.
      * Response includes total_count and total_pages for pagination controls.
-     * &#64;internal
-     * Authorization: Returns only resources the caller has can_view permission on.
-     * The handler queries FGA per kind to get authorized IDs, then applies filters.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.search.v1.SearchResponse> search(

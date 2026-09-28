@@ -5,19 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ExecutionContextQueryController handles read operations for ExecutionContext resources.
- * &#64;internal
- * Authorization: get carries the declarative can_view check on the
- * execution_context (the owner written at creation time, in both editions);
- * getByReference authorizes the loaded row exactly as get does, after the
- * slug lookup; getByExecutionId is the runner's token lane and skips the
- * declarative check for the reason its own comment gives. An execution's
- * context is created by the server acting as itself, so under enforcement
- * only the server reads it; a connect's context is created as the connecting
- * person, who may read it.
- * Secret handling (both editions, stigmer#535): values with is_secret=true
- * are encrypted at rest and redacted (***REDACTED***) for user-class callers
- * on every read RPC; only getByExecutionId can return decrypted values, and
- * only to runner-class credentials (see that RPC's comment).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -183,19 +170,6 @@ public final class ExecutionContextQueryControllerGrpc {
   /**
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
-   * &#64;internal
-   * Authorization: get carries the declarative can_view check on the
-   * execution_context (the owner written at creation time, in both editions);
-   * getByReference authorizes the loaded row exactly as get does, after the
-   * slug lookup; getByExecutionId is the runner's token lane and skips the
-   * declarative check for the reason its own comment gives. An execution's
-   * context is created by the server acting as itself, so under enforcement
-   * only the server reads it; a connect's context is created as the connecting
-   * person, who may read it.
-   * Secret handling (both editions, stigmer#535): values with is_secret=true
-   * are encrypted at rest and redacted (***REDACTED***) for user-class callers
-   * on every read RPC; only getByExecutionId can return decrypted values, and
-   * only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public interface AsyncService {
@@ -203,8 +177,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * &#64;internal
-     * Secret values are redacted in both editions.
      * </pre>
      */
     default void get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request,
@@ -215,11 +187,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
-     * &#64;internal
-     * is_skip_authorization because the target is a slug the declarative check
-     * cannot key on; the handler loads the row and authorizes it exactly as
-     * get does (can_view, the same copy). Org is required in the reference.
-     * Secret values are redacted in both editions.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -230,20 +197,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get the ExecutionContext for a given execution ID.
-     * &#64;internal
-     * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution and MCP discovery.
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     * Secret handling (both editions): the decrypt path is gated by caller
-     * credential class AND scope, not by permissions — runners authenticate as
-     * the user who owns the execution, so permissions cannot tell them apart.
-     * Callers presenting a platform-minted runner token (token_type of sandbox,
-     * workflow_sandbox, or connect_sandbox) whose scope claim binds it to this
-     * very execution receive decrypted secret values. The unscoped
-     * embedded_runner bootstrap credential is refused; desktop runners exchange
-     * it for a scoped token via getRunnerScopedToken before reading. Every
-     * other caller (user JWT, SDK, console) receives the same redaction as
-     * get/getByReference.
      * </pre>
      */
     default void getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request,
@@ -256,19 +209,6 @@ public final class ExecutionContextQueryControllerGrpc {
    * Base class for the server implementation of the service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
-   * &#64;internal
-   * Authorization: get carries the declarative can_view check on the
-   * execution_context (the owner written at creation time, in both editions);
-   * getByReference authorizes the loaded row exactly as get does, after the
-   * slug lookup; getByExecutionId is the runner's token lane and skips the
-   * declarative check for the reason its own comment gives. An execution's
-   * context is created by the server acting as itself, so under enforcement
-   * only the server reads it; a connect's context is created as the connecting
-   * person, who may read it.
-   * Secret handling (both editions, stigmer#535): values with is_secret=true
-   * are encrypted at rest and redacted (***REDACTED***) for user-class callers
-   * on every read RPC; only getByExecutionId can return decrypted values, and
-   * only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static abstract class ExecutionContextQueryControllerImplBase
@@ -283,19 +223,6 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
-   * &#64;internal
-   * Authorization: get carries the declarative can_view check on the
-   * execution_context (the owner written at creation time, in both editions);
-   * getByReference authorizes the loaded row exactly as get does, after the
-   * slug lookup; getByExecutionId is the runner's token lane and skips the
-   * declarative check for the reason its own comment gives. An execution's
-   * context is created by the server acting as itself, so under enforcement
-   * only the server reads it; a connect's context is created as the connecting
-   * person, who may read it.
-   * Secret handling (both editions, stigmer#535): values with is_secret=true
-   * are encrypted at rest and redacted (***REDACTED***) for user-class callers
-   * on every read RPC; only getByExecutionId can return decrypted values, and
-   * only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerStub
@@ -314,8 +241,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * &#64;internal
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public void get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request,
@@ -327,11 +252,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
-     * &#64;internal
-     * is_skip_authorization because the target is a slug the declarative check
-     * cannot key on; the handler loads the row and authorizes it exactly as
-     * get does (can_view, the same copy). Org is required in the reference.
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -343,20 +263,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get the ExecutionContext for a given execution ID.
-     * &#64;internal
-     * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution and MCP discovery.
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     * Secret handling (both editions): the decrypt path is gated by caller
-     * credential class AND scope, not by permissions — runners authenticate as
-     * the user who owns the execution, so permissions cannot tell them apart.
-     * Callers presenting a platform-minted runner token (token_type of sandbox,
-     * workflow_sandbox, or connect_sandbox) whose scope claim binds it to this
-     * very execution receive decrypted secret values. The unscoped
-     * embedded_runner bootstrap credential is refused; desktop runners exchange
-     * it for a scoped token via getRunnerScopedToken before reading. Every
-     * other caller (user JWT, SDK, console) receives the same redaction as
-     * get/getByReference.
      * </pre>
      */
     public void getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request,
@@ -370,19 +276,6 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
-   * &#64;internal
-   * Authorization: get carries the declarative can_view check on the
-   * execution_context (the owner written at creation time, in both editions);
-   * getByReference authorizes the loaded row exactly as get does, after the
-   * slug lookup; getByExecutionId is the runner's token lane and skips the
-   * declarative check for the reason its own comment gives. An execution's
-   * context is created by the server acting as itself, so under enforcement
-   * only the server reads it; a connect's context is created as the connecting
-   * person, who may read it.
-   * Secret handling (both editions, stigmer#535): values with is_secret=true
-   * are encrypted at rest and redacted (***REDACTED***) for user-class callers
-   * on every read RPC; only getByExecutionId can return decrypted values, and
-   * only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerBlockingV2Stub
@@ -401,8 +294,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * &#64;internal
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request) throws io.grpc.StatusException {
@@ -413,11 +304,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
-     * &#64;internal
-     * is_skip_authorization because the target is a slug the declarative check
-     * cannot key on; the handler loads the row and authorizes it exactly as
-     * get does (can_view, the same copy). Org is required in the reference.
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -428,20 +314,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get the ExecutionContext for a given execution ID.
-     * &#64;internal
-     * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution and MCP discovery.
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     * Secret handling (both editions): the decrypt path is gated by caller
-     * credential class AND scope, not by permissions — runners authenticate as
-     * the user who owns the execution, so permissions cannot tell them apart.
-     * Callers presenting a platform-minted runner token (token_type of sandbox,
-     * workflow_sandbox, or connect_sandbox) whose scope claim binds it to this
-     * very execution receive decrypted secret values. The unscoped
-     * embedded_runner bootstrap credential is refused; desktop runners exchange
-     * it for a scoped token via getRunnerScopedToken before reading. Every
-     * other caller (user JWT, SDK, console) receives the same redaction as
-     * get/getByReference.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request) throws io.grpc.StatusException {
@@ -454,19 +326,6 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
-   * &#64;internal
-   * Authorization: get carries the declarative can_view check on the
-   * execution_context (the owner written at creation time, in both editions);
-   * getByReference authorizes the loaded row exactly as get does, after the
-   * slug lookup; getByExecutionId is the runner's token lane and skips the
-   * declarative check for the reason its own comment gives. An execution's
-   * context is created by the server acting as itself, so under enforcement
-   * only the server reads it; a connect's context is created as the connecting
-   * person, who may read it.
-   * Secret handling (both editions, stigmer#535): values with is_secret=true
-   * are encrypted at rest and redacted (***REDACTED***) for user-class callers
-   * on every read RPC; only getByExecutionId can return decrypted values, and
-   * only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerBlockingStub
@@ -485,8 +344,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * &#64;internal
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request) {
@@ -497,11 +354,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
-     * &#64;internal
-     * is_skip_authorization because the target is a slug the declarative check
-     * cannot key on; the handler loads the row and authorizes it exactly as
-     * get does (can_view, the same copy). Org is required in the reference.
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -512,20 +364,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get the ExecutionContext for a given execution ID.
-     * &#64;internal
-     * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution and MCP discovery.
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     * Secret handling (both editions): the decrypt path is gated by caller
-     * credential class AND scope, not by permissions — runners authenticate as
-     * the user who owns the execution, so permissions cannot tell them apart.
-     * Callers presenting a platform-minted runner token (token_type of sandbox,
-     * workflow_sandbox, or connect_sandbox) whose scope claim binds it to this
-     * very execution receive decrypted secret values. The unscoped
-     * embedded_runner bootstrap credential is refused; desktop runners exchange
-     * it for a scoped token via getRunnerScopedToken before reading. Every
-     * other caller (user JWT, SDK, console) receives the same redaction as
-     * get/getByReference.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request) {
@@ -538,19 +376,6 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
-   * &#64;internal
-   * Authorization: get carries the declarative can_view check on the
-   * execution_context (the owner written at creation time, in both editions);
-   * getByReference authorizes the loaded row exactly as get does, after the
-   * slug lookup; getByExecutionId is the runner's token lane and skips the
-   * declarative check for the reason its own comment gives. An execution's
-   * context is created by the server acting as itself, so under enforcement
-   * only the server reads it; a connect's context is created as the connecting
-   * person, who may read it.
-   * Secret handling (both editions, stigmer#535): values with is_secret=true
-   * are encrypted at rest and redacted (***REDACTED***) for user-class callers
-   * on every read RPC; only getByExecutionId can return decrypted values, and
-   * only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerFutureStub
@@ -569,8 +394,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * &#64;internal
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> get(
@@ -582,11 +405,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
-     * &#64;internal
-     * is_skip_authorization because the target is a slug the declarative check
-     * cannot key on; the handler loads the row and authorizes it exactly as
-     * get does (can_view, the same copy). Org is required in the reference.
-     * Secret values are redacted in both editions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> getByReference(
@@ -598,20 +416,6 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get the ExecutionContext for a given execution ID.
-     * &#64;internal
-     * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution and MCP discovery.
-     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
-     * Secret handling (both editions): the decrypt path is gated by caller
-     * credential class AND scope, not by permissions — runners authenticate as
-     * the user who owns the execution, so permissions cannot tell them apart.
-     * Callers presenting a platform-minted runner token (token_type of sandbox,
-     * workflow_sandbox, or connect_sandbox) whose scope claim binds it to this
-     * very execution receive decrypted secret values. The unscoped
-     * embedded_runner bootstrap credential is refused; desktop runners exchange
-     * it for a scoped token via getRunnerScopedToken before reading. Every
-     * other caller (user JWT, SDK, console) receives the same redaction as
-     * get/getByReference.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> getByExecutionId(

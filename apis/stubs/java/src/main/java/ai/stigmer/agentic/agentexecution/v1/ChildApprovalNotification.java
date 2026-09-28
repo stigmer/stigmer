@@ -14,17 +14,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * a bare-string child execution id — and the parent side derives pending
  * approvals by reading the child execution record (a single source of truth
  * instead of a payload copy that can drift).
- *
- * &#64;internal
- *
- * The identity-only shape replaced this message in both editions (cloud#509);
- * both the OSS TypeScript server's and the cloud Java service's
- * agent-execution workflows send the bare-string signal on every HITL cycle.
- *
- * Graceful Degradation (unchanged):
- * If the signal fails to send (parent workflow completed, network error),
- * the system continues to function. Users can still submit approvals directly
- * via the AgentExecution.SubmitApproval RPC.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification}
@@ -411,17 +400,6 @@ private static final long serialVersionUID = 0L;
    * a bare-string child execution id — and the parent side derives pending
    * approvals by reading the child execution record (a single source of truth
    * instead of a payload copy that can drift).
-   *
-   * &#64;internal
-   *
-   * The identity-only shape replaced this message in both editions (cloud#509);
-   * both the OSS TypeScript server's and the cloud Java service's
-   * agent-execution workflows send the bare-string signal on every HITL cycle.
-   *
-   * Graceful Degradation (unchanged):
-   * If the signal fails to send (parent workflow completed, network error),
-   * the system continues to function. Users can still submit approvals directly
-   * via the AgentExecution.SubmitApproval RPC.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification}

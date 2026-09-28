@@ -253,9 +253,6 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to a skill ID.
-     * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -267,10 +264,6 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * &#64;internal
-     * Used by the runner to download and extract skill artifacts into the
-     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-     * storage key itself acts as a capability token.
      * </pre>
      */
     default void getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
@@ -285,10 +278,6 @@ public final class SkillQueryControllerGrpc {
      * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
      * limit is deliverable. Callers should try this first and fall back to
      * getArtifact against servers that predate it (UNIMPLEMENTED).
-     * &#64;internal
-     * Authorization is skipped for the same reason as getArtifact: the
-     * content-hash storage key acts as the capability token. Cloud returns a
-     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
      * </pre>
      */
     default void getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
@@ -302,9 +291,6 @@ public final class SkillQueryControllerGrpc {
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
      * git provenance, and artifact storage key for historical artifact access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the skill.
-     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
      * </pre>
      */
     default void listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request,
@@ -364,9 +350,6 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to a skill ID.
-     * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -379,10 +362,6 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * &#64;internal
-     * Used by the runner to download and extract skill artifacts into the
-     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-     * storage key itself acts as a capability token.
      * </pre>
      */
     public void getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
@@ -398,10 +377,6 @@ public final class SkillQueryControllerGrpc {
      * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
      * limit is deliverable. Callers should try this first and fall back to
      * getArtifact against servers that predate it (UNIMPLEMENTED).
-     * &#64;internal
-     * Authorization is skipped for the same reason as getArtifact: the
-     * content-hash storage key acts as the capability token. Cloud returns a
-     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
      * </pre>
      */
     public void getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
@@ -416,9 +391,6 @@ public final class SkillQueryControllerGrpc {
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
      * git provenance, and artifact storage key for historical artifact access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the skill.
-     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public void listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request,
@@ -464,9 +436,6 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to a skill ID.
-     * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -478,10 +447,6 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * &#64;internal
-     * Used by the runner to download and extract skill artifacts into the
-     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-     * storage key itself acts as a capability token.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) throws io.grpc.StatusException {
@@ -496,10 +461,6 @@ public final class SkillQueryControllerGrpc {
      * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
      * limit is deliverable. Callers should try this first and fall back to
      * getArtifact against servers that predate it (UNIMPLEMENTED).
-     * &#64;internal
-     * Authorization is skipped for the same reason as getArtifact: the
-     * content-hash storage key acts as the capability token. Cloud returns a
-     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) throws io.grpc.StatusException {
@@ -513,9 +474,6 @@ public final class SkillQueryControllerGrpc {
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
      * git provenance, and artifact storage key for historical artifact access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the skill.
-     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request) throws io.grpc.StatusException {
@@ -560,9 +518,6 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to a skill ID.
-     * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.Skill getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -574,10 +529,6 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * &#64;internal
-     * Used by the runner to download and extract skill artifacts into the
-     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-     * storage key itself acts as a capability token.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
@@ -592,10 +543,6 @@ public final class SkillQueryControllerGrpc {
      * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
      * limit is deliverable. Callers should try this first and fall back to
      * getArtifact against servers that predate it (UNIMPLEMENTED).
-     * &#64;internal
-     * Authorization is skipped for the same reason as getArtifact: the
-     * content-hash storage key acts as the capability token. Cloud returns a
-     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
@@ -609,9 +556,6 @@ public final class SkillQueryControllerGrpc {
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
      * git provenance, and artifact storage key for historical artifact access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the skill.
-     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request) {
@@ -657,9 +601,6 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns the current version
      * - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
      * - SHA256 hash (64 hex chars) → Returns the exact immutable version
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the reference to a skill ID.
-     * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> getByReference(
@@ -672,10 +613,6 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * &#64;internal
-     * Used by the runner to download and extract skill artifacts into the
-     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
-     * storage key itself acts as a capability token.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.GetArtifactResponse> getArtifact(
@@ -691,10 +628,6 @@ public final class SkillQueryControllerGrpc {
      * message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill
      * limit is deliverable. Callers should try this first and fall back to
      * getArtifact against servers that predate it (UNIMPLEMENTED).
-     * &#64;internal
-     * Authorization is skipped for the same reason as getArtifact: the
-     * content-hash storage key acts as the capability token. Cloud returns a
-     * pre-signed R2 URL; OSS returns a capability URL on its own HTTP lane.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl> getArtifactDownloadUrl(
@@ -709,9 +642,6 @@ public final class SkillQueryControllerGrpc {
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
      * git provenance, and artifact storage key for historical artifact access.
-     * &#64;internal
-     * Authorization is handled in the handler after resolving the skill.
-     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> listVersions(

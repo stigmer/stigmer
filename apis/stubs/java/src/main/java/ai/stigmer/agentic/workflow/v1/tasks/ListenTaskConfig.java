@@ -8,20 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
- *
- * &#64;internal
- * Implemented via Temporal signals.
- *
- * YAML Example:
- * - taskName:
- * listen:
- * to:
- * one:
- * with:
- * id: approval_signal
- * type: signal
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig}
@@ -270,20 +256,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
-   *
-   * &#64;internal
-   * Implemented via Temporal signals.
-   *
-   * YAML Example:
-   * - taskName:
-   * listen:
-   * to:
-   * one:
-   * with:
-   * id: approval_signal
-   * type: signal
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig}

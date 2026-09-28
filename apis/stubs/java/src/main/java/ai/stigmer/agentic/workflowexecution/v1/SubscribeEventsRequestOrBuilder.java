@@ -13,9 +13,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -39,13 +33,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Resume from this sequence number (replay + live tail).
-   *
-   * &#64;internal
-   * 0 = start from the beginning (replay all events then live tail).
-   * N = replay events with sequence_number &gt; N, then live tail.
-   *
-   * Use the latest_sequence from a previous getEventLog response or
-   * the last received event's sequence_number for reconnection.
    * </pre>
    *
    * <code>uint64 after_sequence = 2 [json_name = "afterSequence"];</code>
@@ -56,10 +43,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -69,10 +52,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -82,10 +61,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -96,10 +71,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>
@@ -110,10 +81,6 @@ public interface SubscribeEventsRequestOrBuilder extends
   /**
    * <pre>
    * Optional filter: stream only events of these types.
-   *
-   * &#64;internal
-   * When empty, all event types are streamed.
-   * Applied to both replayed and live events.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3 [json_name = "eventTypes"];</code>

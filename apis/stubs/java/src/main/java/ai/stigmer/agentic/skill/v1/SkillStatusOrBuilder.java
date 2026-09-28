@@ -13,9 +13,6 @@ public interface SkillStatusOrBuilder extends
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -25,9 +22,6 @@ public interface SkillStatusOrBuilder extends
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -37,9 +31,6 @@ public interface SkillStatusOrBuilder extends
   /**
    * <pre>
    * Standard audit information tracking creation and modification.
-   *
-   * &#64;internal
-   * Field 99 follows Stigmer convention for audit placement.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -49,9 +40,6 @@ public interface SkillStatusOrBuilder extends
   /**
    * <pre>
    * SHA256 hash of the skill artifact, used as the immutable version identifier.
-   *
-   * &#64;internal
-   * Calculated by the system from the uploaded artifact ZIP.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
@@ -61,9 +49,6 @@ public interface SkillStatusOrBuilder extends
   /**
    * <pre>
    * SHA256 hash of the skill artifact, used as the immutable version identifier.
-   *
-   * &#64;internal
-   * Calculated by the system from the uploaded artifact ZIP.
    * </pre>
    *
    * <code>string version_hash = 1 [json_name = "versionHash", (.buf.validate.field) = { ... }</code>
@@ -75,12 +60,6 @@ public interface SkillStatusOrBuilder extends
   /**
    * <pre>
    * Storage key for the skill artifact.
-   *
-   * &#64;internal
-   * Format varies based on storage backend:
-   * - Local: "&lt;hash&gt;.zip"
-   * - Cloud: "skills/&lt;slug&gt;_&lt;hash&gt;.zip"
-   * Determined by the system based on storage configuration.
    * </pre>
    *
    * <code>string artifact_storage_key = 2 [json_name = "artifactStorageKey"];</code>
@@ -90,12 +69,6 @@ public interface SkillStatusOrBuilder extends
   /**
    * <pre>
    * Storage key for the skill artifact.
-   *
-   * &#64;internal
-   * Format varies based on storage backend:
-   * - Local: "&lt;hash&gt;.zip"
-   * - Cloud: "skills/&lt;slug&gt;_&lt;hash&gt;.zip"
-   * Determined by the system based on storage configuration.
    * </pre>
    *
    * <code>string artifact_storage_key = 2 [json_name = "artifactStorageKey"];</code>
@@ -127,10 +100,6 @@ public interface SkillStatusOrBuilder extends
    * <pre>
    * Git provenance tracking where the skill artifacts originated from.
    * Absent when pushed from a non-git directory.
-   *
-   * &#64;internal
-   * Populated by CLI during push; provides traceability and enables
-   * "view on GitHub" links and reproducible deployments.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -141,10 +110,6 @@ public interface SkillStatusOrBuilder extends
    * <pre>
    * Git provenance tracking where the skill artifacts originated from.
    * Absent when pushed from a non-git directory.
-   *
-   * &#64;internal
-   * Populated by CLI during push; provides traceability and enables
-   * "view on GitHub" links and reproducible deployments.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
@@ -155,10 +120,6 @@ public interface SkillStatusOrBuilder extends
    * <pre>
    * Git provenance tracking where the skill artifacts originated from.
    * Absent when pushed from a non-git directory.
-   *
-   * &#64;internal
-   * Populated by CLI during push; provides traceability and enables
-   * "view on GitHub" links and reproducible deployments.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>

@@ -8,26 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
- *
- * &#64;internal
- * All fields are read-only and never persisted on the McpServer document.
- *
- * Two categories, with different production stories:
- * 1. Vendor approval (fields 1-2): populated by the backend enricher on
- * every get/getByReference response, resolved from the referenced
- * OAuthApp. Tells the frontend whether the platform sign-in flow is
- * gated and provides a BYOA documentation link when approval is pending.
- * 2. BYOA resolution (fields 3-4): NEVER POPULATED, by any edition. The
- * resolution is per (server, caller's active org), and the caller's
- * active org is client-side context the read RPCs never carry — get has
- * no org, and getByReference's org is the server's OWNING org (the
- * lookup key), which differs from the caller's org when browsing another
- * org's public server. Resolving against the owning org would misreport
- * exactly the cross-org marketplace flow BYOA exists for. The shared SDK
- * instead derives the signal client-side from the getOrgOAuthApp RPC,
- * keyed on the same org the connect flow uses. The fields are retained
- * for wire compatibility and as the home of this contract note; a future
- * server-side active-org mechanism could legitimately populate them.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthStatus}
@@ -431,26 +411,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * OAuthStatus holds system-derived OAuth enrichment state for an MCP server.
-   *
-   * &#64;internal
-   * All fields are read-only and never persisted on the McpServer document.
-   *
-   * Two categories, with different production stories:
-   * 1. Vendor approval (fields 1-2): populated by the backend enricher on
-   * every get/getByReference response, resolved from the referenced
-   * OAuthApp. Tells the frontend whether the platform sign-in flow is
-   * gated and provides a BYOA documentation link when approval is pending.
-   * 2. BYOA resolution (fields 3-4): NEVER POPULATED, by any edition. The
-   * resolution is per (server, caller's active org), and the caller's
-   * active org is client-side context the read RPCs never carry — get has
-   * no org, and getByReference's org is the server's OWNING org (the
-   * lookup key), which differs from the caller's org when browsing another
-   * org's public server. Resolving against the owning org would misreport
-   * exactly the cross-org marketplace flow BYOA exists for. The shared SDK
-   * instead derives the signal client-side from the getOrgOAuthApp RPC,
-   * keyed on the same org the connect flow uses. The fields are retained
-   * for wire compatibility and as the home of this contract note; a future
-   * server-side active-org mechanism could legitimately populate them.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthStatus}

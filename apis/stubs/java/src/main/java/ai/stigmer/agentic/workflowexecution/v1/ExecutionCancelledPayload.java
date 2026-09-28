@@ -8,9 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for execution_cancelled events.
- *
- * &#64;internal
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionCancelledPayload}
@@ -320,9 +317,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for execution_cancelled events.
-   *
-   * &#64;internal
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionCancelledPayload}

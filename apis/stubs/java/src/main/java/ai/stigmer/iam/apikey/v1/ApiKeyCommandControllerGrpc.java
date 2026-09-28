@@ -179,8 +179,6 @@ public final class ApiKeyCommandControllerGrpc {
      * Create an API key for the authenticated user.
      * The raw key value is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * &#64;internal
-     * Any authenticated user can create API keys, so authorization is skipped.
      * </pre>
      */
     default void create(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -191,8 +189,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing API key.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the API key resource.
      * </pre>
      */
     default void update(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -203,8 +199,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Delete an API key.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the API key resource.
      * </pre>
      */
     default void delete(ai.stigmer.iam.apikey.v1.ApiKeyId request,
@@ -251,8 +245,6 @@ public final class ApiKeyCommandControllerGrpc {
      * Create an API key for the authenticated user.
      * The raw key value is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * &#64;internal
-     * Any authenticated user can create API keys, so authorization is skipped.
      * </pre>
      */
     public void create(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -264,8 +256,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing API key.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the API key resource.
      * </pre>
      */
     public void update(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -277,8 +267,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Delete an API key.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the API key resource.
      * </pre>
      */
     public void delete(ai.stigmer.iam.apikey.v1.ApiKeyId request,
@@ -312,8 +300,6 @@ public final class ApiKeyCommandControllerGrpc {
      * Create an API key for the authenticated user.
      * The raw key value is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * &#64;internal
-     * Any authenticated user can create API keys, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey create(ai.stigmer.iam.apikey.v1.ApiKey request) throws io.grpc.StatusException {
@@ -324,8 +310,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing API key.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the API key resource.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.ApiKey request) throws io.grpc.StatusException {
@@ -336,8 +320,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Delete an API key.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the API key resource.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey delete(ai.stigmer.iam.apikey.v1.ApiKeyId request) throws io.grpc.StatusException {
@@ -370,8 +352,6 @@ public final class ApiKeyCommandControllerGrpc {
      * Create an API key for the authenticated user.
      * The raw key value is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * &#64;internal
-     * Any authenticated user can create API keys, so authorization is skipped.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey create(ai.stigmer.iam.apikey.v1.ApiKey request) {
@@ -382,8 +362,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing API key.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the API key resource.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.ApiKey request) {
@@ -394,8 +372,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Delete an API key.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the API key resource.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey delete(ai.stigmer.iam.apikey.v1.ApiKeyId request) {
@@ -428,8 +404,6 @@ public final class ApiKeyCommandControllerGrpc {
      * Create an API key for the authenticated user.
      * The raw key value is included in the response and is never returned again.
      * Store it securely before discarding the response.
-     * &#64;internal
-     * Any authenticated user can create API keys, so authorization is skipped.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> create(
@@ -441,8 +415,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing API key.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the API key resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> update(
@@ -454,8 +426,6 @@ public final class ApiKeyCommandControllerGrpc {
     /**
      * <pre>
      * Delete an API key.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the API key resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> delete(

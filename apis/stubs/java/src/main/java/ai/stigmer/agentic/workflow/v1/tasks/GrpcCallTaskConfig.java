@@ -8,18 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
- *
- * &#64;internal
- * YAML Example:
- * - taskName:
- * call: grpc
- * with:
- * service: "com.example.UserService"
- * method: "GetUser"
- * request:
- * userId: ${ .userId }
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig}
@@ -394,18 +382,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
-   *
-   * &#64;internal
-   * YAML Example:
-   * - taskName:
-   * call: grpc
-   * with:
-   * service: "com.example.UserService"
-   * method: "GetUser"
-   * request:
-   * userId: ${ .userId }
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig}

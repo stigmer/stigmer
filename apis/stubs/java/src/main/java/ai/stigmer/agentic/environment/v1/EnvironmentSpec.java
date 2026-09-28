@@ -8,9 +8,6 @@ package ai.stigmer.agentic.environment.v1;
 /**
  * <pre>
  * EnvironmentSpec defines the configurable properties of an environment.
- *
- * &#64;internal
- * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentSpec}
@@ -395,9 +392,6 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
   /**
    * <pre>
    * EnvironmentSpec defines the configurable properties of an environment.
-   *
-   * &#64;internal
-   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentSpec}

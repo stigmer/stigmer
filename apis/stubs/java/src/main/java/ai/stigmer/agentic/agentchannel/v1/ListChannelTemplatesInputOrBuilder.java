@@ -60,12 +60,6 @@ public interface ListChannelTemplatesInputOrBuilder extends
    * <pre>
    * When true, only templates the provider will accept for sending are
    * returned (WhatsApp: status APPROVED, filtered server-side).
-   *
-   * &#64;internal
-   * The two callers split on this flag: the runner's discovery fetch
-   * sets it (an agent must never compose against a paused or pending
-   * template, DD-003 D5); the console leaves it unset to render every
-   * status with its badge (DD-003 D10).
    * </pre>
    *
    * <code>bool approved_only = 3 [json_name = "approvedOnly"];</code>

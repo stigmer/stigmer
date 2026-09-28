@@ -13,15 +13,6 @@ package ai.stigmer.platform.v1;
  * token_type=pool_sandbox credential (carrying its pool_member_id claim). When
  * the control plane claims it for a session, the member presents this arm to
  * exchange that credential for the session's sandbox token.
- *
- * &#64;internal
- * Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
- * row for the caller token's pool_member_id must be CLAIMED for exactly this
- * session_id (the DB is the authorization source). Identity and org are minted
- * from the values the claimer recorded on that row — never from the client —
- * and the TTL is the config-owned standard sandbox TTL, like every session
- * token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
- * OSS has no pool and mints nothing (empty output, presence-based contract).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.v1.PoolClaim}
@@ -280,15 +271,6 @@ private static final long serialVersionUID = 0L;
    * token_type=pool_sandbox credential (carrying its pool_member_id claim). When
    * the control plane claims it for a session, the member presents this arm to
    * exchange that credential for the session's sandbox token.
-   *
-   * &#64;internal
-   * Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
-   * row for the caller token's pool_member_id must be CLAIMED for exactly this
-   * session_id (the DB is the authorization source). Identity and org are minted
-   * from the values the claimer recorded on that row — never from the client —
-   * and the TTL is the config-owned standard sandbox TTL, like every session
-   * token (stigmer-cloud#256; renewal, not lifetime, carries long conversations).
-   * OSS has no pool and mints nothing (empty output, presence-based contract).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.v1.PoolClaim}

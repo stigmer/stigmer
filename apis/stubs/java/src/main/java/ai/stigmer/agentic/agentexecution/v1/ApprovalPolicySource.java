@@ -15,11 +15,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * merged policy) and persisted on ToolCall.approval_policy_source, exactly as
  * ToolCall.tool_kind is set and persisted. Clients render it to answer "why was
  * this tool gated or auto-approved?".
- *
- * &#64;internal
- * Mirrors the runner's internal PolicySource union (approval-policy.ts) one for
- * one. Layered precedence: a pinned or agent override wins over the classifier
- * default; a lease or the global bypass clears an otherwise-required approval.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource}

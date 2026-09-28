@@ -8,32 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * McpServerAuth configures automated credential acquisition via OAuth.
- *
- * &#64;internal
- * Two authentication modes are determined by the presence of oauth_app_ref:
- *
- * - When oauth_app_ref is empty: the MCP server implements the MCP
- * Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
- * Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
- * from the server URL. No OAuthApp resource is needed — credentials are
- * obtained automatically via DCR.
- *
- * - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
- * app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
- * The referenced OAuthApp holds the client_id, client_secret, and endpoint
- * URLs needed for the authorization code flow.
- *
- * In both cases, the acquired access token is stored in a system-managed
- * environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
- * token (if issued by the vendor) is stored alongside as
- * {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
- * is recorded on the OAuthGrant for all subsequent reads and refreshes.
- *
- * Token lifecycle:
- * - Pre-flight check before execution: if the access token is expired,
- * the backend uses the refresh token to obtain a new one automatically.
- * - If the refresh token is also expired: execution fails with a clear
- * error, and the user re-authenticates from the MCP server Connect page.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServerAuth}
@@ -659,32 +633,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * McpServerAuth configures automated credential acquisition via OAuth.
-   *
-   * &#64;internal
-   * Two authentication modes are determined by the presence of oauth_app_ref:
-   *
-   * - When oauth_app_ref is empty: the MCP server implements the MCP
-   * Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client
-   * Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything
-   * from the server URL. No OAuthApp resource is needed — credentials are
-   * obtained automatically via DCR.
-   *
-   * - When oauth_app_ref is set: the MCP server requires pre-registered OAuth
-   * app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).
-   * The referenced OAuthApp holds the client_id, client_secret, and endpoint
-   * URLs needed for the authorization code flow.
-   *
-   * In both cases, the acquired access token is stored in a system-managed
-   * environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
-   * token (if issued by the vendor) is stored alongside as
-   * {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
-   * is recorded on the OAuthGrant for all subsequent reads and refreshes.
-   *
-   * Token lifecycle:
-   * - Pre-flight check before execution: if the access token is expired,
-   * the backend uses the refresh token to obtain a new one automatically.
-   * - If the refresh token is also expired: execution fails with a clear
-   * error, and the user re-authenticates from the MCP server Connect page.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServerAuth}

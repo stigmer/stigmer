@@ -8,21 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
- *
- * &#64;internal
- * This is a point-in-time snapshot — the server's actual capabilities may change
- * if tools are added or removed.
- *
- * Tools vs Resource Templates:
- * - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
- * Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.
- * - resource_templates: Read-only data endpoints accessed by URI template.
- * Resource template names must NEVER appear in enabled_tools — such a name
- * never matches a discovered tool, so the runner warns and ignores it
- * (enforcing the intersection with the live toolset).
- *
- * Populated by the connect RPC (web console, CLI, or the runner's
- * first-time-use backfill).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}
@@ -431,21 +416,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
-   *
-   * &#64;internal
-   * This is a point-in-time snapshot — the server's actual capabilities may change
-   * if tools are added or removed.
-   *
-   * Tools vs Resource Templates:
-   * - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
-   * Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.
-   * - resource_templates: Read-only data endpoints accessed by URI template.
-   * Resource template names must NEVER appear in enabled_tools — such a name
-   * never matches a discovered tool, so the runner warns and ignores it
-   * (enforcing the intersection with the live toolset).
-   *
-   * Populated by the connect RPC (web console, CLI, or the runner's
-   * first-time-use backfill).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities}

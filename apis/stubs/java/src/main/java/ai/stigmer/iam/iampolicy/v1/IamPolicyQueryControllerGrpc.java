@@ -333,11 +333,6 @@ public final class IamPolicyQueryControllerGrpc {
      * <pre>
      * Get an IAM policy by its unique identifier.
      * Returns the full IAM policy including its principal, resource, and relation binding.
-     * &#64;internal
-     * Authorization: can_view_access on the RESOURCE the loaded policy names.
-     * The annotation carries no target on purpose — the target is inside the
-     * row — so the handler loads the policy (NOT_FOUND when absent) and then
-     * authorizes against its resource.
      * </pre>
      */
     default void get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request,
@@ -359,10 +354,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission-gated rendering (PermissionGate components)
      * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization because authorizing this RPC via IAM would
-     * recurse into IAM. Authentication is still required; the handler anchors
-     * the FGA check to the caller's identity account.
      * </pre>
      */
     default void checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request,
@@ -386,10 +377,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-     * The handler enforces principal trust instead: the caller must either BE
-     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     default void checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request,
@@ -408,14 +395,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Bulk authorization checks
      * Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation
      * Output: AuthorizedResourceIdsList containing all accessible resource IDs
-     * &#64;internal
-     * Skips standard authorization: the request names a PRINCIPAL and no
-     * resource, so there is no target for a permission check. The handler
-     * enforces checkAuthorization's principal-trust rule instead — a user
-     * may ask only about their own identity account; machine and in-process
-     * callers may ask about any principal. (A can_view_access annotation
-     * with no target would resolve to an empty check that an enforcing
-     * authorizer denies for every caller — stigmer#1073.)
      * </pre>
      */
     default void listAuthorizedResourceIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput request,
@@ -434,9 +413,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Compliance and security audits
      * Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
      * Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource — the same
-     * target listResourceAccessByPrincipal enforces for the same question.
      * </pre>
      */
     default void listAuthorizedPrincipalIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput request,
@@ -456,8 +432,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Access audit views
      * Input: ListResourceAccessInput with resource ref and include_inherited flag
      * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     default void listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request,
@@ -476,8 +450,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission summary for a specific user-resource pair
      * Input: PrincipalResourceInput with principal and resource refs
      * Output: PrincipalResourceRoles with list of RoleInfo entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     default void getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request,
@@ -495,8 +467,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Settings page member summary
      * Input: GetPrincipalsCountInput with org_id and principal_kind
      * Output: PrincipalsCount with integer count
-     * &#64;internal
-     * Authorization: can_view_access on the organization named by org_id.
      * </pre>
      */
     default void getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request,
@@ -542,11 +512,6 @@ public final class IamPolicyQueryControllerGrpc {
      * <pre>
      * Get an IAM policy by its unique identifier.
      * Returns the full IAM policy including its principal, resource, and relation binding.
-     * &#64;internal
-     * Authorization: can_view_access on the RESOURCE the loaded policy names.
-     * The annotation carries no target on purpose — the target is inside the
-     * row — so the handler loads the policy (NOT_FOUND when absent) and then
-     * authorizes against its resource.
      * </pre>
      */
     public void get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request,
@@ -569,10 +534,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission-gated rendering (PermissionGate components)
      * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization because authorizing this RPC via IAM would
-     * recurse into IAM. Authentication is still required; the handler anchors
-     * the FGA check to the caller's identity account.
      * </pre>
      */
     public void checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request,
@@ -597,10 +558,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-     * The handler enforces principal trust instead: the caller must either BE
-     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public void checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request,
@@ -620,14 +577,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Bulk authorization checks
      * Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation
      * Output: AuthorizedResourceIdsList containing all accessible resource IDs
-     * &#64;internal
-     * Skips standard authorization: the request names a PRINCIPAL and no
-     * resource, so there is no target for a permission check. The handler
-     * enforces checkAuthorization's principal-trust rule instead — a user
-     * may ask only about their own identity account; machine and in-process
-     * callers may ask about any principal. (A can_view_access annotation
-     * with no target would resolve to an empty check that an enforcing
-     * authorizer denies for every caller — stigmer#1073.)
      * </pre>
      */
     public void listAuthorizedResourceIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput request,
@@ -647,9 +596,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Compliance and security audits
      * Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
      * Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource — the same
-     * target listResourceAccessByPrincipal enforces for the same question.
      * </pre>
      */
     public void listAuthorizedPrincipalIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput request,
@@ -670,8 +616,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Access audit views
      * Input: ListResourceAccessInput with resource ref and include_inherited flag
      * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public void listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request,
@@ -691,8 +635,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission summary for a specific user-resource pair
      * Input: PrincipalResourceInput with principal and resource refs
      * Output: PrincipalResourceRoles with list of RoleInfo entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public void getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request,
@@ -711,8 +653,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Settings page member summary
      * Input: GetPrincipalsCountInput with org_id and principal_kind
      * Output: PrincipalsCount with integer count
-     * &#64;internal
-     * Authorization: can_view_access on the organization named by org_id.
      * </pre>
      */
     public void getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request,
@@ -745,11 +685,6 @@ public final class IamPolicyQueryControllerGrpc {
      * <pre>
      * Get an IAM policy by its unique identifier.
      * Returns the full IAM policy including its principal, resource, and relation binding.
-     * &#64;internal
-     * Authorization: can_view_access on the RESOURCE the loaded policy names.
-     * The annotation carries no target on purpose — the target is inside the
-     * row — so the handler loads the policy (NOT_FOUND when absent) and then
-     * authorizes against its resource.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request) throws io.grpc.StatusException {
@@ -771,10 +706,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission-gated rendering (PermissionGate components)
      * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization because authorizing this RPC via IAM would
-     * recurse into IAM. Authentication is still required; the handler anchors
-     * the FGA check to the caller's identity account.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request) throws io.grpc.StatusException {
@@ -798,10 +729,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-     * The handler enforces principal trust instead: the caller must either BE
-     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request) throws io.grpc.StatusException {
@@ -820,14 +747,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Bulk authorization checks
      * Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation
      * Output: AuthorizedResourceIdsList containing all accessible resource IDs
-     * &#64;internal
-     * Skips standard authorization: the request names a PRINCIPAL and no
-     * resource, so there is no target for a permission check. The handler
-     * enforces checkAuthorization's principal-trust rule instead — a user
-     * may ask only about their own identity account; machine and in-process
-     * callers may ask about any principal. (A can_view_access annotation
-     * with no target would resolve to an empty check that an enforcing
-     * authorizer denies for every caller — stigmer#1073.)
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList listAuthorizedResourceIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput request) throws io.grpc.StatusException {
@@ -846,9 +765,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Compliance and security audits
      * Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
      * Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource — the same
-     * target listResourceAccessByPrincipal enforces for the same question.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList listAuthorizedPrincipalIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput request) throws io.grpc.StatusException {
@@ -868,8 +784,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Access audit views
      * Input: ListResourceAccessInput with resource ref and include_inherited flag
      * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request) throws io.grpc.StatusException {
@@ -888,8 +802,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission summary for a specific user-resource pair
      * Input: PrincipalResourceInput with principal and resource refs
      * Output: PrincipalResourceRoles with list of RoleInfo entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request) throws io.grpc.StatusException {
@@ -907,8 +819,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Settings page member summary
      * Input: GetPrincipalsCountInput with org_id and principal_kind
      * Output: PrincipalsCount with integer count
-     * &#64;internal
-     * Authorization: can_view_access on the organization named by org_id.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.PrincipalsCount getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request) throws io.grpc.StatusException {
@@ -940,11 +850,6 @@ public final class IamPolicyQueryControllerGrpc {
      * <pre>
      * Get an IAM policy by its unique identifier.
      * Returns the full IAM policy including its principal, resource, and relation binding.
-     * &#64;internal
-     * Authorization: can_view_access on the RESOURCE the loaded policy names.
-     * The annotation carries no target on purpose — the target is inside the
-     * row — so the handler loads the policy (NOT_FOUND when absent) and then
-     * authorizes against its resource.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request) {
@@ -966,10 +871,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission-gated rendering (PermissionGate components)
      * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization because authorizing this RPC via IAM would
-     * recurse into IAM. Authentication is still required; the handler anchors
-     * the FGA check to the caller's identity account.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkMyPermission(ai.stigmer.iam.iampolicy.v1.CheckMyPermissionInput request) {
@@ -993,10 +894,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-     * The handler enforces principal trust instead: the caller must either BE
-     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult checkAuthorization(ai.stigmer.iam.iampolicy.v1.CheckAuthorizationInput request) {
@@ -1015,14 +912,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Bulk authorization checks
      * Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation
      * Output: AuthorizedResourceIdsList containing all accessible resource IDs
-     * &#64;internal
-     * Skips standard authorization: the request names a PRINCIPAL and no
-     * resource, so there is no target for a permission check. The handler
-     * enforces checkAuthorization's principal-trust rule instead — a user
-     * may ask only about their own identity account; machine and in-process
-     * callers may ask about any principal. (A can_view_access annotation
-     * with no target would resolve to an empty check that an enforcing
-     * authorizer denies for every caller — stigmer#1073.)
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList listAuthorizedResourceIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput request) {
@@ -1041,9 +930,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Compliance and security audits
      * Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
      * Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource — the same
-     * target listResourceAccessByPrincipal enforces for the same question.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList listAuthorizedPrincipalIds(ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput request) {
@@ -1063,8 +949,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Access audit views
      * Input: ListResourceAccessInput with resource ref and include_inherited flag
      * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList listResourceAccessByPrincipal(ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput request) {
@@ -1083,8 +967,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission summary for a specific user-resource pair
      * Input: PrincipalResourceInput with principal and resource refs
      * Output: PrincipalResourceRoles with list of RoleInfo entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles getPrincipalResourceRoles(ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput request) {
@@ -1102,8 +984,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Settings page member summary
      * Input: GetPrincipalsCountInput with org_id and principal_kind
      * Output: PrincipalsCount with integer count
-     * &#64;internal
-     * Authorization: can_view_access on the organization named by org_id.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.PrincipalsCount getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request) {
@@ -1135,11 +1015,6 @@ public final class IamPolicyQueryControllerGrpc {
      * <pre>
      * Get an IAM policy by its unique identifier.
      * Returns the full IAM policy including its principal, resource, and relation binding.
-     * &#64;internal
-     * Authorization: can_view_access on the RESOURCE the loaded policy names.
-     * The annotation carries no target on purpose — the target is inside the
-     * row — so the handler loads the policy (NOT_FOUND when absent) and then
-     * authorizes against its resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.IamPolicy> get(
@@ -1162,10 +1037,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission-gated rendering (PermissionGate components)
      * Input: CheckMyPermissionInput with resource, relation, and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization because authorizing this RPC via IAM would
-     * recurse into IAM. Authentication is still required; the handler anchors
-     * the FGA check to the caller's identity account.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> checkMyPermission(
@@ -1190,10 +1061,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Team-based access checks
      * Input: CheckAuthorizationInput with policy spec and optional contextual policies
      * Output: CheckAuthorizationResult with is_authorized boolean
-     * &#64;internal
-     * Skips standard authorization to avoid IAM-authorizing-IAM recursion.
-     * The handler enforces principal trust instead: the caller must either BE
-     * the principal being checked, or be a machine (system) account.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.CheckAuthorizationResult> checkAuthorization(
@@ -1213,14 +1080,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Bulk authorization checks
      * Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relation
      * Output: AuthorizedResourceIdsList containing all accessible resource IDs
-     * &#64;internal
-     * Skips standard authorization: the request names a PRINCIPAL and no
-     * resource, so there is no target for a permission check. The handler
-     * enforces checkAuthorization's principal-trust rule instead — a user
-     * may ask only about their own identity account; machine and in-process
-     * callers may ask about any principal. (A can_view_access annotation
-     * with no target would resolve to an empty check that an enforcing
-     * authorizer denies for every caller — stigmer#1073.)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.AuthorizedResourceIdsList> listAuthorizedResourceIds(
@@ -1240,9 +1099,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Compliance and security audits
      * Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relation
      * Output: AuthorizedPrincipalIdsList containing all authorized principal IDs
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource — the same
-     * target listResourceAccessByPrincipal enforces for the same question.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.AuthorizedPrincipalIdsList> listAuthorizedPrincipalIds(
@@ -1263,8 +1119,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Access audit views
      * Input: ListResourceAccessInput with resource ref and include_inherited flag
      * Output: ResourceAccessByPrincipalList with PrincipalAccess entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList> listResourceAccessByPrincipal(
@@ -1284,8 +1138,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Permission summary for a specific user-resource pair
      * Input: PrincipalResourceInput with principal and resource refs
      * Output: PrincipalResourceRoles with list of RoleInfo entries
-     * &#64;internal
-     * Authorization: can_view_access on the queried resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles> getPrincipalResourceRoles(
@@ -1304,8 +1156,6 @@ public final class IamPolicyQueryControllerGrpc {
      * - Settings page member summary
      * Input: GetPrincipalsCountInput with org_id and principal_kind
      * Output: PrincipalsCount with integer count
-     * &#64;internal
-     * Authorization: can_view_access on the organization named by org_id.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.PrincipalsCount> getPrincipalsCount(

@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agentinstance.v1;
 /**
  * <pre>
  * AgentInstance defines a configured deployment of an Agent template.
- *
- * &#64;internal
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstance}
@@ -156,9 +154,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, scope, and labels.
-   *
-   * &#64;internal
-   * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -171,9 +166,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, scope, and labels.
-   *
-   * &#64;internal
-   * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -186,9 +178,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, scope, and labels.
-   *
-   * &#64;internal
-   * AgentInstances can have platform, organization, or identity_account scope.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -491,8 +480,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * AgentInstance defines a configured deployment of an Agent template.
-   *
-   * &#64;internal
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstance}
@@ -909,9 +896,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -923,9 +907,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -941,9 +922,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -964,9 +942,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -985,9 +960,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1013,9 +985,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1033,9 +1002,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1048,9 +1014,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1066,9 +1029,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, scope, and labels.
-     *
-     * &#64;internal
-     * AgentInstances can have platform, organization, or identity_account scope.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

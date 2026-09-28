@@ -8,12 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ArtifactStatus contains system-managed state for an artifact.
- *
- * &#64;internal
- * Populated by the backend at creation time and updated by the GC job.
- * Users cannot modify status fields directly.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactStatus}
@@ -106,12 +100,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SHA-256 hash of the artifact content, hex-encoded (64 characters).
-   *
-   * &#64;internal
-   * Used as the blob storage key in the content-addressable store.
-   * Two artifacts with identical content share the same blob.
-   * The hash is computed by the backend at creation time and verified
-   * on download to ensure integrity.
    * </pre>
    *
    * <code>string content_hash = 1 [json_name = "contentHash"];</code>
@@ -133,12 +121,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SHA-256 hash of the artifact content, hex-encoded (64 characters).
-   *
-   * &#64;internal
-   * Used as the blob storage key in the content-addressable store.
-   * Two artifacts with identical content share the same blob.
-   * The hash is computed by the backend at creation time and verified
-   * on download to ensure integrity.
    * </pre>
    *
    * <code>string content_hash = 1 [json_name = "contentHash"];</code>
@@ -164,10 +146,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Size of the artifact content in bytes.
-   *
-   * &#64;internal
-   * Set at creation time. Used by the UI to display file sizes and
-   * by the GC job to track storage consumption per organization.
    * </pre>
    *
    * <code>int64 size_bytes = 2 [json_name = "sizeBytes"];</code>
@@ -211,15 +189,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ISO 8601 timestamp when this artifact expires and becomes eligible
    * for garbage collection.
-   *
-   * &#64;internal
-   * Computed at creation time from spec.retention.ttl_days:
-   * - ttl_days &gt; 0: created_at + ttl_days
-   * - ttl_days == 0: created_at + org_default_retention_days
-   * - ttl_days == -1: empty (permanent, never expires)
-   *
-   * The GC job scans for artifacts where expires_at &lt; now() and
-   * transitions them to storage_state_deleted.
    * </pre>
    *
    * <code>string expires_at = 4 [json_name = "expiresAt"];</code>
@@ -242,15 +211,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ISO 8601 timestamp when this artifact expires and becomes eligible
    * for garbage collection.
-   *
-   * &#64;internal
-   * Computed at creation time from spec.retention.ttl_days:
-   * - ttl_days &gt; 0: created_at + ttl_days
-   * - ttl_days == 0: created_at + org_default_retention_days
-   * - ttl_days == -1: empty (permanent, never expires)
-   *
-   * The GC job scans for artifacts where expires_at &lt; now() and
-   * transitions them to storage_state_deleted.
    * </pre>
    *
    * <code>string expires_at = 4 [json_name = "expiresAt"];</code>
@@ -478,12 +438,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ArtifactStatus contains system-managed state for an artifact.
-   *
-   * &#64;internal
-   * Populated by the backend at creation time and updated by the GC job.
-   * Users cannot modify status fields directly.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactStatus}
@@ -851,12 +805,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash of the artifact content, hex-encoded (64 characters).
-     *
-     * &#64;internal
-     * Used as the blob storage key in the content-addressable store.
-     * Two artifacts with identical content share the same blob.
-     * The hash is computed by the backend at creation time and verified
-     * on download to ensure integrity.
      * </pre>
      *
      * <code>string content_hash = 1 [json_name = "contentHash"];</code>
@@ -877,12 +825,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash of the artifact content, hex-encoded (64 characters).
-     *
-     * &#64;internal
-     * Used as the blob storage key in the content-addressable store.
-     * Two artifacts with identical content share the same blob.
-     * The hash is computed by the backend at creation time and verified
-     * on download to ensure integrity.
      * </pre>
      *
      * <code>string content_hash = 1 [json_name = "contentHash"];</code>
@@ -904,12 +846,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash of the artifact content, hex-encoded (64 characters).
-     *
-     * &#64;internal
-     * Used as the blob storage key in the content-addressable store.
-     * Two artifacts with identical content share the same blob.
-     * The hash is computed by the backend at creation time and verified
-     * on download to ensure integrity.
      * </pre>
      *
      * <code>string content_hash = 1 [json_name = "contentHash"];</code>
@@ -927,12 +863,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash of the artifact content, hex-encoded (64 characters).
-     *
-     * &#64;internal
-     * Used as the blob storage key in the content-addressable store.
-     * Two artifacts with identical content share the same blob.
-     * The hash is computed by the backend at creation time and verified
-     * on download to ensure integrity.
      * </pre>
      *
      * <code>string content_hash = 1 [json_name = "contentHash"];</code>
@@ -947,12 +877,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * SHA-256 hash of the artifact content, hex-encoded (64 characters).
-     *
-     * &#64;internal
-     * Used as the blob storage key in the content-addressable store.
-     * Two artifacts with identical content share the same blob.
-     * The hash is computed by the backend at creation time and verified
-     * on download to ensure integrity.
      * </pre>
      *
      * <code>string content_hash = 1 [json_name = "contentHash"];</code>
@@ -973,10 +897,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Size of the artifact content in bytes.
-     *
-     * &#64;internal
-     * Set at creation time. Used by the UI to display file sizes and
-     * by the GC job to track storage consumption per organization.
      * </pre>
      *
      * <code>int64 size_bytes = 2 [json_name = "sizeBytes"];</code>
@@ -989,10 +909,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Size of the artifact content in bytes.
-     *
-     * &#64;internal
-     * Set at creation time. Used by the UI to display file sizes and
-     * by the GC job to track storage consumption per organization.
      * </pre>
      *
      * <code>int64 size_bytes = 2 [json_name = "sizeBytes"];</code>
@@ -1009,10 +925,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Size of the artifact content in bytes.
-     *
-     * &#64;internal
-     * Set at creation time. Used by the UI to display file sizes and
-     * by the GC job to track storage consumption per organization.
      * </pre>
      *
      * <code>int64 size_bytes = 2 [json_name = "sizeBytes"];</code>
@@ -1102,15 +1014,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ISO 8601 timestamp when this artifact expires and becomes eligible
      * for garbage collection.
-     *
-     * &#64;internal
-     * Computed at creation time from spec.retention.ttl_days:
-     * - ttl_days &gt; 0: created_at + ttl_days
-     * - ttl_days == 0: created_at + org_default_retention_days
-     * - ttl_days == -1: empty (permanent, never expires)
-     *
-     * The GC job scans for artifacts where expires_at &lt; now() and
-     * transitions them to storage_state_deleted.
      * </pre>
      *
      * <code>string expires_at = 4 [json_name = "expiresAt"];</code>
@@ -1132,15 +1035,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ISO 8601 timestamp when this artifact expires and becomes eligible
      * for garbage collection.
-     *
-     * &#64;internal
-     * Computed at creation time from spec.retention.ttl_days:
-     * - ttl_days &gt; 0: created_at + ttl_days
-     * - ttl_days == 0: created_at + org_default_retention_days
-     * - ttl_days == -1: empty (permanent, never expires)
-     *
-     * The GC job scans for artifacts where expires_at &lt; now() and
-     * transitions them to storage_state_deleted.
      * </pre>
      *
      * <code>string expires_at = 4 [json_name = "expiresAt"];</code>
@@ -1163,15 +1057,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ISO 8601 timestamp when this artifact expires and becomes eligible
      * for garbage collection.
-     *
-     * &#64;internal
-     * Computed at creation time from spec.retention.ttl_days:
-     * - ttl_days &gt; 0: created_at + ttl_days
-     * - ttl_days == 0: created_at + org_default_retention_days
-     * - ttl_days == -1: empty (permanent, never expires)
-     *
-     * The GC job scans for artifacts where expires_at &lt; now() and
-     * transitions them to storage_state_deleted.
      * </pre>
      *
      * <code>string expires_at = 4 [json_name = "expiresAt"];</code>
@@ -1190,15 +1075,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ISO 8601 timestamp when this artifact expires and becomes eligible
      * for garbage collection.
-     *
-     * &#64;internal
-     * Computed at creation time from spec.retention.ttl_days:
-     * - ttl_days &gt; 0: created_at + ttl_days
-     * - ttl_days == 0: created_at + org_default_retention_days
-     * - ttl_days == -1: empty (permanent, never expires)
-     *
-     * The GC job scans for artifacts where expires_at &lt; now() and
-     * transitions them to storage_state_deleted.
      * </pre>
      *
      * <code>string expires_at = 4 [json_name = "expiresAt"];</code>
@@ -1214,15 +1090,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * ISO 8601 timestamp when this artifact expires and becomes eligible
      * for garbage collection.
-     *
-     * &#64;internal
-     * Computed at creation time from spec.retention.ttl_days:
-     * - ttl_days &gt; 0: created_at + ttl_days
-     * - ttl_days == 0: created_at + org_default_retention_days
-     * - ttl_days == -1: empty (permanent, never expires)
-     *
-     * The GC job scans for artifacts where expires_at &lt; now() and
-     * transitions them to storage_state_deleted.
      * </pre>
      *
      * <code>string expires_at = 4 [json_name = "expiresAt"];</code>

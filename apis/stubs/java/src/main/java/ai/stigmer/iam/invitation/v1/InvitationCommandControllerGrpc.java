@@ -183,11 +183,6 @@ public final class InvitationCommandControllerGrpc {
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
      * Platform-managed organizations cannot create invitations.
-     * &#64;internal
-     * Authorization: Requires can_grant_access permission on the organization,
-     * and can_assign_roles on it when the role is owner (PERMISSION_DENIED
-     * otherwise): an invitation grants with its creator's authority, so it
-     * may carry no role its creator could not grant directly.
      * </pre>
      */
     default void create(ai.stigmer.iam.invitation.v1.Invitation request,
@@ -200,11 +195,6 @@ public final class InvitationCommandControllerGrpc {
      * Revoke an active invitation, preventing further redemptions.
      * Sets the invitation state to revoked. Idempotent — revoking an
      * already-revoked invitation is a no-op.
-     * &#64;internal
-     * Authorization is handled in the handler: loads the invitation,
-     * resolves its organization, and checks can_grant_access on the org.
-     * Proto-level auth is skipped because the input (InvitationId) does
-     * not directly identify the org.
      * </pre>
      */
     default void revoke(ai.stigmer.iam.invitation.v1.InvitationId request,
@@ -227,14 +217,6 @@ public final class InvitationCommandControllerGrpc {
      * - The invitation's creator must still be able to create it: a link
      *   carries its creator's authority, so it stops redeeming once they no
      *   longer hold the role it needed (FAILED_PRECONDITION)
-     * &#64;internal
-     * Authorization: The token itself is the authorization mechanism.
-     * The redeemer's identity is resolved from the authentication header.
-     * FGA authorization is skipped — any authenticated user with a valid
-     * token can redeem. The creator's standing is checked instead: the
-     * creator recorded in the invitation's audit must still hold
-     * can_grant_access on the organization, and can_assign_roles when the
-     * role is owner. An invitation with no recorded creator does not redeem.
      * </pre>
      */
     default void redeem(ai.stigmer.iam.invitation.v1.RedeemInvitationInput request,
@@ -285,11 +267,6 @@ public final class InvitationCommandControllerGrpc {
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
      * Platform-managed organizations cannot create invitations.
-     * &#64;internal
-     * Authorization: Requires can_grant_access permission on the organization,
-     * and can_assign_roles on it when the role is owner (PERMISSION_DENIED
-     * otherwise): an invitation grants with its creator's authority, so it
-     * may carry no role its creator could not grant directly.
      * </pre>
      */
     public void create(ai.stigmer.iam.invitation.v1.Invitation request,
@@ -303,11 +280,6 @@ public final class InvitationCommandControllerGrpc {
      * Revoke an active invitation, preventing further redemptions.
      * Sets the invitation state to revoked. Idempotent — revoking an
      * already-revoked invitation is a no-op.
-     * &#64;internal
-     * Authorization is handled in the handler: loads the invitation,
-     * resolves its organization, and checks can_grant_access on the org.
-     * Proto-level auth is skipped because the input (InvitationId) does
-     * not directly identify the org.
      * </pre>
      */
     public void revoke(ai.stigmer.iam.invitation.v1.InvitationId request,
@@ -331,14 +303,6 @@ public final class InvitationCommandControllerGrpc {
      * - The invitation's creator must still be able to create it: a link
      *   carries its creator's authority, so it stops redeeming once they no
      *   longer hold the role it needed (FAILED_PRECONDITION)
-     * &#64;internal
-     * Authorization: The token itself is the authorization mechanism.
-     * The redeemer's identity is resolved from the authentication header.
-     * FGA authorization is skipped — any authenticated user with a valid
-     * token can redeem. The creator's standing is checked instead: the
-     * creator recorded in the invitation's audit must still hold
-     * can_grant_access on the organization, and can_assign_roles when the
-     * role is owner. An invitation with no recorded creator does not redeem.
      * </pre>
      */
     public void redeem(ai.stigmer.iam.invitation.v1.RedeemInvitationInput request,
@@ -376,11 +340,6 @@ public final class InvitationCommandControllerGrpc {
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
      * Platform-managed organizations cannot create invitations.
-     * &#64;internal
-     * Authorization: Requires can_grant_access permission on the organization,
-     * and can_assign_roles on it when the role is owner (PERMISSION_DENIED
-     * otherwise): an invitation grants with its creator's authority, so it
-     * may carry no role its creator could not grant directly.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation create(ai.stigmer.iam.invitation.v1.Invitation request) throws io.grpc.StatusException {
@@ -393,11 +352,6 @@ public final class InvitationCommandControllerGrpc {
      * Revoke an active invitation, preventing further redemptions.
      * Sets the invitation state to revoked. Idempotent — revoking an
      * already-revoked invitation is a no-op.
-     * &#64;internal
-     * Authorization is handled in the handler: loads the invitation,
-     * resolves its organization, and checks can_grant_access on the org.
-     * Proto-level auth is skipped because the input (InvitationId) does
-     * not directly identify the org.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation revoke(ai.stigmer.iam.invitation.v1.InvitationId request) throws io.grpc.StatusException {
@@ -420,14 +374,6 @@ public final class InvitationCommandControllerGrpc {
      * - The invitation's creator must still be able to create it: a link
      *   carries its creator's authority, so it stops redeeming once they no
      *   longer hold the role it needed (FAILED_PRECONDITION)
-     * &#64;internal
-     * Authorization: The token itself is the authorization mechanism.
-     * The redeemer's identity is resolved from the authentication header.
-     * FGA authorization is skipped — any authenticated user with a valid
-     * token can redeem. The creator's standing is checked instead: the
-     * creator recorded in the invitation's audit must still hold
-     * can_grant_access on the organization, and can_assign_roles when the
-     * role is owner. An invitation with no recorded creator does not redeem.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation redeem(ai.stigmer.iam.invitation.v1.RedeemInvitationInput request) throws io.grpc.StatusException {
@@ -464,11 +410,6 @@ public final class InvitationCommandControllerGrpc {
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
      * Platform-managed organizations cannot create invitations.
-     * &#64;internal
-     * Authorization: Requires can_grant_access permission on the organization,
-     * and can_assign_roles on it when the role is owner (PERMISSION_DENIED
-     * otherwise): an invitation grants with its creator's authority, so it
-     * may carry no role its creator could not grant directly.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation create(ai.stigmer.iam.invitation.v1.Invitation request) {
@@ -481,11 +422,6 @@ public final class InvitationCommandControllerGrpc {
      * Revoke an active invitation, preventing further redemptions.
      * Sets the invitation state to revoked. Idempotent — revoking an
      * already-revoked invitation is a no-op.
-     * &#64;internal
-     * Authorization is handled in the handler: loads the invitation,
-     * resolves its organization, and checks can_grant_access on the org.
-     * Proto-level auth is skipped because the input (InvitationId) does
-     * not directly identify the org.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation revoke(ai.stigmer.iam.invitation.v1.InvitationId request) {
@@ -508,14 +444,6 @@ public final class InvitationCommandControllerGrpc {
      * - The invitation's creator must still be able to create it: a link
      *   carries its creator's authority, so it stops redeeming once they no
      *   longer hold the role it needed (FAILED_PRECONDITION)
-     * &#64;internal
-     * Authorization: The token itself is the authorization mechanism.
-     * The redeemer's identity is resolved from the authentication header.
-     * FGA authorization is skipped — any authenticated user with a valid
-     * token can redeem. The creator's standing is checked instead: the
-     * creator recorded in the invitation's audit must still hold
-     * can_grant_access on the organization, and can_assign_roles when the
-     * role is owner. An invitation with no recorded creator does not redeem.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation redeem(ai.stigmer.iam.invitation.v1.RedeemInvitationInput request) {
@@ -552,11 +480,6 @@ public final class InvitationCommandControllerGrpc {
      * The specified role must be in the organization's grantable_roles, and
      * only an owner of the organization may create an invitation for owner.
      * Platform-managed organizations cannot create invitations.
-     * &#64;internal
-     * Authorization: Requires can_grant_access permission on the organization,
-     * and can_assign_roles on it when the role is owner (PERMISSION_DENIED
-     * otherwise): an invitation grants with its creator's authority, so it
-     * may carry no role its creator could not grant directly.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitation> create(
@@ -570,11 +493,6 @@ public final class InvitationCommandControllerGrpc {
      * Revoke an active invitation, preventing further redemptions.
      * Sets the invitation state to revoked. Idempotent — revoking an
      * already-revoked invitation is a no-op.
-     * &#64;internal
-     * Authorization is handled in the handler: loads the invitation,
-     * resolves its organization, and checks can_grant_access on the org.
-     * Proto-level auth is skipped because the input (InvitationId) does
-     * not directly identify the org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitation> revoke(
@@ -598,14 +516,6 @@ public final class InvitationCommandControllerGrpc {
      * - The invitation's creator must still be able to create it: a link
      *   carries its creator's authority, so it stops redeeming once they no
      *   longer hold the role it needed (FAILED_PRECONDITION)
-     * &#64;internal
-     * Authorization: The token itself is the authorization mechanism.
-     * The redeemer's identity is resolved from the authentication header.
-     * FGA authorization is skipped — any authenticated user with a valid
-     * token can redeem. The creator's standing is checked instead: the
-     * creator recorded in the invitation's audit must still hold
-     * can_grant_access on the organization, and can_assign_roles when the
-     * role is owner. An invitation with no recorded creator does not redeem.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitation> redeem(

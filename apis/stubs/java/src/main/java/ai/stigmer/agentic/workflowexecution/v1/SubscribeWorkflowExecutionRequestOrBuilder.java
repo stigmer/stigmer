@@ -13,9 +13,6 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface SubscribeWorkflowExecutionRequestOrBuilder extends
   /**
    * <pre>
    * Execution ID to subscribe to.
-   *
-   * &#64;internal
-   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

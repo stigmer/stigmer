@@ -208,9 +208,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the organization
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     default void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -236,9 +233,6 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org_id (the integrator organization).
-     * &#64;internal
-     * No authorization required — any authenticated user can create an organization.
-     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     default void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -249,8 +243,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     default void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -262,13 +254,6 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the organization.
-     * Before the organization itself, the delete runs each edition's
-     * organization-delete steps, which remove or refuse what the edition
-     * keeps for it, then revokes every authorization row that names it; when
-     * any of these cannot complete, the delete fails with the organization in
-     * place, and a retry resumes it.
      * </pre>
      */
     default void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -313,9 +298,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the organization
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -342,9 +324,6 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org_id (the integrator organization).
-     * &#64;internal
-     * No authorization required — any authenticated user can create an organization.
-     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -356,8 +335,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -370,13 +347,6 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the organization.
-     * Before the organization itself, the delete runs each edition's
-     * organization-delete steps, which remove or refuse what the edition
-     * keeps for it, then revokes every authorization row that names it; when
-     * any of these cannot complete, the delete fails with the organization in
-     * place, and a retry resumes it.
      * </pre>
      */
     public void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -408,9 +378,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the organization
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -436,9 +403,6 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org_id (the integrator organization).
-     * &#64;internal
-     * No authorization required — any authenticated user can create an organization.
-     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -449,8 +413,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -462,13 +424,6 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the organization.
-     * Before the organization itself, the delete runs each edition's
-     * organization-delete steps, which remove or refuse what the edition
-     * keeps for it, then revokes every authorization row that names it; when
-     * any of these cannot complete, the delete fails with the organization in
-     * place, and a retry resumes it.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
@@ -499,9 +454,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the organization
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -527,9 +479,6 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org_id (the integrator organization).
-     * &#64;internal
-     * No authorization required — any authenticated user can create an organization.
-     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -540,8 +489,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -553,13 +500,6 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the organization.
-     * Before the organization itself, the delete runs each edition's
-     * organization-delete steps, which remove or refuse what the edition
-     * keeps for it, then revokes every authorization row that names it; when
-     * any of these cannot complete, the delete fails with the organization in
-     * place, and a retry resumes it.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
@@ -590,9 +530,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * &#64;internal
-     * The authorization and state-operation are determined depending on whether the organization
-     * is going to be created or updated which is determined as part of the request execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> apply(
@@ -619,9 +556,6 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org_id (the integrator organization).
-     * &#64;internal
-     * No authorization required — any authenticated user can create an organization.
-     * The creator automatically becomes the owner of the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> create(
@@ -633,8 +567,6 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * &#64;internal
-     * Authorization: Requires can_edit permission on the organization.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> update(
@@ -647,13 +579,6 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
-     * &#64;internal
-     * Authorization: Requires can_delete permission on the organization.
-     * Before the organization itself, the delete runs each edition's
-     * organization-delete steps, which remove or refuse what the edition
-     * keeps for it, then revokes every authorization row that names it; when
-     * any of these cannot complete, the delete fails with the organization in
-     * place, and a retry resumes it.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> delete(

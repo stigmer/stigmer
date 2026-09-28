@@ -8,10 +8,6 @@ package ai.stigmer.commons.apiresource;
 /**
  * <pre>
  * Event types produced by command controller RPCs across all API resources.
- *
- * &#64;internal
- * Different enums could be used per resource, but a shared enum is simpler
- * because events are converted to strings during message passing.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceEventType}

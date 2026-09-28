@@ -8,20 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
- *
- * &#64;internal
- * Follows CloudEvents semantics (type, source, subject, data) because:
- * 1. CloudEvents is a graduated CNCF project with broad ecosystem support
- * 2. The CNCF Serverless Workflow spec already uses CloudEvents
- * 3. It provides a standard envelope that external consumers can parse
- *
- * Runtime-generated fields not authored here:
- * - id: unique event identifier (UUID, generated at emit time)
- * - specversion: always "1.0"
- * - time: ISO 8601 timestamp of emission
- * - datacontenttype: always "application/json" (since data is a Struct)
- *
- * &#64;since T03 (P0 New Task Types)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec}
@@ -483,20 +469,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * EmitEventSpec defines the CloudEvents envelope for an event to be emitted.
-   *
-   * &#64;internal
-   * Follows CloudEvents semantics (type, source, subject, data) because:
-   * 1. CloudEvents is a graduated CNCF project with broad ecosystem support
-   * 2. The CNCF Serverless Workflow spec already uses CloudEvents
-   * 3. It provides a standard envelope that external consumers can parse
-   *
-   * Runtime-generated fields not authored here:
-   * - id: unique event identifier (UUID, generated at emit time)
-   * - specversion: always "1.0"
-   * - time: ISO 8601 timestamp of emission
-   * - datacontenttype: always "application/json" (since data is a Struct)
-   *
-   * &#64;since T03 (P0 New Task Types)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec}

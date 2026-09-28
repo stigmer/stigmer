@@ -14,16 +14,6 @@ package ai.stigmer.agentic.memory.v1;
  * recalled into that person's future agent executions as background
  * context. Every memory is individually listable, editable, and
  * deletable — the record is the trust surface over the recall seam.
- *
- * &#64;internal
- * DD-004: system-generated kind (no apply RPC — nobody authors a memory
- * manifest), org-scoped with a subject identity-account tuple, so
- * cross-org recall is structurally impossible and content visibility is
- * subject-only. The lifecycle (proposed → confirmed/rejected) lives in
- * status with confirm/reject as its sole writers (DD-005 D3); the fact
- * text lives in spec and is the subject's to edit after capture. Kind
- * number 57, id prefix "mem". Recall (DD-006) reads confirmed records
- * only; capture (DD-005) is the create RPC behind the remember tool.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.memory.v1.Memory}
@@ -502,16 +492,6 @@ private static final long serialVersionUID = 0L;
    * recalled into that person's future agent executions as background
    * context. Every memory is individually listable, editable, and
    * deletable — the record is the trust surface over the recall seam.
-   *
-   * &#64;internal
-   * DD-004: system-generated kind (no apply RPC — nobody authors a memory
-   * manifest), org-scoped with a subject identity-account tuple, so
-   * cross-org recall is structurally impossible and content visibility is
-   * subject-only. The lifecycle (proposed → confirmed/rejected) lives in
-   * status with confirm/reject as its sole writers (DD-005 D3); the fact
-   * text lives in spec and is the subject's to edit after capture. Kind
-   * number 57, id prefix "mem". Recall (DD-006) reads confirmed records
-   * only; capture (DD-005) is the create RPC behind the remember tool.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.memory.v1.Memory}

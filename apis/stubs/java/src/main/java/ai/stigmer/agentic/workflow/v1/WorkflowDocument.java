@@ -8,9 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * WorkflowDocument contains workflow-level metadata for versioning and identification.
- *
- * &#64;internal
- * Maps to the `document:` block in Zigflow DSL YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowDocument}
@@ -494,9 +491,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowDocument contains workflow-level metadata for versioning and identification.
-   *
-   * &#64;internal
-   * Maps to the `document:` block in Zigflow DSL YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.WorkflowDocument}

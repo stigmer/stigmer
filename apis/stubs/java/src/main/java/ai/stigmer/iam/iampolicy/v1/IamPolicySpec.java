@@ -172,10 +172,6 @@ private static final long serialVersionUID = 0L;
    * The permission being granted (e.g., "admin", "viewer", "owner").
    * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
    * Examples: "admin", "editor", "viewer", "owner", "member"
-   *
-   * &#64;internal
-   * This is the FGA relation in the authorization tuple:
-   * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
    * </pre>
    *
    * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -199,10 +195,6 @@ private static final long serialVersionUID = 0L;
    * The permission being granted (e.g., "admin", "viewer", "owner").
    * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
    * Examples: "admin", "editor", "viewer", "owner", "member"
-   *
-   * &#64;internal
-   * This is the FGA relation in the authorization tuple:
-   * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
    * </pre>
    *
    * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -1024,10 +1016,6 @@ private static final long serialVersionUID = 0L;
      * The permission being granted (e.g., "admin", "viewer", "owner").
      * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
      * Examples: "admin", "editor", "viewer", "owner", "member"
-     *
-     * &#64;internal
-     * This is the FGA relation in the authorization tuple:
-     * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
      * </pre>
      *
      * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -1050,10 +1038,6 @@ private static final long serialVersionUID = 0L;
      * The permission being granted (e.g., "admin", "viewer", "owner").
      * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
      * Examples: "admin", "editor", "viewer", "owner", "member"
-     *
-     * &#64;internal
-     * This is the FGA relation in the authorization tuple:
-     * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
      * </pre>
      *
      * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -1077,10 +1061,6 @@ private static final long serialVersionUID = 0L;
      * The permission being granted (e.g., "admin", "viewer", "owner").
      * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
      * Examples: "admin", "editor", "viewer", "owner", "member"
-     *
-     * &#64;internal
-     * This is the FGA relation in the authorization tuple:
-     * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
      * </pre>
      *
      * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -1100,10 +1080,6 @@ private static final long serialVersionUID = 0L;
      * The permission being granted (e.g., "admin", "viewer", "owner").
      * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
      * Examples: "admin", "editor", "viewer", "owner", "member"
-     *
-     * &#64;internal
-     * This is the FGA relation in the authorization tuple:
-     * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
      * </pre>
      *
      * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -1120,10 +1096,6 @@ private static final long serialVersionUID = 0L;
      * The permission being granted (e.g., "admin", "viewer", "owner").
      * Maps to a role_code from ai.stigmer.iam.v1.IamRole.
      * Examples: "admin", "editor", "viewer", "owner", "member"
-     *
-     * &#64;internal
-     * This is the FGA relation in the authorization tuple:
-     * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
      * </pre>
      *
      * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>

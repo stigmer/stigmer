@@ -5,12 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ChannelAppQueryController handles read operations for channel apps.
- * &#64;internal
- * Every response passes through secret redaction — client_secret and
- * signing_secret are replaced with the redaction marker. Runtime
- * consumers that need the real values (installer, webhook receiver)
- * read the repo directly, the documented OAuthAppResolutionService
- * exception.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -176,12 +170,6 @@ public final class ChannelAppQueryControllerGrpc {
   /**
    * <pre>
    * ChannelAppQueryController handles read operations for channel apps.
-   * &#64;internal
-   * Every response passes through secret redaction — client_secret and
-   * signing_secret are replaced with the redaction marker. Runtime
-   * consumers that need the real values (installer, webhook receiver)
-   * read the repo directly, the documented OAuthAppResolutionService
-   * exception.
    * </pre>
    */
   public interface AsyncService {
@@ -190,9 +178,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its unique identifier.
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Authorization: requires can_view permission on the channel_app
-     * resource.
      * </pre>
      */
     default void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -204,9 +189,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its organization-scoped reference (org/slug).
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the OAuthApp pattern).
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -220,9 +202,6 @@ public final class ChannelAppQueryControllerGrpc {
      * Returns every ChannelApp whose metadata.org matches the input org,
      * with secret fields redacted. Typically a small set, so results are
      * not paginated.
-     * &#64;internal
-     * Authorization: requires can_view permission on the organization
-     * resource.
      * </pre>
      */
     default void listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request,
@@ -235,12 +214,6 @@ public final class ChannelAppQueryControllerGrpc {
    * Base class for the server implementation of the service ChannelAppQueryController.
    * <pre>
    * ChannelAppQueryController handles read operations for channel apps.
-   * &#64;internal
-   * Every response passes through secret redaction — client_secret and
-   * signing_secret are replaced with the redaction marker. Runtime
-   * consumers that need the real values (installer, webhook receiver)
-   * read the repo directly, the documented OAuthAppResolutionService
-   * exception.
    * </pre>
    */
   public static abstract class ChannelAppQueryControllerImplBase
@@ -255,12 +228,6 @@ public final class ChannelAppQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ChannelAppQueryController.
    * <pre>
    * ChannelAppQueryController handles read operations for channel apps.
-   * &#64;internal
-   * Every response passes through secret redaction — client_secret and
-   * signing_secret are replaced with the redaction marker. Runtime
-   * consumers that need the real values (installer, webhook receiver)
-   * read the repo directly, the documented OAuthAppResolutionService
-   * exception.
    * </pre>
    */
   public static final class ChannelAppQueryControllerStub
@@ -280,9 +247,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its unique identifier.
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Authorization: requires can_view permission on the channel_app
-     * resource.
      * </pre>
      */
     public void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -295,9 +259,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its organization-scoped reference (org/slug).
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the OAuthApp pattern).
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -312,9 +273,6 @@ public final class ChannelAppQueryControllerGrpc {
      * Returns every ChannelApp whose metadata.org matches the input org,
      * with secret fields redacted. Typically a small set, so results are
      * not paginated.
-     * &#64;internal
-     * Authorization: requires can_view permission on the organization
-     * resource.
      * </pre>
      */
     public void listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request,
@@ -328,12 +286,6 @@ public final class ChannelAppQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ChannelAppQueryController.
    * <pre>
    * ChannelAppQueryController handles read operations for channel apps.
-   * &#64;internal
-   * Every response passes through secret redaction — client_secret and
-   * signing_secret are replaced with the redaction marker. Runtime
-   * consumers that need the real values (installer, webhook receiver)
-   * read the repo directly, the documented OAuthAppResolutionService
-   * exception.
    * </pre>
    */
   public static final class ChannelAppQueryControllerBlockingV2Stub
@@ -353,9 +305,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its unique identifier.
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Authorization: requires can_view permission on the channel_app
-     * resource.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp get(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -367,9 +316,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its organization-scoped reference (org/slug).
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the OAuthApp pattern).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -383,9 +329,6 @@ public final class ChannelAppQueryControllerGrpc {
      * Returns every ChannelApp whose metadata.org matches the input org,
      * with secret fields redacted. Typically a small set, so results are
      * not paginated.
-     * &#64;internal
-     * Authorization: requires can_view permission on the organization
-     * resource.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApps listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request) throws io.grpc.StatusException {
@@ -398,12 +341,6 @@ public final class ChannelAppQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ChannelAppQueryController.
    * <pre>
    * ChannelAppQueryController handles read operations for channel apps.
-   * &#64;internal
-   * Every response passes through secret redaction — client_secret and
-   * signing_secret are replaced with the redaction marker. Runtime
-   * consumers that need the real values (installer, webhook receiver)
-   * read the repo directly, the documented OAuthAppResolutionService
-   * exception.
    * </pre>
    */
   public static final class ChannelAppQueryControllerBlockingStub
@@ -423,9 +360,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its unique identifier.
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Authorization: requires can_view permission on the channel_app
-     * resource.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp get(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -437,9 +371,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its organization-scoped reference (org/slug).
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the OAuthApp pattern).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -453,9 +384,6 @@ public final class ChannelAppQueryControllerGrpc {
      * Returns every ChannelApp whose metadata.org matches the input org,
      * with secret fields redacted. Typically a small set, so results are
      * not paginated.
-     * &#64;internal
-     * Authorization: requires can_view permission on the organization
-     * resource.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApps listByOrg(ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput request) {
@@ -468,12 +396,6 @@ public final class ChannelAppQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ChannelAppQueryController.
    * <pre>
    * ChannelAppQueryController handles read operations for channel apps.
-   * &#64;internal
-   * Every response passes through secret redaction — client_secret and
-   * signing_secret are replaced with the redaction marker. Runtime
-   * consumers that need the real values (installer, webhook receiver)
-   * read the repo directly, the documented OAuthAppResolutionService
-   * exception.
    * </pre>
    */
   public static final class ChannelAppQueryControllerFutureStub
@@ -493,9 +415,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its unique identifier.
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Authorization: requires can_view permission on the channel_app
-     * resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> get(
@@ -508,9 +427,6 @@ public final class ChannelAppQueryControllerGrpc {
      * <pre>
      * Get a channel app by its organization-scoped reference (org/slug).
      * Secret fields are redacted in the response.
-     * &#64;internal
-     * Custom authorization in handler — checks both direct resource access
-     * and organization-level visibility permissions (the OAuthApp pattern).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> getByReference(
@@ -525,9 +441,6 @@ public final class ChannelAppQueryControllerGrpc {
      * Returns every ChannelApp whose metadata.org matches the input org,
      * with secret fields redacted. Typically a small set, so results are
      * not paginated.
-     * &#64;internal
-     * Authorization: requires can_view permission on the organization
-     * resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApps> listByOrg(

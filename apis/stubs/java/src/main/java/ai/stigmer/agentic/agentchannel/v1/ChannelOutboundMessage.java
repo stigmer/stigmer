@@ -9,22 +9,6 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * ChannelOutboundMessage tracks the delivery of one business-initiated
  * message to one external recipient on an agent channel.
- *
- * &#64;internal
- * Infrastructure-only — no kind, no apiVersion, no CRUD RPCs, no FGA (the
- * ChannelDelivery posture). The proactive sibling of ChannelDelivery
- * (proactive-messaging DD-002 D1, amended by DD-004): its own claim/lease
- * store, sharing the reply lane's idiom but never its table. The row is
- * written by the send handler BEFORE any provider I/O — it is
- * simultaneously the audit trail, the rate-cap ledger, the idempotency
- * anchor for delivery retries, and (via provider_message_id) the future
- * receipt-correlation target. Attempted once inline by the send RPC;
- * attempts 2..N belong to the outbound sweep. Reuses ChannelDeliveryStatus
- * (proto3 enum values are package-scoped; a twin enum would not compile)
- * and carries NO provider-context arm: `recipient` is first-class and the
- * sender re-reads the channel per attempt for provider facts such as the
- * WhatsApp phone_number_id (DD-004 pinned behavior — a stored copy could
- * drift).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage}
@@ -235,11 +219,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Session of the originating agent run; empty for direct operator
    * sends, which have no session.
-   *
-   * &#64;internal
-   * DD-004 S-1: the per-run cap keys on session (the sandbox token
-   * carries session_id, never an execution id), so this replaces
-   * DD-002's sketched execution_id.
    * </pre>
    *
    * <code>string session_id = 4 [json_name = "sessionId"];</code>
@@ -262,11 +241,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Session of the originating agent run; empty for direct operator
    * sends, which have no session.
-   *
-   * &#64;internal
-   * DD-004 S-1: the per-run cap keys on session (the sandbox token
-   * carries session_id, never an execution id), so this replaces
-   * DD-002's sketched execution_id.
    * </pre>
    *
    * <code>string session_id = 4 [json_name = "sessionId"];</code>
@@ -539,13 +513,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Provider message id once the provider accepted (WhatsApp: wamid).
-   *
-   * &#64;internal
-   * Uniquely indexed where present — the provider-side identity of this
-   * send, kept for forensics and as the payments-era correlation anchor.
-   * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-   * wamid lands here only AFTER the provider accepts, while receipts are
-   * correlated by the send-time callback token, which can never miss.
    * </pre>
    *
    * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -567,13 +534,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Provider message id once the provider accepted (WhatsApp: wamid).
-   *
-   * &#64;internal
-   * Uniquely indexed where present — the provider-side identity of this
-   * send, kept for forensics and as the payments-era correlation anchor.
-   * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-   * wamid lands here only AFTER the provider accepts, while receipts are
-   * correlated by the send-time callback token, which can never miss.
    * </pre>
    *
    * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -717,14 +677,6 @@ private static final long serialVersionUID = 0L;
    * platform's own send attempt. `status = delivered` means "handed to
    * the provider"; `receipt_state = receipt_delivered` means "reached
    * the recipient's device".
-   *
-   * &#64;internal
-   * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-   * handler, its single writer, advancing monotonically (sent &lt;
-   * delivered &lt; read; failed is sticky-terminal) because Meta delivers
-   * receipts out of order and may skip `delivered` entirely. The stamp
-   * never touches updated_at — that timestamp belongs to the
-   * send-attempt axis.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
@@ -740,14 +692,6 @@ private static final long serialVersionUID = 0L;
    * platform's own send attempt. `status = delivered` means "handed to
    * the provider"; `receipt_state = receipt_delivered` means "reached
    * the recipient's device".
-   *
-   * &#64;internal
-   * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-   * handler, its single writer, advancing monotonically (sent &lt;
-   * delivered &lt; read; failed is sticky-terminal) because Meta delivers
-   * receipts out of order and may skip `delivered` entirely. The stamp
-   * never touches updated_at — that timestamp belongs to the
-   * send-attempt axis.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
@@ -766,10 +710,6 @@ private static final long serialVersionUID = 0L;
    * The provider's verbatim explanation when receipt_state is
    * receipt_failed (WhatsApp: the errors[0] title, plus error_data
    * details when present). Empty otherwise.
-   *
-   * &#64;internal
-   * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-   * never pattern-matched; receipt_error_code is the structured twin.
    * </pre>
    *
    * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
@@ -793,10 +733,6 @@ private static final long serialVersionUID = 0L;
    * The provider's verbatim explanation when receipt_state is
    * receipt_failed (WhatsApp: the errors[0] title, plus error_data
    * details when present). Empty otherwise.
-   *
-   * &#64;internal
-   * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-   * never pattern-matched; receipt_error_code is the structured twin.
    * </pre>
    *
    * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
@@ -886,18 +822,6 @@ private static final long serialVersionUID = 0L;
    * (the body lives in the payload's text arm), for rows written before
    * this field existed, and for sends whose registry was unreachable at
    * send time.
-   *
-   * &#64;internal
-   * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-   * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-   * lane: the conversation timeline renders a template send's bubble
-   * from THIS field, never by re-deriving from the template registry at
-   * read time — template text changes over releases, and a re-derivation
-   * would attribute today's template copy to yesterday's send. Written
-   * once by the send handlers' pre-check normalization (the DD-005 D2
-   * point where the language-resolved payload is fixed), before any
-   * provider I/O; no later writer touches it. No backfill is possible —
-   * pre-field history stays honestly unavailable (the D1-A consequence).
    * </pre>
    *
    * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
@@ -924,18 +848,6 @@ private static final long serialVersionUID = 0L;
    * (the body lives in the payload's text arm), for rows written before
    * this field existed, and for sends whose registry was unreachable at
    * send time.
-   *
-   * &#64;internal
-   * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-   * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-   * lane: the conversation timeline renders a template send's bubble
-   * from THIS field, never by re-deriving from the template registry at
-   * read time — template text changes over releases, and a re-derivation
-   * would attribute today's template copy to yesterday's send. Written
-   * once by the send handlers' pre-check normalization (the DD-005 D2
-   * point where the language-resolved payload is fixed), before any
-   * provider I/O; no later writer touches it. No backfill is possible —
-   * pre-field history stays honestly unavailable (the D1-A consequence).
    * </pre>
    *
    * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
@@ -963,13 +875,6 @@ private static final long serialVersionUID = 0L;
    * Why the send FAILED, in the platform's classification. Unspecified
    * unless status is failed (and on rows terminal before this field
    * existed). A third axis fact beside status and the receipt pair.
-   *
-   * &#64;internal
-   * cloud#262 (channel-conversations F-25): the classification that
-   * decides whether the failure's explanation may reach the conversation
-   * timeline. Written only by markFailed and the delete cascade, never by
-   * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-   * twin (its fields 18/19) carries the same contract.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
@@ -983,13 +888,6 @@ private static final long serialVersionUID = 0L;
    * Why the send FAILED, in the platform's classification. Unspecified
    * unless status is failed (and on rows terminal before this field
    * existed). A third axis fact beside status and the receipt pair.
-   *
-   * &#64;internal
-   * cloud#262 (channel-conversations F-25): the classification that
-   * decides whether the failure's explanation may reach the conversation
-   * timeline. Written only by markFailed and the delete cascade, never by
-   * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-   * twin (its fields 18/19) carries the same contract.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
@@ -1008,15 +906,6 @@ private static final long serialVersionUID = 0L;
    * The thread-safe explanation of a FAILED send, when one was authored
    * for the conversation surface. Empty unless failure_kind is
    * attempt_refused or attempt_withdrawn.
-   *
-   * &#64;internal
-   * cloud#262: PLATFORM-authored copy — for refusals this is the
-   * TERMINAL_REFUSALS mapped explanation (plus the provider's own
-   * error_data details when present), NOT the receipt axis's
-   * provider-owned vocabulary. The write side is the guarantee: only the
-   * refusal and withdrawal arms carry copy here, so raw exception text
-   * (which stays in last_error, an operator-only fact) can structurally
-   * never reach the timeline relay.
    * </pre>
    *
    * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
@@ -1040,15 +929,6 @@ private static final long serialVersionUID = 0L;
    * The thread-safe explanation of a FAILED send, when one was authored
    * for the conversation surface. Empty unless failure_kind is
    * attempt_refused or attempt_withdrawn.
-   *
-   * &#64;internal
-   * cloud#262: PLATFORM-authored copy — for refusals this is the
-   * TERMINAL_REFUSALS mapped explanation (plus the provider's own
-   * error_data details when present), NOT the receipt axis's
-   * provider-owned vocabulary. The write side is the guarantee: only the
-   * refusal and withdrawal arms carry copy here, so raw exception text
-   * (which stays in last_error, an operator-only fact) can structurally
-   * never reach the timeline relay.
    * </pre>
    *
    * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
@@ -1471,22 +1351,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ChannelOutboundMessage tracks the delivery of one business-initiated
    * message to one external recipient on an agent channel.
-   *
-   * &#64;internal
-   * Infrastructure-only — no kind, no apiVersion, no CRUD RPCs, no FGA (the
-   * ChannelDelivery posture). The proactive sibling of ChannelDelivery
-   * (proactive-messaging DD-002 D1, amended by DD-004): its own claim/lease
-   * store, sharing the reply lane's idiom but never its table. The row is
-   * written by the send handler BEFORE any provider I/O — it is
-   * simultaneously the audit trail, the rate-cap ledger, the idempotency
-   * anchor for delivery retries, and (via provider_message_id) the future
-   * receipt-correlation target. Attempted once inline by the send RPC;
-   * attempts 2..N belong to the outbound sweep. Reuses ChannelDeliveryStatus
-   * (proto3 enum values are package-scoped; a twin enum would not compile)
-   * and carries NO provider-context arm: `recipient` is first-class and the
-   * sender re-reads the channel per attempt for provider facts such as the
-   * WhatsApp phone_number_id (DD-004 pinned behavior — a stored copy could
-   * drift).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage}
@@ -2241,11 +2105,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Session of the originating agent run; empty for direct operator
      * sends, which have no session.
-     *
-     * &#64;internal
-     * DD-004 S-1: the per-run cap keys on session (the sandbox token
-     * carries session_id, never an execution id), so this replaces
-     * DD-002's sketched execution_id.
      * </pre>
      *
      * <code>string session_id = 4 [json_name = "sessionId"];</code>
@@ -2267,11 +2126,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Session of the originating agent run; empty for direct operator
      * sends, which have no session.
-     *
-     * &#64;internal
-     * DD-004 S-1: the per-run cap keys on session (the sandbox token
-     * carries session_id, never an execution id), so this replaces
-     * DD-002's sketched execution_id.
      * </pre>
      *
      * <code>string session_id = 4 [json_name = "sessionId"];</code>
@@ -2294,11 +2148,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Session of the originating agent run; empty for direct operator
      * sends, which have no session.
-     *
-     * &#64;internal
-     * DD-004 S-1: the per-run cap keys on session (the sandbox token
-     * carries session_id, never an execution id), so this replaces
-     * DD-002's sketched execution_id.
      * </pre>
      *
      * <code>string session_id = 4 [json_name = "sessionId"];</code>
@@ -2317,11 +2166,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Session of the originating agent run; empty for direct operator
      * sends, which have no session.
-     *
-     * &#64;internal
-     * DD-004 S-1: the per-run cap keys on session (the sandbox token
-     * carries session_id, never an execution id), so this replaces
-     * DD-002's sketched execution_id.
      * </pre>
      *
      * <code>string session_id = 4 [json_name = "sessionId"];</code>
@@ -2337,11 +2181,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Session of the originating agent run; empty for direct operator
      * sends, which have no session.
-     *
-     * &#64;internal
-     * DD-004 S-1: the per-run cap keys on session (the sandbox token
-     * carries session_id, never an execution id), so this replaces
-     * DD-002's sketched execution_id.
      * </pre>
      *
      * <code>string session_id = 4 [json_name = "sessionId"];</code>
@@ -2983,13 +2822,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider message id once the provider accepted (WhatsApp: wamid).
-     *
-     * &#64;internal
-     * Uniquely indexed where present — the provider-side identity of this
-     * send, kept for forensics and as the payments-era correlation anchor.
-     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-     * wamid lands here only AFTER the provider accepts, while receipts are
-     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -3010,13 +2842,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider message id once the provider accepted (WhatsApp: wamid).
-     *
-     * &#64;internal
-     * Uniquely indexed where present — the provider-side identity of this
-     * send, kept for forensics and as the payments-era correlation anchor.
-     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-     * wamid lands here only AFTER the provider accepts, while receipts are
-     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -3038,13 +2863,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider message id once the provider accepted (WhatsApp: wamid).
-     *
-     * &#64;internal
-     * Uniquely indexed where present — the provider-side identity of this
-     * send, kept for forensics and as the payments-era correlation anchor.
-     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-     * wamid lands here only AFTER the provider accepts, while receipts are
-     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -3062,13 +2880,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider message id once the provider accepted (WhatsApp: wamid).
-     *
-     * &#64;internal
-     * Uniquely indexed where present — the provider-side identity of this
-     * send, kept for forensics and as the payments-era correlation anchor.
-     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-     * wamid lands here only AFTER the provider accepts, while receipts are
-     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -3083,13 +2894,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider message id once the provider accepted (WhatsApp: wamid).
-     *
-     * &#64;internal
-     * Uniquely indexed where present — the provider-side identity of this
-     * send, kept for forensics and as the payments-era correlation anchor.
-     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
-     * wamid lands here only AFTER the provider accepts, while receipts are
-     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -3585,14 +3389,6 @@ private static final long serialVersionUID = 0L;
      * platform's own send attempt. `status = delivered` means "handed to
      * the provider"; `receipt_state = receipt_delivered` means "reached
      * the recipient's device".
-     *
-     * &#64;internal
-     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-     * handler, its single writer, advancing monotonically (sent &lt;
-     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
-     * receipts out of order and may skip `delivered` entirely. The stamp
-     * never touches updated_at — that timestamp belongs to the
-     * send-attempt axis.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
@@ -3608,14 +3404,6 @@ private static final long serialVersionUID = 0L;
      * platform's own send attempt. `status = delivered` means "handed to
      * the provider"; `receipt_state = receipt_delivered` means "reached
      * the recipient's device".
-     *
-     * &#64;internal
-     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-     * handler, its single writer, advancing monotonically (sent &lt;
-     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
-     * receipts out of order and may skip `delivered` entirely. The stamp
-     * never touches updated_at — that timestamp belongs to the
-     * send-attempt axis.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
@@ -3636,14 +3424,6 @@ private static final long serialVersionUID = 0L;
      * platform's own send attempt. `status = delivered` means "handed to
      * the provider"; `receipt_state = receipt_delivered` means "reached
      * the recipient's device".
-     *
-     * &#64;internal
-     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-     * handler, its single writer, advancing monotonically (sent &lt;
-     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
-     * receipts out of order and may skip `delivered` entirely. The stamp
-     * never touches updated_at — that timestamp belongs to the
-     * send-attempt axis.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
@@ -3661,14 +3441,6 @@ private static final long serialVersionUID = 0L;
      * platform's own send attempt. `status = delivered` means "handed to
      * the provider"; `receipt_state = receipt_delivered` means "reached
      * the recipient's device".
-     *
-     * &#64;internal
-     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-     * handler, its single writer, advancing monotonically (sent &lt;
-     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
-     * receipts out of order and may skip `delivered` entirely. The stamp
-     * never touches updated_at — that timestamp belongs to the
-     * send-attempt axis.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
@@ -3689,14 +3461,6 @@ private static final long serialVersionUID = 0L;
      * platform's own send attempt. `status = delivered` means "handed to
      * the provider"; `receipt_state = receipt_delivered` means "reached
      * the recipient's device".
-     *
-     * &#64;internal
-     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
-     * handler, its single writer, advancing monotonically (sent &lt;
-     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
-     * receipts out of order and may skip `delivered` entirely. The stamp
-     * never touches updated_at — that timestamp belongs to the
-     * send-attempt axis.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
@@ -3715,10 +3479,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-     * never pattern-matched; receipt_error_code is the structured twin.
      * </pre>
      *
      * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
@@ -3741,10 +3501,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-     * never pattern-matched; receipt_error_code is the structured twin.
      * </pre>
      *
      * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
@@ -3768,10 +3524,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-     * never pattern-matched; receipt_error_code is the structured twin.
      * </pre>
      *
      * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
@@ -3791,10 +3543,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-     * never pattern-matched; receipt_error_code is the structured twin.
      * </pre>
      *
      * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
@@ -3811,10 +3559,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
-     * never pattern-matched; receipt_error_code is the structured twin.
      * </pre>
      *
      * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
@@ -4056,18 +3800,6 @@ private static final long serialVersionUID = 0L;
      * (the body lives in the payload's text arm), for rows written before
      * this field existed, and for sends whose registry was unreachable at
      * send time.
-     *
-     * &#64;internal
-     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-     * lane: the conversation timeline renders a template send's bubble
-     * from THIS field, never by re-deriving from the template registry at
-     * read time — template text changes over releases, and a re-derivation
-     * would attribute today's template copy to yesterday's send. Written
-     * once by the send handlers' pre-check normalization (the DD-005 D2
-     * point where the language-resolved payload is fixed), before any
-     * provider I/O; no later writer touches it. No backfill is possible —
-     * pre-field history stays honestly unavailable (the D1-A consequence).
      * </pre>
      *
      * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
@@ -4093,18 +3825,6 @@ private static final long serialVersionUID = 0L;
      * (the body lives in the payload's text arm), for rows written before
      * this field existed, and for sends whose registry was unreachable at
      * send time.
-     *
-     * &#64;internal
-     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-     * lane: the conversation timeline renders a template send's bubble
-     * from THIS field, never by re-deriving from the template registry at
-     * read time — template text changes over releases, and a re-derivation
-     * would attribute today's template copy to yesterday's send. Written
-     * once by the send handlers' pre-check normalization (the DD-005 D2
-     * point where the language-resolved payload is fixed), before any
-     * provider I/O; no later writer touches it. No backfill is possible —
-     * pre-field history stays honestly unavailable (the D1-A consequence).
      * </pre>
      *
      * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
@@ -4131,18 +3851,6 @@ private static final long serialVersionUID = 0L;
      * (the body lives in the payload's text arm), for rows written before
      * this field existed, and for sends whose registry was unreachable at
      * send time.
-     *
-     * &#64;internal
-     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-     * lane: the conversation timeline renders a template send's bubble
-     * from THIS field, never by re-deriving from the template registry at
-     * read time — template text changes over releases, and a re-derivation
-     * would attribute today's template copy to yesterday's send. Written
-     * once by the send handlers' pre-check normalization (the DD-005 D2
-     * point where the language-resolved payload is fixed), before any
-     * provider I/O; no later writer touches it. No backfill is possible —
-     * pre-field history stays honestly unavailable (the D1-A consequence).
      * </pre>
      *
      * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
@@ -4165,18 +3873,6 @@ private static final long serialVersionUID = 0L;
      * (the body lives in the payload's text arm), for rows written before
      * this field existed, and for sends whose registry was unreachable at
      * send time.
-     *
-     * &#64;internal
-     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-     * lane: the conversation timeline renders a template send's bubble
-     * from THIS field, never by re-deriving from the template registry at
-     * read time — template text changes over releases, and a re-derivation
-     * would attribute today's template copy to yesterday's send. Written
-     * once by the send handlers' pre-check normalization (the DD-005 D2
-     * point where the language-resolved payload is fixed), before any
-     * provider I/O; no later writer touches it. No backfill is possible —
-     * pre-field history stays honestly unavailable (the D1-A consequence).
      * </pre>
      *
      * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
@@ -4196,18 +3892,6 @@ private static final long serialVersionUID = 0L;
      * (the body lives in the payload's text arm), for rows written before
      * this field existed, and for sends whose registry was unreachable at
      * send time.
-     *
-     * &#64;internal
-     * The ChannelDelivery.reply_text idiom (channel-conversations DD-004
-     * D-c as amended at T02 Sitting 3, D1-A) applied to the proactive
-     * lane: the conversation timeline renders a template send's bubble
-     * from THIS field, never by re-deriving from the template registry at
-     * read time — template text changes over releases, and a re-derivation
-     * would attribute today's template copy to yesterday's send. Written
-     * once by the send handlers' pre-check normalization (the DD-005 D2
-     * point where the language-resolved payload is fixed), before any
-     * provider I/O; no later writer touches it. No backfill is possible —
-     * pre-field history stays honestly unavailable (the D1-A consequence).
      * </pre>
      *
      * <code>string rendered_body = 20 [json_name = "renderedBody"];</code>
@@ -4230,13 +3914,6 @@ private static final long serialVersionUID = 0L;
      * Why the send FAILED, in the platform's classification. Unspecified
      * unless status is failed (and on rows terminal before this field
      * existed). A third axis fact beside status and the receipt pair.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25): the classification that
-     * decides whether the failure's explanation may reach the conversation
-     * timeline. Written only by markFailed and the delete cascade, never by
-     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-     * twin (its fields 18/19) carries the same contract.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
@@ -4250,13 +3927,6 @@ private static final long serialVersionUID = 0L;
      * Why the send FAILED, in the platform's classification. Unspecified
      * unless status is failed (and on rows terminal before this field
      * existed). A third axis fact beside status and the receipt pair.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25): the classification that
-     * decides whether the failure's explanation may reach the conversation
-     * timeline. Written only by markFailed and the delete cascade, never by
-     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-     * twin (its fields 18/19) carries the same contract.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
@@ -4275,13 +3945,6 @@ private static final long serialVersionUID = 0L;
      * Why the send FAILED, in the platform's classification. Unspecified
      * unless status is failed (and on rows terminal before this field
      * existed). A third axis fact beside status and the receipt pair.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25): the classification that
-     * decides whether the failure's explanation may reach the conversation
-     * timeline. Written only by markFailed and the delete cascade, never by
-     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-     * twin (its fields 18/19) carries the same contract.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
@@ -4297,13 +3960,6 @@ private static final long serialVersionUID = 0L;
      * Why the send FAILED, in the platform's classification. Unspecified
      * unless status is failed (and on rows terminal before this field
      * existed). A third axis fact beside status and the receipt pair.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25): the classification that
-     * decides whether the failure's explanation may reach the conversation
-     * timeline. Written only by markFailed and the delete cascade, never by
-     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-     * twin (its fields 18/19) carries the same contract.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
@@ -4322,13 +3978,6 @@ private static final long serialVersionUID = 0L;
      * Why the send FAILED, in the platform's classification. Unspecified
      * unless status is failed (and on rows terminal before this field
      * existed). A third axis fact beside status and the receipt pair.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25): the classification that
-     * decides whether the failure's explanation may reach the conversation
-     * timeline. Written only by markFailed and the delete cascade, never by
-     * markRetry — a scheduled retry is not a verdict. The ChannelDelivery
-     * twin (its fields 18/19) carries the same contract.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind failure_kind = 21 [json_name = "failureKind"];</code>
@@ -4347,15 +3996,6 @@ private static final long serialVersionUID = 0L;
      * The thread-safe explanation of a FAILED send, when one was authored
      * for the conversation surface. Empty unless failure_kind is
      * attempt_refused or attempt_withdrawn.
-     *
-     * &#64;internal
-     * cloud#262: PLATFORM-authored copy — for refusals this is the
-     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
-     * error_data details when present), NOT the receipt axis's
-     * provider-owned vocabulary. The write side is the guarantee: only the
-     * refusal and withdrawal arms carry copy here, so raw exception text
-     * (which stays in last_error, an operator-only fact) can structurally
-     * never reach the timeline relay.
      * </pre>
      *
      * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
@@ -4378,15 +4018,6 @@ private static final long serialVersionUID = 0L;
      * The thread-safe explanation of a FAILED send, when one was authored
      * for the conversation surface. Empty unless failure_kind is
      * attempt_refused or attempt_withdrawn.
-     *
-     * &#64;internal
-     * cloud#262: PLATFORM-authored copy — for refusals this is the
-     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
-     * error_data details when present), NOT the receipt axis's
-     * provider-owned vocabulary. The write side is the guarantee: only the
-     * refusal and withdrawal arms carry copy here, so raw exception text
-     * (which stays in last_error, an operator-only fact) can structurally
-     * never reach the timeline relay.
      * </pre>
      *
      * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
@@ -4410,15 +4041,6 @@ private static final long serialVersionUID = 0L;
      * The thread-safe explanation of a FAILED send, when one was authored
      * for the conversation surface. Empty unless failure_kind is
      * attempt_refused or attempt_withdrawn.
-     *
-     * &#64;internal
-     * cloud#262: PLATFORM-authored copy — for refusals this is the
-     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
-     * error_data details when present), NOT the receipt axis's
-     * provider-owned vocabulary. The write side is the guarantee: only the
-     * refusal and withdrawal arms carry copy here, so raw exception text
-     * (which stays in last_error, an operator-only fact) can structurally
-     * never reach the timeline relay.
      * </pre>
      *
      * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
@@ -4438,15 +4060,6 @@ private static final long serialVersionUID = 0L;
      * The thread-safe explanation of a FAILED send, when one was authored
      * for the conversation surface. Empty unless failure_kind is
      * attempt_refused or attempt_withdrawn.
-     *
-     * &#64;internal
-     * cloud#262: PLATFORM-authored copy — for refusals this is the
-     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
-     * error_data details when present), NOT the receipt axis's
-     * provider-owned vocabulary. The write side is the guarantee: only the
-     * refusal and withdrawal arms carry copy here, so raw exception text
-     * (which stays in last_error, an operator-only fact) can structurally
-     * never reach the timeline relay.
      * </pre>
      *
      * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>
@@ -4463,15 +4076,6 @@ private static final long serialVersionUID = 0L;
      * The thread-safe explanation of a FAILED send, when one was authored
      * for the conversation surface. Empty unless failure_kind is
      * attempt_refused or attempt_withdrawn.
-     *
-     * &#64;internal
-     * cloud#262: PLATFORM-authored copy — for refusals this is the
-     * TERMINAL_REFUSALS mapped explanation (plus the provider's own
-     * error_data details when present), NOT the receipt axis's
-     * provider-owned vocabulary. The write side is the guarantee: only the
-     * refusal and withdrawal arms carry copy here, so raw exception text
-     * (which stays in last_error, an operator-only fact) can structurally
-     * never reach the timeline relay.
      * </pre>
      *
      * <code>string attempt_detail = 22 [json_name = "attemptDetail"];</code>

@@ -8,14 +8,6 @@ package ai.stigmer.agentic.workflow.v1;
 /**
  * <pre>
  * Export defines how task output is saved to the workflow context.
- *
- * &#64;internal
- * Maps to the `export:` block in Zigflow DSL.
- *
- * Examples:
- * - {"as": "${.}"} - Export entire output
- * - {"as": "${.fieldName}"} - Export specific field
- * - {"as": "${$context + {taskName: .}}"} - Merge into context
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.Export}
@@ -267,14 +259,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Export defines how task output is saved to the workflow context.
-   *
-   * &#64;internal
-   * Maps to the `export:` block in Zigflow DSL.
-   *
-   * Examples:
-   * - {"as": "${.}"} - Export entire output
-   * - {"as": "${.fieldName}"} - Export specific field
-   * - {"as": "${$context + {taskName: .}}"} - Merge into context
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.Export}

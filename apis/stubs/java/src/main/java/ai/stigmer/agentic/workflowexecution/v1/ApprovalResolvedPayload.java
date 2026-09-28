@@ -8,11 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for approval_resolved events.
- *
- * &#64;internal
- * Emitted when an approval decision is made (approve, skip, or reject).
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload}
@@ -95,11 +90,6 @@ private static final long serialVersionUID = 0L;
    * Canonical identity of the user who made the decision
    * (identity-account ID). Empty when not attributed (e.g. the OSS
    * single-user edition, or timeout auto-resolution).
-   *
-   * &#64;internal
-   * This is the stable audit key. Renderers should prefer
-   * resolved_by_actor for display and only fall back to this raw value
-   * for records that predate actor enrichment.
    * </pre>
    *
    * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -123,11 +113,6 @@ private static final long serialVersionUID = 0L;
    * Canonical identity of the user who made the decision
    * (identity-account ID). Empty when not attributed (e.g. the OSS
    * single-user edition, or timeout auto-resolution).
-   *
-   * &#64;internal
-   * This is the stable audit key. Renderers should prefer
-   * resolved_by_actor for display and only fall back to this raw value
-   * for records that predate actor enrichment.
    * </pre>
    *
    * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -216,15 +201,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Display identity of the reviewer, snapshotted at decision time.
-   *
-   * &#64;internal
-   * Write-time snapshot, not a live lookup: an approval event is an
-   * immutable audit record, so it captures the reviewer as identified at
-   * the moment of the decision (later profile changes do not rewrite
-   * history). Stamped server-side by the control plane from the
-   * authenticated caller; unset when no attribution exists.
-   *
-   * &#64;since Reviewer Attribution
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -237,15 +213,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Display identity of the reviewer, snapshotted at decision time.
-   *
-   * &#64;internal
-   * Write-time snapshot, not a live lookup: an approval event is an
-   * immutable audit record, so it captures the reviewer as identified at
-   * the moment of the decision (later profile changes do not rewrite
-   * history). Stamped server-side by the control plane from the
-   * authenticated caller; unset when no attribution exists.
-   *
-   * &#64;since Reviewer Attribution
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -258,15 +225,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Display identity of the reviewer, snapshotted at decision time.
-   *
-   * &#64;internal
-   * Write-time snapshot, not a live lookup: an approval event is an
-   * immutable audit record, so it captures the reviewer as identified at
-   * the moment of the decision (later profile changes do not rewrite
-   * history). Stamped server-side by the control plane from the
-   * authenticated caller; unset when no attribution exists.
-   *
-   * &#64;since Reviewer Attribution
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -483,11 +441,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for approval_resolved events.
-   *
-   * &#64;internal
-   * Emitted when an approval decision is made (approve, skip, or reject).
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload}
@@ -772,11 +725,6 @@ private static final long serialVersionUID = 0L;
      * Canonical identity of the user who made the decision
      * (identity-account ID). Empty when not attributed (e.g. the OSS
      * single-user edition, or timeout auto-resolution).
-     *
-     * &#64;internal
-     * This is the stable audit key. Renderers should prefer
-     * resolved_by_actor for display and only fall back to this raw value
-     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -799,11 +747,6 @@ private static final long serialVersionUID = 0L;
      * Canonical identity of the user who made the decision
      * (identity-account ID). Empty when not attributed (e.g. the OSS
      * single-user edition, or timeout auto-resolution).
-     *
-     * &#64;internal
-     * This is the stable audit key. Renderers should prefer
-     * resolved_by_actor for display and only fall back to this raw value
-     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -827,11 +770,6 @@ private static final long serialVersionUID = 0L;
      * Canonical identity of the user who made the decision
      * (identity-account ID). Empty when not attributed (e.g. the OSS
      * single-user edition, or timeout auto-resolution).
-     *
-     * &#64;internal
-     * This is the stable audit key. Renderers should prefer
-     * resolved_by_actor for display and only fall back to this raw value
-     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -851,11 +789,6 @@ private static final long serialVersionUID = 0L;
      * Canonical identity of the user who made the decision
      * (identity-account ID). Empty when not attributed (e.g. the OSS
      * single-user edition, or timeout auto-resolution).
-     *
-     * &#64;internal
-     * This is the stable audit key. Renderers should prefer
-     * resolved_by_actor for display and only fall back to this raw value
-     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -872,11 +805,6 @@ private static final long serialVersionUID = 0L;
      * Canonical identity of the user who made the decision
      * (identity-account ID). Empty when not attributed (e.g. the OSS
      * single-user edition, or timeout auto-resolution).
-     *
-     * &#64;internal
-     * This is the stable audit key. Renderers should prefer
-     * resolved_by_actor for display and only fall back to this raw value
-     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -1038,15 +966,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1058,15 +977,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1082,15 +992,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1111,15 +1012,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1138,15 +1030,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1172,15 +1055,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1198,15 +1072,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1219,15 +1084,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
@@ -1243,15 +1099,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Display identity of the reviewer, snapshotted at decision time.
-     *
-     * &#64;internal
-     * Write-time snapshot, not a live lookup: an approval event is an
-     * immutable audit record, so it captures the reviewer as identified at
-     * the moment of the decision (later profile changes do not rewrite
-     * history). Stamped server-side by the control plane from the
-     * authenticated caller; unset when no attribution exists.
-     *
-     * &#64;since Reviewer Attribution
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>

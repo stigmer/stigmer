@@ -8,19 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * McpServer represents a reusable MCP (Model Context Protocol) server configuration.
- *
- * &#64;internal
- * Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
- * - Can be referenced by multiple agents (reusability)
- * - Has proper access control via FGA (authorization)
- * - Can be packaged in a plugin and installed by other organizations
- * - Belongs to an organization, with private, org or platform visibility
- *
- * Lifecycle:
- * 1. Create McpServer definition (this resource) with server type and env requirements
- * 2. Reference in Agent via mcp_server_usages
- * 3. Create AgentInstance with environment_ref providing actual secrets
- * 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServer}
@@ -171,15 +158,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Key fields:
-   * - name: Human-readable name (e.g., "GitHub MCP Server")
-   * - slug: URL-friendly identifier (e.g., "github")
-   * - org: Organization that owns this MCP server (required)
-   * - visibility: who can read the server (private, org or platform)
-   *
-   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -192,15 +170,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Key fields:
-   * - name: Human-readable name (e.g., "GitHub MCP Server")
-   * - slug: URL-friendly identifier (e.g., "github")
-   * - org: Organization that owns this MCP server (required)
-   * - visibility: who can read the server (private, org or platform)
-   *
-   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -213,15 +182,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Resource metadata including name, organization, visibility, and labels.
-   *
-   * &#64;internal
-   * Key fields:
-   * - name: Human-readable name (e.g., "GitHub MCP Server")
-   * - slug: URL-friendly identifier (e.g., "github")
-   * - org: Organization that owns this MCP server (required)
-   * - visibility: who can read the server (private, org or platform)
-   *
-   * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -533,19 +493,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * McpServer represents a reusable MCP (Model Context Protocol) server configuration.
-   *
-   * &#64;internal
-   * Unlike inline McpServerDefinition in AgentSpec, McpServer is a first-class resource that:
-   * - Can be referenced by multiple agents (reusability)
-   * - Has proper access control via FGA (authorization)
-   * - Can be packaged in a plugin and installed by other organizations
-   * - Belongs to an organization, with private, org or platform visibility
-   *
-   * Lifecycle:
-   * 1. Create McpServer definition (this resource) with server type and env requirements
-   * 2. Reference in Agent via mcp_server_usages
-   * 3. Create AgentInstance with environment_ref providing actual secrets
-   * 4. Agent runner resolves McpServer, gets secrets from Environment, starts server
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.McpServer}
@@ -972,15 +919,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -992,15 +930,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1016,15 +945,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1045,15 +965,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1072,15 +983,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1106,15 +1008,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1132,15 +1025,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1153,15 +1037,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1177,15 +1052,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Resource metadata including name, organization, visibility, and labels.
-     *
-     * &#64;internal
-     * Key fields:
-     * - name: Human-readable name (e.g., "GitHub MCP Server")
-     * - slug: URL-friendly identifier (e.g., "github")
-     * - org: Organization that owns this MCP server (required)
-     * - visibility: who can read the server (private, org or platform)
-     *
-     * Reference format: "org/slug" (e.g., "acme/github", "acme/internal-tools")
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

@@ -8,26 +8,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
- *
- * &#64;internal
- * YAML Example:
- * - taskName:
- * fork:
- * branches:
- * - branch1:
- * do:
- * - task1:
- * call: http
- * with:
- * method: POST
- * endpoint:
- * uri: https://api.example.com/branch1
- * - branch2:
- * do:
- * - task2:
- * call: http
- *
- * Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig}
@@ -329,26 +309,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
-   *
-   * &#64;internal
-   * YAML Example:
-   * - taskName:
-   * fork:
-   * branches:
-   * - branch1:
-   * do:
-   * - task1:
-   * call: http
-   * with:
-   * method: POST
-   * endpoint:
-   * uri: https://api.example.com/branch1
-   * - branch2:
-   * do:
-   * - task2:
-   * call: http
-   *
-   * Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig}

@@ -8,15 +8,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * One file within a FileChangeProgress snapshot — a slim, non-authoritative row.
- *
- * &#64;internal
- *
- * Carries only what the live strip renders: paths, kind, and line counts. It is
- * NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);
- * it has no content, no digests, no unified diff. Path/kind naming mirrors
- * CapturedFileChange so renames read honestly.
- *
- * &#64;since File-Change HITL Redesign (mid-run live capture)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry}
@@ -417,15 +408,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * One file within a FileChangeProgress snapshot — a slim, non-authoritative row.
-   *
-   * &#64;internal
-   *
-   * Carries only what the live strip renders: paths, kind, and line counts. It is
-   * NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);
-   * it has no content, no digests, no unified diff. Path/kind naming mirrors
-   * CapturedFileChange so renames read honestly.
-   *
-   * &#64;since File-Change HITL Redesign (mid-run live capture)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry}

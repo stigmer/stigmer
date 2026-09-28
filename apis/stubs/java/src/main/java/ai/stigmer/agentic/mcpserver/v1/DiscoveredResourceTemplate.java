@@ -8,10 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.
- *
- * &#64;internal
- * Resource templates use URI templates (RFC 6570) with placeholders that
- * clients fill in to access specific resources.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate}
@@ -441,10 +437,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.
-   *
-   * &#64;internal
-   * Resource templates use URI templates (RFC 6570) with placeholders that
-   * clients fill in to access specific resources.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate}

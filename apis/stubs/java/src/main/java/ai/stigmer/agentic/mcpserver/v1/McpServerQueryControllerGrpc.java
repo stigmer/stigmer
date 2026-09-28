@@ -5,12 +5,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * McpServerQueryController provides read operations for MCP server resources.
- * &#64;internal
- * Authorization model:
- * - visibility_platform: members of the organizations the owning org's
- *   identity provider links can view
- * - visibility_org: org members can view
- * - visibility_private: the owner and explicit grants can view
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -207,12 +201,6 @@ public final class McpServerQueryControllerGrpc {
   /**
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * &#64;internal
-   * Authorization model:
-   * - visibility_platform: members of the organizations the owning org's
-   *   identity provider links can view
-   * - visibility_org: org members can view
-   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public interface AsyncService {
@@ -220,12 +208,6 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The caller must have access based on the resource's scope:
-     * - Platform: All authenticated users
-     * - Organization: Organization members
-     * - Identity Account: Only the owner
      * </pre>
      */
     default void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -238,9 +220,6 @@ public final class McpServerQueryControllerGrpc {
      * Get an MCP server by reference (scope + org + slug).
      * Preferred method for looking up MCP servers by name/slug rather than
      * system-generated ID.
-     * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * The handler performs scope-aware authorization based on the reference.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -256,9 +235,6 @@ public final class McpServerQueryControllerGrpc {
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
      * </pre>
      */
     default void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
@@ -283,10 +259,6 @@ public final class McpServerQueryControllerGrpc {
      * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
      * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
      * surface without the other two and the client-side gate.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
      * </pre>
      */
     default void getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request,
@@ -299,12 +271,6 @@ public final class McpServerQueryControllerGrpc {
    * Base class for the server implementation of the service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * &#64;internal
-   * Authorization model:
-   * - visibility_platform: members of the organizations the owning org's
-   *   identity provider links can view
-   * - visibility_org: org members can view
-   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static abstract class McpServerQueryControllerImplBase
@@ -319,12 +285,6 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * &#64;internal
-   * Authorization model:
-   * - visibility_platform: members of the organizations the owning org's
-   *   identity provider links can view
-   * - visibility_org: org members can view
-   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerStub
@@ -343,12 +303,6 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The caller must have access based on the resource's scope:
-     * - Platform: All authenticated users
-     * - Organization: Organization members
-     * - Identity Account: Only the owner
      * </pre>
      */
     public void get(ai.stigmer.commons.apiresource.ApiResourceId request,
@@ -362,9 +316,6 @@ public final class McpServerQueryControllerGrpc {
      * Get an MCP server by reference (scope + org + slug).
      * Preferred method for looking up MCP servers by name/slug rather than
      * system-generated ID.
-     * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * The handler performs scope-aware authorization based on the reference.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -381,9 +332,6 @@ public final class McpServerQueryControllerGrpc {
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
      * </pre>
      */
     public void getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request,
@@ -409,10 +357,6 @@ public final class McpServerQueryControllerGrpc {
      * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
      * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
      * surface without the other two and the client-side gate.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
      * </pre>
      */
     public void getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request,
@@ -426,12 +370,6 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * &#64;internal
-   * Authorization model:
-   * - visibility_platform: members of the organizations the owning org's
-   *   identity provider links can view
-   * - visibility_org: org members can view
-   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerBlockingV2Stub
@@ -450,12 +388,6 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The caller must have access based on the resource's scope:
-     * - Platform: All authenticated users
-     * - Organization: Organization members
-     * - Identity Account: Only the owner
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer get(ai.stigmer.commons.apiresource.ApiResourceId request) throws io.grpc.StatusException {
@@ -468,9 +400,6 @@ public final class McpServerQueryControllerGrpc {
      * Get an MCP server by reference (scope + org + slug).
      * Preferred method for looking up MCP servers by name/slug rather than
      * system-generated ID.
-     * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * The handler performs scope-aware authorization based on the reference.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -486,9 +415,6 @@ public final class McpServerQueryControllerGrpc {
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) throws io.grpc.StatusException {
@@ -513,10 +439,6 @@ public final class McpServerQueryControllerGrpc {
      * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
      * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
      * surface without the other two and the client-side gate.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) throws io.grpc.StatusException {
@@ -529,12 +451,6 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * &#64;internal
-   * Authorization model:
-   * - visibility_platform: members of the organizations the owning org's
-   *   identity provider links can view
-   * - visibility_org: org members can view
-   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerBlockingStub
@@ -553,12 +469,6 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The caller must have access based on the resource's scope:
-     * - Platform: All authenticated users
-     * - Organization: Organization members
-     * - Identity Account: Only the owner
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer get(ai.stigmer.commons.apiresource.ApiResourceId request) {
@@ -571,9 +481,6 @@ public final class McpServerQueryControllerGrpc {
      * Get an MCP server by reference (scope + org + slug).
      * Preferred method for looking up MCP servers by name/slug rather than
      * system-generated ID.
-     * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * The handler performs scope-aware authorization based on the reference.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.McpServer getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -589,9 +496,6 @@ public final class McpServerQueryControllerGrpc {
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput getOAuthGrantStatus(ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput request) {
@@ -616,10 +520,6 @@ public final class McpServerQueryControllerGrpc {
      * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
      * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
      * surface without the other two and the client-side gate.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput getOrgOAuthApp(ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput request) {
@@ -632,12 +532,6 @@ public final class McpServerQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service McpServerQueryController.
    * <pre>
    * McpServerQueryController provides read operations for MCP server resources.
-   * &#64;internal
-   * Authorization model:
-   * - visibility_platform: members of the organizations the owning org's
-   *   identity provider links can view
-   * - visibility_org: org members can view
-   * - visibility_private: the owner and explicit grants can view
    * </pre>
    */
   public static final class McpServerQueryControllerFutureStub
@@ -656,12 +550,6 @@ public final class McpServerQueryControllerGrpc {
     /**
      * <pre>
      * Get an MCP server by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The caller must have access based on the resource's scope:
-     * - Platform: All authenticated users
-     * - Organization: Organization members
-     * - Identity Account: Only the owner
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> get(
@@ -675,9 +563,6 @@ public final class McpServerQueryControllerGrpc {
      * Get an MCP server by reference (scope + org + slug).
      * Preferred method for looking up MCP servers by name/slug rather than
      * system-generated ID.
-     * &#64;internal
-     * Authorization: Custom authorization in handler.
-     * The handler performs scope-aware authorization based on the reference.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> getByReference(
@@ -694,9 +579,6 @@ public final class McpServerQueryControllerGrpc {
      * without exposing any secret token values. The frontend uses this to
      * render the correct OAuth state in the MCP server detail page and
      * session composer.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * The resource_id field contains the MCP server's system-generated ID.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput> getOAuthGrantStatus(
@@ -722,10 +604,6 @@ public final class McpServerQueryControllerGrpc {
      * an UNIMPLEMENTED answer means "hide every BYOA affordance" (see the
      * SDK's useOrgOAuthApp.isSupported). Never implement one RPC of the
      * surface without the other two and the client-side gate.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the mcp_server resource.
-     * Any user who can view the MCP server can check whether their org has
-     * an override — no secrets are exposed.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput> getOrgOAuthApp(

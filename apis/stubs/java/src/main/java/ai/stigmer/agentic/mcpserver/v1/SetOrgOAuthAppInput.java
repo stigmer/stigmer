@@ -9,30 +9,6 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app
  * override for a resource.
- *
- * &#64;internal
- * The handler:
- * 1. Looks up the platform-default OAuthApp via the resource's auth block
- * to use as a template (authorization_url, token_url, scopes, etc.)
- * 2. Creates a new OAuthApp with the org-provided client_id + client_secret
- * and the template's endpoint URLs and scopes
- * 3. Creates or updates an OAuthAppOverride binding
- * (resource_id, resource_kind, org_id) → new OAuthApp ID
- *
- * If an override already exists for this resource + org, the handler
- * updates the existing OAuthApp's credentials and returns the same ID.
- *
- * After this, the resolution chain for this resource in this org will
- * return the org's OAuthApp instead of the platform default.
- *
- * Prerequisites:
- * - The resource must exist and have an auth block with oauth_app_ref
- * (BYOA requires a platform template to clone from)
- * - The caller must have can_create_oauth_app permission in the org
- *
- * Errors:
- * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
- * - NOT_FOUND: Resource does not exist
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput}
@@ -461,30 +437,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * SetOrgOAuthAppInput creates or updates an org-level BYOA OAuth app
    * override for a resource.
-   *
-   * &#64;internal
-   * The handler:
-   * 1. Looks up the platform-default OAuthApp via the resource's auth block
-   * to use as a template (authorization_url, token_url, scopes, etc.)
-   * 2. Creates a new OAuthApp with the org-provided client_id + client_secret
-   * and the template's endpoint URLs and scopes
-   * 3. Creates or updates an OAuthAppOverride binding
-   * (resource_id, resource_kind, org_id) → new OAuthApp ID
-   *
-   * If an override already exists for this resource + org, the handler
-   * updates the existing OAuthApp's credentials and returns the same ID.
-   *
-   * After this, the resolution chain for this resource in this org will
-   * return the org's OAuthApp instead of the platform default.
-   *
-   * Prerequisites:
-   * - The resource must exist and have an auth block with oauth_app_ref
-   * (BYOA requires a platform template to clone from)
-   * - The caller must have can_create_oauth_app permission in the org
-   *
-   * Errors:
-   * - FAILED_PRECONDITION: Resource has no auth block or no oauth_app_ref
-   * - NOT_FOUND: Resource does not exist
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput}

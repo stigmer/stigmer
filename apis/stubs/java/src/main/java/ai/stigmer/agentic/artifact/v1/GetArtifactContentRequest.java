@@ -14,19 +14,6 @@ package ai.stigmer.agentic.artifact.v1;
  * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
  * read artifact content programmatically — e.g., rendering an artifact-backed
  * review payload inside an embedded approval gate.
- *
- * &#64;internal
- * Mirrors AgentExecutionQueryController.getArtifactContent, which was added
- * for the same reason on the agent-execution side. Artifacts are addressed
- * by artifact ID here (the T07 store's identity) rather than by
- * execution_id + storage_key.
- *
- * The server enforces a maximum content size (default: 512 KB). If the
- * artifact exceeds max_bytes, the response contains the first max_bytes of
- * content with truncated=true. Callers use total_size_bytes to decide
- * whether to offer a full download via getDownloadUrl instead.
- *
- * &#64;since Review Payloads (stigmer/stigmer#234)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest}
@@ -319,19 +306,6 @@ private static final long serialVersionUID = 0L;
    * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
    * read artifact content programmatically — e.g., rendering an artifact-backed
    * review payload inside an embedded approval gate.
-   *
-   * &#64;internal
-   * Mirrors AgentExecutionQueryController.getArtifactContent, which was added
-   * for the same reason on the agent-execution side. Artifacts are addressed
-   * by artifact ID here (the T07 store's identity) rather than by
-   * execution_id + storage_key.
-   *
-   * The server enforces a maximum content size (default: 512 KB). If the
-   * artifact exceeds max_bytes, the response contains the first max_bytes of
-   * content with truncated=true. Callers use total_size_bytes to decide
-   * whether to offer a full download via getDownloadUrl instead.
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest}

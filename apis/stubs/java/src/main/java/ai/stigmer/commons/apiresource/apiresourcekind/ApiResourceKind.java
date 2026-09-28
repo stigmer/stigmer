@@ -285,10 +285,6 @@ public enum ApiResourceKind
    * System-created: the payment system drives its lifecycle, so it has no
    * owner and grants no roles. Its reads and writes authorize on the
    * organization through the billing permissions.
-   *
-   * &#64;internal
-   * Organization-scoped with owner NONE is the memory kind's combination:
-   * the organization link is the only tuple the kind ever needs.
    * </pre>
    *
    * <code>subscription = 71 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -590,10 +586,6 @@ public enum ApiResourceKind
    * System-created: the payment system drives its lifecycle, so it has no
    * owner and grants no roles. Its reads and writes authorize on the
    * organization through the billing permissions.
-   *
-   * &#64;internal
-   * Organization-scoped with owner NONE is the memory kind's combination:
-   * the organization link is the only tuple the kind ever needs.
    * </pre>
    *
    * <code>subscription = 71 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>

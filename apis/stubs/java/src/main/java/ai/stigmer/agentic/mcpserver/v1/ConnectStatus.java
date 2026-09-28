@@ -8,21 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * ConnectStatus records one connect operation — the most recent one.
- *
- * &#64;internal
- * History is deliberately not kept: the resource answers "what is the state
- * of my connection attempt right now", the same question the blocking connect
- * RPC used to answer with its call lifetime. Overwritten by every new
- * operation (both the async startConnect lane and the blocking connect lane
- * record here, so observability is uniform).
- *
- * Orphan contract: the backend process that started the workflow also owns
- * persisting its terminal phase. If that process dies in between, the entry
- * stays CONNECTING with no live awaiter. The next startConnect reconciles it
- * against Temporal by workflow_id (still running → attach; finished →
- * persist the missed result; unknown → mark failed and start fresh).
- * Pollers bound their patience by started_at plus the server's connect
- * ceiling instead of trusting CONNECTING forever.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectStatus}
@@ -632,21 +617,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ConnectStatus records one connect operation — the most recent one.
-   *
-   * &#64;internal
-   * History is deliberately not kept: the resource answers "what is the state
-   * of my connection attempt right now", the same question the blocking connect
-   * RPC used to answer with its call lifetime. Overwritten by every new
-   * operation (both the async startConnect lane and the blocking connect lane
-   * record here, so observability is uniform).
-   *
-   * Orphan contract: the backend process that started the workflow also owns
-   * persisting its terminal phase. If that process dies in between, the entry
-   * stays CONNECTING with no live awaiter. The next startConnect reconciles it
-   * against Temporal by workflow_id (still running → attach; finished →
-   * persist the missed result; unknown → mark failed and start fresh).
-   * Pollers bound their patience by started_at plus the server's connect
-   * ceiling instead of trusting CONNECTING forever.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.ConnectStatus}

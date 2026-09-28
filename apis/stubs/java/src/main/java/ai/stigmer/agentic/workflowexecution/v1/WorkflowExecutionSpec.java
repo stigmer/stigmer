@@ -8,18 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.
- *
- * &#64;internal
- * This is the "Execution" layer in the Template→Instance→Execution pattern.
- * WorkflowExecutionSpec is ephemeral - it defines the inputs for a single runtime invocation.
- * The spec is immutable after creation. To retry with different inputs, create a new
- * WorkflowExecution with updated spec values.
- *
- * Instance Resolution (matches AgentExecution pattern):
- * - Either workflow_instance_id OR workflow_id must be provided
- * - If workflow_instance_id: Use the specified instance directly
- * - If workflow_id: Resolve to workflow's default instance (auto-create if missing)
- * - Handler enforces: at least one must be provided
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec}
@@ -89,20 +77,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the WorkflowInstance to execute.
-   *
-   * &#64;internal
-   * Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
-   *
-   * The WorkflowInstance contains:
-   * - Reference to the Workflow template (orchestration definition)
-   * - Environment bindings (configuration and secrets)
-   * - Default configuration values
-   *
-   * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
-   *
-   * Authorization:
-   * User must have "execute" permission on the referenced WorkflowInstance.
    * </pre>
    *
    * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -124,20 +98,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the WorkflowInstance to execute.
-   *
-   * &#64;internal
-   * Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
-   *
-   * The WorkflowInstance contains:
-   * - Reference to the Workflow template (orchestration definition)
-   * - Environment bindings (configuration and secrets)
-   * - Default configuration values
-   *
-   * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
-   *
-   * Authorization:
-   * User must have "execute" permission on the referenced WorkflowInstance.
    * </pre>
    *
    * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -164,22 +124,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the Workflow template to execute (alternative to workflow_instance_id).
-   *
-   * &#64;internal
-   * When workflow_id is provided without workflow_instance_id, the system:
-   * 1. Checks if the Workflow has a default_instance_id in its status
-   * 2. If exists: Uses the default instance
-   * 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
-   * 4. Updates the Workflow status with the default_instance_id
-   * 5. Executes using the resolved instance
-   *
-   * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
-   *
-   * Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
-   *
-   * Authorization:
-   * User must have "execute" permission on the resolved WorkflowInstance.
    * </pre>
    *
    * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -201,22 +145,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the Workflow template to execute (alternative to workflow_instance_id).
-   *
-   * &#64;internal
-   * When workflow_id is provided without workflow_instance_id, the system:
-   * 1. Checks if the Workflow has a default_instance_id in its status
-   * 2. If exists: Uses the default instance
-   * 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
-   * 4. Updates the Workflow status with the default_instance_id
-   * 5. Executes using the resolved instance
-   *
-   * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
-   *
-   * Either workflow_instance_id OR workflow_id must be provided.
-   * Handler enforces this validation.
-   *
-   * Authorization:
-   * User must have "execute" permission on the resolved WorkflowInstance.
    * </pre>
    *
    * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -243,16 +171,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input message or payload that triggers the workflow.
-   *
-   * &#64;internal
-   * This is the primary input to the workflow - the "trigger event" or "request payload".
-   * It can be a human-readable message, a JSON payload, or an event description.
-   *
-   * The workflow can access this value using: {{workflow.input.trigger_message}}
-   * Tasks can reference it in their input configurations.
-   *
-   * The trigger_message is optional - some workflows don't need input (scheduled jobs,
-   * workflows that fetch data from APIs, etc.).
    * </pre>
    *
    * <code>string trigger_message = 3 [json_name = "triggerMessage"];</code>
@@ -274,16 +192,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input message or payload that triggers the workflow.
-   *
-   * &#64;internal
-   * This is the primary input to the workflow - the "trigger event" or "request payload".
-   * It can be a human-readable message, a JSON payload, or an event description.
-   *
-   * The workflow can access this value using: {{workflow.input.trigger_message}}
-   * Tasks can reference it in their input configurations.
-   *
-   * The trigger_message is optional - some workflows don't need input (scheduled jobs,
-   * workflows that fetch data from APIs, etc.).
    * </pre>
    *
    * <code>string trigger_message = 3 [json_name = "triggerMessage"];</code>
@@ -333,18 +241,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Contextual metadata about what triggered this execution.
-   *
-   * &#64;internal
-   * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-   * and analytics.
-   *
-   * Common metadata keys:
-   * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-   * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-   * - "ip_address": Client IP address (for API/UI triggers)
-   * - "webhook_id": Webhook ID (for webhook triggers)
-   * - "schedule_id": Schedule ID (for scheduled triggers)
-   * - "timestamp": When was it triggered? (ISO 8601)
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -366,18 +262,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Contextual metadata about what triggered this execution.
-   *
-   * &#64;internal
-   * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-   * and analytics.
-   *
-   * Common metadata keys:
-   * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-   * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-   * - "ip_address": Client IP address (for API/UI triggers)
-   * - "webhook_id": Webhook ID (for webhook triggers)
-   * - "schedule_id": Schedule ID (for scheduled triggers)
-   * - "timestamp": When was it triggered? (ISO 8601)
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -389,18 +273,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Contextual metadata about what triggered this execution.
-   *
-   * &#64;internal
-   * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-   * and analytics.
-   *
-   * Common metadata keys:
-   * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-   * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-   * - "ip_address": Client IP address (for API/UI triggers)
-   * - "webhook_id": Webhook ID (for webhook triggers)
-   * - "schedule_id": Schedule ID (for scheduled triggers)
-   * - "timestamp": When was it triggered? (ISO 8601)
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -419,18 +291,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * Contextual metadata about what triggered this execution.
-   *
-   * &#64;internal
-   * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-   * and analytics.
-   *
-   * Common metadata keys:
-   * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-   * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-   * - "ip_address": Client IP address (for API/UI triggers)
-   * - "webhook_id": Webhook ID (for webhook triggers)
-   * - "schedule_id": Schedule ID (for scheduled triggers)
-   * - "timestamp": When was it triggered? (ISO 8601)
    * </pre>
    *
    * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -481,27 +341,6 @@ java.lang.String defaultValue) {
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest):
-   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-   * order; a later ref wins on key conflicts)
-   * 2. runtime_env (this field)
-   *
-   * The merged map is then filtered to the keys declared in Workflow.spec.env
-   * (no filtering when the workflow declares none); a declared-but-required key
-   * that is still missing only logs a warning — the run is not failed. The
-   * merge is owned by backend/libs/go/envmerge and the workflowexecution
-   * controller's createExecutionContextStep, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-   *
-   * Security:
-   * - runtime_env values are consumed into the ExecutionContext at create time
-   * and cleared from the persisted execution (never in Temporal history)
-   * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Values with is_secret=true are encrypted at rest and redacted in logs
-   *
-   * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -528,27 +367,6 @@ java.lang.String defaultValue) {
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest):
-   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-   * order; a later ref wins on key conflicts)
-   * 2. runtime_env (this field)
-   *
-   * The merged map is then filtered to the keys declared in Workflow.spec.env
-   * (no filtering when the workflow declares none); a declared-but-required key
-   * that is still missing only logs a warning — the run is not failed. The
-   * merge is owned by backend/libs/go/envmerge and the workflowexecution
-   * controller's createExecutionContextStep, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-   *
-   * Security:
-   * - runtime_env values are consumed into the ExecutionContext at create time
-   * and cleared from the persisted execution (never in Temporal history)
-   * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Values with is_secret=true are encrypted at rest and redacted in logs
-   *
-   * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -565,27 +383,6 @@ java.lang.String defaultValue) {
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest):
-   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-   * order; a later ref wins on key conflicts)
-   * 2. runtime_env (this field)
-   *
-   * The merged map is then filtered to the keys declared in Workflow.spec.env
-   * (no filtering when the workflow declares none); a declared-but-required key
-   * that is still missing only logs a warning — the run is not failed. The
-   * merge is owned by backend/libs/go/envmerge and the workflowexecution
-   * controller's createExecutionContextStep, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-   *
-   * Security:
-   * - runtime_env values are consumed into the ExecutionContext at create time
-   * and cleared from the persisted execution (never in Temporal history)
-   * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Values with is_secret=true are encrypted at rest and redacted in logs
-   *
-   * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -609,27 +406,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
    * — undeclared keys are dropped.
-   *
-   * &#64;internal
-   * Merge priority (lowest to highest):
-   * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-   * order; a later ref wins on key conflicts)
-   * 2. runtime_env (this field)
-   *
-   * The merged map is then filtered to the keys declared in Workflow.spec.env
-   * (no filtering when the workflow declares none); a declared-but-required key
-   * that is still missing only logs a warning — the run is not failed. The
-   * merge is owned by backend/libs/go/envmerge and the workflowexecution
-   * controller's createExecutionContextStep, and asserted by
-   * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-   *
-   * Security:
-   * - runtime_env values are consumed into the ExecutionContext at create time
-   * and cleared from the persisted execution (never in Temporal history)
-   * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-   * - Values with is_secret=true are encrypted at rest and redacted in logs
-   *
-   * Tasks can access these values using: {{env.VARIABLE_NAME}}
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -651,32 +427,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Opaque callback token for asynchronous completion by a parent orchestrator.
-   *
-   * &#64;internal
-   * Enables async completion pattern where the caller (typically a parent workflow)
-   * waits for actual workflow completion without blocking worker threads.
-   *
-   * Flow:
-   * 1. Caller (Temporal activity) extracts its task token
-   * 2. Passes token in this field when creating WorkflowExecution
-   * 3. Returns activity.ErrResultPending (activity paused, thread released)
-   * 4. Workflow executes (minutes/hours later)
-   * 5. Workflow calls ActivityCompletionClient.complete(token, result)
-   * 6. Temporal resumes the paused activity with the result
-   *
-   * When empty: fire-and-forget or direct API call (backward compatible).
-   * When provided: workflow MUST complete the external activity using this token.
-   *
-   * Token format: opaque binary blob from Temporal SDK (typically 100-200 bytes).
-   * DO NOT parse or modify - treat as opaque handle.
-   *
-   * Same pattern as AgentExecution.spec.callback_token.
-   *
-   * References:
-   * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-   * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-   *
-   * &#64;since 2026-01-22
    * </pre>
    *
    * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
@@ -692,20 +442,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Where workflow activities are executed — shared runner pool or dedicated sandbox.
-   *
-   * &#64;internal
-   * Determines dispatch routing for the workflow and all child executions:
-   * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
-   * - LOCAL: workflow runs on global queue (stigmer_runner)
-   * - CLOUD: server provisions a dedicated sandbox with per-execution queue
-   *
-   * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-   * Child agent executions inherit this sandbox via activity_task_queue propagation
-   * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
-   *
-   * Immutable after creation (sandbox provisioning is a one-time operation).
-   *
-   * &#64;since Workflow Sandbox Affinity
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
@@ -717,20 +453,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * Where workflow activities are executed — shared runner pool or dedicated sandbox.
-   *
-   * &#64;internal
-   * Determines dispatch routing for the workflow and all child executions:
-   * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
-   * - LOCAL: workflow runs on global queue (stigmer_runner)
-   * - CLOUD: server provisions a dedicated sandbox with per-execution queue
-   *
-   * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-   * Child agent executions inherit this sandbox via activity_task_queue propagation
-   * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
-   *
-   * Immutable after creation (sandbox provisioning is a one-time operation).
-   *
-   * &#64;since Workflow Sandbox Affinity
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
@@ -985,18 +707,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   /**
    * <pre>
    * WorkflowExecutionSpec defines the user-provided inputs for a workflow execution.
-   *
-   * &#64;internal
-   * This is the "Execution" layer in the Template→Instance→Execution pattern.
-   * WorkflowExecutionSpec is ephemeral - it defines the inputs for a single runtime invocation.
-   * The spec is immutable after creation. To retry with different inputs, create a new
-   * WorkflowExecution with updated spec values.
-   *
-   * Instance Resolution (matches AgentExecution pattern):
-   * - Either workflow_instance_id OR workflow_id must be provided
-   * - If workflow_instance_id: Use the specified instance directly
-   * - If workflow_id: Resolve to workflow's default instance (auto-create if missing)
-   * - Handler enforces: at least one must be provided
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec}
@@ -1251,20 +961,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the WorkflowInstance to execute.
-     *
-     * &#64;internal
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * The WorkflowInstance contains:
-     * - Reference to the Workflow template (orchestration definition)
-     * - Environment bindings (configuration and secrets)
-     * - Default configuration values
-     *
-     * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
-     *
-     * Authorization:
-     * User must have "execute" permission on the referenced WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -1285,20 +981,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the WorkflowInstance to execute.
-     *
-     * &#64;internal
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * The WorkflowInstance contains:
-     * - Reference to the Workflow template (orchestration definition)
-     * - Environment bindings (configuration and secrets)
-     * - Default configuration values
-     *
-     * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
-     *
-     * Authorization:
-     * User must have "execute" permission on the referenced WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -1320,20 +1002,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the WorkflowInstance to execute.
-     *
-     * &#64;internal
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * The WorkflowInstance contains:
-     * - Reference to the Workflow template (orchestration definition)
-     * - Environment bindings (configuration and secrets)
-     * - Default configuration values
-     *
-     * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
-     *
-     * Authorization:
-     * User must have "execute" permission on the referenced WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -1351,20 +1019,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the WorkflowInstance to execute.
-     *
-     * &#64;internal
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * The WorkflowInstance contains:
-     * - Reference to the Workflow template (orchestration definition)
-     * - Environment bindings (configuration and secrets)
-     * - Default configuration values
-     *
-     * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
-     *
-     * Authorization:
-     * User must have "execute" permission on the referenced WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -1379,20 +1033,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the WorkflowInstance to execute.
-     *
-     * &#64;internal
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * The WorkflowInstance contains:
-     * - Reference to the Workflow template (orchestration definition)
-     * - Environment bindings (configuration and secrets)
-     * - Default configuration values
-     *
-     * Format: "wfi-{slug}" (e.g., "wfi-customer-onboarding-prod")
-     *
-     * Authorization:
-     * User must have "execute" permission on the referenced WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_instance_id = 1 [json_name = "workflowInstanceId"];</code>
@@ -1413,22 +1053,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the Workflow template to execute (alternative to workflow_instance_id).
-     *
-     * &#64;internal
-     * When workflow_id is provided without workflow_instance_id, the system:
-     * 1. Checks if the Workflow has a default_instance_id in its status
-     * 2. If exists: Uses the default instance
-     * 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
-     * 4. Updates the Workflow status with the default_instance_id
-     * 5. Executes using the resolved instance
-     *
-     * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
-     *
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * Authorization:
-     * User must have "execute" permission on the resolved WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -1449,22 +1073,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the Workflow template to execute (alternative to workflow_instance_id).
-     *
-     * &#64;internal
-     * When workflow_id is provided without workflow_instance_id, the system:
-     * 1. Checks if the Workflow has a default_instance_id in its status
-     * 2. If exists: Uses the default instance
-     * 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
-     * 4. Updates the Workflow status with the default_instance_id
-     * 5. Executes using the resolved instance
-     *
-     * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
-     *
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * Authorization:
-     * User must have "execute" permission on the resolved WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -1486,22 +1094,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the Workflow template to execute (alternative to workflow_instance_id).
-     *
-     * &#64;internal
-     * When workflow_id is provided without workflow_instance_id, the system:
-     * 1. Checks if the Workflow has a default_instance_id in its status
-     * 2. If exists: Uses the default instance
-     * 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
-     * 4. Updates the Workflow status with the default_instance_id
-     * 5. Executes using the resolved instance
-     *
-     * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
-     *
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * Authorization:
-     * User must have "execute" permission on the resolved WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -1519,22 +1111,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the Workflow template to execute (alternative to workflow_instance_id).
-     *
-     * &#64;internal
-     * When workflow_id is provided without workflow_instance_id, the system:
-     * 1. Checks if the Workflow has a default_instance_id in its status
-     * 2. If exists: Uses the default instance
-     * 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
-     * 4. Updates the Workflow status with the default_instance_id
-     * 5. Executes using the resolved instance
-     *
-     * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
-     *
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * Authorization:
-     * User must have "execute" permission on the resolved WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -1549,22 +1125,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * ID of the Workflow template to execute (alternative to workflow_instance_id).
-     *
-     * &#64;internal
-     * When workflow_id is provided without workflow_instance_id, the system:
-     * 1. Checks if the Workflow has a default_instance_id in its status
-     * 2. If exists: Uses the default instance
-     * 3. If missing: Auto-creates a default instance (name: "{workflow_slug}-default")
-     * 4. Updates the Workflow status with the default_instance_id
-     * 5. Executes using the resolved instance
-     *
-     * Format: "wf-{slug}" (e.g., "wf-customer-onboarding")
-     *
-     * Either workflow_instance_id OR workflow_id must be provided.
-     * Handler enforces this validation.
-     *
-     * Authorization:
-     * User must have "execute" permission on the resolved WorkflowInstance.
      * </pre>
      *
      * <code>string workflow_id = 6 [json_name = "workflowId"];</code>
@@ -1585,16 +1145,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Input message or payload that triggers the workflow.
-     *
-     * &#64;internal
-     * This is the primary input to the workflow - the "trigger event" or "request payload".
-     * It can be a human-readable message, a JSON payload, or an event description.
-     *
-     * The workflow can access this value using: {{workflow.input.trigger_message}}
-     * Tasks can reference it in their input configurations.
-     *
-     * The trigger_message is optional - some workflows don't need input (scheduled jobs,
-     * workflows that fetch data from APIs, etc.).
      * </pre>
      *
      * <code>string trigger_message = 3 [json_name = "triggerMessage"];</code>
@@ -1615,16 +1165,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Input message or payload that triggers the workflow.
-     *
-     * &#64;internal
-     * This is the primary input to the workflow - the "trigger event" or "request payload".
-     * It can be a human-readable message, a JSON payload, or an event description.
-     *
-     * The workflow can access this value using: {{workflow.input.trigger_message}}
-     * Tasks can reference it in their input configurations.
-     *
-     * The trigger_message is optional - some workflows don't need input (scheduled jobs,
-     * workflows that fetch data from APIs, etc.).
      * </pre>
      *
      * <code>string trigger_message = 3 [json_name = "triggerMessage"];</code>
@@ -1646,16 +1186,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Input message or payload that triggers the workflow.
-     *
-     * &#64;internal
-     * This is the primary input to the workflow - the "trigger event" or "request payload".
-     * It can be a human-readable message, a JSON payload, or an event description.
-     *
-     * The workflow can access this value using: {{workflow.input.trigger_message}}
-     * Tasks can reference it in their input configurations.
-     *
-     * The trigger_message is optional - some workflows don't need input (scheduled jobs,
-     * workflows that fetch data from APIs, etc.).
      * </pre>
      *
      * <code>string trigger_message = 3 [json_name = "triggerMessage"];</code>
@@ -1673,16 +1203,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Input message or payload that triggers the workflow.
-     *
-     * &#64;internal
-     * This is the primary input to the workflow - the "trigger event" or "request payload".
-     * It can be a human-readable message, a JSON payload, or an event description.
-     *
-     * The workflow can access this value using: {{workflow.input.trigger_message}}
-     * Tasks can reference it in their input configurations.
-     *
-     * The trigger_message is optional - some workflows don't need input (scheduled jobs,
-     * workflows that fetch data from APIs, etc.).
      * </pre>
      *
      * <code>string trigger_message = 3 [json_name = "triggerMessage"];</code>
@@ -1697,16 +1217,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Input message or payload that triggers the workflow.
-     *
-     * &#64;internal
-     * This is the primary input to the workflow - the "trigger event" or "request payload".
-     * It can be a human-readable message, a JSON payload, or an event description.
-     *
-     * The workflow can access this value using: {{workflow.input.trigger_message}}
-     * Tasks can reference it in their input configurations.
-     *
-     * The trigger_message is optional - some workflows don't need input (scheduled jobs,
-     * workflows that fetch data from APIs, etc.).
      * </pre>
      *
      * <code>string trigger_message = 3 [json_name = "triggerMessage"];</code>
@@ -1752,18 +1262,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Contextual metadata about what triggered this execution.
-     *
-     * &#64;internal
-     * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-     * and analytics.
-     *
-     * Common metadata keys:
-     * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-     * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-     * - "ip_address": Client IP address (for API/UI triggers)
-     * - "webhook_id": Webhook ID (for webhook triggers)
-     * - "schedule_id": Schedule ID (for scheduled triggers)
-     * - "timestamp": When was it triggered? (ISO 8601)
      * </pre>
      *
      * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -1785,18 +1283,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Contextual metadata about what triggered this execution.
-     *
-     * &#64;internal
-     * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-     * and analytics.
-     *
-     * Common metadata keys:
-     * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-     * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-     * - "ip_address": Client IP address (for API/UI triggers)
-     * - "webhook_id": Webhook ID (for webhook triggers)
-     * - "schedule_id": Schedule ID (for scheduled triggers)
-     * - "timestamp": When was it triggered? (ISO 8601)
      * </pre>
      *
      * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -1808,18 +1294,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Contextual metadata about what triggered this execution.
-     *
-     * &#64;internal
-     * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-     * and analytics.
-     *
-     * Common metadata keys:
-     * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-     * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-     * - "ip_address": Client IP address (for API/UI triggers)
-     * - "webhook_id": Webhook ID (for webhook triggers)
-     * - "schedule_id": Schedule ID (for scheduled triggers)
-     * - "timestamp": When was it triggered? (ISO 8601)
      * </pre>
      *
      * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -1838,18 +1312,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Contextual metadata about what triggered this execution.
-     *
-     * &#64;internal
-     * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-     * and analytics.
-     *
-     * Common metadata keys:
-     * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-     * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-     * - "ip_address": Client IP address (for API/UI triggers)
-     * - "webhook_id": Webhook ID (for webhook triggers)
-     * - "schedule_id": Schedule ID (for scheduled triggers)
-     * - "timestamp": When was it triggered? (ISO 8601)
      * </pre>
      *
      * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -1874,18 +1336,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Contextual metadata about what triggered this execution.
-     *
-     * &#64;internal
-     * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-     * and analytics.
-     *
-     * Common metadata keys:
-     * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-     * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-     * - "ip_address": Client IP address (for API/UI triggers)
-     * - "webhook_id": Webhook ID (for webhook triggers)
-     * - "schedule_id": Schedule ID (for scheduled triggers)
-     * - "timestamp": When was it triggered? (ISO 8601)
      * </pre>
      *
      * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -1909,18 +1359,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Contextual metadata about what triggered this execution.
-     *
-     * &#64;internal
-     * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-     * and analytics.
-     *
-     * Common metadata keys:
-     * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-     * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-     * - "ip_address": Client IP address (for API/UI triggers)
-     * - "webhook_id": Webhook ID (for webhook triggers)
-     * - "schedule_id": Schedule ID (for scheduled triggers)
-     * - "timestamp": When was it triggered? (ISO 8601)
      * </pre>
      *
      * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -1938,18 +1376,6 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Contextual metadata about what triggered this execution.
-     *
-     * &#64;internal
-     * This metadata is NOT used by the workflow logic itself - it's for audit, debugging,
-     * and analytics.
-     *
-     * Common metadata keys:
-     * - "source": How was this triggered? (api, webhook, schedule, manual, ui)
-     * - "caller_id": Who triggered it? (usr-abc123, sys-scheduler, webhook-stripe)
-     * - "ip_address": Client IP address (for API/UI triggers)
-     * - "webhook_id": Webhook ID (for webhook triggers)
-     * - "schedule_id": Schedule ID (for scheduled triggers)
-     * - "timestamp": When was it triggered? (ISO 8601)
      * </pre>
      *
      * <code>map&lt;string, string&gt; trigger_metadata = 4 [json_name = "triggerMetadata"];</code>
@@ -2005,27 +1431,6 @@ java.lang.String defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2052,27 +1457,6 @@ java.lang.String defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2089,27 +1473,6 @@ java.lang.String defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2132,27 +1495,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2180,27 +1522,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2229,27 +1550,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2272,27 +1572,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2317,27 +1596,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * declared in Workflow.spec.env to survive the merge: the workflow env map is
      * a declaration whitelist (name + is_secret + optional), never a value source
      * — undeclared keys are dropped.
-     *
-     * &#64;internal
-     * Merge priority (lowest to highest):
-     * 1. Environment values (resolved from WorkflowInstance.environment_refs, in
-     * order; a later ref wins on key conflicts)
-     * 2. runtime_env (this field)
-     *
-     * The merged map is then filtered to the keys declared in Workflow.spec.env
-     * (no filtering when the workflow declares none); a declared-but-required key
-     * that is still missing only logs a warning — the run is not failed. The
-     * merge is owned by backend/libs/go/envmerge and the workflowexecution
-     * controller's createExecutionContextStep, and asserted by
-     * test/conformance/src/suites-execution/envmerge.conformance.test.ts.
-     *
-     * Security:
-     * - runtime_env values are consumed into the ExecutionContext at create time
-     * and cleared from the persisted execution (never in Temporal history)
-     * - ExecutionContext is deleted when execution completes (ephemeral secrets)
-     * - Values with is_secret=true are encrypted at rest and redacted in logs
-     *
-     * Tasks can access these values using: {{env.VARIABLE_NAME}}
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -2361,32 +1619,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Opaque callback token for asynchronous completion by a parent orchestrator.
-     *
-     * &#64;internal
-     * Enables async completion pattern where the caller (typically a parent workflow)
-     * waits for actual workflow completion without blocking worker threads.
-     *
-     * Flow:
-     * 1. Caller (Temporal activity) extracts its task token
-     * 2. Passes token in this field when creating WorkflowExecution
-     * 3. Returns activity.ErrResultPending (activity paused, thread released)
-     * 4. Workflow executes (minutes/hours later)
-     * 5. Workflow calls ActivityCompletionClient.complete(token, result)
-     * 6. Temporal resumes the paused activity with the result
-     *
-     * When empty: fire-and-forget or direct API call (backward compatible).
-     * When provided: workflow MUST complete the external activity using this token.
-     *
-     * Token format: opaque binary blob from Temporal SDK (typically 100-200 bytes).
-     * DO NOT parse or modify - treat as opaque handle.
-     *
-     * Same pattern as AgentExecution.spec.callback_token.
-     *
-     * References:
-     * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-     * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     *
-     * &#64;since 2026-01-22
      * </pre>
      *
      * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
@@ -2399,32 +1631,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Opaque callback token for asynchronous completion by a parent orchestrator.
-     *
-     * &#64;internal
-     * Enables async completion pattern where the caller (typically a parent workflow)
-     * waits for actual workflow completion without blocking worker threads.
-     *
-     * Flow:
-     * 1. Caller (Temporal activity) extracts its task token
-     * 2. Passes token in this field when creating WorkflowExecution
-     * 3. Returns activity.ErrResultPending (activity paused, thread released)
-     * 4. Workflow executes (minutes/hours later)
-     * 5. Workflow calls ActivityCompletionClient.complete(token, result)
-     * 6. Temporal resumes the paused activity with the result
-     *
-     * When empty: fire-and-forget or direct API call (backward compatible).
-     * When provided: workflow MUST complete the external activity using this token.
-     *
-     * Token format: opaque binary blob from Temporal SDK (typically 100-200 bytes).
-     * DO NOT parse or modify - treat as opaque handle.
-     *
-     * Same pattern as AgentExecution.spec.callback_token.
-     *
-     * References:
-     * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-     * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     *
-     * &#64;since 2026-01-22
      * </pre>
      *
      * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
@@ -2441,32 +1647,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Opaque callback token for asynchronous completion by a parent orchestrator.
-     *
-     * &#64;internal
-     * Enables async completion pattern where the caller (typically a parent workflow)
-     * waits for actual workflow completion without blocking worker threads.
-     *
-     * Flow:
-     * 1. Caller (Temporal activity) extracts its task token
-     * 2. Passes token in this field when creating WorkflowExecution
-     * 3. Returns activity.ErrResultPending (activity paused, thread released)
-     * 4. Workflow executes (minutes/hours later)
-     * 5. Workflow calls ActivityCompletionClient.complete(token, result)
-     * 6. Temporal resumes the paused activity with the result
-     *
-     * When empty: fire-and-forget or direct API call (backward compatible).
-     * When provided: workflow MUST complete the external activity using this token.
-     *
-     * Token format: opaque binary blob from Temporal SDK (typically 100-200 bytes).
-     * DO NOT parse or modify - treat as opaque handle.
-     *
-     * Same pattern as AgentExecution.spec.callback_token.
-     *
-     * References:
-     * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-     * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     *
-     * &#64;since 2026-01-22
      * </pre>
      *
      * <code>bytes callback_token = 7 [json_name = "callbackToken"];</code>
@@ -2483,20 +1663,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Where workflow activities are executed — shared runner pool or dedicated sandbox.
-     *
-     * &#64;internal
-     * Determines dispatch routing for the workflow and all child executions:
-     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
-     * - LOCAL: workflow runs on global queue (stigmer_runner)
-     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
-     *
-     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-     * Child agent executions inherit this sandbox via activity_task_queue propagation
-     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
-     *
-     * Immutable after creation (sandbox provisioning is a one-time operation).
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
@@ -2508,20 +1674,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Where workflow activities are executed — shared runner pool or dedicated sandbox.
-     *
-     * &#64;internal
-     * Determines dispatch routing for the workflow and all child executions:
-     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
-     * - LOCAL: workflow runs on global queue (stigmer_runner)
-     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
-     *
-     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-     * Child agent executions inherit this sandbox via activity_task_queue propagation
-     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
-     *
-     * Immutable after creation (sandbox provisioning is a one-time operation).
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
@@ -2538,20 +1690,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Where workflow activities are executed — shared runner pool or dedicated sandbox.
-     *
-     * &#64;internal
-     * Determines dispatch routing for the workflow and all child executions:
-     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
-     * - LOCAL: workflow runs on global queue (stigmer_runner)
-     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
-     *
-     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-     * Child agent executions inherit this sandbox via activity_task_queue propagation
-     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
-     *
-     * Immutable after creation (sandbox provisioning is a one-time operation).
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
@@ -2565,20 +1703,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Where workflow activities are executed — shared runner pool or dedicated sandbox.
-     *
-     * &#64;internal
-     * Determines dispatch routing for the workflow and all child executions:
-     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
-     * - LOCAL: workflow runs on global queue (stigmer_runner)
-     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
-     *
-     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-     * Child agent executions inherit this sandbox via activity_task_queue propagation
-     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
-     *
-     * Immutable after creation (sandbox provisioning is a one-time operation).
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>
@@ -2595,20 +1719,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Where workflow activities are executed — shared runner pool or dedicated sandbox.
-     *
-     * &#64;internal
-     * Determines dispatch routing for the workflow and all child executions:
-     * - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
-     * - LOCAL: workflow runs on global queue (stigmer_runner)
-     * - CLOUD: server provisions a dedicated sandbox with per-execution queue
-     *
-     * When CLOUD: all call:agent tasks within this workflow share the same sandbox.
-     * Child agent executions inherit this sandbox via activity_task_queue propagation
-     * on AgentExecutionSpec, avoiding N separate sandbox cold starts.
-     *
-     * Immutable after creation (sandbox provisioning is a one-time operation).
-     *
-     * &#64;since Workflow Sandbox Affinity
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.ExecutionTarget execution_target = 8 [json_name = "executionTarget"];</code>

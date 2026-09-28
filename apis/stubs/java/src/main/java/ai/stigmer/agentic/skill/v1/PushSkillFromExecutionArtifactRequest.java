@@ -9,18 +9,6 @@ package ai.stigmer.agentic.skill.v1;
  * <pre>
  * PushSkillFromExecutionArtifactRequest publishes a skill from an execution
  * artifact already in storage, without downloading and re-uploading the ZIP.
- *
- * &#64;internal
- * Server-side push flow: reads the ZIP directly from artifact storage and
- * delegates to the standard push logic.
- *
- * Authorization:
- * - Requires can_view on the agent execution (to read the artifact)
- * - Requires can_create_skill in the target organization (to push the skill)
- *
- * Security:
- * The storage_key is validated to start with "artifacts/{execution_id}/"
- * to prevent access to other executions' artifacts.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest}
@@ -122,10 +110,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-   *
-   * &#64;internal
-   * Used for authorization (can_view check) and storage_key validation.
-   * Format: "aex_{ulid}".
    * </pre>
    *
    * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -147,10 +131,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-   *
-   * &#64;internal
-   * Used for authorization (can_view check) and storage_key validation.
-   * Format: "aex_{ulid}".
    * </pre>
    *
    * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -178,10 +158,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
    * Obtain this from ExecutionArtifact.storage_key in the execution status.
-   *
-   * &#64;internal
-   * Must start with "artifacts/{execution_id}/" for security.
-   * Format: "artifacts/{execution_id}/{filename}.zip".
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -204,10 +180,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
    * Obtain this from ExecutionArtifact.storage_key in the execution status.
-   *
-   * &#64;internal
-   * Must start with "artifacts/{execution_id}/" for security.
-   * Format: "artifacts/{execution_id}/{filename}.zip".
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -467,18 +439,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * PushSkillFromExecutionArtifactRequest publishes a skill from an execution
    * artifact already in storage, without downloading and re-uploading the ZIP.
-   *
-   * &#64;internal
-   * Server-side push flow: reads the ZIP directly from artifact storage and
-   * delegates to the standard push logic.
-   *
-   * Authorization:
-   * - Requires can_view on the agent execution (to read the artifact)
-   * - Requires can_create_skill in the target organization (to push the skill)
-   *
-   * Security:
-   * The storage_key is validated to start with "artifacts/{execution_id}/"
-   * to prevent access to other executions' artifacts.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest}
@@ -756,10 +716,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-     *
-     * &#64;internal
-     * Used for authorization (can_view check) and storage_key validation.
-     * Format: "aex_{ulid}".
      * </pre>
      *
      * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -780,10 +736,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-     *
-     * &#64;internal
-     * Used for authorization (can_view check) and storage_key validation.
-     * Format: "aex_{ulid}".
      * </pre>
      *
      * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -805,10 +757,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-     *
-     * &#64;internal
-     * Used for authorization (can_view check) and storage_key validation.
-     * Format: "aex_{ulid}".
      * </pre>
      *
      * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -826,10 +774,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-     *
-     * &#64;internal
-     * Used for authorization (can_view check) and storage_key validation.
-     * Format: "aex_{ulid}".
      * </pre>
      *
      * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -844,10 +788,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
-     *
-     * &#64;internal
-     * Used for authorization (can_view check) and storage_key validation.
-     * Format: "aex_{ulid}".
      * </pre>
      *
      * <code>string execution_id = 2 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -869,10 +809,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
      * Obtain this from ExecutionArtifact.storage_key in the execution status.
-     *
-     * &#64;internal
-     * Must start with "artifacts/{execution_id}/" for security.
-     * Format: "artifacts/{execution_id}/{filename}.zip".
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -894,10 +830,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
      * Obtain this from ExecutionArtifact.storage_key in the execution status.
-     *
-     * &#64;internal
-     * Must start with "artifacts/{execution_id}/" for security.
-     * Format: "artifacts/{execution_id}/{filename}.zip".
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -920,10 +852,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
      * Obtain this from ExecutionArtifact.storage_key in the execution status.
-     *
-     * &#64;internal
-     * Must start with "artifacts/{execution_id}/" for security.
-     * Format: "artifacts/{execution_id}/{filename}.zip".
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -942,10 +870,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
      * Obtain this from ExecutionArtifact.storage_key in the execution status.
-     *
-     * &#64;internal
-     * Must start with "artifacts/{execution_id}/" for security.
-     * Format: "artifacts/{execution_id}/{filename}.zip".
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -961,10 +885,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
      * Obtain this from ExecutionArtifact.storage_key in the execution status.
-     *
-     * &#64;internal
-     * Must start with "artifacts/{execution_id}/" for security.
-     * Format: "artifacts/{execution_id}/{filename}.zip".
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>

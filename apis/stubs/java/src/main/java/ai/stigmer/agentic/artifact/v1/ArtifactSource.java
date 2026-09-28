@@ -8,13 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ArtifactSource identifies the execution context that produced an artifact.
- *
- * &#64;internal
- * Exactly one of workflow_execution_id or agent_execution_id should be set,
- * identifying the producer. task_name is set when the artifact was produced
- * by a specific task within a workflow execution.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSource}
@@ -396,13 +389,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ArtifactSource identifies the execution context that produced an artifact.
-   *
-   * &#64;internal
-   * Exactly one of workflow_execution_id or agent_execution_id should be set,
-   * identifying the producer. task_name is set when the artifact was produced
-   * by a specific task within a workflow execution.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSource}

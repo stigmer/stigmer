@@ -26,10 +26,6 @@ public enum PluginState
   /**
    * <pre>
    * The archive is stored and its members are being materialised.
-   *
-   * &#64;internal
-   * Persisted before the first child write so a crash mid-install leaves
-   * a head that says so; the next push of the same archive converges.
    * </pre>
    *
    * <code>PLUGIN_STATE_INSTALLING = 1;</code>
@@ -74,10 +70,6 @@ public enum PluginState
   /**
    * <pre>
    * The archive is stored and its members are being materialised.
-   *
-   * &#64;internal
-   * Persisted before the first child write so a crash mid-install leaves
-   * a head that says so; the next push of the same archive converges.
    * </pre>
    *
    * <code>PLUGIN_STATE_INSTALLING = 1;</code>

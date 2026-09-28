@@ -177,8 +177,6 @@ public final class InvitationQueryControllerGrpc {
     /**
      * <pre>
      * Get an invitation by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the invitation resource.
      * </pre>
      */
     default void get(ai.stigmer.iam.invitation.v1.InvitationId request,
@@ -190,10 +188,6 @@ public final class InvitationQueryControllerGrpc {
      * <pre>
      * List all invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
-     * &#64;internal
-     * Authorization: Requires can_view_access permission on the organization.
-     * This is intentionally stricter than can_view — only users who can
-     * manage org access (admins and owners) should see invitation links.
      * </pre>
      */
     default void listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request,
@@ -212,10 +206,6 @@ public final class InvitationQueryControllerGrpc {
      * has authenticated, so it requires no authorization. The response
      * intentionally omits the token value, redemption history, and internal
      * invitation metadata.
-     * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Marked is_public so the authentication
-     * interceptor skips token validation entirely.
      * </pre>
      */
     default void getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request,
@@ -260,8 +250,6 @@ public final class InvitationQueryControllerGrpc {
     /**
      * <pre>
      * Get an invitation by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the invitation resource.
      * </pre>
      */
     public void get(ai.stigmer.iam.invitation.v1.InvitationId request,
@@ -274,10 +262,6 @@ public final class InvitationQueryControllerGrpc {
      * <pre>
      * List all invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
-     * &#64;internal
-     * Authorization: Requires can_view_access permission on the organization.
-     * This is intentionally stricter than can_view — only users who can
-     * manage org access (admins and owners) should see invitation links.
      * </pre>
      */
     public void listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request,
@@ -297,10 +281,6 @@ public final class InvitationQueryControllerGrpc {
      * has authenticated, so it requires no authorization. The response
      * intentionally omits the token value, redemption history, and internal
      * invitation metadata.
-     * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Marked is_public so the authentication
-     * interceptor skips token validation entirely.
      * </pre>
      */
     public void getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request,
@@ -332,8 +312,6 @@ public final class InvitationQueryControllerGrpc {
     /**
      * <pre>
      * Get an invitation by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the invitation resource.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation get(ai.stigmer.iam.invitation.v1.InvitationId request) throws io.grpc.StatusException {
@@ -345,10 +323,6 @@ public final class InvitationQueryControllerGrpc {
      * <pre>
      * List all invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
-     * &#64;internal
-     * Authorization: Requires can_view_access permission on the organization.
-     * This is intentionally stricter than can_view — only users who can
-     * manage org access (admins and owners) should see invitation links.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitations listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request) throws io.grpc.StatusException {
@@ -367,10 +341,6 @@ public final class InvitationQueryControllerGrpc {
      * has authenticated, so it requires no authorization. The response
      * intentionally omits the token value, redemption history, and internal
      * invitation metadata.
-     * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Marked is_public so the authentication
-     * interceptor skips token validation entirely.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.InvitationPreview getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request) throws io.grpc.StatusException {
@@ -401,8 +371,6 @@ public final class InvitationQueryControllerGrpc {
     /**
      * <pre>
      * Get an invitation by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the invitation resource.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitation get(ai.stigmer.iam.invitation.v1.InvitationId request) {
@@ -414,10 +382,6 @@ public final class InvitationQueryControllerGrpc {
      * <pre>
      * List all invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
-     * &#64;internal
-     * Authorization: Requires can_view_access permission on the organization.
-     * This is intentionally stricter than can_view — only users who can
-     * manage org access (admins and owners) should see invitation links.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.Invitations listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request) {
@@ -436,10 +400,6 @@ public final class InvitationQueryControllerGrpc {
      * has authenticated, so it requires no authorization. The response
      * intentionally omits the token value, redemption history, and internal
      * invitation metadata.
-     * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Marked is_public so the authentication
-     * interceptor skips token validation entirely.
      * </pre>
      */
     public ai.stigmer.iam.invitation.v1.InvitationPreview getByToken(ai.stigmer.iam.invitation.v1.InvitationTokenInput request) {
@@ -470,8 +430,6 @@ public final class InvitationQueryControllerGrpc {
     /**
      * <pre>
      * Get an invitation by its unique identifier.
-     * &#64;internal
-     * Authorization: Requires can_view permission on the invitation resource.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitation> get(
@@ -484,10 +442,6 @@ public final class InvitationQueryControllerGrpc {
      * <pre>
      * List all invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
-     * &#64;internal
-     * Authorization: Requires can_view_access permission on the organization.
-     * This is intentionally stricter than can_view — only users who can
-     * manage org access (admins and owners) should see invitation links.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitations> listByOrg(
@@ -507,10 +461,6 @@ public final class InvitationQueryControllerGrpc {
      * has authenticated, so it requires no authorization. The response
      * intentionally omits the token value, redemption history, and internal
      * invitation metadata.
-     * &#64;internal
-     * Authorization: none — unauthenticated, public endpoint for rendering
-     * the invite acceptance page. Marked is_public so the authentication
-     * interceptor skips token validation entirely.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.InvitationPreview> getByToken(

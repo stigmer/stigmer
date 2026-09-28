@@ -8,16 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
- *
- * &#64;internal
- * Communication flow:
- * 1. Agent sends JSON-RPC requests via HTTP POST
- * 2. Server streams responses via Server-Sent Events (SSE)
- *
- * Use cases:
- * - Managed MCP services (e.g., hosted by a cloud provider)
- * - MCP servers behind a reverse proxy or API gateway
- * - Sharing a single MCP server instance across multiple agents
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.HttpServerConfig}
@@ -172,13 +162,6 @@ private static final long serialVersionUID = 0L;
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
-   *
-   * &#64;internal
-   * Templates may also reference the reserved caller-identity keys
-   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-   * server declares them in spec.env — see the env field's reserved-key
-   * contract. Placeholders resolve against the env FILTERED to declared
-   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -209,13 +192,6 @@ private static final long serialVersionUID = 0L;
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
-   *
-   * &#64;internal
-   * Templates may also reference the reserved caller-identity keys
-   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-   * server declares them in spec.env — see the env field's reserved-key
-   * contract. Placeholders resolve against the env FILTERED to declared
-   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -236,13 +212,6 @@ private static final long serialVersionUID = 0L;
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
-   *
-   * &#64;internal
-   * Templates may also reference the reserved caller-identity keys
-   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-   * server declares them in spec.env — see the env field's reserved-key
-   * contract. Placeholders resolve against the env FILTERED to declared
-   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -270,13 +239,6 @@ java.lang.String defaultValue) {
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
-   *
-   * &#64;internal
-   * Templates may also reference the reserved caller-identity keys
-   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-   * server declares them in spec.env — see the env field's reserved-key
-   * contract. Placeholders resolve against the env FILTERED to declared
-   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -640,16 +602,6 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
-   *
-   * &#64;internal
-   * Communication flow:
-   * 1. Agent sends JSON-RPC requests via HTTP POST
-   * 2. Server streams responses via Server-Sent Events (SSE)
-   *
-   * Use cases:
-   * - Managed MCP services (e.g., hosted by a cloud provider)
-   * - MCP servers behind a reverse proxy or API gateway
-   * - Sharing a single MCP server instance across multiple agents
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.HttpServerConfig}
@@ -1016,13 +968,6 @@ java.lang.String defaultValue) {
      * "Authorization": "Bearer ${API_TOKEN}"
      * "X-API-Version": "2024-01"
      * "X-Tenant-ID": "${TENANT_ID}"
-     *
-     * &#64;internal
-     * Templates may also reference the reserved caller-identity keys
-     * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-     * server declares them in spec.env — see the env field's reserved-key
-     * contract. Placeholders resolve against the env FILTERED to declared
-     * keys, so an undeclared reserved key in a template fails resolution.
      * </pre>
      *
      * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -1053,13 +998,6 @@ java.lang.String defaultValue) {
      * "Authorization": "Bearer ${API_TOKEN}"
      * "X-API-Version": "2024-01"
      * "X-Tenant-ID": "${TENANT_ID}"
-     *
-     * &#64;internal
-     * Templates may also reference the reserved caller-identity keys
-     * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-     * server declares them in spec.env — see the env field's reserved-key
-     * contract. Placeholders resolve against the env FILTERED to declared
-     * keys, so an undeclared reserved key in a template fails resolution.
      * </pre>
      *
      * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -1080,13 +1018,6 @@ java.lang.String defaultValue) {
      * "Authorization": "Bearer ${API_TOKEN}"
      * "X-API-Version": "2024-01"
      * "X-Tenant-ID": "${TENANT_ID}"
-     *
-     * &#64;internal
-     * Templates may also reference the reserved caller-identity keys
-     * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-     * server declares them in spec.env — see the env field's reserved-key
-     * contract. Placeholders resolve against the env FILTERED to declared
-     * keys, so an undeclared reserved key in a template fails resolution.
      * </pre>
      *
      * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -1114,13 +1045,6 @@ java.lang.String defaultValue) {
      * "Authorization": "Bearer ${API_TOKEN}"
      * "X-API-Version": "2024-01"
      * "X-Tenant-ID": "${TENANT_ID}"
-     *
-     * &#64;internal
-     * Templates may also reference the reserved caller-identity keys
-     * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-     * server declares them in spec.env — see the env field's reserved-key
-     * contract. Placeholders resolve against the env FILTERED to declared
-     * keys, so an undeclared reserved key in a template fails resolution.
      * </pre>
      *
      * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -1154,13 +1078,6 @@ java.lang.String defaultValue) {
      * "Authorization": "Bearer ${API_TOKEN}"
      * "X-API-Version": "2024-01"
      * "X-Tenant-ID": "${TENANT_ID}"
-     *
-     * &#64;internal
-     * Templates may also reference the reserved caller-identity keys
-     * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-     * server declares them in spec.env — see the env field's reserved-key
-     * contract. Placeholders resolve against the env FILTERED to declared
-     * keys, so an undeclared reserved key in a template fails resolution.
      * </pre>
      *
      * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -1193,13 +1110,6 @@ java.lang.String defaultValue) {
      * "Authorization": "Bearer ${API_TOKEN}"
      * "X-API-Version": "2024-01"
      * "X-Tenant-ID": "${TENANT_ID}"
-     *
-     * &#64;internal
-     * Templates may also reference the reserved caller-identity keys
-     * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-     * server declares them in spec.env — see the env field's reserved-key
-     * contract. Placeholders resolve against the env FILTERED to declared
-     * keys, so an undeclared reserved key in a template fails resolution.
      * </pre>
      *
      * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -1226,13 +1136,6 @@ java.lang.String defaultValue) {
      * "Authorization": "Bearer ${API_TOKEN}"
      * "X-API-Version": "2024-01"
      * "X-Tenant-ID": "${TENANT_ID}"
-     *
-     * &#64;internal
-     * Templates may also reference the reserved caller-identity keys
-     * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
-     * server declares them in spec.env — see the env field's reserved-key
-     * contract. Placeholders resolve against the env FILTERED to declared
-     * keys, so an undeclared reserved key in a template fails resolution.
      * </pre>
      *
      * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>

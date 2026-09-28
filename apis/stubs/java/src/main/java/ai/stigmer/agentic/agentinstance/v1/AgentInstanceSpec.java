@@ -8,10 +8,6 @@ package ai.stigmer.agentic.agentinstance.v1;
 /**
  * <pre>
  * AgentInstanceSpec defines the configurable properties of an agent instance.
- *
- * &#64;internal
- * This is the "Instance" layer — stateful configuration with secrets.
- * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec}
@@ -159,11 +155,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -175,11 +166,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -192,11 +178,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -208,11 +189,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -224,11 +200,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * References to Environment resources providing secrets and configuration at runtime.
-   *
-   * &#64;internal
-   * Environments are merged in order: later environments override earlier ones.
-   * Example: [base-env, aws-prod-env, github-team-env]
-   * This allows layering of configurations (base → specific overrides).
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -426,10 +397,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * AgentInstanceSpec defines the configurable properties of an agent instance.
-   *
-   * &#64;internal
-   * This is the "Instance" layer — stateful configuration with secrets.
-   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec}
@@ -841,11 +808,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -860,11 +822,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -879,11 +836,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -898,11 +850,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -924,11 +871,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -947,11 +889,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -972,11 +909,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -998,11 +930,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1021,11 +948,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1044,11 +966,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1068,11 +985,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1090,11 +1002,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1112,11 +1019,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1128,11 +1030,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1147,11 +1044,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1167,11 +1059,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1183,11 +1070,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
@@ -1200,11 +1082,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * References to Environment resources providing secrets and configuration at runtime.
-     *
-     * &#64;internal
-     * Environments are merged in order: later environments override earlier ones.
-     * Example: [base-env, aws-prod-env, github-team-env]
-     * This allows layering of configurations (base → specific overrides).
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>

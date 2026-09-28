@@ -9,27 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * A transient, non-authoritative snapshot of the workspace delta accumulating
  * during the CURRENT turn — the live "N files changed so far" surface.
- *
- * &#64;internal
- *
- * This is the file-review analogue of SetupProgress / streaming_usage: a
- * runner-owned, latest-snapshot-wins DISPLAY field, NOT an event-sourced
- * projection. It is deliberately NOT a FileChangeSet — a FileChangeSet is
- * server-authored, ledger-derived, digest-bound, and DECIDABLE; progress is
- * runner-sent, never in the ledger, carries NO file bytes or digests, and is
- * NEVER decidable or authoritative. The turn-boundary CANDIDATE_CAPTURED remains
- * the single reviewable diff (diff(baseline, candidate)); a mid-run snapshot is
- * no more authoritative than a streamed tool-call arg.
- *
- * Lifecycle: the runner overwrites this on each mid-run persist while its change
- * set is CAPTURING; the server clears it once that set leaves CAPTURING (mirroring
- * the setup_progress defense-in-depth clear), so it never outlives the turn.
- *
- * Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —
- * so nothing new can leak. A secret-like path is surfaced with zeroed counts
- * (path visible, content withheld), consistent with the DD-12 rule.
- *
- * &#64;since File-Change HITL Redesign (mid-run live capture)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChangeProgress}
@@ -508,27 +487,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * A transient, non-authoritative snapshot of the workspace delta accumulating
    * during the CURRENT turn — the live "N files changed so far" surface.
-   *
-   * &#64;internal
-   *
-   * This is the file-review analogue of SetupProgress / streaming_usage: a
-   * runner-owned, latest-snapshot-wins DISPLAY field, NOT an event-sourced
-   * projection. It is deliberately NOT a FileChangeSet — a FileChangeSet is
-   * server-authored, ledger-derived, digest-bound, and DECIDABLE; progress is
-   * runner-sent, never in the ledger, carries NO file bytes or digests, and is
-   * NEVER decidable or authoritative. The turn-boundary CANDIDATE_CAPTURED remains
-   * the single reviewable diff (diff(baseline, candidate)); a mid-run snapshot is
-   * no more authoritative than a streamed tool-call arg.
-   *
-   * Lifecycle: the runner overwrites this on each mid-run persist while its change
-   * set is CAPTURING; the server clears it once that set leaves CAPTURING (mirroring
-   * the setup_progress defense-in-depth clear), so it never outlives the turn.
-   *
-   * Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —
-   * so nothing new can leak. A secret-like path is surfaced with zeroed counts
-   * (path visible, content withheld), consistent with the DD-12 rule.
-   *
-   * &#64;since File-Change HITL Redesign (mid-run live capture)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileChangeProgress}

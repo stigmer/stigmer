@@ -8,11 +8,6 @@ package ai.stigmer.agentic.session.v1;
 /**
  * <pre>
  * WorkspaceSource defines where the workspace content comes from.
- *
- * &#64;internal
- * Pure source-definition type: describes the origin of workspace content
- * without any identity or naming. Use WorkspaceEntry to pair a source with
- * a name for session-level usage.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceSource}
@@ -373,11 +368,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkspaceSource defines where the workspace content comes from.
-   *
-   * &#64;internal
-   * Pure source-definition type: describes the origin of workspace content
-   * without any identity or naming. Use WorkspaceEntry to pair a source with
-   * a name for session-level usage.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.WorkspaceSource}

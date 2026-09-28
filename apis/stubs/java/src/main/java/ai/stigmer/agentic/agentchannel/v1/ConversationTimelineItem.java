@@ -8,15 +8,6 @@ package ai.stigmer.agentic.agentchannel.v1;
 /**
  * <pre>
  * ConversationTimelineItem is one entry in a conversation's timeline.
- *
- * &#64;internal
- * channel-conversations DD-004: computed on read by stitching four
- * stores — inbound webhook events, reply deliveries (rendered from the
- * same extraction the delivery posted, never from execution transcripts),
- * the outbound ledger, and the internal-lane event store (joined at T03
- * Sitting 4). item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
- * which makes cross-store collisions structurally impossible and gives
- * cursors a total order without a synthetic sequence.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem}
@@ -278,15 +269,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The provider's verbatim message type for inbound items ("text",
    * "image", "audio", "document", ...). Empty on outbound items in v1.
-   *
-   * &#64;internal
-   * channel-conversations DD-004 amendment (T02 planning): non-text
-   * inbound is ignored by the reply pipeline today
-   * (WhatsAppInboundEventProcessor marks "non_text:&lt;type&gt;"), but the
-   * customer still sent it — a handoff timeline that hides it fails the
-   * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-   * posture); the UI renders known kinds as placeholders. Media content
-   * retrieval is a named non-goal of this slice.
    * </pre>
    *
    * <code>string provider_message_type = 6 [json_name = "providerMessageType"];</code>
@@ -309,15 +291,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The provider's verbatim message type for inbound items ("text",
    * "image", "audio", "document", ...). Empty on outbound items in v1.
-   *
-   * &#64;internal
-   * channel-conversations DD-004 amendment (T02 planning): non-text
-   * inbound is ignored by the reply pipeline today
-   * (WhatsAppInboundEventProcessor marks "non_text:&lt;type&gt;"), but the
-   * customer still sent it — a handoff timeline that hides it fails the
-   * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-   * posture); the UI renders known kinds as placeholders. Media content
-   * retrieval is a named non-goal of this slice.
    * </pre>
    *
    * <code>string provider_message_type = 6 [json_name = "providerMessageType"];</code>
@@ -466,15 +439,6 @@ private static final long serialVersionUID = 0L;
    * The provider's verbatim explanation when receipt_state is
    * receipt_failed (WhatsApp: the errors[0] title, plus error_data
    * details when present). Empty otherwise.
-   *
-   * &#64;internal
-   * channel-conversations DD-014 D-c: a pure relay of
-   * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-   * discipline verbatim — provider-owned vocabulary, relayed, never
-   * pattern-matched; receipt_error_code is the structured twin a
-   * branching client must key on instead. Rides outbound-ledger ("ob:")
-   * items only: the reply lane has no receipt axis at all, so "dl:" and
-   * inbound items always answer empty.
    * </pre>
    *
    * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
@@ -498,15 +462,6 @@ private static final long serialVersionUID = 0L;
    * The provider's verbatim explanation when receipt_state is
    * receipt_failed (WhatsApp: the errors[0] title, plus error_data
    * details when present). Empty otherwise.
-   *
-   * &#64;internal
-   * channel-conversations DD-014 D-c: a pure relay of
-   * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-   * discipline verbatim — provider-owned vocabulary, relayed, never
-   * pattern-matched; receipt_error_code is the structured twin a
-   * branching client must key on instead. Rides outbound-ledger ("ob:")
-   * items only: the reply lane has no receipt axis at all, so "dl:" and
-   * inbound items always answer empty.
    * </pre>
    *
    * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
@@ -534,11 +489,6 @@ private static final long serialVersionUID = 0L;
    * The provider's numeric error code when receipt_state is
    * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
    * required"). Zero otherwise.
-   *
-   * &#64;internal
-   * The relay of the row's field 18 (DD-014 D-c), shipped WITH
-   * receipt_detail and never after it: a client handed prose first will
-   * pattern-match the prose, which is the coupling this pair prevents.
    * </pre>
    *
    * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
@@ -558,14 +508,6 @@ private static final long serialVersionUID = 0L;
    * text items, on outbound items, and on inbound media the platform
    * declined to ingest (disallowed type, over the size cap) — those
    * keep the bare provider_message_type placeholder.
-   *
-   * &#64;internal
-   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-   * deliberately never rides the wire. Clients fetch bytes through
-   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-   * and the server resolves the key from its own row, so the read path
-   * is conversation-viewer-scoped by construction and blob capabilities
-   * never leave the server.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -582,14 +524,6 @@ private static final long serialVersionUID = 0L;
    * text items, on outbound items, and on inbound media the platform
    * declined to ingest (disallowed type, over the size cap) — those
    * keep the bare provider_message_type placeholder.
-   *
-   * &#64;internal
-   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-   * deliberately never rides the wire. Clients fetch bytes through
-   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-   * and the server resolves the key from its own row, so the read path
-   * is conversation-viewer-scoped by construction and blob capabilities
-   * never leave the server.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -606,14 +540,6 @@ private static final long serialVersionUID = 0L;
    * text items, on outbound items, and on inbound media the platform
    * declined to ingest (disallowed type, over the size cap) — those
    * keep the bare provider_message_type placeholder.
-   *
-   * &#64;internal
-   * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-   * deliberately never rides the wire. Clients fetch bytes through
-   * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-   * and the server resolves the key from its own row, so the read path
-   * is conversation-viewer-scoped by construction and blob capabilities
-   * never leave the server.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -633,17 +559,6 @@ private static final long serialVersionUID = 0L;
    * short fact behind a withdrawn send such as "channel deleted").
    * Empty on non-failed items and on technical failures, whose
    * diagnostics deliberately stay off the thread.
-   *
-   * &#64;internal
-   * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-   * receipt_detail (field 11) with one deliberate doctrine difference:
-   * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-   * field carries PLATFORM-authored thread-safe copy — the guarantee is
-   * the write-side classification (the ledgers' attempt_detail is only
-   * ever written by the refusal/withdrawal arms; raw exception text
-   * lands in last_error, which never rides the wire). A pure relay of
-   * the row's own pair, never gated here: the stamp writer owns when
-   * the pair is meaningful. Rides both "ob:" and "dl:" items.
    * </pre>
    *
    * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
@@ -669,17 +584,6 @@ private static final long serialVersionUID = 0L;
    * short fact behind a withdrawn send such as "channel deleted").
    * Empty on non-failed items and on technical failures, whose
    * diagnostics deliberately stay off the thread.
-   *
-   * &#64;internal
-   * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-   * receipt_detail (field 11) with one deliberate doctrine difference:
-   * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-   * field carries PLATFORM-authored thread-safe copy — the guarantee is
-   * the write-side classification (the ledgers' attempt_detail is only
-   * ever written by the refusal/withdrawal arms; raw exception text
-   * lands in last_error, which never rides the wire). A pure relay of
-   * the row's own pair, never gated here: the stamp writer owns when
-   * the pair is meaningful. Rides both "ob:" and "dl:" items.
    * </pre>
    *
    * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
@@ -707,13 +611,6 @@ private static final long serialVersionUID = 0L;
    * Why a FAILED send attempt failed, in the platform's classification.
    * Unspecified on non-failed items and on rows written before the
    * classification existed.
-   *
-   * &#64;internal
-   * The structured twin, shipped WITH attempt_detail and never after it
-   * (the receipt_error_code discipline): a client that branches on the
-   * failure keys on this enum, never the prose. attempt_errored rows
-   * carry no detail by construction — clients render their own generic
-   * copy for that arm.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
@@ -727,13 +624,6 @@ private static final long serialVersionUID = 0L;
    * Why a FAILED send attempt failed, in the platform's classification.
    * Unspecified on non-failed items and on rows written before the
    * classification existed.
-   *
-   * &#64;internal
-   * The structured twin, shipped WITH attempt_detail and never after it
-   * (the receipt_error_code discipline): a client that branches on the
-   * failure keys on this enum, never the prose. attempt_errored rows
-   * carry no detail by construction — clients render their own generic
-   * copy for that arm.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
@@ -1056,15 +946,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ConversationTimelineItem is one entry in a conversation's timeline.
-   *
-   * &#64;internal
-   * channel-conversations DD-004: computed on read by stitching four
-   * stores — inbound webhook events, reply deliveries (rendered from the
-   * same extraction the delivery posted, never from execution transcripts),
-   * the outbound ledger, and the internal-lane event store (joined at T03
-   * Sitting 4). item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
-   * which makes cross-store collisions structurally impossible and gives
-   * cursors a total order without a synthetic sequence.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem}
@@ -1844,15 +1725,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The provider's verbatim message type for inbound items ("text",
      * "image", "audio", "document", ...). Empty on outbound items in v1.
-     *
-     * &#64;internal
-     * channel-conversations DD-004 amendment (T02 planning): non-text
-     * inbound is ignored by the reply pipeline today
-     * (WhatsAppInboundEventProcessor marks "non_text:&lt;type&gt;"), but the
-     * customer still sent it — a handoff timeline that hides it fails the
-     * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-     * posture); the UI renders known kinds as placeholders. Media content
-     * retrieval is a named non-goal of this slice.
      * </pre>
      *
      * <code>string provider_message_type = 6 [json_name = "providerMessageType"];</code>
@@ -1874,15 +1746,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The provider's verbatim message type for inbound items ("text",
      * "image", "audio", "document", ...). Empty on outbound items in v1.
-     *
-     * &#64;internal
-     * channel-conversations DD-004 amendment (T02 planning): non-text
-     * inbound is ignored by the reply pipeline today
-     * (WhatsAppInboundEventProcessor marks "non_text:&lt;type&gt;"), but the
-     * customer still sent it — a handoff timeline that hides it fails the
-     * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-     * posture); the UI renders known kinds as placeholders. Media content
-     * retrieval is a named non-goal of this slice.
      * </pre>
      *
      * <code>string provider_message_type = 6 [json_name = "providerMessageType"];</code>
@@ -1905,15 +1768,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The provider's verbatim message type for inbound items ("text",
      * "image", "audio", "document", ...). Empty on outbound items in v1.
-     *
-     * &#64;internal
-     * channel-conversations DD-004 amendment (T02 planning): non-text
-     * inbound is ignored by the reply pipeline today
-     * (WhatsAppInboundEventProcessor marks "non_text:&lt;type&gt;"), but the
-     * customer still sent it — a handoff timeline that hides it fails the
-     * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-     * posture); the UI renders known kinds as placeholders. Media content
-     * retrieval is a named non-goal of this slice.
      * </pre>
      *
      * <code>string provider_message_type = 6 [json_name = "providerMessageType"];</code>
@@ -1932,15 +1786,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The provider's verbatim message type for inbound items ("text",
      * "image", "audio", "document", ...). Empty on outbound items in v1.
-     *
-     * &#64;internal
-     * channel-conversations DD-004 amendment (T02 planning): non-text
-     * inbound is ignored by the reply pipeline today
-     * (WhatsAppInboundEventProcessor marks "non_text:&lt;type&gt;"), but the
-     * customer still sent it — a handoff timeline that hides it fails the
-     * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-     * posture); the UI renders known kinds as placeholders. Media content
-     * retrieval is a named non-goal of this slice.
      * </pre>
      *
      * <code>string provider_message_type = 6 [json_name = "providerMessageType"];</code>
@@ -1956,15 +1801,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The provider's verbatim message type for inbound items ("text",
      * "image", "audio", "document", ...). Empty on outbound items in v1.
-     *
-     * &#64;internal
-     * channel-conversations DD-004 amendment (T02 planning): non-text
-     * inbound is ignored by the reply pipeline today
-     * (WhatsAppInboundEventProcessor marks "non_text:&lt;type&gt;"), but the
-     * customer still sent it — a handoff timeline that hides it fails the
-     * product. Verbatim pass-through, never re-encoded (the DD-004 S-6
-     * posture); the UI renders known kinds as placeholders. Media content
-     * retrieval is a named non-goal of this slice.
      * </pre>
      *
      * <code>string provider_message_type = 6 [json_name = "providerMessageType"];</code>
@@ -2370,15 +2206,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * channel-conversations DD-014 D-c: a pure relay of
-     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-     * discipline verbatim — provider-owned vocabulary, relayed, never
-     * pattern-matched; receipt_error_code is the structured twin a
-     * branching client must key on instead. Rides outbound-ledger ("ob:")
-     * items only: the reply lane has no receipt axis at all, so "dl:" and
-     * inbound items always answer empty.
      * </pre>
      *
      * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
@@ -2401,15 +2228,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * channel-conversations DD-014 D-c: a pure relay of
-     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-     * discipline verbatim — provider-owned vocabulary, relayed, never
-     * pattern-matched; receipt_error_code is the structured twin a
-     * branching client must key on instead. Rides outbound-ledger ("ob:")
-     * items only: the reply lane has no receipt axis at all, so "dl:" and
-     * inbound items always answer empty.
      * </pre>
      *
      * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
@@ -2433,15 +2251,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * channel-conversations DD-014 D-c: a pure relay of
-     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-     * discipline verbatim — provider-owned vocabulary, relayed, never
-     * pattern-matched; receipt_error_code is the structured twin a
-     * branching client must key on instead. Rides outbound-ledger ("ob:")
-     * items only: the reply lane has no receipt axis at all, so "dl:" and
-     * inbound items always answer empty.
      * </pre>
      *
      * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
@@ -2461,15 +2270,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * channel-conversations DD-014 D-c: a pure relay of
-     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-     * discipline verbatim — provider-owned vocabulary, relayed, never
-     * pattern-matched; receipt_error_code is the structured twin a
-     * branching client must key on instead. Rides outbound-ledger ("ob:")
-     * items only: the reply lane has no receipt axis at all, so "dl:" and
-     * inbound items always answer empty.
      * </pre>
      *
      * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
@@ -2486,15 +2286,6 @@ private static final long serialVersionUID = 0L;
      * The provider's verbatim explanation when receipt_state is
      * receipt_failed (WhatsApp: the errors[0] title, plus error_data
      * details when present). Empty otherwise.
-     *
-     * &#64;internal
-     * channel-conversations DD-014 D-c: a pure relay of
-     * ChannelOutboundMessage.receipt_detail (field 17), inheriting its
-     * discipline verbatim — provider-owned vocabulary, relayed, never
-     * pattern-matched; receipt_error_code is the structured twin a
-     * branching client must key on instead. Rides outbound-ledger ("ob:")
-     * items only: the reply lane has no receipt axis at all, so "dl:" and
-     * inbound items always answer empty.
      * </pre>
      *
      * <code>string receipt_detail = 11 [json_name = "receiptDetail"];</code>
@@ -2517,11 +2308,6 @@ private static final long serialVersionUID = 0L;
      * The provider's numeric error code when receipt_state is
      * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
      * required"). Zero otherwise.
-     *
-     * &#64;internal
-     * The relay of the row's field 18 (DD-014 D-c), shipped WITH
-     * receipt_detail and never after it: a client handed prose first will
-     * pattern-match the prose, which is the coupling this pair prevents.
      * </pre>
      *
      * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
@@ -2536,11 +2322,6 @@ private static final long serialVersionUID = 0L;
      * The provider's numeric error code when receipt_state is
      * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
      * required"). Zero otherwise.
-     *
-     * &#64;internal
-     * The relay of the row's field 18 (DD-014 D-c), shipped WITH
-     * receipt_detail and never after it: a client handed prose first will
-     * pattern-match the prose, which is the coupling this pair prevents.
      * </pre>
      *
      * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
@@ -2559,11 +2340,6 @@ private static final long serialVersionUID = 0L;
      * The provider's numeric error code when receipt_state is
      * receipt_failed (WhatsApp: errors[0].code, e.g. 131047 "re-engagement
      * required"). Zero otherwise.
-     *
-     * &#64;internal
-     * The relay of the row's field 18 (DD-014 D-c), shipped WITH
-     * receipt_detail and never after it: a client handed prose first will
-     * pattern-match the prose, which is the coupling this pair prevents.
      * </pre>
      *
      * <code>int32 receipt_error_code = 12 [json_name = "receiptErrorCode"];</code>
@@ -2586,14 +2362,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2609,14 +2377,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2636,14 +2396,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2668,14 +2420,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2698,14 +2442,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2735,14 +2471,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2764,14 +2492,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2788,14 +2508,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2815,14 +2527,6 @@ private static final long serialVersionUID = 0L;
      * text items, on outbound items, and on inbound media the platform
      * declined to ingest (disallowed type, over the size cap) — those
      * keep the bare provider_message_type placeholder.
-     *
-     * &#64;internal
-     * whatsapp-media DD-001 D4: descriptive facts only — the storage key
-     * deliberately never rides the wire. Clients fetch bytes through
-     * getMediaDownloadUrl addressed by (channel, conversation, item_id),
-     * and the server resolves the key from its own row, so the read path
-     * is conversation-viewer-scoped by construction and blob capabilities
-     * never leave the server.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ConversationMediaRef media = 13 [json_name = "media"];</code>
@@ -2849,17 +2553,6 @@ private static final long serialVersionUID = 0L;
      * short fact behind a withdrawn send such as "channel deleted").
      * Empty on non-failed items and on technical failures, whose
      * diagnostics deliberately stay off the thread.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-     * receipt_detail (field 11) with one deliberate doctrine difference:
-     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-     * field carries PLATFORM-authored thread-safe copy — the guarantee is
-     * the write-side classification (the ledgers' attempt_detail is only
-     * ever written by the refusal/withdrawal arms; raw exception text
-     * lands in last_error, which never rides the wire). A pure relay of
-     * the row's own pair, never gated here: the stamp writer owns when
-     * the pair is meaningful. Rides both "ob:" and "dl:" items.
      * </pre>
      *
      * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
@@ -2884,17 +2577,6 @@ private static final long serialVersionUID = 0L;
      * short fact behind a withdrawn send such as "channel deleted").
      * Empty on non-failed items and on technical failures, whose
      * diagnostics deliberately stay off the thread.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-     * receipt_detail (field 11) with one deliberate doctrine difference:
-     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-     * field carries PLATFORM-authored thread-safe copy — the guarantee is
-     * the write-side classification (the ledgers' attempt_detail is only
-     * ever written by the refusal/withdrawal arms; raw exception text
-     * lands in last_error, which never rides the wire). A pure relay of
-     * the row's own pair, never gated here: the stamp writer owns when
-     * the pair is meaningful. Rides both "ob:" and "dl:" items.
      * </pre>
      *
      * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
@@ -2920,17 +2602,6 @@ private static final long serialVersionUID = 0L;
      * short fact behind a withdrawn send such as "channel deleted").
      * Empty on non-failed items and on technical failures, whose
      * diagnostics deliberately stay off the thread.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-     * receipt_detail (field 11) with one deliberate doctrine difference:
-     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-     * field carries PLATFORM-authored thread-safe copy — the guarantee is
-     * the write-side classification (the ledgers' attempt_detail is only
-     * ever written by the refusal/withdrawal arms; raw exception text
-     * lands in last_error, which never rides the wire). A pure relay of
-     * the row's own pair, never gated here: the stamp writer owns when
-     * the pair is meaningful. Rides both "ob:" and "dl:" items.
      * </pre>
      *
      * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
@@ -2952,17 +2623,6 @@ private static final long serialVersionUID = 0L;
      * short fact behind a withdrawn send such as "channel deleted").
      * Empty on non-failed items and on technical failures, whose
      * diagnostics deliberately stay off the thread.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-     * receipt_detail (field 11) with one deliberate doctrine difference:
-     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-     * field carries PLATFORM-authored thread-safe copy — the guarantee is
-     * the write-side classification (the ledgers' attempt_detail is only
-     * ever written by the refusal/withdrawal arms; raw exception text
-     * lands in last_error, which never rides the wire). A pure relay of
-     * the row's own pair, never gated here: the stamp writer owns when
-     * the pair is meaningful. Rides both "ob:" and "dl:" items.
      * </pre>
      *
      * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
@@ -2981,17 +2641,6 @@ private static final long serialVersionUID = 0L;
      * short fact behind a withdrawn send such as "channel deleted").
      * Empty on non-failed items and on technical failures, whose
      * diagnostics deliberately stay off the thread.
-     *
-     * &#64;internal
-     * cloud#262 (channel-conversations F-25). The attempt-axis sibling of
-     * receipt_detail (field 11) with one deliberate doctrine difference:
-     * receipt_detail relays PROVIDER-owned vocabulary verbatim, while this
-     * field carries PLATFORM-authored thread-safe copy — the guarantee is
-     * the write-side classification (the ledgers' attempt_detail is only
-     * ever written by the refusal/withdrawal arms; raw exception text
-     * lands in last_error, which never rides the wire). A pure relay of
-     * the row's own pair, never gated here: the stamp writer owns when
-     * the pair is meaningful. Rides both "ob:" and "dl:" items.
      * </pre>
      *
      * <code>string attempt_detail = 14 [json_name = "attemptDetail"];</code>
@@ -3014,13 +2663,6 @@ private static final long serialVersionUID = 0L;
      * Why a FAILED send attempt failed, in the platform's classification.
      * Unspecified on non-failed items and on rows written before the
      * classification existed.
-     *
-     * &#64;internal
-     * The structured twin, shipped WITH attempt_detail and never after it
-     * (the receipt_error_code discipline): a client that branches on the
-     * failure keys on this enum, never the prose. attempt_errored rows
-     * carry no detail by construction — clients render their own generic
-     * copy for that arm.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
@@ -3034,13 +2676,6 @@ private static final long serialVersionUID = 0L;
      * Why a FAILED send attempt failed, in the platform's classification.
      * Unspecified on non-failed items and on rows written before the
      * classification existed.
-     *
-     * &#64;internal
-     * The structured twin, shipped WITH attempt_detail and never after it
-     * (the receipt_error_code discipline): a client that branches on the
-     * failure keys on this enum, never the prose. attempt_errored rows
-     * carry no detail by construction — clients render their own generic
-     * copy for that arm.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
@@ -3059,13 +2694,6 @@ private static final long serialVersionUID = 0L;
      * Why a FAILED send attempt failed, in the platform's classification.
      * Unspecified on non-failed items and on rows written before the
      * classification existed.
-     *
-     * &#64;internal
-     * The structured twin, shipped WITH attempt_detail and never after it
-     * (the receipt_error_code discipline): a client that branches on the
-     * failure keys on this enum, never the prose. attempt_errored rows
-     * carry no detail by construction — clients render their own generic
-     * copy for that arm.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
@@ -3081,13 +2709,6 @@ private static final long serialVersionUID = 0L;
      * Why a FAILED send attempt failed, in the platform's classification.
      * Unspecified on non-failed items and on rows written before the
      * classification existed.
-     *
-     * &#64;internal
-     * The structured twin, shipped WITH attempt_detail and never after it
-     * (the receipt_error_code discipline): a client that branches on the
-     * failure keys on this enum, never the prose. attempt_errored rows
-     * carry no detail by construction — clients render their own generic
-     * copy for that arm.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
@@ -3106,13 +2727,6 @@ private static final long serialVersionUID = 0L;
      * Why a FAILED send attempt failed, in the platform's classification.
      * Unspecified on non-failed items and on rows written before the
      * classification existed.
-     *
-     * &#64;internal
-     * The structured twin, shipped WITH attempt_detail and never after it
-     * (the receipt_error_code discipline): a client that branches on the
-     * failure keys on this enum, never the prose. attempt_errored rows
-     * carry no detail by construction — clients render their own generic
-     * copy for that arm.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>

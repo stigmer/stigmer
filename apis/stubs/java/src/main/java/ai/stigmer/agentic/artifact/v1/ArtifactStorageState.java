@@ -8,16 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ArtifactStorageState tracks the lifecycle of an artifact's blob in storage.
- *
- * &#64;internal
- * The state machine is linear:
- * storage_state_pending → storage_state_stored → storage_state_deleted
- *
- * Pending: metadata record created, blob upload not yet confirmed.
- * Stored: blob successfully written to object storage and verified.
- * Deleted: blob has been garbage-collected (metadata may be retained for audit).
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.artifact.v1.ArtifactStorageState}

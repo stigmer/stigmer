@@ -8,11 +8,6 @@ package ai.stigmer.agentic.workflow.v1.serverless;
 /**
  * <pre>
  * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
- *
- * &#64;internal
- * Produced synchronously by in-process workflow validation: on create/update it
- * is persisted onto WorkflowStatus, and it is the direct response of the
- * validateSpec RPC.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation}
@@ -99,9 +94,6 @@ private static final long serialVersionUID = 0L;
    * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
    * Empty if validation has not started yet.
-   *
-   * &#64;internal
-   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -125,9 +117,6 @@ private static final long serialVersionUID = 0L;
    * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
    * Empty if validation has not started yet.
-   *
-   * &#64;internal
-   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    * </pre>
    *
    * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -298,11 +287,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional identifier for tracking a validation run.
-   *
-   * &#64;internal
-   * Legacy field from when validation ran as a separate async process. In-process
-   * validation is synchronous and does not populate this; retained for wire
-   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -324,11 +308,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional identifier for tracking a validation run.
-   *
-   * &#64;internal
-   * Legacy field from when validation ran as a separate async process. In-process
-   * validation is synchronous and does not populate this; retained for wire
-   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -578,11 +557,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
-   *
-   * &#64;internal
-   * Produced synchronously by in-process workflow validation: on create/update it
-   * is persisted onto WorkflowStatus, and it is the direct response of the
-   * validateSpec RPC.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation}
@@ -897,9 +871,6 @@ private static final long serialVersionUID = 0L;
      * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
      * Empty if validation has not started yet.
-     *
-     * &#64;internal
-     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -922,9 +893,6 @@ private static final long serialVersionUID = 0L;
      * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
      * Empty if validation has not started yet.
-     *
-     * &#64;internal
-     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -948,9 +916,6 @@ private static final long serialVersionUID = 0L;
      * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
      * Empty if validation has not started yet.
-     *
-     * &#64;internal
-     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -970,9 +935,6 @@ private static final long serialVersionUID = 0L;
      * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
      * Empty if validation has not started yet.
-     *
-     * &#64;internal
-     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -989,9 +951,6 @@ private static final long serialVersionUID = 0L;
      * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
      * Present even if validation failed (helps debugging).
      * Empty if validation has not started yet.
-     *
-     * &#64;internal
-     * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
      * </pre>
      *
      * <code>string yaml = 2 [json_name = "yaml"];</code>
@@ -1463,11 +1422,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional identifier for tracking a validation run.
-     *
-     * &#64;internal
-     * Legacy field from when validation ran as a separate async process. In-process
-     * validation is synchronous and does not populate this; retained for wire
-     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1488,11 +1442,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional identifier for tracking a validation run.
-     *
-     * &#64;internal
-     * Legacy field from when validation ran as a separate async process. In-process
-     * validation is synchronous and does not populate this; retained for wire
-     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1514,11 +1463,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional identifier for tracking a validation run.
-     *
-     * &#64;internal
-     * Legacy field from when validation ran as a separate async process. In-process
-     * validation is synchronous and does not populate this; retained for wire
-     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1536,11 +1480,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional identifier for tracking a validation run.
-     *
-     * &#64;internal
-     * Legacy field from when validation ran as a separate async process. In-process
-     * validation is synchronous and does not populate this; retained for wire
-     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1555,11 +1494,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional identifier for tracking a validation run.
-     *
-     * &#64;internal
-     * Legacy field from when validation ran as a separate async process. In-process
-     * validation is synchronous and does not populate this; retained for wire
-     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>

@@ -13,9 +13,6 @@ public interface SendSignalInputOrBuilder extends
   /**
    * <pre>
    * Workflow execution ID to send the signal to.
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface SendSignalInputOrBuilder extends
   /**
    * <pre>
    * Workflow execution ID to send the signal to.
-   *
-   * &#64;internal
-   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -39,9 +33,6 @@ public interface SendSignalInputOrBuilder extends
   /**
    * <pre>
    * Signal name matching the workflow's LISTEN task signal ID.
-   *
-   * &#64;internal
-   * Case-sensitive, follows snake_case convention.
    * </pre>
    *
    * <code>string signal_name = 2 [json_name = "signalName", (.buf.validate.field) = { ... }</code>
@@ -51,9 +42,6 @@ public interface SendSignalInputOrBuilder extends
   /**
    * <pre>
    * Signal name matching the workflow's LISTEN task signal ID.
-   *
-   * &#64;internal
-   * Case-sensitive, follows snake_case convention.
    * </pre>
    *
    * <code>string signal_name = 2 [json_name = "signalName", (.buf.validate.field) = { ... }</code>
@@ -92,20 +80,6 @@ public interface SendSignalInputOrBuilder extends
   /**
    * <pre>
    * Optional idempotency key for deduplication of signal delivery.
-   *
-   * &#64;internal
-   * When provided, a signal whose key was already DELIVERED (within a 24-hour
-   * window anchored at delivery) is rejected with ALREADY_EXISTS instead of
-   * being re-delivered; nothing is cached or replayed. A same-key request
-   * whose delivery is currently in flight is rejected with ABORTED — a
-   * retryable conflict, unlike ALREADY_EXISTS. A FAILED delivery frees the
-   * key (immediately on a clean failure, within a short in-flight hold after
-   * a crash), so retrying a failed attempt with the same key works — the
-   * scenario idempotency keys exist for. Both editions enforce this
-   * identically. Keys are scoped to the organization to prevent cross-org
-   * collisions.
-   *
-   * &#64;since Gap B2 (Event Dedupe)
    * </pre>
    *
    * <code>string idempotency_key = 4 [json_name = "idempotencyKey"];</code>
@@ -115,20 +89,6 @@ public interface SendSignalInputOrBuilder extends
   /**
    * <pre>
    * Optional idempotency key for deduplication of signal delivery.
-   *
-   * &#64;internal
-   * When provided, a signal whose key was already DELIVERED (within a 24-hour
-   * window anchored at delivery) is rejected with ALREADY_EXISTS instead of
-   * being re-delivered; nothing is cached or replayed. A same-key request
-   * whose delivery is currently in flight is rejected with ABORTED — a
-   * retryable conflict, unlike ALREADY_EXISTS. A FAILED delivery frees the
-   * key (immediately on a clean failure, within a short in-flight hold after
-   * a crash), so retrying a failed attempt with the same key works — the
-   * scenario idempotency keys exist for. Both editions enforce this
-   * identically. Keys are scoped to the organization to prevent cross-org
-   * collisions.
-   *
-   * &#64;since Gap B2 (Event Dedupe)
    * </pre>
    *
    * <code>string idempotency_key = 4 [json_name = "idempotencyKey"];</code>

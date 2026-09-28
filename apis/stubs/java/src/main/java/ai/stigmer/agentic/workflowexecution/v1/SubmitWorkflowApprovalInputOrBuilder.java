@@ -13,9 +13,6 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -25,9 +22,6 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * ID of the workflow execution.
-   *
-   * &#64;internal
-   * Format: "wfx_abc123xyz456"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -39,9 +33,6 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * ID of the tool call to approve, skip, or reject.
-   *
-   * &#64;internal
-   * Must match status.pending_approval.tool_call_id exactly.
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -51,9 +42,6 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * ID of the tool call to approve, skip, or reject.
-   *
-   * &#64;internal
-   * Must match status.pending_approval.tool_call_id exactly.
    * </pre>
    *
    * <code>string tool_call_id = 2 [json_name = "toolCallId", (.buf.validate.field) = { ... }</code>
@@ -65,13 +53,6 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-   *
-   * &#64;internal
-   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-   * whose run-lifetime lease is applied by the child and therefore scoped to
-   * that child agent execution (a parallel sibling's gates keep prompting).
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>
@@ -81,13 +62,6 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   /**
    * <pre>
    * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-   *
-   * &#64;internal
-   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
-   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
-   * whose run-lifetime lease is applied by the child and therefore scoped to
-   * that child agent execution (a parallel sibling's gates keep prompting).
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [json_name = "action", (.buf.validate.field) = { ... }</code>

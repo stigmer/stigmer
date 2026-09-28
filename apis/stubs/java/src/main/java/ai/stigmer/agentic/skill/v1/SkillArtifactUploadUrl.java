@@ -9,14 +9,6 @@ package ai.stigmer.agentic.skill.v1;
  * <pre>
  * SkillArtifactUploadUrl is a short-lived, single-use capability for
  * staging a skill artifact over HTTP.
- *
- * &#64;internal
- * The upload strategy differs by edition (mirrors ArtifactDownloadUrl):
- * - Cloud: pre-signed R2/S3 PUT URL with short TTL
- * - OSS: capability URL on the server's own HTTP lane (the unguessable
- * token in the path is the credential, exactly like a presigned URL)
- *
- * This pattern avoids streaming large blobs through the gRPC control plane.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl}
@@ -358,14 +350,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * SkillArtifactUploadUrl is a short-lived, single-use capability for
    * staging a skill artifact over HTTP.
-   *
-   * &#64;internal
-   * The upload strategy differs by edition (mirrors ArtifactDownloadUrl):
-   * - Cloud: pre-signed R2/S3 PUT URL with short TTL
-   * - OSS: capability URL on the server's own HTTP lane (the unguessable
-   * token in the path is the credential, exactly like a presigned URL)
-   *
-   * This pattern avoids streaming large blobs through the gRPC control plane.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl}

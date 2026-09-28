@@ -8,11 +8,6 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
- *
- * &#64;internal
- * Returns override metadata without exposing secrets. The frontend uses
- * this to show "Using org credentials" vs. "Using platform credentials"
- * and to offer the option to remove the override.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput}
@@ -322,11 +317,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetOrgOAuthAppInput queries whether an org has a BYOA override for a resource.
-   *
-   * &#64;internal
-   * Returns override metadata without exposing secrets. The frontend uses
-   * this to show "Using org credentials" vs. "Using platform credentials"
-   * and to offer the option to remove the override.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput}

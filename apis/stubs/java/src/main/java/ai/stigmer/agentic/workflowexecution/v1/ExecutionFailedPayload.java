@@ -8,12 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * Payload for execution_failed events.
- *
- * &#64;internal
- * Emitted when the workflow transitions to EXECUTION_FAILED. Contains the
- * top-level error and a reference to the task that caused the failure.
- *
- * &#64;since T06
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionFailedPayload}
@@ -354,12 +348,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Payload for execution_failed events.
-   *
-   * &#64;internal
-   * Emitted when the workflow transitions to EXECUTION_FAILED. Contains the
-   * top-level error and a reference to the task that caused the failure.
-   *
-   * &#64;since T06
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionFailedPayload}

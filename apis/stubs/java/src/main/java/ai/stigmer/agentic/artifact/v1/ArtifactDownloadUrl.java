@@ -8,16 +8,6 @@ package ai.stigmer.agentic.artifact.v1;
 /**
  * <pre>
  * ArtifactDownloadUrl provides a URL for downloading artifact content.
- *
- * &#64;internal
- * The download strategy differs by edition:
- * - Cloud: pre-signed S3 URL with short TTL (e.g., 15 minutes)
- * - OSS: direct URL to the local artifact server endpoint
- *
- * This pattern avoids streaming large blobs through the gRPC control plane.
- * The client receives a URL and fetches the content via HTTP GET.
- *
- * &#64;since T07 (Artifact Store)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl}
@@ -70,10 +60,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * URL to download the artifact content via HTTP GET.
-   *
-   * &#64;internal
-   * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-   * OSS: http://localhost:{port}/artifacts/{hash}
    * </pre>
    *
    * <code>string url = 1 [json_name = "url"];</code>
@@ -95,10 +81,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * URL to download the artifact content via HTTP GET.
-   *
-   * &#64;internal
-   * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-   * OSS: http://localhost:{port}/artifacts/{hash}
    * </pre>
    *
    * <code>string url = 1 [json_name = "url"];</code>
@@ -390,16 +372,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ArtifactDownloadUrl provides a URL for downloading artifact content.
-   *
-   * &#64;internal
-   * The download strategy differs by edition:
-   * - Cloud: pre-signed S3 URL with short TTL (e.g., 15 minutes)
-   * - OSS: direct URL to the local artifact server endpoint
-   *
-   * This pattern avoids streaming large blobs through the gRPC control plane.
-   * The client receives a URL and fetches the content via HTTP GET.
-   *
-   * &#64;since T07 (Artifact Store)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl}
@@ -581,10 +553,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * URL to download the artifact content via HTTP GET.
-     *
-     * &#64;internal
-     * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-     * OSS: http://localhost:{port}/artifacts/{hash}
      * </pre>
      *
      * <code>string url = 1 [json_name = "url"];</code>
@@ -605,10 +573,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * URL to download the artifact content via HTTP GET.
-     *
-     * &#64;internal
-     * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-     * OSS: http://localhost:{port}/artifacts/{hash}
      * </pre>
      *
      * <code>string url = 1 [json_name = "url"];</code>
@@ -630,10 +594,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * URL to download the artifact content via HTTP GET.
-     *
-     * &#64;internal
-     * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-     * OSS: http://localhost:{port}/artifacts/{hash}
      * </pre>
      *
      * <code>string url = 1 [json_name = "url"];</code>
@@ -651,10 +611,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * URL to download the artifact content via HTTP GET.
-     *
-     * &#64;internal
-     * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-     * OSS: http://localhost:{port}/artifacts/{hash}
      * </pre>
      *
      * <code>string url = 1 [json_name = "url"];</code>
@@ -669,10 +625,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * URL to download the artifact content via HTTP GET.
-     *
-     * &#64;internal
-     * Cloud: pre-signed S3 URL (expires after ttl_seconds)
-     * OSS: http://localhost:{port}/artifacts/{hash}
      * </pre>
      *
      * <code>string url = 1 [json_name = "url"];</code>
