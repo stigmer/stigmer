@@ -1,8 +1,43 @@
 import { defineConfig } from "vitest/config";
 
+/**
+ * The default (happy-dom) suite runs on vitest's `vmForks` pool, apart from
+ * the files in `FORKS_ONLY` below.
+ *
+ * Why the pool matters: under the default `forks` pool every test file starts
+ * a new child process and re-imports happy-dom before its first test, and on
+ * the 4-vCPU CI runner that per-file setup cost more than the tests
+ * themselves. `vmForks` keeps each worker process alive and gives every file a
+ * fresh happy-dom `Window` as its VM context, with its own module evaluation,
+ * so globals and module-level state (the reduced-motion media query, the
+ * shortcut registry's platform check) still start clean in every file.
+ * Measured on ubuntu-latest, 2026-09-29 (stigmer/stigmer#1060): `forks`
+ * 230.8 / 270.9 / 272.6 / 273.6 / 293.0 s, `vmForks` 91.7 / 144.7 / 147.2 s.
+ * A coverage diff of the whole suite under both pools covered the same
+ * statements and functions in every source file. Also measured and left out:
+ * `maxWorkers: "100%"` (267.8 / 271.4 s; the runner is already saturated at
+ * three workers plus the main process), `pool: "threads"` and
+ * `deps.optimizer.web` (inside the run-to-run noise).
+ *
+ * The cost of a VM context is a second realm: objects that happy-dom creates
+ * belong to the outer realm, values a test creates belong to the file's
+ * context, and a check like `instanceof ArrayBuffer` can fail across the two.
+ */
+const FORKS_ONLY = [
+  // Compile the SDK stylesheet through @tailwindcss/node, which installs a
+  // Node module loader hook (`module.register`); vm pools do not provide it.
+  "src/__tests__/styles-border-layer-invariant.test.ts",
+  "src/__tests__/styles-dist-isolation.test.ts",
+  // Hands an ArrayBuffer built in the file's context to happy-dom's
+  // `Response`, which does not recognise it across realms, so the zip arrives
+  // empty. A browser has one realm, and so does `forks`.
+  "src/skill/__tests__/fetchAndUnpackArtifact.test.ts",
+];
+// A file that fails only under vmForks joins FORKS_ONLY with its reason; its
+// test body is not bent to fit the pool.
+
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.{ts,tsx}"],
     // The `*.a11y.test.tsx`, `*.layout.test.tsx`, and `*.browser.test.ts(x)`
     // suites run in a real browser (contrast/layout rules and pixel APIs —
     // canvas 2D, createImageBitmap — that happy-dom cannot evaluate) via
@@ -42,5 +77,26 @@ export default defineConfig({
     // the informative testing-library error (element query + DOM dump)
     // instead of tripping vitest's own 5s default first.
     testTimeout: 15000,
+    // One suite, two pools. Each project inherits everything above; the
+    // `exclude` a project adds is appended to the shared list.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "vm",
+          include: ["src/**/*.test.{ts,tsx}"],
+          exclude: FORKS_ONLY,
+          pool: "vmForks",
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "forks",
+          include: FORKS_ONLY,
+          pool: "forks",
+        },
+      },
+    ],
   },
 });

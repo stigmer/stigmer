@@ -22,7 +22,7 @@ import { defineConfig } from "vitest/config";
  * All run in a real Chromium via Vitest's Playwright browser provider.
  *
  * Kept as a SEPARATE config (not a `projects` entry) on purpose:
- * - the fast, 2,689-test happy-dom suite (`vitest.config.ts`, `npm test`) and
+ * - the fast happy-dom suite (`vitest.config.ts`, `npm test`) and
  *   the unit CI job stay browser-free;
  * - the browser suite is opt-in via `npm run test:a11y` and its own CI job.
  *

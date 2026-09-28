@@ -39,8 +39,11 @@
  *     the full set takes 5:07 / 5:34 / 5:17 at 1, 3:52 / 5:14 / 5:17 at 2,
  *     5:10 at 4. The react suite alone is ~309 s of that and already uses
  *     every core, so the other nine suites finish under it whatever the cap;
- *     1 stays, and the lever is the react suite itself. A caller's own
- *     --concurrency replaces this default (turbo refuses a repeated flag).
+ *     1 stays, and the lever is the react suite itself. That lever was its
+ *     vitest pool: `vmForks` took the suite from a ~272 s median to ~145 s
+ *     on the same runner (sdk/react/vitest.config.ts, stigmer/stigmer#1060).
+ *     A caller's own --concurrency replaces this default (turbo refuses a
+ *     repeated flag).
  *   - Telemetry is off (owner ruling D3, 2026-09-10): Turborepo reports
  *     anonymous usage to Vercel by default from every machine and runner, and
  *     the only switches are per machine or this variable. Setting it here
