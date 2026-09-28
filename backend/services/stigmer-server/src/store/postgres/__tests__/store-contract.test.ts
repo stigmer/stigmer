@@ -38,6 +38,7 @@ const ALL_TABLES = [
   "workflow_execution_events",
   "schedule_runs",
   "signal_dedupe",
+  "organization_slugs",
   "oauth_grant",
   "pending_oauth_state",
 ] as const;
