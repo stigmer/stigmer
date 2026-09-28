@@ -1,12 +1,16 @@
-// Tests for the dist/package.json generation in publish-libs.mjs.
-// Run via `node --test scripts/publish-libs.test.mjs` (wired into root `npm test`).
+// Tests for how publish-libs.mjs stages each package's dist/: the generated
+// dist/package.json, the publish set and its closures, and the staged sources
+// and source maps. Run via `node --test scripts/publish-libs.test.mjs` (wired
+// into root `npm test`).
 //
-// The regression this guards: publish-libs.mjs once dropped the `bin` field,
+// The regressions this guards: publish-libs.mjs once dropped the `bin` field,
 // which would silently break the `mcp-server-stigmer` executable that `npx`
-// (and the patched CLI launcher) rely on.
+// (and the patched CLI launcher) rely on; and it once published every test,
+// fixture and test helper under src/ while every source map named a path
+// one level outside the installed package.
 
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,11 +18,15 @@ import { test } from "node:test";
 
 import {
   PACKAGES,
+  assertStagedDist,
   generateDistPackageJson,
+  isTestSidePath,
   packCommand,
   packageClosure,
   resolvePackageTag,
   rewriteBinPaths,
+  rewriteMapSources,
+  stageSources,
 } from "./publish-libs.mjs";
 
 test("PACKAGES is exactly the workspace members that are not private", () => {
@@ -237,4 +245,179 @@ test("packCommand packs the built dist into the pack directory, silently", () =>
     packCommand("/repo/client-apps/cli/dist", "/out/pkgs"),
     "npm pack /repo/client-apps/cli/dist --pack-destination /out/pkgs --silent",
   );
+});
+
+test("isTestSidePath names the workspace's test markers and nothing a consumer imports", () => {
+  for (const rel of [
+    "__tests__/zip-structure.test.ts",
+    "workspace/__tests__/a11y/.gitignore",
+    "__tests__/fixtures/encrypted-payload-fixture.json",
+    "__test-utils__/fake-claimcheck-storage.ts",
+    "marketplace/__fixtures__/cursor-marketplace.ts",
+    "node.test.ts",
+    "tools/format.test.tsx",
+    "__tests__/transcript.golden.md",
+    "api.spec.ts",
+    "__tests__\\windows.ts",
+  ]) {
+    assert.equal(isTestSidePath(rel), true, rel);
+  }
+  // The published test-support entry points (@stigmer/react/test,
+  // @stigmer/plugin-package/testing) and names that merely contain "test".
+  for (const rel of [
+    "test/index.ts",
+    "test/samples.ts",
+    "testing.ts",
+    "local/temporal/inspect.ts",
+    "resource-workbench/components/ResourceInspector.tsx",
+    "latest.ts",
+    "",
+  ]) {
+    assert.equal(isTestSidePath(rel), false, rel);
+  }
+});
+
+test("every published entry point stays outside the test side", () => {
+  // The predicate must never refuse a file a package exports: a false
+  // positive would stage a tarball whose exports point at nothing. Pinned
+  // over the checked-in manifests, so ./test and ./testing are covered.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const targets = (value) =>
+    typeof value === "string"
+      ? [value]
+      : value && typeof value === "object"
+        ? Object.values(value).flatMap(targets)
+        : [];
+  for (const relDir of PACKAGES) {
+    const { publishConfig = {} } = JSON.parse(readFileSync(join(root, relDir, "package.json"), "utf8"));
+    const { main, types, bin, exports } = publishConfig;
+    for (const target of targets([main, types, bin, exports])) {
+      assert.equal(isTestSidePath(target), false, `${relDir}: ${target}`);
+    }
+  }
+});
+
+/** A package tree in a temp dir: `files` maps a package-relative path to its content. */
+function syntheticPackage(files) {
+  const pkgDir = mkdtempSync(join(tmpdir(), "publish-libs-stage-"));
+  for (const [rel, content] of Object.entries(files)) {
+    mkdirSync(dirname(join(pkgDir, rel)), { recursive: true });
+    writeFileSync(join(pkgDir, rel), content);
+  }
+  return pkgDir;
+}
+
+/** A map the way tsc writes one: sources relative to the map, repository layout. */
+const tscMap = (file, source) =>
+  JSON.stringify({ version: 3, file, sourceRoot: "", sources: [source], names: [], mappings: "AAAA" });
+
+test("stageSources copies the runtime sources and leaves the test side out", () => {
+  const pkgDir = syntheticPackage({
+    "src/index.ts": "export {};",
+    "src/test/index.ts": "export {};",
+    "src/styles.css": "",
+    "src/__tests__/index.test.ts": "",
+    "src/__tests__/fixtures/payload.json": "{}",
+    "src/__test-utils__/fake.ts": "",
+    "src/node.test.ts": "",
+    "dist/index.js": "",
+    // Left by an earlier, unfiltered stage: the stage owns dist/src/.
+    "dist/src/stale.test.ts": "",
+  });
+  try {
+    assert.equal(stageSources(pkgDir), true);
+    const staged = (rel) => existsSync(join(pkgDir, "dist", "src", rel));
+    assert.ok(staged("index.ts") && staged("test/index.ts") && staged("styles.css"));
+    for (const rel of ["__tests__", "__test-utils__", "node.test.ts", "stale.test.ts"]) {
+      assert.equal(staged(rel), false, rel);
+    }
+    assert.ok(existsSync(join(pkgDir, "dist", "index.js")), "build output is untouched");
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("stageSources: a package with no src/ ships no maps", () => {
+  // protos: its maps name generated .ts that never ship, so they can only dangle.
+  const pkgDir = syntheticPackage({
+    "dist/ai/v1/api_pb.js": "",
+    "dist/ai/v1/api_pb.js.map": tscMap("api_pb.js", "../../../ai/v1/api_pb.ts"),
+    "dist/ai/v1/api_pb.d.ts": "",
+  });
+  try {
+    assert.equal(stageSources(pkgDir), false);
+    assert.equal(existsSync(join(pkgDir, "dist", "ai", "v1", "api_pb.js.map")), false);
+    assert.ok(existsSync(join(pkgDir, "dist", "ai", "v1", "api_pb.js")));
+    assert.equal(existsSync(join(pkgDir, "dist", "src")), false);
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("rewriteMapSources re-aims tsc's maps at the staged copy, at any depth, once", () => {
+  const pkgDir = syntheticPackage({
+    "src/index.ts": "",
+    "src/org/update.ts": "",
+    "dist/index.js.map": tscMap("index.js", "../src/index.ts"),
+    "dist/index.d.ts.map": tscMap("index.d.ts", "../src/index.ts"),
+    "dist/org/update.d.ts.map": tscMap("update.d.ts", "../../src/org/update.ts"),
+  });
+  const distDir = join(pkgDir, "dist");
+  const sources = (rel) => JSON.parse(readFileSync(join(distDir, rel), "utf8")).sources;
+  try {
+    stageSources(pkgDir);
+    assert.equal(rewriteMapSources(distDir, pkgDir), 3);
+    // From the published root (dist/), each source now names the staged copy.
+    assert.deepEqual(sources("index.js.map"), ["src/index.ts"]);
+    assert.deepEqual(sources("index.d.ts.map"), ["src/index.ts"]);
+    assert.deepEqual(sources("org/update.d.ts.map"), ["../src/org/update.ts"]);
+    // --skip-build re-stages the same dist/: a second pass changes nothing.
+    const before = readFileSync(join(distDir, "org/update.d.ts.map"), "utf8");
+    stageSources(pkgDir);
+    assert.equal(rewriteMapSources(distDir, pkgDir), 0);
+    assert.equal(readFileSync(join(distDir, "org/update.d.ts.map"), "utf8"), before);
+    assertStagedDist(distDir, "@stigmer/synthetic");
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("rewriteMapSources keeps the rest of the map byte-for-byte", () => {
+  // Tarball parity: the rewrite changes `sources` and nothing else.
+  const pkgDir = syntheticPackage({
+    "src/index.ts": "",
+    "dist/index.js.map": tscMap("index.js", "../src/index.ts"),
+  });
+  try {
+    stageSources(pkgDir);
+    rewriteMapSources(join(pkgDir, "dist"), pkgDir);
+    assert.equal(
+      readFileSync(join(pkgDir, "dist", "index.js.map"), "utf8"),
+      tscMap("index.js", "src/index.ts"),
+    );
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test("assertStagedDist refuses a test-side file and a map source not in the tarball", () => {
+  const pkgDir = syntheticPackage({
+    "dist/index.js": "",
+    // What an unfiltered build config does: a compiled test in the tarball.
+    "dist/__tests__/client.test.js": "",
+    // A map whose source was never staged.
+    "dist/index.js.map": tscMap("index.js", "../src/index.ts"),
+  });
+  try {
+    assert.throws(
+      () => assertStagedDist(join(pkgDir, "dist"), "@stigmer/synthetic"),
+      (err) =>
+        err.message.includes("@stigmer/synthetic") &&
+        err.message.includes("2 problem(s)") &&
+        err.message.includes("test-side file: __tests__/client.test.js") &&
+        err.message.includes("map source not in the tarball: index.js.map -> ../src/index.ts"),
+    );
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
 });

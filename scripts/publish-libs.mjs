@@ -41,6 +41,16 @@
  *     keeping them off both `latest` (stable) and `next` (release candidates).
  *   - Otherwise it is inferred from the version: pre-release versions
  *     (e.g. 0.5.0-rc.1) publish under "next"; stable versions under "latest".
+ *
+ * A tarball is exactly what sits in dist/, so the staged dist/ is the
+ * package's published contents. Besides dist/package.json, each package gets
+ * its runtime sources in dist/src/ with the test side left out. tsc writes
+ * every source map relative to the repository layout (`../src/x.ts` from
+ * dist/), and publishing from dist/ puts that one level outside the installed
+ * package, so the maps are rewritten to name the staged copy. Before anything
+ * is packed or sent, the staged dist/ must hold no test-side file and every
+ * map source it names must resolve inside it; a package that fails either
+ * check stops the run.
  */
 
 import { execSync } from "node:child_process";
@@ -52,8 +62,9 @@ import {
   unlinkSync,
   readdirSync,
   mkdirSync,
+  rmSync,
 } from "node:fs";
-import { resolve, dirname, join } from "node:path";
+import { resolve, dirname, join, relative, sep, isAbsolute } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -294,14 +305,130 @@ export function generateDistPackageJson(pkgDir, version) {
 }
 
 /**
- * Copy src/ into dist/src/ so declaration maps resolve to readable TypeScript.
- * Only copies .ts, .tsx, and .css files — no node_modules, no build artifacts.
+ * The markers the workspace uses for files that exist only to test a package:
+ * a `__tests__`, `__test-utils__` or `__fixtures__` directory anywhere on the
+ * path, or a `*.test.*` / `*.spec.*` file. Deliberately not `test/` or
+ * `testing.ts`: `@stigmer/react/test` and `@stigmer/plugin-package/testing`
+ * are published entry points for consumers' own tests.
  */
-function copySrcForDeclarationMaps(pkgDir) {
+const TEST_SIDE_DIRS = new Set(["__tests__", "__test-utils__", "__fixtures__"]);
+const TEST_SIDE_FILE = /\.(test|spec)\.[^/\\]+$/;
+
+/** Whether a path (relative, either separator) is test-side and never ships. */
+export function isTestSidePath(relPath) {
+  const segments = relPath.split(/[\\/]/);
+  return (
+    segments.some((segment) => TEST_SIDE_DIRS.has(segment)) ||
+    TEST_SIDE_FILE.test(segments[segments.length - 1])
+  );
+}
+
+/** Every file under `dir`, as paths relative to it, in a stable order. */
+function listFiles(dir, prefix = "") {
+  const files = [];
+  const entries = readdirSync(join(dir, prefix), { withFileTypes: true });
+  entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  for (const entry of entries) {
+    const rel = prefix ? join(prefix, entry.name) : entry.name;
+    if (entry.isDirectory()) files.push(...listFiles(dir, rel));
+    else files.push(rel);
+  }
+  return files;
+}
+
+/** Whether `path` is `dir` itself or lies under it. */
+function isInside(dir, path) {
+  const rel = relative(dir, path);
+  return rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+}
+
+/**
+ * Stage the sources the shipped maps point at: src/ into dist/src/, the test
+ * side left out. The stage owns dist/src/ and clears it first, so a re-run
+ * over an already-staged dist/ (--skip-build), or one staged before the
+ * filter existed, never carries a file the filter would refuse.
+ *
+ * A package with no src/ (protos: its generated .ts sit beside the .d.ts they
+ * compile to, where shipping them would change how consumers resolve types)
+ * has no sources to point at, so it ships no maps either. Returns whether
+ * sources were staged.
+ */
+export function stageSources(pkgDir) {
   const srcDir = resolve(pkgDir, "src");
-  const destDir = resolve(pkgDir, "dist", "src");
-  if (!existsSync(srcDir)) return;
-  cpSync(srcDir, destDir, { recursive: true });
+  const distDir = resolve(pkgDir, "dist");
+  const destDir = resolve(distDir, "src");
+  rmSync(destDir, { recursive: true, force: true });
+  if (!existsSync(srcDir)) {
+    for (const rel of listFiles(distDir)) {
+      if (rel.endsWith(".map")) rmSync(join(distDir, rel));
+    }
+    return false;
+  }
+  cpSync(srcDir, destDir, {
+    recursive: true,
+    filter: (from) => !isTestSidePath(relative(srcDir, from)),
+  });
+  return true;
+}
+
+/** A map's sources as absolute paths, resolved the way a consumer's tool does. */
+function mapSourcePaths(mapPath, map) {
+  const base = resolve(dirname(mapPath), map.sourceRoot || "");
+  return (map.sources ?? []).map((source) => resolve(base, source));
+}
+
+/**
+ * Point every map in dist/ at the staged copy of its source. tsc names a
+ * source relative to the repository (`<pkg>/src/x.ts`); the file ships at
+ * `dist/src/x.ts`, so a source outside dist/ but inside the package is
+ * re-aimed at the same path under dist/. A source already inside dist/ is
+ * left alone, which makes a second run a no-op. Returns the number of maps
+ * rewritten.
+ */
+export function rewriteMapSources(distDir, pkgDir) {
+  let rewritten = 0;
+  for (const rel of listFiles(distDir)) {
+    if (!rel.endsWith(".map") || isInside(join(distDir, "src"), join(distDir, rel))) continue;
+    const mapPath = join(distDir, rel);
+    const map = JSON.parse(readFileSync(mapPath, "utf8"));
+    if (!Array.isArray(map.sources)) continue;
+    const base = resolve(dirname(mapPath), map.sourceRoot || "");
+    let changed = false;
+    const sources = mapSourcePaths(mapPath, map).map((abs, i) => {
+      if (isInside(distDir, abs) || !isInside(pkgDir, abs)) return map.sources[i];
+      changed = true;
+      return relative(base, resolve(distDir, relative(pkgDir, abs))).split(sep).join("/");
+    });
+    if (!changed) continue;
+    writeFileSync(mapPath, JSON.stringify({ ...map, sources }));
+    rewritten += 1;
+  }
+  return rewritten;
+}
+
+/**
+ * Refuse a staged dist/ that would publish a test-side file or a map whose
+ * source is not in the tarball. Runs last, on exactly what `npm pack` and
+ * `npm publish` read, so whatever put the file there (the source stage, a
+ * build config that compiles tests) is caught the same way.
+ */
+export function assertStagedDist(distDir, name) {
+  const problems = [];
+  for (const rel of listFiles(distDir)) {
+    if (isTestSidePath(rel)) problems.push(`test-side file: ${rel}`);
+    if (!rel.endsWith(".map")) continue;
+    const mapPath = join(distDir, rel);
+    const map = JSON.parse(readFileSync(mapPath, "utf8"));
+    mapSourcePaths(mapPath, map).forEach((abs, i) => {
+      if (!isInside(distDir, abs) || !existsSync(abs)) {
+        problems.push(`map source not in the tarball: ${rel} -> ${map.sources[i]}`);
+      }
+    });
+  }
+  if (problems.length === 0) return;
+  const shown = problems.slice(0, 20).map((p) => `    ${p}`).join("\n");
+  const more = problems.length > 20 ? `\n    ...and ${problems.length - 20} more` : "";
+  throw new Error(`${name}: the staged dist/ would publish ${problems.length} problem(s):\n${shown}${more}`);
 }
 
 /**
@@ -451,7 +578,12 @@ async function main() {
         console.log(`  dist-tag: ${pkgTag} (pinned below the run default "${tag}")`);
       }
 
-      copySrcForDeclarationMaps(pkgDir);
+      if (stageSources(pkgDir)) {
+        const rewritten = rewriteMapSources(distDir, pkgDir);
+        console.log(`  Staged src/ (test side left out); ${rewritten} map(s) re-aimed at it`);
+      } else {
+        console.log("  No src/ to stage; source maps left out");
+      }
 
       const readmeSrc = resolve(pkgDir, "README.md");
       if (existsSync(readmeSrc)) {
@@ -462,6 +594,8 @@ async function main() {
       if (existsSync(licenseSrc)) {
         cpSync(licenseSrc, resolve(distDir, "LICENSE"));
       }
+
+      assertStagedDist(distDir, srcPkg.name);
 
       if (packDir) {
         run(packCommand(distDir, packDir));
