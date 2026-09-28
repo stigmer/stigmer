@@ -329,6 +329,75 @@ export interface SignalDedupeStore {
 }
 
 // =============================================================================
+// Organization slugs (the ledger of every slug an organization ever took)
+// =============================================================================
+
+/**
+ * One slug's line in the ledger. An organization's id is its slug, so this
+ * is also the history of every organization id the store ever issued.
+ */
+export interface OrganizationSlugEntry {
+  readonly slug: string;
+  /**
+   * RFC-3339 time the ledger first recorded the slug: the create's claim,
+   * or, for a slug that predates the ledger, the migration or retire that
+   * wrote it.
+   */
+  readonly claimedAt: string;
+  /** RFC-3339 time the organization holding it was deleted; "" while it is held. */
+  readonly retiredAt: string;
+}
+
+/** A claim's outcome: won with its entry, or lost to the entry that holds the slug. */
+export type OrganizationSlugClaim =
+  | { readonly claimed: true; readonly entry: OrganizationSlugEntry }
+  | { readonly claimed: false; readonly entry: OrganizationSlugEntry };
+
+/**
+ * The organization-slug ledger: a slug is claimed once, atomically, by the
+ * create that takes it, and it is never released by the organization's
+ * delete, which retires it instead. The organization row can go; its slug
+ * stays taken for good, so nothing a deleted organization left behind
+ * (rows that name it in `metadata.org`, an edition's rows kept by its id)
+ * can ever pass to a new holder of the same slug.
+ *
+ * The ledger, not the organization row, decides "taken". A claim is the
+ * create's uniqueness guarantee, which the row cannot give: `saveResource`
+ * upserts, so two creates that both read "absent" would otherwise both
+ * write, the second over the first.
+ *
+ * An unretired entry is a slug held by a live organization, or by a create
+ * between its claim and its row; a retired entry is a slug whose
+ * organization was deleted. A caller tells the two apart, never "no row"
+ * alone, because a create in flight has a claim and no row yet.
+ */
+export interface OrganizationSlugStore {
+  /**
+   * Claims a slug if no entry holds it, atomically: of concurrent claims,
+   * exactly one wins. A loser receives the entry that holds the slug,
+   * retired or not.
+   */
+  claim(slug: string): Promise<OrganizationSlugClaim>;
+  /**
+   * Marks the slug retired: sets `retiredAt` on its entry when it is
+   * empty, or records the slug already retired when no entry exists (an
+   * organization created before the ledger). Idempotent; a second retire
+   * keeps the first time.
+   */
+  retire(slug: string): Promise<void>;
+  /**
+   * Frees a claim whose create failed before its organization was stored,
+   * so the caller's retry can claim again. Guarded: only the unretired
+   * entry carrying this exact `claimedAt` is removed, so a release can
+   * never free a retired slug or another create's claim. Anything else is
+   * a no-op.
+   */
+  release(entry: OrganizationSlugEntry): Promise<void>;
+  /** The slug's entry, or undefined when no organization ever took it. */
+  find(slug: string): Promise<OrganizationSlugEntry | undefined>;
+}
+
+// =============================================================================
 // MCP OAuth (Go: pkg/domain/mcpserver/oauth, tables consolidated by v7 / OD-3)
 // =============================================================================
 
@@ -863,6 +932,7 @@ export interface Store {
 
   readonly bootstrapState: BootstrapStateStore;
   readonly signalDedupe: SignalDedupeStore;
+  readonly organizationSlugs: OrganizationSlugStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
 

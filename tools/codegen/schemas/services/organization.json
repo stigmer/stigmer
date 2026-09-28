@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create an organization.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org_id (the integrator organization)."
+          "description": "Create an organization.\n\n An organization's slug is its id, and it is the organization's for good:\n a slug any organization has ever held, one since deleted included, is\n never taken again. A create of a held slug is refused with\n ALREADY_EXISTS; a create of a slug whose organization was deleted is\n refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,\n     and a slug is never reused. Metadata: slug.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org_id (the integrator organization)."
         },
         {
           "name": "Update",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Delete an organization."
+          "description": "Delete an organization. Its slug stays reserved: no organization can be\n created with it again."
         }
       ]
     },
@@ -448,5 +448,5 @@
       ]
     }
   ],
-  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n An Organization's metadata.id equals its metadata.slug: unlike every other\n resource (which is assigned a generated prefixed id), the tenancy root is\n addressed by its slug, which is globally unique."
+  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n An Organization's metadata.id equals its metadata.slug: unlike every other\n resource (which is assigned a generated prefixed id), the tenancy root is\n addressed by its slug, which is globally unique and never reused, even\n after the organization is deleted."
 }

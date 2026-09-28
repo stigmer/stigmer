@@ -11,7 +11,11 @@
  * and leaves every other row's bytes as they were; a row it cannot decode
  * fails the step and leaves the database at v9. v11 adds the list index's
  * schema only, and a Go-written row of a declared kind is derived by the
- * store's reconciliation at open and read through the index.
+ * store's reconciliation at open and read through the index. v12 creates
+ * the organization-slug ledger and fills it: every live organization
+ * unretired, every organization a surviving scoped row names with none live
+ * retired, across keyset pages; a scoped row it cannot decode fails the
+ * step and leaves the database at v11 with no ledger.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -35,9 +39,11 @@ import { SqliteStore } from "../store.js";
 import {
   CURRENT_SCHEMA_VERSION,
   SCHEMA_VERSION_10,
+  SCHEMA_VERSION_12,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
+import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { materializeGoFixture } from "./support.js";
 
@@ -85,6 +91,7 @@ describe("fresh database", () => {
       "signal_dedupe",
       "oauth_grant",
       "pending_oauth_state",
+      "organization_slugs",
     ]) {
       expect(tables, `table ${expected} should exist`).toContain(expected);
     }
@@ -100,7 +107,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
     ]);
   });
 
@@ -525,16 +532,15 @@ describe("v10: the retired public level leaves every row", () => {
   });
 
   it("a row of a kind outside the frozen table is never decoded", () => {
-    const { dbPath, db: setup } = v9Database();
-    // Bytes no schema decodes, under a kind the level never applied to.
-    insert(setup, "session", "ses_opaque", new Uint8Array([0xff, 0xff]));
-    setup.close();
-
-    const store = SqliteStore.open(dbPath);
-    cleanups.push(() => store.close());
-    const db = new DatabaseSync(dbPath);
+    const { db } = v9Database();
     cleanups.push(() => db.close());
-    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+    // Bytes no schema decodes, under a kind the level never applied to.
+    // The chain stops at v10: v12 reads every organization-scoped row, so
+    // a later step would refuse these bytes for its own reason.
+    insert(db, "session", "ses_opaque", new Uint8Array([0xff, 0xff]));
+
+    runMigrations(db, SCHEMA_VERSION_10);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_10);
     expect(row(db, "session", "ses_opaque").data).toEqual(
       new Uint8Array([0xff, 0xff]),
     );
@@ -558,5 +564,128 @@ describe("v10: the retired public level leaves every row", () => {
     cleanups.push(() => db.close());
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_10 - 1);
     expect(row(db, "agent", "agt_public").data).toEqual(publicBytes);
+  });
+});
+
+describe("v12: the organization-slug ledger records every slug taken before it", () => {
+  /** A v11 database: the chain replayed up to the step before v12. */
+  function v11Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_12 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_12 - 1);
+    return { dbPath, db: setup };
+  }
+
+  function agentNaming(id: string, org: string): Uint8Array {
+    return toBinary(
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id, name: id, slug: id, org },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+  }
+
+  function sessionNaming(id: string, org: string): Uint8Array {
+    return toBinary(
+      SessionSchema,
+      create(SessionSchema, { metadata: { id, name: id, slug: id, org } }),
+    );
+  }
+
+  function insert(
+    db: DatabaseSync,
+    kind: string,
+    id: string,
+    data: Uint8Array,
+  ): void {
+    db.prepare(`INSERT INTO resources (kind, id, data) VALUES (?, ?, ?)`).run(
+      kind,
+      id,
+      data,
+    );
+  }
+
+  function ledger(db: DatabaseSync): Array<{ slug: string; retired: number }> {
+    return db
+      .prepare(
+        `SELECT slug, retired_at IS NOT NULL AS retired FROM organization_slugs ORDER BY slug`,
+      )
+      .all() as Array<{ slug: string; retired: number }>;
+  }
+
+  it("records every live organization unretired and every organization a surviving row names with none live retired", () => {
+    const { dbPath, db: setup } = v11Database();
+    insert(setup, "organization", "acme", new Uint8Array([0x00]));
+    insert(setup, "agent", "agt_live", agentNaming("agt_live", "acme"));
+    insert(setup, "agent", "agt_gone", agentNaming("agt_gone", "deleted-one"));
+    insert(
+      setup,
+      "session",
+      "ses_gone",
+      sessionNaming("ses_gone", "deleted-two"),
+    );
+    insert(setup, "agent", "agt_orphan", agentNaming("agt_orphan", ""));
+    // A kind outside the table is never decoded, whatever it holds.
+    insert(
+      setup,
+      "identity_account",
+      "ida_opaque",
+      new Uint8Array([0xff, 0xff]),
+    );
+    setup.close();
+
+    const store = SqliteStore.open(dbPath);
+    cleanups.push(() => store.close());
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
+    expect(ledger(db)).toEqual([
+      { slug: "acme", retired: 0 },
+      { slug: "deleted-one", retired: 1 },
+      { slug: "deleted-two", retired: 1 },
+    ]);
+  });
+
+  it("reads a kind across keyset pages, missing no row past the first page", () => {
+    const { dbPath, db: setup } = v11Database();
+    const rows = HISTORY_PAGE_SIZE + 2;
+    for (let i = 0; i < rows; i++) {
+      const id = `agt_${String(i).padStart(4, "0")}`;
+      // The last row, past the first page, is the only one naming its
+      // organization.
+      insert(
+        setup,
+        "agent",
+        id,
+        agentNaming(id, i === rows - 1 ? "past-the-page" : "on-the-page"),
+      );
+    }
+    setup.close();
+
+    const store = SqliteStore.open(dbPath);
+    cleanups.push(() => store.close());
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(ledger(db)).toEqual([
+      { slug: "on-the-page", retired: 1 },
+      { slug: "past-the-page", retired: 1 },
+    ]);
+  });
+
+  it("a scoped row that does not decode fails the step, names the row, and leaves the database at v11 with no ledger", () => {
+    const { dbPath, db: setup } = v11Database();
+    insert(setup, "agent", "agt_broken", new Uint8Array([0xff, 0xff, 0xff]));
+    setup.close();
+
+    expect(() => SqliteStore.open(dbPath)).toThrow(
+      /migrate to v12: .*agent 'agt_broken' cannot be read for the organization it names/,
+    );
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_12 - 1);
+    expect(tableNames(db)).not.toContain("organization_slugs");
   });
 });

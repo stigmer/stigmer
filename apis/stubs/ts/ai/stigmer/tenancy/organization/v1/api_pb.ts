@@ -24,7 +24,8 @@ export const file_ai_stigmer_tenancy_organization_v1_api: GenFile = /*@__PURE__*
  *
  * An Organization's metadata.id equals its metadata.slug: unlike every other
  * resource (which is assigned a generated prefixed id), the tenancy root is
- * addressed by its slug, which is globally unique.
+ * addressed by its slug, which is globally unique and never reused, even
+ * after the organization is deleted.
  *
  * @generated from message ai.stigmer.tenancy.organization.v1.Organization
  */

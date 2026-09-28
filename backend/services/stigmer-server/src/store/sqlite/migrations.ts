@@ -34,6 +34,12 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import {
+  HISTORY_PAGE_SIZE,
+  ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
+  organizationNamedBy,
+  undecodableRowError,
+} from "../organization-slug-history.js";
+import {
   PUBLIC_ROW_KINDS_AT_RETIREMENT,
   movePublicRowToOrg,
 } from "../public-visibility-retired.js";
@@ -54,9 +60,11 @@ export const SCHEMA_VERSION_9 = 9;
 export const SCHEMA_VERSION_10 = 10;
 /** v11: the list index's columns, key table and indexes (DDL only). */
 export const SCHEMA_VERSION_11 = 11;
+/** v12: the organization-slug ledger, filled with every slug taken before it. */
+export const SCHEMA_VERSION_12 = 12;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_11;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_12;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -87,6 +95,7 @@ export function runMigrations(
     [SCHEMA_VERSION_9, migrateToV9],
     [SCHEMA_VERSION_10, migrateToV10],
     [SCHEMA_VERSION_11, migrateToV11],
+    [SCHEMA_VERSION_12, migrateToV12],
   ];
 
   for (const [version, migrate] of chain) {
@@ -473,4 +482,63 @@ function migrateToV11(db: DatabaseSync): void {
     CREATE INDEX idx_resource_list_keys_lookup
       ON resource_list_keys (kind, key, value, created_at, id);
   `);
+}
+
+/**
+ * v12: the organization-slug ledger, the Postgres driver's v7 in this
+ * engine's terms (postgres/migrations.ts gives the reasons for the table's
+ * shape and the fill's order; organization-slug-history.ts what the fill
+ * records and why an undecodable row fails the step). Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back and the
+ * boot stops on the row it names. INSERT OR IGNORE keeps a live
+ * organization's entry unretired whatever its rows say.
+ */
+function migrateToV12(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE organization_slugs (
+      slug TEXT PRIMARY KEY,
+      claimed_at TEXT NOT NULL,
+      retired_at TEXT
+    ) WITHOUT ROWID;
+  `);
+  const recordedAt = new Date().toISOString();
+  db.prepare(
+    `INSERT OR IGNORE INTO organization_slugs (slug, claimed_at)
+     SELECT id, ? FROM resources WHERE kind = 'organization'`,
+  ).run(recordedAt);
+
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const named = new Set<string>();
+  for (const entry of ORGANIZATION_SCOPED_KINDS_AT_LEDGER) {
+    let after = "";
+    for (;;) {
+      const rows = page.all(entry.kind, after, HISTORY_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      for (const row of rows) {
+        let org: string;
+        try {
+          org = organizationNamedBy(entry, row.data);
+        } catch (error) {
+          throw undecodableRowError(entry, row.id, error);
+        }
+        if (org !== "") {
+          named.add(org);
+        }
+      }
+      if (rows.length < HISTORY_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  }
+  const retire = db.prepare(
+    `INSERT OR IGNORE INTO organization_slugs (slug, claimed_at, retired_at) VALUES (?, ?, ?)`,
+  );
+  for (const slug of named) {
+    retire.run(slug, recordedAt, recordedAt);
+  }
 }

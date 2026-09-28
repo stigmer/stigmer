@@ -8,8 +8,12 @@
  * moves every row of the seven kinds that held the retired public level to
  * org and leaves every other row's bytes as they were; a row it cannot
  * decode fails the step and leaves the database at v4. v6 adds the list
- * index's table (its behaviour is the store contract's). A step's starting
- * database is built by running the chain up to the step before it.
+ * index's table (its behaviour is the store contract's). v7 creates the
+ * organization-slug ledger and fills it: every live organization unretired,
+ * every organization a surviving scoped row names with none live retired,
+ * across keyset pages; a scoped row it cannot decode fails the step and
+ * leaves the database at v6 with no ledger. A step's starting database is
+ * built by running the chain up to the step before it.
  *
  * Gated on TEST_DATABASE_URL (see support.ts): visible skips without a
  * database, always exercised in CI via the ci.stigmer-server service
@@ -25,11 +29,15 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+
+import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import {
   CURRENT_SCHEMA_VERSION,
   SCHEMA_VERSION_1,
   SCHEMA_VERSION_5,
+  SCHEMA_VERSION_7,
   runMigrations,
 } from "../migrations.js";
 import { PostgresStore } from "../store.js";
@@ -88,6 +96,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         expect(names).toEqual([
           "bootstrap_state",
           "oauth_grant",
+          "organization_slugs",
           "pending_oauth_state",
           "resource_audit",
           "resource_list_keys",
@@ -374,6 +383,133 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               Buffer.from([0xff, 0xff]),
             ),
           ).toBe(true);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+    describe("v7: the organization-slug ledger records every slug taken before it", () => {
+      /** An agent row naming `org`, encoded through its own schema. */
+      function agentNaming(id: string, org: string): Buffer {
+        return Buffer.from(
+          toBinary(
+            AgentSchema,
+            create(AgentSchema, {
+              metadata: { id, name: id, slug: id, org },
+              spec: { instructions: "a conformant instruction body" },
+            }),
+          ),
+        );
+      }
+
+      function sessionNaming(id: string, org: string): Buffer {
+        return Buffer.from(
+          toBinary(
+            SessionSchema,
+            create(SessionSchema, {
+              metadata: { id, name: id, slug: id, org },
+            }),
+          ),
+        );
+      }
+
+      /** A v6 database, the one v7 starts from, and a client on it for the seeding. */
+      async function v6Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_7 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function ledger(
+        client: pg.Client,
+      ): Promise<Array<{ slug: string; retired: boolean }>> {
+        const result = await client.query<{ slug: string; retired: boolean }>(
+          `SELECT slug, retired_at IS NOT NULL AS retired FROM organization_slugs ORDER BY slug`,
+        );
+        return result.rows;
+      }
+
+      it("records every live organization unretired and every organization a surviving row names with none live retired", async () => {
+        const client = await v6Client();
+        try {
+          await client.query(
+            `INSERT INTO resources (kind, id, data) VALUES
+               ('organization', 'acme', '\\x00'),
+               ('agent', 'agt_live', $1),
+               ('agent', 'agt_gone', $2),
+               ('session', 'ses_gone', $3),
+               ('agent', 'agt_orphan', $4),
+               ('identity_account', 'ida_opaque', '\\xffff')`,
+            [
+              agentNaming("agt_live", "acme"),
+              agentNaming("agt_gone", "deleted-one"),
+              sessionNaming("ses_gone", "deleted-two"),
+              agentNaming("agt_orphan", ""),
+            ],
+          );
+
+          const reopened = await PostgresStore.open(db.databaseUrl);
+          await reopened.close();
+
+          expect(await ledger(client)).toEqual([
+            { slug: "acme", retired: false },
+            { slug: "deleted-one", retired: true },
+            { slug: "deleted-two", retired: true },
+          ]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads a kind across keyset pages, missing no row past the first page", async () => {
+        const client = await v6Client();
+        try {
+          const rows = HISTORY_PAGE_SIZE + 2;
+          for (let i = 0; i < rows; i++) {
+            const id = `agt_${String(i).padStart(4, "0")}`;
+            // The last row, past the first page, is the only one naming
+            // its organization.
+            const org = i === rows - 1 ? "past-the-page" : "on-the-page";
+            await client.query(
+              `INSERT INTO resources (kind, id, data) VALUES ('agent', $1, $2)`,
+              [id, agentNaming(id, org)],
+            );
+          }
+
+          const reopened = await PostgresStore.open(db.databaseUrl);
+          await reopened.close();
+
+          expect(await ledger(client)).toEqual([
+            { slug: "on-the-page", retired: true },
+            { slug: "past-the-page", retired: true },
+          ]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a scoped row that does not decode fails the step, names the row, and leaves the database at v6 with no ledger", async () => {
+        const client = await v6Client();
+        try {
+          await client.query(
+            `INSERT INTO resources (kind, id, data) VALUES ('agent', 'agt_broken', '\\xffffff')`,
+          );
+
+          await expect(PostgresStore.open(db.databaseUrl)).rejects.toThrow(
+            /migrate to v7: .*agent 'agt_broken' cannot be read for the organization it names/,
+          );
+
+          const version = await client.query(
+            `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+          );
+          expect(Number((version.rows[0] as { version: string }).version)).toBe(
+            SCHEMA_VERSION_7 - 1,
+          );
+          const table = await client.query(
+            `SELECT to_regclass('organization_slugs') AS name`,
+          );
+          expect((table.rows[0] as { name: string | null }).name).toBeNull();
         } finally {
           await client.end();
         }

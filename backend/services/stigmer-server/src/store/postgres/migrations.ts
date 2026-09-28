@@ -39,6 +39,12 @@
 import type { PoolClient } from "pg";
 
 import {
+  HISTORY_PAGE_SIZE,
+  ORGANIZATION_SCOPED_KINDS_AT_LEDGER,
+  organizationNamedBy,
+  undecodableRowError,
+} from "../organization-slug-history.js";
+import {
   PUBLIC_ROW_KINDS_AT_RETIREMENT,
   movePublicRowToOrg,
 } from "../public-visibility-retired.js";
@@ -52,9 +58,11 @@ export const SCHEMA_VERSION_4 = 4;
 export const SCHEMA_VERSION_5 = 5;
 /** v6: the list index's columns, key table and indexes (DDL only). */
 export const SCHEMA_VERSION_6 = 6;
+/** v7: the organization-slug ledger, filled with every slug taken before it. */
+export const SCHEMA_VERSION_7 = 7;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_6;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_7;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -95,6 +103,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_4, migrateToV4],
       [SCHEMA_VERSION_5, migrateToV5],
       [SCHEMA_VERSION_6, migrateToV6],
+      [SCHEMA_VERSION_7, migrateToV7],
     ];
 
     for (const [version, migrate] of chain) {
@@ -423,4 +432,78 @@ async function migrateToV6(client: PoolClient): Promise<void> {
     CREATE INDEX idx_resource_list_keys_lookup
       ON resource_list_keys (kind, key, value, created_at, (id COLLATE "C"));
   `);
+}
+
+/**
+ * v7: the organization-slug ledger (the Store's `organizationSlugs`,
+ * interface.ts says what it guarantees), created and filled in one step so
+ * it is complete before the first request. organization-slug-history.ts
+ * says what the fill records, why it is a migration, why its kind table is
+ * frozen, and why an undecodable row fails the step; this step owns the SQL.
+ *
+ * - `claimed_at` and `retired_at` are ledger time crossing the Store
+ *   interface, so TEXT holding the exact RFC-3339 strings (the header's
+ *   convention); `retired_at` is NULL while the slug is held.
+ * - Every query is by the primary key, so the table needs no other index.
+ * - Live organizations are copied by id (an organization's id is its slug)
+ *   with no decode. Each organization-scoped kind is then read in keyset
+ *   pages on `(kind, id)`, the primary key's order, so no kind is ever held
+ *   in memory whole; the organizations its rows name with no live
+ *   organization are recorded retired. ON CONFLICT DO NOTHING keeps a live
+ *   organization's entry unretired whatever its rows say.
+ * - The rows are only read, so nothing takes a row lock; the chain's
+ *   advisory lock already keeps a second instance's boot out of the step.
+ */
+async function migrateToV7(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE organization_slugs (
+      slug TEXT PRIMARY KEY,
+      claimed_at TEXT NOT NULL,
+      retired_at TEXT
+    )
+  `);
+  const recordedAt = new Date().toISOString();
+  await client.query(
+    `INSERT INTO organization_slugs (slug, claimed_at)
+     SELECT id, $1 FROM resources WHERE kind = 'organization'
+     ON CONFLICT (slug) DO NOTHING`,
+    [recordedAt],
+  );
+
+  const named = new Set<string>();
+  for (const entry of ORGANIZATION_SCOPED_KINDS_AT_LEDGER) {
+    let after = "";
+    for (;;) {
+      const page = await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [entry.kind, after, HISTORY_PAGE_SIZE],
+      );
+      for (const row of page.rows) {
+        let org: string;
+        try {
+          org = organizationNamedBy(entry, new Uint8Array(row.data));
+        } catch (error) {
+          throw undecodableRowError(entry, row.id, error);
+        }
+        if (org !== "") {
+          named.add(org);
+        }
+      }
+      if (page.rows.length < HISTORY_PAGE_SIZE) {
+        break;
+      }
+      after = page.rows[page.rows.length - 1]!.id;
+    }
+  }
+  for (const slug of named) {
+    await client.query(
+      `INSERT INTO organization_slugs (slug, claimed_at, retired_at)
+       VALUES ($1, $2, $2)
+       ON CONFLICT (slug) DO NOTHING`,
+      [slug, recordedAt],
+    );
+  }
 }

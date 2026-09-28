@@ -2,7 +2,9 @@
 // backend it ensures the organization the CLI falls back to (`stigmer`) and
 // installs nothing, so the command creates the organization and renders one
 // Organization section; a second run over a ready backend reports the org
-// present and creates nothing. A real Connect backend over h2c serves the org
+// present and creates nothing; a backend whose default organization was
+// deleted fails the verb (its slug is never reused), naming how to choose
+// another organization. A real Connect backend over h2c serves the org
 // controllers; the config file (HOME redirected) points a selfhost backend at
 // it.
 
@@ -16,7 +18,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import type { ConnectRouter } from "@connectrpc/connect";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import {
   type Organization,
@@ -25,6 +27,7 @@ import {
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationsSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import {
   afterAll,
   afterEach,
@@ -37,6 +40,7 @@ import {
 } from "vitest";
 import { DEFAULT_LOCAL_ORG } from "../config/index.js";
 import { classify, ExitCode } from "../errors/index.js";
+import { RESERVED_DEFAULT_ORG_MESSAGE } from "../local/bootstrap.js";
 import { buildProgram } from "../program.js";
 
 let backend: Http2Server;
@@ -45,6 +49,8 @@ const openSessions = new Set<ServerHttp2Session>();
 
 let orgs: Map<string, Organization>;
 let creates: number;
+/** When set, the backend's slug for the default org is reserved (a deleted organization held it). */
+let reserved: boolean;
 
 let home: string;
 let originalHome: string | undefined;
@@ -57,6 +63,18 @@ beforeAll(async () => {
     });
     router.service(OrganizationCommandController, {
       create: (org) => {
+        if (reserved) {
+          throw new ConnectError("slug reserved", Code.AlreadyExists, undefined, [
+            {
+              desc: ErrorInfoSchema,
+              value: create(ErrorInfoSchema, {
+                reason: "ORGANIZATION_SLUG_RESERVED",
+                domain: "stigmer.ai",
+                metadata: { slug: org.metadata?.slug ?? "" },
+              }),
+            },
+          ]);
+        }
         creates += 1;
         const row = create(OrganizationSchema, org);
         if (row.metadata !== undefined) row.metadata.id = "org_1";
@@ -82,6 +100,7 @@ afterAll(async () => {
 beforeEach(() => {
   orgs = new Map();
   creates = 0;
+  reserved = false;
   originalHome = process.env.HOME;
   home = mkdtempSync(join(tmpdir(), "stigmer-bootstrap-cmd-"));
   process.env.HOME = home;
@@ -162,6 +181,14 @@ describe("bootstrap", () => {
       { key: "Slug", value: DEFAULT_LOCAL_ORG },
       { key: "State", value: "created" },
     ]);
+  });
+
+  it("fails when the default organization was deleted, naming how to choose another", async () => {
+    reserved = true;
+    const outcome = await run("--json");
+    expect(outcome.exitCode).toBe(ExitCode.Usage);
+    expect(outcome.message).toBe(RESERVED_DEFAULT_ORG_MESSAGE);
+    expect(creates).toBe(0);
   });
 
   it("is a no-op the second time: org present, nothing created", async () => {

@@ -141,7 +141,7 @@ stigmer org get my-org --output yaml
 stigmer org update org.yaml
 
 # Delete an organization
-# Warning: cascades to all resources under the organization
+# Warning: irreversible, and its slug can never be used again
 stigmer org delete my-org
 ```
 
@@ -152,7 +152,7 @@ stigmer org delete my-org
 | `create` | Any authenticated user | Creates a new organization. Creator automatically becomes owner. |
 | `apply` | Caller determined at runtime | Create or update, authorization resolved per operation. |
 | `update` | Organization admin (`can_edit`) | Updates an existing organization. |
-| `delete` | Organization owner (`can_delete`) | Deletes the organization and all its resources. |
+| `delete` | Organization owner (`can_delete`) | Deletes the organization and every access grant on it. Its slug is reserved: no organization can be created with it again. |
 | `get` | Organization member (`can_view`) | Gets a single organization by ID. |
 | `list` | Platform admin | Paginated list of all organizations (admin only). |
 | `findMyOrganizations` | Any authenticated user | Returns organizations the caller is a member of. |

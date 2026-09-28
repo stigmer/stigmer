@@ -7,11 +7,15 @@
 // one instead (`stigmer config context set --org`) and needs no bootstrap.
 //
 // Flagless on purpose: the act is idempotent, so there is nothing to force;
-// a second run changes nothing and says so. It never deletes anything.
+// a second run changes nothing and says so. It never deletes anything. When
+// the default organization was deleted, its slug is never reused and the
+// backend cannot be made ready under it: the verb fails, naming how to
+// choose another organization.
 // Heavy modules load lazily inside the action so `--help` stays fast.
 
 import type { Command } from "commander";
 import { DEFAULT_LOCAL_ORG, ensureAuthenticated } from "../config/index.js";
+import { CliExitError, ExitCode } from "../errors/index.js";
 import { CommandResult, type OutputFlags, renderResult } from "../output/index.js";
 import { addResultFlags, resultFormat } from "./shared.js";
 
@@ -26,7 +30,10 @@ export function registerBootstrap(program: Command): void {
 }
 
 async function runBootstrapCommand(flags: OutputFlags): Promise<void> {
-  const [{ connectBackend }, { bootstrapBackend }] = await Promise.all([
+  const [
+    { connectBackend },
+    { bootstrapBackend, RESERVED_DEFAULT_ORG_HINTS, RESERVED_DEFAULT_ORG_MESSAGE },
+  ] = await Promise.all([
     import("../backend.js"),
     import("../local/bootstrap.js"),
   ]);
@@ -35,6 +42,9 @@ async function runBootstrapCommand(flags: OutputFlags): Promise<void> {
   ensureAuthenticated(client.config);
 
   const state = await bootstrapBackend(client.stigmer);
+  if (state === "reserved") {
+    throw new CliExitError(RESERVED_DEFAULT_ORG_MESSAGE, ExitCode.Usage, RESERVED_DEFAULT_ORG_HINTS);
+  }
 
   const out = CommandResult.success("Backend is ready");
   out.addSection("Organization").field("Slug", DEFAULT_LOCAL_ORG).field("State", state);

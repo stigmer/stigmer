@@ -58,6 +58,6 @@ stigmer org get my-org --output yaml
 # Update an existing organization
 stigmer org update org.yaml
 
-# Delete an organization (cascades to all resources)
+# Delete an organization (irreversible; its slug is never reused)
 stigmer org delete my-org
 ```

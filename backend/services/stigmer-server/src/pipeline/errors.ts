@@ -54,6 +54,29 @@ export function alreadyExistsError(resource: string, id: string): ConnectError {
 }
 
 /**
+ * An AlreadyExists refusal a client acts on without parsing text: the
+ * authored message, and the reason carried as an ErrorInfo detail, exactly
+ * as failedPreconditionError carries one. The code stays AlreadyExists, so
+ * a caller that keys on the code alone (a retry with another name) keeps
+ * working.
+ */
+export function alreadyExistsWithReasonError(
+  message: string,
+  reason: RefusalReason,
+): ConnectError {
+  return new ConnectError(message, Code.AlreadyExists, undefined, [
+    {
+      desc: ErrorInfoSchema,
+      value: create(ErrorInfoSchema, {
+        reason: reason.reason,
+        domain: ERROR_REASON_DOMAIN,
+        metadata: { ...reason.metadata },
+      }),
+    },
+  ]);
+}
+
+/**
  * Go FailedPreconditionError — the system is not in a state required for
  * the operation (vs AlreadyExists, which tells the caller to stop). With a
  * reason, the refusal also carries it as an ErrorInfo detail.

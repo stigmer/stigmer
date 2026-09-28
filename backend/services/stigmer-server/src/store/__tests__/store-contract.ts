@@ -17,7 +17,9 @@
  * token match / single-term prefix / AND; wire-ready 0–1 scores;
  * list-mode newest-first at exactly 1.0 — search-mode ranking ORDER is
  * deliberately NOT asserted here, it is driver-relative), the two-phase
- * signal-dedupe hold (oss#442), OAuth grants, once-only pending-state
+ * signal-dedupe hold (oss#442), the organization-slug ledger (one winner
+ * of concurrent claims, a retire that sticks, a release that frees only
+ * its own unretired claim), OAuth grants, once-only pending-state
  * redemption with its 10-minute TTL, the closed-store failure mode, and
  * the list index (../list-index.ts): one organization's or one parent's
  * rows newest first, a cursor walk with no gap and no duplicate, keys
@@ -1435,6 +1437,86 @@ export function describeStoreContract(
     });
   });
 
+  describe("organization slugs", () => {
+    it("claims a fresh slug once; a second claim loses to the entry that holds it", async () => {
+      expect(await fx.store.organizationSlugs.find("acme")).toBeUndefined();
+
+      const first = await fx.store.organizationSlugs.claim("acme");
+      expect(first.claimed).toBe(true);
+      expect(first.entry.slug).toBe("acme");
+      expect(first.entry.retiredAt).toBe("");
+      expect(Date.parse(first.entry.claimedAt)).not.toBeNaN();
+
+      const second = await fx.store.organizationSlugs.claim("acme");
+      expect(second.claimed).toBe(false);
+      expect(second.entry).toEqual(first.entry);
+      expect(await fx.store.organizationSlugs.find("acme")).toEqual(
+        first.entry,
+      );
+    });
+
+    it("of concurrent claims of one slug, exactly one wins", async () => {
+      const claims = await Promise.all(
+        Array.from({ length: 8 }, () =>
+          fx.store.organizationSlugs.claim("contended"),
+        ),
+      );
+      expect(claims.filter((claim) => claim.claimed)).toHaveLength(1);
+      const winner = claims.find((claim) => claim.claimed)!;
+      for (const loser of claims.filter((claim) => !claim.claimed)) {
+        expect(loser.entry).toEqual(winner.entry);
+      }
+    });
+
+    it("retire marks a held slug retired, keeps the first time, and records an unknown slug retired", async () => {
+      const { entry } = await fx.store.organizationSlugs.claim("acme");
+      await fx.store.organizationSlugs.retire("acme");
+      const retired = await fx.store.organizationSlugs.find("acme");
+      expect(retired?.claimedAt).toBe(entry.claimedAt);
+      expect(retired?.retiredAt).not.toBe("");
+
+      await fx.store.organizationSlugs.retire("acme");
+      expect(await fx.store.organizationSlugs.find("acme")).toEqual(retired);
+
+      // An organization created before the ledger existed has no entry;
+      // its delete still retires the slug.
+      await fx.store.organizationSlugs.retire("older");
+      const older = await fx.store.organizationSlugs.find("older");
+      expect(older?.retiredAt).not.toBe("");
+
+      const lost = await fx.store.organizationSlugs.claim("older");
+      expect(lost.claimed).toBe(false);
+      expect(lost.entry).toEqual(older);
+    });
+
+    it("release frees only its own unretired claim", async () => {
+      const { entry } = await fx.store.organizationSlugs.claim("acme");
+      await fx.store.organizationSlugs.release(entry);
+      expect(await fx.store.organizationSlugs.find("acme")).toBeUndefined();
+      const reclaimed = await fx.store.organizationSlugs.claim("acme");
+      expect(reclaimed.claimed, "a released slug is claimable at once").toBe(
+        true,
+      );
+
+      // Another create's claim of the same slug carries another time, so
+      // a stale release never frees it.
+      await fx.store.organizationSlugs.release({
+        ...reclaimed.entry,
+        claimedAt: "2000-01-01T00:00:00.000Z",
+      });
+      expect(await fx.store.organizationSlugs.find("acme")).toEqual(
+        reclaimed.entry,
+      );
+
+      // A retired slug is never freed, whoever asks.
+      await fx.store.organizationSlugs.retire("acme");
+      await fx.store.organizationSlugs.release(reclaimed.entry);
+      expect(
+        (await fx.store.organizationSlugs.find("acme"))?.retiredAt,
+      ).not.toBe("");
+    });
+  });
+
   describe("oauth grants", () => {
     const grant: OAuthGrant = {
       identityAccountId: "ida_1",
@@ -1878,6 +1960,9 @@ export function describeStoreContract(
         "store is closed",
       );
       await expect(fx.store.signalDedupe.release("o", "k")).rejects.toThrow(
+        "store is closed",
+      );
+      await expect(fx.store.organizationSlugs.claim("o")).rejects.toThrow(
         "store is closed",
       );
     });

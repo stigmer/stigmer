@@ -11,7 +11,8 @@ package ai.stigmer.tenancy.organization.v1;
  *
  * An Organization's metadata.id equals its metadata.slug: unlike every other
  * resource (which is assigned a generated prefixed id), the tenancy root is
- * addressed by its slug, which is globally unique.
+ * addressed by its slug, which is globally unique and never reused, even
+ * after the organization is deleted.
  *
  * &#64;internal
  * Similar to GitHub organizations, all agents, workflows, sessions, and other
@@ -494,7 +495,8 @@ private static final long serialVersionUID = 0L;
    *
    * An Organization's metadata.id equals its metadata.slug: unlike every other
    * resource (which is assigned a generated prefixed id), the tenancy root is
-   * addressed by its slug, which is globally unique.
+   * addressed by its slug, which is globally unique and never reused, even
+   * after the organization is deleted.
    *
    * &#64;internal
    * Similar to GitHub organizations, all agents, workflows, sessions, and other

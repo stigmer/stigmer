@@ -1,20 +1,24 @@
 /**
  * Pins the organization delete's order through a composed server in the
- * trusted-local posture: everything that names the organization goes
- * before its row, and a fault stops the delete with the organization in
- * place. An organization's id is its slug and the delete frees the slug for
- * anyone, so a row left behind would belong to the slug's next holder.
+ * trusted-local posture: the slug is retired first, everything that grants
+ * on the organization goes before its row, and a fault stops the delete
+ * with the organization in place. An organization's id is its slug, and a
+ * slug is never taken again, so nothing a deleted organization left behind
+ * can pass to a new holder.
  *
  *   - the `org-delete:pre-delete` slot runs with the organization loaded
  *     and still stored, and its rows still in place;
  *   - a slot step's refusal answers its own code and copy, and leaves the
- *     organization and its rows;
+ *     organization and its rows, its slug already retired;
+ *   - a fault retiring the slug fails the delete before anything else, with
+ *     the organization and its rows in place;
  *   - the organization's policy rows are revoked before its row, as
  *     principal and as resource: a revocation fault answers Internal with
  *     fixed copy, leaves the organization and its owner row, and a retry
  *     completes the delete;
- *   - a slug freed by the delete and created again carries none of the old
- *     organization's rows.
+ *   - a create of a deleted organization's slug is refused with the
+ *     ORGANIZATION_SLUG_RESERVED reason, and no row of the old organization
+ *     gains an owner.
  *
  * The policy store is the library's in-memory double, composed as the
  * IamPolicy store driver so a test can make one row's delete fault; the
@@ -28,13 +32,22 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -215,6 +228,36 @@ describe("organization delete (composed server, trusted-local posture)", () => {
       (await organizationQuery.get({ value: REFUSED_SLUG })).metadata?.id,
     ).toBe(REFUSED_SLUG);
     expect(rowsNaming(REFUSED_SLUG)).toHaveLength(3);
+    // The slug was retired before the slot refused; the organization lives
+    // on, and its slug is refused to a create either way.
+    expect(
+      (await server.store.organizationSlugs.find(REFUSED_SLUG))?.retiredAt,
+    ).not.toBe("");
+  });
+
+  it("a fault retiring the slug fails the delete before anything else, with the organization and its rows in place", async () => {
+    await organizationWithRows("delete-retire-faults");
+    const retire = vi
+      .spyOn(server.store.organizationSlugs, "retire")
+      .mockRejectedValueOnce(new Error("ledger unavailable"));
+    try {
+      const failed = await grpcError(() =>
+        organizations.delete({ value: "delete-retire-faults" }),
+      );
+      expect(failed.code).toBe(Code.Internal);
+      expect(failed.rawMessage).toBe("failed to retire the organization slug");
+    } finally {
+      retire.mockRestore();
+    }
+    expect(seenBySlot.has("delete-retire-faults")).toBe(false);
+    expect(
+      (await organizationQuery.get({ value: "delete-retire-faults" })).metadata
+        ?.id,
+    ).toBe("delete-retire-faults");
+    expect(rowsNaming("delete-retire-faults")).toHaveLength(3);
+
+    await organizations.delete({ value: "delete-retire-faults" });
+    expect(rowsNaming("delete-retire-faults")).toEqual([]);
   });
 
   it("a revocation fault fails the delete with the organization and its owner in place, and the retry completes it", async () => {
@@ -248,19 +291,31 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     expect(rowsNaming("delete-faults")).toEqual([]);
   });
 
-  it("a slug freed by the delete and created again carries none of the old organization's rows", async () => {
+  it("a deleted organization's slug is never taken again: the create is refused with the reserved reason", async () => {
     await organizationWithRows("delete-reborn");
     await organizations.delete({ value: "delete-reborn" });
 
-    await organizations.create({
-      apiVersion: "tenancy.stigmer.ai/v1",
-      kind: "Organization",
-      metadata: { name: "delete-reborn", slug: "delete-reborn", org: "" },
-      spec: { description: "the slug, taken again" },
-    });
+    const refused = await grpcError(() =>
+      organizations.create({
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { name: "delete-reborn", slug: "delete-reborn", org: "" },
+        spec: { description: "the slug, taken again" },
+      }),
+    );
 
-    expect(
-      rowsNaming("delete-reborn").map((row) => row.spec?.relation),
-    ).toEqual(["owner"]);
+    expect(refused.code).toBe(Code.AlreadyExists);
+    expect(refused.rawMessage).toBe(
+      "Organization slug 'delete-reborn' belonged to an organization that was deleted, and a slug is never reused",
+    );
+    const [reason] = refused.findDetails(ErrorInfoSchema);
+    expect(reason?.reason).toBe("ORGANIZATION_SLUG_RESERVED");
+    expect(reason?.domain).toBe("stigmer.ai");
+    expect(reason?.metadata).toEqual({ slug: "delete-reborn" });
+    expect(rowsNaming("delete-reborn")).toEqual([]);
+    const gone = await grpcError(() =>
+      organizationQuery.get({ value: "delete-reborn" }),
+    );
+    expect(gone.code).toBe(Code.NotFound);
   });
 });
