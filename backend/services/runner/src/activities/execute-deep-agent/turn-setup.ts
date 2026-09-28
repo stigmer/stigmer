@@ -345,6 +345,11 @@ export async function buildEngine(
   // native-thinking heuristic, and sub-agent inheritance. The credential is
   // read from the ref at build, once per turn: a LangChain client carries
   // its headers for its life, so this is the freshest a turn's model can be.
+  //
+  // No temperature: current Anthropic models refuse one other than their
+  // default (claude-opus-4.7 and later and claude-fable-5 inside
+  // @langchain/anthropic, before any request; claude-sonnet-5 at the
+  // provider), and the Cursor harness sends none (stigmer/stigmer#1341).
   const buildModelFor = async (name: string) =>
     (await buildChatModel({
       modelName: name,
@@ -352,6 +357,7 @@ export async function buildEngine(
       stigmerToken: config.stigmerTokenRef.current ?? undefined,
       headerScope: { executionId },
       serviceTier: input.model.serviceTier,
+      temperature: null,
     })).model;
   const model = await buildModelFor(modelName);
   sink.setupTiming.mark("build_model");

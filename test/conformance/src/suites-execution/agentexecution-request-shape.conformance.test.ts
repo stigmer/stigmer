@@ -40,9 +40,10 @@
 //   for it. An org that turns memory on adds one stdio MCP tool served by the
 //   `stigmer` command on PATH — a different photograph this facet does not
 //   take.
-// - The thinking posture: no `thinking` field and temperature 0 on today's
-//   native request. Asserted as values, not a golden, so the change that
-//   turns thinking on reads as a one-line hunk.
+// - The sampling posture: no `thinking` field and no temperature (current
+//   Anthropic models refuse one other than their default,
+//   stigmer/stigmer#1341). Asserted as values, not a golden, so the change
+//   that turns thinking on reads as a one-line hunk.
 // - Byte-stability: a second turn in the same session sends `system` and
 //   `tools` byte-identical to the first's when the standing facts have not
 //   changed. The arm for an agent with many skills or a written file is
@@ -176,12 +177,12 @@ describe("AgentExecution request shape — what the native harness sends the mod
     );
   });
 
-  it("extended thinking is not requested and the temperature is pinned to 0", async () => {
+  it("extended thinking is not requested and no temperature is sent", async () => {
     const { org, agentId } = await createBareAgent();
     const { request } = await runBareAgentTurn(org, agentId);
 
     expect(request.thinking, "no thinking block leaves the runner for a native model today").toBeUndefined();
-    expect(request.temperature, "the runner pins the sampling temperature").toBe(0);
+    expect(request.temperature, "the provider's default sampling applies; the runner sends no override").toBeUndefined();
   });
 
   it("a second turn in the same session sends byte-identical system blocks and tools", async () => {

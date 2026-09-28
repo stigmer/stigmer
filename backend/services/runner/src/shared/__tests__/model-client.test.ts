@@ -156,6 +156,21 @@ describe("buildChatModel", () => {
     expect(lastAnthropicArgs()).toMatchObject({ maxTokens: 4096 });
   });
 
+  it("pins temperature 0 by default, and sends none when the caller passes null", async () => {
+    mockRegistryResponse([
+      { id: "claude-opus-4.8", apiModelId: "claude-opus-4-8", provider: "anthropic" },
+    ]);
+
+    await buildChatModel({ modelName: "claude-opus-4.8" });
+    expect(lastAnthropicArgs()).toMatchObject({ temperature: 0 });
+
+    await buildChatModel({ modelName: "claude-opus-4.8", temperature: 0.3 });
+    expect(lastAnthropicArgs()).toMatchObject({ temperature: 0.3 });
+
+    await buildChatModel({ modelName: "claude-opus-4.8", temperature: null });
+    expect(lastAnthropicArgs()).not.toHaveProperty("temperature");
+  });
+
   it("passes the model id through unchanged when the registry is unavailable", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network down"));
 

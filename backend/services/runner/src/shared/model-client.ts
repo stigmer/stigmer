@@ -53,8 +53,16 @@ export interface BuildChatModelOptions {
     mcpServerId?: string;
     workflowExecutionId?: string;
   };
-  /** Defaults to 0. */
-  readonly temperature?: number;
+  /**
+   * Defaults to 0. `null` sends no sampling override at all, so the
+   * provider's default applies: the native execution turn passes it,
+   * because current Anthropic models refuse a temperature other than their
+   * default (claude-opus-4.7 and later, claude-sonnet-5, claude-fable-5;
+   * @langchain/anthropic throws before the request for some of them) and
+   * the Cursor harness sends none either (stigmer/stigmer#1341). Utility
+   * calls keep their deterministic 0.
+   */
+  readonly temperature?: number | null;
   /**
    * Pass-through only; intentionally no default. Anthropic requires a value,
    * but callers differ (setup omits it, call-llm uses 4096), so the default
@@ -258,7 +266,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     ? { maxRetries: opts.maxRetries ?? 0 }
     : {};
   const common = {
-    temperature: opts.temperature ?? 0,
+    ...(opts.temperature === null ? {} : { temperature: opts.temperature ?? 0 }),
     apiKey,
     ...(maxTokens ? { maxTokens } : {}),
     ...maxRetries,
