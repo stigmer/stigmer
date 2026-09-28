@@ -36,7 +36,7 @@ export interface UseCreateIdentityProviderReturn {
  *   org: "acme",
  *   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
  *   allowedIssuers: ["https://acme.us.auth0.com/"],
- *   expectedAudience: "stigmer-api",
+ *   expectedAudience: "https://api.acme.com/stigmer",
  * });
  * ```
  */

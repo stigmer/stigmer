@@ -13,5 +13,5 @@ export {
   type EgressRefusal,
   type LookupFn,
 } from "./check.js";
-export { asFetch, DEFAULT_MAX_REDIRECTS, guardedFetch, type GuardedFetchOptions, type OutboundFetch } from "./fetch.js";
+export { asFetch, DEFAULT_MAX_REDIRECTS, DEFAULT_MAX_RESPONSE_BYTES, guardedFetch, type GuardedFetchOptions, type OutboundFetch } from "./fetch.js";
 export { nodeLookup } from "./node-lookup.js";

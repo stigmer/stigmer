@@ -60,7 +60,7 @@ package ai.stigmer.iam.identityprovider.v1;
  * display_name: "Acme Platform"
  * jwks_uri: "https://auth.acme.com/.well-known/jwks.json"
  * allowed_issuers: ["https://auth.acme.com/"]
- * expected_audience: "stigmer-api"
+ * expected_audience: "https://api.acme.com/stigmer"
  * userinfo_endpoint: "https://auth.acme.com/userinfo"
  * auto_provision_accounts: true
  * auto_grant_on_org: true
@@ -76,7 +76,7 @@ package ai.stigmer.iam.identityprovider.v1;
  * display_name: "SaaS Platform"
  * jwks_uri: "https://auth.saas.co/.well-known/jwks.json"
  * allowed_issuers: ["https://auth.saas.co/"]
- * expected_audience: "stigmer-api"
+ * expected_audience: "https://api.saas.co/stigmer"
  * userinfo_endpoint: "https://auth.saas.co/userinfo"
  * auto_provision_accounts: true
  * auto_grant_on_org: true
@@ -94,7 +94,7 @@ package ai.stigmer.iam.identityprovider.v1;
  * display_name: "Acme Corp Okta"
  * jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
  * allowed_issuers: ["https://acme.okta.com/oauth2/default"]
- * expected_audience: "stigmer-api"
+ * expected_audience: "api://acme-stigmer"
  * is_sso_provider: true
  * oidc_client_id: "0oa1bcdef2ghijk3lmno"
  * </pre>
@@ -211,6 +211,9 @@ private static final long serialVersionUID = 0L;
    *
    * This is the standard "jwks_uri" metadata field defined in
    * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+   * It must be the jwks_uri that the discovery document of every allowed
+   * issuer names, so that only an issuer's own keys verify its tokens.
+   * Required when allowed_issuers names an issuer.
    * </pre>
    *
    * <code>string jwks_uri = 2 [json_name = "jwksUri", (.buf.validate.field) = { ... }</code>
@@ -238,6 +241,9 @@ private static final long serialVersionUID = 0L;
    *
    * This is the standard "jwks_uri" metadata field defined in
    * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+   * It must be the jwks_uri that the discovery document of every allowed
+   * issuer names, so that only an issuer's own keys verify its tokens.
+   * Required when allowed_issuers names an issuer.
    * </pre>
    *
    * <code>string jwks_uri = 2 [json_name = "jwksUri", (.buf.validate.field) = { ... }</code>
@@ -269,9 +275,16 @@ private static final long serialVersionUID = 0L;
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
    * Supports multiple values for key rotation or multi-environment scenarios.
+   *
+   * Each issuer must publish an OpenID Connect Discovery document whose
+   * `issuer` equals it. An issuer and expected_audience together identify
+   * this provider: no two identity providers share an issuer and audience
+   * pair, so organizations that federate with the same issuer each register
+   * an audience of their own. The issuer a deployment signs its own users in
+   * with cannot be registered.
    * </pre>
    *
-   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
    * @return A list containing the allowedIssuers.
    */
   public com.google.protobuf.ProtocolStringList
@@ -285,9 +298,16 @@ private static final long serialVersionUID = 0L;
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
    * Supports multiple values for key rotation or multi-environment scenarios.
+   *
+   * Each issuer must publish an OpenID Connect Discovery document whose
+   * `issuer` equals it. An issuer and expected_audience together identify
+   * this provider: no two identity providers share an issuer and audience
+   * pair, so organizations that federate with the same issuer each register
+   * an audience of their own. The issuer a deployment signs its own users in
+   * with cannot be registered.
    * </pre>
    *
-   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
    * @return The count of allowedIssuers.
    */
   public int getAllowedIssuersCount() {
@@ -300,9 +320,16 @@ private static final long serialVersionUID = 0L;
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
    * Supports multiple values for key rotation or multi-environment scenarios.
+   *
+   * Each issuer must publish an OpenID Connect Discovery document whose
+   * `issuer` equals it. An issuer and expected_audience together identify
+   * this provider: no two identity providers share an issuer and audience
+   * pair, so organizations that federate with the same issuer each register
+   * an audience of their own. The issuer a deployment signs its own users in
+   * with cannot be registered.
    * </pre>
    *
-   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
    * @param index The index of the element to return.
    * @return The allowedIssuers at the given index.
    */
@@ -316,9 +343,16 @@ private static final long serialVersionUID = 0L;
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
    * Supports multiple values for key rotation or multi-environment scenarios.
+   *
+   * Each issuer must publish an OpenID Connect Discovery document whose
+   * `issuer` equals it. An issuer and expected_audience together identify
+   * this provider: no two identity providers share an issuer and audience
+   * pair, so organizations that federate with the same issuer each register
+   * an audience of their own. The issuer a deployment signs its own users in
+   * with cannot be registered.
    * </pre>
    *
-   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+   * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
    * @param index The index of the value to return.
    * @return The bytes of the allowedIssuers at the given index.
    */
@@ -337,6 +371,14 @@ private static final long serialVersionUID = 0L;
    * For Auth0-based integrators, this is the API identifier configured in Auth0
    * (e.g., "https://api.planton.ai/").
    * Prevents tokens intended for other services from being accepted by Stigmer.
+   *
+   * Required. Register an audience for Stigmer at the issuer that is your
+   * organization's own, such as an API identifier or a client ID: a token is
+   * routed to the identity provider whose issuer and audience it carries, so
+   * an audience another identity provider already registered at the same
+   * issuer is refused. It cannot be a URL the issuer's discovery document
+   * names, such as its userinfo endpoint, which the issuer may add to every
+   * token it mints.
    * </pre>
    *
    * <code>string expected_audience = 4 [json_name = "expectedAudience", (.buf.validate.field) = { ... }</code>
@@ -362,6 +404,14 @@ private static final long serialVersionUID = 0L;
    * For Auth0-based integrators, this is the API identifier configured in Auth0
    * (e.g., "https://api.planton.ai/").
    * Prevents tokens intended for other services from being accepted by Stigmer.
+   *
+   * Required. Register an audience for Stigmer at the issuer that is your
+   * organization's own, such as an API identifier or a client ID: a token is
+   * routed to the identity provider whose issuer and audience it carries, so
+   * an audience another identity provider already registered at the same
+   * issuer is refused. It cannot be a URL the issuer's discovery document
+   * names, such as its userinfo endpoint, which the issuer may add to every
+   * token it mints.
    * </pre>
    *
    * <code>string expected_audience = 4 [json_name = "expectedAudience", (.buf.validate.field) = { ... }</code>
@@ -413,6 +463,9 @@ private static final long serialVersionUID = 0L;
    * OpenID Connect Core 1.0 (Section 5.3).
    *
    * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+   *
+   * When set, it must be the userinfo_endpoint that the discovery document of
+   * every allowed issuer names.
    * </pre>
    *
    * <code>string userinfo_endpoint = 6 [json_name = "userinfoEndpoint", (.buf.validate.field) = { ... }</code>
@@ -443,6 +496,9 @@ private static final long serialVersionUID = 0L;
    * OpenID Connect Core 1.0 (Section 5.3).
    *
    * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+   *
+   * When set, it must be the userinfo_endpoint that the discovery document of
+   * every allowed issuer names.
    * </pre>
    *
    * <code>string userinfo_endpoint = 6 [json_name = "userinfoEndpoint", (.buf.validate.field) = { ... }</code>
@@ -1115,7 +1171,7 @@ private static final long serialVersionUID = 0L;
    * display_name: "Acme Platform"
    * jwks_uri: "https://auth.acme.com/.well-known/jwks.json"
    * allowed_issuers: ["https://auth.acme.com/"]
-   * expected_audience: "stigmer-api"
+   * expected_audience: "https://api.acme.com/stigmer"
    * userinfo_endpoint: "https://auth.acme.com/userinfo"
    * auto_provision_accounts: true
    * auto_grant_on_org: true
@@ -1131,7 +1187,7 @@ private static final long serialVersionUID = 0L;
    * display_name: "SaaS Platform"
    * jwks_uri: "https://auth.saas.co/.well-known/jwks.json"
    * allowed_issuers: ["https://auth.saas.co/"]
-   * expected_audience: "stigmer-api"
+   * expected_audience: "https://api.saas.co/stigmer"
    * userinfo_endpoint: "https://auth.saas.co/userinfo"
    * auto_provision_accounts: true
    * auto_grant_on_org: true
@@ -1149,7 +1205,7 @@ private static final long serialVersionUID = 0L;
    * display_name: "Acme Corp Okta"
    * jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
    * allowed_issuers: ["https://acme.okta.com/oauth2/default"]
-   * expected_audience: "stigmer-api"
+   * expected_audience: "api://acme-stigmer"
    * is_sso_provider: true
    * oidc_client_id: "0oa1bcdef2ghijk3lmno"
    * </pre>
@@ -1549,6 +1605,9 @@ private static final long serialVersionUID = 0L;
      *
      * This is the standard "jwks_uri" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+     * It must be the jwks_uri that the discovery document of every allowed
+     * issuer names, so that only an issuer's own keys verify its tokens.
+     * Required when allowed_issuers names an issuer.
      * </pre>
      *
      * <code>string jwks_uri = 2 [json_name = "jwksUri", (.buf.validate.field) = { ... }</code>
@@ -1575,6 +1634,9 @@ private static final long serialVersionUID = 0L;
      *
      * This is the standard "jwks_uri" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+     * It must be the jwks_uri that the discovery document of every allowed
+     * issuer names, so that only an issuer's own keys verify its tokens.
+     * Required when allowed_issuers names an issuer.
      * </pre>
      *
      * <code>string jwks_uri = 2 [json_name = "jwksUri", (.buf.validate.field) = { ... }</code>
@@ -1602,6 +1664,9 @@ private static final long serialVersionUID = 0L;
      *
      * This is the standard "jwks_uri" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+     * It must be the jwks_uri that the discovery document of every allowed
+     * issuer names, so that only an issuer's own keys verify its tokens.
+     * Required when allowed_issuers names an issuer.
      * </pre>
      *
      * <code>string jwks_uri = 2 [json_name = "jwksUri", (.buf.validate.field) = { ... }</code>
@@ -1625,6 +1690,9 @@ private static final long serialVersionUID = 0L;
      *
      * This is the standard "jwks_uri" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+     * It must be the jwks_uri that the discovery document of every allowed
+     * issuer names, so that only an issuer's own keys verify its tokens.
+     * Required when allowed_issuers names an issuer.
      * </pre>
      *
      * <code>string jwks_uri = 2 [json_name = "jwksUri", (.buf.validate.field) = { ... }</code>
@@ -1645,6 +1713,9 @@ private static final long serialVersionUID = 0L;
      *
      * This is the standard "jwks_uri" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+     * It must be the jwks_uri that the discovery document of every allowed
+     * issuer names, so that only an issuer's own keys verify its tokens.
+     * Required when allowed_issuers names an issuer.
      * </pre>
      *
      * <code>string jwks_uri = 2 [json_name = "jwksUri", (.buf.validate.field) = { ... }</code>
@@ -1676,9 +1747,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @return A list containing the allowedIssuers.
      */
     public com.google.protobuf.ProtocolStringList
@@ -1693,9 +1771,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @return The count of allowedIssuers.
      */
     public int getAllowedIssuersCount() {
@@ -1708,9 +1793,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @param index The index of the element to return.
      * @return The allowedIssuers at the given index.
      */
@@ -1724,9 +1816,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @param index The index of the value to return.
      * @return The bytes of the allowedIssuers at the given index.
      */
@@ -1741,9 +1840,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @param index The index to set the value at.
      * @param value The allowedIssuers to set.
      * @return This builder for chaining.
@@ -1764,9 +1870,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @param value The allowedIssuers to add.
      * @return This builder for chaining.
      */
@@ -1786,9 +1899,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @param values The allowedIssuers to add.
      * @return This builder for chaining.
      */
@@ -1808,9 +1928,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearAllowedIssuers() {
@@ -1827,9 +1954,16 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the Auth0 tenant URL
      * (e.g., "https://planton-prod.us.auth0.com/").
      * Supports multiple values for key rotation or multi-environment scenarios.
+     *
+     * Each issuer must publish an OpenID Connect Discovery document whose
+     * `issuer` equals it. An issuer and expected_audience together identify
+     * this provider: no two identity providers share an issuer and audience
+     * pair, so organizations that federate with the same issuer each register
+     * an audience of their own. The issuer a deployment signs its own users in
+     * with cannot be registered.
      * </pre>
      *
-     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers"];</code>
+     * <code>repeated string allowed_issuers = 3 [json_name = "allowedIssuers", (.buf.validate.field) = { ... }</code>
      * @param value The bytes of the allowedIssuers to add.
      * @return This builder for chaining.
      */
@@ -1852,6 +1986,14 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the API identifier configured in Auth0
      * (e.g., "https://api.planton.ai/").
      * Prevents tokens intended for other services from being accepted by Stigmer.
+     *
+     * Required. Register an audience for Stigmer at the issuer that is your
+     * organization's own, such as an API identifier or a client ID: a token is
+     * routed to the identity provider whose issuer and audience it carries, so
+     * an audience another identity provider already registered at the same
+     * issuer is refused. It cannot be a URL the issuer's discovery document
+     * names, such as its userinfo endpoint, which the issuer may add to every
+     * token it mints.
      * </pre>
      *
      * <code>string expected_audience = 4 [json_name = "expectedAudience", (.buf.validate.field) = { ... }</code>
@@ -1876,6 +2018,14 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the API identifier configured in Auth0
      * (e.g., "https://api.planton.ai/").
      * Prevents tokens intended for other services from being accepted by Stigmer.
+     *
+     * Required. Register an audience for Stigmer at the issuer that is your
+     * organization's own, such as an API identifier or a client ID: a token is
+     * routed to the identity provider whose issuer and audience it carries, so
+     * an audience another identity provider already registered at the same
+     * issuer is refused. It cannot be a URL the issuer's discovery document
+     * names, such as its userinfo endpoint, which the issuer may add to every
+     * token it mints.
      * </pre>
      *
      * <code>string expected_audience = 4 [json_name = "expectedAudience", (.buf.validate.field) = { ... }</code>
@@ -1901,6 +2051,14 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the API identifier configured in Auth0
      * (e.g., "https://api.planton.ai/").
      * Prevents tokens intended for other services from being accepted by Stigmer.
+     *
+     * Required. Register an audience for Stigmer at the issuer that is your
+     * organization's own, such as an API identifier or a client ID: a token is
+     * routed to the identity provider whose issuer and audience it carries, so
+     * an audience another identity provider already registered at the same
+     * issuer is refused. It cannot be a URL the issuer's discovery document
+     * names, such as its userinfo endpoint, which the issuer may add to every
+     * token it mints.
      * </pre>
      *
      * <code>string expected_audience = 4 [json_name = "expectedAudience", (.buf.validate.field) = { ... }</code>
@@ -1922,6 +2080,14 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the API identifier configured in Auth0
      * (e.g., "https://api.planton.ai/").
      * Prevents tokens intended for other services from being accepted by Stigmer.
+     *
+     * Required. Register an audience for Stigmer at the issuer that is your
+     * organization's own, such as an API identifier or a client ID: a token is
+     * routed to the identity provider whose issuer and audience it carries, so
+     * an audience another identity provider already registered at the same
+     * issuer is refused. It cannot be a URL the issuer's discovery document
+     * names, such as its userinfo endpoint, which the issuer may add to every
+     * token it mints.
      * </pre>
      *
      * <code>string expected_audience = 4 [json_name = "expectedAudience", (.buf.validate.field) = { ... }</code>
@@ -1940,6 +2106,14 @@ private static final long serialVersionUID = 0L;
      * For Auth0-based integrators, this is the API identifier configured in Auth0
      * (e.g., "https://api.planton.ai/").
      * Prevents tokens intended for other services from being accepted by Stigmer.
+     *
+     * Required. Register an audience for Stigmer at the issuer that is your
+     * organization's own, such as an API identifier or a client ID: a token is
+     * routed to the identity provider whose issuer and audience it carries, so
+     * an audience another identity provider already registered at the same
+     * issuer is refused. It cannot be a URL the issuer's discovery document
+     * names, such as its userinfo endpoint, which the issuer may add to every
+     * token it mints.
      * </pre>
      *
      * <code>string expected_audience = 4 [json_name = "expectedAudience", (.buf.validate.field) = { ... }</code>
@@ -2016,6 +2190,9 @@ private static final long serialVersionUID = 0L;
      * OpenID Connect Core 1.0 (Section 5.3).
      *
      * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+     *
+     * When set, it must be the userinfo_endpoint that the discovery document of
+     * every allowed issuer names.
      * </pre>
      *
      * <code>string userinfo_endpoint = 6 [json_name = "userinfoEndpoint", (.buf.validate.field) = { ... }</code>
@@ -2045,6 +2222,9 @@ private static final long serialVersionUID = 0L;
      * OpenID Connect Core 1.0 (Section 5.3).
      *
      * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+     *
+     * When set, it must be the userinfo_endpoint that the discovery document of
+     * every allowed issuer names.
      * </pre>
      *
      * <code>string userinfo_endpoint = 6 [json_name = "userinfoEndpoint", (.buf.validate.field) = { ... }</code>
@@ -2075,6 +2255,9 @@ private static final long serialVersionUID = 0L;
      * OpenID Connect Core 1.0 (Section 5.3).
      *
      * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+     *
+     * When set, it must be the userinfo_endpoint that the discovery document of
+     * every allowed issuer names.
      * </pre>
      *
      * <code>string userinfo_endpoint = 6 [json_name = "userinfoEndpoint", (.buf.validate.field) = { ... }</code>
@@ -2101,6 +2284,9 @@ private static final long serialVersionUID = 0L;
      * OpenID Connect Core 1.0 (Section 5.3).
      *
      * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+     *
+     * When set, it must be the userinfo_endpoint that the discovery document of
+     * every allowed issuer names.
      * </pre>
      *
      * <code>string userinfo_endpoint = 6 [json_name = "userinfoEndpoint", (.buf.validate.field) = { ... }</code>
@@ -2124,6 +2310,9 @@ private static final long serialVersionUID = 0L;
      * OpenID Connect Core 1.0 (Section 5.3).
      *
      * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+     *
+     * When set, it must be the userinfo_endpoint that the discovery document of
+     * every allowed issuer names.
      * </pre>
      *
      * <code>string userinfo_endpoint = 6 [json_name = "userinfoEndpoint", (.buf.validate.field) = { ... }</code>

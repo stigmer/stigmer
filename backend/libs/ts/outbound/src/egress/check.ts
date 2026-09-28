@@ -45,7 +45,8 @@ export type EgressRefusal =
       readonly reason: string;
       readonly policy: string;
     }
-  | { readonly kind: "too-many-redirects"; readonly url: URL; readonly hops: number };
+  | { readonly kind: "too-many-redirects"; readonly url: URL; readonly hops: number }
+  | { readonly kind: "response-too-large"; readonly url: URL; readonly maxBytes: number };
 
 export type EgressCheck =
   | { readonly ok: true; readonly url: URL; readonly addresses: readonly string[] }
@@ -70,6 +71,8 @@ export function describeRefusal(refusal: EgressRefusal): string {
       return `Refusing to reach ${refusal.hostname}: it resolves to ${refusal.address}, a ${refusal.reason} address the ${refusal.policy} egress policy does not dial.`;
     case "too-many-redirects":
       return `Refusing to follow more than ${refusal.hops} redirects from ${refusal.url.href}.`;
+    case "response-too-large":
+      return `Refusing to read more than ${refusal.maxBytes} bytes from ${refusal.url.href}.`;
     default: {
       const exhaustive: never = refusal;
       return exhaustive;

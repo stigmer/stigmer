@@ -46,9 +46,9 @@ status: {}  # System-managed, never set by users
 | Field | Required | Description |
 |---|---|---|
 | `spec.display_name` | No | Human-readable label for the provider. Shown in UI and audit logs. Max 200 characters. |
-| `spec.jwks_uri` | Yes | HTTPS URL of the JWKS endpoint exposing the signing public keys. Stigmer fetches and caches keys from this URL for JWT signature verification. Max 2048 characters. |
-| `spec.allowed_issuers` | Yes | List of accepted `iss` claim values. Every token from this provider must have its `iss` match one entry. Supports multiple values for key rotation or multi-environment setups. |
-| `spec.expected_audience` | Yes | Required `aud` claim value. Tokens without this exact audience value are rejected. Max 200 characters. |
+| `spec.jwks_uri` | Yes | HTTPS URL of the JWKS endpoint exposing the signing public keys. Stigmer fetches and caches keys from this URL for JWT signature verification. Must be the `jwks_uri` that every allowed issuer's discovery document names. Max 2048 characters. |
+| `spec.allowed_issuers` | Yes | List of accepted `iss` claim values. Every token from this provider must have its `iss` match one entry. Supports multiple values for key rotation or multi-environment setups, at most 10, each at most 2048 characters. Each issuer must publish an OpenID Connect discovery document whose `issuer` equals it. |
+| `spec.expected_audience` | Yes | Required `aud` claim value. Tokens without this exact audience value are rejected. With the issuer, it identifies this provider across the platform: no two identity providers share an issuer and audience pair. Max 200 characters. |
 | `spec.userinfo_endpoint` | Yes | HTTPS URL of the OIDC UserInfo endpoint. Stigmer calls this on every token exchange with the provider's access token as a Bearer token to retrieve the user's profile. Max 2048 characters. |
 | `spec.rate_limit_budget` | No | Shared rate limit in requests per minute across all organizations managed through this provider. `0` means no limit. Defaults to `0`. |
 

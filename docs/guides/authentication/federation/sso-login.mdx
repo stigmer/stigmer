@@ -92,14 +92,19 @@ when registering the Identity Provider in Stigmer:
 - **Issuer URL** — Your provider's issuer (the `iss` claim in tokens)
 - **JWKS URI** — Your provider's public key endpoint
 - **Audience** — The `aud` claim your provider includes in tokens intended for
-  Stigmer (not all providers require this --- see the callout below)
+  Stigmer (required --- see the callout below)
 
 <Callout type="info">
-  **Audience handling varies by provider.** Auth0 requires an explicit audience
-  parameter in the authorization request. Okta and Entra ID include the audience
-  automatically based on the client configuration. If your provider doesn't
-  require an audience parameter, leave `expectedAudience` empty when registering
-  the Identity Provider.
+  **Every Identity Provider needs an audience of its own.** The audience is the
+  `aud` claim in the access tokens your provider mints for Stigmer, and together
+  with the issuer it identifies your Identity Provider, so use a value that
+  belongs to your organization. With Auth0, create an API for Stigmer and use
+  its identifier; the sign-in sends it as the `audience` parameter. With Okta,
+  use the audience of the authorization server that issues the tokens. With
+  Microsoft Entra ID, use the Application (client) ID of the app registration
+  that exposes the API, or its Application ID URI if your tokens carry that. An
+  audience another Organization already registered at the same issuer is
+  refused.
 </Callout>
 
 ## Register the Identity Provider with SSO enabled
@@ -119,7 +124,7 @@ const idp = await stigmer.identityProvider.create({
   displayName: "Acme SSO",
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
-  expectedAudience: "https://api.stigmer.ai/",
+  expectedAudience: "https://api.acme.com/stigmer",
   isSsoProvider: true,
   oidcClientId: "abc123def456",
 });
@@ -136,7 +141,7 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
   DisplayName:      "Acme SSO",
   JwksUri:          "https://acme.us.auth0.com/.well-known/jwks.json",
   AllowedIssuers:   []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience: "https://api.stigmer.ai/",
+  ExpectedAudience: "https://api.acme.com/stigmer",
   IsSsoProvider:    true,
   OidcClientId:     "abc123def456",
 })
@@ -153,7 +158,7 @@ idp = client.identity_providers.create(IdentityProviderInput(
     display_name="Acme SSO",
     jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
     allowed_issuers=["https://acme.us.auth0.com/"],
-    expected_audience="https://api.stigmer.ai/",
+    expected_audience="https://api.acme.com/stigmer",
     is_sso_provider=True,
     oidc_client_id="abc123def456",
 ))
@@ -170,7 +175,7 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .displayName("Acme SSO")
     .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
-    .expectedAudience("https://api.stigmer.ai/")
+    .expectedAudience("https://api.acme.com/stigmer")
     .isSsoProvider(true)
     .oidcClientId("abc123def456")
     .build());

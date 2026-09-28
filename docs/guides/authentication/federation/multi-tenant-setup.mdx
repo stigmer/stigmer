@@ -462,7 +462,7 @@ const idp = await stigmer.identityProvider.create({
   displayName: "Acme Cloud Auth",
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
-  expectedAudience: "https://api.stigmer.ai/",
+  expectedAudience: "https://api.acme.com/stigmer",
   autoProvisionAccounts: true,
   autoGrantOnOrg: true,
   autoGrantRole: "member",
@@ -481,7 +481,7 @@ idp, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
   DisplayName:           "Acme Cloud Auth",
   JwksUri:               "https://acme.us.auth0.com/.well-known/jwks.json",
   AllowedIssuers:        []string{"https://acme.us.auth0.com/"},
-  ExpectedAudience:      "https://api.stigmer.ai/",
+  ExpectedAudience:      "https://api.acme.com/stigmer",
   AutoProvisionAccounts: true,
   AutoGrantOnOrg:        true,
   AutoGrantRole:         "member",
@@ -500,7 +500,7 @@ idp = client.identity_providers.create(IdentityProviderInput(
     display_name="Acme Cloud Auth",
     jwks_uri="https://acme.us.auth0.com/.well-known/jwks.json",
     allowed_issuers=["https://acme.us.auth0.com/"],
-    expected_audience="https://api.stigmer.ai/",
+    expected_audience="https://api.acme.com/stigmer",
     auto_provision_accounts=True,
     auto_grant_on_org=True,
     auto_grant_role="member",
@@ -519,7 +519,7 @@ IdentityProvider idp = client.identityProviders().create(IdentityProviderInput.b
     .displayName("Acme Cloud Auth")
     .jwksUri("https://acme.us.auth0.com/.well-known/jwks.json")
     .allowedIssuers(List.of("https://acme.us.auth0.com/"))
-    .expectedAudience("https://api.stigmer.ai/")
+    .expectedAudience("https://api.acme.com/stigmer")
     .autoProvisionAccounts(true)
     .autoGrantOnOrg(true)
     .autoGrantRole("member")

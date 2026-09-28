@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEixwQKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEhcKD2FsbG93ZWRfaXNzdWVycxgDIAMoCRIjChFleHBlY3RlZF9hdWRpZW5jZRgEIAEoCUIIukgFcgMYyAESGQoRcmF0ZV9saW1pdF9idWRnZXQYBSABKAUSIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYCSABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYCiABKAgSMwoPYXV0b19ncmFudF9yb2xlGAsgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIiChB0ZW5hbnRfb3JnX2NsYWltGAwgASgJQgi6SAVyAxiAAjqkAbpIoAEanQEKK2lkZW50aXR5X3Byb3ZpZGVyLmF1dG9fZ3JhbnRfcm9sZV9ub3Rfb3duZXISU2F1dG9fZ3JhbnRfcm9sZSBjYW5ub3QgYmUgb3duZXI7IG9yZ2FuaXphdGlvbiBvd25lcnNoaXAgbXVzdCBiZSBhc3NpZ25lZCBleHBsaWNpdGx5Ghl0aGlzLmF1dG9fZ3JhbnRfcm9sZSAhPSAxYgZwcm90bzM", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEihQYKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEioKD2FsbG93ZWRfaXNzdWVycxgDIAMoCUIRukgOkgELEAoiB3IFEAEYgBASJQoRZXhwZWN0ZWRfYXVkaWVuY2UYBCABKAlCCrpIB3IFEAEYyAESGQoRcmF0ZV9saW1pdF9idWRnZXQYBSABKAUSIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISHwoXYXV0b19wcm92aXNpb25fYWNjb3VudHMYCSABKAgSGQoRYXV0b19ncmFudF9vbl9vcmcYCiABKAgSMwoPYXV0b19ncmFudF9yb2xlGAsgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIiChB0ZW5hbnRfb3JnX2NsYWltGAwgASgJQgi6SAVyAxiAAjrNArpIyQIanQEKK2lkZW50aXR5X3Byb3ZpZGVyLmF1dG9fZ3JhbnRfcm9sZV9ub3Rfb3duZXISU2F1dG9fZ3JhbnRfcm9sZSBjYW5ub3QgYmUgb3duZXI7IG9yZ2FuaXphdGlvbiBvd25lcnNoaXAgbXVzdCBiZSBhc3NpZ25lZCBleHBsaWNpdGx5Ghl0aGlzLmF1dG9fZ3JhbnRfcm9sZSAhPSAxGqYBCjBpZGVudGl0eV9wcm92aWRlci5qd2tzX3VyaV9yZXF1aXJlZF93aXRoX2lzc3VlcnMSOWp3a3NfdXJpIGlzIHJlcXVpcmVkIHdoZW4gYWxsb3dlZF9pc3N1ZXJzIG5hbWVzIGFuIGlzc3Vlcho3dGhpcy5hbGxvd2VkX2lzc3VlcnMuc2l6ZSgpID09IDAgfHwgdGhpcy5qd2tzX3VyaSAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
 
 /**
  * IdentityProviderSpec defines the configuration for an external identity provider.
@@ -69,7 +69,7 @@ export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__
  *     display_name: "Acme Platform"
  *     jwks_uri: "https://auth.acme.com/.well-known/jwks.json"
  *     allowed_issuers: ["https://auth.acme.com/"]
- *     expected_audience: "stigmer-api"
+ *     expected_audience: "https://api.acme.com/stigmer"
  *     userinfo_endpoint: "https://auth.acme.com/userinfo"
  *     auto_provision_accounts: true
  *     auto_grant_on_org: true
@@ -85,7 +85,7 @@ export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__
  *     display_name: "SaaS Platform"
  *     jwks_uri: "https://auth.saas.co/.well-known/jwks.json"
  *     allowed_issuers: ["https://auth.saas.co/"]
- *     expected_audience: "stigmer-api"
+ *     expected_audience: "https://api.saas.co/stigmer"
  *     userinfo_endpoint: "https://auth.saas.co/userinfo"
  *     auto_provision_accounts: true
  *     auto_grant_on_org: true
@@ -103,7 +103,7 @@ export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__
  *     display_name: "Acme Corp Okta"
  *     jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
  *     allowed_issuers: ["https://acme.okta.com/oauth2/default"]
- *     expected_audience: "stigmer-api"
+ *     expected_audience: "api://acme-stigmer"
  *     is_sso_provider: true
  *     oidc_client_id: "0oa1bcdef2ghijk3lmno"
  *
@@ -126,6 +126,9 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    *
    * This is the standard "jwks_uri" metadata field defined in
    * OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
+   * It must be the jwks_uri that the discovery document of every allowed
+   * issuer names, so that only an issuer's own keys verify its tokens.
+   * Required when allowed_issuers names an issuer.
    *
    * @generated from field: string jwks_uri = 2;
    */
@@ -138,6 +141,13 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    * (e.g., "https://planton-prod.us.auth0.com/").
    * Supports multiple values for key rotation or multi-environment scenarios.
    *
+   * Each issuer must publish an OpenID Connect Discovery document whose
+   * `issuer` equals it. An issuer and expected_audience together identify
+   * this provider: no two identity providers share an issuer and audience
+   * pair, so organizations that federate with the same issuer each register
+   * an audience of their own. The issuer a deployment signs its own users in
+   * with cannot be registered.
+   *
    * @generated from field: repeated string allowed_issuers = 3;
    */
   allowedIssuers: string[];
@@ -148,6 +158,14 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    * For Auth0-based integrators, this is the API identifier configured in Auth0
    * (e.g., "https://api.planton.ai/").
    * Prevents tokens intended for other services from being accepted by Stigmer.
+   *
+   * Required. Register an audience for Stigmer at the issuer that is your
+   * organization's own, such as an API identifier or a client ID: a token is
+   * routed to the identity provider whose issuer and audience it carries, so
+   * an audience another identity provider already registered at the same
+   * issuer is refused. It cannot be a URL the issuer's discovery document
+   * names, such as its userinfo endpoint, which the issuer may add to every
+   * token it mints.
    *
    * @generated from field: string expected_audience = 4;
    */
@@ -172,6 +190,9 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    * OpenID Connect Core 1.0 (Section 5.3).
    *
    * For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+   *
+   * When set, it must be the userinfo_endpoint that the discovery document of
+   * every allowed issuer names.
    *
    * @generated from field: string userinfo_endpoint = 6;
    */

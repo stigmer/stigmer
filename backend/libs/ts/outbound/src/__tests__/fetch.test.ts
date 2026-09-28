@@ -2,13 +2,17 @@
  * Pins the guarded fetch: the first URL and every hop judged, a caller's
  * `redirect: "manual"` honoured, `redirect: "error"` thrown like fetch, the
  * hop budget, the Authorization header dropped across origins, and the
- * method rewrite a 303 (or a 301/302 on a POST) implies.
+ * method rewrite a 303 (or a 301/302 on a POST) implies. Then the body
+ * bound: a body within it reads whole, one that runs past it or declares
+ * a length past it rejects its read (never the dial) as
+ * `response-too-large`, the default is a mebibyte, and an unbounded caller
+ * reads everything.
  */
 import { describe, expect, it } from "vitest";
 
 import { egressPolicyForPosture } from "../egress/address.js";
 import { EgressError, type LookupFn } from "../egress/check.js";
-import { asFetch, guardedFetch, type OutboundFetch } from "../egress/fetch.js";
+import { asFetch, DEFAULT_MAX_RESPONSE_BYTES, guardedFetch, type OutboundFetch } from "../egress/fetch.js";
 
 const strict = egressPolicyForPosture("strict");
 
@@ -157,5 +161,76 @@ describe("guardedFetch", () => {
     const pending = fetchGuarded("https://a.vendor.test/mcp", { signal: controller.signal });
     controller.abort(new Error("deadline"));
     await expect(pending).rejects.toThrow("deadline");
+  });
+});
+
+/** A body served in chunks with no declared length, as a streaming server sends it. */
+function chunked(...chunks: readonly string[]): () => Response {
+  return () => {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+        controller.close();
+      },
+    });
+    return new Response(stream, { status: 200 });
+  };
+}
+
+async function refusalOf(pending: Promise<unknown>): Promise<unknown> {
+  try {
+    await pending;
+  } catch (error) {
+    return error instanceof EgressError ? error.refusal : error;
+  }
+  throw new Error("the read resolved");
+}
+
+describe("guardedFetch's body bound", () => {
+  it("reads a body within the bound whole, with the status and headers it came with", async () => {
+    const { fetchImpl } = scripted({
+      "https://a.vendor.test/jwks": () => new Response('{"keys":[]}', { status: 200, headers: { "content-type": "application/json" } }),
+    });
+    const response = await guardedFetch(strict, { fetchImpl, lookup, maxResponseBytes: 64 })("https://a.vendor.test/jwks");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/json");
+    await expect(response.json()).resolves.toEqual({ keys: [] });
+  });
+
+  it("resolves the dial and rejects the read of a body that runs past the bound", async () => {
+    const { fetchImpl } = scripted({ "https://a.vendor.test/jwks": chunked("0123456789", "0123456789") });
+    const response = await guardedFetch(strict, { fetchImpl, lookup, maxResponseBytes: 15 })("https://a.vendor.test/jwks");
+    expect(response.status).toBe(200);
+    expect(await refusalOf(response.text())).toMatchObject({ kind: "response-too-large", maxBytes: 15 });
+  });
+
+  it("rejects the first read of a body whose declared length is past the bound", async () => {
+    const { fetchImpl } = scripted({
+      "https://a.vendor.test/jwks": () => new Response("0123456789", { status: 200, headers: { "content-length": "10" } }),
+    });
+    const response = await guardedFetch(strict, { fetchImpl, lookup, maxResponseBytes: 9 })("https://a.vendor.test/jwks");
+    const refusal = await refusalOf(response.arrayBuffer());
+    expect(refusal).toMatchObject({ kind: "response-too-large", maxBytes: 9 });
+    expect((refusal as { url: URL }).url.href).toBe("https://a.vendor.test/jwks");
+  });
+
+  it("bounds every caller by a mebibyte unless it says otherwise", async () => {
+    expect(DEFAULT_MAX_RESPONSE_BYTES).toBe(1024 * 1024);
+    const oversized = "x".repeat(DEFAULT_MAX_RESPONSE_BYTES + 1);
+    const { fetchImpl } = scripted({ "https://a.vendor.test/doc": chunked(oversized) });
+    const response = await guardedFetch(strict, { fetchImpl, lookup })("https://a.vendor.test/doc");
+    expect(await refusalOf(response.text())).toMatchObject({ kind: "response-too-large", maxBytes: DEFAULT_MAX_RESPONSE_BYTES });
+  });
+
+  it("reads everything for a caller that streams", async () => {
+    const { fetchImpl } = scripted({ "https://a.vendor.test/events": chunked("a".repeat(32), "b".repeat(32)) });
+    const response = await guardedFetch(strict, { fetchImpl, lookup, maxResponseBytes: Number.POSITIVE_INFINITY })("https://a.vendor.test/events");
+    await expect(response.text()).resolves.toHaveLength(64);
+  });
+
+  it("describes the refusal with the bound and the URL", () => {
+    const error = new EgressError({ kind: "response-too-large", url: new URL("https://a.vendor.test/jwks"), maxBytes: 9 });
+    expect(error.message).toBe("Refusing to read more than 9 bytes from https://a.vendor.test/jwks.");
   });
 });
