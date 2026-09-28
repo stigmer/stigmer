@@ -8,8 +8,8 @@
  * credentials and build the auth URL from its endpoints.
  *
  * Proven by mcpserver-oauth.conformance.test.ts
- * (CONFORMANCE_TARGET=local) and
- * __tests__/initiate-oauth-connect.test.ts.
+ * (CONFORMANCE_TARGET=local), __tests__/oauth-handshake.test.ts and
+ * __tests__/store-faults.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import { randomBytes } from "node:crypto";
@@ -40,6 +40,7 @@ import {
 } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { PendingOAuthState } from "../../store/interface.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
 import { tokenAuthMethodFromSpec } from "./connect.js";
 import type { McpServerConnectDeps } from "./connect.js";
@@ -73,8 +74,11 @@ export async function initiateOAuthConnect(
       mcpServerId,
       McpServerSchema,
     );
-  } catch {
-    throw notFoundError("mcp_server", mcpServerId);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("mcp_server", mcpServerId);
+    }
+    throw internalError(error, "failed to load mcp server");
   }
 
   // The annotation's can_connect check AFTER the load — the Java

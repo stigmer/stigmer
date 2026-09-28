@@ -14,8 +14,8 @@
  * pin). Disclosed divergence; the Go-side issue files at wrap-up.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-execution) and
- * __tests__/complete-oauth-connect.test.ts.
+ * (CONFORMANCE_TARGET=local-execution), __tests__/oauth-handshake.test.ts
+ * and __tests__/store-faults.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -42,6 +42,7 @@ import {
 } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { PendingOAuthState } from "../../store/interface.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { exchangeCode } from "./oauth/token.js";
 
@@ -147,8 +148,16 @@ export async function completeOAuthConnect(
       mcpServerId,
       McpServerSchema,
     );
-  } catch {
-    throw notFoundError("mcp_server", mcpServerId);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("mcp_server", mcpServerId);
+    }
+    // The pending state is consumed and the code exchanged by now, so a
+    // retry of this call can only fail: the copy names the way back.
+    throw internalError(
+      error,
+      "failed to load mcp server — please retry the connect flow",
+    );
   }
 
   let org = pendingState.org;

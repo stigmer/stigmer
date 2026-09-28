@@ -10,16 +10,28 @@
  * uniqueness guarantee, mirroring cloud's OrganizationCreateHandler
  * (CheckDuplicate + CopySlugToId) step-for-step.
  *
- * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local)
- * and __tests__/organization.test.ts.
+ * The same deviation shapes the delete: a freed slug is anyone's to take,
+ * so newRevokeOrganizationPoliciesStep revokes the organization's policy
+ * rows BEFORE its row is deleted, and fails the delete when it cannot.
+ *
+ * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local),
+ * __tests__/organization.test.ts and __tests__/organization-delete.test.ts.
  */
+import { create } from "@bufbuild/protobuf";
+import type { DescMessage } from "@bufbuild/protobuf";
+
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { alreadyExistsError, internalError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
+import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 /**
@@ -95,6 +107,58 @@ export function newCopySlugToIdStep(): PipelineStep<typeof OrganizationSchema> {
         throw internalError(new Error("organization slug is empty"), "copy slug to id");
       }
       metadata.id = metadata.slug;
+    },
+  };
+}
+
+/**
+ * Revokes every policy row that names the organization, as principal or as
+ * resource, before the delete removes its row: the rows its members hold
+ * on it, and the scope link every organization-scoped resource holds to
+ * it. Runs after the `org-delete:pre-delete` slot and before
+ * DeleteResource.
+ *
+ * The generic delete chains clean up after the row and log a fault,
+ * because a deleted resource's rows grant nothing once it is gone. An
+ * organization is the exception: its id is its slug, the delete frees the
+ * slug, and a row left behind would grant whoever creates the slug next.
+ * So this step does not catch. A fault fails the delete with the
+ * organization in place, and a retry resumes where the revocation stopped
+ * (the grant path revokes the organization's owners last, so the owner
+ * who retries still can). The grant path fires the composed driver's
+ * `onPolicyRevoked` before each row, so a composition's tuples go with
+ * their rows. The post-delete CleanupIamPolicies still runs: it catches
+ * whatever a concurrent write named the organization with in between.
+ */
+export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
+  grantPath: IamPolicyGrantPath,
+): PipelineStep<Desc> {
+  return {
+    name: "RevokeOrganizationPolicies",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      const organization = ctx.get(EXISTING_RESOURCE_KEY) as
+        | Organization
+        | undefined;
+      const id = organization?.metadata?.id ?? "";
+      if (id === "") {
+        throw internalError(
+          new Error("organization delete reached RevokeOrganizationPolicies without its loaded row"),
+          "failed to remove the organization's access policies",
+        );
+      }
+      try {
+        await grantPath.cleanupResource(
+          create(ApiResourceRefSchema, {
+            kind: ApiResourceKind[ApiResourceKind.organization],
+            id,
+          }),
+        );
+      } catch (error) {
+        throw internalError(
+          error,
+          "failed to remove the organization's access policies",
+        );
+      }
     },
   };
 }

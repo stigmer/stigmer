@@ -1263,6 +1263,10 @@ export const fakeExtension: ServerExtension = {
     // The ninth: the organization create chain before Persist — where a
     // limit on which organizations may exist refuses with nothing written.
     ["org-create:pre-side-effect-gate", [consumerGateStep()]],
+    // The tenth: the organization delete chain before any write — where an
+    // edition removes, or refuses to leave behind, what it keeps for the
+    // organization. It reads the loaded organization off the exported key.
+    ["org-delete:pre-delete", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],

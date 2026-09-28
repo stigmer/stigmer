@@ -53,6 +53,19 @@
  * limit belongs here too. `apply` delegates to create on its create arm,
  * so the slot fires there as well.
  *
+ * The tenth, `org-delete:pre-delete`: the organization delete chain after
+ * LoadExistingForDelete and before any write, so the organization exists
+ * and is loaded (EXISTING_RESOURCE_KEY) while its steps run. An
+ * organization's id is its slug and its delete frees the slug for anyone,
+ * so whatever an edition keeps for the organization must go before the row
+ * does, or be refused: a row left behind would belong to whoever creates
+ * the slug next. Its steps may refuse (Enterprise refuses while an
+ * identity provider still signs in platform-managed organizations) or
+ * remove the edition's own rows; either way a throw fails the delete with
+ * the organization intact, and the retry re-runs every step, so each owns
+ * its idempotency. After the slot the chain revokes the organization's own
+ * policy rows, also before the row and also failing closed.
+ *
  * Two enforcement layers, deliberately redundant, both derived from the
  * ONE literal tuple below (lockstep by construction):
  *   - GateSlotName (compile time): the union of declared slot literals.
@@ -92,6 +105,7 @@ export const GATE_SLOT_NAMES = [
   "identity-account-provision:post-persist",
   "iam-policy-create:pre-side-effect-gate",
   "org-create:pre-side-effect-gate",
+  "org-delete:pre-delete",
 ] as const;
 
 /** The declared slot-name union — a registration outside it fails tsc. */

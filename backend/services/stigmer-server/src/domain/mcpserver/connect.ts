@@ -12,7 +12,8 @@
  * (engine.ts) and never registers a worker.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-execution) and __tests__/connect.test.ts.
+ * (CONFORMANCE_TARGET=local-execution), __tests__/connect.test.ts and
+ * __tests__/store-faults.test.ts.
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { create } from "@bufbuild/protobuf";
@@ -269,8 +270,11 @@ export async function connect(
       mcpServerId,
       McpServerSchema,
     );
-  } catch {
-    throw notFoundError("mcp_server", mcpServerId);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("mcp_server", mcpServerId);
+    }
+    throw internalError(error, "failed to load mcp server");
   }
 
   // The annotation's can_connect check after the load and BEFORE the engine

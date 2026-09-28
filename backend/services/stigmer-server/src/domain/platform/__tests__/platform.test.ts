@@ -14,7 +14,9 @@
  *     executioncontext decrypt lane uses, bound to exactly the named
  *     execution id;
  *   - getRunnerBootstrapConfig echoes the configured Temporal coordinates
- *     with the token fields empty (minting a proxy token is cloud-only);
+ *     with the token fields empty (minting a proxy token is cloud-only),
+ *     and publishes the runner-bootstrap address rather than the one the
+ *     server dials when the two differ (stigmer#1357);
  *   - getServerInfo reports the build stamp by default and the release a
  *     library consumer states through ComposeOptions.version otherwise
  *     (stigmer#1168: unbundled, the stamp is always "dev"), and a
@@ -278,11 +280,61 @@ describe("platform domain (composed with a stated version)", () => {
   });
 });
 
+/**
+ * stigmer#1357 through the real stack: a server that dials Temporal by a
+ * name its runners cannot resolve publishes the address they can, from
+ * the environment through loadConfig and the composition root to the
+ * wire. The composed-server arm above is the default: with no override,
+ * the published address is the server's own.
+ */
+describe("platform domain (composed for runners off the server's network)", () => {
+  let server: ComposedServer;
+  let client: PlatformClient;
+  let dir: string;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(
+      path.join(tmpdir(), "platform-domain-runner-address-test-"),
+    );
+    vi.stubEnv("STIGMER_ENCRYPTION_KEY", ENC_KEY.toString("base64"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+        TEMPORAL_HOST_PORT: "127.0.0.1:7777",
+        TEMPORAL_NAMESPACE: "conformance-ns",
+        STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS: "temporal.example.test:7233",
+      }),
+      logger: silentLogger,
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    client = createClient(
+      PlatformQueryController,
+      createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` }),
+    );
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+  });
+
+  it("getRunnerBootstrapConfig publishes the runner-bootstrap address, with the server's namespace", async () => {
+    const config = await client.getRunnerBootstrapConfig({});
+    expect(config.temporalAddress).toBe("temporal.example.test:7233");
+    expect(config.temporalNamespace).toBe("conformance-ns");
+  });
+});
+
 describe("platform domain (keyless runner-token service)", () => {
   it("a keyless service answers not-minted — fail-soft, never an error", async () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
-        temporalHostPort: "localhost:7233",
+        runnerBootstrapTemporalAddress: "localhost:7233",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
           RunnerAuthService.create(undefined),
@@ -318,7 +370,7 @@ describe("platform domain (license status)", () => {
   function clientWith(provider: LicenseStatusProvider) {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
-        temporalHostPort: "localhost:7233",
+        runnerBootstrapTemporalAddress: "localhost:7233",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
           RunnerAuthService.create(undefined),

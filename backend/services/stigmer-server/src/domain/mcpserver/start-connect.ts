@@ -21,8 +21,8 @@
  * which is both the repair and the caller's intent.
  *
  * Proven by mcpserver-connect.conformance.test.ts
- * (CONFORMANCE_TARGET=local-execution) and
- * __tests__/start-connect.test.ts.
+ * (CONFORMANCE_TARGET=local-execution), __tests__/connect.test.ts and
+ * __tests__/store-faults.test.ts.
  */
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -84,8 +84,11 @@ export async function startConnect(
       mcpServerId,
       McpServerSchema,
     );
-  } catch {
-    throw notFoundError("mcp_server", mcpServerId);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("mcp_server", mcpServerId);
+    }
+    throw internalError(error, "failed to load mcp server");
   }
 
   // The annotation's can_connect check after the load and BEFORE the engine
@@ -165,8 +168,11 @@ export async function startConnect(
         mcpServerId,
         McpServerSchema,
       );
-    } catch {
-      throw notFoundError("mcp_server", mcpServerId);
+    } catch (error) {
+      if (error instanceof ResourceNotFoundError) {
+        throw notFoundError("mcp_server", mcpServerId);
+      }
+      throw internalError(error, "failed to load mcp server");
     }
   }
 
