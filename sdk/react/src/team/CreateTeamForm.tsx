@@ -11,6 +11,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { planUpgradeFeature, UpgradeNotice } from "../billing/UpgradeNotice.js";
 import { useCreateTeam } from "./useTeamMutations.js";
 
 /** The longest description the contract accepts (`TeamSpec.description`). */
@@ -23,6 +24,11 @@ export interface CreateTeamFormProps {
   /** Fired with the created team. */
   readonly onCreated?: (team: Team) => void;
   readonly onCancel?: () => void;
+  /**
+   * Where the plans are, for the notice shown when Stigmer Cloud refuses a
+   * team on the organization's plan. Defaults to `/settings/billing`.
+   */
+  readonly billingHref?: string;
   readonly className?: string;
 }
 
@@ -31,12 +37,13 @@ export interface CreateTeamFormProps {
  *
  * All visual properties flow through `--stgm-*` design tokens.
  */
-export function CreateTeamForm({ org, onCreated, onCancel, className }: CreateTeamFormProps) {
+export function CreateTeamForm({ org, onCreated, onCancel, billingHref, className }: CreateTeamFormProps) {
   const { create, isCreating, error, clearError } = useCreateTeam();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   const canSubmit = name.trim() !== "" && !isCreating;
+  const upgradeFeature = planUpgradeFeature(error);
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -83,11 +90,13 @@ export function CreateTeamForm({ org, onCreated, onCancel, className }: CreateTe
         />
       </Field>
 
-      {error && (
+      {error && upgradeFeature !== null ? (
+        <UpgradeNotice feature={upgradeFeature} error={error} billingHref={billingHref} />
+      ) : error ? (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {getUserMessage(error)}
         </p>
-      )}
+      ) : null}
 
       <div className="stg:flex stg:items-center stg:gap-2">
         <button

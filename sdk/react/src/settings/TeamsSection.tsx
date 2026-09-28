@@ -12,10 +12,19 @@
  *
  * The section owns the list's data and passes it down, so a create, an edit
  * or a delete refreshes the list here without a child reaching up.
+ *
+ * On Stigmer Cloud, teams are a plan feature: where the organization's plan
+ * lacks them, the section says so and links to the plans in place of "New
+ * team", and its existing teams stay readable and usable. Only Cloud reads
+ * the plan; on Enterprise a license never lists teams and every
+ * organization has them, so the read would refuse Enterprise its own teams.
  */
 import { useCallback, useId, useState } from "react";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { UpgradeNotice } from "../billing/UpgradeNotice.js";
+import { useEntitlements } from "../billing/useEntitlements.js";
+import { useDeploymentMode, useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { useOrg } from "../organization/OrgProvider.js";
@@ -37,6 +46,9 @@ export function TeamsSection() {
   const orgSlug = activeOrg?.metadata?.slug ?? "";
   const orgId = activeOrg?.metadata?.id ?? "";
 
+  const onCloud = useDeploymentMode() === "cloud";
+  const plan = useEntitlements(orgId || null, { enabled: onCloud && teamsServed });
+  const planLacksTeams = plan.allows(Feature.teams) === false;
   const list = useTeamList(teamsServed && orgSlug ? orgSlug : null);
   const { refetch } = list;
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
@@ -69,7 +81,7 @@ export function TeamsSection() {
           Teams
         </h2>
 
-        {teamsServed && orgId && flow.phase === "idle" && (
+        {teamsServed && orgId && flow.phase === "idle" && !planLacksTeams && (
           <PermissionGate resource={{ kind: "organization", id: orgId }} relation="can_create_team">
             <button
               type="button"
@@ -88,6 +100,7 @@ export function TeamsSection() {
         their leaving the organization, takes that access away.
       </p>
 
+      {teamsServed && orgId && planLacksTeams && <UpgradeNotice feature={Feature.teams} className="stg:mb-3" />}
       {!teamsServed ? (
         <CloudFeatureNotice>
           Teams are available in Stigmer Enterprise and Cloud. This edition

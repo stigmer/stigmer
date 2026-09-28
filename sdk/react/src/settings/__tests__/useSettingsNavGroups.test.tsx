@@ -50,6 +50,7 @@ describe("useSettingsNavGroups", () => {
       can_manage_cursor_accounts: true,
       can_view_provider_standing: true,
       can_issue_license: true,
+      can_manage_plans: true,
     };
     render(<GroupsProbe />);
 
@@ -58,7 +59,7 @@ describe("useSettingsNavGroups", () => {
       `${BASE_LABELS},${PLATFORM_SETTINGS_NAV_GROUP.label}`,
     );
     expect(el.getAttribute("data-platform-items")).toBe(
-      "Pricing Governance,Cursor Accounts,Provider Standing,Licenses",
+      "Pricing Governance,Cursor Accounts,Provider Standing,Licenses,Plans",
     );
   });
 
@@ -95,6 +96,15 @@ describe("useSettingsNavGroups", () => {
 
     expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
       "Licenses",
+    );
+  });
+
+  it("filters per item: plan-managing operator sees only Plans", () => {
+    verdicts = { can_manage_plans: true };
+    render(<GroupsProbe />);
+
+    expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
+      "Plans",
     );
   });
 

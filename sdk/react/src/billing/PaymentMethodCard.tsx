@@ -14,6 +14,14 @@ export interface PaymentMethodCardProps {
   readonly isPortalLoading?: boolean;
   /** Called when the user clicks "Manage payment methods". */
   readonly onManage: () => void;
+  /**
+   * Called when the user clicks "Add payment method" with none on file:
+   * the host opens Stripe's page to save a card without a charge. Absent,
+   * the card has no add action.
+   */
+  readonly onAdd?: () => void;
+  /** `true` while the card page is being opened. */
+  readonly isAdding?: boolean;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -61,6 +69,8 @@ export function PaymentMethodCard({
   accountStatus,
   isPortalLoading,
   onManage,
+  onAdd,
+  isAdding,
   className,
 }: PaymentMethodCardProps) {
   const isAccountActive =
@@ -113,9 +123,25 @@ export function PaymentMethodCard({
       ) : (
         <div className="stg:mt-2">
           <p className="stg:text-xs stg:text-muted-foreground">
-            No payment method on file. A card will be saved automatically
-            when you purchase your first credit pack.
+            No payment method on file. A saved card is needed to subscribe to
+            a plan or turn on auto-recharge; buying a credit pack also saves
+            one.
           </p>
+          {onAdd && (
+            <button
+              type="button"
+              disabled={!isAccountActive || isAdding}
+              onClick={onAdd}
+              className={cn(
+                "stg:mt-2 stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:transition-colors",
+                "stg:text-primary stg:hover:bg-accent",
+                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              )}
+              aria-busy={isAdding}
+            >
+              {isAdding ? "Opening\u2026" : "Add payment method"}
+            </button>
+          )}
         </div>
       )}
     </div>

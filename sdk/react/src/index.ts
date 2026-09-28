@@ -1158,6 +1158,25 @@ export {
   useCreateCheckoutSession,
   useCreateBillingPortalSession,
   useSetAutoRechargeConfig,
+  usePlans,
+  useSubscription,
+  useEntitlements,
+  usePeriodEstimate,
+  useChangePlan,
+  useCancelSubscription,
+  useCreatePaymentMethodSetupSession,
+  planStanding,
+  planMove,
+  PlanSection,
+  PlanCard,
+  PlanPicker,
+  ENTERPRISE_CONTACT_URL,
+  ChangePlanDialog,
+  PAYMENT_METHOD_REQUIRED,
+  UpgradeNotice,
+  planUpgradeFeature,
+  PLAN_UPGRADE_REQUIRED,
+  DEFAULT_BILLING_HREF,
   BillingSection,
   CreditBalanceCard,
   PaymentMethodCard,
@@ -1176,7 +1195,26 @@ export {
   formatLedgerDate,
 } from "./billing/index.js";
 export type {
+  UseBillingAccountOptions,
   UseBillingAccountReturn,
+  UsePlansOptions,
+  UsePlansReturn,
+  UseSubscriptionReturn,
+  UseEntitlementsOptions,
+  UseEntitlementsReturn,
+  UsePeriodEstimateOptions,
+  UsePeriodEstimateReturn,
+  UseChangePlanReturn,
+  UseCancelSubscriptionReturn,
+  UseCreatePaymentMethodSetupSessionReturn,
+  BillingRedirect,
+  PlanStanding,
+  PlanMove,
+  PlanSectionProps,
+  PlanCardProps,
+  PlanPickerProps,
+  ChangePlanDialogProps,
+  UpgradeNoticeProps,
   UseCreditLedgerReturn,
   UseCreditLedgerOptions,
   UseBillingUsageReportReturn,
@@ -1282,6 +1320,22 @@ export type {
   UseIssueLicenseReturn,
   LicensesConsoleProps,
 } from "./licenses/index.js";
+
+// Plan catalog — platform-operator management of the Stigmer Cloud plans
+// organizations subscribe to (gated on can_manage_plans)
+export {
+  useCreatePlan,
+  useRetirePlan,
+  PlanCatalogConsole,
+  PlanCreateForm,
+  PlansAccessNotice,
+} from "./plan-catalog/index.js";
+export type {
+  UseCreatePlanReturn,
+  UseRetirePlanReturn,
+  PlanCatalogConsoleProps,
+  PlanCreateFormProps,
+} from "./plan-catalog/index.js";
 
 // Settings — navigation structure + section components shared across app shells
 export {

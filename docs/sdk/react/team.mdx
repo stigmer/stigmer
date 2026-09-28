@@ -172,6 +172,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    billingHref: { type: "string", description: "Where the plans are, for the notice shown when Stigmer Cloud refuses a team on the organization's plan. Defaults to `/settings/billing`." },
     className: { type: "string", description: "" },
     onCancel: { type: "() => void", description: "" },
     onCreated: { type: "(team: Team) => void", description: "Fired with the created team." },

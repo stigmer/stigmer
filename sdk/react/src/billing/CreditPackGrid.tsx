@@ -24,7 +24,7 @@ export interface CreditPackGridProps {
 /**
  * Grid of credit pack cards with purchase buttons.
  *
- * Displays the 3 self-serve credit packs (Starter, Growth, Team)
+ * Displays the 3 self-serve credit packs (Starter, Growth, Scale)
  * in a responsive grid. Each card shows the pack name, price,
  * credit count, and a buy button. Buttons are disabled when the
  * account is suspended/closed or a purchase is in progress.

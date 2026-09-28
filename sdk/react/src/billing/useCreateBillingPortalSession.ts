@@ -3,14 +3,17 @@
 import { useCallback, useState } from "react";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { billingReturnUrl, leaveForStripe, type BillingRedirect } from "./redirect.js";
 
 /** Return value of {@link useCreateBillingPortalSession}. */
 export interface UseCreateBillingPortalSessionReturn {
   /**
    * Open the Stripe Customer Portal for payment method management.
    *
-   * On success, redirects the user to the Stripe-hosted portal page.
-   * The promise resolves before the redirect occurs.
+   * On success, leaves for the Stripe-hosted portal page: through
+   * `redirect.openUrl` when given, else by navigating this window. The
+   * portal returns to `redirect.returnUrl` when given, else to the page
+   * the person is on.
    */
   readonly openPortal: (orgId: string) => Promise<void>;
   /** `true` while the portal session is being created. */
@@ -38,8 +41,12 @@ export interface UseCreateBillingPortalSessionReturn {
  * </button>
  * ```
  */
-export function useCreateBillingPortalSession(): UseCreateBillingPortalSessionReturn {
+export function useCreateBillingPortalSession(
+  redirect?: BillingRedirect,
+): UseCreateBillingPortalSessionReturn {
   const stigmer = useStigmer();
+  const openUrl = redirect?.openUrl;
+  const pinnedReturnUrl = redirect?.returnUrl;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -52,7 +59,11 @@ export function useCreateBillingPortalSession(): UseCreateBillingPortalSessionRe
 
       try {
         const returnUrl =
-          typeof window !== "undefined" ? window.location.href : "";
+          pinnedReturnUrl !== undefined
+            ? billingReturnUrl({ returnUrl: pinnedReturnUrl })
+            : typeof window !== "undefined"
+              ? window.location.href
+              : "";
 
         const response = await stigmer.billing.createBillingPortalSession({
           orgId,
@@ -60,7 +71,7 @@ export function useCreateBillingPortalSession(): UseCreateBillingPortalSessionRe
         });
 
         if (response.portalUrl) {
-          window.location.href = response.portalUrl;
+          await leaveForStripe(response.portalUrl, { openUrl });
         }
       } catch (err) {
         setError(toError(err));
@@ -69,7 +80,7 @@ export function useCreateBillingPortalSession(): UseCreateBillingPortalSessionRe
         setIsLoading(false);
       }
     },
-    [stigmer],
+    [stigmer, openUrl, pinnedReturnUrl],
   );
 
   return { openPortal, isLoading, error, clearError };

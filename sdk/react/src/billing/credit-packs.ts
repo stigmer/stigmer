@@ -34,8 +34,11 @@ export const CREDIT_PACKS: readonly CreditPackInfo[] = [
     credits: 5_000,
   },
   {
+    // Named "Scale", not "Team", so it never reads as the Team plan on the
+    // page that sells both; its id stays "team", the wire value every
+    // purchase row and checkout call carries.
     packId: "team",
-    displayName: "Team",
+    displayName: "Scale",
     description: "For production workloads",
     priceCents: 20_000,
     credits: 20_000,

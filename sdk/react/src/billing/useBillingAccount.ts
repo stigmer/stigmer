@@ -8,6 +8,16 @@ import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billi
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
+/** Options for {@link useBillingAccount}. */
+export interface UseBillingAccountOptions {
+  /**
+   * Re-read the account when the window regains focus: for a host that
+   * sends Stripe's pages to another window (the system browser), so a card
+   * saved there shows on return. Default `false`.
+   */
+  readonly refetchOnWindowFocus?: boolean;
+}
+
 /** Return value of {@link useBillingAccount}. */
 export interface UseBillingAccountReturn {
   /** The billing account, or `null` before the first successful fetch. */
@@ -48,6 +58,7 @@ export interface UseBillingAccountReturn {
  */
 export function useBillingAccount(
   orgId: string | null,
+  options?: UseBillingAccountOptions,
 ): UseBillingAccountReturn {
   const stigmer = useStigmer();
 
@@ -58,6 +69,7 @@ export function useBillingAccount(
       : null,
     [orgId, stigmer],
     null as BillingAccount | null,
+    { refetchOnWindowFocus: options?.refetchOnWindowFocus ?? false },
   );
 
   return { account, isLoading, isRefetching, error, refetch };

@@ -4,6 +4,7 @@ import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import { ManagementMode } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/enum_pb";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
@@ -16,6 +17,9 @@ import { AutoRechargeCard } from "./AutoRechargeCard.js";
 import { CreditPackGrid } from "./CreditPackGrid.js";
 import { CreditLedgerTable } from "./CreditLedgerTable.js";
 import { LowBalanceBanner } from "./LowBalanceBanner.js";
+import { PlanSection } from "./PlanSection.js";
+import { billingReturnUrl, type BillingRedirect } from "./redirect.js";
+import { useCreatePaymentMethodSetupSession } from "./useCreatePaymentMethodSetupSession.js";
 
 /** Props for {@link BillingSection}. */
 export interface BillingSectionProps {
@@ -29,6 +33,22 @@ export interface BillingSectionProps {
   readonly checkoutSuccess?: boolean;
   /** Callback to dismiss the checkout success banner. */
   readonly onDismissCheckoutSuccess?: () => void;
+  /**
+   * The plan the person was choosing when they left to save a card: the
+   * `plan` query Stripe returns with after `?setup=success`. The plan
+   * section reopens that choice for an explicit confirm.
+   */
+  readonly resumePlanId?: string;
+  /** Called once the resumed plan choice is taken up, so the host can clear its query. */
+  readonly onResumeHandled?: () => void;
+  /**
+   * The host's seam for Stripe-hosted pages (checkout, card setup and the
+   * billing portal). Absent, this window navigates to them and Stripe
+   * returns to this origin's `/settings/billing`. A desktop host opens the
+   * system browser and names the web console's billing page instead; its
+   * reads refresh when the window regains focus.
+   */
+  readonly redirect?: BillingRedirect;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -51,12 +71,16 @@ export interface BillingSectionProps {
 export function BillingSection({
   checkoutSuccess,
   onDismissCheckoutSuccess,
+  resumePlanId,
+  onResumeHandled,
+  redirect,
   className,
 }: BillingSectionProps) {
   const headingId = useId();
   const { activeOrg } = useOrg();
   const mode = useDeploymentMode();
   const orgId = activeOrg?.metadata?.id ?? "";
+  const managed = activeOrg?.spec?.managementMode === ManagementMode.platform_managed;
 
   return (
     <section aria-labelledby={headingId} className={className}>
@@ -67,7 +91,7 @@ export function BillingSection({
         Billing
       </h2>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Manage credits, purchase credit packs, and view transaction history.
+        Your plan, credits, payment method and transaction history.
       </p>
 
       {mode === "local" ? (
@@ -83,8 +107,12 @@ export function BillingSection({
       ) : (
         <BillingContent
           orgId={orgId}
+          managed={managed}
           checkoutSuccess={checkoutSuccess}
           onDismissCheckoutSuccess={onDismissCheckoutSuccess}
+          resumePlanId={resumePlanId}
+          onResumeHandled={onResumeHandled}
+          redirect={redirect}
         />
       )}
     </section>
@@ -97,16 +125,28 @@ export function BillingSection({
 
 function BillingContent({
   orgId,
+  managed,
   checkoutSuccess,
   onDismissCheckoutSuccess,
+  resumePlanId,
+  onResumeHandled,
+  redirect,
 }: {
   orgId: string;
+  managed: boolean;
   checkoutSuccess?: boolean;
   onDismissCheckoutSuccess?: () => void;
+  resumePlanId?: string;
+  onResumeHandled?: () => void;
+  redirect?: BillingRedirect;
 }) {
-  const { account, isLoading, error, refetch } = useBillingAccount(orgId);
-  const { createSession, isSubmitting, error: checkoutError, clearError } = useCreateCheckoutSession();
-  const { openPortal, isLoading: isPortalLoading } = useCreateBillingPortalSession();
+  const { account, isLoading, error, refetch } = useBillingAccount(orgId, {
+    refetchOnWindowFocus: redirect?.openUrl !== undefined,
+  });
+  const { createSession, isSubmitting, error: checkoutError, clearError } = useCreateCheckoutSession(redirect);
+  const { openPortal, isLoading: isPortalLoading } = useCreateBillingPortalSession(redirect);
+  const setup = useCreatePaymentMethodSetupSession(redirect);
+  const returnUrl = redirect?.returnUrl;
   const [purchasingPackId, setPurchasingPackId] = useState<string | null>(null);
 
   const handlePurchase = useCallback(
@@ -114,8 +154,7 @@ function BillingContent({
       setPurchasingPackId(packId);
       clearError();
 
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-      const billingPath = `${baseUrl}/settings/billing`;
+      const billingPath = billingReturnUrl({ returnUrl });
 
       createSession({
         orgId,
@@ -126,7 +165,7 @@ function BillingContent({
         setPurchasingPackId(null);
       });
     },
-    [orgId, createSession, clearError],
+    [orgId, createSession, clearError, returnUrl],
   );
 
   if (isLoading) {
@@ -161,6 +200,8 @@ function BillingContent({
 
   const isLowBalance =
     balance.availableMicros < account.lowBalanceThresholdMicros;
+  const hasPaymentMethod =
+    account.defaultPaymentMethod != null && account.defaultPaymentMethod.paymentMethodId !== "";
 
   return (
     <div className="stg:space-y-6">
@@ -173,6 +214,16 @@ function BillingContent({
         thresholdMicros={account.lowBalanceThresholdMicros}
       />
 
+      <PlanSection
+        orgId={orgId}
+        managed={managed}
+        hasPaymentMethod={hasPaymentMethod}
+        onRefreshAccount={refetch}
+        redirect={redirect}
+        resumePlanId={resumePlanId}
+        onResumeHandled={onResumeHandled}
+      />
+
       <CreditBalanceCard balance={balance} isLowBalance={isLowBalance} />
 
       <PaymentMethodCard
@@ -180,15 +231,21 @@ function BillingContent({
         accountStatus={account.status}
         isPortalLoading={isPortalLoading}
         onManage={() => openPortal(orgId)}
+        onAdd={() => {
+          setup.addPaymentMethod(orgId).catch(() => undefined);
+        }}
+        isAdding={setup.isSubmitting}
       />
+      {setup.error && (
+        <p className="stg:text-destructive stg:text-xs" role="alert">
+          {getUserMessage(setup.error)}
+        </p>
+      )}
 
       <AutoRechargeCard
         orgId={orgId}
         autoRecharge={account.autoRecharge}
-        hasPaymentMethod={
-          account.defaultPaymentMethod != null &&
-          account.defaultPaymentMethod.paymentMethodId !== ""
-        }
+        hasPaymentMethod={hasPaymentMethod}
         accountStatus={account.status}
         onSaved={refetch}
       />

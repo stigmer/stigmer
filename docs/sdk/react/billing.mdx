@@ -22,12 +22,13 @@ Pass `null` as `orgId` to skip fetching (stable no-op).
 **Signature**
 
 ```tsx
-function useBillingAccount(orgId: string | null): UseBillingAccountReturn
+function useBillingAccount(orgId: string | null, options?: UseBillingAccountOptions): UseBillingAccountReturn
 ```
 
 <TypeTable
   type={{
     orgId: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
+    options: { type: "UseBillingAccountOptions", description: "" },
   }}
 />
 
@@ -103,6 +104,54 @@ return <div>Total: {formatCreditBalance(report.totalBillableAmountMicros)}</div>
 ```
 
 
+### useCancelSubscription
+
+Behaviour hook that cancels an organization's subscription at the end
+of its period. The caller needs `can_manage_billing` on the organization.
+
+**Signature**
+
+```tsx
+function useCancelSubscription(): UseCancelSubscriptionReturn
+```
+
+**Returns** — `UseCancelSubscriptionReturn`
+
+<TypeTable
+  type={{
+    cancel: { type: "(orgId: string) => Promise<Subscription>", description: "Cancel the organization's subscription. It keeps its plan to the end of the current period and is on Free after it; nothing it built is deleted. Choosing the same plan again before then resumes it." },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isSubmitting: { type: "boolean", description: "`true` while a cancel is in flight." },
+  }}
+/>
+
+
+### useChangePlan
+
+Behaviour hook that moves an organization onto a plan.
+
+The caller needs `can_manage_billing` on the organization (its admins).
+Refetch the subscription, entitlements and estimate after a change.
+
+**Signature**
+
+```tsx
+function useChangePlan(): UseChangePlanReturn
+```
+
+**Returns** — `UseChangePlanReturn`
+
+<TypeTable
+  type={{
+    changePlan: { type: "(orgId: string, planId: string) => Promise<Subscription>", description: "Move the organization onto a plan: subscribe (from Free), switch, or resume a canceled plan by choosing it again. A switch takes effect now: the current period closes early, billed for the time it ran, and a new monthly period opens on the new plan. Nothing is charged at the moment of the change; every period is collected when it closes.  Refused with the `PAYMENT_METHOD_REQUIRED` reason when the organization has no saved card (see useCreatePaymentMethodSetupSession). Resolves with the subscription as it stands after the change." },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isSubmitting: { type: "boolean", description: "`true` while a change is in flight." },
+  }}
+/>
+
+
 ### useCreateBillingPortalSession
 
 Behavior hook that opens the Stripe Customer Portal for payment
@@ -115,8 +164,14 @@ portal. Payment method changes are synced back via webhooks.
 **Signature**
 
 ```tsx
-function useCreateBillingPortalSession(): UseCreateBillingPortalSessionReturn
+function useCreateBillingPortalSession(redirect?: BillingRedirect): UseCreateBillingPortalSessionReturn
 ```
+
+<TypeTable
+  type={{
+    redirect: { type: "BillingRedirect", description: "" },
+  }}
+/>
 
 **Returns** — `UseCreateBillingPortalSessionReturn`
 
@@ -125,7 +180,7 @@ function useCreateBillingPortalSession(): UseCreateBillingPortalSessionReturn
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the portal session is being created." },
-    openPortal: { type: "(orgId: string) => Promise<void>", description: "Open the Stripe Customer Portal for payment method management.  On success, redirects the user to the Stripe-hosted portal page. The promise resolves before the redirect occurs." },
+    openPortal: { type: "(orgId: string) => Promise<void>", description: "Open the Stripe Customer Portal for payment method management.  On success, leaves for the Stripe-hosted portal page: through `redirect.openUrl` when given, else by navigating this window. The portal returns to `redirect.returnUrl` when given, else to the page the person is on." },
   }}
 />
 
@@ -151,15 +206,21 @@ after payment succeeds.
 **Signature**
 
 ```tsx
-function useCreateCheckoutSession(): UseCreateCheckoutSessionReturn
+function useCreateCheckoutSession(redirect?: BillingRedirect): UseCreateCheckoutSessionReturn
 ```
+
+<TypeTable
+  type={{
+    redirect: { type: "BillingRedirect", description: "" },
+  }}
+/>
 
 **Returns** — `UseCreateCheckoutSessionReturn`
 
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    createSession: { type: "(input: CreateCheckoutSessionInput) => Promise<CreateCreditCheckoutSessionResponse>", description: "Create a Stripe Checkout Session and redirect the user.  On success, sets `window.location.href` to the Stripe-hosted checkout page URL. The promise resolves with the response before the redirect occurs, allowing callers to perform cleanup if needed." },
+    createSession: { type: "(input: CreateCheckoutSessionInput) => Promise<CreateCreditCheckoutSessionResponse>", description: "Create a Stripe Checkout Session and redirect the user.  On success, leaves for the Stripe-hosted checkout page: through the hook's `redirect.openUrl` when given, else by navigating this window. The promise resolves with the response before the redirect occurs, allowing callers to perform cleanup if needed." },
     error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
     isSubmitting: { type: "boolean", description: "`true` while the checkout session is being created." },
   }}
@@ -177,6 +238,39 @@ const handleBuy = () => {
   });
 };
 ```
+
+
+### useCreatePaymentMethodSetupSession
+
+Behaviour hook that saves a payment method through a Stripe-hosted setup
+page: the card door every subscription needs before its first period.
+
+The caller needs `can_manage_billing` on the organization. Pass the
+host's [`BillingRedirect`](#billingredirect) where the window cannot host Stripe's
+page itself.
+
+**Signature**
+
+```tsx
+function useCreatePaymentMethodSetupSession(redirect?: BillingRedirect): UseCreatePaymentMethodSetupSessionReturn
+```
+
+<TypeTable
+  type={{
+    redirect: { type: "BillingRedirect", description: "" },
+  }}
+/>
+
+**Returns** — `UseCreatePaymentMethodSetupSessionReturn`
+
+<TypeTable
+  type={{
+    addPaymentMethod: { type: "(orgId: string, planId?: string) => Promise<void>", description: "Leave for Stripe's hosted page to save a card, with no charge. Stripe returns to the billing page with `?setup=success` (and `&plan=<id>` when `planId` names the plan the person was subscribing to, so the page can reopen that choice), or without a query when they leave. The saved card becomes the organization's default for every invoice." },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isSubmitting: { type: "boolean", description: "`true` while the setup session is being created." },
+  }}
+/>
 
 
 ### useCreditLedger
@@ -271,6 +365,131 @@ return pricing.entries.map(entry => (
 ```
 
 
+### useEntitlements
+
+Data hook that resolves what an organization's plan permits right now.
+
+The answer is derived by the server on every read: the live
+subscription's plan, else Free's. A platform-managed organization
+resolves through its integrator's plan. Every member may read it
+(`can_view_billing` is granted to viewers).
+
+Cloud-only. Self-hosted editions answer from their license, not a plan,
+so callers gate on the edition before reading (see `UpgradeNotice`).
+
+**Signature**
+
+```tsx
+function useEntitlements(orgId: string | null, options?: UseEntitlementsOptions): UseEntitlementsReturn
+```
+
+<TypeTable
+  type={{
+    orgId: { type: "string | null", description: "", required: true },
+    options: { type: "UseEntitlementsOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseEntitlementsReturn`
+
+<TypeTable
+  type={{
+    allows: { type: "(feature: Feature) => boolean | null", description: "Whether the organization's plan includes `feature` right now; `null` until the entitlements have loaded, so a caller never refuses on a guess." },
+    entitlements: { type: "GetEntitlementsOutput | null", description: "What the organization may do right now and the plan that permits it (`planId` empty on Free), or `null` before the first successful fetch." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+  }}
+/>
+
+```tsx
+const { allows } = useEntitlements(orgId);
+if (allows(Feature.teams) === false) return <UpgradeNotice feature={Feature.teams} />;
+```
+
+
+### usePeriodEstimate
+
+Data hook that estimates what an organization's current subscription
+period will be invoiced.
+
+The estimate is the invoice the period would close with if no further
+usage occurred: the plan's minimum for the whole period (or its share of
+the period's provider cost, whichever is greater), less the commission
+already collected on tokens, plus managed organizations beyond those
+included. The server rates it by the same rule the monthly close
+invoices by, so it agrees with the invoice to the cent.
+
+The server answers NOT_FOUND when nothing is live to invoice (Free, or a
+managed organization), so enable it only while a subscription is live.
+
+Cloud-only; the caller needs `can_view_billing` on the organization.
+
+**Signature**
+
+```tsx
+function usePeriodEstimate(orgId: string | null, options?: UsePeriodEstimateOptions): UsePeriodEstimateReturn
+```
+
+<TypeTable
+  type={{
+    orgId: { type: "string | null", description: "", required: true },
+    options: { type: "UsePeriodEstimateOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UsePeriodEstimateReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    estimate: { type: "PeriodEstimate | null", description: "The current period's estimated invoice, or `null` before the first successful fetch." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+  }}
+/>
+
+
+### usePlans
+
+Data hook that lists the Stigmer Cloud plan catalog.
+
+Every signed-in caller may read it. By default it lists only the plans
+that can still be bought; `includeRetired` adds the retired rows an
+operator audits. Free is not a row: an organization with no live
+subscription is on Free.
+
+Cloud-only: other editions serve no plans.
+
+**Signature**
+
+```tsx
+function usePlans(options?: UsePlansOptions): UsePlansReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UsePlansOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UsePlansReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    plans: { type: "readonly Plan[] | null", description: "The catalog's plans, or `null` before the first successful fetch." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+  }}
+/>
+
+```tsx
+const { plans } = usePlans();
+```
+
+
 ### useSetAutoRechargeConfig
 
 Behavior hook for configuring auto-recharge settings.
@@ -306,6 +525,49 @@ await setConfig({
   rechargeAmountMicros: BigInt(50_000_000),
   monthlyCapMicros: BigInt(200_000_000),
 });
+```
+
+
+### useSubscription
+
+Data hook that reads an organization's subscription.
+
+The server answers NOT_FOUND for an organization that never subscribed;
+this hook reads that as `null`, because never subscribed is a state (the
+Free plan), not a failure.
+
+Pass `null` as `orgId` to skip fetching. Refetches when the window
+regains focus, so a plan changed in another window, or a card saved in
+the system browser, shows on return.
+
+Cloud-only; the caller needs `can_view_billing` on the organization.
+
+**Signature**
+
+```tsx
+function useSubscription(orgId: string | null): UseSubscriptionReturn
+```
+
+<TypeTable
+  type={{
+    orgId: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSubscriptionReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy. Never NOT_FOUND." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+    subscription: { type: "Subscription | null", description: "The organization's subscription as stored; `null` when it never subscribed (it is on Free) or before the first successful fetch. A subscription that ended reads `canceled` with its period in the past; useEntitlements says what the organization may do now." },
+  }}
+/>
+
+```tsx
+const { subscription } = useSubscription(orgId);
 ```
 
 
@@ -361,6 +623,9 @@ org-not-selected state.
     checkoutSuccess: { type: "boolean", description: "Whether a checkout just completed (e.g., `?checkout=success`).  When `true`, an optimistic banner is shown indicating that credits will appear shortly. This prop is typically driven by the host application's URL query parameters." },
     className: { type: "string", description: "Additional CSS class names." },
     onDismissCheckoutSuccess: { type: "() => void", description: "Callback to dismiss the checkout success banner." },
+    onResumeHandled: { type: "() => void", description: "Called once the resumed plan choice is taken up, so the host can clear its query." },
+    redirect: { type: "BillingRedirect", description: "The host's seam for Stripe-hosted pages (checkout, card setup and the billing portal). Absent, this window navigates to them and Stripe returns to this origin's `/settings/billing`. A desktop host opens the system browser and names the web console's billing page instead; its reads refresh when the window regains focus.", typeDescriptionLink: "#billingredirect" },
+    resumePlanId: { type: "string", description: "The plan the person was choosing when they left to save a card: the `plan` query Stripe returns with after `?setup=success`. The plan section reopens that choice for an explicit confirm." },
   }}
 />
 
@@ -368,6 +633,31 @@ org-not-selected state.
 // In a settings page:
 <BillingSection checkoutSuccess={searchParams.checkout === "success"} />
 ```
+
+
+### ChangePlanDialog
+
+The confirm step for a plan change. It states exactly what the move does
+and when money moves: a subscription starts now and every period is
+collected when it closes; a switch closes this period early, billed for
+the time it ran; a cancel keeps the plan to its period's end and deletes
+nothing. Without a saved card it offers the card page first.
+
+**Props** — `ChangePlanDialogProps`
+
+<TypeTable
+  type={{
+    awaitingPaymentMethod: { type: "boolean", description: "The card was just saved on Stripe's page and is on its way to the account: say so instead of asking for one again." },
+    error: { type: "Error | null", description: "Why the last attempt failed, or `null`.", required: true },
+    hasPaymentMethod: { type: "boolean", description: "Whether the organization has a saved card. Every move but a cancel needs one, because every period is collected from it.", required: true },
+    isSubmitting: { type: "boolean", description: "`true` while the move, or the card page, is in flight.", required: true },
+    move: { type: "PlanMove | null", description: "The move to confirm; the dialog is open while it is set.", required: true },
+    onAddPaymentMethod: { type: "() => void", description: "Leave to save a card, returning to this choice.", required: true },
+    onClose: { type: "() => void", description: "Close without moving.", required: true },
+    onConfirm: { type: "() => void", description: "Make the move.", required: true },
+    planName: { type: "(planId: string) => string", description: "The display name of a plan by id, for the plan being left.", required: true },
+  }}
+/>
 
 
 ### CreditBalanceCard
@@ -421,7 +711,7 @@ for holds and releases.
 
 Grid of credit pack cards with purchase buttons.
 
-Displays the 3 self-serve credit packs (Starter, Growth, Team)
+Displays the 3 self-serve credit packs (Starter, Growth, Scale)
 in a responsive grid. Each card shows the pack name, price,
 credit count, and a buy button. Buttons are disabled when the
 account is suspended/closed or a purchase is in progress.
@@ -488,7 +778,9 @@ add, update, or remove payment methods.
   type={{
     accountStatus: { type: "BillingAccountStatus", description: "Account status — portal button disabled when suspended or closed.", required: true },
     className: { type: "string", description: "Additional CSS class names." },
+    isAdding: { type: "boolean", description: "`true` while the card page is being opened." },
     isPortalLoading: { type: "boolean", description: "`true` while the portal session is being created." },
+    onAdd: { type: "() => void", description: "Called when the user clicks \"Add payment method\" with none on file: the host opens Stripe's page to save a card without a charge. Absent, the card has no add action." },
     onManage: { type: "() => void", description: "Called when the user clicks \"Manage payment methods\".", required: true },
     paymentMethod: { type: "PaymentMethodSummary", description: "The saved payment method, or undefined if none is on file." },
   }}
@@ -503,7 +795,116 @@ add, update, or remove payment methods.
 ```
 
 
+### PlanCard
+
+The organization's plan: its name, its standing (active, payment
+failed, or ending on a date), the period it is in, and the period's
+estimated invoice line by line, the way the invoice will read it.
+
+**Props** — `PlanCardProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    estimate: { type: "PeriodEstimate | null", description: "The current period's estimated invoice, when a plan is live." },
+    estimateError: { type: "Error | null", description: "Why the estimate could not be read, shown in its place." },
+    managed: { type: "boolean", description: "The organization is platform-managed: it is on its integrator's plan and has no plan, period or invoice of its own." },
+    planName: { type: "string", description: "The plan's display name (\"Free\" when there is none).", required: true },
+    standing: { type: "PlanStanding", description: "Where the organization stands on it.", required: true, typeDescriptionLink: "#planstanding" },
+  }}
+/>
+
+
+### PlanPicker
+
+The plan comparison: Free, each plan that can be bought, and
+Enterprise, each with its price and what it offers today. A choice
+reports the move it makes (subscribe, switch, resume or cancel) for the
+host to confirm; the plan in force reads "Current plan".
+
+**Props** — `PlanPickerProps`
+
+<TypeTable
+  type={{
+    canManage: { type: "boolean", description: "Whether the viewer may change the plan (`can_manage_billing`). Without it the comparison is read-only.", required: true },
+    className: { type: "string", description: "Additional CSS class names." },
+    disabled: { type: "boolean", description: "Disables every choice, e.g. while a change is in flight." },
+    enterpriseHref: { type: "string", description: "Where \"Talk to us\" for Enterprise links. Defaults to ENTERPRISE_CONTACT_URL." },
+    onChoose: { type: "(move: PlanMove) => void", description: "Called with the move a choice makes; the host confirms it.", required: true },
+    periodEnd: { type: "Date", description: "The live period's end, which a cancel runs to." },
+    plans: { type: "readonly Plan[]", description: "The plans that can be bought, in catalog order.", required: true },
+    standing: { type: "PlanStanding", description: "Where the organization stands.", required: true, typeDescriptionLink: "#planstanding" },
+  }}
+/>
+
+
+### PlanSection
+
+An organization's plan on Stigmer Cloud: the current plan with its
+standing and the period's estimated invoice, the plan comparison, and
+the confirm step for a subscribe, switch, resume or cancel.
+
+Everyone who can view the organization's billing reads it; only those
+who can manage billing (its admins) see the choices. Renders nothing on
+an edition that serves no subscriptions.
+
+**Props** — `PlanSectionProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    hasPaymentMethod: { type: "boolean", description: "Whether the organization's billing account holds a saved card.", required: true },
+    managed: { type: "boolean", description: "The organization is platform-managed: it runs on its integrator's plan, and the section says so instead of offering plans." },
+    now: { type: "Date", description: "The clock the standing reads. Defaults to each render's time." },
+    onRefreshAccount: { type: "() => void", description: "Re-read the billing account, so a card saved on Stripe's page shows." },
+    onResumeHandled: { type: "() => void", description: "Called once the resumed choice has been taken up, so the host can clear its query." },
+    orgId: { type: "string", description: "The organization whose plan is shown.", required: true },
+    redirect: { type: "BillingRedirect", description: "The host's seam for Stripe-hosted pages (see BillingRedirect).", typeDescriptionLink: "#billingredirect" },
+    resumePlanId: { type: "string", description: "The plan the person was choosing when they left to save a card (the `plan` query Stripe returns with). The section reopens that choice for an explicit confirm; it never subscribes on its own." },
+  }}
+/>
+
+```tsx
+<PlanSection orgId={orgId} hasPaymentMethod={hasCard} />
+```
+
+
+### UpgradeNotice
+
+Says an act needs a plan that includes it, and where to change the plan,
+in place of a bare refusal. Everything the organization already has keeps
+working; only creating more is refused.
+
+**Props** — `UpgradeNoticeProps`
+
+<TypeTable
+  type={{
+    billingHref: { type: "string", description: "Where the plans are, in the host's routing. Defaults to DEFAULT_BILLING_HREF." },
+    className: { type: "string", description: "Additional CSS class names." },
+    error: { type: "Error | null", description: "The refusal, when there was one: its message is the server's own copy, which names the plan that unlocks the act. Absent, the notice is shown ahead of an attempt." },
+    feature: { type: "Feature", description: "The feature the organization's plan lacks.", required: true },
+  }}
+/>
+
+```tsx
+const feature = planUpgradeFeature(error);
+if (feature !== null) return <UpgradeNotice feature={feature} error={error} />;
+```
+
+
 ## Types
+
+### BillingRedirect
+
+The host's seam for leaving the app to a Stripe-hosted page.
+
+<TypeTable
+  type={{
+    openUrl: { type: "(url: string) => void | Promise<void>", description: "Opens a Stripe-hosted page. Absent, the current window navigates to it. Desktop hosts open the system browser." },
+    returnUrl: { type: "string", description: "The absolute URL of the billing page Stripe returns to, without a query. Absent, the current origin's `/settings/billing`." },
+  }}
+/>
+
 
 ### CreateCheckoutSessionInput
 
@@ -513,7 +914,7 @@ Parameters for [`useCreateCheckoutSession`](#usecreatecheckoutsession)'s `create
   type={{
     cancelUrl: { type: "string", description: "URL to redirect to if the user cancels checkout.", required: true },
     orgId: { type: "string", description: "Organization purchasing credits.", required: true },
-    packId: { type: "string", description: "Credit pack to purchase (e.g., \"starter\", \"growth\", \"team\").", required: true },
+    packId: { type: "string", description: "Credit pack to purchase: its id, e.g. \"starter\", \"growth\" or \"team\" (the pack named Scale).", required: true },
     successUrl: { type: "string", description: "URL to redirect to after successful payment.", required: true },
   }}
 />
@@ -540,6 +941,16 @@ Metadata for a self-serve credit pack.
     priceCents: { type: "number", description: "Price in USD cents (e.g., 1000 = $10.00).", required: true },
   }}
 />
+
+
+### DEFAULT_BILLING_HREF
+
+The billing page the notice links to by default: the settings route every client serves.
+
+
+### ENTERPRISE_CONTACT_URL
+
+Where Enterprise enquiries go by default.
 
 
 ### formatCreditBalance
@@ -629,6 +1040,57 @@ function ledgerEntryLabel(type: LedgerEntryType): string
 ```
 
 
+### PAYMENT_METHOD_REQUIRED
+
+The reason a plan change is refused for want of a saved card (billing/subscription/v1/command.proto).
+
+
+### PLAN_UPGRADE_REQUIRED
+
+The reason Stigmer Cloud refuses an act the organization's plan does not
+include (iam/team/v1 and tenancy/organization/v1 command.proto).
+
+
+### planMove
+
+The move choosing `target` (a plan, or `"free"`) makes from `standing`, or `null` for none.
+
+```tsx
+function planMove(standing: PlanStanding, target: Plan | "free", periodEnd: Date | undefined): PlanMove | null
+```
+
+
+### PlanMove
+
+What choosing a plan (or Free) would do.
+
+
+### planStanding
+
+The standing a stored subscription gives at `now`: the engine's live
+rule (active, past due, or canceled but not yet at its period's end),
+else Free. `null` (never subscribed) is Free.
+
+```tsx
+function planStanding(subscription: Subscription | null, now: Date): PlanStanding
+```
+
+
+### PlanStanding
+
+An organization's standing on its plan.
+
+
+### planUpgradeFeature
+
+The feature a refusal says the organization's plan lacks, when `error`
+is Stigmer Cloud's `PLAN_UPGRADE_REQUIRED`; `null` for any other error.
+
+```tsx
+function planUpgradeFeature(error: unknown): Feature | null
+```
+
+
 ### SetAutoRechargeConfigInput
 
 Input for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig).
@@ -644,6 +1106,17 @@ Input for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig).
 />
 
 
+### UseBillingAccountOptions
+
+Options for [`useBillingAccount`](#usebillingaccount).
+
+<TypeTable
+  type={{
+    refetchOnWindowFocus: { type: "boolean", description: "Re-read the account when the window regains focus: for a host that sends Stripe's pages to another window (the system browser), so a card saved there shows on return. Default `false`." },
+  }}
+/>
+
+
 ### UseCreditLedgerOptions
 
 Options for [`useCreditLedger`](#usecreditledger).
@@ -654,6 +1127,40 @@ Options for [`useCreditLedger`](#usecreditledger).
     pageSize: { type: "number", description: "Page size. Defaults to 20." },
     typeFilter: { type: "LedgerEntryType[]", description: "Filter to specific ledger entry types. Empty means all types." },
     view: { type: "LedgerView", description: "Server-resolved ledger slice. When set to `LedgerView.statement`, the server returns only customer-facing money-movement entry types and excludes internal mechanics (per-call usage debits, reservation holds/releases). Defaults to the full ledger." },
+  }}
+/>
+
+
+### UseEntitlementsOptions
+
+Options for [`useEntitlements`](#useentitlements).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Skip fetching while `false` (stable no-op). Default `true`." },
+  }}
+/>
+
+
+### UsePeriodEstimateOptions
+
+Options for [`usePeriodEstimate`](#useperiodestimate).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Skip fetching while `false`: read only while a subscription is live. Default `true`." },
+  }}
+/>
+
+
+### UsePlansOptions
+
+Options for [`usePlans`](#useplans).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Skip fetching while `false` (stable no-op). Default `true`." },
+    includeRetired: { type: "boolean", description: "Include retired plans beside the ones that can still be bought. Default `false`." },
   }}
 />
 

@@ -18,6 +18,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, granteeFromView, type Grantee } from "@stigmer/sdk";
+import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { planUpgradeFeature, UpgradeNotice } from "../billing/UpgradeNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { AccessRow, accessEntryKey } from "../iam-policy/AccessRow.js";
@@ -152,11 +154,13 @@ export function TeamMembersPanel({ teamId, orgId, className }: TeamMembersPanelP
             Add member
           </button>
         </div>
-        {grantError && (
+        {grantError && planUpgradeFeature(grantError) === Feature.teams ? (
+          <UpgradeNotice feature={Feature.teams} error={grantError} className="stg:mt-1" />
+        ) : grantError ? (
           <p className="stg:mt-1 stg:text-destructive stg:text-[0.65rem]" role="alert">
             {getUserMessage(grantError)}
           </p>
-        )}
+        ) : null}
       </PermissionGate>
     </div>
   );

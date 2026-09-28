@@ -6,9 +6,11 @@
  *     UNIMPLEMENTED;
  *   - on Enterprise and Cloud it lists the organization's teams;
  *   - "New team" is offered only to a caller who holds `can_create_team`
- *     on the organization, checked on the organization's id.
+ *     on the organization, checked on the organization's id;
+ *   - on Cloud, an organization whose plan lacks teams sees the upgrade
+ *     notice in place of "New team"; Enterprise never reads a plan.
  *
- * The data hook and the permission gate are stubbed; the panels are real.
+ * The data hooks and the permission gate are stubbed; the panels are real.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -22,6 +24,8 @@ const stubs = vi.hoisted(() => ({
   teams: [] as Team[],
   allowed: new Set<string>(),
   checked: [] as Array<[string, string, string]>,
+  planAllowsTeams: null as boolean | null,
+  entitlementsRead: [] as Array<{ orgId: string | null; enabled: boolean | undefined }>,
 }));
 
 vi.mock("../../organization/OrgProvider.js", () => ({
@@ -33,6 +37,18 @@ vi.mock("../../team/useTeamList.js", () => ({
   useTeamList: (org: string | null) => {
     stubs.listedOrg = org;
     return { teams: stubs.teams, isLoading: false, isRefetching: false, error: null, refetch: () => {} };
+  },
+}));
+vi.mock("../../billing/useEntitlements.js", () => ({
+  useEntitlements: (orgId: string | null, options?: { enabled?: boolean }) => {
+    stubs.entitlementsRead.push({ orgId, enabled: options?.enabled });
+    return {
+      entitlements: null,
+      allows: () => (options?.enabled === false ? null : stubs.planAllowsTeams),
+      isLoading: false,
+      error: null,
+      refetch: () => {},
+    };
   },
 }));
 vi.mock("../../iam-policy/PermissionGate.js", () => ({
@@ -66,6 +82,8 @@ afterEach(() => {
   stubs.teams = [];
   stubs.allowed = new Set();
   stubs.checked = [];
+  stubs.planAllowsTeams = null;
+  stubs.entitlementsRead = [];
 });
 
 describe("TeamsSection", () => {
@@ -98,5 +116,23 @@ describe("TeamsSection", () => {
     stubs.allowed = new Set(["can_create_team"]);
     renderSection("cloud");
     expect(screen.getByRole("button", { name: /New team/ })).toBeTruthy();
+  });
+
+  it("on Cloud, shows the upgrade notice in place of New team when the plan lacks teams", () => {
+    stubs.allowed = new Set(["can_create_team"]);
+    stubs.planAllowsTeams = false;
+    renderSection("cloud");
+    expect(screen.getByText("Teams are not included in this organization's plan.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View plans" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /New team/ })).toBeNull();
+    expect(stubs.entitlementsRead).toContainEqual({ orgId: "org_acme", enabled: true });
+  });
+
+  it("never reads a plan on Enterprise, where every organization has teams", () => {
+    stubs.allowed = new Set(["can_create_team"]);
+    stubs.planAllowsTeams = false;
+    renderSection("enterprise");
+    expect(screen.getByRole("button", { name: /New team/ })).toBeTruthy();
+    expect(stubs.entitlementsRead.every((read) => read.enabled === false)).toBe(true);
   });
 });

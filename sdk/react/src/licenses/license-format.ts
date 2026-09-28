@@ -20,6 +20,7 @@ import {
   type Entitlements,
 } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { FEATURE_COPY } from "../internal/features.js";
 
 /** A term an operator can issue; the unspecified zero value is not one. */
 export type IssuableTerm = LicenseTerm.trial | LicenseTerm.paid;
@@ -59,29 +60,19 @@ export const TERM_LABELS: Readonly<Record<IssuableTerm, string>> = {
 };
 
 /**
- * Label and one-line explanation per grantable feature. Keyed by every
- * grantable `Feature` value, so a feature added to the contract fails to
- * compile here until it has words an operator can read.
+ * Label and one-line explanation per grantable feature: the shared
+ * vocabulary (../internal/features.ts), narrowed to what a license may
+ * carry. Keyed by every grantable `Feature` value, so a feature added to
+ * the contract fails to compile here until it has words an operator can
+ * read.
  */
 export const FEATURE_LABELS: Readonly<
   Record<GrantableFeature, { readonly label: string; readonly description: string }>
 > = {
-  [Feature.sso_enforcement]: {
-    label: "SSO enforcement",
-    description: "Require members to sign in through a registered identity provider.",
-  },
-  [Feature.byo_provider_keys]: {
-    label: "Bring your own provider keys",
-    description: "Use the customer's own LLM provider keys instead of the metered proxy.",
-  },
-  [Feature.channels]: {
-    label: "Channels",
-    description: "Deliver agents over messaging channels through a channel runtime.",
-  },
-  [Feature.sharing]: {
-    label: "Sharing",
-    description: "Share agents with individuals and guests through hosted links.",
-  },
+  [Feature.sso_enforcement]: FEATURE_COPY[Feature.sso_enforcement],
+  [Feature.byo_provider_keys]: FEATURE_COPY[Feature.byo_provider_keys],
+  [Feature.channels]: FEATURE_COPY[Feature.channels],
+  [Feature.sharing]: FEATURE_COPY[Feature.sharing],
 };
 
 /** Every grantable feature, in contract order (derived from the label map). */

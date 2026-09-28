@@ -62,11 +62,17 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
     "can_issue_license",
     { fail: "closed" },
   );
+  const plans = useCheckPermission(
+    PLATFORM_RESOURCE,
+    "can_manage_plans",
+    { fail: "closed" },
+  );
 
   const pricingAllowed = pricing.allowed;
   const cursorAccountsAllowed = cursorAccounts.allowed;
   const providerStandingAllowed = providerStanding.allowed;
   const licensesAllowed = licenses.allowed;
+  const plansAllowed = plans.allowed;
 
   return useMemo(() => {
     const verdicts: Record<string, boolean> = {
@@ -74,6 +80,7 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
       can_manage_cursor_accounts: cursorAccountsAllowed,
       can_view_provider_standing: providerStandingAllowed,
       can_issue_license: licensesAllowed,
+      can_manage_plans: plansAllowed,
     };
 
     const visibleItems = PLATFORM_SETTINGS_NAV_GROUP.items.filter(
@@ -91,5 +98,5 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
       ...SETTINGS_NAV_GROUPS,
       { ...PLATFORM_SETTINGS_NAV_GROUP, items: visibleItems },
     ];
-  }, [pricingAllowed, cursorAccountsAllowed, providerStandingAllowed, licensesAllowed]);
+  }, [pricingAllowed, cursorAccountsAllowed, providerStandingAllowed, licensesAllowed, plansAllowed]);
 }

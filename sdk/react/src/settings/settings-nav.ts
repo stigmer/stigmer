@@ -8,6 +8,7 @@ import {
   Building2,
   CreditCard,
   FileBadge,
+  Layers,
   KeyRound,
   Link,
   MessageSquare,
@@ -158,6 +159,12 @@ export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
       label: "Licenses",
       icon: FileBadge,
       requiredPermission: "can_issue_license",
+    },
+    {
+      href: "/settings/plans",
+      label: "Plans",
+      icon: Layers,
+      requiredPermission: "can_manage_plans",
     },
   ],
 };

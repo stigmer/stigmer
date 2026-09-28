@@ -4,12 +4,13 @@ import { useCallback, useState } from "react";
 import type { CreateCreditCheckoutSessionResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { leaveForStripe, type BillingRedirect } from "./redirect.js";
 
 /** Parameters for {@link useCreateCheckoutSession}'s `createSession` callback. */
 export interface CreateCheckoutSessionInput {
   /** Organization purchasing credits. */
   readonly orgId: string;
-  /** Credit pack to purchase (e.g., "starter", "growth", "team"). */
+  /** Credit pack to purchase: its id, e.g. "starter", "growth" or "team" (the pack named Scale). */
   readonly packId: string;
   /** URL to redirect to after successful payment. */
   readonly successUrl: string;
@@ -22,9 +23,10 @@ export interface UseCreateCheckoutSessionReturn {
   /**
    * Create a Stripe Checkout Session and redirect the user.
    *
-   * On success, sets `window.location.href` to the Stripe-hosted
-   * checkout page URL. The promise resolves with the response before
-   * the redirect occurs, allowing callers to perform cleanup if needed.
+   * On success, leaves for the Stripe-hosted checkout page: through the
+   * hook's `redirect.openUrl` when given, else by navigating this window.
+   * The promise resolves with the response before the redirect occurs,
+   * allowing callers to perform cleanup if needed.
    */
   readonly createSession: (
     input: CreateCheckoutSessionInput,
@@ -60,8 +62,11 @@ export interface UseCreateCheckoutSessionReturn {
  * };
  * ```
  */
-export function useCreateCheckoutSession(): UseCreateCheckoutSessionReturn {
+export function useCreateCheckoutSession(
+  redirect?: BillingRedirect,
+): UseCreateCheckoutSessionReturn {
   const stigmer = useStigmer();
+  const openUrl = redirect?.openUrl;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -83,7 +88,7 @@ export function useCreateCheckoutSession(): UseCreateCheckoutSessionReturn {
         });
 
         if (response.checkoutUrl) {
-          window.location.href = response.checkoutUrl;
+          await leaveForStripe(response.checkoutUrl, { openUrl });
         }
 
         return response;
@@ -94,7 +99,7 @@ export function useCreateCheckoutSession(): UseCreateCheckoutSessionReturn {
         setIsSubmitting(false);
       }
     },
-    [stigmer],
+    [stigmer, openUrl],
   );
 
   return { createSession, isSubmitting, error, clearError };
