@@ -941,7 +941,11 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     const blocks = userBlockMessages[0]!.content as AnthropicWireBlock[];
     // The ordinal filename label precedes the image (pixel-to-filename
     // association), and the image arrives as Anthropic's native base64 block
-    // carrying the EXACT uploaded bytes with the sniffed media type.
+    // carrying the EXACT uploaded bytes with the sniffed media type. The text
+    // block after it is the turn's message: this turn's Input Files section
+    // (the file, its vision disclosure) set off by a rule from what the user
+    // typed, because a turn's payload rides its own message and never the
+    // system prompt (the request-shape suite pins why).
     expect(blocks).toEqual([
       { type: "text", text: `Image 1: ${filename}` },
       {
@@ -952,7 +956,12 @@ describe("AgentExecution conformance — attachments (#285)", () => {
           data: pngBytes.toString("base64"),
         },
       },
-      expect.objectContaining({ type: "text", text: "What is in this image?" }),
+      expect.objectContaining({
+        type: "text",
+        text: expect.stringMatching(
+          new RegExp(`^## Input Files\\n[\\s\\S]*\`\\.stigmer/inputs/${filename.replace(".", "\\.")}\`[\\s\\S]*\\n\\n---\\n\\nWhat is in this image\\?$`),
+        ),
+      }),
     ]);
   });
 });
