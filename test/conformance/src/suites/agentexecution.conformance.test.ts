@@ -22,9 +22,11 @@ import {
   ServiceTier,
   ThinkingMode,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
+import { makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentexecutions";
 import { collectStream } from "../support/collect-stream";
 import { uniqueName } from "../support/naming";
@@ -130,50 +132,90 @@ describe("AgentExecution conformance — service-tier fail-closed validation (#3
   });
 });
 
-describe("AgentExecution conformance — thinking-mode fail-closed validation (#772)", () => {
+describe("AgentExecution conformance — thinking-mode fail-closed validation (#772, #1280)", () => {
   // The tier suite's twin: thinking is capability-gated (it bills at base
   // per-token rates, so no priced variant exists to key on) and validated
-  // at create with identical rules and messages in both editions (OSS Go
-  // validateThinkingModeStep, cloud Java ValidateThinkingModeStep). Both
-  // refusals fire before any resource resolution, so fake ids suffice.
+  // at create, judged on the harness the execution will run on (the
+  // bootstrap session_spec's here; UNSPECIFIED is native). The validation
+  // runs behind the run gate, so each arm creates a real agent: an
+  // enforcing edition would refuse a fake one as PermissionDenied first.
+  // Every arm is a refusal, before any side effect, so no execution runs.
+  async function realAgent(org: string): Promise<string> {
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("agent-thinking"), instructions: "You validate thinking modes." }),
+    );
+    return agent.metadata!.id;
+  }
+
+  async function expectRefused(
+    label: string,
+    executionConfig: Parameters<typeof makeAgentExecution>[0]["executionConfig"],
+    harness: Harness,
+    what: string,
+  ): Promise<void> {
+    const { org } = await target.provisionTenancy();
+    const agentId = await realAgent(org);
+    try {
+      await expectGrpcCode(
+        () =>
+          clients.agentExecutionCommand.create(
+            makeAgentExecution({
+              org,
+              name: uniqueName(label),
+              agentId,
+              sessionSpec: { harness },
+              executionConfig,
+            }),
+          ),
+        Code.InvalidArgument,
+        what,
+      );
+    } finally {
+      await clients.agentCommand.delete({ value: agentId });
+    }
+  }
 
   it("rejects enabled without a pinned model (InvalidArgument)", async () => {
-    const { org } = await target.provisionTenancy();
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-thinking-no-model"),
-            agentId: "agt_fake",
-            executionConfig: { thinkingMode: ThinkingMode.ENABLED },
-          }),
-        ),
-      Code.InvalidArgument,
+    await expectRefused(
+      "aex-thinking-no-model",
+      { thinkingMode: ThinkingMode.ENABLED },
+      Harness.UNSPECIFIED,
       "create with thinking_mode enabled and no model_name",
     );
   });
 
-  it("rejects enabled on a model without the thinking capability (InvalidArgument)", async () => {
-    const { org } = await target.provisionTenancy();
-    // composer-2.5's cursor-harness registry entry declares thinking=false —
+  it("rejects enabled on a cursor model without the thinking capability (InvalidArgument)", async () => {
+    // composer-2.5's cursor-harness registry entry declares no thinking form —
     // ENABLED there would silently serve the base variant, so it is refused
     // (selection and the served variant stay coupled).
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-thinking-incapable"),
-            agentId: "agt_fake",
-            executionConfig: {
-              modelName: "composer-2.5",
-              thinkingMode: ThinkingMode.ENABLED,
-            },
-          }),
-        ),
-      Code.InvalidArgument,
+    await expectRefused(
+      "aex-thinking-incapable",
+      { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
+      Harness.CURSOR,
       "create with thinking_mode enabled on a model without the capability",
+    );
+  });
+
+  it("rejects enabled on a native session for a model with no native registry entry (InvalidArgument)", async () => {
+    // The harness decides which entry is read: composer-2.5 has no native
+    // entry, so a native session cannot ask it to think.
+    await expectRefused(
+      "aex-thinking-no-native-entry",
+      { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
+      Harness.NATIVE,
+      "create with thinking_mode enabled on a native session for a cursor-only model",
+    );
+  });
+
+  it("rejects an explicit disabled on a model that always thinks (InvalidArgument)", async () => {
+    // claude-fable-5's native entry declares thinkingRequired: the provider
+    // refuses a request to turn its thinking off, so the platform refuses the
+    // execution that asks for it rather than fail the turn.
+    await expectRefused(
+      "aex-thinking-required",
+      { modelName: "claude-fable-5", thinkingMode: ThinkingMode.DISABLED },
+      Harness.NATIVE,
+      "create with thinking_mode disabled on a model that requires thinking",
     );
   });
 });

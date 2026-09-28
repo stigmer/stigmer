@@ -8,7 +8,7 @@ import { ComposerToolbar } from "./ComposerToolbar.js";
 import { type ConfigureMenuItem } from "./ConfigureMenu.js";
 import type { HarnessOption } from "../models/harness.js";
 import { FAST_SERVICE_TIER, type ServiceTierOption } from "../models/service-tier.js";
-import type { ThinkingModeOption } from "../models/thinking-mode.js";
+import { thinkingLocked, thinkingSelectable, type ThinkingModeOption } from "../models/thinking-mode.js";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
 import { parseModelKey } from "../models/registry.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
@@ -843,12 +843,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         : "standard";
 
     // "enabled" rides under the identical rule, keyed on the capability
-    // (cursor-harness models only — v1 has no native thinking mapping, #772).
+    // (#772, #1280). A model that always thinks submits "enabled", what
+    // its locked switch shows; "disabled" is refused for it at create.
     const effectiveThinkingMode: ThinkingModeOption =
-      thinkingMode === "enabled"
-        && effectiveModel !== undefined
-        && effectiveModel.harness === "cursor"
-        && effectiveModel.thinkingCapable === true
+      effectiveModel !== undefined
+        && (thinkingLocked(effectiveModel)
+          || (thinkingMode === "enabled" && thinkingSelectable(effectiveModel)))
         ? "enabled"
         : "disabled";
 

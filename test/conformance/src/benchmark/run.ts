@@ -150,6 +150,8 @@ export interface RunOptions {
   qualityReps: number;
   git: BenchmarkReport["git"];
   titlingSuppressed: true;
+  /** Every execution asks for thinking; the judge's never does. */
+  thinking?: "enabled";
 }
 
 /**
@@ -182,7 +184,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
 
   for (const cell of cells) {
     io.log(`cell ${cell.id}: warm-up + ${options.reps} samples`);
-    const measure = (attempt: number): Promise<BenchmarkSample> => measureCell(stack, cell, attempt, io);
+    const measure = (attempt: number): Promise<BenchmarkSample> => measureCell(stack, cell, attempt, options.thinking, io);
     const warmup = await measure(0);
     const samples: BenchmarkSample[] = [];
     for (let i = 1; i <= options.reps; i++) samples.push(await measure(i));
@@ -220,7 +222,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
   for (const cell of quality) {
     for (let rep = 1; rep <= options.qualityReps; rep++) {
       io.log(`quality ${cell.id} rep ${rep}/${options.qualityReps}`);
-      const grade = await gradeQualityCell(stack, cell, rep, io);
+      const grade = await gradeQualityCell(stack, cell, rep, options.thinking, io);
       io.log(`quality ${cell.id} rep ${rep}: ${grade.outcome} score=${grade.score ?? "n/a"}${grade.failure ? ` (${grade.failure.stage}: ${grade.failure.message})` : ""}`);
       graded.push(grade);
     }
@@ -238,6 +240,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
       cold: "first-call-of-run-per-harness-model-and-agent",
       titling_suppressed: options.titlingSuppressed,
       file_review: "approved-at-review-ready",
+      ...(options.thinking !== undefined ? { thinking_mode: options.thinking } : {}),
     },
     models: { parity_native: PARITY_MODEL["deep-agent"], parity_cursor: PARITY_MODEL.cursor, judge_requested: JUDGE_MODEL },
     comparisons,
@@ -285,7 +288,13 @@ async function provisionAgent(
 }
 
 /** One attempt of a cell: one execution, or one three-turn session whose second turn is the sample. */
-async function measureCell(stack: BenchmarkStack, cell: BenchmarkCell, attempt: number, io: RunIo): Promise<BenchmarkSample> {
+async function measureCell(
+  stack: BenchmarkStack,
+  cell: BenchmarkCell,
+  attempt: number,
+  thinking: "enabled" | undefined,
+  io: RunIo,
+): Promise<BenchmarkSample> {
   const fixtures = new FixtureTracker();
   const label = `${cell.id}#${attempt}`;
   try {
@@ -301,6 +310,7 @@ async function measureCell(stack: BenchmarkStack, cell: BenchmarkCell, attempt: 
       agentId: agent.agentId,
       harness: cell.harness,
       modelRequested: cell.modelRequested,
+      ...(thinking !== undefined ? { thinking } : {}),
       sessionSpec: agent.sessionSpec,
       prompts: cell.scenario.sessionShape === "fresh-per-execution" ? cell.scenario.prompts.slice(0, 1) : cell.scenario.prompts,
       label,
@@ -326,7 +336,13 @@ async function measureCell(stack: BenchmarkStack, cell: BenchmarkCell, attempt: 
 }
 
 /** One graded attempt of a quality task: the session, its end state, the subject and the verdict. */
-async function gradeQualityCell(stack: BenchmarkStack, cell: PlannedQualityCell, rep: number, io: RunIo): Promise<QualityCell> {
+async function gradeQualityCell(
+  stack: BenchmarkStack,
+  cell: PlannedQualityCell,
+  rep: number,
+  thinking: "enabled" | undefined,
+  io: RunIo,
+): Promise<QualityCell> {
   const fixtures = new FixtureTracker();
   const label = `${cell.id}#${rep}`;
   const base = {
@@ -360,6 +376,7 @@ async function gradeQualityCell(stack: BenchmarkStack, cell: PlannedQualityCell,
         agentId: agent.agentId,
         harness: cell.harness,
         modelRequested: cell.modelRequested,
+        ...(thinking !== undefined ? { thinking } : {}),
         sessionSpec: agent.sessionSpec,
         prompts: cell.task.turns,
         label,

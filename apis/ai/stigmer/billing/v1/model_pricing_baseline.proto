@@ -103,7 +103,11 @@ message SummarizationConfig {
 // as "unknown" — never as all-false. A present block is populated
 // all-or-nothing (every flag assessed together), because proto3 bools
 // carry no per-field presence: a partially filled block would silently
-// encode its unassessed flags as false.
+// encode its unassessed flags as false. The one exception is
+// thinking_required, declared `optional` so that it has presence of its
+// own: it was added after every block had been assessed, and read as
+// false where it was never stated it would tell a runner to turn off
+// thinking on a model that refuses to.
 message ModelCapabilities {
   // Whether the model accepts tool / function-calling requests.
   bool tool_use = 1;
@@ -132,12 +136,25 @@ message ModelCapabilities {
   // Whether the model streams incremental output tokens.
   bool streaming = 3;
 
-  // Whether the model supports extended thinking / reasoning traces.
+  // Whether the model supports extended thinking. On a cursor-harness entry
+  // it is the model's thinking variant; on a native entry it is the
+  // fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
   bool thinking = 4;
 
   // Whether thinking depth adapts to the request instead of a fixed
-  // budget (e.g. Anthropic adaptive thinking).
+  // budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
+  // native runner asks for the adaptive form.
   bool adaptive_thinking = 5;
+
+  // Whether the model always thinks and refuses a request to turn thinking
+  // off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+  // explicit THINKING_MODE_DISABLED is refused at create and the native
+  // runner always sends the model's thinking form; when false, a disabled
+  // execution on a model with a thinking form sends `{type: "disabled"}`
+  // explicitly; when absent (a row never assessed for it), the runner sends
+  // no thinking parameter for a disabled execution and the model's own
+  // default applies.
+  optional bool thinking_required = 6;
 }
 
 // ModelPricingBaseline is one versioned catalog-and-list-price entry of the

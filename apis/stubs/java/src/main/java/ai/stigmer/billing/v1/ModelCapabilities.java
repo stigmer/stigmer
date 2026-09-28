@@ -14,7 +14,11 @@ package ai.stigmer.billing.v1;
  * as "unknown" — never as all-false. A present block is populated
  * all-or-nothing (every flag assessed together), because proto3 bools
  * carry no per-field presence: a partially filled block would silently
- * encode its unassessed flags as false.
+ * encode its unassessed flags as false. The one exception is
+ * thinking_required, declared `optional` so that it has presence of its
+ * own: it was added after every block had been assessed, and read as
+ * false where it was never stated it would tell a runner to turn off
+ * thinking on a model that refuses to.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.ModelCapabilities}
@@ -59,6 +63,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.billing.v1.ModelCapabilities.class, ai.stigmer.billing.v1.ModelCapabilities.Builder.class);
   }
 
+  private int bitField0_;
   public static final int TOOL_USE_FIELD_NUMBER = 1;
   private boolean toolUse_ = false;
   /**
@@ -126,7 +131,9 @@ private static final long serialVersionUID = 0L;
   private boolean thinking_ = false;
   /**
    * <pre>
-   * Whether the model supports extended thinking / reasoning traces.
+   * Whether the model supports extended thinking. On a cursor-harness entry
+   * it is the model's thinking variant; on a native entry it is the
+   * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
    * </pre>
    *
    * <code>bool thinking = 4 [json_name = "thinking"];</code>
@@ -142,7 +149,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether thinking depth adapts to the request instead of a fixed
-   * budget (e.g. Anthropic adaptive thinking).
+   * budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
+   * native runner asks for the adaptive form.
    * </pre>
    *
    * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
@@ -151,6 +159,47 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getAdaptiveThinking() {
     return adaptiveThinking_;
+  }
+
+  public static final int THINKING_REQUIRED_FIELD_NUMBER = 6;
+  private boolean thinkingRequired_ = false;
+  /**
+   * <pre>
+   * Whether the model always thinks and refuses a request to turn thinking
+   * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+   * explicit THINKING_MODE_DISABLED is refused at create and the native
+   * runner always sends the model's thinking form; when false, a disabled
+   * execution on a model with a thinking form sends `{type: "disabled"}`
+   * explicitly; when absent (a row never assessed for it), the runner sends
+   * no thinking parameter for a disabled execution and the model's own
+   * default applies.
+   * </pre>
+   *
+   * <code>optional bool thinking_required = 6 [json_name = "thinkingRequired"];</code>
+   * @return Whether the thinkingRequired field is set.
+   */
+  @java.lang.Override
+  public boolean hasThinkingRequired() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Whether the model always thinks and refuses a request to turn thinking
+   * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+   * explicit THINKING_MODE_DISABLED is refused at create and the native
+   * runner always sends the model's thinking form; when false, a disabled
+   * execution on a model with a thinking form sends `{type: "disabled"}`
+   * explicitly; when absent (a row never assessed for it), the runner sends
+   * no thinking parameter for a disabled execution and the model's own
+   * default applies.
+   * </pre>
+   *
+   * <code>optional bool thinking_required = 6 [json_name = "thinkingRequired"];</code>
+   * @return The thinkingRequired.
+   */
+  @java.lang.Override
+  public boolean getThinkingRequired() {
+    return thinkingRequired_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -182,6 +231,9 @@ private static final long serialVersionUID = 0L;
     if (adaptiveThinking_ != false) {
       output.writeBool(5, adaptiveThinking_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeBool(6, thinkingRequired_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -211,6 +263,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(5, adaptiveThinking_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(6, thinkingRequired_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -236,6 +292,11 @@ private static final long serialVersionUID = 0L;
         != other.getThinking()) return false;
     if (getAdaptiveThinking()
         != other.getAdaptiveThinking()) return false;
+    if (hasThinkingRequired() != other.hasThinkingRequired()) return false;
+    if (hasThinkingRequired()) {
+      if (getThinkingRequired()
+          != other.getThinkingRequired()) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -262,6 +323,11 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + ADAPTIVE_THINKING_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getAdaptiveThinking());
+    if (hasThinkingRequired()) {
+      hash = (37 * hash) + THINKING_REQUIRED_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+          getThinkingRequired());
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -368,7 +434,11 @@ private static final long serialVersionUID = 0L;
    * as "unknown" — never as all-false. A present block is populated
    * all-or-nothing (every flag assessed together), because proto3 bools
    * carry no per-field presence: a partially filled block would silently
-   * encode its unassessed flags as false.
+   * encode its unassessed flags as false. The one exception is
+   * thinking_required, declared `optional` so that it has presence of its
+   * own: it was added after every block had been assessed, and read as
+   * false where it was never stated it would tell a runner to turn off
+   * thinking on a model that refuses to.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.ModelCapabilities}
@@ -409,6 +479,7 @@ private static final long serialVersionUID = 0L;
       streaming_ = false;
       thinking_ = false;
       adaptiveThinking_ = false;
+      thinkingRequired_ = false;
       return this;
     }
 
@@ -457,6 +528,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.adaptiveThinking_ = adaptiveThinking_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.thinkingRequired_ = thinkingRequired_;
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -485,6 +562,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getAdaptiveThinking() != false) {
         setAdaptiveThinking(other.getAdaptiveThinking());
+      }
+      if (other.hasThinkingRequired()) {
+        setThinkingRequired(other.getThinkingRequired());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -537,6 +617,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
+            case 48: {
+              thinkingRequired_ = input.readBool();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -743,7 +828,9 @@ private static final long serialVersionUID = 0L;
     private boolean thinking_ ;
     /**
      * <pre>
-     * Whether the model supports extended thinking / reasoning traces.
+     * Whether the model supports extended thinking. On a cursor-harness entry
+     * it is the model's thinking variant; on a native entry it is the
+     * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
      * </pre>
      *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
@@ -755,7 +842,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the model supports extended thinking / reasoning traces.
+     * Whether the model supports extended thinking. On a cursor-harness entry
+     * it is the model's thinking variant; on a native entry it is the
+     * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
      * </pre>
      *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
@@ -771,7 +860,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the model supports extended thinking / reasoning traces.
+     * Whether the model supports extended thinking. On a cursor-harness entry
+     * it is the model's thinking variant; on a native entry it is the
+     * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
      * </pre>
      *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
@@ -788,7 +879,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether thinking depth adapts to the request instead of a fixed
-     * budget (e.g. Anthropic adaptive thinking).
+     * budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
+     * native runner asks for the adaptive form.
      * </pre>
      *
      * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
@@ -801,7 +893,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether thinking depth adapts to the request instead of a fixed
-     * budget (e.g. Anthropic adaptive thinking).
+     * budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
+     * native runner asks for the adaptive form.
      * </pre>
      *
      * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
@@ -818,7 +911,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether thinking depth adapts to the request instead of a fixed
-     * budget (e.g. Anthropic adaptive thinking).
+     * budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
+     * native runner asks for the adaptive form.
      * </pre>
      *
      * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
@@ -827,6 +921,90 @@ private static final long serialVersionUID = 0L;
     public Builder clearAdaptiveThinking() {
       bitField0_ = (bitField0_ & ~0x00000010);
       adaptiveThinking_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean thinkingRequired_ ;
+    /**
+     * <pre>
+     * Whether the model always thinks and refuses a request to turn thinking
+     * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+     * explicit THINKING_MODE_DISABLED is refused at create and the native
+     * runner always sends the model's thinking form; when false, a disabled
+     * execution on a model with a thinking form sends `{type: "disabled"}`
+     * explicitly; when absent (a row never assessed for it), the runner sends
+     * no thinking parameter for a disabled execution and the model's own
+     * default applies.
+     * </pre>
+     *
+     * <code>optional bool thinking_required = 6 [json_name = "thinkingRequired"];</code>
+     * @return Whether the thinkingRequired field is set.
+     */
+    @java.lang.Override
+    public boolean hasThinkingRequired() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * Whether the model always thinks and refuses a request to turn thinking
+     * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+     * explicit THINKING_MODE_DISABLED is refused at create and the native
+     * runner always sends the model's thinking form; when false, a disabled
+     * execution on a model with a thinking form sends `{type: "disabled"}`
+     * explicitly; when absent (a row never assessed for it), the runner sends
+     * no thinking parameter for a disabled execution and the model's own
+     * default applies.
+     * </pre>
+     *
+     * <code>optional bool thinking_required = 6 [json_name = "thinkingRequired"];</code>
+     * @return The thinkingRequired.
+     */
+    @java.lang.Override
+    public boolean getThinkingRequired() {
+      return thinkingRequired_;
+    }
+    /**
+     * <pre>
+     * Whether the model always thinks and refuses a request to turn thinking
+     * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+     * explicit THINKING_MODE_DISABLED is refused at create and the native
+     * runner always sends the model's thinking form; when false, a disabled
+     * execution on a model with a thinking form sends `{type: "disabled"}`
+     * explicitly; when absent (a row never assessed for it), the runner sends
+     * no thinking parameter for a disabled execution and the model's own
+     * default applies.
+     * </pre>
+     *
+     * <code>optional bool thinking_required = 6 [json_name = "thinkingRequired"];</code>
+     * @param value The thinkingRequired to set.
+     * @return This builder for chaining.
+     */
+    public Builder setThinkingRequired(boolean value) {
+
+      thinkingRequired_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the model always thinks and refuses a request to turn thinking
+     * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+     * explicit THINKING_MODE_DISABLED is refused at create and the native
+     * runner always sends the model's thinking form; when false, a disabled
+     * execution on a model with a thinking form sends `{type: "disabled"}`
+     * explicitly; when absent (a row never assessed for it), the runner sends
+     * no thinking parameter for a disabled execution and the model's own
+     * default applies.
+     * </pre>
+     *
+     * <code>optional bool thinking_required = 6 [json_name = "thinkingRequired"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearThinkingRequired() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      thinkingRequired_ = false;
       onChanged();
       return this;
     }

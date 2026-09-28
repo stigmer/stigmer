@@ -39,7 +39,8 @@ import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware
 import { createThinkTool, createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
-import { isModelRegistered } from "../../shared/model-registry.js";
+import { getNativeRequestProfile, isModelRegistered } from "../../shared/model-registry.js";
+import { graphThinks, type EffectiveThinkingMode } from "../../shared/thinking-mode.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { renderSkillsSection } from "./prompt-builder.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
@@ -175,7 +176,15 @@ export interface SubagentTransformOptions {
    */
   readonly casObserver?: CasCaptureObserver;
   readonly parentModelName: string;
-  readonly parentHasNativeThinking: boolean;
+  /**
+   * Whether the parent's graph reasons natively (thinking-mode.ts
+   * `graphThinks` on its row). A sub-agent that names no model of its own
+   * runs on the parent's, so it inherits this answer; a sub-agent with a
+   * `model_override` is answered from its own model's row.
+   */
+  readonly parentThinks: boolean;
+  /** The execution's effective thinking mode, read against a sub-agent's own row. */
+  readonly thinkingMode: EffectiveThinkingMode;
   /**
    * URL-guard posture for the native `web_fetch` tool, inherited from the
    * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
@@ -303,7 +312,8 @@ export async function transformSingleSubagent(
     readonly parentMcpTools: readonly StructuredTool[];
     readonly parentMcpServerToolMap: ReadonlyMap<string, readonly StructuredTool[]>;
     readonly parentMcpUsages: readonly McpServerUsage[];
-    readonly parentHasNativeThinking: boolean;
+    readonly parentThinks: boolean;
+    readonly thinkingMode: EffectiveThinkingMode;
     readonly parentModelName: string;
     readonly webFetchPosture: GuardPosture;
   },
@@ -330,12 +340,14 @@ export async function transformSingleSubagent(
   // Build tools list — start with filtered MCP tools (populated by caller)
   const tools: StructuredTool[] = [];
 
-  // Inject think tool when model lacks native extended thinking
-  const saHasNativeThinking = model
-    ? await _modelSupportsThinking(model)
-    : opts.parentHasNativeThinking;
+  // `think` is a reasoning aid for a graph that does not reason natively.
+  // Whether this one does is the same answer its model's request carries
+  // (the model factory maps the same mode against the same row).
+  const saThinks = model
+    ? graphThinks(opts.thinkingMode, (await getNativeRequestProfile(model))?.thinking)
+    : opts.parentThinks;
 
-  if (!saHasNativeThinking) {
+  if (!saThinks) {
     tools.push(createThinkTool() as unknown as StructuredTool);
   }
 
@@ -442,30 +454,6 @@ export function resolveSubagentSkillPrompt(
   skills: ReadonlyMap<string, readonly SkillMetadata[]>,
 ): string {
   return renderSkillsSection(skills.get(subAgent.name) ?? []);
-}
-
-/**
- * Heuristic check for native extended thinking support. Models with thinking
- * support don't need the explicit think tool. Read for the parent (does its
- * graph carry `think`?) and inherited by every sub-agent that names no model
- * of its own. Moved from `setup.ts` in #1096: the compile step is where it
- * is consumed, and the adapter's setup reads it from here too.
- */
-export function modelHasNativeThinking(modelId: string): boolean {
-  const lower = modelId.toLowerCase();
-
-  if (lower.includes("haiku")) return false;
-  if (lower.includes("gpt-4o-mini")) return false;
-
-  if (lower.includes("claude") && (
-    lower.includes("sonnet") || lower.includes("opus")
-  )) return true;
-
-  if (lower.includes("o1") || lower.includes("o3") || lower.includes("o4")) {
-    return true;
-  }
-
-  return false;
 }
 
 // =========================================================================
@@ -654,7 +642,8 @@ export async function transformAndCompileSubagents(
     approvalGate,
     casObserver,
     parentModelName,
-    parentHasNativeThinking,
+    parentThinks,
+    thinkingMode,
     webFetchPosture,
     costAdvisory,
     modelFactory,
@@ -694,7 +683,8 @@ export async function transformAndCompileSubagents(
         parentMcpTools,
         parentMcpServerToolMap,
         parentMcpUsages,
-        parentHasNativeThinking,
+        parentThinks,
+        thinkingMode,
         parentModelName,
         webFetchPosture,
       });
@@ -779,33 +769,4 @@ export async function transformAndCompileSubagents(
     `[subagent-transformer] Successfully compiled ${compiled.length} sub-agent(s)`,
   );
   return compiled;
-}
-
-// =========================================================================
-// Private helpers
-// =========================================================================
-
-/**
- * Check if a model supports native extended thinking.
- *
- * Heuristic: models with "claude" in the name that are NOT haiku-class
- * support thinking. Models with "o1", "o3", "o4" support reasoning.
- * This is a conservative heuristic — err on the side of injecting the
- * think tool (it's harmless if the model already thinks natively).
- */
-async function _modelSupportsThinking(modelId: string): Promise<boolean> {
-  const lower = modelId.toLowerCase();
-
-  if (lower.includes("haiku")) return false;
-  if (lower.includes("gpt-4o-mini")) return false;
-
-  if (lower.includes("claude") && (
-    lower.includes("sonnet") || lower.includes("opus")
-  )) return true;
-
-  if (lower.includes("o1") || lower.includes("o3") || lower.includes("o4")) {
-    return true;
-  }
-
-  return false;
 }

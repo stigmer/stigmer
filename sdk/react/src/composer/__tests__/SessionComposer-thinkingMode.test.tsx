@@ -55,6 +55,34 @@ const NOT_CAPABLE: ModelInfo = {
   thinkingCapable: false,
 };
 
+const NATIVE_ADAPTIVE: ModelInfo = {
+  modelId: "claude-sonnet-5",
+  provider: "anthropic",
+  displayName: "Claude Sonnet 5",
+  shortDescription: "Latest Sonnet",
+  speedTier: "fast",
+  costTier: "standard",
+  harness: "native",
+  featured: true,
+  serviceTiers: [],
+  thinkingCapable: true,
+  thinkingRequired: false,
+};
+
+const NATIVE_ALWAYS_THINKS: ModelInfo = {
+  modelId: "claude-fable-5",
+  provider: "anthropic",
+  displayName: "Claude Fable 5",
+  shortDescription: "Always reasons",
+  speedTier: "slow",
+  costTier: "premium",
+  harness: "native",
+  featured: true,
+  serviceTiers: [],
+  thinkingCapable: true,
+  thinkingRequired: true,
+};
+
 function createMinimalStigmerMock(): Stigmer {
   return {
     agentExecution: { uploadAttachment: vi.fn() },
@@ -74,7 +102,7 @@ function createWrapper(client: Stigmer) {
       <StigmerContext.Provider value={client}>
         <ModelRegistryContext.Provider
           value={{
-            models: [THINKING_CAPABLE, NOT_CAPABLE],
+            models: [THINKING_CAPABLE, NOT_CAPABLE, NATIVE_ADAPTIVE, NATIVE_ALWAYS_THINKS],
             isLoading: false,
             error: null,
             refetch: vi.fn(),
@@ -87,14 +115,14 @@ function createWrapper(client: Stigmer) {
   };
 }
 
-function renderComposer(defaultModelId = "claude-haiku-4-5") {
+function renderComposer(defaultModelId = "claude-haiku-4-5", harness: "cursor" | "native" = "cursor") {
   const client = createMinimalStigmerMock();
   const onSubmit = vi.fn();
 
   const result = render(
     <SessionComposer
       onSubmit={onSubmit}
-      harness="cursor"
+      harness={harness}
       defaultModelId={defaultModelId}
     />,
     { wrapper: createWrapper(client) },
@@ -172,5 +200,43 @@ describe("SessionComposer — thinking mode submit contract", () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     const context = onSubmit.mock.calls[0][2];
     expect(context?.thinkingMode).toBeUndefined();
+  });
+});
+
+describe("SessionComposer — thinking mode on native models (stigmer/stigmer#1280)", () => {
+  it("renders the thinking switch for a native model that declares a thinking form", async () => {
+    renderComposer("claude-sonnet-5", "native");
+
+    fireEvent.click(screen.getByRole("button", { name: /Claude Sonnet 5/ }));
+    const toggle = await screen.findByRole("switch", { name: "Thinking" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("carries thinkingMode 'enabled' for a native model after toggling", async () => {
+    const { onSubmit } = renderComposer("claude-sonnet-5", "native");
+
+    await toggleThinking(/Claude Sonnet 5/);
+    submitMessage("Think this through");
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][2]?.thinkingMode).toBe("enabled");
+  });
+
+  it("shows a model that always thinks with the switch on and locked", async () => {
+    renderComposer("claude-fable-5", "native");
+
+    fireEvent.click(screen.getByRole("button", { name: /Claude Fable 5/ }));
+    const toggle = await screen.findByRole("switch", { name: "Thinking" });
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect((toggle as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("submits 'enabled' for a model that always thinks, never 'disabled'", async () => {
+    const { onSubmit } = renderComposer("claude-fable-5", "native");
+
+    submitMessage("Answer this");
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][2]?.thinkingMode).toBe("enabled");
   });
 });

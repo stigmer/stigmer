@@ -6,10 +6,23 @@ import { describe, expect, it } from "vitest";
 import {
   economyRowFor,
   parseModelRegistryDocument,
+  requireNativeRow,
   requireRegistryRow,
   wireModelIdOf,
   type ModelRegistryRow,
 } from "../model-registry";
+
+const row = (id: string, extra: Partial<Omit<ModelRegistryRow, "id">> = {}): ModelRegistryRow => ({
+  id,
+  apiModelId: undefined,
+  provider: undefined,
+  costTier: undefined,
+  harness: undefined,
+  maxOutputTokens: undefined,
+  thinkingForm: "none",
+  thinkingRequired: undefined,
+  ...extra,
+});
 
 describe("parseModelRegistryDocument", () => {
   it("keeps id and apiModelId per row and drops rows without a string id", () => {
@@ -21,8 +34,25 @@ describe("parseModelRegistryDocument", () => {
       ],
     });
     expect(document.models).toEqual([
-      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: undefined, costTier: undefined, harness: undefined },
-      { id: "no-api-id", apiModelId: undefined, provider: undefined, costTier: undefined, harness: undefined },
+      row("claude-haiku-4.5", { apiModelId: "claude-haiku-4-5-20251001" }),
+      row("no-api-id"),
+    ]);
+  });
+
+  it("reads the native request facts: the ceiling, the thinking form and the tri-state required flag", () => {
+    const document = parseModelRegistryDocument({
+      models: [
+        { id: "adaptive", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: true } },
+        { id: "budget", maxOutputTokens: 64000, capabilities: { thinking: true, adaptiveThinking: false, thinkingRequired: false } },
+        { id: "unassessed", maxOutputTokens: "64000", capabilities: { thinking: false, adaptiveThinking: false } },
+        { id: "no-block" },
+      ],
+    });
+    expect(document.models).toEqual([
+      row("adaptive", { maxOutputTokens: 128000, thinkingForm: "adaptive", thinkingRequired: true }),
+      row("budget", { maxOutputTokens: 64000, thinkingForm: "budget", thinkingRequired: false }),
+      row("unassessed"),
+      row("no-block"),
     ]);
   });
 
@@ -34,20 +64,26 @@ describe("parseModelRegistryDocument", () => {
   });
 });
 
-const row = (id: string, extra: Partial<Omit<ModelRegistryRow, "id">> = {}): ModelRegistryRow => ({
-  id,
-  apiModelId: undefined,
-  provider: undefined,
-  costTier: undefined,
-  harness: undefined,
-  ...extra,
-});
 
 describe("requireRegistryRow", () => {
   it("returns the row for an id and names a missing one", () => {
     const document = { models: [row("a", { apiModelId: "a-1" })] };
     expect(requireRegistryRow(document, "a")).toEqual(row("a", { apiModelId: "a-1" }));
     expect(() => requireRegistryRow(document, "b")).toThrow(/no row with id "b" \(1 rows\)/);
+  });
+});
+
+describe("requireNativeRow", () => {
+  it("returns the native row of an id that has one on each harness, and names a missing one", () => {
+    const document = {
+      models: [
+        row("claude-sonnet-5", { harness: "cursor" }),
+        row("claude-sonnet-5", { harness: "native", maxOutputTokens: 128000 }),
+        row("composer-2.5", { harness: "cursor" }),
+      ],
+    };
+    expect(requireNativeRow(document, "claude-sonnet-5").maxOutputTokens).toBe(128000);
+    expect(() => requireNativeRow(document, "composer-2.5")).toThrow(/no native row with id "composer-2.5"/);
   });
 });
 

@@ -107,6 +107,42 @@ function createWrapper(models: readonly ModelInfo[] = TEST_MODELS) {
   };
 }
 
+describe("parseRegistryDocument thinking data (#772, #1280)", () => {
+  const entry = (capabilities: unknown) => ({
+    id: "m",
+    displayName: "M",
+    provider: "anthropic",
+    harness: "native",
+    costTier: "standard",
+    pricing: { inputPricePerMillion: 1, outputPricePerMillion: 2, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0 },
+    ...(capabilities === undefined ? {} : { capabilities }),
+  });
+  const parse = (capabilities: unknown) => parseRegistryDocument({ models: [entry(capabilities)] }).models[0];
+
+  it("a budget form or an adaptive form makes the model capable", () => {
+    expect(parse({ thinking: true, adaptiveThinking: false }).thinkingCapable).toBe(true);
+    expect(parse({ thinking: false, adaptiveThinking: true }).thinkingCapable).toBe(true);
+  });
+
+  it("an entry stating neither form is explicitly not capable", () => {
+    expect(parse({ thinking: false, adaptiveThinking: false }).thinkingCapable).toBe(false);
+  });
+
+  it("an unassessed or malformed block stays free of both keys (tri-state)", () => {
+    for (const model of [parse(undefined), parse("broken"), parse({ thinking: "yes" })]) {
+      expect("thinkingCapable" in model).toBe(false);
+      expect("thinkingRequired" in model).toBe(false);
+    }
+  });
+
+  it("thinkingRequired is read only when stated as a boolean", () => {
+    expect(parse({ adaptiveThinking: true, thinkingRequired: true }).thinkingRequired).toBe(true);
+    expect(parse({ adaptiveThinking: true, thinkingRequired: false }).thinkingRequired).toBe(false);
+    expect("thinkingRequired" in parse({ adaptiveThinking: true })).toBe(false);
+    expect("thinkingRequired" in parse({ adaptiveThinking: true, thinkingRequired: "yes" })).toBe(false);
+  });
+});
+
 describe("parseRegistryDocument vision data (#365, #386)", () => {
   const entry = (overrides: Record<string, unknown>) => ({
     id: "m",

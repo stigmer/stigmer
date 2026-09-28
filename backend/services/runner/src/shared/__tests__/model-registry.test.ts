@@ -4,6 +4,7 @@ import {
   getEconomyModel,
   getDefaultModel,
   getModelVisionCapability,
+  getNativeRequestProfile,
   resolveToApiModelId,
   _resetRegistryCache,
 } from "../model-registry.js";
@@ -345,6 +346,99 @@ describe("getModelVisionCapability", () => {
   });
 });
 
+describe("getNativeRequestProfile", () => {
+  beforeEach(() => {
+    _resetRegistryCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    _resetRegistryCache();
+  });
+
+  const NO_THINKING = { shape: "none", required: undefined } as const;
+
+  it("reads the native row, never the same id's cursor row", async () => {
+    mockRegistryResponse([
+      { id: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "cursor", maxOutputTokens: 64000, capabilities: { thinking: true, adaptiveThinking: false } },
+      { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: false } },
+    ]);
+
+    expect(await getNativeRequestProfile("claude-sonnet-5")).toEqual({
+      maxOutputTokens: 128000,
+      thinking: { shape: "adaptive", required: false },
+    });
+  });
+
+  it("matches the provider api id as well as the registry id", async () => {
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 65536 },
+    ]);
+
+    expect(await getNativeRequestProfile("claude-sonnet-4-6")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
+    expect(await getNativeRequestProfile("claude-sonnet-4.6")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
+  });
+
+  it("derives the thinking shape from the capability flags, adaptive winning over budget", async () => {
+    mockRegistryResponse([
+      { id: "budget", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: true, adaptiveThinking: false } },
+      { id: "adaptive", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: false, adaptiveThinking: true } },
+      { id: "both", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: true, adaptiveThinking: true } },
+      { id: "neither", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: false, adaptiveThinking: false } },
+    ]);
+
+    expect((await getNativeRequestProfile("budget"))?.thinking.shape).toBe("budget");
+    expect((await getNativeRequestProfile("adaptive"))?.thinking.shape).toBe("adaptive");
+    expect((await getNativeRequestProfile("both"))?.thinking.shape).toBe("adaptive");
+    expect((await getNativeRequestProfile("neither"))?.thinking.shape).toBe("none");
+  });
+
+  it("keeps thinkingRequired tri-state: stated true, stated false, and never assessed", async () => {
+    mockRegistryResponse([
+      { id: "always", provider: "anthropic", costTier: "premium", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: true } },
+      { id: "optional", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: false } },
+      { id: "unassessed", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true } },
+      { id: "malformed", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: "yes" } },
+      { id: "no-block", provider: "anthropic", costTier: "standard", harness: "native" },
+    ]);
+
+    expect((await getNativeRequestProfile("always"))?.thinking.required).toBe(true);
+    expect((await getNativeRequestProfile("optional"))?.thinking.required).toBe(false);
+    expect((await getNativeRequestProfile("unassessed"))?.thinking.required).toBeUndefined();
+    expect((await getNativeRequestProfile("malformed"))?.thinking.required).toBeUndefined();
+    expect((await getNativeRequestProfile("no-block"))?.thinking).toEqual(NO_THINKING);
+  });
+
+  it("states no ceiling when the row's value is absent or not a positive integer", async () => {
+    mockRegistryResponse([
+      { id: "a", provider: "anthropic", costTier: "standard", harness: "native" },
+      { id: "b", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: "128000" },
+      { id: "c", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 0 },
+      { id: "d", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 1.5 },
+    ]);
+
+    for (const id of ["a", "b", "c", "d"]) {
+      expect((await getNativeRequestProfile(id))?.maxOutputTokens).toBeUndefined();
+    }
+  });
+
+  it("returns undefined for Auto, an unknown model, a cursor-only model, and an unreachable registry", async () => {
+    mockRegistryResponse([
+      { id: "composer-2.5", provider: "cursor", costTier: "economy", harness: "cursor", maxOutputTokens: 64000 },
+    ]);
+
+    expect(await getNativeRequestProfile("default")).toBeUndefined();
+    expect(await getNativeRequestProfile("")).toBeUndefined();
+    expect(await getNativeRequestProfile("composer-2.5")).toBeUndefined();
+    expect(await getNativeRequestProfile("no-such-model")).toBeUndefined();
+
+    _resetRegistryCache();
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network down"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await getNativeRequestProfile("claude-sonnet-5")).toBeUndefined();
+  });
+});
+
 interface MockModel {
   id: string;
   apiModelId?: string;
@@ -352,7 +446,8 @@ interface MockModel {
   costTier: string;
   harness: string;
   featured?: boolean;
-  capabilities?: { vision?: boolean; toolUse?: boolean };
+  capabilities?: { vision?: boolean; toolUse?: boolean; thinking?: boolean; adaptiveThinking?: boolean; thinkingRequired?: unknown };
+  maxOutputTokens?: unknown;
 }
 
 function mockRegistryResponse(models: MockModel[]) {

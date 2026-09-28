@@ -82,7 +82,8 @@ export type RefusalReason =
   | "excluded by --only"
   | "excluded by --cells"
   | "model not in registry for harness"
-  | "missing stigmer CLI";
+  | "missing stigmer CLI"
+  | "thinking needs a pinned model";
 
 /** Where an attempt failed: creating it, running it, or grading it. */
 export type FailureStage = "create" | "execution" | "judge";
@@ -387,6 +388,12 @@ export interface BenchmarkReport {
     titling_suppressed: boolean;
     /** Every turn that offered a change set for review was approved whole, at once. */
     file_review: "approved-at-review-ready";
+    /**
+     * "enabled" when every execution of the run asked for thinking
+     * (`--thinking enabled`); absent when none named a mode, so reports
+     * written before the field read the same.
+     */
+    thinking_mode?: "enabled";
   };
   models: { parity_native: string; parity_cursor: string; judge_requested: string };
   comparisons: BenchmarkComparison[];

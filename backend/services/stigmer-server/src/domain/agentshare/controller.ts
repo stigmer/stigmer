@@ -18,8 +18,8 @@
  * cloud edition enforces the same contracts via FGA plus app-level gates
  * for the anonymous resolution paths.
  *
- * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local)
- * and __tests__/agentshare.test.ts.
+ * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local),
+ * __tests__/agentshare.test.ts and __tests__/store-faults.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
@@ -105,6 +105,7 @@ import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { ORG_REQUIRED_FOR_LOOKUP_MESSAGE } from "./constants.js";
 import {
@@ -335,7 +336,7 @@ async function rotateShareLink(
   return reqCtx.get(ROTATE_SHARE_KEY) as AgentShare;
 }
 
-/** Loads the share by resource_id; ANY load failure → NotFound (Go). */
+/** Loads the share by resource_id; a missing one answers NotFound, a store fault Internal. */
 function newLoadShareForLinkRotationStep(
   store: Store,
 ): PipelineStep<RotateDesc> {
@@ -349,8 +350,11 @@ function newLoadShareForLinkRotationStep(
           ctx.input.resourceId,
           AgentShareSchema,
         );
-      } catch {
-        throw notFoundError("AgentShare", ctx.input.resourceId);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("AgentShare", ctx.input.resourceId);
+        }
+        throw internalError(error, "failed to load agent share");
       }
       ctx.set(ROTATE_SHARE_KEY, share);
     },

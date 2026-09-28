@@ -37,13 +37,6 @@ const SRC = path.resolve(HERE, "../..");
 /** Known blind sites by module (relative to `src`), with their count. */
 const PENDING: ReadonlyMap<string, number> = new Map([
   // Store loads, stigmer/stigmer#1345 (fixed domain by domain).
-  ["domain/agent/controller.ts", 1],
-  ["domain/agentchannel/controller.ts", 1],
-  ["domain/agentinstance/controller.ts", 1],
-  ["domain/agentshare/controller.ts", 1],
-  ["domain/artifact/controller.ts", 1],
-  ["domain/environment/controller.ts", 1],
-  ["domain/environment/steps.ts", 1],
   ["domain/plugin/controller.ts", 1],
   ["domain/skill/controller.ts", 1],
   ["domain/workflow/controller.ts", 1],

@@ -14,6 +14,7 @@
  */
 
 import { ChatAnthropic } from "@langchain/anthropic";
+import type { ThinkingConfigParam } from "@anthropic-ai/sdk/resources/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
@@ -65,10 +66,20 @@ export interface BuildChatModelOptions {
   readonly temperature?: number | null;
   /**
    * Pass-through only; intentionally no default. Anthropic requires a value,
-   * but callers differ (setup omits it, call-llm uses 4096), so the default
-   * stays the caller's decision to avoid silently changing behavior.
+   * but callers differ (the execution turn reads the registry row's
+   * maxOutputTokens, call-llm uses 4096), so the default stays the caller's
+   * decision to avoid silently changing behavior.
    */
   readonly maxTokens?: number;
+  /**
+   * Stream every request. The Anthropic SDK refuses a non-streaming request
+   * whose max_tokens implies more than ten minutes (about 21k tokens) unless
+   * a timeout is set, and STIGMER_LLM_REQUEST_TIMEOUT_MS is unset by default;
+   * a caller that raises maxTokens to a model's full output ceiling sets
+   * this so no call path (a middleware's own invoke, a summary) can meet
+   * that refusal. The agent loop already streams through streamEvents.
+   */
+  readonly streaming?: boolean;
   /**
    * Per-request bound. When omitted, defaults to the operator's
    * STIGMER_LLM_REQUEST_TIMEOUT_MS — resolved HERE, not per caller, so no
@@ -91,6 +102,17 @@ export interface BuildChatModelOptions {
    * platform-chosen economy models.
    */
   readonly serviceTier?: EffectiveServiceTier;
+  /**
+   * Anthropic's `thinking` request parameter, already mapped by the caller
+   * from the execution's effective mode and the model's native registry row
+   * (thinking-mode.ts `toAnthropicThinking`). Unlike the tier it is sent on
+   * every Anthropic backend: both thinking forms exist on the public API,
+   * Vertex, Bedrock and Foundry alike. A value for a non-Anthropic model is
+   * refused rather than dropped: no other provider has a native thinking
+   * mapping, and a silently ignored mode is the #357 class of defect.
+   * Omitted, the request carries no thinking parameter (utility calls).
+   */
+  readonly thinking?: ThinkingConfigParam;
 }
 
 /**
@@ -265,12 +287,21 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   const maxRetries = timeoutMs !== undefined || opts.maxRetries !== undefined
     ? { maxRetries: opts.maxRetries ?? 0 }
     : {};
+  if (opts.thinking !== undefined && provider !== "anthropic") {
+    throw new Error(
+      `buildChatModel: a thinking parameter was passed for ${opts.modelName}, a ${provider} model; ` +
+        "only Anthropic models have a native thinking mapping",
+    );
+  }
+
   const common = {
     ...(opts.temperature === null ? {} : { temperature: opts.temperature ?? 0 }),
     apiKey,
     ...(maxTokens ? { maxTokens } : {}),
+    ...(opts.streaming ? { streaming: true } : {}),
     ...maxRetries,
   };
+  const anthropicThinkingField = opts.thinking !== undefined ? { thinking: opts.thinking } : {};
 
   // The request timeout lives in a different slot per wrapper: ChatOpenAI
   // reads `timeout` as a constructor field, but ChatAnthropic ignores it
@@ -339,12 +370,14 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
         new ChatAnthropic({
           model: wireModelId,
           ...common,
+          ...anthropicThinkingField,
           ...anthropicClientOptionsField,
           createClient: backendCreateClient,
         })
       : new ChatAnthropic({
           model: apiModelId,
           ...common,
+          ...anthropicThinkingField,
           ...anthropicServiceTierField,
           ...anthropicClientOptionsField,
         });

@@ -62,6 +62,8 @@ export {
   HARNESS_LABELS,
   toProtoHarness,
   fromProtoHarness,
+  thinkingSelectable,
+  thinkingLocked,
 } from "./models/index.js";
 export type {
   ModelInfo,

@@ -343,7 +343,11 @@ func (x *SummarizationConfig) GetMaxSummaryTokens() int32 {
 // as "unknown" — never as all-false. A present block is populated
 // all-or-nothing (every flag assessed together), because proto3 bools
 // carry no per-field presence: a partially filled block would silently
-// encode its unassessed flags as false.
+// encode its unassessed flags as false. The one exception is
+// thinking_required, declared `optional` so that it has presence of its
+// own: it was added after every block had been assessed, and read as
+// false where it was never stated it would tell a runner to turn off
+// thinking on a model that refuses to.
 type ModelCapabilities struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether the model accepts tool / function-calling requests.
@@ -360,11 +364,23 @@ type ModelCapabilities struct {
 	Vision bool `protobuf:"varint,2,opt,name=vision,proto3" json:"vision,omitempty"`
 	// Whether the model streams incremental output tokens.
 	Streaming bool `protobuf:"varint,3,opt,name=streaming,proto3" json:"streaming,omitempty"`
-	// Whether the model supports extended thinking / reasoning traces.
+	// Whether the model supports extended thinking. On a cursor-harness entry
+	// it is the model's thinking variant; on a native entry it is the
+	// fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
 	Thinking bool `protobuf:"varint,4,opt,name=thinking,proto3" json:"thinking,omitempty"`
 	// Whether thinking depth adapts to the request instead of a fixed
-	// budget (e.g. Anthropic adaptive thinking).
+	// budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
+	// native runner asks for the adaptive form.
 	AdaptiveThinking bool `protobuf:"varint,5,opt,name=adaptive_thinking,json=adaptiveThinking,proto3" json:"adaptive_thinking,omitempty"`
+	// Whether the model always thinks and refuses a request to turn thinking
+	// off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
+	// explicit THINKING_MODE_DISABLED is refused at create and the native
+	// runner always sends the model's thinking form; when false, a disabled
+	// execution on a model with a thinking form sends `{type: "disabled"}`
+	// explicitly; when absent (a row never assessed for it), the runner sends
+	// no thinking parameter for a disabled execution and the model's own
+	// default applies.
+	ThinkingRequired *bool `protobuf:"varint,6,opt,name=thinking_required,json=thinkingRequired,proto3,oneof" json:"thinking_required,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -430,6 +446,13 @@ func (x *ModelCapabilities) GetThinking() bool {
 func (x *ModelCapabilities) GetAdaptiveThinking() bool {
 	if x != nil {
 		return x.AdaptiveThinking
+	}
+	return false
+}
+
+func (x *ModelCapabilities) GetThinkingRequired() bool {
+	if x != nil && x.ThinkingRequired != nil {
+		return *x.ThinkingRequired
 	}
 	return false
 }
@@ -730,13 +753,15 @@ const file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDesc = "" +
 	"\x13SummarizationConfig\x124\n" +
 	"\x11trigger_threshold\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x10triggerThreshold\x12,\n" +
 	"\rtarget_tokens\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\ftargetTokens\x125\n" +
-	"\x12max_summary_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x10maxSummaryTokens\"\xad\x01\n" +
+	"\x12max_summary_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x10maxSummaryTokens\"\xf5\x01\n" +
 	"\x11ModelCapabilities\x12\x19\n" +
 	"\btool_use\x18\x01 \x01(\bR\atoolUse\x12\x16\n" +
 	"\x06vision\x18\x02 \x01(\bR\x06vision\x12\x1c\n" +
 	"\tstreaming\x18\x03 \x01(\bR\tstreaming\x12\x1a\n" +
 	"\bthinking\x18\x04 \x01(\bR\bthinking\x12+\n" +
-	"\x11adaptive_thinking\x18\x05 \x01(\bR\x10adaptiveThinking\"\xbc\v\n" +
+	"\x11adaptive_thinking\x18\x05 \x01(\bR\x10adaptiveThinking\x120\n" +
+	"\x11thinking_required\x18\x06 \x01(\bH\x00R\x10thinkingRequired\x88\x01\x01B\x14\n" +
+	"\x12_thinking_required\"\xbc\v\n" +
 	"\x14ModelPricingBaseline\x12\x1f\n" +
 	"\vbaseline_id\x18\x01 \x01(\tR\n" +
 	"baselineId\x12&\n" +
@@ -829,6 +854,7 @@ func file_ai_stigmer_billing_v1_model_pricing_baseline_proto_init() {
 	if File_ai_stigmer_billing_v1_model_pricing_baseline_proto != nil {
 		return
 	}
+	file_ai_stigmer_billing_v1_model_pricing_baseline_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

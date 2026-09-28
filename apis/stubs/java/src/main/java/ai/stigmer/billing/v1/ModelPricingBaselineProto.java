@@ -90,56 +90,58 @@ public final class ModelPricingBaselineProto extends com.google.protobuf.Generat
       "threshold\030\001 \001(\005B\007\272H\004\032\002(\000R\020triggerThresho" +
       "ld\022,\n\rtarget_tokens\030\002 \001(\005B\007\272H\004\032\002(\000R\014targ" +
       "etTokens\0225\n\022max_summary_tokens\030\003 \001(\005B\007\272H" +
-      "\004\032\002(\000R\020maxSummaryTokens\"\255\001\n\021ModelCapabil" +
+      "\004\032\002(\000R\020maxSummaryTokens\"\365\001\n\021ModelCapabil" +
       "ities\022\031\n\010tool_use\030\001 \001(\010R\007toolUse\022\026\n\006visi" +
       "on\030\002 \001(\010R\006vision\022\034\n\tstreaming\030\003 \001(\010R\tstr" +
       "eaming\022\032\n\010thinking\030\004 \001(\010R\010thinking\022+\n\021ad" +
-      "aptive_thinking\030\005 \001(\010R\020adaptiveThinking\"" +
-      "\274\013\n\024ModelPricingBaseline\022\037\n\013baseline_id\030" +
-      "\001 \001(\tR\nbaselineId\022&\n\010model_id\030\002 \001(\tB\013\272H\010" +
-      "r\003\030\200\001\310\001\001R\007modelId\022*\n\014api_model_id\030\003 \001(\tB" +
-      "\010\272H\005r\003\030\200\001R\napiModelId\022&\n\010provider\030\004 \001(\tB" +
-      "\n\272H\007r\002\030@\310\001\001R\010provider\022$\n\007harness\030\005 \001(\tB\n" +
-      "\272H\007r\002\030@\310\001\001R\007harness\022.\n\014display_name\030\006 \001(" +
-      "\tB\013\272H\010r\003\030\200\001\310\001\001R\013displayName\0225\n\021short_des" +
-      "cription\030\007 \001(\tB\010\272H\005r\003\030\200\002R\020shortDescripti" +
-      "on\022C\n\nspeed_tier\030\010 \001(\tB$\272H!r\037R\007fastestR\004" +
-      "fastR\010balancedR\004slowR\tspeedTier\022>\n\tcost_" +
-      "tier\030\t \001(\tB!\272H\036r\034R\007economyR\010standardR\007pr" +
-      "emiumR\010costTier\022\032\n\010featured\030\n \001(\010R\010featu" +
-      "red\022E\n\007pricing\030\013 \001(\0132#.ai.stigmer.billin" +
-      "g.v1.PricingBlockB\006\272H\003\310\001\001R\007pricing\022k\n\020pr" +
-      "icing_variants\030\014 \003(\0132@.ai.stigmer.billin" +
-      "g.v1.ModelPricingBaseline.PricingVariant" +
-      "sEntryR\017pricingVariants\022(\n\010wire_ids\030\030 \003(" +
-      "\tB\r\272H\n\222\001\007\"\005r\003\030\200\001R\007wireIds\022;\n\025context_win" +
-      "dow_tokens\030\r \001(\005B\007\272H\004\032\002(\000R\023contextWindow" +
-      "Tokens\0223\n\021max_output_tokens\030\016 \001(\005B\007\272H\004\032\002" +
-      "(\000R\017maxOutputTokens\0229\n\024token_counter_met" +
-      "hod\030\017 \001(\tB\007\272H\004r\002\030@R\022tokenCounterMethod\022P" +
-      "\n\rsummarization\030\020 \001(\0132*.ai.stigmer.billi" +
-      "ng.v1.SummarizationConfigR\rsummarization" +
-      "\022L\n\014capabilities\030\021 \001(\0132(.ai.stigmer.bill" +
-      "ing.v1.ModelCapabilitiesR\014capabilities\022I" +
-      "\n\006status\030\022 \001(\01621.ai.stigmer.billing.v1.M" +
-      "odelPricingBaselineStatusR\006status\0224\n\026sup" +
-      "ersedes_baseline_id\030\023 \001(\tR\024supersedesBas" +
-      "elineId\022\035\n\ndecided_by\030\024 \001(\tR\tdecidedBy\0229" +
-      "\n\ndecided_at\030\025 \001(\0132\032.google.protobuf.Tim" +
-      "estampR\tdecidedAt\022-\n\rrevision_note\030\026 \001(\t" +
-      "B\010\272H\005r\003\030\200\010R\014revisionNote\0229\n\ncreated_at\030\027" +
-      " \001(\0132\032.google.protobuf.TimestampR\tcreate" +
-      "dAt\032i\n\024PricingVariantsEntry\022\020\n\003key\030\001 \001(\t" +
-      "R\003key\022;\n\005value\030\002 \001(\0132%.ai.stigmer.billin" +
-      "g.v1.PricingVariantR\005value:\0028\001*\247\001\n\032Model" +
-      "PricingBaselineStatus\022-\n)model_pricing_b" +
-      "aseline_status_unspecified\020\000\022\033\n\027pricing_" +
-      "baseline_active\020\001\022\037\n\033pricing_baseline_su" +
-      "perseded\020\002\022\034\n\030pricing_baseline_retired\020\003" +
-      "B\222\001B\031ModelPricingBaselineProtoP\001\242\002\003ASB\252\002" +
-      "\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\Bill" +
-      "ing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetada" +
-      "ta\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
+      "aptive_thinking\030\005 \001(\010R\020adaptiveThinking\022" +
+      "0\n\021thinking_required\030\006 \001(\010H\000R\020thinkingRe" +
+      "quired\210\001\001B\024\n\022_thinking_required\"\274\013\n\024Mode" +
+      "lPricingBaseline\022\037\n\013baseline_id\030\001 \001(\tR\nb" +
+      "aselineId\022&\n\010model_id\030\002 \001(\tB\013\272H\010r\003\030\200\001\310\001\001" +
+      "R\007modelId\022*\n\014api_model_id\030\003 \001(\tB\010\272H\005r\003\030\200" +
+      "\001R\napiModelId\022&\n\010provider\030\004 \001(\tB\n\272H\007r\002\030@" +
+      "\310\001\001R\010provider\022$\n\007harness\030\005 \001(\tB\n\272H\007r\002\030@\310" +
+      "\001\001R\007harness\022.\n\014display_name\030\006 \001(\tB\013\272H\010r\003" +
+      "\030\200\001\310\001\001R\013displayName\0225\n\021short_description" +
+      "\030\007 \001(\tB\010\272H\005r\003\030\200\002R\020shortDescription\022C\n\nsp" +
+      "eed_tier\030\010 \001(\tB$\272H!r\037R\007fastestR\004fastR\010ba" +
+      "lancedR\004slowR\tspeedTier\022>\n\tcost_tier\030\t \001" +
+      "(\tB!\272H\036r\034R\007economyR\010standardR\007premiumR\010c" +
+      "ostTier\022\032\n\010featured\030\n \001(\010R\010featured\022E\n\007p" +
+      "ricing\030\013 \001(\0132#.ai.stigmer.billing.v1.Pri" +
+      "cingBlockB\006\272H\003\310\001\001R\007pricing\022k\n\020pricing_va" +
+      "riants\030\014 \003(\0132@.ai.stigmer.billing.v1.Mod" +
+      "elPricingBaseline.PricingVariantsEntryR\017" +
+      "pricingVariants\022(\n\010wire_ids\030\030 \003(\tB\r\272H\n\222\001" +
+      "\007\"\005r\003\030\200\001R\007wireIds\022;\n\025context_window_toke" +
+      "ns\030\r \001(\005B\007\272H\004\032\002(\000R\023contextWindowTokens\0223" +
+      "\n\021max_output_tokens\030\016 \001(\005B\007\272H\004\032\002(\000R\017maxO" +
+      "utputTokens\0229\n\024token_counter_method\030\017 \001(" +
+      "\tB\007\272H\004r\002\030@R\022tokenCounterMethod\022P\n\rsummar" +
+      "ization\030\020 \001(\0132*.ai.stigmer.billing.v1.Su" +
+      "mmarizationConfigR\rsummarization\022L\n\014capa" +
+      "bilities\030\021 \001(\0132(.ai.stigmer.billing.v1.M" +
+      "odelCapabilitiesR\014capabilities\022I\n\006status" +
+      "\030\022 \001(\01621.ai.stigmer.billing.v1.ModelPric" +
+      "ingBaselineStatusR\006status\0224\n\026supersedes_" +
+      "baseline_id\030\023 \001(\tR\024supersedesBaselineId\022" +
+      "\035\n\ndecided_by\030\024 \001(\tR\tdecidedBy\0229\n\ndecide" +
+      "d_at\030\025 \001(\0132\032.google.protobuf.TimestampR\t" +
+      "decidedAt\022-\n\rrevision_note\030\026 \001(\tB\010\272H\005r\003\030" +
+      "\200\010R\014revisionNote\0229\n\ncreated_at\030\027 \001(\0132\032.g" +
+      "oogle.protobuf.TimestampR\tcreatedAt\032i\n\024P" +
+      "ricingVariantsEntry\022\020\n\003key\030\001 \001(\tR\003key\022;\n" +
+      "\005value\030\002 \001(\0132%.ai.stigmer.billing.v1.Pri" +
+      "cingVariantR\005value:\0028\001*\247\001\n\032ModelPricingB" +
+      "aselineStatus\022-\n)model_pricing_baseline_" +
+      "status_unspecified\020\000\022\033\n\027pricing_baseline" +
+      "_active\020\001\022\037\n\033pricing_baseline_superseded" +
+      "\020\002\022\034\n\030pricing_baseline_retired\020\003B\222\001B\031Mod" +
+      "elPricingBaselineProtoP\001\242\002\003ASB\252\002\025Ai.Stig" +
+      "mer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002" +
+      "!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai:" +
+      ":Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -170,7 +172,7 @@ public final class ModelPricingBaselineProto extends com.google.protobuf.Generat
     internal_static_ai_stigmer_billing_v1_ModelCapabilities_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ModelCapabilities_descriptor,
-        new java.lang.String[] { "ToolUse", "Vision", "Streaming", "Thinking", "AdaptiveThinking", });
+        new java.lang.String[] { "ToolUse", "Vision", "Streaming", "Thinking", "AdaptiveThinking", "ThinkingRequired", });
     internal_static_ai_stigmer_billing_v1_ModelPricingBaseline_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_billing_v1_ModelPricingBaseline_fieldAccessorTable = new

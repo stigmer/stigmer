@@ -29,7 +29,11 @@
  * appended and never replaces the transcript, and a PAUSED or CANCELLED
  * execution's stop row stays last across the runner's later writes,
  * because the Pause and Cancel RPCs, the invoke workflow and the runner
- * all write a stopped execution and nothing orders them.
+ * all write a stopped execution and nothing orders them. For the same
+ * reason a PAUSED execution's phase moves only on the platform's own
+ * write (stigmer#1370): the runner learns of a pause on a later heartbeat
+ * and keeps streaming IN_PROGRESS until then, and without the latch its
+ * stragglers un-pause the execution and Resume finds nothing to resume.
  *
  * Broadcast rides in-memory channels (ADR 011).
  */
@@ -66,6 +70,7 @@ import {
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { isServerComposedRequest } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -161,7 +166,12 @@ export async function updateStatus(
               oldPhase =
                 execution.status?.phase ??
                 ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-              applyUpdateStatusMerge(execution, ctx.input, deps.logger);
+              applyUpdateStatusMerge(
+                execution,
+                ctx.input,
+                deps.logger,
+                isServerComposedRequest(identity) ? "platform" : "wire",
+              );
             },
           );
         } catch (error) {
@@ -316,17 +326,26 @@ function mergeTranscript(
 }
 
 /**
+ * Who sent a status write: the platform's own (the invoke workflow's
+ * writes, which reach this handler over the in-process transport, the
+ * one origin the wire cannot claim) or the wire (the runner).
+ */
+export type StatusWriter = "platform" | "wire";
+
+/**
  * Merges an incoming status update into the execution in place — the
  * runner-owns-the-transcript merge rules, exactly update_status.go
  * applyUpdateStatusMerge. Runs inside the updateResource closure
  * (synchronous by store contract), so the merge, the approval event
  * authoring, and the pending_approvals projection all see the same
- * snapshot that will be persisted.
+ * snapshot that will be persisted. `writer` defaults to the wire, the
+ * side that grants nothing extra.
  */
 export function applyUpdateStatusMerge(
   execution: AgentExecution,
   input: AgentExecutionUpdateStatusInput,
   logger: Logger,
+  writer: StatusWriter = "wire",
 ): void {
   if (execution.status === undefined) {
     execution.status = create(AgentExecutionStatusSchema);
@@ -415,8 +434,29 @@ export function applyUpdateStatusMerge(
   // re-terminalize it is gone. Recover is the one sanctioned
   // un-terminalizer and runs through its own lifecycle step, never this
   // merge.
+  //
+  // A PAUSED execution is latched the same way against the wire
+  // (stigmer#1370): the runner's straggler persists, sent before its
+  // heartbeat delivers the pause, carry IN_PROGRESS. Resume moves the
+  // phase through its own lifecycle step; through this merge only the
+  // platform's own writes do (the workflow's resume and recovery
+  // re-assertions, which also heal a stale PAUSED over a fast resume,
+  // oss#869). The straggler's transcript still merges, beneath the held
+  // pause row.
   if (requestStatus.phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) {
     if (
+      existingPhase === ExecutionPhase.EXECUTION_PAUSED &&
+      writer === "wire" &&
+      requestStatus.phase !== existingPhase
+    ) {
+      logger.warn(
+        "Ignored a wire phase change on a paused execution; Resume or the platform's own write moves it",
+        {
+          executionId: input.executionId,
+          ignoredPhase: ExecutionPhase[requestStatus.phase],
+        },
+      );
+    } else if (
       isTerminalExecutionPhase(existingPhase) &&
       requestStatus.phase !== existingPhase
     ) {

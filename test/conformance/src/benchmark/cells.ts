@@ -115,6 +115,12 @@ export interface PlanFlags {
   /** A glob over cell ids (`*` matches any run of characters). */
   cells?: string;
   includePlaceholders: boolean;
+  /**
+   * Every execution asks for thinking. A cell on the harness's default model
+   * is refused: thinking is a per-model capability, and the server refuses
+   * it on Auto.
+   */
+  thinking?: "enabled";
 }
 
 export interface PlanEnvironment {
@@ -158,8 +164,9 @@ export function qualityCells(tasks: readonly QualityTask[]): QualityCell[] {
  * quality cell needs its harness's key AND the Anthropic key, because the
  * judge runs on the native path. Every cell on the working agent (the
  * working scenario and every quality cell) also needs the `stigmer` CLI.
- * Placeholder tasks run only when asked. The first reason that applies is
- * the one recorded: flags, then keys, then the CLI.
+ * Placeholder tasks run only when asked. A thinking run refuses the cells on
+ * a harness's default model. The first reason that applies is the one
+ * recorded: flags, then keys, then the CLI.
  */
 export function planCells(tasks: readonly QualityTask[], env: PlanEnvironment, flags: PlanFlags): CellPlan {
   const refused: RefusedCell[] = [];
@@ -176,6 +183,10 @@ export function planCells(tasks: readonly QualityTask[], env: PlanEnvironment, f
     const flagReason = excludedByFlags(cell.id, cell.harness);
     if (flagReason !== undefined) {
       refused.push({ cell: cell.id, reason: flagReason });
+      return false;
+    }
+    if (flags.thinking !== undefined && cell.modelRequested === null) {
+      refused.push({ cell: cell.id, reason: "thinking needs a pinned model" });
       return false;
     }
     if (!keyFor(cell.harness)) {

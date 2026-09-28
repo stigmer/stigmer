@@ -963,7 +963,8 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : false,
-      "adaptiveThinking" : true
+      "adaptiveThinking" : true,
+      "thinkingRequired" : true
     }
   }, {
     "id" : "claude-haiku-4.5",
@@ -995,8 +996,9 @@
       "toolUse" : true,
       "vision" : true,
       "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
+      "thinking" : true,
+      "adaptiveThinking" : false,
+      "thinkingRequired" : false
     }
   }, {
     "id" : "claude-opus-4.5",
@@ -1017,7 +1019,7 @@
       "effectiveAt" : "2026-05-03T00:00:00Z"
     },
     "contextWindowTokens" : 200000,
-    "maxOutputTokens" : 65536,
+    "maxOutputTokens" : 64000,
     "tokenCounterMethod" : "anthropic_native",
     "summarization" : {
       "triggerThreshold" : 180000,
@@ -1029,7 +1031,8 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : true,
-      "adaptiveThinking" : false
+      "adaptiveThinking" : false,
+      "thinkingRequired" : false
     }
   }, {
     "id" : "claude-opus-4.6",
@@ -1050,7 +1053,7 @@
       "effectiveAt" : "2026-05-03T00:00:00Z"
     },
     "contextWindowTokens" : 200000,
-    "maxOutputTokens" : 131072,
+    "maxOutputTokens" : 128000,
     "tokenCounterMethod" : "anthropic_native",
     "summarization" : {
       "triggerThreshold" : 180000,
@@ -1062,7 +1065,8 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : false,
-      "adaptiveThinking" : true
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
     }
   }, {
     "id" : "claude-opus-4.7",
@@ -1096,7 +1100,8 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : false,
-      "adaptiveThinking" : true
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
     }
   }, {
     "id" : "claude-opus-4.8",
@@ -1130,7 +1135,8 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : false,
-      "adaptiveThinking" : true
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
     }
   }, {
     "id" : "claude-sonnet-4.5",
@@ -1151,7 +1157,7 @@
       "effectiveAt" : "2026-05-03T00:00:00Z"
     },
     "contextWindowTokens" : 200000,
-    "maxOutputTokens" : 65536,
+    "maxOutputTokens" : 64000,
     "tokenCounterMethod" : "anthropic_native",
     "summarization" : {
       "triggerThreshold" : 180000,
@@ -1163,7 +1169,8 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : true,
-      "adaptiveThinking" : false
+      "adaptiveThinking" : false,
+      "thinkingRequired" : false
     }
   }, {
     "id" : "claude-sonnet-4.6",
@@ -1195,8 +1202,9 @@
       "toolUse" : true,
       "vision" : true,
       "streaming" : true,
-      "thinking" : true,
-      "adaptiveThinking" : false
+      "thinking" : false,
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
     }
   }, {
     "id" : "claude-sonnet-5",
@@ -1230,7 +1238,8 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : false,
-      "adaptiveThinking" : true
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
     }
   } ]
 }

@@ -46,7 +46,7 @@ export interface AnthropicUsage {
 
 export type AnthropicContentBlock =
   | { type: "text"; text: string }
-  | { type: "thinking"; thinking: string }
+  | { type: "thinking"; thinking: string; signature?: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
 
 export interface TokenUsageOptions {
@@ -169,11 +169,20 @@ export function writeAnthropicSseEvents(res: ServerResponse, body: AnthropicMess
         event("content_block_stop", { type: "content_block_stop", index });
         break;
       case "thinking":
+        // The provider closes every thinking block with its signature, which
+        // the client must send back with the block when the conversation
+        // continues; a block streamed without one is a shape the provider
+        // never produces.
         event("content_block_start", { type: "content_block_start", index, content_block: { type: "thinking", thinking: "" } });
         event("content_block_delta", {
           type: "content_block_delta",
           index,
           delta: { type: "thinking_delta", thinking: block.thinking },
+        });
+        event("content_block_delta", {
+          type: "content_block_delta",
+          index,
+          delta: { type: "signature_delta", signature: block.signature ?? MOCK_THINKING_SIGNATURE },
         });
         event("content_block_stop", { type: "content_block_stop", index });
         break;
@@ -305,14 +314,24 @@ export interface AnthropicRequestBody {
   model: string;
   system?: string | AnthropicSystemBlock[];
   tools?: AnthropicToolDeclaration[];
-  // Anthropic's extended-thinking configuration when the client enables it
-  // (`{ type: "enabled", budget_tokens }` or the adaptive shape); absent on a
-  // request that asked for none. Carried as received so an assertion on its
-  // presence needs no knowledge of which shape a model takes.
+  // Anthropic's thinking configuration as the client sent it:
+  // `{ type: "enabled", budget_tokens }`, `{ type: "adaptive", display }` or
+  // an explicit `{ type: "disabled" }`; absent on a request that set none.
+  // Carried as received so an arm asserts the exact shape a row maps to.
   thinking?: unknown;
   temperature?: number;
+  max_tokens?: number;
+  // The JSON-output configuration (`{ format: { type: "json_schema", schema } }`)
+  // and the tool choice, as received: the structured-output strategy is read
+  // from these two.
+  output_config?: unknown;
+  tool_choice?: unknown;
   stream?: boolean;
 }
+
+// The signature the mock closes a scripted thinking block with when the
+// script names none.
+export const MOCK_THINKING_SIGNATURE = "conformance-mock-signature";
 
 // Reads a captured request body as an Anthropic `messages` request, refusing
 // by name when it is not one (a fenced call's body, an embeddings body, a
@@ -335,6 +354,9 @@ export function readAnthropicRequest(body: unknown): AnthropicRequestBody {
     ...(record.tools !== undefined ? { tools: readTools(record.tools) } : {}),
     ...(record.thinking !== undefined ? { thinking: record.thinking } : {}),
     ...(typeof record.temperature === "number" ? { temperature: record.temperature } : {}),
+    ...(typeof record.max_tokens === "number" ? { max_tokens: record.max_tokens } : {}),
+    ...(record.output_config !== undefined ? { output_config: record.output_config } : {}),
+    ...(record.tool_choice !== undefined ? { tool_choice: record.tool_choice } : {}),
     ...(typeof record.stream === "boolean" ? { stream: record.stream } : {}),
   };
 }

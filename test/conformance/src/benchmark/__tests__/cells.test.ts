@@ -65,6 +65,21 @@ describe("planCells", () => {
     ]);
   });
 
+  it("a thinking run refuses the cells on a harness's default model and keeps every pinned cell", () => {
+    const plan = planCells(TASKS, ALL, { includePlaceholders: false, thinking: "enabled" });
+    expect(plan.cells.every((cell) => cell.modelRequested !== null)).toBe(true);
+    expect(plan.cells).toHaveLength(10);
+    expect(plan.refused.filter((r) => r.reason === "thinking needs a pinned model").map((r) => r.cell)).toEqual([
+      "report-simple/deep-agent",
+      "report-simple/cursor",
+      "report-medium/deep-agent",
+      "report-medium/cursor",
+      "report-codegen/deep-agent",
+      "report-codegen/cursor",
+    ]);
+    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/real-1/deep-agent", "quality/real-1/cursor"]);
+  });
+
   it("without the Cursor key refuses the Cursor cells alone", () => {
     const plan = planCells(TASKS, { ...ALL, cursorKey: false }, { includePlaceholders: false });
     expect(plan.cells.every((cell) => cell.harness === "deep-agent")).toBe(true);
