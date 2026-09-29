@@ -168,10 +168,12 @@ export interface ServerConfig {
   readonly skillArtifactStorageType: string;
   /**
    * Externally-reachable base of the skill artifact transfer lane's
-   * capability URLs (#675). Defaults to the server's own port on
-   * localhost; SKILL_TRANSFER_BASE_URL overrides when the server is
-   * reached through a tunnel or reverse proxy (the ARTIFACT_LOCAL_SERVE_URL
-   * idiom, Go config.go:52-58).
+   * capability URLs (#675; SKILL_TRANSFER_BASE_URL), set when the server
+   * is reached through a tunnel or reverse proxy (the
+   * ARTIFACT_LOCAL_SERVE_URL idiom, Go config.go:52-58). "" = unset: the
+   * base is the server's own port on localhost, read from the port the
+   * unified listener actually binds (boot/skill-transfer-origin.ts), so a
+   * server on an ephemeral port mints URLs that reach it (stigmer#1386).
    */
   readonly skillTransferBaseUrl: string;
   /**
@@ -359,11 +361,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     databaseUrl: envString(env, "DATABASE_URL", ""),
     storagePath: envString(env, "STORAGE_PATH", defaultStoragePath()),
     skillArtifactStorageType,
-    skillTransferBaseUrl: envString(
-      env,
-      "SKILL_TRANSFER_BASE_URL",
-      `http://localhost:${grpcPort}`,
-    ),
+    skillTransferBaseUrl: envString(env, "SKILL_TRANSFER_BASE_URL", ""),
     operatorEmail,
     operatorName,
     gitHubOAuthClientId: envString(

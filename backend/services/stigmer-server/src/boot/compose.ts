@@ -185,7 +185,10 @@ import {
   resolveArtifactServeUrl,
 } from "./artifact-lane.js";
 import { resolveOAuthRedirectUri } from "./oauth-redirect-uri.js";
-import { assessSkillTransferOrigin } from "./skill-transfer-origin.js";
+import {
+  assessSkillTransferOrigin,
+  resolveSkillTransferBaseUrl,
+} from "./skill-transfer-origin.js";
 import type { ServerExtension } from "../extensions/registry.js";
 import { registerWorkflowServices } from "../domain/workflow/controller.js";
 import {
@@ -1025,6 +1028,21 @@ export async function composeServer(
   // controllers cannot tell which. The slots are constructed on every
   // arm so the HTTP lane always has a registry to consult; on a bucket
   // arm nothing is ever reserved in it.
+  //
+  // Both URLs render from one base (boot/skill-transfer-origin.ts): the
+  // configured SKILL_TRANSFER_BASE_URL, or the unified port's loopback
+  // origin, read from the port the listener actually bound in start() when
+  // that port is ephemeral (stigmer#1386).
+  let unifiedBoundPort: number | undefined;
+  const skillTransferBase = resolveSkillTransferBaseUrl({
+    configured: config.skillTransferBaseUrl,
+    unifiedPort: options.portOverride ?? config.grpcPort,
+    boundPort: () => unifiedBoundPort,
+  });
+  const renderSkillTransferBase = (): string =>
+    typeof skillTransferBase === "function"
+      ? skillTransferBase()
+      : skillTransferBase;
   const skillUploadSlots = new UploadSlots(
     config.storagePath,
     STAGING_KEY_PREFIX,
@@ -1052,15 +1070,14 @@ export async function composeServer(
       // the very URL the lane dispatches.
       return new LocalArtifactStorage(
         config.storagePath,
-        transferServeUrl(config.skillTransferBaseUrl),
+        typeof skillTransferBase === "function"
+          ? () => transferServeUrl(skillTransferBase())
+          : transferServeUrl(skillTransferBase),
         {
           reserve: (key, declaredSizeBytes) => {
             const { ttlMs } = skillUploadSlots.reserve(key, declaredSizeBytes);
             return {
-              url: skillUploadUrl(
-                config.skillTransferBaseUrl,
-                uploadRefOf(key),
-              ),
+              url: skillUploadUrl(renderSkillTransferBase(), uploadRefOf(key)),
               ttlMs,
             };
           },
@@ -1107,7 +1124,7 @@ export async function composeServer(
   // inline push and every other RPC work, and a self-host behind a tunnel
   // it forgot to name deserves a pointer, not an outage.
   const transferOrigin = assessSkillTransferOrigin({
-    baseUrl: config.skillTransferBaseUrl,
+    configured: config.skillTransferBaseUrl,
     relaysThroughServer: skillType === "local",
     requireAuthentication,
   });
@@ -1936,6 +1953,10 @@ export async function composeServer(
         options.portOverride ?? config.grpcPort,
         options.host,
       );
+      // Recorded in the listen continuation, a microtask that runs before
+      // the first accepted connection is dispatched, so no wire request
+      // can mint a skill transfer URL before the port it names is known.
+      unifiedBoundPort = port;
       logger.info("stigmer-server listening", { port });
       return port;
     },

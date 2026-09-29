@@ -12,7 +12,6 @@
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import http2 from "node:http2";
-import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -45,27 +44,12 @@ let query: QueryClient;
 let baseUrl: string;
 let dir: string;
 
-/**
- * Reserves a free port the way the CLI/conformance harness does: the
- * transfer lane mints capability URLs from CONFIG (base defaults to
- * http://localhost:{grpcPort}), so the server must boot with GRPC_PORT set
- * to its real port — a portOverride would leave minted URLs pointing at
- * the config default.
- */
-async function reserveFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const probe = net.createServer();
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      const { port } = probe.address() as net.AddressInfo;
-      probe.close(() => resolve(port));
-    });
-  });
-}
-
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "skill-domain-test-"));
-  const grpcPort = await reserveFreePort();
+  // An ephemeral port needs no reservation: the transfer lane mints its
+  // capability URLs for the port the listener actually binds
+  // (boot/skill-transfer-origin.ts, stigmer#1386), and the artifact lane
+  // binds ephemeral beside it (boot/artifact-lane.ts).
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -73,16 +57,12 @@ beforeAll(async () => {
       // closed, so boots fail the non-fatal connect fast and can never touch
       // a live local Temporal (the conformance CRUD harness does the same).
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
-      GRPC_PORT: String(grpcPort),
-      // The reserved port is the unified one only; its +1 neighbour is not
-      // reserved, and a lane that cannot bind fails the boot (#1089), so
-      // the artifact lane binds ephemeral.
-      ARTIFACT_HTTP_PORT: "0",
       DB_PATH: path.join(dir, "stigmer.db"),
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       STORAGE_PATH: path.join(dir, "storage"),
     }),
     logger: silentLogger,
+    portOverride: 0,
     host: "127.0.0.1",
   });
   const port = await server.start();

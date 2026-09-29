@@ -11,8 +11,8 @@
  * signs its users in (`trusted-local` when no issuer is configured) answers
  * this too: a server that serves the console on its unified port is
  * reached by a browser on the machine it runs on, so its callback is the
- * console's callback page at `http://localhost:<port>`, the same host the
- * config already assumes for `SKILL_TRANSFER_BASE_URL`.
+ * console's callback page at `http://localhost:<port>`, the same host an
+ * unset `SKILL_TRANSFER_BASE_URL` derives the skill transfer lane on.
  *
  * The rules, in order: a configured value always wins; a server that
  * serves no console derives nothing (the CLI and the SDKs need no

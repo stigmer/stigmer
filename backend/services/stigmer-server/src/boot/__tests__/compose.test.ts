@@ -12,7 +12,10 @@
  *     cannot bind fails start() with the address and the setting named and
  *     the server never reports itself serving (stigmer#1089), and a server
  *     on an ephemeral port gets an ephemeral lane whose minted download
- *     URLs reach it.
+ *     URLs reach it;
+ *   - the skill transfer lane's capability URLs on an ephemeral unified
+ *     port name the port the server bound, and a PUT to one reaches it
+ *     (stigmer#1386).
  */
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -22,6 +25,7 @@ import {
 } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
+import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import {
   createServer as netCreateServer,
   connect as netConnect,
@@ -160,6 +164,37 @@ describe("the artifact download lane", () => {
       const served = await fetch(download.url);
       expect(served.status).toBe(200);
       expect(new Uint8Array(await served.arrayBuffer())).toEqual(content);
+    } finally {
+      await server.shutdown();
+    }
+  });
+});
+
+describe("the skill transfer lane", () => {
+  it("mints upload URLs for the port an ephemeral unified listener bound, and a PUT to one reaches it", async () => {
+    const server = await compose();
+    const port = await server.start();
+    try {
+      const command = createClient(
+        SkillCommandController,
+        createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` }),
+      );
+      // The lane stages bytes as given; the archive is validated at push,
+      // which this case does not reach.
+      const body = new TextEncoder().encode("staged skill bytes\n");
+      const minted = await command.createArtifactUploadUrl({
+        org: "acme",
+        sizeBytes: BigInt(body.length),
+      });
+
+      // The bound port, never localhost:0 or the config default 7234.
+      expect(Number(new URL(minted.url).port)).toBe(port);
+      const put = await fetch(minted.url, {
+        method: "PUT",
+        body,
+        headers: { "content-type": "application/zip" },
+      });
+      expect(put.status).toBe(204);
     } finally {
       await server.shutdown();
     }
