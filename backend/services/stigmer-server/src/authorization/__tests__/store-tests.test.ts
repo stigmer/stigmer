@@ -52,7 +52,7 @@ const DOCUMENTS = [
   "agent-share-owner.fga.yaml",
   "artifact-org-and-owner.fga.yaml",
   "blueprint-private-visibility.fga.yaml",
-  "channel-app-owner.fga.yaml",
+  "channel-app-administration.fga.yaml",
   "channel-participation.fga.yaml",
   "channel-session-visibility.fga.yaml",
   "credit-issuer.fga.yaml",

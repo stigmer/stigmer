@@ -25,8 +25,8 @@ export interface ChannelAppListPanelProps {
   readonly onRefetchRef?: (refetch: () => void) => void;
   /**
    * Shown when the list is empty. Defaults to "No channel apps registered
-   * yet." The list holds only the apps the caller may view (their creator,
-   * anyone granted viewer on one, and the organization's admins), so a host
+   * yet." The list holds only the apps the caller may view (the
+   * organization's admins, and anyone granted viewer on an app), so a host
    * that knows the caller may not manage channel apps should say who does
    * instead.
    */

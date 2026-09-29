@@ -13,7 +13,7 @@
  *   ordinary outcome routing takes the escalation path.
  *
  * Signal payload shape:
- * { outcome, form_data?, reviewer, reviewer_actor?, responded_at }
+ * { outcome, form_data?, comment?, reviewer, reviewer_actor?, responded_at }
  *
  * TEMPORAL SANDBOX: This file runs inside the deterministic workflow isolate.
  */

@@ -54,6 +54,7 @@ private static final long serialVersionUID = 0L;
     cursorKeyId_ = "";
     cursorKeySource_ = 0;
     servedServiceTier_ = "";
+    providerKeySource_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -911,6 +912,42 @@ private static final long serialVersionUID = 0L;
     return meteredExecution_ == null ? ai.stigmer.billing.v1.MeteredExecution.getDefaultInstance() : meteredExecution_;
   }
 
+  public static final int PROVIDER_KEY_SOURCE_FIELD_NUMBER = 21;
+  private int providerKeySource_ = 0;
+  /**
+   * <pre>
+   * Whose provider credential the proxy injected upstream for this call,
+   * stamped verbatim onto the usage record (the same rule as
+   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+   * organization's own provider key served the call: it is recorded and
+   * priced for visibility, and never debited. UNSPECIFIED from a proxy
+   * that predates the field, read as the platform's key.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * @return The enum numeric value on the wire for providerKeySource.
+   */
+  @java.lang.Override public int getProviderKeySourceValue() {
+    return providerKeySource_;
+  }
+  /**
+   * <pre>
+   * Whose provider credential the proxy injected upstream for this call,
+   * stamped verbatim onto the usage record (the same rule as
+   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+   * organization's own provider key served the call: it is recorded and
+   * priced for visibility, and never debited. UNSPECIFIED from a proxy
+   * that predates the field, read as the platform's key.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * @return The providerKeySource.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ProviderKeySource getProviderKeySource() {
+    ai.stigmer.agentic.agentexecution.v1.ProviderKeySource result = ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.forNumber(providerKeySource_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -984,6 +1021,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(callId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 20, callId_);
+    }
+    if (providerKeySource_ != ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.PROVIDER_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(21, providerKeySource_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1062,6 +1102,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(callId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(20, callId_);
     }
+    if (providerKeySource_ != ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.PROVIDER_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(21, providerKeySource_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1124,6 +1168,7 @@ private static final long serialVersionUID = 0L;
       if (!getMeteredExecution()
           .equals(other.getMeteredExecution())) return false;
     }
+    if (providerKeySource_ != other.providerKeySource_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1182,6 +1227,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + METERED_EXECUTION_FIELD_NUMBER;
       hash = (53 * hash) + getMeteredExecution().hashCode();
     }
+    hash = (37 * hash) + PROVIDER_KEY_SOURCE_FIELD_NUMBER;
+    hash = (53 * hash) + providerKeySource_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1365,6 +1412,7 @@ private static final long serialVersionUID = 0L;
         meteredExecutionBuilder_.dispose();
         meteredExecutionBuilder_ = null;
       }
+      providerKeySource_ = 0;
       return this;
     }
 
@@ -1468,6 +1516,9 @@ private static final long serialVersionUID = 0L;
             : meteredExecutionBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00100000) != 0)) {
+        result.providerKeySource_ = providerKeySource_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1566,6 +1617,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasMeteredExecution()) {
         mergeMeteredExecution(other.getMeteredExecution());
+      }
+      if (other.providerKeySource_ != 0) {
+        setProviderKeySourceValue(other.getProviderKeySourceValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1699,6 +1753,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 162
+            case 168: {
+              providerKeySource_ = input.readEnum();
+              bitField0_ |= 0x00100000;
+              break;
+            } // case 168
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3734,6 +3793,103 @@ private static final long serialVersionUID = 0L;
         meteredExecution_ = null;
       }
       return meteredExecutionBuilder_;
+    }
+
+    private int providerKeySource_ = 0;
+    /**
+     * <pre>
+     * Whose provider credential the proxy injected upstream for this call,
+     * stamped verbatim onto the usage record (the same rule as
+     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+     * organization's own provider key served the call: it is recorded and
+     * priced for visibility, and never debited. UNSPECIFIED from a proxy
+     * that predates the field, read as the platform's key.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * @return The enum numeric value on the wire for providerKeySource.
+     */
+    @java.lang.Override public int getProviderKeySourceValue() {
+      return providerKeySource_;
+    }
+    /**
+     * <pre>
+     * Whose provider credential the proxy injected upstream for this call,
+     * stamped verbatim onto the usage record (the same rule as
+     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+     * organization's own provider key served the call: it is recorded and
+     * priced for visibility, and never debited. UNSPECIFIED from a proxy
+     * that predates the field, read as the platform's key.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * @param value The enum numeric value on the wire for providerKeySource to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setProviderKeySourceValue(int value) {
+      providerKeySource_ = value;
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whose provider credential the proxy injected upstream for this call,
+     * stamped verbatim onto the usage record (the same rule as
+     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+     * organization's own provider key served the call: it is recorded and
+     * priced for visibility, and never debited. UNSPECIFIED from a proxy
+     * that predates the field, read as the platform's key.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * @return The providerKeySource.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ProviderKeySource getProviderKeySource() {
+      ai.stigmer.agentic.agentexecution.v1.ProviderKeySource result = ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.forNumber(providerKeySource_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ProviderKeySource.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Whose provider credential the proxy injected upstream for this call,
+     * stamped verbatim onto the usage record (the same rule as
+     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+     * organization's own provider key served the call: it is recorded and
+     * priced for visibility, and never debited. UNSPECIFIED from a proxy
+     * that predates the field, read as the platform's key.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * @param value The providerKeySource to set.
+     * @return This builder for chaining.
+     */
+    public Builder setProviderKeySource(ai.stigmer.agentic.agentexecution.v1.ProviderKeySource value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00100000;
+      providerKeySource_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whose provider credential the proxy injected upstream for this call,
+     * stamped verbatim onto the usage record (the same rule as
+     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+     * organization's own provider key served the call: it is recorded and
+     * priced for visibility, and never debited. UNSPECIFIED from a proxy
+     * that predates the field, read as the platform's key.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearProviderKeySource() {
+      bitField0_ = (bitField0_ & ~0x00100000);
+      providerKeySource_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.v1.RecordLlmCallUsageInput)

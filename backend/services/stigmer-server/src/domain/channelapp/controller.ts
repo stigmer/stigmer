@@ -19,9 +19,10 @@
  * loads, then authorizes the loaded app exactly as `get` would
  * (AuthorizeResolvedTarget). listByOrg narrows the organization's apps
  * through the composed list read scope to the ones a `get` would return:
- * the model shows a channel app to its owners, explicit grants and the
- * organization's admins, never to plain members or viewers
- * (fga/model/agentic/channel_app.fga, stigmer/stigmer#1384). Per-RPC
+ * the model shows a channel app to the organization's admins and explicit
+ * grants, never to plain members or viewers, and never to a creator who is
+ * no longer an admin (fga/model/agentic/channel_app.fga,
+ * stigmer/stigmer#1384, #1409). Per-RPC
  * posture: docs/authorization-coverage.md §13.
  *
  * Proven by channelapp.conformance.test.ts (CONFORMANCE_TARGET=local)

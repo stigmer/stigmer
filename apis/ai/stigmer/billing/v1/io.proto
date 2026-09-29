@@ -197,6 +197,14 @@ message RecordLlmCallUsageInput {
   // carries an empty session and the requested-vs-billed reconciliation
   // is skipped.
   MeteredExecution metered_execution = 19;
+
+  // Whose provider credential the proxy injected upstream for this call,
+  // stamped verbatim onto the usage record (the same rule as
+  // cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+  // organization's own provider key served the call: it is recorded and
+  // priced for visibility, and never debited. UNSPECIFIED from a proxy
+  // that predates the field, read as the platform's key.
+  ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21;
 }
 
 // The execution-side facts LLM metering denormalizes onto every usage

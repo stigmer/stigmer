@@ -459,4 +459,33 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * <code>.ai.stigmer.billing.v1.MeteredExecution metered_execution = 19 [json_name = "meteredExecution"];</code>
    */
   ai.stigmer.billing.v1.MeteredExecutionOrBuilder getMeteredExecutionOrBuilder();
+
+  /**
+   * <pre>
+   * Whose provider credential the proxy injected upstream for this call,
+   * stamped verbatim onto the usage record (the same rule as
+   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+   * organization's own provider key served the call: it is recorded and
+   * priced for visibility, and never debited. UNSPECIFIED from a proxy
+   * that predates the field, read as the platform's key.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * @return The enum numeric value on the wire for providerKeySource.
+   */
+  int getProviderKeySourceValue();
+  /**
+   * <pre>
+   * Whose provider credential the proxy injected upstream for this call,
+   * stamped verbatim onto the usage record (the same rule as
+   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+   * organization's own provider key served the call: it is recorded and
+   * priced for visibility, and never debited. UNSPECIFIED from a proxy
+   * that predates the field, read as the platform's key.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
+   * @return The providerKeySource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ProviderKeySource getProviderKeySource();
 }

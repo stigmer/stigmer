@@ -26,6 +26,11 @@
 // - submitWorkflowTaskApproval{execution_id, task_name, outcome, form_data?,
 //   reviewer?, comment?} resolves the gate; the named human_input task and the
 //   downstream task complete and the execution reaches EXECUTION_COMPLETED.
+// - The decision reaches the public event log: the gate's one approval_resolved
+//   event carries the submitted comment and names the authorized caller as
+//   resolved_by and resolved_by_actor, the same principal the server stamps as
+//   the execution's created_by. The client's `reviewer` is never what is
+//   recorded.
 // - A *defined custom* outcome that is not "approve" (here "deny") is a data
 //   outcome: it resolves the gate and the execution still COMPLETES. (Only the
 //   implicit, no-outcomes binary form fails on "deny"; with outcomes declared,
@@ -48,8 +53,8 @@
 // either races into FailedPrecondition once terminal, or sends a duplicate signal
 // a resolved gate ignores) — not a clean black-box guarantee. The task.output
 // (outcome / form_data / reviewer) is likewise left unasserted; outcome-honoring
-// is proven behaviorally via routing instead of coupling the contract to that
-// runner-produced projection.
+// is proven behaviorally via routing, and the reviewer and comment on the event
+// log, instead of coupling the contract to that runner-produced projection.
 import { Code } from "@connectrpc/connect";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
@@ -63,6 +68,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
 import {
+  approvalResolutionsOf,
   awaitPhase,
   awaitTaskStatus,
   awaitTaskWaitingApproval,
@@ -175,8 +181,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     const workflowId = await provisionHumanInputWorkflow(org);
     const { executionId } = await runToGate(org, workflowId);
 
-    // reviewer + comment are accepted (audit-trail fields with no read surface);
-    // their acceptance is observed by the run completing.
+    // The comment reaches the approval_resolved event. The reviewer sent here is
+    // ignored: the server records the authorized caller instead, asserted below.
     await clients.workflowExecutionCommand.submitWorkflowTaskApproval({
       executionId,
       taskName: HUMAN_INPUT_TASK_NAME,
@@ -196,6 +202,23 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     expect(taskByName(final, HUMAN_INPUT_AFTER_TASK_NAME)?.status, "the downstream task runs after resume").toBe(
       WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
     );
+
+    // The decision is on the event log a console reads, attributed to the
+    // caller that approved it: the caller that created the run, recorded as the
+    // same principal (#1422), with the comment it typed (#1423).
+    const creator = final.status?.audit?.specAudit?.createdBy?.id ?? "";
+    expect(creator, `execution ${executionId} records its creator`).not.toBe("");
+    const resolutions = await approvalResolutionsOf(clients, executionId, HUMAN_INPUT_TASK_NAME);
+    expect(resolutions, `execution ${executionId} logs one approval_resolved event for the gate`).toHaveLength(1);
+    const [resolved] = resolutions;
+    expect(resolved?.comment, `execution ${executionId}: the event carries the submitted comment`).toBe(
+      "looks good",
+    );
+    expect(resolved?.resolvedBy, `execution ${executionId}: the event names the approving caller`).toBe(creator);
+    expect(
+      resolved?.resolvedByActor?.id,
+      `execution ${executionId}: the event's reviewer snapshot names the approving caller`,
+    ).toBe(creator);
   });
 
   it("a non-approve custom outcome (deny) is data: the gate resolves and the execution still completes", async () => {

@@ -41,10 +41,10 @@ type FlowState =
  *
  * "New channel app" is offered once the server confirms the caller holds
  * `can_create_channel_app` on the organization. The list shows only the
- * apps the caller may view (their creator, anyone granted viewer on one,
- * and the organization's admins), so a caller who may not create channel
- * apps is told that the organization's admins manage them rather than that
- * none is registered.
+ * apps the caller may view (the organization's admins, and anyone granted
+ * viewer on an app), so a caller who may not create channel apps is told
+ * that the organization's admins manage them rather than that none is
+ * registered.
  */
 export function ChannelAppsSection() {
   const headingId = useId();

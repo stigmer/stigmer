@@ -40,8 +40,8 @@ export const ChannelAppCommandController: GenService<{
   /**
    * Create a channel app.
    *
-   * The creator's organization owns the channel app. The creator is
-   * granted the owner role automatically.
+   * The creator's organization owns the channel app, and the organization's
+   * current admins manage it.
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.create
    */

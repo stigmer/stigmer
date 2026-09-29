@@ -474,8 +474,15 @@ type RecordLlmCallUsageInput struct {
 	// carries an empty session and the requested-vs-billed reconciliation
 	// is skipped.
 	MeteredExecution *MeteredExecution `protobuf:"bytes,19,opt,name=metered_execution,json=meteredExecution,proto3" json:"metered_execution,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Whose provider credential the proxy injected upstream for this call,
+	// stamped verbatim onto the usage record (the same rule as
+	// cursor_key_source: the proxy holds the fact). ORGANIZATION means the
+	// organization's own provider key served the call: it is recorded and
+	// priced for visibility, and never debited. UNSPECIFIED from a proxy
+	// that predates the field, read as the platform's key.
+	ProviderKeySource v1.ProviderKeySource `protobuf:"varint,21,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RecordLlmCallUsageInput) Reset() {
@@ -646,6 +653,13 @@ func (x *RecordLlmCallUsageInput) GetMeteredExecution() *MeteredExecution {
 		return x.MeteredExecution
 	}
 	return nil
+}
+
+func (x *RecordLlmCallUsageInput) GetProviderKeySource() v1.ProviderKeySource {
+	if x != nil {
+		return x.ProviderKeySource
+	}
+	return v1.ProviderKeySource(0)
 }
 
 // The execution-side facts LLM metering denormalizes onto every usage
@@ -2982,7 +2996,7 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12'\n" +
 	"\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x128\n" +
 	"\x18available_balance_micros\x18\x04 \x01(\x03R\x16availableBalanceMicros\x12#\n" +
-	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xa8\b\n" +
+	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\x91\t\n" +
 	"\x17RecordLlmCallUsageInput\x12)\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12#\n" +
 	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12!\n" +
@@ -3004,7 +3018,8 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\rcursor_key_id\x18\x10 \x01(\tR\vcursorKeyId\x12a\n" +
 	"\x11cursor_key_source\x18\x11 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.CursorKeySourceR\x0fcursorKeySource\x12.\n" +
 	"\x13served_service_tier\x18\x12 \x01(\tR\x11servedServiceTier\x12T\n" +
-	"\x11metered_execution\x18\x13 \x01(\v2'.ai.stigmer.billing.v1.MeteredExecutionR\x10meteredExecution\"\xa9\x02\n" +
+	"\x11metered_execution\x18\x13 \x01(\v2'.ai.stigmer.billing.v1.MeteredExecutionR\x10meteredExecution\x12g\n" +
+	"\x13provider_key_source\x18\x15 \x01(\x0e27.ai.stigmer.agentic.agentexecution.v1.ProviderKeySourceR\x11providerKeySource\"\xa9\x02\n" +
 	"\x10MeteredExecution\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12!\n" +
@@ -3230,15 +3245,16 @@ var file_ai_stigmer_billing_v1_io_proto_goTypes = []any{
 	(v1.UsageCompletionStatus)(0),                   // 42: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
 	(*v1.ProxyTiming)(nil),                          // 43: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
 	(v1.CursorKeySource)(0),                         // 44: ai.stigmer.agentic.agentexecution.v1.CursorKeySource
-	(v1.ServiceTier)(0),                             // 45: ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	(v1.ThinkingMode)(0),                            // 46: ai.stigmer.agentic.agentexecution.v1.ThinkingMode
-	(*rpc.PageInfo)(nil),                            // 47: ai.stigmer.commons.rpc.PageInfo
-	(LedgerEntryType)(0),                            // 48: ai.stigmer.billing.v1.LedgerEntryType
-	(LedgerView)(0),                                 // 49: ai.stigmer.billing.v1.LedgerView
-	(*CreditLedgerEntry)(nil),                       // 50: ai.stigmer.billing.v1.CreditLedgerEntry
-	(*ModelPricingOverride)(nil),                    // 51: ai.stigmer.billing.v1.ModelPricingOverride
-	(*ModelPricingBaseline)(nil),                    // 52: ai.stigmer.billing.v1.ModelPricingBaseline
-	(ExecutionBillingSignal)(0),                     // 53: ai.stigmer.billing.v1.ExecutionBillingSignal
+	(v1.ProviderKeySource)(0),                       // 45: ai.stigmer.agentic.agentexecution.v1.ProviderKeySource
+	(v1.ServiceTier)(0),                             // 46: ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	(v1.ThinkingMode)(0),                            // 47: ai.stigmer.agentic.agentexecution.v1.ThinkingMode
+	(*rpc.PageInfo)(nil),                            // 48: ai.stigmer.commons.rpc.PageInfo
+	(LedgerEntryType)(0),                            // 49: ai.stigmer.billing.v1.LedgerEntryType
+	(LedgerView)(0),                                 // 50: ai.stigmer.billing.v1.LedgerView
+	(*CreditLedgerEntry)(nil),                       // 51: ai.stigmer.billing.v1.CreditLedgerEntry
+	(*ModelPricingOverride)(nil),                    // 52: ai.stigmer.billing.v1.ModelPricingOverride
+	(*ModelPricingBaseline)(nil),                    // 53: ai.stigmer.billing.v1.ModelPricingBaseline
+	(ExecutionBillingSignal)(0),                     // 54: ai.stigmer.billing.v1.ExecutionBillingSignal
 }
 var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
 	40, // 0: ai.stigmer.billing.v1.GrantCreditsInput.expires_at:type_name -> google.protobuf.Timestamp
@@ -3247,29 +3263,30 @@ var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
 	43, // 3: ai.stigmer.billing.v1.RecordLlmCallUsageInput.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
 	44, // 4: ai.stigmer.billing.v1.RecordLlmCallUsageInput.cursor_key_source:type_name -> ai.stigmer.agentic.agentexecution.v1.CursorKeySource
 	6,  // 5: ai.stigmer.billing.v1.RecordLlmCallUsageInput.metered_execution:type_name -> ai.stigmer.billing.v1.MeteredExecution
-	45, // 6: ai.stigmer.billing.v1.MeteredExecution.requested_service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	46, // 7: ai.stigmer.billing.v1.MeteredExecution.requested_thinking_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ThinkingMode
-	47, // 8: ai.stigmer.billing.v1.GetCreditLedgerInput.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	48, // 9: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
-	40, // 10: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp
-	40, // 11: ai.stigmer.billing.v1.GetCreditLedgerInput.end_time:type_name -> google.protobuf.Timestamp
-	49, // 12: ai.stigmer.billing.v1.GetCreditLedgerInput.view:type_name -> ai.stigmer.billing.v1.LedgerView
-	50, // 13: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
-	40, // 14: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
-	40, // 15: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
-	24, // 16: ai.stigmer.billing.v1.BillingUsageReportResponse.model_breakdown:type_name -> ai.stigmer.billing.v1.ModelBillingBreakdown
-	35, // 17: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
-	29, // 18: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.entries:type_name -> ai.stigmer.billing.v1.ModelPricingGovernanceEntry
-	51, // 19: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.pending_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
-	51, // 20: ai.stigmer.billing.v1.ModelPricingGovernanceEntry.active_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
-	52, // 21: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput.baseline:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
-	52, // 22: ai.stigmer.billing.v1.ModelPricingBaselinesResponse.baselines:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
-	53, // 23: ai.stigmer.billing.v1.GetExecutionBillingSignalResponse.signal:type_name -> ai.stigmer.billing.v1.ExecutionBillingSignal
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	45, // 6: ai.stigmer.billing.v1.RecordLlmCallUsageInput.provider_key_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ProviderKeySource
+	46, // 7: ai.stigmer.billing.v1.MeteredExecution.requested_service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	47, // 8: ai.stigmer.billing.v1.MeteredExecution.requested_thinking_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ThinkingMode
+	48, // 9: ai.stigmer.billing.v1.GetCreditLedgerInput.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	49, // 10: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
+	40, // 11: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp
+	40, // 12: ai.stigmer.billing.v1.GetCreditLedgerInput.end_time:type_name -> google.protobuf.Timestamp
+	50, // 13: ai.stigmer.billing.v1.GetCreditLedgerInput.view:type_name -> ai.stigmer.billing.v1.LedgerView
+	51, // 14: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
+	40, // 15: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
+	40, // 16: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
+	24, // 17: ai.stigmer.billing.v1.BillingUsageReportResponse.model_breakdown:type_name -> ai.stigmer.billing.v1.ModelBillingBreakdown
+	35, // 18: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
+	29, // 19: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.entries:type_name -> ai.stigmer.billing.v1.ModelPricingGovernanceEntry
+	52, // 20: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.pending_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
+	52, // 21: ai.stigmer.billing.v1.ModelPricingGovernanceEntry.active_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
+	53, // 22: ai.stigmer.billing.v1.UpsertModelPricingBaselineInput.baseline:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
+	53, // 23: ai.stigmer.billing.v1.ModelPricingBaselinesResponse.baselines:type_name -> ai.stigmer.billing.v1.ModelPricingBaseline
+	54, // 24: ai.stigmer.billing.v1.GetExecutionBillingSignalResponse.signal:type_name -> ai.stigmer.billing.v1.ExecutionBillingSignal
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_v1_io_proto_init() }

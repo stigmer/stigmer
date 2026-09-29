@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.providerkey.v1;
+
+import "ai/stigmer/billing/providerkey/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// Save the organization's key for a provider, replacing any key it holds for
+// that provider.
+message SetProviderKeyInput {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  string provider = 2 [(buf.validate.field).string = {
+    in: [
+      "anthropic",
+      "openai"
+    ]
+  }];
+
+  // The provider API key. Write-only: no read returns it.
+  string api_key = 3 [(buf.validate.field).string = {
+    min_len: 8
+    max_len: 512
+  }];
+}
+
+// Remove the organization's key for a provider.
+message DeleteProviderKeyInput {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  string provider = 2 [(buf.validate.field).string = {
+    in: [
+      "anthropic",
+      "openai"
+    ]
+  }];
+}
+
+// List the organization's provider keys.
+message ListProviderKeysInput {
+  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message ListProviderKeysOutput {
+  // One row per provider the organization is served on its own or its
+  // integrator's key, in provider order.
+  repeated ProviderKey keys = 1;
+}

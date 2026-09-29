@@ -590,11 +590,14 @@ enum ApiResourceKind {
     tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [
-        owner,
-        viewer
-      ]
+      // No owner: a channel app carries its organization's credentials with
+      // a messaging provider and is managed by the organization's current
+      // administrators, so a creator who loses admin loses control of it.
+      // The creator is recorded in the audit trail.
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      // A direct grant can only let someone read the app; managing it is its
+      // organization's admins' alone.
+      grantable_roles: [viewer]
     }
   }];
 

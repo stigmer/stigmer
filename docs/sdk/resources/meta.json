@@ -24,6 +24,7 @@
     "plan",
     "platform-client",
     "plugin",
+    "provider-key",
     "schedule",
     "session",
     "skill",

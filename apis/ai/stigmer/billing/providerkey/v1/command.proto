@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.providerkey.v1;
+
+import "ai/stigmer/billing/providerkey/v1/api.proto";
+import "ai/stigmer/billing/providerkey/v1/io.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// ProviderKeyCommandController saves and removes an organization's own LLM
+// provider keys.
+//
+// Provider keys are not a standard API Resource, so there is no
+// api_resource_kind annotation. Every write authorizes against the
+// organization with can_manage_billing, the permission the organization's
+// own billing writes use.
+//
+// @internal
+// Served by the cloud composition only.
+service ProviderKeyCommandController {
+  // Save the organization's key for a provider.
+  //
+  // The key is checked once against the provider before it is saved, and a
+  // key the provider rejects is refused with INVALID_ARGUMENT. Refused with
+  // FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
+  // organization's plan does not include bring-your-own provider keys.
+  // Returns the saved key without its secret.
+  rpc set(SetProviderKeyInput) returns (ProviderKey) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage provider keys for this organization";
+  }
+
+  // Remove the organization's key for a provider.
+  //
+  // Allowed on every plan, so an organization that left the plan can always
+  // remove what it saved. NOT_FOUND when the organization holds no key for
+  // the provider. Returns the removed key without its secret.
+  rpc delete(DeleteProviderKeyInput) returns (ProviderKey) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage provider keys for this organization";
+  }
+}
