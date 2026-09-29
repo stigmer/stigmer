@@ -139,9 +139,11 @@ export interface ServerConfig {
    * The OAuth callback URL for the McpServer OAuth Connect flows
    * (STIGMER_OAUTH_REDIRECT_URI; Go config.go OAuthRedirectURI). Unset, a
    * server that serves the web console on its unified port derives the
-   * console's own callback page at `http://localhost:<port>` (the
-   * `trusted-local` reading; boot/oauth-redirect-uri.ts), so a local
-   * install signs in without being told. Unset on a server that serves no
+   * console's own callback page on the origin browsers reach it on:
+   * SKILL_TRANSFER_BASE_URL when set (the address a team install was told
+   * its clients use, stigmer#1200), else `http://localhost:<port>`
+   * (boot/oauth-redirect-uri.ts), so neither a team install nor a local one
+   * has to be told. Unset on a server that serves no
    * console is a WARN at wiring time, not a boot failure — every RPC except
    * initiateOAuthConnect works without it, and initiate refuses with a
    * FailedPrecondition naming the variable (the pinned copy).
@@ -174,6 +176,8 @@ export interface ServerConfig {
    * base is the server's own port on localhost, read from the port the
    * unified listener actually binds (boot/skill-transfer-origin.ts), so a
    * server on an ephemeral port mints URLs that reach it (stigmer#1386).
+   * It is the unified port's public origin, so the served console's MCP
+   * OAuth callback derives on it too (boot/oauth-redirect-uri.ts).
    */
   readonly skillTransferBaseUrl: string;
   /**

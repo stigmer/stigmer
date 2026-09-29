@@ -65,9 +65,10 @@ server:
   # SKILL_TRANSFER_BASE_URL (skill push and download capability URLs are
   # consumed by the CLI and SDKs, never in-cluster) and the runner's
   # STIGMER_MCP_PUBLIC_ENDPOINT (the address remote MCP servers are given
-  # to dial back). Empty derives it: the
-  # Ingress API host when ingress.enabled, else http://localhost:7234, the
-  # port-forward posture and compose's own default.
+  # to dial back); the server also derives the console's MCP OAuth callback
+  # from SKILL_TRANSFER_BASE_URL, so Sign in returns here. Empty derives it:
+  # the Ingress API host when ingress.enabled, else http://localhost:7234,
+  # the port-forward posture and compose's own default.
   publicUrl: ""
   # The same for artifact download URLs (ARTIFACT_LOCAL_SERVE_URL): the
   # Ingress artifacts host, else http://localhost:7235.

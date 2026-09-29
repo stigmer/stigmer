@@ -249,10 +249,10 @@ stigmer config backend add prod --endpoint stigmer.example.com:443
 stigmer config backend use prod
 ```
 
-The console needs nothing: it reads its own origin. If you front the Service
-some other way than the chart's Ingress, `server.publicUrl` and
-`server.artifactPublicUrl` are the same two settings the compose page sets in
-`.env`.
+The console needs nothing: it reads its own origin, and an MCP server's Sign in
+returns to it on the same address. If you front the Service some other way than
+the chart's Ingress, `server.publicUrl` and `server.artifactPublicUrl` are the
+same two settings the compose page sets in `.env`.
 
 ## Turn authentication on
 

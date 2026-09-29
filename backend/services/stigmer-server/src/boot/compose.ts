@@ -1260,14 +1260,17 @@ export async function composeServer(
     logger,
   });
   // The OAuth callback: configured, or derived from the served console's
-  // own origin when it serves one on a known port (boot/oauth-redirect-uri.ts
-  // carries the posture). Absent is WARN-degrade, not boot-fatal (Go
+  // own origin when it serves one — the public origin the skill transfer
+  // lane already renders on, else the known port's loopback
+  // (boot/oauth-redirect-uri.ts carries the posture; stigmer#1200). Absent
+  // is WARN-degrade, not boot-fatal (Go
   // server.go:722-729): every OAuth RPC except initiateOAuthConnect works
   // without the redirect URI, and initiate refuses with the pinned
   // FailedPrecondition copy.
   const oauthRedirect = resolveOAuthRedirectUri({
     configured: config.oauthRedirectUri,
     servesConsole: consoleAssets !== undefined,
+    publicOrigin: config.skillTransferBaseUrl,
     port: options.portOverride ?? config.grpcPort,
   });
   switch (oauthRedirect.kind) {
@@ -1278,6 +1281,7 @@ export async function composeServer(
         "STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for MCP server OAuth Connect",
         {
           redirectUri: oauthRedirect.uri,
+          from: oauthRedirect.from,
         },
       );
       break;

@@ -15,7 +15,11 @@
  *     URLs reach it;
  *   - the skill transfer lane's capability URLs on an ephemeral unified
  *     port name the port the server bound, and a PUT to one reaches it
- *     (stigmer#1386).
+ *     (stigmer#1386);
+ *   - a served console's MCP OAuth callback is derived on the public
+ *     origin the operator named in SKILL_TRANSFER_BASE_URL, whatever the
+ *     port, and without one an ephemeral port still derives nothing
+ *     (stigmer#1200).
  */
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -33,13 +37,14 @@ import {
 import type { AddressInfo } from "node:net";
 import { describe, expect, it } from "vitest";
 
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
 import { createLogger } from "../logger.js";
+import type { LogEntry, Logger } from "../logger.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 
 const silentLogger = createLogger({
@@ -48,7 +53,7 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-function compose(env: NodeJS.ProcessEnv = {}) {
+function compose(env: NodeJS.ProcessEnv = {}, logger: Logger = silentLogger) {
   // Each composed server gets a throwaway database — the storage stage
   // opens DB_PATH for real (never the developer's ~/.stigmer).
   const testDir = mkdtempSync(path.join(tmpdir(), "compose-test-"));
@@ -68,7 +73,7 @@ function compose(env: NodeJS.ProcessEnv = {}) {
   });
   return composeServer({
     config,
-    logger: silentLogger,
+    logger,
     portOverride: 0,
     host: "127.0.0.1",
   });
@@ -197,6 +202,80 @@ describe("the skill transfer lane", () => {
         headers: { "content-type": "application/zip" },
       });
       expect(put.status).toBe(204);
+    } finally {
+      await server.shutdown();
+    }
+  });
+});
+
+describe("the MCP OAuth callback", () => {
+  /** A console export the console lane discovers: the app shell alone. */
+  function consoleExport(): string {
+    const dir = path.join(
+      mkdtempSync(path.join(tmpdir(), "compose-console-")),
+      "console",
+    );
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "index.html"), "<html>app shell</html>");
+    return dir;
+  }
+
+  /** A logger that keeps every entry at or above info, for the wiring-time lines. */
+  function capturingLogger(): { logger: Logger; entries: LogEntry[] } {
+    const entries: LogEntry[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => entries.push(entry),
+    });
+    return { logger, entries };
+  }
+
+  it("derives the served console's callback on the named public origin, on an ephemeral port too", async () => {
+    const { logger, entries } = capturingLogger();
+    const server = await compose(
+      {
+        STIGMER_CONSOLE_DIR: consoleExport(),
+        SKILL_TRANSFER_BASE_URL: "https://stigmer.example.test/",
+      },
+      logger,
+    );
+    await server.start();
+    try {
+      const derived = entries.find((entry) =>
+        entry.message.startsWith(
+          "STIGMER_OAUTH_REDIRECT_URI is not set — deriving",
+        ),
+      );
+      expect(derived?.fields).toEqual({
+        redirectUri: "https://stigmer.example.test/auth/oauth/callback",
+        from: "public-origin",
+      });
+    } finally {
+      await server.shutdown();
+    }
+  });
+
+  it("derives nothing on an ephemeral port when no public origin is named", async () => {
+    const { logger, entries } = capturingLogger();
+    const server = await compose(
+      { STIGMER_CONSOLE_DIR: consoleExport() },
+      logger,
+    );
+    await server.start();
+    try {
+      const redirectLines = entries.filter((entry) =>
+        entry.message.startsWith("STIGMER_OAUTH_REDIRECT_URI is not set"),
+      );
+      expect(
+        redirectLines.map((entry) => [entry.level, entry.message]),
+      ).toEqual([
+        [
+          "warn",
+          "STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)",
+        ],
+      ]);
     } finally {
       await server.shutdown();
     }
