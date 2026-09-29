@@ -160,15 +160,15 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     expect(candidate.value.changeSetId).toBe(CHANGE_SET_ID);
     expect(candidate.value.changes.map((c) => c.pathAfter)).toEqual([FILE]);
 
-    // The flowed edit row: the built-in policy still classifies `edit` as a
-    // gated category (`requiresApproval: true` is the policy's verdict, stamped
-    // at fold time), but capture mode let it FLOW — so the row is COMPLETED,
-    // never WAITING_APPROVAL, and the review happens on the file card instead.
+    // The flowed edit row: `edit` is a gated category, but capture mode let it
+    // FLOW, so nobody was asked — the row is COMPLETED, never WAITING_APPROVAL,
+    // carries no approval fields (#1117: `requiresApproval` means the call was
+    // held), and the review happens on the file card instead.
     const rows = record.toolCalls();
     expect(rows).toHaveLength(1);
     expect(rows[0].name).toBe("edit");
     expect(rows[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(rows[0].requiresApproval, "policy verdict, not the gate outcome").toBe(true);
+    expect(rows[0].requiresApproval, "held for a decision? no: capture mode let it flow").toBe(false);
     expect(record.waitingToolCalls(), "no gate row — the review is on the file card").toHaveLength(0);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────

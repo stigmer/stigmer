@@ -16,8 +16,6 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:05.000Z",
           "completedAt": "2026-01-01T00:00:06.000Z",
-          "requiresApproval": true,
-          "approvalMessage": "Write file: notes.md",
           "argsPreview": "{\"path\":\"notes.md\",\"content\":\"# Notes\\n\\nA fixture file.\\n\\nReviewed by the hermetic run.\\n\"}",
           "toolKind": "TOOL_KIND_FILE_EDIT",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",

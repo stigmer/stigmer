@@ -13,8 +13,6 @@
           },
           "status": "TOOL_CALL_RUNNING",
           "startedAt": "2026-01-01T00:00:03.000Z",
-          "requiresApproval": true,
-          "approvalMessage": "Run command: npm test",
           "argsPreview": "{\"command\":\"npm test\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",

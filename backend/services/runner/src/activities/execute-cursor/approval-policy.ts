@@ -43,6 +43,16 @@ export type { MergedToolPolicy, PolicySource } from "../../shared/approval-polic
  * taxonomy because it is consulted only to build the hook's gated set and its
  * name->category mapping. Cross-layer correlation never compares these raw
  * names — it uses {@link approvalCategory} (see below).
+ *
+ * Only mutating and destructive tools are gated; everything else (read-only
+ * built-ins, and auto-approved MCP tools) is allowed. This "gate the dangerous
+ * set, allow the rest" model is the platform's one approval rule, read through
+ * the shared `toolApprovalCategory` (`shared/tool-kind.ts`) that the native gate
+ * (`middleware/approval-gate.ts` `resolveToolApproval`) also reads: one
+ * taxonomy, two enforcement points. It is deliberately fail-OPEN for unknown
+ * tools: the merged MCP policy map carries only the tools that REQUIRE approval,
+ * so a fail-closed default would deny every auto-approved MCP tool, which the
+ * hook cannot distinguish from an unknown built-in by name.
  */
 const BUILT_IN_GATED: ReadonlySet<string> = new Set([
   "Write",
@@ -82,27 +92,6 @@ export const approvalCategory = toolApprovalCategory;
  */
 export { SALIENT_ARG_FIELDS } from "../../shared/args-preview.js";
 import { SALIENT_ARG_FIELDS } from "../../shared/args-preview.js";
-
-/**
- * Check whether a built-in (non-MCP) Cursor tool requires user approval.
- *
- * Resolved via {@link approvalCategory} so it answers correctly for BOTH
- * taxonomies — the hook's `Write`/`Shell`/`Delete` and the stream's
- * `edit`/`shell`/`delete` all return true. Only mutating/destructive tools are
- * gated; everything else (read-only built-ins, and — at the hook layer —
- * auto-approved MCP tools) is allowed. This "gate the dangerous set, allow the
- * rest" model is the platform's one approval rule, read through the shared
- * `approvalCategory` / `toolApprovalCategory` (`shared/tool-kind.ts`) that the
- * native gate (`middleware/approval-gate.ts` `resolveToolApproval`) also
- * reads — one taxonomy, two enforcement points. It is deliberately fail-OPEN
- * for unknown tools: the merged MCP policy map carries
- * only the tools that REQUIRE approval, so a fail-closed default would wrongly
- * deny every auto-approved MCP tool, which the hook cannot distinguish from an
- * unknown built-in by name.
- */
-export function builtInRequiresApproval(toolName: string): boolean {
-  return approvalCategory(toolName) !== undefined;
-}
 
 /**
  * Returns the built-in tool names that require approval (the gated set the
