@@ -51,6 +51,8 @@ function eventPayloadFields(event: WorkflowExecutionEvent): Record<string, unkno
     case "approvalResolved":
       return {
         action: (ApprovalAction[event.payload.value.action] ?? "unspecified").toLowerCase(),
+        outcome: event.payload.value.outcome,
+        autoResolved: event.payload.value.autoResolved,
         resolvedBy: event.payload.value.resolvedBy,
       };
     case "budgetCheckpoint":

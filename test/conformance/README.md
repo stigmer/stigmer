@@ -608,8 +608,8 @@ hermetic** (Temporal + runner only; no LLM, MCP, or child execution): the
 (set_vars), the downstream set_vars completing being the proof the gate resumed.
 The suite asserts the server-owned contract — the task-level gate, that `approve`
 completes the run and the downstream task, that the approval's one
-`approval_resolved` event carries the submitted comment and names the approving
-caller (the execution's `created_by`, never the client's `reviewer`) as
+`approval_resolved` event carries the submitted outcome and comment and names the
+approving caller (the execution's `created_by`, never the client's `reviewer`) as
 `resolved_by` and `resolved_by_actor`, that a **declared** non-approve outcome
 (`deny`) is *data* (resolves and still completes — only the implicit no-outcomes
 binary form fails on deny), that an outcome's `then` **routes** the workflow to
@@ -618,7 +618,9 @@ observable task statuses), the full timeout-policy contract — `FAIL` fails the
 run on its own, `APPROVE` completes it and reaches the downstream task, `DENY`
 resolves to the last declared outcome and completes, and a timed-out `APPROVE`
 with custom outcomes maps to the FIRST declared outcome and routes its `then`
-(the stigmer/stigmer#779 pins; before that fix only FAIL passed, by accident) —
+(the stigmer/stigmer#779 pins; before that fix only FAIL passed, by accident),
+and every timeout that resolves the gate logs one `approval_resolved` with
+`auto_resolved` set, no reviewer, and the outcome the policy resolved to —
 and the negative codes (empty fields / unknown task / non-
 `human_input` task -> `InvalidArgument`; missing execution -> `NotFound`; submit
 on a terminal execution -> `FailedPrecondition`). It deliberately does **not**

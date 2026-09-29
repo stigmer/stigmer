@@ -337,6 +337,8 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
             : undefined,
           comment: desc.comment,
           waitDurationMs: BigInt(desc.waitDurationMs),
+          outcome: desc.outcome,
+          autoResolved: desc.autoResolved,
         }),
       };
       break;

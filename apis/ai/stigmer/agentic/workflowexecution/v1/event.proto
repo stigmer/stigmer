@@ -682,11 +682,18 @@ message ApprovalRequestedPayload {
 // Payload for approval_resolved events.
 //
 // @internal
-// Emitted when an approval decision is made (approve, skip, or reject).
+// Emitted when an approval decision is made: an agent tool approval
+// (approve, skip, or reject, carried in action) or a workflow human_input
+// gate (one of its declared outcomes, carried in outcome).
 //
 // @since T06
 message ApprovalResolvedPayload {
-  // The decision that was made.
+  // The agent tool approval decision that was made.
+  //
+  // @internal
+  // Unset for a workflow human_input gate: its outcomes are declared
+  // strings, which this enum cannot express, so the gate reports its
+  // decision in outcome.
   ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1;
 
   // Canonical identity of the user who made the decision
@@ -717,6 +724,29 @@ message ApprovalResolvedPayload {
   //
   // @since Reviewer Attribution
   ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5;
+
+  // Outcome chosen at a workflow human_input gate, by its declared name
+  // (for example "approve", "deny" or "revise").
+  //
+  // @internal
+  // When a timeout policy decides the gate, this is the outcome the policy
+  // resolved to, and auto_resolved is true: for approve the first declared
+  // outcome, for deny the last ("approve" or "deny" when the gate declares
+  // none), for escalate the outcome named "escalate". Empty for
+  // agent tool approvals, which carry action instead, and for events
+  // recorded before this field existed.
+  //
+  // @since Approval Outcome (stigmer/stigmer#1431)
+  string outcome = 6;
+
+  // Whether the gate's timeout policy made the decision, with no reviewer.
+  //
+  // @internal
+  // When true, resolved_by and resolved_by_actor are empty and outcome is
+  // the policy's outcome. Always false for agent tool approvals.
+  //
+  // @since Approval Outcome (stigmer/stigmer#1431)
+  bool auto_resolved = 7;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

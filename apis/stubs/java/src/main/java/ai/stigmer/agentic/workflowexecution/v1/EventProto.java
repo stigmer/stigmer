@@ -299,52 +299,54 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "Schema\0220\n\007payload\030\010 \001(\0132\026.google.protobu" +
       "f.ValueR\007payload\022\027\n\007ui_hint\030\t \001(\tR\006uiHin" +
       "t\022.\n\023payload_artifact_id\030\n \001(\tR\021payloadA" +
-      "rtifactId\"\257\002\n\027ApprovalResolvedPayload\022L\n" +
+      "rtifactId\"\356\002\n\027ApprovalResolvedPayload\022L\n" +
       "\006action\030\001 \001(\01624.ai.stigmer.agentic.agent" +
       "execution.v1.ApprovalActionR\006action\022\037\n\013r" +
       "esolved_by\030\002 \001(\tR\nresolvedBy\022\030\n\007comment\030" +
       "\003 \001(\tR\007comment\022(\n\020wait_duration_ms\030\004 \001(\003" +
       "R\016waitDurationMs\022a\n\021resolved_by_actor\030\005 " +
       "\001(\01325.ai.stigmer.commons.apiresource.Api" +
-      "ResourceAuditActorR\017resolvedByActor\"\346\002\n\027" +
-      "BudgetCheckpointPayload\0220\n\024cost_consumed" +
-      "_micros\030\001 \001(\003R\022costConsumedMicros\0222\n\025cos" +
-      "t_remaining_micros\030\002 \001(\003R\023costRemainingM" +
-      "icros\022\'\n\017tokens_consumed\030\003 \001(\003R\016tokensCo" +
-      "nsumed\022)\n\020tokens_remaining\030\004 \001(\003R\017tokens" +
-      "Remaining\022-\n\022threshold_breached\030\005 \001(\010R\021t" +
-      "hresholdBreached\022b\n\022on_exceeded_policy\030\006" +
-      " \001(\01624.ai.stigmer.agentic.workflow.v1.Bu" +
-      "dgetExceededPolicyR\020onExceededPolicy\"z\n\025" +
-      "SignalReceivedPayload\022\037\n\013signal_name\030\001 \001" +
-      "(\tR\nsignalName\022@\n\017payload_summary\030\002 \001(\0132" +
-      "\027.google.protobuf.StructR\016payloadSummary" +
-      "\"|\n\023EventEmittedPayload\022\035\n\nevent_type\030\001 " +
-      "\001(\tR\teventType\022!\n\014event_source\030\002 \001(\tR\013ev" +
-      "entSource\022#\n\revent_subject\030\003 \001(\tR\014eventS" +
-      "ubject\"\236\001\n\026ArtifactCreatedPayload\022\037\n\013art" +
-      "ifact_id\030\001 \001(\tR\nartifactId\022!\n\014display_na" +
-      "me\030\002 \001(\tR\013displayName\022!\n\014content_type\030\003 " +
-      "\001(\tR\013contentType\022\035\n\nsize_bytes\030\004 \001(\003R\tsi" +
-      "zeBytes*\211\004\n\021WorkflowEventType\022#\n\037workflo" +
-      "w_event_type_unspecified\020\000\022\025\n\021execution_" +
-      "started\020\001\022\027\n\023execution_completed\020\002\022\024\n\020ex" +
-      "ecution_failed\020\003\022\024\n\020execution_paused\020\004\022\025" +
-      "\n\021execution_resumed\020\005\022\027\n\023execution_cance" +
-      "lled\020\006\022\030\n\024execution_terminated\020\007\022\020\n\014task" +
-      "_started\020\013\022\022\n\016task_completed\020\014\022\017\n\013task_f" +
-      "ailed\020\r\022\020\n\014task_skipped\020\016\022\021\n\rtask_retryi" +
-      "ng\020\017\022\026\n\022agent_call_started\020\025\022\027\n\023agent_ca" +
-      "ll_progress\020\026\022\030\n\024agent_call_completed\020\027\022" +
-      "\026\n\022approval_requested\020\037\022\025\n\021approval_reso" +
-      "lved\020 \022\025\n\021budget_checkpoint\020)\022\023\n\017signal_" +
-      "received\0203\022\021\n\revent_emitted\0204\022\024\n\020artifac" +
-      "t_created\0205B\315\001B\nEventProtoP\001\242\002\004ASAW\252\002\'Ai" +
-      ".Stigmer.Agentic.Workflowexecution.V1\312\002\'" +
-      "Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\342" +
-      "\0023Ai\\Stigmer\\Agentic\\Workflowexecution\\V" +
-      "1\\GPBMetadata\352\002+Ai::Stigmer::Agentic::Wo" +
-      "rkflowexecution::V1b\006proto3"
+      "ResourceAuditActorR\017resolvedByActor\022\030\n\007o" +
+      "utcome\030\006 \001(\tR\007outcome\022#\n\rauto_resolved\030\007" +
+      " \001(\010R\014autoResolved\"\346\002\n\027BudgetCheckpointP" +
+      "ayload\0220\n\024cost_consumed_micros\030\001 \001(\003R\022co" +
+      "stConsumedMicros\0222\n\025cost_remaining_micro" +
+      "s\030\002 \001(\003R\023costRemainingMicros\022\'\n\017tokens_c" +
+      "onsumed\030\003 \001(\003R\016tokensConsumed\022)\n\020tokens_" +
+      "remaining\030\004 \001(\003R\017tokensRemaining\022-\n\022thre" +
+      "shold_breached\030\005 \001(\010R\021thresholdBreached\022" +
+      "b\n\022on_exceeded_policy\030\006 \001(\01624.ai.stigmer" +
+      ".agentic.workflow.v1.BudgetExceededPolic" +
+      "yR\020onExceededPolicy\"z\n\025SignalReceivedPay" +
+      "load\022\037\n\013signal_name\030\001 \001(\tR\nsignalName\022@\n" +
+      "\017payload_summary\030\002 \001(\0132\027.google.protobuf" +
+      ".StructR\016payloadSummary\"|\n\023EventEmittedP" +
+      "ayload\022\035\n\nevent_type\030\001 \001(\tR\teventType\022!\n" +
+      "\014event_source\030\002 \001(\tR\013eventSource\022#\n\reven" +
+      "t_subject\030\003 \001(\tR\014eventSubject\"\236\001\n\026Artifa" +
+      "ctCreatedPayload\022\037\n\013artifact_id\030\001 \001(\tR\na" +
+      "rtifactId\022!\n\014display_name\030\002 \001(\tR\013display" +
+      "Name\022!\n\014content_type\030\003 \001(\tR\013contentType\022" +
+      "\035\n\nsize_bytes\030\004 \001(\003R\tsizeBytes*\211\004\n\021Workf" +
+      "lowEventType\022#\n\037workflow_event_type_unsp" +
+      "ecified\020\000\022\025\n\021execution_started\020\001\022\027\n\023exec" +
+      "ution_completed\020\002\022\024\n\020execution_failed\020\003\022" +
+      "\024\n\020execution_paused\020\004\022\025\n\021execution_resum" +
+      "ed\020\005\022\027\n\023execution_cancelled\020\006\022\030\n\024executi" +
+      "on_terminated\020\007\022\020\n\014task_started\020\013\022\022\n\016tas" +
+      "k_completed\020\014\022\017\n\013task_failed\020\r\022\020\n\014task_s" +
+      "kipped\020\016\022\021\n\rtask_retrying\020\017\022\026\n\022agent_cal" +
+      "l_started\020\025\022\027\n\023agent_call_progress\020\026\022\030\n\024" +
+      "agent_call_completed\020\027\022\026\n\022approval_reque" +
+      "sted\020\037\022\025\n\021approval_resolved\020 \022\025\n\021budget_" +
+      "checkpoint\020)\022\023\n\017signal_received\0203\022\021\n\reve" +
+      "nt_emitted\0204\022\024\n\020artifact_created\0205B\315\001B\nE" +
+      "ventProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic." +
+      "Workflowexecution.V1\312\002\'Ai\\Stigmer\\Agenti" +
+      "c\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\Agen" +
+      "tic\\Workflowexecution\\V1\\GPBMetadata\352\002+A" +
+      "i::Stigmer::Agentic::Workflowexecution::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -468,7 +470,7 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_ApprovalResolvedPayload_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_ApprovalResolvedPayload_descriptor,
-        new java.lang.String[] { "Action", "ResolvedBy", "Comment", "WaitDurationMs", "ResolvedByActor", });
+        new java.lang.String[] { "Action", "ResolvedBy", "Comment", "WaitDurationMs", "ResolvedByActor", "Outcome", "AutoResolved", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_BudgetCheckpointPayload_descriptor =
       getDescriptor().getMessageType(19);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_BudgetCheckpointPayload_fieldAccessorTable = new

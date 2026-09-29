@@ -97,6 +97,28 @@ describe("toWorkflowEventView", () => {
     expect(toWorkflowEventView(event).text).toBe("approval resolved: review — approve by alice");
   });
 
+  it("renders a human_input gate's declared outcome and reviewer for approval_resolved", () => {
+    const event = create(WorkflowExecutionEventSchema, {
+      taskName: "review",
+      payload: {
+        case: "approvalResolved",
+        value: create(ApprovalResolvedPayloadSchema, { outcome: "revise", resolvedBy: "alice" }),
+      },
+    });
+    expect(toWorkflowEventView(event).text).toBe("approval resolved: review — revise by alice");
+  });
+
+  it("marks a timeout-resolved gate and names no reviewer", () => {
+    const event = create(WorkflowExecutionEventSchema, {
+      taskName: "review",
+      payload: {
+        case: "approvalResolved",
+        value: create(ApprovalResolvedPayloadSchema, { outcome: "escalate", autoResolved: true }),
+      },
+    });
+    expect(toWorkflowEventView(event).text).toBe("approval resolved: review — escalate (timeout)");
+  });
+
   it("converts micros to a dollar amount for budget_checkpoint", () => {
     const event = create(WorkflowExecutionEventSchema, {
       payload: { case: "budgetCheckpoint", value: create(BudgetCheckpointPayloadSchema, { costConsumedMicros: 1_234_500n }) },

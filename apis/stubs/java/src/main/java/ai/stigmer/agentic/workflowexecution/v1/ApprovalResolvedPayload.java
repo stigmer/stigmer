@@ -35,6 +35,7 @@ private static final long serialVersionUID = 0L;
     action_ = 0;
     resolvedBy_ = "";
     comment_ = "";
+    outcome_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -60,7 +61,7 @@ private static final long serialVersionUID = 0L;
   private int action_ = 0;
   /**
    * <pre>
-   * The decision that was made.
+   * The agent tool approval decision that was made.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -71,7 +72,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The decision that was made.
+   * The agent tool approval decision that was made.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -234,6 +235,70 @@ private static final long serialVersionUID = 0L;
     return resolvedByActor_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditActor.getDefaultInstance() : resolvedByActor_;
   }
 
+  public static final int OUTCOME_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object outcome_ = "";
+  /**
+   * <pre>
+   * Outcome chosen at a workflow human_input gate, by its declared name
+   * (for example "approve", "deny" or "revise").
+   * </pre>
+   *
+   * <code>string outcome = 6 [json_name = "outcome"];</code>
+   * @return The outcome.
+   */
+  @java.lang.Override
+  public java.lang.String getOutcome() {
+    java.lang.Object ref = outcome_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      outcome_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Outcome chosen at a workflow human_input gate, by its declared name
+   * (for example "approve", "deny" or "revise").
+   * </pre>
+   *
+   * <code>string outcome = 6 [json_name = "outcome"];</code>
+   * @return The bytes for outcome.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOutcomeBytes() {
+    java.lang.Object ref = outcome_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      outcome_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int AUTO_RESOLVED_FIELD_NUMBER = 7;
+  private boolean autoResolved_ = false;
+  /**
+   * <pre>
+   * Whether the gate's timeout policy made the decision, with no reviewer.
+   * </pre>
+   *
+   * <code>bool auto_resolved = 7 [json_name = "autoResolved"];</code>
+   * @return The autoResolved.
+   */
+  @java.lang.Override
+  public boolean getAutoResolved() {
+    return autoResolved_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -263,6 +328,12 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getResolvedByActor());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(outcome_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, outcome_);
+    }
+    if (autoResolved_ != false) {
+      output.writeBool(7, autoResolved_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -289,6 +360,13 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getResolvedByActor());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(outcome_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, outcome_);
+    }
+    if (autoResolved_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(7, autoResolved_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -317,6 +395,10 @@ private static final long serialVersionUID = 0L;
       if (!getResolvedByActor()
           .equals(other.getResolvedByActor())) return false;
     }
+    if (!getOutcome()
+        .equals(other.getOutcome())) return false;
+    if (getAutoResolved()
+        != other.getAutoResolved()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -341,6 +423,11 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + RESOLVED_BY_ACTOR_FIELD_NUMBER;
       hash = (53 * hash) + getResolvedByActor().hashCode();
     }
+    hash = (37 * hash) + OUTCOME_FIELD_NUMBER;
+    hash = (53 * hash) + getOutcome().hashCode();
+    hash = (37 * hash) + AUTO_RESOLVED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getAutoResolved());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -491,6 +578,8 @@ private static final long serialVersionUID = 0L;
         resolvedByActorBuilder_.dispose();
         resolvedByActorBuilder_ = null;
       }
+      outcome_ = "";
+      autoResolved_ = false;
       return this;
     }
 
@@ -543,6 +632,12 @@ private static final long serialVersionUID = 0L;
             : resolvedByActorBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.outcome_ = outcome_;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.autoResolved_ = autoResolved_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -576,6 +671,14 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasResolvedByActor()) {
         mergeResolvedByActor(other.getResolvedByActor());
+      }
+      if (!other.getOutcome().isEmpty()) {
+        outcome_ = other.outcome_;
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      if (other.getAutoResolved() != false) {
+        setAutoResolved(other.getAutoResolved());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -630,6 +733,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              outcome_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
+            case 56: {
+              autoResolved_ = input.readBool();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -650,7 +763,7 @@ private static final long serialVersionUID = 0L;
     private int action_ = 0;
     /**
      * <pre>
-     * The decision that was made.
+     * The agent tool approval decision that was made.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -661,7 +774,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The decision that was made.
+     * The agent tool approval decision that was made.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -677,7 +790,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The decision that was made.
+     * The agent tool approval decision that was made.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -690,7 +803,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The decision that was made.
+     * The agent tool approval decision that was made.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -706,7 +819,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The decision that was made.
+     * The agent tool approval decision that was made.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -1115,6 +1228,147 @@ private static final long serialVersionUID = 0L;
         resolvedByActor_ = null;
       }
       return resolvedByActorBuilder_;
+    }
+
+    private java.lang.Object outcome_ = "";
+    /**
+     * <pre>
+     * Outcome chosen at a workflow human_input gate, by its declared name
+     * (for example "approve", "deny" or "revise").
+     * </pre>
+     *
+     * <code>string outcome = 6 [json_name = "outcome"];</code>
+     * @return The outcome.
+     */
+    public java.lang.String getOutcome() {
+      java.lang.Object ref = outcome_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        outcome_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Outcome chosen at a workflow human_input gate, by its declared name
+     * (for example "approve", "deny" or "revise").
+     * </pre>
+     *
+     * <code>string outcome = 6 [json_name = "outcome"];</code>
+     * @return The bytes for outcome.
+     */
+    public com.google.protobuf.ByteString
+        getOutcomeBytes() {
+      java.lang.Object ref = outcome_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        outcome_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Outcome chosen at a workflow human_input gate, by its declared name
+     * (for example "approve", "deny" or "revise").
+     * </pre>
+     *
+     * <code>string outcome = 6 [json_name = "outcome"];</code>
+     * @param value The outcome to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutcome(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      outcome_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Outcome chosen at a workflow human_input gate, by its declared name
+     * (for example "approve", "deny" or "revise").
+     * </pre>
+     *
+     * <code>string outcome = 6 [json_name = "outcome"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOutcome() {
+      outcome_ = getDefaultInstance().getOutcome();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Outcome chosen at a workflow human_input gate, by its declared name
+     * (for example "approve", "deny" or "revise").
+     * </pre>
+     *
+     * <code>string outcome = 6 [json_name = "outcome"];</code>
+     * @param value The bytes for outcome to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutcomeBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      outcome_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+
+    private boolean autoResolved_ ;
+    /**
+     * <pre>
+     * Whether the gate's timeout policy made the decision, with no reviewer.
+     * </pre>
+     *
+     * <code>bool auto_resolved = 7 [json_name = "autoResolved"];</code>
+     * @return The autoResolved.
+     */
+    @java.lang.Override
+    public boolean getAutoResolved() {
+      return autoResolved_;
+    }
+    /**
+     * <pre>
+     * Whether the gate's timeout policy made the decision, with no reviewer.
+     * </pre>
+     *
+     * <code>bool auto_resolved = 7 [json_name = "autoResolved"];</code>
+     * @param value The autoResolved to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAutoResolved(boolean value) {
+
+      autoResolved_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the gate's timeout policy made the decision, with no reviewer.
+     * </pre>
+     *
+     * <code>bool auto_resolved = 7 [json_name = "autoResolved"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAutoResolved() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      autoResolved_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload)

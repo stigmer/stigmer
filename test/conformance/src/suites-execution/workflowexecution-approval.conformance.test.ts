@@ -27,10 +27,10 @@
 //   reviewer?, comment?} resolves the gate; the named human_input task and the
 //   downstream task complete and the execution reaches EXECUTION_COMPLETED.
 // - The decision reaches the public event log: the gate's one approval_resolved
-//   event carries the submitted comment and names the authorized caller as
-//   resolved_by and resolved_by_actor, the same principal the server stamps as
-//   the execution's created_by. The client's `reviewer` is never what is
-//   recorded.
+//   event carries the submitted outcome and comment, auto_resolved false, and
+//   names the authorized caller as resolved_by and resolved_by_actor, the same
+//   principal the server stamps as the execution's created_by. The client's
+//   `reviewer` is never what is recorded.
 // - A *defined custom* outcome that is not "approve" (here "deny") is a data
 //   outcome: it resolves the gate and the execution still COMPLETES. (Only the
 //   implicit, no-outcomes binary form fails on "deny"; with outcomes declared,
@@ -41,6 +41,10 @@
 //   observable task statuses — preferred over reading the task.output projection.
 // - timeout + on_timeout=HUMAN_INPUT_TIMEOUT_FAIL fails the execution on its own,
 //   with no decision submitted.
+// - A timeout policy that resolves the gate (APPROVE, DENY, ESCALATE) logs one
+//   approval_resolved event with auto_resolved true, no reviewer, and the
+//   outcome the policy resolved to: the first declared outcome, the last, and
+//   the one named "escalate".
 // - Negatives carry the handler's codes: empty execution_id / task_name / outcome
 //   -> InvalidArgument; missing execution -> NotFound; unknown task_name ->
 //   InvalidArgument; a real but non-human_input task -> InvalidArgument; a submit
@@ -53,10 +57,12 @@
 // either races into FailedPrecondition once terminal, or sends a duplicate signal
 // a resolved gate ignores) — not a clean black-box guarantee. The task.output
 // (outcome / form_data / reviewer) is likewise left unasserted; outcome-honoring
-// is proven behaviorally via routing, and the reviewer and comment on the event
-// log, instead of coupling the contract to that runner-produced projection.
+// is proven behaviorally via routing, and the outcome, reviewer and comment on
+// the event log, instead of coupling the contract to that runner-produced
+// projection.
 import { Code } from "@connectrpc/connect";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { ApprovalResolvedPayload } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import {
   ExecutionPhase,
   WorkflowTaskStatus,
@@ -130,6 +136,24 @@ async function runToGate(
 
   const gated = await awaitTaskWaitingApproval(clients, executionId, HUMAN_INPUT_TASK_NAME);
   return { executionId, gated };
+}
+
+// The gate's approval_resolved event, asserted to be the only one: the public
+// event log is where every arm that resolves the gate reads the decision back.
+async function soleResolutionOf(executionId: string): Promise<ApprovalResolvedPayload> {
+  const resolutions = await approvalResolutionsOf(clients, executionId, HUMAN_INPUT_TASK_NAME);
+  expect(resolutions, `execution ${executionId} logs one approval_resolved event for the gate`).toHaveLength(1);
+  return resolutions[0]!;
+}
+
+// A gate a timeout policy decided: the event says so, names no reviewer, and
+// carries the outcome the policy resolved to.
+async function expectTimeoutResolution(executionId: string, outcome: string): Promise<void> {
+  const resolved = await soleResolutionOf(executionId);
+  expect(resolved.autoResolved, `execution ${executionId}: the event marks the gate auto-resolved`).toBe(true);
+  expect(resolved.outcome, `execution ${executionId}: the event carries the policy's outcome`).toBe(outcome);
+  expect(resolved.resolvedBy, `execution ${executionId}: a timeout decision names no reviewer`).toBe("");
+  expect(resolved.resolvedByActor, `execution ${executionId}: a timeout decision has no reviewer snapshot`).toBeUndefined();
 }
 
 describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", () => {
@@ -208,15 +232,15 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     // same principal (#1422), with the comment it typed (#1423).
     const creator = final.status?.audit?.specAudit?.createdBy?.id ?? "";
     expect(creator, `execution ${executionId} records its creator`).not.toBe("");
-    const resolutions = await approvalResolutionsOf(clients, executionId, HUMAN_INPUT_TASK_NAME);
-    expect(resolutions, `execution ${executionId} logs one approval_resolved event for the gate`).toHaveLength(1);
-    const [resolved] = resolutions;
-    expect(resolved?.comment, `execution ${executionId}: the event carries the submitted comment`).toBe(
+    const resolved = await soleResolutionOf(executionId);
+    expect(resolved.outcome, `execution ${executionId}: the event carries the submitted outcome`).toBe("approve");
+    expect(resolved.autoResolved, `execution ${executionId}: a reviewer's decision is not auto-resolved`).toBe(false);
+    expect(resolved.comment, `execution ${executionId}: the event carries the submitted comment`).toBe(
       "looks good",
     );
-    expect(resolved?.resolvedBy, `execution ${executionId}: the event names the approving caller`).toBe(creator);
+    expect(resolved.resolvedBy, `execution ${executionId}: the event names the approving caller`).toBe(creator);
     expect(
-      resolved?.resolvedByActor?.id,
+      resolved.resolvedByActor?.id,
       `execution ${executionId}: the event's reviewer snapshot names the approving caller`,
     ).toBe(creator);
   });
@@ -240,6 +264,9 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     expect(final.status?.phase, "a declared deny outcome still COMPLETES the run").toBe(
       ExecutionPhase.EXECUTION_COMPLETED,
     );
+    // The event records the outcome that was submitted, not a fixed value.
+    const resolved = await soleResolutionOf(executionId);
+    expect(resolved.outcome, `execution ${executionId}: the event carries the submitted outcome`).toBe("deny");
   });
 
   it("an outcome's `then` routes the workflow to the named task", async () => {
@@ -317,6 +344,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
       taskByName(final, HUMAN_INPUT_AFTER_TASK_NAME)?.status,
       "the downstream task runs after auto-approval",
     ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
+    // The fixture declares approve/deny, so auto-approval is the first: "approve".
+    await expectTimeoutResolution(executionId, "approve");
   });
 
   it("on_timeout=DENY resolves to the last declared outcome and completes", async () => {
@@ -340,6 +369,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
       final.status?.phase,
       `auto-denied gate with a declared deny outcome should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
     ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    await expectTimeoutResolution(executionId, "deny");
   });
 
   it("on_timeout=APPROVE maps to the FIRST declared outcome and routes its `then`", async () => {
@@ -369,6 +399,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
       taskByName(final, "fastPath")?.status,
       "the first outcome's `then` target runs",
     ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
+    // The event names the declared outcome too, not the policy word "approve".
+    await expectTimeoutResolution(executionId, "proceed");
   });
 
   it("on_timeout=ESCALATE resolves to the escalate outcome and routes its `then`", async () => {
@@ -405,6 +437,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
       taskByName(final, "escalationPath")?.status,
       "the escalate outcome's `then` target runs",
     ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
+    await expectTimeoutResolution(executionId, "escalate");
   });
 });
 

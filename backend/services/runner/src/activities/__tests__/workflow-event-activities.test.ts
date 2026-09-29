@@ -4,6 +4,7 @@ import { StigmerClient } from "../../client/stigmer-client.js";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
 const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
@@ -648,7 +649,7 @@ describe("toProtoEvent", () => {
       expect(actor!.avatar).toBe("https://example.com/ada.png");
     });
 
-    it("does not map outcome or autoResolved (proto limitation)", () => {
+    it("maps the chosen outcome and a human decision's autoResolved=false", () => {
       const evt = toProtoEvent({
         type: "approval_resolved",
         taskName: "gate",
@@ -657,16 +658,36 @@ describe("toProtoEvent", () => {
         resolvedBy: "bob",
         comment: "",
         waitDurationMs: 1000,
+        autoResolved: false,
+      });
+
+      if (evt.payload.case !== "approvalResolved") throw new Error("unexpected");
+      const p = evt.payload.value;
+      expect(p.outcome).toBe("needs_revision");
+      expect(p.autoResolved).toBe(false);
+      // A human_input gate's outcome is a declared string, never mapped onto
+      // the agent ApprovalAction enum: action stays unset.
+      expect(p.action).toBe(ApprovalAction.UNSPECIFIED);
+    });
+
+    it("maps a timeout auto-resolution: the policy's outcome, autoResolved, no reviewer", () => {
+      const evt = toProtoEvent({
+        type: "approval_resolved",
+        taskName: "gate",
+        occurredAt: NOW,
+        outcome: "escalate",
+        resolvedBy: "",
+        comment: "",
+        waitDurationMs: 5000,
         autoResolved: true,
       });
 
       if (evt.payload.case !== "approvalResolved") throw new Error("unexpected");
-      // action field stays at default (UNSPECIFIED) because toProtoEvent
-      // does not map the string outcome to ApprovalAction enum.
-      // autoResolved has no corresponding proto field.
-      // This documents the current limitation per Finding #2.
-      expect(evt.payload.value.resolvedBy).toBe("bob");
-      expect(evt.payload.value.waitDurationMs).toBe(BigInt(1000));
+      const p = evt.payload.value;
+      expect(p.outcome).toBe("escalate");
+      expect(p.autoResolved).toBe(true);
+      expect(p.resolvedBy).toBe("");
+      expect(p.resolvedByActor).toBeUndefined();
     });
   });
 
