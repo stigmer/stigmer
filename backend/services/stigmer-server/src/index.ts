@@ -367,10 +367,10 @@ export {
 } from "./pipeline/interceptors/auth.js";
 export { newPipeline } from "./pipeline/pipeline.js";
 export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
-// The run gate's check set (P1 sp.run-gate): an edition's Authorizer keys
-// its lane admission on this predicate — the runtime lanes it mints (a
-// guest share, a channel, a schedule fire, a workflow sandbox) were
-// admitted upstream by their own gate steps and are not re-asked here.
+// The run gate's check set: an edition's Authorizer keys its lane
+// admission on this predicate — the runtime lanes it mints (a guest
+// share, a channel, a schedule fire) were admitted upstream by their own
+// gate steps and are not re-asked here.
 // OSS defines the gate, so OSS defines which checks are the gate; a
 // composition never re-derives the set.
 export { isRunGateCheck } from "./pipeline/steps/authorize-run-target.js";

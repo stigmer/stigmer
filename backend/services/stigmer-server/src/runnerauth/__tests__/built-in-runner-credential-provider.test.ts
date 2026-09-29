@@ -11,7 +11,7 @@
  *     — an agent execution, a workflow execution (the kind read off the
  *     bound id's prefix), an MCP connect (its own predicate), or nothing
  *     (a person; a token that is not ours; a forged one). One HMAC, no
- *     store read; the lane-admission decorator asks the same question. A
+ *     store read. A
  *     connect binding is answered BY NAME by every capability: it vouches
  *     nothing, captures nothing, and the exchange mints nothing for it.
  *   - `vouchRunnerLineageLabels`: a WORKFLOW-bound runner vouches the two

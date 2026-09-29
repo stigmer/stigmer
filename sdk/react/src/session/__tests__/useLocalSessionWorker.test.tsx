@@ -7,6 +7,32 @@ import { ExecutionTargetContext } from "../../execution-target-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
 import { useLocalSessionWorker } from "../useLocalSessionWorker";
+import type { UseWhoAmIReturn } from "../../iam-policy/useWhoAmI";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+
+// The signed-in account the hook compares a session's creator against.
+// Default: no account (a single-user server answers whoAmI NOT_FOUND), the
+// case in which every session is served as before.
+let whoAmI: UseWhoAmIReturn = { account: null, isLoading: false, error: null };
+vi.mock("../../iam-policy/useWhoAmI", () => ({
+  useWhoAmI: () => whoAmI,
+}));
+
+function signedInAs(id: string, idpId = ""): UseWhoAmIReturn {
+  return {
+    account: { metadata: { id }, spec: { idpId } } as IdentityAccount,
+    isLoading: false,
+    error: null,
+  };
+}
+
+/** A local session created by `createdBy`. */
+function makeOwnedSession(createdBy: string): Session {
+  return {
+    spec: { executionTarget: ExecutionTarget.LOCAL },
+    status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
+  } as Session;
+}
 
 function createMockAdapter(): RunnerAdapter & {
   onSessionOpened: ReturnType<typeof vi.fn>;
@@ -45,6 +71,58 @@ function wrapper(
 describe("useLocalSessionWorker", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    whoAmI = { account: null, isLoading: false, error: null };
+  });
+
+  it("attaches for the session's creator", () => {
+    whoAmI = signedInAs("ida_owner");
+    const adapter = createMockAdapter();
+    renderHook(() => useLocalSessionWorker("ses-1", makeOwnedSession("ida_owner")), {
+      wrapper: wrapper(adapter, "local"),
+    });
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+  });
+
+  it("attaches for a creator stamped with the account's identity-provider subject", () => {
+    whoAmI = signedInAs("ida_owner", "email|owner@example.test");
+    const adapter = createMockAdapter();
+    renderHook(
+      () => useLocalSessionWorker("ses-1", makeOwnedSession("email|owner@example.test")),
+      { wrapper: wrapper(adapter, "local") },
+    );
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+  });
+
+  it("does not attach for a viewer who is not the session's creator", () => {
+    whoAmI = signedInAs("ida_viewer", "email|viewer@example.test");
+    const adapter = createMockAdapter();
+    renderHook(() => useLocalSessionWorker("ses-1", makeOwnedSession("ida_owner")), {
+      wrapper: wrapper(adapter, "local"),
+    });
+    expect(adapter.onSessionOpened).not.toHaveBeenCalled();
+  });
+
+  it("waits for the signed-in account before attaching", () => {
+    whoAmI = { account: null, isLoading: true, error: null };
+    const adapter = createMockAdapter();
+    const { rerender } = renderHook(
+      () => useLocalSessionWorker("ses-1", makeOwnedSession("ida_owner")),
+      { wrapper: wrapper(adapter, "local") },
+    );
+    expect(adapter.onSessionOpened).not.toHaveBeenCalled();
+
+    whoAmI = signedInAs("ida_owner");
+    rerender();
+    expect(adapter.onSessionOpened).toHaveBeenCalledTimes(1);
+  });
+
+  it("attaches when there is no account to compare (a single-user server)", () => {
+    whoAmI = { account: null, isLoading: false, error: new Error("Identity account not found") };
+    const adapter = createMockAdapter();
+    renderHook(() => useLocalSessionWorker("ses-1", makeOwnedSession("system")), {
+      wrapper: wrapper(adapter, "local"),
+    });
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
   });
 
   it("attaches the worker on mount for a loaded local session", () => {

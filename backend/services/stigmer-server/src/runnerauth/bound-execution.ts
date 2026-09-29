@@ -29,8 +29,8 @@
  *     the connect predicate for the third — with no store read. A
  *     session's or an agent's id, a foreign prefix, or garbage is
  *     `undefined`, and the caller refuses with its own sentence. The
- *     lane-admission decorator asks only this, per run-gate check, so it
- *     must stay free of I/O.
+ *     lineage vouch asks only this, synchronously, so it must stay free
+ *     of I/O.
  *   - `loadBoundExecution(store, id)`: the row's facts the lane needs and
  *     nothing else — the creator stamp the verifier resolves a person
  *     from, the org and session the capture capability scopes with, and
