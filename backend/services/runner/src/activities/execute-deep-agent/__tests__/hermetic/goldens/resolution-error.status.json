@@ -12,7 +12,7 @@
     }
   ],
   "phase": "EXECUTION_FAILED",
-  "error": "Execution failed: [Error] hermetic fault injected at getAgent",
+  "error": "[Error] hermetic fault injected at getAgent",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:00.000Z"
 }

@@ -89,8 +89,6 @@ export interface DeepAgentStreamResult {
   readonly eventsProcessed: number;
   /** The graph's final state (`structuredResponse` rides it); absent unless the stream completed and the output resolved in time. */
   readonly runOutput: Record<string, unknown> | undefined;
-  /** Inline publishes fired mid-turn, drained by the settle. */
-  readonly pendingPublishPromises: readonly Promise<void>[];
 }
 
 /**
@@ -100,14 +98,17 @@ export interface DeepAgentStreamResult {
  * that registers artifacts on the runtime's builder (`sink.transcript`, so
  * a published artifact still dirties the next persist) and checks the rows
  * already on `sink.status` before uploading, so an earlier turn's unchanged
- * file is not sent again. The builder itself
- * is the runtime's, one per turn, and is read from the sink where it is
- * needed. Built by the adapter's turn once and shared by the stream and the
- * settle.
+ * file is not sent again; and the side effects that fire the publisher
+ * mid-turn and hold its in-flight uploads until they are drained. The
+ * builder itself is the runtime's, one per turn, and is read from the sink
+ * where it is needed. Built by the adapter's turn once and shared by the
+ * stream, the settle and the turn's `finally`, which drains the publishes
+ * on every exit (`streaming-side-effects.ts`).
  */
 export interface DeepAgentTranscript {
   readonly translator: DeepAgentTranslator;
   readonly publisher: InlinePublisher;
+  readonly sideEffects: StreamingSideEffects;
 }
 
 export function createDeepAgentTranscript(
@@ -124,7 +125,7 @@ export function createDeepAgentTranscript(
     record: sink.status,
     executionId: input.executionId,
   });
-  return { translator, publisher };
+  return { translator, publisher, sideEffects: new StreamingSideEffects({ inlinePublisher: publisher }) };
 }
 
 /**
@@ -169,12 +170,11 @@ export interface DeepAgentStreamDeps {
 export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise<DeepAgentStreamResult> {
   const { input, sink, engine, graphInput, transcript } = deps;
   const { executionId } = input;
-  const { translator, publisher } = transcript;
+  const { translator, sideEffects } = transcript;
   const builder = sink.transcript;
 
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
   const recorder = createV3EventRecorder(executionId, process.env.V3_EVENT_RECORD_DIR);
-  const sideEffects = new StreamingSideEffects({ inlinePublisher: publisher });
   const abortController = new AbortController();
   let forceAbort: ReturnType<typeof setTimeout> | undefined;
   const abortRun = (): void => {
@@ -191,12 +191,7 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
   /** The stop, taken at a boundary: abort the run now and settle. */
   const interrupted = (): DeepAgentStreamResult => {
     abortRun();
-    return {
-      reason: "interrupted",
-      eventsProcessed,
-      runOutput: undefined,
-      pendingPublishPromises: sideEffects.pendingPublishPromises,
-    };
+    return { reason: "interrupted", eventsProcessed, runOutput: undefined };
   };
 
   try {
@@ -257,18 +252,13 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
 
     if (builder.awaitingApproval) {
       console.log(`[turn-stream] execution=${executionId} stream ended at a gate; awaiting approval`);
-      return {
-        reason: "awaiting_approval",
-        eventsProcessed,
-        runOutput: undefined,
-        pendingPublishPromises: sideEffects.pendingPublishPromises,
-      };
+      return { reason: "awaiting_approval", eventsProcessed, runOutput: undefined };
     }
 
     console.log(`[turn-stream] execution=${executionId} stream finished — processed ${eventsProcessed} events`);
     const runOutput = await extractRunOutput(run, executionId);
     sink.recordActivity();
-    return { reason: "completed", eventsProcessed, runOutput, pendingPublishPromises: sideEffects.pendingPublishPromises };
+    return { reason: "completed", eventsProcessed, runOutput };
   } finally {
     sink.stopSignal.removeEventListener("abort", onStop);
     if (forceAbort !== undefined) clearTimeout(forceAbort);

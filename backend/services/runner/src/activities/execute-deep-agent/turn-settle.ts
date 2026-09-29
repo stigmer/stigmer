@@ -59,12 +59,12 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   const { executionId } = input;
   const { status } = sink;
 
-  // Drain the publishes the stream fired (fire-and-forget completions); the
-  // safety net that scans tool calls for files the stream missed runs only
-  // on a finished turn, as it always did.
-  if (stream.pendingPublishPromises.length > 0) {
-    await Promise.allSettled(stream.pendingPublishPromises);
-  }
+  // Drain the publishes the stream fired (fire-and-forget completions) BEFORE
+  // the safety net: its publisher skips a file only when the file's row is
+  // already on the status, so an upload still in flight would be sent twice.
+  // The net scans tool calls for files the stream missed and runs only on a
+  // finished turn, as it always did.
+  await transcript.sideEffects.drainPublishes();
   if (stream.reason === "completed") {
     try {
       await autoPublishWrittenFiles(status, transcript.publisher);

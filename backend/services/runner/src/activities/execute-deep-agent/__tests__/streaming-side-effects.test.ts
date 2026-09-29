@@ -76,6 +76,40 @@ describe("StreamingSideEffects", () => {
     expect(publish).not.toHaveBeenCalled();
   });
 
+  it("drainPublishes waits for every publish fired so far, and a second drain returns at once", async () => {
+    resetSeq();
+    const landed: string[] = [];
+    const releases: Array<() => void> = [];
+    const publish = vi.fn(
+      (path: string) =>
+        new Promise<void>((resolve) => {
+          releases.push(() => {
+            landed.push(path);
+            resolve();
+          });
+        }),
+    );
+    const effects = new StreamingSideEffects({ inlinePublisher: { publish } as unknown as InlinePublisher });
+    feed(effects, makeToolStarted("toolu_7", "write_file", { file_path: "/ws/a.ts", content: "a" }));
+    feed(effects, makeToolFinished("toolu_7", "ok"));
+    feed(effects, makeToolStarted("toolu_8", "write_file", { file_path: "/ws/b.ts", content: "b" }));
+    feed(effects, makeToolFinished("toolu_8", "ok"));
+
+    let drained = false;
+    const drain = effects.drainPublishes().then(() => {
+      drained = true;
+    });
+    releases[0]();
+    await Promise.resolve();
+    expect(drained, "one publish still in flight holds the drain").toBe(false);
+    releases[1]();
+    await drain;
+    expect(landed).toEqual(["/ws/a.ts", "/ws/b.ts"]);
+
+    await effects.drainPublishes();
+    expect(publish, "a second drain fires nothing new").toHaveBeenCalledTimes(2);
+  });
+
   it("does nothing at all without a publisher", () => {
     resetSeq();
     const effects = new StreamingSideEffects({});

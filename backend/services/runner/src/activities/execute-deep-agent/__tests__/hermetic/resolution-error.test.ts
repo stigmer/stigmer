@@ -5,7 +5,7 @@
  * Invariant pinned: the runtime's blueprint phase throws, the runtime's
  * catch takes its generic-error arm (`terminal-table.ts` `unexpectedErrorArm`),
  * persists ONE EXECUTION_FAILED status carrying
- * `status.error = "Execution failed: [Error] <message>"` and two system rows
+ * `status.error = "[Error] <message>"` and two system rows
  * — the boilerplate "Internal system error occurred. Please contact support
  * if this issue persists." and `"Error details: [Error] <message>"` — and
  * RETURNS the slim status (the workflow reads the phase; a throw would make
@@ -14,9 +14,13 @@
  *
  * The row shape is one of the alignments #1096 made on purpose: the
  * orchestrator wrote one row `"Error: [Error] <message>"`; the runtime's arm
- * writes the boilerplate plus the details row. `status.error` itself did
- * not move (the conformance suite pins it). The setup labels are the
+ * writes the boilerplate plus the details row. The setup labels are the
  * runtime's resolution phases'.
+ *
+ * Golden hunk since stigmer#1122: `status.error` is `[Error] <message>`, the
+ * details row's text, where it was `Execution failed: [Error] <message>`.
+ * This arm alone framed the error; every other FAILED arm, and this
+ * harness's own thrown-turn classification, writes the failure unframed.
  *
  * Carried from `index.test.ts` ("returns EXECUTION_FAILED status when setup
  * fails", "includes error message in failed status", "always returns a
@@ -70,7 +74,7 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
     env.dispose();
   });
 
-  it("fails with the fault's message in status.error and one system row, and returns", async () => {
+  it("fails with the fault's message in status.error and two system rows, and returns", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     const record = deepAgentExecutionRecord({ message: "Never reaches a model." });
     const scenario = beginDeepAgentScenario({
@@ -101,7 +105,7 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
 
     // ── Assert: the copy ─────────────────────────────────────────────────────
     const final = record.lastFullStatus!;
-    expect(final.error).toBe(`Execution failed: [Error] ${CONTROL_PLANE_FAULT}`);
+    expect(final.error).toBe(`[Error] ${CONTROL_PLANE_FAULT}`);
     expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       "Internal system error occurred. Please contact support if this issue persists.",
       `Error details: [Error] ${CONTROL_PLANE_FAULT}`,

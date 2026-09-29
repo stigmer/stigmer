@@ -37,6 +37,11 @@
  * golden is unchanged: its turn fails before the workspace is provisioned,
  * so no capture is pinned.
  *
+ * Golden hunk since stigmer#1122: `resolution-error`'s `status.error` is
+ * `[Error] <message>`, the details row's text, where it was
+ * `Execution failed: [Error] <message>`; one grammar for a FAILED error,
+ * whichever side caught the fault.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-cursor/__tests__/hermetic -u
  */
@@ -180,7 +185,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     expect(slim.phase).toBe("EXECUTION_FAILED");
     expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_FAILED]);
     const final = record.lastFullStatus!;
-    expect(final.error).toBe(`Execution failed: [Error] ${CONTROL_PLANE_FAULT}`);
+    expect(final.error).toBe(`[Error] ${CONTROL_PLANE_FAULT}`);
     expect(final.completedAt).not.toBe("");
     expect(systemMessages(final)).toEqual([
       GENERIC_SYSTEM_MESSAGE,
