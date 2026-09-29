@@ -54,14 +54,14 @@ type artifact
     # produced it. Grants read access independent of org membership
     # (guest share visitors are org guests, not org viewers).
     # FGA tuple: artifact:<artifact_id>#owner@identity_account:<creator_id>
-    define owner: [identity_account]
+    define owner: [identity_account] and affiliated from organization
 
     # ========================================
     # VIEWER ACCESS
     # ========================================
     # All org viewers (and above) can view artifacts in their org.
     # No per-artifact viewer grants needed for the common case.
-    define viewer: [identity_account] or viewer from organization
+    define viewer: ([identity_account] and affiliated from organization) or viewer from organization
 
     # ========================================
     # PERMISSIONS

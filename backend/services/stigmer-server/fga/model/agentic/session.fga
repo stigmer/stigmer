@@ -97,12 +97,12 @@ type session
     # ========================================
     # Org admins explicitly excluded — sessions are personal resources
     # containing private conversations that admins have no business accessing.
-    define owner: [identity_account]
+    define owner: [identity_account] and affiliated from organization
     
     # ========================================
     # VIEWER ACCESS (Explicit Grants)
     # ========================================
-    define viewer: [identity_account] or owner
+    define viewer: ([identity_account] and affiliated from organization) or owner
     
     # ========================================
     # PERMISSIONS

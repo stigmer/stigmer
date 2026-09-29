@@ -64,6 +64,12 @@ tuples:
   - user: organization:acme
     relation: organization
     object: session:scheduled-run
+  # The system account holds the organization's guest role, as the
+  # hosted edition's system-accounts service always ensures; the role is
+  # what keeps it inside the organization's bound.
+  - user: identity_account:sys-schedule-acme
+    relation: guest
+    object: organization:acme
   - user: identity_account:sys-schedule-acme
     relation: owner
     object: session:scheduled-run

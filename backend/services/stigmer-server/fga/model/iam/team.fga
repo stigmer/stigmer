@@ -8,12 +8,13 @@ module iam
 # or leaving the team moves that access at once.
 #
 # Access model: BOUNDED MEMBERSHIP
-# A member must also be one of the organization's viewers. The bound is
-# the one intersection in this model, and it is what makes leaving the
-# organization safe: no application cleanup can express "lost the last
-# organization role" (a person may lose one role and hold another), so
-# the model asks it on every check instead. Guests hold
-# `organization#guest`, never viewer, so a guest is never a member.
+# A member must also be one of the organization's viewers, the same
+# bound every organization-scoped type puts on its direct grants
+# (`affiliated`, organization.fga), narrowed to exclude guests: guests
+# hold `organization#guest`, never viewer, so a guest is never a member.
+# Leaving the organization ends every team-derived grant on the next
+# check; the IamPolicy grant path also deletes the membership rows, so a
+# person who rejoins is not a member again until an admin adds them.
 #
 # Members only: nobody administers a team but the organization's admins,
 # and a team never contains another team (nesting multiplies fan-out on
@@ -40,9 +41,6 @@ type team
     # ========================================
     # MEMBERSHIP (bounded by the organization)
     # ========================================
-    # Top-level only and never mixed with `or`: the open-source
-    # evaluator and the composition's model reader both refuse a line
-    # that would need parentheses.
     define member: [identity_account] and viewer from organization
 
     # ========================================

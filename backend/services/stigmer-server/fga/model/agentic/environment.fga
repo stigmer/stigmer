@@ -75,14 +75,14 @@ type environment
     # Written once at creation, never changed. Distinct from owner:
     # owner = who can manage (mutable)
     # creator = who originally stored the secrets (immutable)
-    define creator: [identity_account]
+    define creator: [identity_account] and affiliated from organization
     
     # ========================================
     # OWNERSHIP (Personal Resource)
     # ========================================
     # Org admins explicitly excluded — environments are personal resources
     # containing secrets that admins have no business accessing.
-    define owner: [identity_account]
+    define owner: [identity_account] and affiliated from organization
     
     # ========================================
     # VIEWER ACCESS (Explicit Grants + Org Sharing)
@@ -92,7 +92,7 @@ type environment
     # organization#member is the legacy pre-2026-08-11 shape, kept resolving
     # until the boot backfill converges stored tuples. Viewers see REDACTED
     # secret values.
-    define viewer: [identity_account, organization#member, organization#viewer] or owner
+    define viewer: ([identity_account, organization#member, organization#viewer] and affiliated from organization) or owner
     
     # ========================================
     # PERMISSIONS

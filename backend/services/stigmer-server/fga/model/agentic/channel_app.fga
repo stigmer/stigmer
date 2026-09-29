@@ -35,13 +35,13 @@ type channel_app
     # OWNERSHIP (Attribution + Admin)
     # ========================================
     # The creator, plus org admins by inheritance (the operator of last resort).
-    define owner: [identity_account] or admin from organization
+    define owner: ([identity_account] and affiliated from organization) or admin from organization
 
     # ========================================
     # VIEWER ACCESS (Explicit Grants)
     # ========================================
     # Restricted: regular org members cannot see channel apps.
-    define viewer: [identity_account] or owner
+    define viewer: ([identity_account] and affiliated from organization) or owner
 
     # ========================================
     # PERMISSIONS

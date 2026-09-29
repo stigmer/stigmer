@@ -73,7 +73,7 @@ type agent_instance
     # ========================================
     # Org admins explicitly excluded — agent instances are personal resources
     # containing preferences and configuration that admins have no business accessing.
-    define owner: [identity_account]
+    define owner: [identity_account] and affiliated from organization
     
     # ========================================
     # VIEWER ACCESS (Configurable Visibility)
@@ -88,7 +88,7 @@ type agent_instance
     #   the organization in team.fga
     # Default instances additionally inherit the parent agent's full viewer
     # set through `viewer from default_of` (see default_of above).
-    define viewer: [identity_account, organization#member, organization#viewer, team#member] or owner or viewer from default_of
+    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or viewer from default_of
     
     # ========================================
     # PERMISSIONS
