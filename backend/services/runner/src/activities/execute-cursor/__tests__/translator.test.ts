@@ -163,6 +163,28 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(fold.messages[0].toolCalls.map((tc) => tc.id)).toEqual(["c1"]);
   });
 
+  describe("one stream event is one instant, whatever the clock does between its folds (stigmer#1390)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("a completion or an error with no running before it starts and ends at the same instant", () => {
+      // The observer moves the clock 1 ms after every fold, so a start and a
+      // finish read separately would be a millisecond apart, as in the flake.
+      const fold = new CursorFold({ observer: () => vi.advanceTimersByTime(1) }).events(
+        ev.toolCall("c1", "read", "completed", { path: "x" }, "done"),
+        ev.toolCall("c2", "read", "error", { path: "y" }, "ENOENT"),
+      );
+      expect([fold.row("c1").startedAt, fold.row("c1").completedAt]).toEqual(["2026-01-01T00:00:00.000Z", "2026-01-01T00:00:00.000Z"]);
+      expect(fold.row("c2").startedAt).not.toBe("2026-01-01T00:00:00.000Z");
+      expect(fold.row("c2").completedAt).toBe(fold.row("c2").startedAt);
+    });
+  });
+
   it("a completion after later text lands on the row where it started, never on the new message (cross-message completion)", () => {
     const fold = foldCursorEvents([
       ev.assistant("Running two things."),
@@ -312,6 +334,29 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
     const fold = foldCursorEvents([ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS)]);
     expect(fold.status.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
     expect(fold.status.subAgentExecutions[0].messages).toHaveLength(2);
+  });
+
+  describe("one stream event is one instant, whatever the clock does between its folds (stigmer#1390)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("a task completion with no running before it: the task row, the sub-agent row and the child's rows and messages share it", () => {
+      const fold = new CursorFold({ observer: () => vi.advanceTimersByTime(1) }).event(ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS));
+      const task = fold.row("task-1");
+      const [sub] = fold.status.subAgentExecutions;
+      const read = sub.messages.flatMap((m) => m.toolCalls)[0];
+      expect([
+        task.startedAt, task.completedAt,
+        sub.startedAt, sub.completedAt,
+        read.startedAt, read.completedAt,
+        ...sub.messages.map((m) => m.timestamp),
+      ]).toEqual(Array(8).fill("2026-01-01T00:00:00.000Z"));
+    });
   });
 
   it("error → the row's error then sub_agent_failed with the same text", () => {

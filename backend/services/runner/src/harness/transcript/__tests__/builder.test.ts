@@ -19,10 +19,13 @@
  * rows, finalize, artifacts and write-backs, the dirty flag, the error
  * guard — joined commit by commit in the same PR. The observer arm (the
  * runtime's fold-watcher: told after the fold, guarded apart from the
- * handlers, silent on seed) joined with the turn timeline.
+ * handlers, silent on seed) joined with the turn timeline. The
+ * one-observation arms (`applyObservation`: one clock read for every stamp a
+ * raw event's facts make) joined with stigmer#1390, whose Cursor flake they
+ * make deterministic by moving the clock between folds.
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -171,6 +174,75 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts", () =>
       { kind: "tool_error", callId: "ghost", message: "y" },
     ]);
     expect(status.messages).toHaveLength(0);
+  });
+});
+
+describe("TranscriptBuilder — one observation is folded at one instant", () => {
+  const T0 = "2026-01-01T00:00:00.000Z";
+
+  // The clock moves 1 ms after every fold, so any stamp that read it twice
+  // within one observation would show two instants.
+  function ticking(): Fold {
+    const status = create(AgentExecutionStatusSchema, {});
+    return { sb: new TranscriptBuilder("exec-instant", status, () => vi.advanceTimersByTime(1)), status };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(T0));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("every stamp of the batch is one instant: a row's start and finish, a sub-agent's open and close, the child's rows and messages", () => {
+    const { sb, status } = ticking();
+    sb.applyObservation([
+      { kind: "message_finish", runId: "run-1" },
+      { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "Look.", input: "Look." },
+      { kind: "tool_started", callId: "task-1", name: "task", input: { subagent_type: "helper" }, mcpServerSlug: "" },
+      { kind: "tool_finished", callId: "task-1", result: "found" },
+      { kind: "message_start", runId: "sub-1", subAgentId: "task-1" },
+      { kind: "text_delta", runId: "sub-1", text: "Searching.", subAgentId: "task-1" },
+      { kind: "tool_started", callId: "g", name: "grep", input: { pattern: "x" }, mcpServerSlug: "", subAgentId: "task-1" },
+      { kind: "tool_finished", callId: "g", result: "x.ts", subAgentId: "task-1" },
+      { kind: "sub_agent_finished", subAgentId: "task-1", output: "found" },
+    ]);
+    const task = rowOf(status, "task-1");
+    const [sub] = status.subAgentExecutions;
+    const child = sub.messages.flatMap((m) => m.toolCalls)[0];
+    expect([task.startedAt, task.completedAt, sub.startedAt, sub.completedAt, child.startedAt, child.completedAt, sub.messages[0].timestamp]).toEqual(Array(7).fill(T0));
+    expect(new Date().toISOString(), "the clock did move between folds").not.toBe(T0);
+  });
+
+  it("a fact that carries its own observedAt keeps it inside a batch", () => {
+    const { sb, status } = ticking();
+    sb.applyObservation([
+      { kind: "tool_started", callId: "c1", name: "read_file", input: {}, mcpServerSlug: "" },
+      { kind: "tool_finished", callId: "c1", result: "", observedAt: "2025-12-31T23:59:58.000Z" },
+    ]);
+    expect([rowOf(status, "c1").startedAt, rowOf(status, "c1").completedAt]).toEqual([T0, "2025-12-31T23:59:58.000Z"]);
+  });
+
+  it("a re-emitted start inside a batch leaves the row's first start alone", () => {
+    const { sb, status } = ticking();
+    sb.applyObservation([{ kind: "tool_started", callId: "c1", name: "read_file", input: {}, mcpServerSlug: "" }]);
+    vi.setSystemTime(new Date("2026-01-01T00:00:05.000Z"));
+    sb.applyObservation([
+      { kind: "tool_started", callId: "c1", name: "read_file", input: {}, mcpServerSlug: "" },
+      { kind: "tool_finished", callId: "c1", result: "ok" },
+    ]);
+    expect([rowOf(status, "c1").startedAt, rowOf(status, "c1").completedAt]).toEqual([T0, "2026-01-01T00:00:05.000Z"]);
+  });
+
+  it("apply alone reads the clock per fact, and a batch ends with its call", () => {
+    const { sb, status } = ticking();
+    sb.apply({ kind: "tool_started", callId: "c1", name: "read_file", input: {}, mcpServerSlug: "" });
+    sb.apply({ kind: "tool_finished", callId: "c1", result: "ok" });
+    expect(rowOf(status, "c1").completedAt).toBe("2026-01-01T00:00:00.001Z");
+    sb.applyObservation([{ kind: "tool_started", callId: "c2", name: "read_file", input: {}, mcpServerSlug: "" }]);
+    sb.apply({ kind: "tool_finished", callId: "c2", result: "ok" });
+    expect([rowOf(status, "c2").startedAt, rowOf(status, "c2").completedAt]).toEqual(["2026-01-01T00:00:00.002Z", "2026-01-01T00:00:00.003Z"]);
   });
 });
 

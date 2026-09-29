@@ -41,6 +41,7 @@ import { clone } from "@bufbuild/protobuf";
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { isFirstPartyHumanOperator } from "../../extensions/identity.js";
+import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
 import {
@@ -423,24 +424,38 @@ export function newCreateSessionIfNeededStep(deps: {
  * Snapshots the declared standing context onto the execution spec
  * (DD-002, stigmer/stigmer#293). SERVER-OWNED: stamped unconditionally,
  * overwriting anything the caller supplied. Two independent halves:
- * org_context, the organization's, for every run; and user_context, the
- * run's person's own (stigmer#1397) — composed only where callers are
- * persons (`personAccounts`, the require-authentication posture) and only
- * for a first-party human operator (runPersonOf), as the Java step did.
- * The single-operator posture composes org_context alone: its one
- * operator's context is the organization's. The org half deliberately
- * keeps running for every lane (schedule and channel runs carry the
- * organization's instructions today); only the person's half is about a
- * person. BEST-EFFORT: an execution must never fail to start because its
+ *
+ *   - org_context, the organization's, for every run but a VISITOR's
+ *     (stigmer/stigmer#1401). Its admins wrote it for the organization's
+ *     own work, so the organization's own lanes keep it — a person, a
+ *     schedule, a workflow's agent_call, the platform's pipelines — and
+ *     a caller the composed classifier names a visitor (the hosted
+ *     edition's shared-agent guests and channel senders) never gets it;
+ *     the organization is not even read. Open source composes no
+ *     classifier and has no visitors. Not first-party-only like the
+ *     person's half: that would strip it from every schedule and
+ *     workflow run, and from the single operator, whose only standing
+ *     context this is.
+ *   - user_context, the run's person's own (stigmer#1397), composed only
+ *     where callers are persons (`personAccounts`, the
+ *     require-authentication posture) and only for a first-party human
+ *     operator (runPersonOf), as the Java step did. The single-operator
+ *     posture composes org_context alone: its one operator's context is
+ *     the organization's.
+ *
+ * BEST-EFFORT: an execution must never fail to start because its
  * optional preferences could not load — genuine failures log at ERROR
  * (quiet degradation of a should-work path must stay visible) and degrade
- * that half to empty. Snapshot-at-create is the point: preferences are
- * mutable, executions are immutable audit records.
+ * that half to empty; a classifier that throws withholds the org half,
+ * logged the same way (extensions/visitor-classifier.ts, fail-closed).
+ * Snapshot-at-create is the point: preferences are mutable, executions
+ * are immutable audit records.
  */
 export function newComposeDeclaredPreferencesStep(
   store: Store,
   logger: Logger,
   personAccounts?: AccountsByCaller,
+  visitorClassifier?: VisitorClassifier,
 ): PipelineStep<CreateDesc> {
   return {
     name: "ComposeDeclaredPreferences",
@@ -452,8 +467,15 @@ export function newComposeDeclaredPreferencesStep(
 
       // Verbatim per DD-002 D2: the server stamps content only;
       // blank-is-absent is the runner's read-side convention.
-      execution.spec.declaredPreferences.orgContext =
-        await loadOrgStandingContext(store, logger, orgIdOf(ctx));
+      if (isVisitor(visitorClassifier, ctx.callerIdentity, logger)) {
+        logger.debug(
+          "Caller is a visitor, composing no organization standing context",
+          { identityId: ctx.callerIdentity.identityId },
+        );
+      } else {
+        execution.spec.declaredPreferences.orgContext =
+          await loadOrgStandingContext(store, logger, orgIdOf(ctx));
+      }
 
       if (personAccounts === undefined) {
         return;
@@ -468,6 +490,32 @@ export function newComposeDeclaredPreferencesStep(
         person?.spec?.preferences?.standingContext ?? "";
     },
   };
+}
+
+/**
+ * Whether the composed classifier names `caller` a visitor: absent, nobody
+ * is; a throw is one, logged at ERROR (the point's fail-closed contract).
+ */
+function isVisitor(
+  classifier: VisitorClassifier | undefined,
+  caller: CallerIdentity,
+  logger: Logger,
+): boolean {
+  if (classifier === undefined) {
+    return false;
+  }
+  try {
+    return classifier.isVisitor(caller);
+  } catch (error) {
+    logger.error(
+      "Visitor classifier failed - composing no organization standing context (fail-closed contract)",
+      {
+        identityId: caller.identityId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+    return true;
+  }
 }
 
 /** The org a create addresses: the execution's metadata, else the input's. */

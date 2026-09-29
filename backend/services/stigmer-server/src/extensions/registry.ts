@@ -67,6 +67,7 @@ import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
+import type { VisitorClassifier } from "./visitor-classifier.js";
 import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
@@ -320,6 +321,11 @@ export interface ResolvedExtensionDrivers {
    * UNIMPLEMENTED with the edition sentence.
    */
   readonly guestTokenMinting: GuestTokenMinting | undefined;
+  /**
+   * The visitor classifier — undefined = nobody is a visitor, so every
+   * run carries its organization's standing context.
+   */
+  readonly visitorClassifier: VisitorClassifier | undefined;
 }
 
 /**
@@ -385,6 +391,8 @@ export function resolveExtensions(
   let platformTokenKeysDeclaredBy: string | undefined;
   let guestTokenMinting: GuestTokenMinting | undefined;
   let guestTokenMintingDeclaredBy: string | undefined;
+  let visitorClassifier: VisitorClassifier | undefined;
+  let visitorClassifierDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -636,6 +644,16 @@ export function resolveExtensions(
       guestTokenMintingDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.visitorClassifier !== undefined) {
+      if (visitorClassifierDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a VisitorClassifier, but '${visitorClassifierDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      visitorClassifier = unit.drivers.visitorClassifier;
+      visitorClassifierDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -772,6 +790,7 @@ export function resolveExtensions(
       platformClientStore,
       platformTokenKeys,
       guestTokenMinting,
+      visitorClassifier,
     },
     services,
     workers,

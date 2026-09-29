@@ -1517,6 +1517,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       personAccounts,
+      visitorClassifier: extensions.drivers.visitorClassifier,
       runnerCredentialProvider: runnerCredentials,
       broker: agentExecutionStreamBroker,
       engineState: executionEngineState,

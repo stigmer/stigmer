@@ -21,7 +21,7 @@ import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
 import { AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
+import { TranscriptBuilder, type TranscriptObserver } from "../../../harness/transcript/builder.js";
 import { CursorTranslator, type CursorTranslatorOptions } from "../translator.js";
 
 export interface CursorFoldOptions {
@@ -35,6 +35,8 @@ export interface CursorFoldOptions {
   readonly messages?: AgentMessage[];
   readonly policies?: CursorTranslatorOptions["policies"];
   readonly leases?: CursorTranslatorOptions["leases"];
+  /** The builder's observer, as the runtime passes its turn timeline; a test that moves a fake clock between folds passes one. */
+  readonly observer?: TranscriptObserver;
 }
 
 export class CursorFold {
@@ -50,12 +52,12 @@ export class CursorFold {
       leases: options.leases ?? { global: false, categories: new Set() },
       seeded: this.status.messages,
     });
-    this.builder = new TranscriptBuilder("exec-fold", this.status);
+    this.builder = new TranscriptBuilder("exec-fold", this.status, options.observer);
   }
 
-  /** One stream event, translated and folded, then the deltas queued so far — the loop's order. */
+  /** One stream event, translated and folded as one observation, then the deltas queued so far — the loop's order. */
   event(event: SDKMessage): this {
-    for (const e of this.translator.translate(event)) this.builder.apply(e);
+    this.builder.applyObservation(this.translator.translate(event));
     this.drain();
     return this;
   }
