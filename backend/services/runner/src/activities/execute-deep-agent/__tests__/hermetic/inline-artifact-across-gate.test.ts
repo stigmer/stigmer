@@ -24,6 +24,11 @@
  * this pair of goldens (`inline-artifact.turn1`, `inline-artifact.turn2`) is
  * what proves it did.
  *
+ * Turn 2 completes, so its post-stream safety net walks the seeded history
+ * and asks for `report.md` again. The publisher re-reads it, finds the bytes
+ * the seeded row lists, and uploads nothing: the store sees turn 1's write
+ * only (stigmer/stigmer#1448).
+ *
  * Also recorded (a shape fact, as found): the write's tool row
  * shows `requiresApproval: true` with `approvalPolicySource` BUILTIN_CATEGORY
  * — the category policy's verdict — while the row is COMPLETED because
@@ -94,6 +99,7 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { CLOSING_TURN, EXECUTE_CALL_A } from "../../__test-utils__/hitl-script.js";
+import { LocalArtifactStorage } from "../../../../shared/artifact-storage.js";
 
 const REPORT = "report.md";
 const REPORT_BODY = "# Report\n\nAll fixtures nominal.\n";
@@ -162,13 +168,17 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_AT)).toBe(1);
 
     // ── Turn 2 ───────────────────────────────────────────────────────────────
+    const uploads = vi.spyOn(LocalArtifactStorage.prototype, "upload");
     const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
+    const turn2Keys = uploads.mock.calls.map(([key]) => key);
+    uploads.mockRestore();
     expect(turn2.outcome.kind).toBe("returned");
     expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
     const final = record.lastFullStatus!;
     expect(final.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]), "the seed carried the artifact").toEqual(
       run1.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]),
     );
+    expect(turn2Keys, "turn 2 does not upload the unchanged report again").not.toContain(run1.artifacts[0].storageKey);
     expect(final.messages.flatMap((m) => m.toolCalls).map((tc) => [tc.id, tc.status])).toEqual([
       [WRITE_CALL_ID, ToolCallStatus.TOOL_CALL_COMPLETED],
       [EXECUTE_CALL_A.id, ToolCallStatus.TOOL_CALL_COMPLETED],

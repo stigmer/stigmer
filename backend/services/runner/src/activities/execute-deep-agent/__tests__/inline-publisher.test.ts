@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
 import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { InlinePublisher } from "../inline-publisher.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
@@ -71,6 +72,7 @@ describe("InlinePublisher", () => {
       workspaceBackend: backend,
       artifactStorage: storage,
       artifacts: sb,
+      record: status,
       executionId: "exec-123",
     });
   });
@@ -143,6 +145,64 @@ describe("InlinePublisher", () => {
     expect(publisher.publishedPaths.has("src/main.ts")).toBe(true);
   });
 
+  // A reinvocation seeds the earlier turns' rows onto the status before the
+  // turn's publisher exists; the safety net then asks for those paths again.
+  describe("against rows the status already lists (stigmer/stigmer#1448)", () => {
+    function seedRow(sandboxPath: string, content: string): void {
+      status.artifacts.push(create(ExecutionArtifactSchema, {
+        name: sandboxPath.split("/").at(-1) ?? sandboxPath,
+        sandboxPath,
+        kind: ExecutionArtifactKind.FILE,
+        storageKey: `artifacts/exec-123/${sandboxPath.split("/").at(-1)}`,
+        contentHash: sha256(content),
+      }));
+    }
+
+    it("uploads nothing for a file whose bytes the status already lists, and counts it as brought up to date", async () => {
+      seedRow("src/main.ts", "console.log('hello');");
+      const seeded = status.artifacts[0];
+
+      await publisher.publish("src/main.ts");
+
+      expect(storage.uploadedKeys, "the unchanged file is not sent again").toEqual([]);
+      expect(status.artifacts, "the seeded row is kept as it was").toEqual([seeded]);
+      expect(publisher.publishedPaths.has("src/main.ts")).toBe(true);
+    });
+
+    it("uploads and replaces the row when the file changed since the status listed it", async () => {
+      seedRow("src/main.ts", "an earlier turn's bytes");
+
+      await publisher.publish("src/main.ts");
+
+      expect(storage.uploadedKeys).toEqual(["artifacts/exec-123/main.ts"]);
+      expect(status.artifacts).toHaveLength(1);
+      expect(status.artifacts[0].contentHash).toBe(sha256("console.log('hello');"));
+    });
+
+    it("still reads the file, so a rewrite made outside a write tool is caught", async () => {
+      seedRow("src/main.ts", "console.log('hello');");
+
+      await publisher.publish("src/main.ts");
+
+      expect(backend.readFile).toHaveBeenCalledWith("src/main.ts");
+    });
+
+    it("leaves an earlier turn's path out of publishedPaths until this turn checks it", () => {
+      seedRow("src/main.ts", "console.log('hello');");
+
+      expect(publisher.publishedPaths.size).toBe(0);
+    });
+
+    it("uploads a file the status lists under another path", async () => {
+      seedRow("docs/main.ts", "console.log('hello');");
+
+      await publisher.publish("src/main.ts");
+
+      expect(storage.uploadedKeys).toEqual(["artifacts/exec-123/main.ts"]);
+      expect(status.artifacts.map((a) => a.sandboxPath)).toEqual(["docs/main.ts", "src/main.ts"]);
+    });
+  });
+
   it("swallows errors without throwing (fire-and-forget)", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const failBackend = mockWorkspaceBackend({});
@@ -151,6 +211,7 @@ describe("InlinePublisher", () => {
       workspaceBackend: failBackend,
       artifactStorage: storage,
       artifacts: sb,
+      record: status,
       executionId: "exec-err",
     });
 
@@ -195,6 +256,7 @@ describe("InlinePublisher", () => {
       workspaceBackend: secretBackend,
       artifactStorage: storage,
       artifacts: sb,
+      record: status,
       executionId: "exec-secret",
     });
 
@@ -212,6 +274,7 @@ describe("InlinePublisher", () => {
       workspaceBackend: jsonBackend,
       artifactStorage: storage,
       artifacts: sb,
+      record: status,
       executionId: "exec-ct",
     });
 
@@ -240,6 +303,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
       workspaceBackend: backend,
       artifactStorage: storage,
       artifacts: sb,
+      record: status,
       executionId: "exec-disk",
     });
 
@@ -269,6 +333,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
       workspaceBackend: backend,
       artifactStorage: storage,
       artifacts: sb,
+      record: status,
       executionId: "exec-miss",
     });
 

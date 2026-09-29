@@ -8,6 +8,15 @@
  * Designed as a fire-and-forget callback: exceptions are logged and
  * swallowed so the streaming loop is never interrupted.
  *
+ * A file is uploaded only when its bytes differ from the row the execution's
+ * status already lists for its path. The status is the one home of that fact:
+ * the builder writes every row into it, and a reinvocation's seed carries the
+ * earlier turns' rows onto it before this publisher exists. So a completed
+ * turn after a gate, whose safety net walks the seeded history again, re-reads
+ * each earlier file but uploads none that did not change (stigmer/stigmer#1448).
+ * The re-read is kept on purpose: a shell command may have rewritten an earlier
+ * turn's file, and only its bytes can say so.
+ *
  * DD-7: No skill-aware directory publishing. Individual files only.
  */
 
@@ -35,6 +44,16 @@ export interface ArtifactSink {
   addArtifact(artifact: ExecutionArtifact): void;
 }
 
+/**
+ * The execution status's artifact rows, read at every publish: the status the
+ * {@link ArtifactSink} builds into (`TurnSink.status` in production), so a row
+ * registered here or seeded by a reinvocation is visible on the next check.
+ * Read, never copied, because the builder keeps writing it.
+ */
+export interface ArtifactRecord {
+  readonly artifacts: readonly ExecutionArtifact[];
+}
+
 export class InlinePublisher {
   private readonly workspaceBackend: WorkspaceBackend;
   /**
@@ -45,26 +64,34 @@ export class InlinePublisher {
    */
   private readonly artifactStorage: ArtifactStorage | undefined;
   private readonly artifacts: ArtifactSink;
+  private readonly record: ArtifactRecord;
   private readonly executionId: string;
 
-  /** Tracks (sandboxPath -> contentHash) for deduplication. */
-  private readonly published = new Map<string, string>();
+  /**
+   * Paths this publisher brought up to date in this turn, uploaded or found
+   * unchanged, so the post-stream safety net does not read them again. Per
+   * turn by design: an earlier turn's path is absent until this turn checks
+   * it, so a file rewritten outside a write tool is still caught.
+   */
+  private readonly published = new Set<string>();
 
   constructor(opts: {
     workspaceBackend: WorkspaceBackend;
     artifactStorage: ArtifactStorage | undefined;
     artifacts: ArtifactSink;
+    record: ArtifactRecord;
     executionId: string;
   }) {
     this.workspaceBackend = opts.workspaceBackend;
     this.artifactStorage = opts.artifactStorage;
     this.artifacts = opts.artifacts;
+    this.record = opts.record;
     this.executionId = opts.executionId;
   }
 
-  /** Set of sandbox paths that have been published (for auto-publish dedup). */
+  /** Set of sandbox paths brought up to date this turn (for auto-publish dedup). */
   get publishedPaths(): ReadonlySet<string> {
-    return new Set(this.published.keys());
+    return new Set(this.published);
   }
 
   /**
@@ -102,7 +129,8 @@ export class InlinePublisher {
       const contentBuffer = Buffer.from(content, "utf-8");
       const contentHash = sha256(contentBuffer);
 
-      if (this.published.get(sandboxPath) === contentHash) {
+      if (this.isRecorded(sandboxPath, contentHash)) {
+        this.published.add(sandboxPath);
         return;
       }
 
@@ -122,7 +150,7 @@ export class InlinePublisher {
       });
 
       this.artifacts.addArtifact(artifact);
-      this.published.set(sandboxPath, contentHash);
+      this.published.add(sandboxPath);
 
       console.log(
         `[InlinePublisher] execution=${this.executionId} — published '${sandboxPath}' ` +
@@ -134,6 +162,13 @@ export class InlinePublisher {
         `failed to publish '${path}' (non-fatal): ${err}`,
       );
     }
+  }
+
+  /** Whether the status already lists these exact bytes at this path. */
+  private isRecorded(sandboxPath: string, contentHash: string): boolean {
+    return this.record.artifacts.some(
+      (a) => a.sandboxPath === sandboxPath && a.contentHash === contentHash,
+    );
   }
 }
 

@@ -98,7 +98,9 @@ export interface DeepAgentStreamResult {
  * the engine's events into canonical ones (over the gate's posture, so every
  * tool start carries its attribution and gate answer), and the publisher
  * that registers artifacts on the runtime's builder (`sink.transcript`, so
- * a published artifact still dirties the next persist). The builder itself
+ * a published artifact still dirties the next persist) and checks the rows
+ * already on `sink.status` before uploading, so an earlier turn's unchanged
+ * file is not sent again. The builder itself
  * is the runtime's, one per turn, and is read from the sink where it is
  * needed. Built by the adapter's turn once and shared by the stream and the
  * settle.
@@ -119,6 +121,7 @@ export function createDeepAgentTranscript(
     workspaceBackend: workspace.backend,
     artifactStorage: input.artifactStorage,
     artifacts: sink.transcript,
+    record: sink.status,
     executionId: input.executionId,
   });
   return { translator, publisher };
