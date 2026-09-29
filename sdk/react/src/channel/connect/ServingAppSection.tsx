@@ -175,7 +175,7 @@ function ServingAppOption({
         checked={checked}
         onChange={onSelect}
         disabled={disabled}
-        className="stg:mt-0.5 stg:accent-current"
+        className="stg:mt-0.5"
       />
       <span className="stg:min-w-0">
         <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">{label}</span>

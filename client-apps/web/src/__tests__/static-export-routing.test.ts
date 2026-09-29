@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { PLATFORM_SETTINGS_NAV_GROUP, SETTINGS_NAV_GROUPS } from "@stigmer/react";
 import { LIBRARY_RESOURCE_TYPES } from "@/domain/library/library-navigation";
 
 // These tests pin two bug classes specific to static-export deployments
@@ -45,6 +46,27 @@ describe("library deep-link pages", () => {
           `soft-navigable (library-navigation.tsx) but a cold load of its ` +
           `detail URL will 404 in the static export. Create the page file ` +
           `(see the agents sibling for the pattern).`,
+      ).toBe(true);
+    });
+  }
+});
+
+describe("settings nav pages", () => {
+  // The settings sidebar is SDK-owned (settings-nav.ts), so an item can be
+  // added there without either client growing its page; the desktop app
+  // shipped Provider Standing that way (stigmer#1227). Every href the
+  // sidebar can show must have a page file, or a click on it 404s.
+  const hrefs = [...SETTINGS_NAV_GROUPS, PLATFORM_SETTINGS_NAV_GROUP].flatMap((group) =>
+    group.items.map((item) => item.href),
+  );
+  for (const href of hrefs) {
+    it(`${href} has a page`, () => {
+      const pageFile = join(APP_DIR, ...href.split("/").filter(Boolean), "page.tsx");
+      expect(
+        existsSync(pageFile),
+        `Missing ${pageFile.slice(SRC_DIR.length)}: the settings sidebar links ` +
+          `${href} (sdk/react/src/settings/settings-nav.ts). Create the page ` +
+          `over its SDK console, as the sibling settings pages do.`,
       ).toBe(true);
     });
   }

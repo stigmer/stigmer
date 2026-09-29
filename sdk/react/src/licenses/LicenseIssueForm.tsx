@@ -71,7 +71,7 @@ type CustomerMode = "existing" | "new";
  * browser-blue control inside its brand.
  */
 const NATIVE_CONTROL =
-  "stg:size-3.5 stg:shrink-0 stg:cursor-pointer stg:accent-primary stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1";
+  "stg:size-3.5 stg:shrink-0 stg:cursor-pointer stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1";
 
 const TERM_PRESET_HINT: Readonly<Record<IssuableTerm, string>> = {
   [LicenseTerm.trial]: "30 days",

@@ -28,10 +28,11 @@
    self-referential `--stgm-font-sans: var(--stgm-font-sans)` cycle through
    the `@theme inline` block below).
 
-   The `stg:` prefix contract is enforced by `scripts/check-prefixed-classnames`
-   (unprefixed utilities in source fail the suite) and by the dist isolation
-   invariant test (unscoped selectors in the built stylesheet fail the suite).
-   The one-shot migration lives in `scripts/prefix-classnames.ts`. */
+   The `stg:` prefix contract is enforced by `scripts/prefix-classnames.ts
+   --check` (`npm run lint:prefix`: an unprefixed utility, or a prefix placed
+   after a variant, fails the lint) and by the dist isolation invariant test
+   (unscoped selectors in the built stylesheet fail the suite). The same
+   script, without `--check`, is the one-shot migration. */
 @import "tailwindcss/theme.css" layer(stgm) prefix(stg);
 @import "tailwindcss/utilities.css" layer(stgm) prefix(stg);
 /* Enter/exit animation utilities (`stg:animate-in`, `stg:fade-in`,
@@ -292,6 +293,15 @@
 
   .stgm[data-stgm-color-mode="dark"] {
     color-scheme: dark;
+  }
+
+  /* The same holds for a checkbox's or radio's checked state: the browser
+     paints it from `accent-color` (its own blue by default), never from our
+     tokens (#1228). One inherited rule on both containers gives every native
+     control inside the scope the theme's primary, in both modes and every
+     preset, so no control needs its own accent class. */
+  .stgm {
+    accent-color: var(--stgm-primary);
   }
 
   /* The provider's in-tree container ([data-stgm-root]) ships with NO

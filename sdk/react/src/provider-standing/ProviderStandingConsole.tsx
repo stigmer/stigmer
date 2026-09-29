@@ -110,7 +110,7 @@ export function ProviderStandingConsole({ className }: ProviderStandingConsolePr
           completed a pass since this deployment came up.
         </p>
       ) : (
-        <ul className="stg:m-0 stg:grid stg:list-none stg:gap-2 stg:p-0 sm:stg:grid-cols-2">
+        <ul className="stg:m-0 stg:grid stg:list-none stg:gap-2 stg:p-0 stg:sm:grid-cols-2">
           {providers.map((entry) => (
             <StandingCard key={entry.provider} entry={entry} />
           ))}

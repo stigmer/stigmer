@@ -90,7 +90,7 @@ export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
         onClick={() => setExpanded((prev) => !prev)}
         className={cn(
           "stg:flex stg:w-full stg:items-center stg:gap-3 stg:px-3 stg:py-2 stg:text-left",
-          "stg:text-xs stg:text-muted-foreground hover:stg:text-foreground",
+          "stg:text-xs stg:text-muted-foreground stg:hover:text-foreground",
         )}
       >
         <MemoryIcon />

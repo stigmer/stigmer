@@ -135,7 +135,7 @@ export const CatchTab = memo(function CatchTab({ node, mutations }: CatchTabProp
                 type="checkbox"
                 checked={catchBlock.compensate}
                 onChange={handleCompensateToggle}
-                className="stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
+                className="stg:h-3 stg:w-3"
               />
               Run compensation before catch block
             </label>

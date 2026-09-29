@@ -41,10 +41,12 @@ for (const row of rows) {
   }
   const status = row.passes ? " ok " : row.enforced ? "FAIL" : "info";
   const metric = row.pair.kind === "surface" ? "ΔL" : "ratio";
+  const over = row.pair.backdrop === undefined ? "" : ` over ${row.pair.backdrop.replace("--stgm-", "")}`;
+  const values = [row.foregroundValue, row.backgroundValue, ...(row.backdropValue ? [row.backdropValue] : [])];
   console.log(
-    `  [${status}] ${row.pair.foreground.replace("--stgm-", "")} on ${row.pair.background.replace("--stgm-", "")}` +
+    `  [${status}] ${row.pair.foreground.replace("--stgm-", "")} on ${row.pair.background.replace("--stgm-", "")}${over}` +
       ` — ${metric} ${row.measured.toFixed(2)} (min ${row.threshold})` +
-      ` [${row.foregroundValue} / ${row.backgroundValue}]`,
+      ` [${values.join(" / ")}]`,
   );
   console.log(`         ${row.pair.usage}`);
 }

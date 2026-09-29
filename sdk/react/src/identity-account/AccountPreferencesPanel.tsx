@@ -506,7 +506,7 @@ function HarnessOptionRow({
           disabled={disabled}
           aria-labelledby={titleId}
           aria-describedby={descriptionId}
-          className="stg:mt-0.5 stg:accent-primary stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
+          className="stg:mt-0.5 stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring"
         />
         <span className="stg:min-w-0 stg:flex-1">
           <span

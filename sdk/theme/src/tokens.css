@@ -327,27 +327,32 @@
   --stgm-sidebar-border: oklch(1 0 0 / 14%);
   --stgm-sidebar-ring: oklch(0.5 0.08 190);
 
+  /* Dark status fills are the status colour at 15%, a tint of whatever
+     surface the pill sits on. The page, card and dialog surfaces sit too
+     close in lightness for one opaque fill to separate from all three, in
+     every preset (#1229). Each text value is the lightest-needed step that
+     keeps 4.5:1 on its tint over the lightest of those surfaces. */
   --stgm-status-ready: oklch(0.7 0.15 150);
   --stgm-status-ready-foreground: oklch(0.145 0 0);
-  --stgm-status-ready-subtle: oklch(0.24 0.04 150);
+  --stgm-status-ready-subtle: oklch(0.7 0.15 150 / 15%);
   --stgm-status-running: oklch(0.7 0.14 230);
   --stgm-status-running-foreground: oklch(0.145 0 0);
-  --stgm-status-running-subtle: oklch(0.24 0.04 230);
-  --stgm-status-pending: oklch(0.708 0 0);
+  --stgm-status-running-subtle: oklch(0.7 0.14 230 / 15%);
+  --stgm-status-pending: oklch(0.723 0 0);
   --stgm-status-pending-foreground: oklch(0.145 0 0);
-  --stgm-status-pending-subtle: oklch(0.24 0 0);
+  --stgm-status-pending-subtle: oklch(0.723 0 0 / 15%);
   --stgm-status-degraded: oklch(0.78 0.16 80);
   --stgm-status-degraded-foreground: oklch(0.145 0 0);
-  --stgm-status-degraded-subtle: oklch(0.24 0.04 80);
-  --stgm-status-failed: oklch(0.704 0.191 22.216);
+  --stgm-status-degraded-subtle: oklch(0.78 0.16 80 / 15%);
+  --stgm-status-failed: oklch(0.744 0.191 22.216);
   --stgm-status-failed-foreground: oklch(0.145 0 0);
-  --stgm-status-failed-subtle: oklch(0.24 0.04 22);
-  --stgm-status-disabled: oklch(0.62 0 0);
+  --stgm-status-failed-subtle: oklch(0.744 0.191 22.216 / 15%);
+  --stgm-status-disabled: oklch(0.72 0 0);
   --stgm-status-disabled-foreground: oklch(0.145 0 0);
-  --stgm-status-disabled-subtle: oklch(0.21 0 0);
-  --stgm-status-draft: oklch(0.708 0 0);
+  --stgm-status-disabled-subtle: oklch(0.72 0 0 / 15%);
+  --stgm-status-draft: oklch(0.723 0 0);
   --stgm-status-draft-foreground: oklch(0.145 0 0);
-  --stgm-status-draft-subtle: oklch(0.24 0 0);
+  --stgm-status-draft-subtle: oklch(0.723 0 0 / 15%);
 
   --stgm-diff-added-bg: oklch(0.22 0.04 150);
   --stgm-diff-added-fg: oklch(0.78 0.12 150);

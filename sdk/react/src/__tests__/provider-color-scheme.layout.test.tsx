@@ -1,9 +1,10 @@
-// Regression suite for #1223: native controls, their popups and scrollbars
-// follow the scope's resolved color mode. Browsers draw them from the CSS
-// `color-scheme` property, not from the theme's tokens, so the shipped
-// stylesheet must derive `color-scheme` from `data-stgm-color-mode` on BOTH
-// provider containers (the in-tree root and the portal container), and must
-// leave the host page's own scheme untouched.
+// Regression suite for #1223 and #1228: native controls, their popups and
+// scrollbars follow the scope's theme. Browsers draw them from CSS
+// properties, not from the theme's tokens: `color-scheme` for the control's
+// light or dark rendering, `accent-color` for a checkbox's or radio's checked
+// state. So the shipped stylesheet must derive both on BOTH provider
+// containers (the in-tree root and the portal container), and must leave the
+// host page's own values untouched.
 //
 // Runs in a real Chromium via `vitest.a11y.config.ts` against the SHIPPED
 // stylesheet (`dist/styles.css`): happy-dom does not apply stylesheet rules
@@ -34,12 +35,14 @@ function renderIn(mode: "light" | "dark") {
   render(
     <StigmerProvider client={makeClient()} colorMode={mode}>
       <input type="checkbox" data-testid="control" />
+      <span data-testid="primary-probe" style={{ color: "var(--stgm-primary)" }} />
     </StigmerProvider>,
   );
   const control = document.querySelector('[data-testid="control"]') as HTMLElement;
+  const probe = document.querySelector('[data-testid="primary-probe"]') as HTMLElement;
   const root = control.closest("[data-stgm-root]") as HTMLElement;
   const portal = document.body.querySelector("[data-stgm-portal]") as HTMLElement | null;
-  return { control, root, portal };
+  return { control, probe, root, portal };
 }
 
 describe("StigmerProvider color-scheme (#1223)", () => {
@@ -55,5 +58,24 @@ describe("StigmerProvider color-scheme (#1223)", () => {
   it("leaves the host page's own scheme alone", () => {
     renderIn("dark");
     expect(getComputedStyle(document.documentElement).colorScheme).toBe("normal");
+  });
+});
+
+describe("StigmerProvider accent-color (#1228)", () => {
+  it.each(["light", "dark"] as const)("gives native controls the theme primary in %s", (mode) => {
+    const { control, probe, root, portal } = renderIn(mode);
+    // The probe resolves --stgm-primary in the same scope, so the assertion
+    // holds whatever value the token carries.
+    const primary = getComputedStyle(probe).color;
+
+    expect(getComputedStyle(control).accentColor).toBe(primary);
+    expect(getComputedStyle(root).accentColor).toBe(primary);
+    expect(portal, "the provider must mount its portal container").not.toBeNull();
+    expect(getComputedStyle(portal!).accentColor).toBe(primary);
+  });
+
+  it("leaves the host page's own accent alone", () => {
+    renderIn("dark");
+    expect(getComputedStyle(document.documentElement).accentColor).toBe("auto");
   });
 });

@@ -51,6 +51,8 @@ export interface PairResult {
   readonly enforced: boolean;
   readonly foregroundValue: string;
   readonly backgroundValue: string;
+  /** The resolved backdrop, when the pair declares one. */
+  readonly backdropValue?: string;
 }
 
 export interface PresetLeak {
@@ -104,16 +106,23 @@ export function runContrastAudit(): AuditReport {
       for (const pair of [...CONTRAST_PAIRS, ...SURFACE_PAIRS]) {
         const foreground = resolved.get(pair.foreground);
         const background = resolved.get(pair.background);
-        if (!foreground || !background) {
+        const backdrop = pair.backdrop === undefined ? undefined : resolved.get(pair.backdrop);
+        if (!foreground || !background || (pair.backdrop !== undefined && !backdrop)) {
           throw new Error(
-            `Contract pair references unknown token: ${pair.foreground} / ${pair.background}`,
+            `Contract pair references unknown token: ${pair.foreground} / ${pair.background}` +
+              (pair.backdrop === undefined ? "" : ` / ${pair.backdrop}`),
+          );
+        }
+        if (pair.kind === "surface" && backdrop) {
+          throw new Error(
+            `Surface pair ${pair.foreground} / ${pair.background} declares a backdrop; a surface pair's background is the surface`,
           );
         }
         const threshold = thresholdFor(pair);
         const measured =
           pair.kind === "surface"
             ? lightnessDelta(foreground.value, background.value)
-            : contrastRatio(foreground.value, background.value);
+            : contrastRatio(foreground.value, background.value, backdrop?.value);
         results.push({
           pair,
           preset,
@@ -124,6 +133,7 @@ export function runContrastAudit(): AuditReport {
           enforced: pair.enforcedModes?.includes(mode) ?? true,
           foregroundValue: foreground.value,
           backgroundValue: background.value,
+          ...(backdrop && { backdropValue: backdrop.value }),
         });
       }
     }
@@ -134,5 +144,6 @@ export function runContrastAudit(): AuditReport {
 
 /** Stable identity for a result, used by the exemption list and reporting. */
 export function resultId(result: PairResult): string {
-  return `${result.preset}/${result.mode}: ${result.pair.foreground} on ${result.pair.background}`;
+  const over = result.pair.backdrop === undefined ? "" : ` over ${result.pair.backdrop}`;
+  return `${result.preset}/${result.mode}: ${result.pair.foreground} on ${result.pair.background}${over}`;
 }

@@ -43,7 +43,7 @@ export function SelectionCheckbox({
       onChange={(e) => onChange(e.target.checked)}
       aria-label={ariaLabel}
       className={cn(
-        "stg:size-3.5 stg:shrink-0 stg:cursor-pointer stg:rounded stg:border stg:border-input stg:accent-primary",
+        "stg:size-3.5 stg:shrink-0 stg:cursor-pointer stg:rounded stg:border stg:border-input",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-1",
         className,
       )}

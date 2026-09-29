@@ -586,7 +586,7 @@ function AddVariableForm({
             checked={isSecret}
             onChange={(e) => setIsSecret(e.target.checked)}
             disabled={isAdding}
-            className="stg:accent-primary stg:size-3"
+            className="stg:size-3"
           />
           Secret
         </label>
