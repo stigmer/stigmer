@@ -169,7 +169,10 @@ Two rules keep custom themes correct:
 - **Mind contrast.** Stigmer's defaults are contrast-audited in CI (WCAG 2.1
   AA for every declared text pairing). When you replace a fill, replace its
   `-foreground` partner so the pair stays readable — dark-mode fills are
-  usually lighter, which is why their foregrounds flip to near-black.
+  usually lighter, which is why their foregrounds flip to near-black. The
+  dark status pill fills (`--stgm-status-*-subtle`) are translucent tints of
+  their status colour, so they read on your page, card and dialog surfaces
+  without an override. If you replace one, keep it translucent.
 
 ## Tailwind hosts
 

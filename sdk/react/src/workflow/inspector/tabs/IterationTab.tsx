@@ -194,7 +194,7 @@ export const IterationTab = memo(function IterationTab({
                   value={opt.value}
                   checked={onError === opt.value}
                   onChange={() => handleErrorPolicyChange(opt.value)}
-                  className="stg:mt-0.5 stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
+                  className="stg:mt-0.5 stg:h-3 stg:w-3"
                 />
                 <span>
                   <span className="stg:font-medium">{opt.label}</span>

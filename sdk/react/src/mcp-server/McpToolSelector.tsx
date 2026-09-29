@@ -178,7 +178,7 @@ export function McpToolSelector({
                     onChange={() => handleToggle(tool.name)}
                     disabled={disabled}
                     aria-describedby={descId}
-                    className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:accent-primary stg:disabled:pointer-events-none stg:disabled:opacity-50"
+                    className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:disabled:pointer-events-none stg:disabled:opacity-50"
                   />
                   <span className="stg:min-w-0 stg:flex-1">
                     <span className="stg:flex stg:items-center stg:gap-1.5">

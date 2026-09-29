@@ -295,7 +295,7 @@ function ForkBranches({
               name={`join-policy-${node.id}`}
               checked={!compete}
               onChange={() => handleSetCompete(false)}
-              className="stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
+              className="stg:h-3 stg:w-3"
             />
             Wait for all branches
           </label>
@@ -305,7 +305,7 @@ function ForkBranches({
               name={`join-policy-${node.id}`}
               checked={compete}
               onChange={() => handleSetCompete(true)}
-              className="stg:h-3 stg:w-3 stg:accent-[var(--stgm-primary,#6366f1)]"
+              className="stg:h-3 stg:w-3"
             />
             Race mode (first branch wins)
           </label>

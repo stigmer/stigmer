@@ -311,7 +311,6 @@ function ProviderPicker({
                 checked={checked}
                 onChange={() => onChange(p.id)}
                 disabled={disabled}
-                className="stg:accent-current"
               />
               <p.Icon className="stg:size-3.5 stg:shrink-0 stg:text-foreground" />
               <span className="stg:text-xs stg:font-medium stg:text-foreground">{p.label}</span>

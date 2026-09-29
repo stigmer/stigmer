@@ -48,6 +48,14 @@ export interface ContrastPair {
    * flare compresses them — the failure mode reported in issue #187.
    */
   readonly enforcedModes?: readonly ("light" | "dark")[];
+  /**
+   * The opaque surface a translucent `background` paints over. The audit
+   * composites the background over it before measuring, the way a browser
+   * does, so a tinted fill is judged on every surface it actually sits on.
+   * Text and supporting pairs only: a surface pair's background is already
+   * the surface.
+   */
+  readonly backdrop?: string;
 }
 
 const pair = (
@@ -64,6 +72,12 @@ const pair = (
   ...(enforcedModes !== undefined && { enforcedModes }),
 });
 
+/** The same pair, measured with its background composited over `backdrop`. */
+const over = (base: ContrastPair, backdrop: string): ContrastPair => ({
+  ...base,
+  backdrop,
+});
+
 const STATUSES = [
   "ready",
   "running",
@@ -72,6 +86,17 @@ const STATUSES = [
   "failed",
   "disabled",
   "draft",
+] as const;
+
+/**
+ * The surfaces a status pill rests on. The dark `-subtle` fills are
+ * translucent tints (tokens.css), so a pill is measured on each of these,
+ * not on a surface of its own.
+ */
+const PILL_SURFACES = [
+  { surface: "--stgm-background", where: "on the page (ResourceDetailShell header)" },
+  { surface: "--stgm-card", where: "on a card (PlanCard, LicensesConsole rows)" },
+  { surface: "--stgm-popover", where: "in a dialog (ChannelTemplatesDialog)" },
 ] as const;
 
 const SYNTAX = [
@@ -115,12 +140,17 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-sidebar-accent-foreground", "--stgm-sidebar-accent", "text", "sidebar active/hovered items"),
 
   // ── Status badges (StatusBadge: status text on its subtle fill) ─────
-  ...STATUSES.map((status) =>
-    pair(
-      `--stgm-status-${status}`,
-      `--stgm-status-${status}-subtle`,
-      "text",
-      `StatusBadge "${status}" pill`,
+  ...STATUSES.flatMap((status) =>
+    PILL_SURFACES.map(({ surface, where }) =>
+      over(
+        pair(
+          `--stgm-status-${status}`,
+          `--stgm-status-${status}-subtle`,
+          "text",
+          `StatusBadge "${status}" pill ${where}`,
+        ),
+        surface,
+      ),
     ),
   ),
   ...STATUSES.map((status) =>
@@ -173,4 +203,9 @@ export const SURFACE_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-avatar", "--stgm-card", "surface", "grantee avatar on a settings card (team members)", ["dark"]),
   pair("--stgm-avatar", "--stgm-background", "surface", "grantee avatar on the page", ["dark"]),
   pair("--stgm-primary", "--stgm-popover", "surface", "Switch on-state track on dialog surface (ShareAgentDialog)", ["dark"]),
+  ...STATUSES.flatMap((status) =>
+    PILL_SURFACES.map(({ surface, where }) =>
+      pair(`--stgm-status-${status}-subtle`, surface, "surface", `StatusBadge "${status}" pill fill ${where} (borderless)`, ["dark"]),
+    ),
+  ),
 ];

@@ -28,6 +28,12 @@
  *   literals only whitespace-delimited tokens are rewritten; any fragment
  *   touching a `${...}` boundary is reported for manual review.
  *
+ * - **A prefix after a variant is moved, not accepted.** `sm:stg:grid-cols-2`
+ *   compiles to nothing and parses as no utility, so without its own check
+ *   it passed as "not a class" (stigmer/stigmer#1227). Every class-position
+ *   token first goes through `relocatePrefix` (`scripts/lib/misplaced-prefix.ts`),
+ *   which the rewrite applies and `--check` reports.
+ *
  * Usage (from sdk/react/):
  *   npx tsx scripts/prefix-classnames.ts --check     # GUARD: fail on drift
  *   npx tsx scripts/prefix-classnames.ts --dry-run   # report only
@@ -53,6 +59,7 @@ import ts from "typescript";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore -- internal API, stable enough for a one-shot migration tool
 import { __unstable__loadDesignSystem } from "tailwindcss";
+import { relocatePrefix } from "./lib/misplaced-prefix.js";
 
 const PREFIX = "stg:";
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -144,6 +151,8 @@ interface RewriteStats {
   tier2Hits: string[];
   /** file:line + literal for every would-be rewrite (populated in --check). */
   violations: string[];
+  /** file:line + token → corrected token for every prefix placed after a variant. */
+  relocations: string[];
 }
 
 /** Rewrite a whitespace-separated class list, preserving all whitespace. */
@@ -151,8 +160,14 @@ function rewriteClassList(
   ds: DesignSystem,
   text: string,
   stats: RewriteStats,
+  where: string,
 ): string {
   return text.replace(/\S+/g, (token) => {
+    const relocated = relocatePrefix(token, PREFIX);
+    if (relocated) {
+      stats.relocations.push(`${where}: ${token} → ${relocated}`);
+      return relocated;
+    }
     if (shouldPrefix(ds, token)) {
       stats.tokensPrefixed++;
       return PREFIX + token;
@@ -340,10 +355,13 @@ function processFile(
       if (!qualifiesAsTier2(ds, text)) return;
       stats.tier2Hits.push(`${rel}:${line}: ${JSON.stringify(text)}`);
     }
-    const rewritten = rewriteClassList(ds, text, stats);
+    const prefixedBefore = stats.tokensPrefixed;
+    const rewritten = rewriteClassList(ds, text, stats, `${rel}:${line}`);
     if (rewritten !== text) {
       stats.literalsChanged++;
-      stats.violations.push(`${rel}:${line}: ${JSON.stringify(text)}`);
+      if (stats.tokensPrefixed > prefixedBefore) {
+        stats.violations.push(`${rel}:${line}: ${JSON.stringify(text)}`);
+      }
       edits.push({
         start: quoteStart,
         end: quoteStart + text.length,
@@ -366,6 +384,7 @@ function processFile(
     const line = sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
     let out = "";
     let changed = false;
+    let prefixed = false;
     const parts = text.split(/(\s+)/);
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
@@ -384,8 +403,14 @@ function processFile(
         out += part;
         continue;
       }
-      if (shouldPrefix(ds, part)) {
+      const relocated = relocatePrefix(part, PREFIX);
+      if (relocated) {
+        stats.relocations.push(`${rel}:${line}: ${part} → ${relocated} (template)`);
+        out += relocated;
+        changed = true;
+      } else if (shouldPrefix(ds, part)) {
         stats.tokensPrefixed++;
+        prefixed = true;
         out += PREFIX + part;
         changed = true;
       } else {
@@ -394,7 +419,9 @@ function processFile(
     }
     if (changed) {
       stats.literalsChanged++;
-      stats.violations.push(`${rel}:${line}: ${JSON.stringify(text)} (template)`);
+      if (prefixed) {
+        stats.violations.push(`${rel}:${line}: ${JSON.stringify(text)} (template)`);
+      }
       edits.push({ start: textStart, end: textStart + text.length, replacement: out });
     }
   }
@@ -484,6 +511,7 @@ const stats: RewriteStats = {
   flagged: [],
   tier2Hits: [],
   violations: [],
+  relocations: [],
 };
 
 const files = collectFiles(srcRoot);
@@ -495,6 +523,7 @@ for (const file of files) {
 if (checkMode) {
   const problems = [
     ...stats.violations.map((v) => `unprefixed utility: ${v}`),
+    ...stats.relocations.map((v) => `misplaced prefix (variant before \`stg:\`): ${v}`),
     ...stats.tier2Hits.map((v) => `unprefixed class string (tier 2): ${v}`),
     ...stats.flagged,
   ];
@@ -519,6 +548,7 @@ console.log(`files scanned: ${files.length}`);
 console.log(`files with rewrites: ${filesChanged}`);
 console.log(`literals changed: ${stats.literalsChanged}`);
 console.log(`tokens prefixed: ${stats.tokensPrefixed}`);
+console.log(`prefixes relocated: ${stats.relocations.length}`);
 if (stats.tier2Hits.length > 0) {
   console.log(`\ntier-2 candidates (${stats.tier2Hits.length})${tier2Enabled ? " [REWRITTEN]" : " [NOT rewritten — review, then re-run with --tier2]"}:`);
   for (const hit of stats.tier2Hits) console.log("  " + hit);
