@@ -371,14 +371,19 @@ message AgentExecutionSpec {
   // @internal
   // Server-owned: the create pipeline stamps this field UNCONDITIONALLY —
   // empty for non-eligible callers — overwriting any caller-supplied value,
-  // so external injection is moot by construction. Composed only for
-  // first-party human operators (DD-002 D4 as amended 2026-08-15: never for
-  // machine, impersonated, guest, channel, schedule, runner, or
-  // platform-client-user callers; the server's org_context half does not
-  // yet follow this rule, stigmer#1401). user_context is composed only
-  // where callers are persons (the require-authentication posture, every
-  // edition; stigmer#1397); the single-operator posture (trusted-local)
-  // composes org_context only. A snapshot by design:
+  // so external injection is moot by construction. The two halves have
+  // different audiences. org_context is composed for every execution but a
+  // visitor's: the organization's own lanes (a person, a schedule, a
+  // workflow's agent_call, the platform's pipelines) carry it, and a caller
+  // the edition classifies as a visitor, admitted to the organization's
+  // agents without belonging to it (the hosted edition's shared-agent
+  // guests and channel senders), never does (stigmer#1401). user_context is
+  // composed only for first-party human operators (DD-002 D4 as amended
+  // 2026-08-15: never for machine, impersonated, guest, channel, schedule,
+  // runner, or platform-client-user callers), and only where callers are
+  // persons (the require-authentication posture, every edition;
+  // stigmer#1397); the single-operator posture (trusted-local) composes
+  // org_context only. A snapshot by design:
   // preferences are mutable, executions are immutable audit records — this
   // field records what the model actually saw. Composition is best-effort;
   // a preference load failure never fails the create. Top-level rather than
@@ -826,6 +831,10 @@ message ConversationCatchup {
 // (the shared-module blank-is-absent convention).
 message DeclaredPreferences {
   // The organization's standing context, verbatim.
+  //
+  // @internal
+  // Never set on a visitor's execution (stigmer#1401): the edition names
+  // its visitors, and open source has none.
   string org_context = 1;
 
   // The calling user's standing context, verbatim.

@@ -286,6 +286,10 @@ export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-calle
 // through the REAL boundary mechanism, never a re-derivation.
 export type { VisitorErrorPolicy } from "./pipeline/interceptors/error-boundary.js";
 export { createErrorBoundaryInterceptor } from "./pipeline/interceptors/error-boundary.js";
+// Which callers are visitors (drivers.visitorClassifier): admitted to the
+// organization's agents without belonging to it, so their runs never carry
+// the organization's standing context (stigmer/stigmer#1401).
+export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
 // The tuple lifecycle's resolution, for a kind a composition serves outside
 // the generic chains (a cloud-served create): `resolveResourceCreatedEvent`
 // derives the creation event from the kind's `kind_meta` exactly as the

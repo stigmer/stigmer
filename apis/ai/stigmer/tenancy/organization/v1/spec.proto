@@ -71,9 +71,12 @@ message OrganizationPreferences {
   //
   // @internal
   // Snapshotted verbatim into
-  // AgentExecutionSpec.declared_preferences.org_context at execution create
-  // (first-party human operators only, DD-002 D4 as amended). The runner
-  // frames it as context, not instructions that override the task.
+  // AgentExecutionSpec.declared_preferences.org_context at execution create,
+  // for every execution but a visitor's: the organization's own lanes carry
+  // it, and a caller the edition classifies as a visitor (admitted to the
+  // organization's agents without belonging to it) never does
+  // (stigmer#1401). The runner frames it as context, not instructions that
+  // override the task.
   string standing_context = 1 [(buf.validate.field).string.max_len = 2000];
 
   // Whether agents may retain learned facts about members of this

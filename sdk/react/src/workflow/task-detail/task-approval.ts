@@ -182,8 +182,8 @@ export function deriveTaskApprovalDecision(
 /**
  * Collapses a decision's attribution into the render-ready reviewer view,
  * or `null` when the decision carries no attribution at all (timeout
- * auto-resolution, OSS single-user edition) — consumers omit the "by …"
- * segment entirely in that case.
+ * auto-resolution) — consumers omit the "by …" segment entirely in that
+ * case.
  */
 export function deriveTaskReviewer(
   decision: TaskDetailApprovalDecision,
