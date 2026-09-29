@@ -200,7 +200,8 @@
               "admin",
               "member",
               "viewer",
-              "participant"
+              "participant",
+              "editor"
             ]
           },
           "description": "The role that will be granted upon redemption.",
@@ -279,6 +280,11 @@
           "name": "participant",
           "number": 5,
           "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator."
+        },
+        {
+          "name": "editor",
+          "number": 6,
+          "description": "Editor of a blueprint (an agent, a workflow or an MCP server): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, publish it on a share link or a channel, or decide\n who else has access."
         }
       ]
     },

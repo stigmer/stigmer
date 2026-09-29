@@ -60,6 +60,14 @@ const ROLE_DISPLAY: ReadonlyArray<RoleDisplay> = [
     description:
       "Reply to customers and manage conversation takeover on a channel",
   },
+  // Grantable per resource on agent, workflow and mcp_server; omitting it
+  // would hide every editor from the resource's access listing.
+  {
+    role: IamRole.editor,
+    name: "Editor",
+    description:
+      "Edit and run the resource; cannot delete it or change who has access",
+  },
 ];
 
 const RELATION_TO_DISPLAY: ReadonlyMap<string, RoleDisplay> = new Map(

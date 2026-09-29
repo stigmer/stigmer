@@ -26,7 +26,7 @@ export interface InstanceVisibilitySelectorProps {
   readonly mode?: VisibilitySelectorMode;
   /** Shows a spinner/disabled state while the RPC is in flight. */
   readonly isPending?: boolean;
-  /** Disables all interaction (e.g., when the user lacks can_edit). */
+  /** Disables all interaction (e.g., when the user lacks can_grant_access). */
   readonly disabled?: boolean;
   /** Additional CSS classes applied to the root element. */
   readonly className?: string;

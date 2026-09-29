@@ -57,7 +57,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "t instance\022\306\001\n\020updateVisibility\0225.ai.sti" +
       "gmer.commons.apiresource.UpdateVisibilit" +
       "yInput\0322.ai.stigmer.agentic.agentinstanc" +
-      "e.v1.AgentInstance\"G\302\270\030C\010\002\020-\"\013resource_i" +
+      "e.v1.AgentInstance\"G\302\270\030C\010\004\020-\"\013resource_i" +
       "d*0unauthorized to update agent instance" +
       " visibility\022\252\001\n\006delete\0224.ai.stigmer.agen" +
       "tic.agentinstance.v1.AgentInstanceId\0322.a" +

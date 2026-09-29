@@ -1,10 +1,11 @@
 /**
  * Pins the create lane's two questions (steps.ts, resolveShareCreateTargets):
- * can_edit on the referenced agent, then can_create_agent_share on the
+ * can_grant_access on the referenced agent, then can_create_agent_share on the
  * share's organization, in that order, each with its byte-pinned copy. A
  * share's agent lives in the share's organization (the resolve step refuses
  * anything else before this runs), so the two bars are one organization's:
- * sharing puts the agent in front of a wider audience (an editor's act) and
+ * sharing puts the agent in front of a wider audience (the owner's act, not
+ * an editor's) and
  * spends the organization's credits on the open internet (an admin's). A
  * missing referenced agent throws.
  */
@@ -46,10 +47,10 @@ function ctxFor(shareOrg: string, stash = true) {
 }
 
 describe("resolveShareCreateTargets", () => {
-  it("asks can_edit on the referenced agent, then can_create_agent_share on the share's organization", () => {
+  it("asks can_grant_access on the referenced agent, then can_create_agent_share on the share's organization", () => {
     expect(resolveShareCreateTargets(ctxFor("publisher-org"))).toEqual([
       {
-        permission: IamPermission.can_edit,
+        permission: IamPermission.can_grant_access,
         resourceKind: ApiResourceKind.agent,
         resourceId: "agt_01helper",
         deniedMessage: SHARE_AGENT_DENIED_MESSAGE,

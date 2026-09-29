@@ -65,13 +65,13 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "create_team\020-\022\026\n\022can_manage_credits\020.\"\004\010" +
       "!\020!\"\004\010\"\020\"\"\004\010\n\020\n\"\004\010\'\020\'*\017can_use_records*\024" +
       "can_create_datastore*\022can_create_project" +
-      "*\031can_set_public_visibility*b\n\007IamRole\022\030" +
+      "*\031can_set_public_visibility*n\n\007IamRole\022\030" +
       "\n\024iam_role_unspecified\020\000\022\t\n\005owner\020\001\022\t\n\005a" +
       "dmin\020\002\022\n\n\006member\020\003\022\n\n\006viewer\020\004\022\017\n\013partic" +
-      "ipant\020\005BrB\tEnumProtoP\001\242\002\003ASI\252\002\021Ai.Stigme" +
-      "r.Iam.V1\312\002\021Ai\\Stigmer\\Iam\\V1\342\002\035Ai\\Stigme" +
-      "r\\Iam\\V1\\GPBMetadata\352\002\024Ai::Stigmer::Iam:" +
-      ":V1b\006proto3"
+      "ipant\020\005\022\n\n\006editor\020\006BrB\tEnumProtoP\001\242\002\003ASI" +
+      "\252\002\021Ai.Stigmer.Iam.V1\312\002\021Ai\\Stigmer\\Iam\\V1" +
+      "\342\002\035Ai\\Stigmer\\Iam\\V1\\GPBMetadata\352\002\024Ai::S" +
+      "tigmer::Iam::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

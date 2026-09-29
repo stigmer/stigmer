@@ -7,6 +7,7 @@ const ROLE_STRINGS: Record<IamRole, string> = {
   [IamRole.member]: "member",
   [IamRole.viewer]: "viewer",
   [IamRole.participant]: "participant",
+  [IamRole.editor]: "editor",
 };
 
 const STRING_TO_ROLE: Record<string, IamRole> = {
@@ -15,6 +16,7 @@ const STRING_TO_ROLE: Record<string, IamRole> = {
   member: IamRole.member,
   viewer: IamRole.viewer,
   participant: IamRole.participant,
+  editor: IamRole.editor,
 };
 
 const ROLE_DISPLAY_NAMES: Record<IamRole, string> = {
@@ -24,6 +26,7 @@ const ROLE_DISPLAY_NAMES: Record<IamRole, string> = {
   [IamRole.member]: "Member",
   [IamRole.viewer]: "Viewer",
   [IamRole.participant]: "Participant",
+  [IamRole.editor]: "Editor",
 };
 
 const ROLE_DESCRIPTIONS: Record<IamRole, string> = {
@@ -33,6 +36,7 @@ const ROLE_DESCRIPTIONS: Record<IamRole, string> = {
   [IamRole.member]: "Standard access to organization resources",
   [IamRole.viewer]: "Read-only access",
   [IamRole.participant]: "Reply to customers and manage conversation takeover",
+  [IamRole.editor]: "Edit and run; cannot delete or change who has access",
 };
 
 /**

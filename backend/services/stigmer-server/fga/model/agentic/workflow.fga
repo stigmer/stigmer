@@ -15,6 +15,8 @@ module agentic
 # - ORG and above: org members can view/execute via the explicit viewer tuple.
 # - Owners (creators) and org admins can edit/delete (admin inheritance —
 #   mirrors mcp_server).
+# - Editors (a per-resource grant) edit, tag and run it; they never delete
+#   it or change who reaches it (visibility, grants).
 #
 # FGA tuples on creation:
 # - workflow:github-summary#organization@organization:stigmer
@@ -49,6 +51,18 @@ type workflow
     define platform_viewer: [identity_provider#platform_user]
     
     # ========================================
+    # EDITOR (a grant, Enterprise and the hosted edition)
+    # ========================================
+    # A person or a team granted edit on this one workflow: may change its
+    # definition, tag its versions and run it, and may not delete it or decide
+    # who else reaches it (visibility and grants ask can_grant_access, the
+    # owner's). Implies viewer. Bounded by the organization like every direct
+    # grant. Only an edition that widens the policy grant scope past the
+    # organization writes the row.
+    # FGA tuple: workflow:<id>#editor@identity_account:<user> (or team:<id>#member)
+    define editor: [identity_account, team#member] and affiliated from organization
+    
+    # ========================================
     # VIEWER ACCESS
     # ========================================
     # organization#viewer is the shape VisibilityTupleReconciler writes — the
@@ -58,13 +72,13 @@ type workflow
     # resolving until the boot backfill converges them. team#member is an
     # Enterprise team's grant: every member, bounded by the organization
     # in team.fga.
-    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or platform_viewer
+    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
     
     # ========================================
     # PERMISSIONS
     # ========================================
     define can_view: viewer
-    define can_edit: owner
+    define can_edit: owner or editor
     define can_delete: owner
     # Platform invariant: you can run what you can read (the execution gate
     # checks can_view; instance models define can_execute: can_view).

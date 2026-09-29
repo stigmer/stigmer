@@ -26,7 +26,7 @@ export interface UseGrantableRolesReturn {
  * @example
  * ```tsx
  * const { roles, hasRoles } = useGrantableRoles(ApiResourceKind.agent);
- * // roles = [IamRole.owner, IamRole.viewer]
+ * // roles = [IamRole.owner, IamRole.editor, IamRole.viewer]
  * // hasRoles = true
  * ```
  */

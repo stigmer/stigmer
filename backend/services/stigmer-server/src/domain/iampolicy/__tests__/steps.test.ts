@@ -12,6 +12,9 @@
  * names no relation qualifier; a team is granted only its kind's team
  * roles (never ownership, never on a kind that lists none), always as its
  * members, and nothing at all under open source's organization-only scope.
+ * The editor role is granted on the three blueprints to a person or a team
+ * where the scope passes the proto through, refused on a kind that does not
+ * list it, and granted nowhere under open source's scope.
  *
  * Grant and Revoke are proven for the one thing a step adds over the
  * grant path: the result they leave under POLICY_RESULT_KEY (the revoke
@@ -44,6 +47,7 @@ import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { PolicyGrantScope } from "../../../extensions/policy-grant-scope.js";
 import { trustedLocalIdentityFor } from "../../../pipeline/interceptors/auth.js";
+import { grantableRolesFor } from "../../../pipeline/apiresource-meta.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import {
   LAST_OWNER_MESSAGE,
@@ -335,6 +339,60 @@ describe("ValidateGrantableRole", () => {
       expect(onOrganization.rawMessage).toBe(
         teamNotGrantableMessage("organization"),
       );
+    });
+  });
+
+  describe("the editor role", () => {
+    // The hosted edition's scope narrows nothing: every role the proto lists
+    // is grantable (the cloud's policy grant scope).
+    const everyProtoRole = newValidateGrantableRoleStep({
+      grantableRoles: (kind) => grantableRolesFor(kind),
+    });
+    const person = { kind: "identity_account", id: "ida_bob" };
+    const team = { kind: "team", id: "tm_sre", relation: "member" };
+    const blueprints = [
+      ["agent", "agt_1"],
+      ["workflow", "wfl_1"],
+      ["mcp_server", "mcp_1"],
+    ] as const;
+
+    it("is granted on an agent, a workflow and an MCP server, to a person and to a team", () => {
+      for (const [kind, id] of blueprints) {
+        for (const principal of [person, team]) {
+          expect(
+            everyProtoRole.execute(
+              contextOf(triple(principal, "editor", { kind, id })),
+            ),
+            `${principal.kind} on ${kind}`,
+          ).toBeUndefined();
+        }
+      }
+    });
+
+    it("is refused on a kind that does not list it, with the kind's own roles named", async () => {
+      const error = await refusal(() =>
+        everyProtoRole.execute(
+          contextOf(triple(person, "editor", { kind: "skill", id: "skl_1" })),
+        ),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(
+        roleNotGrantableMessage("editor", "skill", ["owner", "viewer"]),
+      );
+    });
+
+    it("is granted nowhere under open source's organization-only scope", async () => {
+      for (const [kind, id] of blueprints) {
+        const error = await refusal(() =>
+          organizationOnly.execute(
+            contextOf(triple(person, "editor", { kind, id })),
+          ),
+        );
+        expect(error.code, kind).toBe(Code.Unimplemented);
+        expect(error.rawMessage, kind).toBe(
+          PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
+        );
+      }
     });
   });
 

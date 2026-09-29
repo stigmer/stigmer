@@ -301,6 +301,11 @@ const (
 	// conversations and speak to its customers as the business (reply, take
 	// over, hand back, clear attention). Not a channel configurator.
 	IamRole_participant IamRole = 5
+	// Editor of a blueprint (an agent, a workflow or an MCP server): may change
+	// its definition and do whatever a viewer can, and may not delete it,
+	// change its visibility, publish it on a share link or a channel, or decide
+	// who else has access.
+	IamRole_editor IamRole = 6
 )
 
 // Enum value maps for IamRole.
@@ -312,6 +317,7 @@ var (
 		3: "member",
 		4: "viewer",
 		5: "participant",
+		6: "editor",
 	}
 	IamRole_value = map[string]int32{
 		"iam_role_unspecified": 0,
@@ -320,6 +326,7 @@ var (
 		"member":               3,
 		"viewer":               4,
 		"participant":          5,
+		"editor":               6,
 	}
 )
 
@@ -401,7 +408,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x0fcan_create_team\x10-\x12\x16\n" +
 	"\x12can_manage_credits\x10.\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*b\n" +
+	"\"\x04\b'\x10'*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*n\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +
@@ -410,7 +417,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x06member\x10\x03\x12\n" +
 	"\n" +
 	"\x06viewer\x10\x04\x12\x0f\n" +
-	"\vparticipant\x10\x05B\xcb\x01\n" +
+	"\vparticipant\x10\x05\x12\n" +
+	"\n" +
+	"\x06editor\x10\x06B\xcb\x01\n" +
 	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01Z@github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (

@@ -38,6 +38,18 @@ Instances support configurable visibility controlled by which tuples are written
 
 Individual grants (`resource#viewer@identity_account:<user>`) work at any visibility level.
 
+### Roles on blueprints: viewer, editor, owner
+
+A blueprint (`agent`, `workflow`, `mcp_server`) is granted to a person or a team in one of three roles:
+
+| Role | Can | Cannot |
+|---|---|---|
+| `viewer` | read it and use it: run an agent or workflow, use an MCP server, clone it | change it |
+| `editor` | everything a viewer can, and change its definition (`can_edit`): update, tag a version, schedule an agent | delete it, or decide who else reaches it |
+| `owner` | everything (the creator, and the organization's admins by inheritance) | |
+
+Who else reaches a resource is `can_grant_access`, the owner's: granting and revoking, and every act that widens the audience without a grant, namely `updateVisibility` on every kind, publishing an agent on a share link and binding it to a channel. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
+
 ## Agent vs Workflow Asymmetry
 
 ```
@@ -61,7 +73,7 @@ Guest, channel and schedule sessions run as per-org system accounts that hold ex
 Templates discoverable by all org members, with optional platform visibility:
 
 ```fga
-define viewer: ([identity_account, organization#member, organization#viewer] and affiliated from organization) or owner or platform_viewer
+define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
 ```
 
 Resources: `agent`, `workflow`, `skill`, `mcp_server`, `plugin`
@@ -255,6 +267,19 @@ agent:pr-reviewer#viewer@team:tm-sre#member     ← a share with the team
 Vic views the agent while she is one of Acme's viewers:
 ```
 can_view → viewer → team:tm-sre#member → [identity_account:vic] and viewer from organization:acme
+```
+
+### Editor (Edits, Never Decides Who Reaches It)
+
+```
+agent:pr-reviewer#editor@identity_account:dan   ← an IamPolicy row
+agent:pr-reviewer#editor@team:tm-sre#member     ← or a team
+```
+
+Dan edits the agent while he is in Acme, and cannot delete it or share it on:
+```
+can_edit → owner or editor → [identity_account:dan] and affiliated from organization:acme
+can_grant_access → owner   (never an editor)
 ```
 
 ## File Organization

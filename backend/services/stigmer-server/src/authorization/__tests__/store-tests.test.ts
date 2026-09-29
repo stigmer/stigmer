@@ -51,6 +51,7 @@ const DOCUMENTS = [
   "agent-instance-creation.fga.yaml",
   "agent-share-owner.fga.yaml",
   "artifact-org-and-owner.fga.yaml",
+  "blueprint-editor.fga.yaml",
   "blueprint-private-visibility.fga.yaml",
   "channel-app-administration.fga.yaml",
   "channel-participation.fga.yaml",

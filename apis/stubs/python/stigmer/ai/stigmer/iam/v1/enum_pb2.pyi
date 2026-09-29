@@ -58,6 +58,7 @@ class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     member: _ClassVar[IamRole]
     viewer: _ClassVar[IamRole]
     participant: _ClassVar[IamRole]
+    editor: _ClassVar[IamRole]
 unspecified: IamPermission
 can_view: IamPermission
 can_edit: IamPermission
@@ -107,3 +108,4 @@ admin: IamRole
 member: IamRole
 viewer: IamRole
 participant: IamRole
+editor: IamRole

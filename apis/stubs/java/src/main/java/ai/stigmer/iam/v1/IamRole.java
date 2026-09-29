@@ -70,6 +70,17 @@ public enum IamRole
    * <code>participant = 5;</code>
    */
   participant(5),
+  /**
+   * <pre>
+   * Editor of a blueprint (an agent, a workflow or an MCP server): may change
+   * its definition and do whatever a viewer can, and may not delete it,
+   * change its visibility, publish it on a share link or a channel, or decide
+   * who else has access.
+   * </pre>
+   *
+   * <code>editor = 6;</code>
+   */
+  editor(6),
   UNRECOGNIZED(-1),
   ;
 
@@ -128,6 +139,17 @@ public enum IamRole
    * <code>participant = 5;</code>
    */
   public static final int participant_VALUE = 5;
+  /**
+   * <pre>
+   * Editor of a blueprint (an agent, a workflow or an MCP server): may change
+   * its definition and do whatever a viewer can, and may not delete it,
+   * change its visibility, publish it on a share link or a channel, or decide
+   * who else has access.
+   * </pre>
+   *
+   * <code>editor = 6;</code>
+   */
+  public static final int editor_VALUE = 6;
 
 
   public final int getNumber() {
@@ -160,6 +182,7 @@ public enum IamRole
       case 3: return member;
       case 4: return viewer;
       case 5: return participant;
+      case 6: return editor;
       default: return null;
     }
   }

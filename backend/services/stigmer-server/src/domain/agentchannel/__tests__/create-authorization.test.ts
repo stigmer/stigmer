@@ -1,7 +1,8 @@
 /**
  * Pins the create lane's authorization question (steps.ts,
- * resolveChannelCreateTargets): can_edit on the REFERENCED AGENT with the
- * Java handler's copy, and nothing on the organization (the same-org
+ * resolveChannelCreateTargets): can_grant_access on the REFERENCED AGENT
+ * with the Java handler's copy (binding a channel widens who reaches the
+ * agent, the owner's decision, so an editor's can_edit is not enough), and nothing on the organization (the same-org
  * invariant already binds the channel to the agent's); a missing
  * referenced agent throws.
  */
@@ -39,10 +40,10 @@ function ctxFor(stash = true) {
 }
 
 describe("resolveChannelCreateTargets", () => {
-  it("asks can_edit on the referenced agent and nothing else", () => {
+  it("asks can_grant_access on the referenced agent and nothing else", () => {
     expect(resolveChannelCreateTargets(ctxFor())).toEqual([
       {
-        permission: IamPermission.can_edit,
+        permission: IamPermission.can_grant_access,
         resourceKind: ApiResourceKind.agent,
         resourceId: "agt_01target",
         deniedMessage: CHANNEL_CREATE_DENIED_MESSAGE,

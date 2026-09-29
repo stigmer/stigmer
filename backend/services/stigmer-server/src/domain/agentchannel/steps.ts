@@ -190,12 +190,14 @@ export const CHANNEL_CREATE_DENIED_MESSAGE =
 
 /**
  * The create lane's authorization question, for AuthorizeResolvedTarget
- * after ResolveChannelDefaults: can_edit on the REFERENCED AGENT. The RPC
- * is is_skip_authorization because its target is that agent, resolved from
- * a slug, not a request field. Binding an agent to a channel puts it in
- * front of a wider audience, an editor's act; the same-org invariant the
- * resolve step enforces already binds the channel's organization to the
- * agent's, so there is no separate organization bar (command.proto).
+ * after ResolveChannelDefaults: can_grant_access on the REFERENCED AGENT.
+ * The RPC is is_skip_authorization because its target is that agent,
+ * resolved from a slug, not a request field. Binding an agent to a channel
+ * puts it in front of a wider audience, so it decides who reaches the agent:
+ * the owner's act, never an editor's, who may change the definition but not
+ * its audience. The same-org invariant the resolve step enforces already
+ * binds the channel's organization to the agent's, so there is no separate
+ * organization bar (command.proto).
  */
 export function resolveChannelCreateTargets(
   ctx: RequestContext<AgentChannelDesc>,
@@ -206,7 +208,7 @@ export function resolveChannelCreateTargets(
   }
   return [
     {
-      permission: IamPermission.can_edit,
+      permission: IamPermission.can_grant_access,
       resourceKind: ApiResourceKind.agent,
       resourceId: agent.metadata?.id ?? "",
       deniedMessage: CHANNEL_CREATE_DENIED_MESSAGE,

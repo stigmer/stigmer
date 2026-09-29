@@ -111,6 +111,9 @@ tuples:
   - {user: identity_account:stays, relation: viewer, object: platform_client:x}
   - {user: identity_account:left, relation: viewer, object: platform_client:x}
   - {user: identity_account:left, relation: participant, object: agent_channel:x}
+  - {user: identity_account:left, relation: editor, object: agent:x}
+  - {user: identity_account:left, relation: editor, object: workflow:x}
+  - {user: identity_account:left, relation: editor, object: mcp_server:x}
   - {user: identity_account:left, relation: creator, object: environment:x}
   - {user: identity_account:stays, relation: creator, object: environment:x}
   - {user: identity_account:left, relation: execution_viewer, object: workflow_instance:x}
@@ -146,6 +149,9 @@ tests:
       - {user: identity_account:left, object: oauth_app:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: platform_client:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: agent_channel:x, assertions: {participant: false}}
+      - {user: identity_account:left, object: agent:x, assertions: {editor: false, can_edit: false}}
+      - {user: identity_account:left, object: workflow:x, assertions: {editor: false, can_edit: false}}
+      - {user: identity_account:left, object: mcp_server:x, assertions: {editor: false, can_edit: false}}
       - {user: identity_account:left, object: environment:x, assertions: {creator: false}}
       - {user: identity_account:left, object: workflow_instance:x, assertions: {execution_viewer: false}}
       - {user: identity_account:left, object: memory:left, assertions: {can_view: false, can_edit: false, can_delete: false}}

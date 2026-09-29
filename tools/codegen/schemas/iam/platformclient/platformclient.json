@@ -87,7 +87,8 @@
           "admin",
           "member",
           "viewer",
-          "participant"
+          "participant",
+          "editor"
         ]
       },
       "description": "The role to grant when auto_grant_on_org is true.\n\n Defaults to viewer when unspecified (iam_role_unspecified). The owner role\n is not permitted — organization ownership must be assigned explicitly.\n\n Only meaningful when auto_grant_on_org is true. Ignored otherwise.",

@@ -153,7 +153,9 @@ export const SCHEDULE_CREATE_DENIED_MESSAGE =
  * a slug, not a request field; and there is deliberately no organization
  * bar — a schedule is unattended spend on an agent, an editor's act, and
  * the same-org invariant the resolve step enforces already binds the
- * schedule's organization to the agent's (command.proto).
+ * schedule's organization to the agent's (command.proto). An editor, who
+ * maintains the definition, may run it on a clock: a schedule widens no
+ * one's access, and each fire re-checks its creator's can_execute.
  */
 export function resolveScheduleCreateTargets(
   ctx: RequestContext<typeof ScheduleSchema>,

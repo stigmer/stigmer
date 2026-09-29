@@ -54,7 +54,7 @@ export interface VisibilitySelectorProps {
   readonly mode?: VisibilitySelectorMode;
   /** Shows a spinner/disabled state while the RPC is in flight. */
   readonly isPending?: boolean;
-  /** Disables all interaction (e.g., when the user lacks can_edit). */
+  /** Disables all interaction (e.g., when the user lacks can_grant_access). */
   readonly disabled?: boolean;
   /** Accessible name for the control. Defaults to "Resource visibility". */
   readonly ariaLabel?: string;
@@ -444,7 +444,7 @@ export interface VisibilityBadgeProps {
  * for a row from before its retirement).
  *
  * Rendered wherever the interactive {@link VisibilitySelector} is not
- * available — for viewers who lack `can_edit`, and while a permission check
+ * available — for anyone who lacks `can_grant_access`, and while a permission check
  * is in flight — so a resource's visibility is always legible rather than
  * silently blank. Shares the chip styling with the selector trigger so the
  * read-only and editable states are visually consistent.

@@ -30,7 +30,7 @@ const file_ai_stigmer_agentic_plugin_v1_command_proto_rawDesc = "" +
 	"\x17PluginCommandController\x12\xa1\x01\n" +
 	"\x04push\x12/.ai.stigmer.agentic.plugin.v1.PushPluginRequest\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"B¸\x18>\b(\x10\x1e\"\x03org*3unauthorized to install plugin in this organization\x12\xd8\x01\n" +
 	"\x17createArtifactUploadUrl\x12B.ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest\x1a5.ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl\"B¸\x18>\b(\x10\x1e\"\x03org*3unauthorized to install plugin in this organization\x12\xb0\x01\n" +
-	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"?¸\x18;\b\x02\x10:\"\vresource_id*(unauthorized to update plugin visibility\x12\x86\x01\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"?¸\x18;\b\x04\x10:\"\vresource_id*(unauthorized to update plugin visibility\x12\x86\x01\n" +
 	"\x06delete\x12&.ai.stigmer.agentic.plugin.v1.PluginId\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\".¸\x18*\b\x03\x10:\"\x05value*\x1dunauthorized to delete plugin\x1a\x04\xa0\xff+:B\x95\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 

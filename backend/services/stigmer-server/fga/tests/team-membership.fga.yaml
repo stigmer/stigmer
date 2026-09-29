@@ -17,6 +17,8 @@
 # agent. It reaches nothing: the agent's direct grants are bounded by the
 # agent's own organization, and ext holds no role in acme. The IAM policy
 # grant gate also refuses such a grant before it is written.
+# Team sre is also granted editor on workflow runbook: the editor role
+# reaches the same bounded members a team's viewer grant does.
 name: team-membership
 model_file: ../../src/authorization/model/data/authorization-model.json
 tuples:
@@ -47,6 +49,8 @@ tuples:
   - {user: organization:acme, relation: organization, object: agent:triage}
   - {user: team:sre#member, relation: viewer, object: agent:triage}
   - {user: team:ghost#member, relation: viewer, object: agent:triage}
+  - {user: organization:acme, relation: organization, object: workflow:runbook}
+  - {user: team:sre#member, relation: editor, object: workflow:runbook}
   - {user: organization:acme, relation: organization, object: agent:partner}
   - {user: team:partners#member, relation: viewer, object: agent:partner}
   - {user: organization:acme, relation: organization, object: agent_channel:support}
@@ -154,3 +158,11 @@ tests:
       - user: identity_account:ext
         type: agent
         assertions: {viewer: []}
+  - name: a team granted editor makes exactly its bounded members editors
+    check:
+      - {user: identity_account:vic, object: workflow:runbook, assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false}}
+      - {user: identity_account:mem, object: workflow:runbook, assertions: {editor: true, can_edit: true}}
+      - {user: identity_account:back, object: workflow:runbook, assertions: {editor: true}}
+      - {user: identity_account:gus, object: workflow:runbook, assertions: {editor: false, can_edit: false}}
+      - {user: identity_account:left, object: workflow:runbook, assertions: {editor: false, can_edit: false}}
+      - {user: identity_account:out, object: workflow:runbook, assertions: {editor: false, can_edit: false}}

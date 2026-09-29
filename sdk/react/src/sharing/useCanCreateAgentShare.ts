@@ -18,7 +18,9 @@ export interface UseCanCreateAgentShareReturn {
  * installed copy), and creating one asks two questions of that
  * organization, both of which the create handler enforces:
  *
- * - `can_edit` on the agent — the share is a channel to this agent.
+ * - `can_grant_access` on the agent — a share puts the agent in front of a
+ *   wider audience, so it is the owner's decision; an editor, who may change
+ *   the definition, may not publish it.
  * - `can_create_agent_share` on the organization (admin by default) — a
  *   share spends the organization's credits with anyone on the internet,
  *   so it is an admin-level decision. The org check uses the org slug as
@@ -46,14 +48,14 @@ export function useCanCreateAgentShare(
   const agentId = agent?.metadata?.id ?? "";
   const agentOrg = agent?.metadata?.org ?? "";
 
-  const { allowed: canEditAgent } = useCheckPermission(
+  const { allowed: canPublishAgent } = useCheckPermission(
     agentId ? { kind: "agent", id: agentId } : null,
-    "can_edit",
+    "can_grant_access",
   );
   const { allowed: canCreateInOrg } = useCheckPermission(
     agentOrg ? { kind: "organization", id: agentOrg } : null,
     "can_create_agent_share",
   );
 
-  return { allowed: !!agent && canEditAgent && canCreateInOrg };
+  return { allowed: !!agent && canPublishAgent && canCreateInOrg };
 }

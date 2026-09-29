@@ -516,6 +516,35 @@ describe("AgentChannelsPanel", () => {
     ).toBeTruthy();
   });
 
+  it("offers no connect affordance to an editor of the agent — connecting asks can_grant_access, the owner's", async () => {
+    // An editor holds can_edit on the agent but not can_grant_access: a
+    // channel puts the agent in front of a wider audience, which is the
+    // owner's decision, and the server's create bar says the same.
+    const checkMyPermission = vi.fn((input: unknown) => {
+      const { relation } = input as { relation: string };
+      return Promise.resolve({ isAuthorized: relation !== "can_grant_access" });
+    });
+    const client = createMockStigmer({ checkMyPermission });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("No channels yet")).toBeTruthy(),
+    );
+    await waitFor(() =>
+      expect(checkMyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ relation: "can_grant_access" }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull(),
+    );
+    expect(screen.queryByRole("button", { name: /connect to whatsapp/i })).toBeNull();
+  });
+
   it("offers one visible connect button per provider, each with its cursor target", async () => {
     const client = createMockStigmer();
     render(

@@ -155,7 +155,9 @@ binds three things:
 
 - **WHO** --- the Identity Account (principal)
 - **WHAT** --- the resource (Organization, Environment, Agent, etc.)
-- **HOW** --- the relation (`admin`, `viewer`, `owner`)
+- **HOW** --- the relation (`admin`, `viewer`, `owner`; on an Agent, a Workflow
+  or an MCP Server also `editor`, who may change it but not delete it or decide
+  who else reaches it)
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1

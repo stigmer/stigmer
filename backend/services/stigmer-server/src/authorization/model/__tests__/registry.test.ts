@@ -11,6 +11,11 @@
  *     exactly the four kinds the wider editions serve, so a kind the
  *     contract moves between tiers is a visible diff here;
  *   - a kind is reached by enum and by FGA type name alike;
+ *   - every role a kind's `grantable_roles` lets a person hold is a
+ *     relation of the kind's type whose direct list admits
+ *     `identity_account`, so a grant the step accepts is a tuple the engine
+ *     can store (`authorization_config.proto` states the rule; this holds
+ *     the model to it);
  *   - the relations whose direct list admits a team (`team#member`) are
  *     exactly the roles the kind's `team_grantable_roles` names, a subset
  *     of what a person can be granted and never ownership, so the grant
@@ -283,6 +288,10 @@ function inheritedWholeKinds(): ReadonlyArray<{
   });
 }
 
+function isPerson(subject: SubjectType): boolean {
+  return subject.form === "object" && subject.type === "identity_account";
+}
+
 function isTeamMembers(subject: SubjectType): boolean {
   return subject.form === "userset" && subject.type === "team" && subject.relation === "member";
 }
@@ -369,6 +378,20 @@ describe("the built-in model", () => {
         .sort();
       expect(admitsTeam, declaration.type).toEqual(contract);
     }
+  });
+
+  it("stores every role a kind lets a person hold as a relation that admits the person directly — the model and the contract say one thing", () => {
+    const gaps: string[] = [];
+    for (const declaration of builtInModel.declarations) {
+      for (const role of grantableRolesFor(declaration.kind)) {
+        const relation = IamRole[role];
+        const rewrite = declaration.relations.get(relation);
+        if (rewrite === undefined || !directSubjects(rewrite).some(isPerson)) {
+          gaps.push(`${declaration.type}#${relation}`);
+        }
+      }
+    }
+    expect(gaps.sort()).toEqual([]);
   });
 
   it("lets a team hold only roles a person can hold on the kind, and never ownership", () => {

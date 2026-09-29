@@ -181,7 +181,7 @@ function useGrantableRoles(kind: ApiResourceKind | null): UseGrantableRolesRetur
 
 ```tsx
 const { roles, hasRoles } = useGrantableRoles(ApiResourceKind.agent);
-// roles = [IamRole.owner, IamRole.viewer]
+// roles = [IamRole.owner, IamRole.editor, IamRole.viewer]
 // hasRoles = true
 ```
 

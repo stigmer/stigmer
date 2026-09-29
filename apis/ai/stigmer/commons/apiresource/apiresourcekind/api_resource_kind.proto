@@ -390,9 +390,13 @@ enum ApiResourceKind {
       }
       grantable_roles: [
         owner,
+        editor,
         viewer
       ]
-      team_grantable_roles: [viewer]
+      team_grantable_roles: [
+        editor,
+        viewer
+      ]
     }
   }];
 
@@ -483,9 +487,13 @@ enum ApiResourceKind {
       }
       grantable_roles: [
         owner,
+        editor,
         viewer
       ]
-      team_grantable_roles: [viewer]
+      team_grantable_roles: [
+        editor,
+        viewer
+      ]
     }
   }];
 
@@ -630,9 +638,13 @@ enum ApiResourceKind {
       }
       grantable_roles: [
         owner,
+        editor,
         viewer
       ]
-      team_grantable_roles: [viewer]
+      team_grantable_roles: [
+        editor,
+        viewer
+      ]
     }
   }];
 

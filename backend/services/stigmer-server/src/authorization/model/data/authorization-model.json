@@ -1125,6 +1125,17 @@
           "can_grant_access": {},
           "can_view": {},
           "can_view_access": {},
+          "editor": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          },
           "organization": {
             "directly_related_user_types": [
               {
@@ -1188,8 +1199,19 @@
           }
         },
         "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
+                }
+              }
+            ]
           }
         },
         "can_execute": {
@@ -1210,6 +1232,25 @@
         "can_view_access": {
           "computedUserset": {
             "relation": "viewer"
+          }
+        },
+        "editor": {
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         },
         "organization": {
@@ -1278,6 +1319,11 @@
               {
                 "computedUserset": {
                   "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
                 }
               },
               {
@@ -2277,6 +2323,17 @@
           "can_use": {},
           "can_view": {},
           "can_view_access": {},
+          "editor": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          },
           "organization": {
             "directly_related_user_types": [
               {
@@ -2340,8 +2397,19 @@
           }
         },
         "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
+                }
+              }
+            ]
           }
         },
         "can_grant_access": {
@@ -2362,6 +2430,25 @@
         "can_view_access": {
           "computedUserset": {
             "relation": "viewer"
+          }
+        },
+        "editor": {
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         },
         "organization": {
@@ -2430,6 +2517,11 @@
               {
                 "computedUserset": {
                   "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
                 }
               },
               {
@@ -3179,6 +3271,17 @@
           "can_grant_access": {},
           "can_view": {},
           "can_view_access": {},
+          "editor": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          },
           "organization": {
             "directly_related_user_types": [
               {
@@ -3237,8 +3340,19 @@
           }
         },
         "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
+                }
+              }
+            ]
           }
         },
         "can_execute": {
@@ -3259,6 +3373,25 @@
         "can_view_access": {
           "computedUserset": {
             "relation": "viewer"
+          }
+        },
+        "editor": {
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         },
         "organization": {
@@ -3327,6 +3460,11 @@
               {
                 "computedUserset": {
                   "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
                 }
               },
               {

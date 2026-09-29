@@ -15,6 +15,8 @@ module agentic
 #             — PLUS the org tuple (the "org floor", see below).
 # - Owners (creators) and org admins can edit/delete (the GitHub
 #   org-admin model — mirrors mcp_server).
+# - Editors (a per-resource grant) edit, run and schedule it; they never
+#   delete it or change who reaches it (visibility, shares, channels, grants).
 #
 # Org floor: PLATFORM always carries the org tuple too, so the explicit org
 # tuple is what keeps a shared agent visible in its own org's catalog on
@@ -82,9 +84,21 @@ type agent
     define platform_viewer: [identity_provider#platform_user]
     
     # ========================================
+    # EDITOR (a grant, Enterprise and the hosted edition)
+    # ========================================
+    # A person or a team granted edit on this one agent: may change its
+    # definition, run it and schedule it, and may not delete it or decide
+    # who else reaches it (visibility, share links, channels and grants ask
+    # can_grant_access, the owner's). Implies viewer. Bounded by the
+    # organization like every direct grant. Only an edition that widens the
+    # policy grant scope past the organization writes the row.
+    # FGA tuple: agent:<id>#editor@identity_account:<user> (or team:<id>#member)
+    define editor: [identity_account, team#member] and affiliated from organization
+    
+    # ========================================
     # VIEWER ACCESS
     # ========================================
-    # Viewers: owner + direct grants + org userset (ORG visibility tuple) +
+    # Viewers: owner + editors + direct grants + org userset (ORG visibility tuple) +
     # platform tenant family (PLATFORM).
     # organization#viewer is the shape VisibilityTupleReconciler writes — the
     # org's FULL read audience (roles flow downward: owner/admin/member all
@@ -93,13 +107,13 @@ type agent
     # resolving until the boot backfill converges them. team#member is an
     # Enterprise team's grant: every member, bounded by the organization
     # in team.fga.
-    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or platform_viewer
+    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
     
     # ========================================
     # PERMISSIONS
     # ========================================
     define can_view: viewer
-    define can_edit: owner
+    define can_edit: owner or editor
     define can_delete: owner
     
     # ========================================

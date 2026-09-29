@@ -259,4 +259,16 @@ enum IamRole {
   // grantable_roles subsetting is the mechanism, not a new one. A team may
   // hold it too (agent_channel's team_grantable_roles).
   participant = 5;
+
+  // Editor of a blueprint (an agent, a workflow or an MCP server): may change
+  // its definition and do whatever a viewer can, and may not delete it,
+  // change its visibility, publish it on a share link or a channel, or decide
+  // who else has access.
+  //
+  // @internal
+  // Implies viewer in the model (`viewer: ... or editor`), and is bounded by
+  // the organization like every direct grant. Granted per resource, so only
+  // an edition that widens the policy grant scope beyond the organization
+  // grants it; the open-source server does not.
+  editor = 6;
 }

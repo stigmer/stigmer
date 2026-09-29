@@ -1,5 +1,5 @@
 /**
- * Pins roles.ts (20260913.01 slice 5): the five assignable roles' display
+ * Pins roles.ts (20260913.01 slice 5): the six assignable roles' display
  * metadata and the allowlist that keeps structural relations out of every
  * access listing — moved from the cloud's iam/policy/roles.ts (the Java
  * IamRoleMetadata port). The allowlist is proven by construction here:
@@ -15,13 +15,14 @@ import {
 } from "../roles.js";
 
 describe("the assignable-role allowlist", () => {
-  it("is exactly the five roles a person can hold, in display order", () => {
+  it("is exactly the six roles a person can hold, in display order", () => {
     expect(assignableRelations()).toEqual([
       "owner",
       "admin",
       "member",
       "viewer",
       "participant",
+      "editor",
     ]);
   });
 
