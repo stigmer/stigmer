@@ -125,7 +125,11 @@ import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makePersonalEnvironment } from "../support/environments";
 import { pollUntil } from "../support/execution-poll";
 import { makeHttpMcpServer } from "../support/mcpservers";
-import { enableOrganizationMemory, MEMORY_CAP } from "../support/memories";
+import {
+  enableMyMemory,
+  enableOrganizationMemory,
+  MEMORY_CAP,
+} from "../support/memories";
 import { uniqueName } from "../support/naming";
 import {
   AGENT_CALL_AFTER_TASK_NAME,
@@ -923,9 +927,12 @@ describe.skipIf(!runnerActsAsRunCreator)(
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 
-      // Memory is an organization preference an admin turns on; the founder
-      // owns the organization.
+      // Memory is a double opt-in where callers are persons (stigmer#1387):
+      // the organization's switch, which an admin turns on (the founder owns
+      // the organization), and the switch of the person the memory is about,
+      // which only that person turns on.
       await enableOrganizationMemory(people.founder, people.org);
+      await enableMyMemory(people.member);
       const agent = await createAgent(
         people,
         ApiResourceVisibility.visibility_org,
