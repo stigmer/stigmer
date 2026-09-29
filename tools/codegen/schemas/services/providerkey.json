@@ -1,0 +1,179 @@
+{
+  "resource": "providerkey",
+  "package": "ai.stigmer.billing.providerkey.v1",
+  "goImportPath": "providerkeyv1",
+  "services": [
+    {
+      "name": "ProviderKeyCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/billing/providerkey/v1/command.proto",
+      "methods": [
+        {
+          "name": "Set",
+          "inputType": "SetProviderKeyInput",
+          "inputFullType": "ai.stigmer.billing.providerkey.v1.SetProviderKeyInput",
+          "outputType": "ProviderKey",
+          "outputFullType": "ai.stigmer.billing.providerkey.v1.ProviderKey",
+          "description": "Save the organization's key for a provider.\n\n The key is checked once against the provider before it is saved, and a\n key the provider rejects is refused with INVALID_ARGUMENT. Refused with\n FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the\n organization's plan does not include bring-your-own provider keys.\n Returns the saved key without its secret."
+        },
+        {
+          "name": "Delete",
+          "inputType": "DeleteProviderKeyInput",
+          "inputFullType": "ai.stigmer.billing.providerkey.v1.DeleteProviderKeyInput",
+          "outputType": "ProviderKey",
+          "outputFullType": "ai.stigmer.billing.providerkey.v1.ProviderKey",
+          "description": "Remove the organization's key for a provider.\n\n Allowed on every plan, so an organization that left the plan can always\n remove what it saved. NOT_FOUND when the organization holds no key for\n the provider. Returns the removed key without its secret."
+        }
+      ]
+    },
+    {
+      "name": "ProviderKeyQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/billing/providerkey/v1/query.proto",
+      "methods": [
+        {
+          "name": "List",
+          "inputType": "ListProviderKeysInput",
+          "inputFullType": "ai.stigmer.billing.providerkey.v1.ListProviderKeysInput",
+          "outputType": "ListProviderKeysOutput",
+          "outputFullType": "ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput",
+          "description": "List the keys that serve the organization, its own and any it inherits\n from its integrator, without their secrets."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "SetProviderKeyInput",
+      "description": "Save the organization's key for a provider, replacing any key it holds for\n that provider.",
+      "protoType": "ai.stigmer.billing.providerkey.v1.SetProviderKeyInput",
+      "protoFile": "apis/ai/stigmer/billing/providerkey/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Provider",
+          "jsonName": "provider",
+          "protoField": "provider",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": false,
+          "validation": {
+            "enum": [
+              "anthropic",
+              "openai"
+            ]
+          }
+        },
+        {
+          "name": "ApiKey",
+          "jsonName": "apiKey",
+          "protoField": "api_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The provider API key. Write-only: no read returns it.",
+          "required": false,
+          "validation": {
+            "minLength": 8,
+            "maxLength": 512
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeleteProviderKeyInput",
+      "description": "Remove the organization's key for a provider.",
+      "protoType": "ai.stigmer.billing.providerkey.v1.DeleteProviderKeyInput",
+      "protoFile": "apis/ai/stigmer/billing/providerkey/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Provider",
+          "jsonName": "provider",
+          "protoField": "provider",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": false,
+          "validation": {
+            "enum": [
+              "anthropic",
+              "openai"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListProviderKeysInput",
+      "description": "List the organization's provider keys.",
+      "protoType": "ai.stigmer.billing.providerkey.v1.ListProviderKeysInput",
+      "protoFile": "apis/ai/stigmer/billing/providerkey/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListProviderKeysOutput",
+      "description": "",
+      "protoType": "ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput",
+      "protoFile": "apis/ai/stigmer/billing/providerkey/v1/io.proto",
+      "fields": [
+        {
+          "name": "Keys",
+          "jsonName": "keys",
+          "protoField": "keys",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ProviderKey"
+            }
+          },
+          "description": "One row per provider the organization is served on its own or its\n integrator's key, in provider order.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "An organization's own LLM provider key, as every caller sees it: the key\n itself never leaves the server, only which provider it is for, a hint to\n tell two keys apart, and who saved it and when.\n\n An organization holds at most one key per provider. While its plan\n includes bring-your-own provider keys, the Stigmer Cloud proxy serves the\n organization's calls to that provider on this key: the provider bills the\n organization directly, and Stigmer meters the calls without charging them.\n\n Provider keys are not an API resource. They are keyed by organization and\n provider, and they authorize against the organization, as billing does."
+}

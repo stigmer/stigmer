@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
+  ORGANIZATION_PROVIDER_KEY_SENTINEL,
   PLATFORM_CAPACITY_SENTINEL,
   classifyModelCallError,
   describeExecutionError,
@@ -536,5 +537,46 @@ describe("describeExecutionError", () => {
     );
     expect(errorMessage).not.toContain("Plans & Billing");
     expect(errorMessage).toContain("platform-side issue");
+  });
+});
+
+describe("classifyModelCallError on the organization's own provider key", () => {
+  const proxied = { proxyMode: true, provider: "anthropic" as const, modelId: "claude-sonnet-4-6" };
+  const marked = (message: string) => `${message} [code: ${ORGANIZATION_PROVIDER_KEY_SENTINEL}]`;
+
+  it("words the key's billing exhaustion as the organization's account, never platform capacity", () => {
+    const err = middlewareWrap(sdkError(400, marked(ANTHROPIC_BILLING_MESSAGE)));
+    const classified = classifyModelCallError(err, proxied);
+    expect(classified?.code).toBe("LLM_PROVIDER_BILLING");
+    expect(classified?.retryable).toBe(false);
+    expect(classified?.message).toContain("organization's own Anthropic key");
+    expect(classified?.message).not.toContain(PLATFORM_CAPACITY_SENTINEL);
+  });
+
+  it("words a rejected key as the organization's key, not an expired Stigmer session", () => {
+    const err = sdkError(401, marked('401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'));
+    const classified = classifyModelCallError(err, proxied);
+    expect(classified?.code).toBe("LLM_AUTHENTICATION_ERROR");
+    expect(classified?.message).toContain("rejected your organization's own key");
+    expect(classified?.message).not.toContain("Stigmer platform");
+  });
+
+  it("words a forbidden model as the key's account permission", () => {
+    const classified = classifyModelCallError(sdkError(403, marked("403 permission_error")), proxied);
+    expect(classified?.code).toBe("LLM_PERMISSION_DENIED");
+    expect(classified?.message).toContain("denied your organization's own key");
+  });
+
+  it("classifies the key's other failures as direct mode would", () => {
+    const rateLimited = classifyModelCallError(sdkError(429, marked("429 rate_limit_error")), proxied);
+    expect(rateLimited?.code).toBe("LLM_RATE_LIMIT");
+    const serverError = classifyModelCallError(sdkError(529, marked("529 overloaded_error")), proxied);
+    expect(serverError?.code).toBe("LLM_PROVIDER_ERROR");
+    expect(serverError?.retryable).toBe(true);
+  });
+
+  it("leaves an unmarked proxied 401 on the platform wording", () => {
+    const classified = classifyModelCallError(sdkError(401, "401 unauthorized"), proxied);
+    expect(classified?.message).toContain("Stigmer platform rejected");
   });
 });

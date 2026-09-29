@@ -136,6 +136,29 @@ enum CursorKeySource {
   CURSOR_KEY_SOURCE_MANAGED_KEY = 1;
 }
 
+// Whose provider credential served a proxied LLM call.
+//
+// The proxy picks the key, injects it upstream, and reports the same source
+// with the usage payload, so the record never disagrees with what was sent
+// on the wire.
+//
+// @internal
+// UNSPECIFIED is the legacy marker: records written before this field
+// existed were all served on the platform's credentials. Billing reads only
+// ORGANIZATION: such a call is priced for visibility and never debited, and
+// it is outside the plan's usage share and the platform's provider
+// reconciliation.
+enum ProviderKeySource {
+  PROVIDER_KEY_SOURCE_UNSPECIFIED = 0;
+
+  // The platform's provider account served the call; it is billed.
+  PROVIDER_KEY_SOURCE_PLATFORM = 1;
+
+  // The organization's own provider key served the call (bring-your-own
+  // provider keys): the provider bills the organization directly.
+  PROVIDER_KEY_SOURCE_ORGANIZATION = 2;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOKEN USAGE
 //
@@ -398,6 +421,11 @@ message LlmCallUsageRecord {
   // this field existed (their cursor_account_id semantics are the legacy
   // pin-derived stamp).
   CursorKeySource cursor_key_source = 43;
+
+  // Whose provider credential served this call. ORGANIZATION marks a call on
+  // the organization's own key, which is metered and never charged.
+  // UNSPECIFIED on records written before this field existed.
+  ProviderKeySource provider_key_source = 45;
 
   // Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
   // mirroring service_tier's convention: cursor harness derives it from the

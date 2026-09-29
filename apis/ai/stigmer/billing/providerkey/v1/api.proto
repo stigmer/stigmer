@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.providerkey.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// An organization's own LLM provider key, as every caller sees it: the key
+// itself never leaves the server, only which provider it is for, a hint to
+// tell two keys apart, and who saved it and when.
+//
+// An organization holds at most one key per provider. While its plan
+// includes bring-your-own provider keys, the Stigmer Cloud proxy serves the
+// organization's calls to that provider on this key: the provider bills the
+// organization directly, and Stigmer meters the calls without charging them.
+//
+// Provider keys are not an API resource. They are keyed by organization and
+// provider, and they authorize against the organization, as billing does.
+//
+// @internal
+// Served by the cloud composition only; the open-source server serves no
+// billing service. A managed organization with no key of its own for a
+// provider is served by its integrator organization's key, which list
+// returns as an inherited row.
+message ProviderKey {
+  // The organization the key serves.
+  string org_id = 1;
+
+  // The provider the key is for: "anthropic" or "openai", the proxy's own
+  // provider names.
+  string provider = 2;
+
+  // The key's last four characters.
+  string key_hint = 3;
+
+  // The identity account that saved the key.
+  string created_by = 4;
+
+  google.protobuf.Timestamp created_at = 5;
+
+  // When the key was last replaced.
+  google.protobuf.Timestamp updated_at = 6;
+
+  // When the proxy last served a call on the key; unset when it never has.
+  // Updated at most once a minute.
+  google.protobuf.Timestamp last_used_at = 7;
+
+  // False when the organization's plan no longer includes bring-your-own
+  // provider keys: the key is kept and can be removed, but the proxy serves
+  // the organization on the platform's key, metered, until the plan does.
+  bool in_use = 8;
+
+  // Set when the row is the integrator organization's key, serving this
+  // managed organization because it holds none of its own for the provider.
+  // Such a row is read-only here; it is managed on the integrator.
+  string inherited_from_org_id = 9;
+}

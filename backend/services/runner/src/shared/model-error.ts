@@ -19,6 +19,14 @@
  *    (BYO-key) mode, attributes billing errors to the user's own account
  *    with actionable wording.
  *
+ * 3. On Stigmer Cloud an organization may bring its own provider key, which
+ *    the proxy injects upstream in place of the platform's. A failure on
+ *    that key is the organization's, not the platform's, yet it reaches the
+ *    runner in proxy mode. The proxy keeps the provider's status and message
+ *    and marks the message with ORGANIZATION_PROVIDER_KEY_SENTINEL; this
+ *    module words a marked failure as the organization's key, never as a
+ *    platform fault.
+ *
  * Classification order is load-bearing: the sentinel check must precede
  * status mapping, otherwise the proxy's 503 would classify as a retryable
  * 5xx and waste Temporal retries against a dead platform account.
@@ -42,6 +50,14 @@ import {
  * change both or neither.
  */
 export const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
+
+/**
+ * Machine-readable code the cloud proxy embeds in a provider failure it
+ * relays from a call served on the organization's own provider key. The
+ * message text carries it, as it carries PLATFORM_CAPACITY_SENTINEL.
+ * Duplicated in stigmer-cloud's LLM proxy lane; change both or neither.
+ */
+export const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 
 export interface ClassifiedModelError {
   /** Stable machine-readable code (doubles as the Temporal failure type). */
@@ -99,10 +115,21 @@ export function unwrapModelError(err: unknown): unknown {
  */
 export function classifyModelCallError(
   err: unknown,
-  ctx: ModelErrorContext,
+  callerCtx: ModelErrorContext,
 ): ClassifiedModelError | undefined {
   const root = unwrapModelError(err);
   const message = root instanceof Error ? root.message : String(root);
+
+  // 0. Organization-key sentinel — before everything that reads proxyMode:
+  //    the call went through the proxy but on the organization's own key,
+  //    so its failures are the organization's. The key-specific failures
+  //    get key-specific wording; the rest classify as direct mode would.
+  const organizationKey = message.includes(ORGANIZATION_PROVIDER_KEY_SENTINEL);
+  if (organizationKey) {
+    const classified = classifyOrganizationKeyError(root, message, callerCtx);
+    if (classified !== undefined) return classified;
+  }
+  const ctx = organizationKey ? { ...callerCtx, proxyMode: false } : callerCtx;
   const backend = resolveDirectBackend(ctx);
 
   // 1. Platform sentinel — before status mapping (see module doc).
@@ -232,6 +259,52 @@ export function classifyModelCallError(
     };
   }
 
+  return undefined;
+}
+
+/**
+ * The failures an organization's own provider key causes, worded for the
+ * organization's admin: out of credit or quota at the provider, the key
+ * rejected, or the key's account not permitted the model. Undefined for
+ * every other failure, which classifies as direct mode would.
+ */
+function classifyOrganizationKeyError(
+  root: unknown,
+  message: string,
+  ctx: ModelErrorContext,
+): ClassifiedModelError | undefined {
+  const provider = providerSubject(ctx);
+  if (isProviderBillingMessage(message)) {
+    return {
+      code: "LLM_PROVIDER_BILLING",
+      retryable: false,
+      message:
+        `Your organization's own ${providerLabel(ctx)} key is out of credits or over quota. ` +
+        `Add credits to that provider account, or update the key in Settings → Provider keys. ` +
+        `Provider message: ${message}`,
+    };
+  }
+  const status = typeof (root as { status?: unknown }).status === "number"
+    ? (root as { status: number }).status
+    : undefined;
+  if (status === 401) {
+    return {
+      code: "LLM_AUTHENTICATION_ERROR",
+      retryable: false,
+      message:
+        `${provider} rejected your organization's own key (authentication, HTTP 401) for ${modelLabel(ctx)}. ` +
+        `Update the key in Settings → Provider keys.`,
+    };
+  }
+  if (status === 403) {
+    return {
+      code: "LLM_PERMISSION_DENIED",
+      retryable: false,
+      message:
+        `${provider} denied your organization's own key (authorization, HTTP 403) for ${modelLabel(ctx)}. ` +
+        `Check that the key's account may use this model, or update the key in Settings → Provider keys.`,
+    };
+  }
   return undefined;
 }
 

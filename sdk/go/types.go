@@ -27,6 +27,7 @@ type OrganizationClient = gen.OrganizationClient
 type PlanClient = gen.PlanClient
 type PlatformClientClient = gen.PlatformClientClient
 type PluginClient = gen.PluginClient
+type ProviderKeyClient = gen.ProviderKeyClient
 type ScheduleClient = gen.ScheduleClient
 type SessionClient = gen.SessionClient
 

@@ -466,6 +466,29 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
+   * Whose provider credential served this call. ORGANIZATION marks a call on
+   * the organization's own key, which is metered and never charged.
+   * UNSPECIFIED on records written before this field existed.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
+   * @return The enum numeric value on the wire for providerKeySource.
+   */
+  int getProviderKeySourceValue();
+  /**
+   * <pre>
+   * Whose provider credential served this call. ORGANIZATION marks a call on
+   * the organization's own key, which is metered and never charged.
+   * UNSPECIFIED on records written before this field existed.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
+   * @return The providerKeySource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ProviderKeySource getProviderKeySource();
+
+  /**
+   * <pre>
    * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
    * mirroring service_tier's convention: cursor harness derives it from the
    * resolved wire id's variant suffix; empty when the wire carries no
