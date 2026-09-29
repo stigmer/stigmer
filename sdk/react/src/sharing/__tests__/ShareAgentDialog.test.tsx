@@ -8,6 +8,7 @@ import { StigmerError, type AgentShareInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
+import { PublicBaseUrlContext } from "../../public-base-url-context";
 import { ShareAgentDialog } from "../ShareAgentDialog";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
@@ -74,17 +75,21 @@ function createMockStigmer(overrides: MockOverrides = {}) {
 function Providers({
   client,
   mode = "cloud",
+  publicBaseUrl,
   children,
 }: {
   client: unknown;
   mode?: "cloud" | "local";
+  publicBaseUrl?: string;
   children: ReactNode;
 }) {
   return (
     <FetchCacheContext.Provider value={null}>
       <DeploymentModeContext.Provider value={mode}>
         <StigmerContext.Provider value={client as never}>
-          {children}
+          <PublicBaseUrlContext.Provider value={publicBaseUrl}>
+            {children}
+          </PublicBaseUrlContext.Provider>
         </StigmerContext.Provider>
       </DeploymentModeContext.Provider>
     </FetchCacheContext.Provider>
@@ -150,11 +155,14 @@ const buildShareUrl = (org: string, slug: string) =>
 /** Render the dialog open. Pass `share` for edit mode; omit for create mode. */
 function renderOpenDialog(
   client: unknown,
-  props?: Partial<Parameters<typeof ShareAgentDialog>[0]> & { mode?: "cloud" | "local" },
+  props?: Partial<Parameters<typeof ShareAgentDialog>[0]> & {
+    mode?: "cloud" | "local";
+    publicBaseUrl?: string;
+  },
 ) {
-  const { mode, ...dialogProps } = props ?? {};
+  const { mode, publicBaseUrl, ...dialogProps } = props ?? {};
   render(
-    <Providers client={client} mode={mode}>
+    <Providers client={client} mode={mode} publicBaseUrl={publicBaseUrl}>
       <ShareAgentDialog
         open
         onOpenChange={() => {}}
@@ -891,6 +899,34 @@ describe("ShareAgentDialog", () => {
       const snippet = openDeveloperSnippet(CLOUD_API_BASE_URL);
 
       expect(snippet).toContain(`baseUrl: "https://api.stigmer.ai",`);
+    });
+
+    // stigmer/stigmer#1335: a relative baseUrl (a same-origin proxy) is not
+    // an address a backend can call, so the snippet is built only from an
+    // absolute one the host named, and says so when there is none.
+    it("says the code is unavailable for a relative baseUrl, instead of printing baseUrl: \"\"", () => {
+      renderOpenDialog(createMockStigmer({ baseUrl: "/" }), {
+        share: makeShare({ enabled: true }),
+      });
+      fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
+
+      expect(screen.getByText("Platform client integration")).toBeTruthy();
+      expect(
+        screen.getByText(/doesn't know your Stigmer server's public address/),
+      ).toBeTruthy();
+      expect(screen.queryByText(/createPlatformClientAuth/)).toBeNull();
+    });
+
+    it("builds the snippet from the host's public base URL behind a relative baseUrl", () => {
+      renderOpenDialog(createMockStigmer({ baseUrl: "/" }), {
+        share: makeShare({ enabled: true }),
+        publicBaseUrl: "https://api.acme.example/",
+      });
+      fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
+
+      expect(screen.getByText(/createPlatformClientAuth/).textContent).toContain(
+        `baseUrl: "https://api.acme.example",`,
+      );
     });
   });
 

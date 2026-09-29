@@ -23,7 +23,8 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
 import { toast } from "../feedback/toast.js";
-import { useStigmer } from "../hooks.js";
+import { usePublicBaseUrl } from "../public-base-url-context.js";
+import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { useBillingAccount } from "../billing/useBillingAccount.js";
@@ -1510,10 +1511,10 @@ function MessageField({
 
 /**
  * The platform client snippet, aimed at the server the console is connected
- * to (`stigmer.baseUrl`) — a self-hosted admin copies code for their own
- * server, not Stigmer Cloud. The base URL is normalised as the channel-app
- * webhook URLs normalise it, and JSON-quoted so the line is always a valid
- * string literal.
+ * to — a self-hosted admin copies code for their own server, not Stigmer
+ * Cloud. `apiBaseUrl` is the server's public base URL (`usePublicBaseUrl`),
+ * the address the channel-app webhook URLs are built from too, JSON-quoted
+ * so the line is always a valid string literal.
  */
 function buildDeveloperSnippet(
   apiBaseUrl: string,
@@ -1544,10 +1545,14 @@ function DeveloperTab({
   readonly org: string;
   readonly slug: string;
 }) {
-  const stigmer = useStigmer();
+  const publicBaseUrl = usePublicBaseUrl();
+  // `null` while the server's public address is unknown: the field says so.
   const snippet = useMemo(
-    () => buildDeveloperSnippet(stigmer.baseUrl, org, slug),
-    [stigmer.baseUrl, org, slug],
+    () =>
+      publicBaseUrl === null
+        ? null
+        : buildDeveloperSnippet(publicBaseUrl, org, slug),
+    [publicBaseUrl, org, slug],
   );
 
   return (
@@ -1557,12 +1562,23 @@ function DeveloperTab({
         integrate this agent with the Stigmer SDK — the same runtime, full
         control.
       </p>
-      <CopyField
-        label="Platform client integration"
-        value={snippet}
-        copyLabel="Code"
-        multiline
-      />
+      {snippet !== null ? (
+        <CopyField
+          label="Platform client integration"
+          value={snippet}
+          copyLabel="Code"
+          multiline
+        />
+      ) : (
+        <section>
+          <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
+            Platform client integration
+          </h3>
+          <div className="stg:mt-1.5">
+            <UnknownPublicAddressNotice subject="the integration code" />
+          </div>
+        </section>
+      )}
       <a
         href={PLATFORM_CLIENT_DOCS_URL}
         target="_blank"

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import type { ChannelAppInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { PublicBaseUrlContext } from "../../public-base-url-context";
 import { CreateChannelAppForm, type ChannelAppCreateHandoff } from "../CreateChannelAppForm";
 import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";
 
@@ -11,9 +12,10 @@ afterEach(cleanup);
 function createMockStigmer(overrides: {
   create?: (input: ChannelAppInput) => Promise<unknown>;
   update?: (input: ChannelAppInput) => Promise<unknown>;
+  baseUrl?: string;
 } = {}) {
   return {
-    baseUrl: "https://api.stigmer.ai",
+    baseUrl: overrides.baseUrl ?? "https://api.stigmer.ai",
     channelapp: {
       create: overrides.create ?? vi.fn().mockResolvedValue({
         metadata: { id: "chapp_new", org: "acme", slug: "acme-whatsapp" },
@@ -29,10 +31,20 @@ function createMockStigmer(overrides: {
   } as never;
 }
 
-function Providers({ client, children }: { client: unknown; children: ReactNode }) {
+function Providers({
+  client,
+  publicBaseUrl,
+  children,
+}: {
+  client: unknown;
+  publicBaseUrl?: string;
+  children: ReactNode;
+}) {
   return (
     <StigmerContext.Provider value={client as never}>
-      {children}
+      <PublicBaseUrlContext.Provider value={publicBaseUrl}>
+        {children}
+      </PublicBaseUrlContext.Provider>
     </StigmerContext.Provider>
   );
 }
@@ -273,5 +285,83 @@ describe("ChannelAppDetailPanel — WhatsApp branch", () => {
       screen.getByText("https://api.stigmer.ai/webhook/slack/chapp_s"),
     ).toBeTruthy();
     expect(screen.queryByText(/finish setup in meta/i)).toBeNull();
+  });
+});
+
+describe("ChannelAppDetailPanel — the server's public address (stigmer/stigmer#1335)", () => {
+  // A client behind a same-origin proxy talks to the server through a
+  // relative baseUrl. Slack and Meta call the webhook from outside the page,
+  // so the panel builds it only from an absolute address the host named,
+  // and says so when there is none, instead of offering a relative URL.
+  const UNKNOWN_ADDRESS = /doesn't know your Stigmer server's public address/;
+
+  const slackApp = {
+    metadata: { id: "chapp_s", org: "acme", slug: "acme-bot", name: "Acme Bot" },
+    spec: {
+      providerConfig: {
+        case: "slack",
+        value: {
+          clientId: "123.456",
+          clientSecret: "***REDACTED***",
+          signingSecret: "***REDACTED***",
+        },
+      },
+    },
+  } as never;
+
+  it("says the WhatsApp callback URL is unknown for a relative baseUrl, offering nothing to copy", () => {
+    render(
+      <Providers client={createMockStigmer({ baseUrl: "/" })}>
+        <ChannelAppDetailPanel
+          channelApp={makeWhatsAppApp()}
+          createHandoff={{ verifyToken: "verify-me" }}
+        />
+      </Providers>,
+    );
+
+    expect(screen.getByText("Callback URL")).toBeTruthy();
+    expect(screen.getByText(UNKNOWN_ADDRESS)).toBeTruthy();
+    expect(screen.queryByText(/\/webhook\/whatsapp\//)).toBeNull();
+    // The verify token is not an address and is still offered.
+    expect(screen.getByText("verify-me")).toBeTruthy();
+  });
+
+  it("says the Slack request URL is unknown and leaves event subscriptions out of the manifest", () => {
+    render(
+      <Providers client={createMockStigmer({ baseUrl: "/" })}>
+        <ChannelAppDetailPanel channelApp={slackApp} consoleOrigin="https://console.acme.example" />
+      </Providers>,
+    );
+
+    expect(screen.getByText("Events request URL")).toBeTruthy();
+    expect(screen.getByText(UNKNOWN_ADDRESS)).toBeTruthy();
+    expect(screen.queryByText(/\/webhook\/slack\//)).toBeNull();
+    expect(document.body.textContent).not.toContain("request_url");
+    expect(document.body.textContent).not.toContain("event_subscriptions");
+    // The OAuth redirect is the console's own address and is unaffected.
+    expect(
+      screen.getAllByText(/https:\/\/console\.acme\.example\/oauth\/slack\/callback/).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("builds both webhook URLs from the host's public base URL", () => {
+    const { unmount } = render(
+      <Providers client={createMockStigmer({ baseUrl: "/" })} publicBaseUrl="https://api.acme.example/">
+        <ChannelAppDetailPanel channelApp={slackApp} />
+      </Providers>,
+    );
+    expect(screen.getByText("https://api.acme.example/webhook/slack/chapp_s")).toBeTruthy();
+    expect(document.body.textContent).toContain(
+      'request_url: "https://api.acme.example/webhook/slack/chapp_s"',
+    );
+    unmount();
+
+    render(
+      <Providers client={createMockStigmer({ baseUrl: "/" })} publicBaseUrl="https://api.acme.example">
+        <ChannelAppDetailPanel channelApp={makeWhatsAppApp()} />
+      </Providers>,
+    );
+    expect(screen.getByText("https://api.acme.example/webhook/whatsapp/chapp_1")).toBeTruthy();
+    expect(screen.queryByText(UNKNOWN_ADDRESS)).toBeNull();
   });
 });

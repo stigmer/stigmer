@@ -11,7 +11,27 @@ import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { ModelRegistryContext, type ModelRegistryState } from "../../models/ModelRegistryContext";
 import { parseRegistryJson } from "../../models/registry";
+import type { UseServerInfoReturn } from "../../server-info";
 import { AccountPreferencesPanel } from "../AccountPreferencesPanel";
+
+// The panel asks the server's posture for its memory row. The mock clients
+// below have no `platform`, so the hook is stubbed file-wide; every case not
+// about posture runs against a server that authenticates its callers.
+function answering(authenticationRequired: boolean | undefined): UseServerInfoReturn {
+  return {
+    serverInfo: { deploymentMode: "cloud", edition: 1, version: "dev", authenticationRequired },
+    isLoading: false,
+    error: null,
+  };
+}
+
+const SIGN_IN_SERVER = answering(true);
+
+let serverInfo: UseServerInfoReturn = SIGN_IN_SERVER;
+
+vi.mock("../../server-info.js", () => ({
+  useServerInfo: () => serverInfo,
+}));
 
 const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
   metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },
@@ -60,7 +80,10 @@ function renderPanel(client: unknown, mode: DeploymentMode = "cloud") {
   );
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  serverInfo = SIGN_IN_SERVER;
+});
 
 /**
  * Waits until the form has synced from server data (the panel copies the
@@ -249,6 +272,55 @@ describe("AccountPreferencesPanel", () => {
           screen.getByRole("switch", { name: "Memory" }).getAttribute("aria-checked"),
         ).toBe("true"),
       );
+    });
+  });
+
+  describe("memory row by server posture (stigmer/stigmer#1404)", () => {
+    // The server honours the person's own switch only where it authenticates
+    // its callers; on a server that trusts every request, the organization's
+    // switch alone decides, so the panel states that instead.
+    const ORGANIZATION_DECIDES = /memory follows your organization's setting/;
+
+    it("offers the switch on a server that authenticates its callers", async () => {
+      renderPanel(createMockStigmer());
+      await findSyncedField("Keep answers terse.");
+
+      expect(screen.getByRole("switch", { name: "Memory" })).toBeTruthy();
+      expect(screen.queryByText(ORGANIZATION_DECIDES)).toBeNull();
+    });
+
+    it("states the organization decides, with no switch, on a server that trusts every request", async () => {
+      serverInfo = answering(false);
+      renderPanel(createMockStigmer(), "local");
+      await findSyncedField("Keep answers terse.");
+
+      expect(screen.getByText(ORGANIZATION_DECIDES)).toBeTruthy();
+      expect(screen.queryByRole("switch", { name: "Memory" })).toBeNull();
+    });
+
+    it("offers the switch on a server too old to report its posture", async () => {
+      serverInfo = answering(undefined);
+      renderPanel(createMockStigmer(), "local");
+      await findSyncedField("Keep answers terse.");
+
+      expect(screen.getByRole("switch", { name: "Memory" })).toBeTruthy();
+    });
+
+    it("offers the switch when the posture could not be read: an unknown posture lets the server decide", async () => {
+      serverInfo = { serverInfo: null, isLoading: false, error: new Error("unreachable") };
+      renderPanel(createMockStigmer(), "local");
+      await findSyncedField("Keep answers terse.");
+
+      expect(screen.getByRole("switch", { name: "Memory" })).toBeTruthy();
+    });
+
+    it("renders neither while the server's answer is loading, so no switch flashes and disappears", async () => {
+      serverInfo = { serverInfo: null, isLoading: true, error: null };
+      renderPanel(createMockStigmer(), "local");
+      await findSyncedField("Keep answers terse.");
+
+      expect(screen.queryByRole("switch", { name: "Memory" })).toBeNull();
+      expect(screen.queryByText(ORGANIZATION_DECIDES)).toBeNull();
     });
   });
 

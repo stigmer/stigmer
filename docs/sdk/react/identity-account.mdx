@@ -222,6 +222,12 @@ creates the operator account at boot, so `whoAmI()` always has a row to
 answer with. A server that cannot answer surfaces its error through the
 fetch-error state below, never a hidden branch.
 
+The one posture question it does ask is about memory. The person's own
+memory switch is honoured only by a server that authenticates its
+callers; on a server that trusts every request (the single-operator
+laptop), memory is the organization's switch alone, so the panel says
+that in the switch's place rather than offering one that does nothing.
+
 All visual properties flow through `--stgm-*` design tokens. Zero
 dependencies on Console routing, auth context, or layout — platform
 builders can embed it directly:

@@ -15,6 +15,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
 import { useModelRegistry } from "../models/index.js";
+import { useServerInfo } from "../server-info.js";
 import { HARNESS_META, type HarnessOption } from "../models/harness.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
@@ -48,6 +49,12 @@ export interface AccountPreferencesPanelProps {
  * creates the operator account at boot, so `whoAmI()` always has a row to
  * answer with. A server that cannot answer surfaces its error through the
  * fetch-error state below, never a hidden branch.
+ *
+ * The one posture question it does ask is about memory. The person's own
+ * memory switch is honoured only by a server that authenticates its
+ * callers; on a server that trusts every request (the single-operator
+ * laptop), memory is the organization's switch alone, so the panel says
+ * that in the switch's place rather than offering one that does nothing.
  *
  * All visual properties flow through `--stgm-*` design tokens. Zero
  * dependencies on Console routing, auth context, or layout — platform
@@ -85,6 +92,8 @@ export function AccountPreferencesPanel({
     isUpdating: isSavingMemoryFlag,
     error: memoryFlagError,
   } = useUpdateIdentityAccount();
+
+  const memoryGovernance = useMemoryGovernance();
 
   const [standingContext, setStandingContext] = useState("");
   const [defaultHarness, setDefaultHarness] = useState("");
@@ -377,14 +386,17 @@ export function AccountPreferencesPanel({
         </div>
       </div>
 
-      <MemoryEnabledRow
-        id={`${baseId}-memory-enabled`}
-        checked={account.spec?.preferences?.memoryEnabled ?? false}
-        onToggle={(next) => void handleMemoryToggle(next)}
-        saving={isSavingMemoryFlag}
-        error={memoryFlagError}
-        helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those executions' records; once you have many, each conversation recalls the most relevant ones, shown on the execution. Requires your organization to have memory enabled. Changes apply immediately."
-      />
+      {memoryGovernance === "organization" && <OrganizationGovernedMemory />}
+      {memoryGovernance === "person" && (
+        <MemoryEnabledRow
+          id={`${baseId}-memory-enabled`}
+          checked={account.spec?.preferences?.memoryEnabled ?? false}
+          onToggle={(next) => void handleMemoryToggle(next)}
+          saving={isSavingMemoryFlag}
+          error={memoryFlagError}
+          helperText="When on, agents may propose facts to remember about you; only facts you confirm are stored. Confirmed memories are shared with your future sessions and appear on those executions' records; once you have many, each conversation recalls the most relevant ones, shown on the execution. Requires your organization to have memory enabled. Changes apply immediately."
+        />
+      )}
 
       {updateError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
@@ -581,6 +593,41 @@ function DefaultModelSelect({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+/**
+ * Who decides memory on the connected server, for the memory row.
+ *
+ * - `"person"`: the person's own switch counts (a server that authenticates
+ *   its callers, one too old to report its posture, or one whose answer
+ *   failed: an unknown posture offers the control and lets the server
+ *   decide, as `authentication_required`'s contract says).
+ * - `"organization"`: the server trusts every request, so its one operator
+ *   decides memory through the organization's switch alone.
+ * - `null`: the server has not answered yet, so the row renders nothing
+ *   rather than a switch that flashes and disappears.
+ */
+function useMemoryGovernance(): "person" | "organization" | null {
+  const { serverInfo, error } = useServerInfo();
+  if (serverInfo !== null) {
+    return serverInfo.authenticationRequired === false ? "organization" : "person";
+  }
+  return error !== null ? "person" : null;
+}
+
+/** The memory row on a server where the organization's switch alone decides. */
+function OrganizationGovernedMemory() {
+  return (
+    <div className="stg:space-y-1">
+      <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
+        Memory
+      </span>
+      <p className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+        On this server, memory follows your organization&apos;s setting. Turn it
+        on or off in the organization&apos;s preferences.
+      </p>
     </div>
   );
 }

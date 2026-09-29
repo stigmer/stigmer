@@ -15,6 +15,7 @@ import { StigmerContext } from "./context.js";
 import { DeploymentModeContext } from "./deployment-mode.js";
 import { ExecutionTargetContext } from "./execution-target-context.js";
 import { ApprovalDefaultsContext } from "./approval-defaults-context.js";
+import { PublicBaseUrlContext } from "./public-base-url-context.js";
 import type { ApprovalDefaults } from "./approval-defaults-context.js";
 import type { ExecutionTargetOption } from "./session/execution-target.js";
 import type { RunnerAdapter } from "./runner-adapter.js";
@@ -121,6 +122,31 @@ export interface StigmerProviderProps {
    * ```
    */
   readonly approvalDefaults?: ApprovalDefaults;
+  /**
+   * The address the Stigmer API is reached at from outside this page, for
+   * the URLs the SDK shows a user to copy: the Slack and WhatsApp webhook
+   * URLs a channel app registers, and the platform client snippet in the
+   * Share dialog.
+   *
+   * Omit it when the client's `baseUrl` is absolute: that address is used,
+   * exactly as before. Pass it when the client talks to the server through
+   * a relative `baseUrl` (a same-origin proxy), because the page's own
+   * origin need not be where Slack, Meta or a backend can reach the API.
+   * Without it, those surfaces say they do not know the server's public
+   * address and offer nothing to copy. Only an absolute `http(s)` URL is
+   * used.
+   *
+   * @example
+   * ```tsx
+   * // The browser reaches the API through the page's own origin
+   * const client = new Stigmer({ baseUrl: "/", getAccessToken });
+   *
+   * <StigmerProvider client={client} publicBaseUrl="https://api.example.com">
+   *   <App />
+   * </StigmerProvider>
+   * ```
+   */
+  readonly publicBaseUrl?: string;
   /**
    * Built-in theme preset to apply.
    *
@@ -288,6 +314,7 @@ export function StigmerProvider({
   executionTarget,
   runnerAdapter,
   approvalDefaults,
+  publicBaseUrl,
   preset,
   className,
   colorMode = "light",
@@ -310,32 +337,34 @@ export function StigmerProvider({
         <ExecutionTargetContext.Provider value={executionTarget}>
           <ApprovalDefaultsContext.Provider value={approvalDefaults}>
             <RunnerAdapterContext.Provider value={runnerAdapter ?? null}>
-              <ColorModeContext.Provider value={resolvedMode}>
-                <ModelRegistryContext.Provider value={registryState}>
-                  <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
-                    <ReviewRendererContext.Provider value={reviewRenderers ?? EMPTY_REVIEW_RENDERERS}>
-                      <PortalContainerContext.Provider value={portalContainer}>
-                        {/*
-                          The in-tree scoping container. `data-stgm-root` is a
-                          stable public selector — the documented seam for hosts
-                          to style THIS element only (e.g. the fixed-height
-                          embedding recipe, #260). It must never be mirrored
-                          onto the portal container, whose own `data-stgm-portal`
-                          marker keeps host in-tree-only CSS away from the
-                          off-tree element.
-                        */}
-                        <div
-                          className={scope.className}
-                          data-stgm-root=""
-                          data-stgm-color-mode={scope.colorMode}
-                        >
-                          {children}
-                        </div>
-                      </PortalContainerContext.Provider>
-                    </ReviewRendererContext.Provider>
-                  </TaskKindRegistryContext.Provider>
-                </ModelRegistryContext.Provider>
-              </ColorModeContext.Provider>
+              <PublicBaseUrlContext.Provider value={publicBaseUrl}>
+                <ColorModeContext.Provider value={resolvedMode}>
+                  <ModelRegistryContext.Provider value={registryState}>
+                    <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
+                      <ReviewRendererContext.Provider value={reviewRenderers ?? EMPTY_REVIEW_RENDERERS}>
+                        <PortalContainerContext.Provider value={portalContainer}>
+                          {/*
+                            The in-tree scoping container. `data-stgm-root` is a
+                            stable public selector — the documented seam for hosts
+                            to style THIS element only (e.g. the fixed-height
+                            embedding recipe, #260). It must never be mirrored
+                            onto the portal container, whose own `data-stgm-portal`
+                            marker keeps host in-tree-only CSS away from the
+                            off-tree element.
+                          */}
+                          <div
+                            className={scope.className}
+                            data-stgm-root=""
+                            data-stgm-color-mode={scope.colorMode}
+                          >
+                            {children}
+                          </div>
+                        </PortalContainerContext.Provider>
+                      </ReviewRendererContext.Provider>
+                    </TaskKindRegistryContext.Provider>
+                  </ModelRegistryContext.Provider>
+                </ColorModeContext.Provider>
+              </PublicBaseUrlContext.Provider>
             </RunnerAdapterContext.Provider>
           </ApprovalDefaultsContext.Provider>
         </ExecutionTargetContext.Provider>

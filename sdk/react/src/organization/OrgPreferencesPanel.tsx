@@ -7,9 +7,18 @@ import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organizati
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useServerInfo } from "../server-info.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+
+/** The memory row's copy where each member's own switch must also be on. */
+const MEMBER_CONSENT_MEMORY_HELPER_TEXT =
+  "Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences; once a member has many memories, each conversation recalls their most relevant ones, shown on the execution. Changes apply immediately.";
+
+/** The memory row's copy on a server where this switch alone decides memory. */
+const ORG_ALONE_MEMORY_HELPER_TEXT =
+  "Allow agents to remember confirmed facts. On this server this switch alone decides memory; once there are many memories, each conversation recalls the most relevant ones, shown on the execution. Changes apply immediately.";
 
 /** Props for {@link OrgPreferencesPanel}. */
 export interface OrgPreferencesPanelProps {
@@ -68,6 +77,15 @@ export function OrgPreferencesPanel({
     isUpdating: isSavingMemoryFlag,
     error: memoryFlagError,
   } = useUpdateOrganization();
+
+  // On a server that trusts every request, this switch alone decides memory:
+  // there is no person's switch to also turn on (the account panel says so
+  // in its place).
+  const { serverInfo } = useServerInfo();
+  const memoryHelperText =
+    serverInfo?.authenticationRequired === false
+      ? ORG_ALONE_MEMORY_HELPER_TEXT
+      : MEMBER_CONSENT_MEMORY_HELPER_TEXT;
 
   // Fail-open: OSS local mode has no IAM service, so editing stays
   // available there; cloud gets a genuine server verdict.
@@ -221,7 +239,7 @@ export function OrgPreferencesPanel({
         saving={isSavingMemoryFlag}
         readOnly={!canEdit}
         error={memoryFlagError}
-        helperText="Allow agents to remember confirmed facts about members of this organization. Each member must also turn memory on in their own account preferences; once a member has many memories, each conversation recalls their most relevant ones, shown on the execution. Changes apply immediately."
+        helperText={memoryHelperText}
       />
 
       {!canEdit && (
