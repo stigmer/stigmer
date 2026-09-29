@@ -103,7 +103,12 @@ export function newResourceIdentityAccountStore(
 
     findById: readById,
 
-    findByIdpId: readBySubject,
+    async findByIdpId(idpId): Promise<IdentityAccount | undefined> {
+      const account = await readBySubject(idpId);
+      return account !== undefined && !isFederated(account)
+        ? account
+        : undefined;
+    },
 
     async findDirectByIdpId(idpId): Promise<IdentityAccount | undefined> {
       const account = await readBySubject(idpId);
@@ -151,6 +156,14 @@ export function newResourceIdentityAccountStore(
  * asserted, so no direct lookup — a verifier's subject resolve, getByEmail —
  * may answer it.
  */
+/** A row an identity provider vouches for: its subject is the provider's, reached only by the natural key. */
+function isFederated(account: IdentityAccount): boolean {
+  return (
+    account.spec?.identityProviderRef !== undefined ||
+    account.spec?.provisioningMode === IdentityAccountProvisioningMode.federated
+  );
+}
+
 function isDirect(account: IdentityAccount): boolean {
   const mode = account.spec?.provisioningMode;
   return (

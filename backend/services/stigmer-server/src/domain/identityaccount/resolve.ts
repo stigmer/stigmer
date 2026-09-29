@@ -70,6 +70,23 @@
  * `local|<stamp>`, which is one direct-subject read. An account-id stamp
  * and the empty stamp answer no with no read: the common key costs its
  * verifier nothing.
+ *
+ * The fifth reading asks of a caller whether the platform's own sign-in
+ * vouched for it: `mayProvisionDirectAccount`, provisionMyAccount's
+ * admission. That RPC provisions the DIRECT account of the credential's
+ * subject, and a subject names a direct account only when the lane that
+ * admitted the caller is one of the platform's own. Every such lane
+ * resolves its caller through `identityIdForSubject` and stamps the `user`
+ * class, so its caller is either idp-shaped (no account, and the identity
+ * is the subject itself) or the direct account of that subject. Anything
+ * else was vouched for by another lane: an organization's identity
+ * provider stamps its own federated account, a platform client's user
+ * token its own account, a system lane its lane account or raw lane
+ * subject. Their `sub` is theirs to choose, so provisioning by it would
+ * hand them a platform person's row, or create one under the subject with
+ * a profile fetched from their own issuer. The trusted-local operator, who
+ * carries no issuer and no token, is the posture's own and is admitted.
+ * Two primary-key reads; faults propagate as they are.
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
@@ -158,4 +175,31 @@ export async function isPreSignInOperatorStamp(
     return false;
   }
   return (await accounts.findDirectByIdpId(localIdpIdFor(stamp))) !== undefined;
+}
+
+/**
+ * Whether provisionMyAccount may provision the direct account of
+ * `subject` (the caller's `idpIdOf`) for `caller`: the trusted-local
+ * operator; or a `user`-class caller that is idp-shaped (no account under
+ * its identity, which is the subject itself) or is already that subject's
+ * direct account. Faults propagate as they are.
+ */
+export async function mayProvisionDirectAccount(
+  accounts: AccountsByCaller,
+  caller: CallerIdentity,
+  subject: string,
+): Promise<boolean> {
+  if (caller.issuer === "" && caller.rawToken === "") {
+    return true;
+  }
+  if (caller.callerClass !== "user" || subject === "") {
+    return false;
+  }
+  const standing = await accounts.findById(caller.identityId);
+  if (standing === undefined) {
+    return caller.identityId === subject;
+  }
+  const standingId = standing.metadata?.id ?? "";
+  const direct = await accounts.findDirectByIdpId(subject);
+  return standingId !== "" && direct?.metadata?.id === standingId;
 }

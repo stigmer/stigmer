@@ -16,8 +16,10 @@ package ai.stigmer.iam.identityaccount.v1;
  *
  * Two modes:
  * - Revoke only (delete_account = false): removes all IAM policies for the
- * account in the organization. The identity account is preserved for audit
- * trail. The user loses access but the account record remains.
+ * account in the organization and in every organization the identity
+ * provider manages, where its sign-in grants roles too. The identity
+ * account is preserved for audit trail. The user loses access but the
+ * account record remains.
  * - Revoke and delete (delete_account = true): revokes access AND deletes
  * the identity account. All IAM policies across all organizations are
  * cleaned up. Use this for permanent offboarding.
@@ -208,7 +210,7 @@ private static final long serialVersionUID = 0L;
   private boolean deleteAccount_ = false;
   /**
    * <pre>
-   * When false (default): revoke the account's access in this organization only.
+   * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
    * When true: revoke access AND permanently delete the identity account.
    * </pre>
    *
@@ -425,8 +427,10 @@ private static final long serialVersionUID = 0L;
    *
    * Two modes:
    * - Revoke only (delete_account = false): removes all IAM policies for the
-   * account in the organization. The identity account is preserved for audit
-   * trail. The user loses access but the account record remains.
+   * account in the organization and in every organization the identity
+   * provider manages, where its sign-in grants roles too. The identity
+   * account is preserved for audit trail. The user loses access but the
+   * account record remains.
    * - Revoke and delete (delete_account = true): revokes access AND deletes
    * the identity account. All IAM policies across all organizations are
    * cleaned up. Use this for permanent offboarding.
@@ -978,7 +982,7 @@ private static final long serialVersionUID = 0L;
     private boolean deleteAccount_ ;
     /**
      * <pre>
-     * When false (default): revoke the account's access in this organization only.
+     * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
      * When true: revoke access AND permanently delete the identity account.
      * </pre>
      *
@@ -991,7 +995,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When false (default): revoke the account's access in this organization only.
+     * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
      * When true: revoke access AND permanently delete the identity account.
      * </pre>
      *
@@ -1008,7 +1012,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When false (default): revoke the account's access in this organization only.
+     * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
      * When true: revoke access AND permanently delete the identity account.
      * </pre>
      *

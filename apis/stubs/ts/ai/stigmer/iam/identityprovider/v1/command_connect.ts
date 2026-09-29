@@ -57,7 +57,9 @@ export const IdentityProviderCommandController = {
      * Delete an identity provider.
      *
      * Deletion is blocked if any platform-managed organizations reference this
-     * identity provider.
+     * identity provider. The federated accounts the provider vouches for are
+     * deleted with it, with every role they hold, so a provider created again
+     * under the same slug inherits none of them.
      *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.delete
      */

@@ -143,7 +143,10 @@ class IdentityAccountCommandControllerServicer(object):
         the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
         and the SDK's ensureMyIdentityAccount. Derives the account from the
         caller's token and the userinfo endpoint of the issuer that vouched for
-        it. Idempotent: returns the existing account on retry.
+        it. Idempotent: returns the existing account on retry. A caller another
+        lane vouched for (an organization's identity provider, a platform
+        client, a system lane) already has the account that lane provisions,
+        and is refused PERMISSION_DENIED.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

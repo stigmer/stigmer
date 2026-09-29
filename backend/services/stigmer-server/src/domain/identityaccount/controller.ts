@@ -31,7 +31,9 @@
  * unprovisioned), getByEmail and getByIdpId (lookup FIRST, then
  * authorizeDirect on the FOUND id — the cloud's order; the annotation's
  * `field_path = "value"` would otherwise hand the Authorizer an email as a
- * resource id), getActorInfo, and provisionMyAccount (the provisioner,
+ * resource id), getActorInfo, and provisionMyAccount (PERMISSION_DENIED
+ * first for a caller the platform's own sign-in did not vouch for,
+ * resolve.ts `mayProvisionDirectAccount`; then the provisioner,
  * then — on the call that CREATED the row — the core AccountCreatedHook
  * (open source's membership rules, 20260913.01 slice 4), then the composed
  * post-persist gates; UNAUTHENTICATED with the cloud's copy for a
@@ -101,6 +103,7 @@ import {
   ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
   CREATE_IS_INTERNAL_MESSAGE,
   NO_IDP_ID_MESSAGE,
+  NOT_A_DIRECT_SIGN_IN_MESSAGE,
   USERINFO_UNAVAILABLE_PREFIX,
   federationUnimplementedMessage,
   idpIdOf,
@@ -113,7 +116,7 @@ import type {
   DirectAccountProvisioner,
 } from "./provisioning.js";
 import { UserInfoFetchError } from "./provisioning.js";
-import { accountForCaller } from "./resolve.js";
+import { accountForCaller, mayProvisionDirectAccount } from "./resolve.js";
 import {
   accountNotFoundError,
   newAssignBackendFieldsStep,
@@ -509,7 +512,7 @@ async function getByEmail(
   );
 }
 
-/** getByIdpId — any provisioning mode; lookup first, authorize on the FOUND id. */
+/** getByIdpId — any provisioning mode but federated (a federated subject is its provider's: getByExternalSub); lookup first, authorize on the FOUND id. */
 async function getByIdpId(
   deps: IdentityAccountControllerDeps,
   idpId: IdpId,
@@ -548,8 +551,10 @@ async function lookupThenAuthorize(
 // ---------------------------------------------------------------------------
 
 /**
- * provisionMyAccount — the subject from the caller's credential, the
- * provisioner's flow, then two post-persist consumers with the caller
+ * provisionMyAccount — the subject from the caller's credential, admitted
+ * only for a caller the platform's own sign-in vouched for
+ * (`mayProvisionDirectAccount`), the provisioner's flow, then two
+ * post-persist consumers with the caller
  * RE-STAMPED as the account: the position-1 identity was idp-shaped
  * because no row existed when the verifier ran, and anything that
  * attributes ownership must name the account, never a principal no later
@@ -581,6 +586,16 @@ async function provisionMyAccount(
   const idpId = idpIdOf(caller);
   if (idpId === "") {
     throw new ConnectError(NO_IDP_ID_MESSAGE, Code.Unauthenticated);
+  }
+  // Before any read of the subject: a credential another lane vouched for
+  // names a subject that lane chose, and the direct account under it is a
+  // platform person's to hold, never that lane's to provision or read.
+  const admitted = await read(
+    () => mayProvisionDirectAccount(deps.accounts, caller, idpId),
+    "failed to resolve the caller's account",
+  );
+  if (!admitted) {
+    throw new ConnectError(NOT_A_DIRECT_SIGN_IN_MESSAGE, Code.PermissionDenied);
   }
   let account: IdentityAccount;
   let created: boolean;

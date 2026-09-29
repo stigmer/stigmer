@@ -674,8 +674,10 @@ func (x *UpdateFederatedAccountInput) GetPictureUrl() string {
 //
 // Two modes:
 //   - Revoke only (delete_account = false): removes all IAM policies for the
-//     account in the organization. The identity account is preserved for audit
-//     trail. The user loses access but the account record remains.
+//     account in the organization and in every organization the identity
+//     provider manages, where its sign-in grants roles too. The identity
+//     account is preserved for audit trail. The user loses access but the
+//     account record remains.
 //   - Revoke and delete (delete_account = true): revokes access AND deletes
 //     the identity account. All IAM policies across all organizations are
 //     cleaned up. Use this for permanent offboarding.
@@ -689,7 +691,7 @@ type DeprovisionFederatedAccountInput struct {
 	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
 	// External subject identifier (OIDC sub claim) — lookup key.
 	ExternalSub string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
-	// When false (default): revoke the account's access in this organization only.
+	// When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
 	// When true: revoke access AND permanently delete the identity account.
 	DeleteAccount bool `protobuf:"varint,4,opt,name=delete_account,json=deleteAccount,proto3" json:"delete_account,omitempty"`
 	unknownFields protoimpl.UnknownFields

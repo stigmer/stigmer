@@ -196,6 +196,10 @@ export type { PrincipalDisplay } from "./extensions/principal-display.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
+// The derived id of the account under a subject. An edition's own per-org
+// system accounts take the id of their own subject, so the primary key holds
+// one row per subject there as it does for every account the library mints.
+export { accountIdFor } from "./domain/identityaccount/constants.js";
 // The PlatformClient seams: the store PORT a composition drives the domain
 // through (drivers.platformClientStore; a driver throws
 // DuplicatePlatformClientError for a held id, slug or client_id) and its

@@ -360,7 +360,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "findDirectByIdpId and findDirectByEmail never answer a federated account, while findByIdpId (any mode) does",
+    "no subject lookup answers a federated account: its subject is its identity provider's",
     async ({ store }) => {
       await store.save(
         federatedAccount({ idpId: "auth0|fed", email: "fed@example.com" }),
@@ -376,9 +376,9 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
         "the direct-email lookup must not resolve to a federated account",
       );
       assert.equal(
-        (await store.findByIdpId("auth0|fed"))?.spec?.provisioningMode,
-        IdentityAccountProvisioningMode.federated,
-        "the any-mode subject lookup must answer the federated account",
+        await store.findByIdpId("auth0|fed"),
+        undefined,
+        "the subject lookup must not resolve to a federated account: a provider chooses its subjects, so one equal to a platform person's or a platform client user's would otherwise answer for them",
       );
     },
   ],

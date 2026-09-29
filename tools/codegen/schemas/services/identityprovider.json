@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Delete an identity provider.\n\n Deletion is blocked if any platform-managed organizations reference this\n identity provider."
+          "description": "Delete an identity provider.\n\n Deletion is blocked if any platform-managed organizations reference this\n identity provider. The federated accounts the provider vouches for are\n deleted with it, with every role they hold, so a provider created again\n under the same slug inherits none of them."
         }
       ]
     },
