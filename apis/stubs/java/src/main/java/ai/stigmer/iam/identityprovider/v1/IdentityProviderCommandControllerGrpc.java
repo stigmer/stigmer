@@ -242,7 +242,9 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
-     * identity provider.
+     * identity provider. The federated accounts the provider vouches for are
+     * deleted with it, with every role they hold, so a provider created again
+     * under the same slug inherits none of them.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -324,7 +326,9 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
-     * identity provider.
+     * identity provider. The federated accounts the provider vouches for are
+     * deleted with it, with every role they hold, so a provider created again
+     * under the same slug inherits none of them.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -390,7 +394,9 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
-     * identity provider.
+     * identity provider. The federated accounts the provider vouches for are
+     * deleted with it, with every role they hold, so a provider created again
+     * under the same slug inherits none of them.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -455,7 +461,9 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
-     * identity provider.
+     * identity provider. The federated accounts the provider vouches for are
+     * deleted with it, with every role they hold, so a provider created again
+     * under the same slug inherits none of them.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -523,7 +531,9 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Delete an identity provider.
      * Deletion is blocked if any platform-managed organizations reference this
-     * identity provider.
+     * identity provider. The federated accounts the provider vouches for are
+     * deleted with it, with every role they hold, so a provider created again
+     * under the same slug inherits none of them.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> delete(

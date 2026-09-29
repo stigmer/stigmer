@@ -152,6 +152,16 @@ export const ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE =
 export const NO_IDP_ID_MESSAGE =
   "Cannot provision account: no IDP ID in authentication context";
 
+/**
+ * provisionMyAccount for a caller the platform's own sign-in did not vouch
+ * for (PERMISSION_DENIED): a person of an organization's identity provider,
+ * a platform client's user, a system lane's token, or any caller that is
+ * not a person. Names no account: the refusal answers before the store is
+ * asked about the credential's subject.
+ */
+export const NOT_A_DIRECT_SIGN_IN_MESSAGE =
+  "Cannot provision account: this RPC provisions a person signing in through this platform's own sign-in, and another lane vouched for this credential";
+
 /** provisionMyAccount when the issuer's userinfo cannot be read (UNAVAILABLE); the cause follows. */
 export const USERINFO_UNAVAILABLE_PREFIX =
   "Failed to fetch user profile from identity provider: ";

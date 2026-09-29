@@ -112,6 +112,8 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // tests pin against.
 export type {
   DefaultInstanceLinkedEvent,
+  ExecutionAudienceShape,
+  ExecutionVisibilityChangedEvent,
   OrganizationAffiliationEvent,
   PolicyGrantedEvent,
   PolicyRevokedEvent,
@@ -204,6 +206,10 @@ export type { ResourceRowReader } from "./extensions/resource-row-reader.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";
+// The derived id of the account under a subject. An edition's own per-org
+// system accounts take the id of their own subject, so the primary key holds
+// one row per subject there as it does for every account the library mints.
+export { accountIdFor } from "./domain/identityaccount/constants.js";
 // The PlatformClient seams: the store PORT a composition drives the domain
 // through (drivers.platformClientStore; a driver throws
 // DuplicatePlatformClientError for a held id, slug or client_id) and its
@@ -306,6 +312,7 @@ export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
 // whichever chain created the row.
 export {
   diffVisibilityShapes,
+  executionAudienceShapes,
   resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "./pipeline/steps/authorization-tuples.js";

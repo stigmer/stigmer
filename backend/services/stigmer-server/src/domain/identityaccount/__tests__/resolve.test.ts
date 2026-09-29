@@ -44,6 +44,21 @@
  *   - an account-id stamp and the empty stamp do not, with no read, so the
  *     common key costs the verifier nothing;
  *   - a store fault propagates as the same error.
+ *
+ * And provisionMyAccount's admission, `mayProvisionDirectAccount`: did the
+ * platform's own sign-in vouch for this caller? Over a store whose direct
+ * read answers no federated and no platform-client row, as the port says:
+ *
+ *   - the trusted-local operator (no issuer, no token) is admitted;
+ *   - an idp-shaped `user` caller (no account, identity = subject) is;
+ *   - a caller that is already its subject's direct account is;
+ *   - a caller whose account is a federated one is not, whether or not a
+ *     platform person holds the direct account of the subject its token
+ *     names: that subject is the provider's to choose;
+ *   - a platform client's user is not, nor a system lane's token (its
+ *     identity is its lane account, whose id no direct row carries as a
+ *     subject), nor any caller that is not of class `user`, nor a
+ *     credential naming no subject.
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
@@ -58,8 +73,9 @@ import {
   accountForCaller,
   identityIdForSubject,
   isPreSignInOperatorStamp,
+  mayProvisionDirectAccount,
 } from "../resolve.js";
-import type { AccountsBySubject } from "../resolve.js";
+import type { AccountsByCaller, AccountsBySubject } from "../resolve.js";
 import { fakeIdentityAccountStore } from "./support.js";
 
 function seeded(sub: string, id: string = accountIdFor(sub)) {
@@ -293,6 +309,161 @@ describe("isPreSignInOperatorStamp — a stamp from before sign-in was turned on
     };
     await expect(
       isPreSignInOperatorStamp(broken, "operator@example.com"),
+    ).rejects.toBe(fault);
+  });
+});
+
+describe("mayProvisionDirectAccount — provisionMyAccount's admission", () => {
+  const PERSON = "auth0|platform-person";
+
+  function row(
+    id: string,
+    idpId: string,
+    mode: IdentityAccountProvisioningMode,
+  ) {
+    return create(IdentityAccountSchema, {
+      metadata: { id },
+      spec: { idpId, provisioningMode: mode },
+    });
+  }
+
+  /** The port's semantics: the direct read answers no federated and no platform-client row. */
+  function accountsOf(...rows: ReturnType<typeof row>[]): AccountsByCaller {
+    return {
+      findById: (id) =>
+        Promise.resolve(rows.find((r) => r.metadata?.id === id)),
+      findDirectByIdpId: (idpId) =>
+        Promise.resolve(
+          rows.find(
+            (r) =>
+              r.spec?.idpId === idpId &&
+              r.spec.provisioningMode !==
+                IdentityAccountProvisioningMode.federated &&
+              r.spec.provisioningMode !==
+                IdentityAccountProvisioningMode.platform_client,
+          ),
+        ),
+    };
+  }
+
+  const direct = row(
+    accountIdFor(PERSON),
+    PERSON,
+    IdentityAccountProvisioningMode.direct,
+  );
+  const federated = row(
+    "ida_federated",
+    PERSON,
+    IdentityAccountProvisioningMode.federated,
+  );
+  const endUser = row(
+    accountIdFor("stgm_pc|acme|user-7"),
+    "stgm_pc|acme|user-7",
+    IdentityAccountProvisioningMode.platform_client,
+  );
+  const lane = row(
+    "ida_guestlane",
+    "stgm_guest|acme",
+    IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
+  );
+  const token = (sub: string) => ({
+    issuer: "https://issuer.test",
+    rawToken: tokenFor(sub),
+  });
+
+  it.each([
+    [
+      "the trusted-local operator",
+      accountsOf(),
+      caller({ identityId: "operator@example.com" }),
+      localIdpIdFor("operator@example.com"),
+    ],
+    [
+      "an idp-shaped person before their first provisioning",
+      accountsOf(),
+      caller({ identityId: PERSON, ...token(PERSON) }),
+      PERSON,
+    ],
+    [
+      "a person who is already their subject's direct account",
+      accountsOf(direct),
+      caller({ identityId: direct.metadata!.id, ...token(PERSON) }),
+      PERSON,
+    ],
+  ])("admits %s", async (_name, accounts, who, subject) => {
+    expect(await mayProvisionDirectAccount(accounts, who, subject)).toBe(true);
+  });
+
+  it.each([
+    [
+      "a federated account whose provider minted a platform person's subject",
+      accountsOf(direct, federated),
+      caller({ identityId: federated.metadata!.id, ...token(PERSON) }),
+      PERSON,
+    ],
+    [
+      "a federated account whose subject no platform person holds",
+      accountsOf(federated),
+      caller({ identityId: federated.metadata!.id, ...token(PERSON) }),
+      PERSON,
+    ],
+    [
+      "a platform client's user",
+      accountsOf(endUser),
+      caller({
+        identityId: endUser.metadata!.id,
+        ...token("stgm_pc|acme|user-7"),
+      }),
+      "stgm_pc|acme|user-7",
+    ],
+    [
+      "a system lane's token, whose subject is its lane account's id",
+      accountsOf(lane),
+      caller({
+        identityId: lane.metadata!.id,
+        callerClass: "user",
+        ...token(lane.metadata!.id),
+      }),
+      lane.metadata!.id,
+    ],
+    [
+      "a caller of another class, idp-shaped",
+      accountsOf(),
+      caller({
+        identityId: "stgm_channel|acme",
+        callerClass: "channel",
+        ...token("stgm_channel|acme"),
+      }),
+      "stgm_channel|acme",
+    ],
+    [
+      "an identity that is neither its subject nor an account",
+      accountsOf(),
+      caller({ identityId: "someone-else", ...token(PERSON) }),
+      PERSON,
+    ],
+    [
+      "a credential naming no subject",
+      accountsOf(),
+      caller({ identityId: "", ...token("") }),
+      "",
+    ],
+  ])("refuses %s", async (_name, accounts, who, subject) => {
+    expect(await mayProvisionDirectAccount(accounts, who, subject)).toBe(false);
+  });
+
+  it("a store fault propagates as the same error", async () => {
+    const fault = new Error("store is on fire");
+    const broken: AccountsByCaller = {
+      findById: () => Promise.reject(fault),
+      findDirectByIdpId: () => Promise.reject(fault),
+    };
+    await expect(
+      mayProvisionDirectAccount(
+        broken,
+        caller({ identityId: PERSON, ...token(PERSON) }),
+        PERSON,
+      ),
     ).rejects.toBe(fault);
   });
 });

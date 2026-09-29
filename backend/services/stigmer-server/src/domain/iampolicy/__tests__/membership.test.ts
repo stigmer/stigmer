@@ -21,7 +21,11 @@
  *   - `member` otherwise;
  *   - nothing for a non-`user` caller class; nothing on an organization
  *     the account already holds a row on (idempotent by construction), so
- *     a run that faulted midway converges on the next.
+ *     a run that faulted midway converges on the next;
+ *   - nothing, in the reconciliation, for a federated account, whose
+ *     subject and email its identity provider chose: one asserting a
+ *     founder's subject and the operator's email earns neither `owner`
+ *     nor `admin`, nor `member` anywhere.
  *
  *   ensureOperatorOwnership(operator): `owner` on every organization that
  *   has NO owner row (Q-S4-3: a boot-time write never overrides a recorded
@@ -60,6 +64,7 @@ import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -244,10 +249,18 @@ describe("membership rules", () => {
     sub: string,
     email: string,
     createdAtSeconds: number,
-    overrides: { isMachineAccount?: boolean } = {},
+    overrides: { isMachineAccount?: boolean; federated?: boolean } = {},
   ): Promise<IdentityAccount> {
     const row = account(sub, email);
     row.spec!.isMachineAccount = overrides.isMachineAccount ?? false;
+    if (overrides.federated === true) {
+      row.spec!.provisioningMode = IdentityAccountProvisioningMode.federated;
+      row.spec!.identityProviderRef = create(ApiResourceReferenceSchema, {
+        org: "acme",
+        kind: ApiResourceKind.identity_provider,
+        slug: "acme-okta",
+      });
+    }
     row.status = create(IdentityAccountSchema, {
       status: {
         audit: {
@@ -648,6 +661,13 @@ describe("membership rules", () => {
         IdentityAccountProvisioningMode.platform_client;
       expect(isPersonAccount(endUser)).toBe(false);
     });
+
+    it("a federated account is not: its subject and its email are the ones its identity provider asserted", () => {
+      const federated = account("okta|00u1", OPERATOR_EMAIL);
+      federated.spec!.provisioningMode =
+        IdentityAccountProvisioningMode.federated;
+      expect(isPersonAccount(federated)).toBe(false);
+    });
   });
 
   describe("ensureRolesForExistingAccounts", () => {
@@ -671,6 +691,18 @@ describe("membership rules", () => {
       expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toMatch(
         /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,
       );
+    });
+
+    it("a federated account earns no role, though its provider asserted the founder's subject and the operator's email", async () => {
+      await seedOrg("acme", "auth0|alice");
+      await seedOrg("globex", "auth0|carol");
+      const federated = await seedAccount("auth0|alice", OPERATOR_EMAIL, 100, {
+        federated: true,
+      });
+
+      await rules.ensureRolesForExistingAccounts();
+
+      expect(rolesOf(federated.metadata!.id)).toEqual([]);
     });
 
     it("a second call is a no-op — the marker short-circuits before any read", async () => {

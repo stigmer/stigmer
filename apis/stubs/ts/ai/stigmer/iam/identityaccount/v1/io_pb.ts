@@ -386,8 +386,10 @@ export const UpdateFederatedAccountInputSchema: GenMessage<UpdateFederatedAccoun
  *
  * Two modes:
  *   - Revoke only (delete_account = false): removes all IAM policies for the
- *     account in the organization. The identity account is preserved for audit
- *     trail. The user loses access but the account record remains.
+ *     account in the organization and in every organization the identity
+ *     provider manages, where its sign-in grants roles too. The identity
+ *     account is preserved for audit trail. The user loses access but the
+ *     account record remains.
  *   - Revoke and delete (delete_account = true): revokes access AND deletes
  *     the identity account. All IAM policies across all organizations are
  *     cleaned up. Use this for permanent offboarding.
@@ -419,7 +421,7 @@ export type DeprovisionFederatedAccountInput = Message<"ai.stigmer.iam.identitya
   externalSub: string;
 
   /**
-   * When false (default): revoke the account's access in this organization only.
+   * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
    * When true: revoke access AND permanently delete the identity account.
    *
    * @generated from field: bool delete_account = 4;

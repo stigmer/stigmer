@@ -187,12 +187,14 @@ public interface ToolCallOrBuilder extends
 
   /**
    * <pre>
-   * True if this tool requires approval before execution.
-   * Determined at runtime by merging:
-   * 1. McpServerStatus.tool_approvals (system-generated defaults)
-   * 2. McpServerSpec.pinned_tool_approvals (manual overrides)
-   * 3. McpServerUsage.tool_approval_overrides (agent-specific)
-   * 4. AgentExecutionSpec.auto_approve_all (runtime bypass)
+   * True when this tool call was held for a person's decision instead of
+   * running at once.
+   *
+   * Every harness sets it the same way: only when the approval gate parks the
+   * call, never when the call starts. A call that runs under an approval
+   * lease, auto_approve_all or file-review capture is never held and carries
+   * false; approval_policy_source names the policy layer that governed the
+   * call either way.
    *
    * When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
    * awaiting user decision via SubmitApproval RPC.

@@ -52,6 +52,17 @@
  *     before the row mirror existed.
  * Absent method = no mirror is written (the OSS posture: rows are the
  * record).
+ *
+ * One more structural relation rides the seam the way `default_of` does:
+ * a workflow instance's run audience, `execution_viewer`, which open
+ * source derives from `spec.execution_visibility` when a check asks
+ * (authorization/model/execution-viewer.ts) and an edition that stores
+ * tuples must write. `onExecutionVisibilityChanged` hands the driver the
+ * audience the stored level names, from the two doors that may set it
+ * (create, and updateExecutionVisibility; Update and Apply keep the
+ * stored level, domain/workflowinstance/steps.ts). Synchronous,
+ * post-persist; a throw fails the request with the level persisted, and a
+ * retry converges because the event is the whole target state.
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
@@ -71,6 +82,16 @@ import type { CallerIdentity } from "./identity.js";
  * reaches every account.
  */
 export type VisibilityTupleShape = "org-viewer" | "platform-viewer";
+
+/**
+ * The run-audience shapes of a workflow instance's execution visibility,
+ * named edition-neutrally. The driver maps each to its tuple:
+ *   - org-viewer: <instanceKind>:<id>#execution_viewer@organization:<org>#viewer
+ * The same word as the resource visibility's org shape, a different
+ * relation: making an instance's RUNS observable never widens who can see
+ * or run the instance itself (fga/model/agentic/workflow_instance.fga).
+ */
+export type ExecutionAudienceShape = "org-viewer";
 
 /**
  * One resolved structural link from the created resource to a parent
@@ -186,6 +207,22 @@ export interface DefaultInstanceLinkedEvent {
 }
 
 /**
+ * Fired synchronously after a workflow instance's
+ * `spec.execution_visibility` is persisted at create (only when the level
+ * names an audience) or by updateExecutionVisibility (always). `shapes` is
+ * the audience the stored level names — ["org-viewer"] for ORGANIZATION,
+ * [] for PRIVATE and unset — never a diff: the driver makes its tuples
+ * match it, so a retry, a repeat, or a transition whose old level it never
+ * saw all converge.
+ */
+export interface ExecutionVisibilityChangedEvent {
+  readonly instanceKind: ApiResourceKind;
+  readonly instanceId: string;
+  readonly orgId: string;
+  readonly shapes: ReadonlyArray<ExecutionAudienceShape>;
+}
+
+/**
  * Fired synchronously AFTER an IamPolicy row is persisted by the domain's
  * grant path — and on the duplicate arm, when the triple was already held
  * and no row was written, so a composition heals a row whose tuple never
@@ -243,6 +280,15 @@ export interface ResourceAuthorizationLifecycle {
    * (the OSS posture: local access control needs none).
    */
   onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
+  /**
+   * OPTIONAL (stigmer-cloud#720): synchronous, post-persist; a throw fails
+   * the request (the level survives — retry converges, the event is the
+   * target state). Absent method = no run-audience tuple is written (the
+   * OSS posture: the relation is derived from the row at check time).
+   */
+  onExecutionVisibilityChanged?(
+    event: ExecutionVisibilityChangedEvent,
+  ): Promise<void>;
   /**
    * OPTIONAL (added 20260913.01 slice 2): synchronous, AFTER the row
    * persist, on the duplicate arm too; a throw fails the grant with the

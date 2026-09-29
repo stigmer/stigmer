@@ -17,8 +17,9 @@
  * the stream's `running` instant; the live output reaches `result`
  * (`streamingSource: OUTPUT` while it streams, cleared at finalize); the
  * stream's `completed` stamps `completedAt` and its result wins; the shell
- * row is a gated built-in (`requiresApproval`, "Run command: …") that the
- * hook never saw, so no `approvalRequestedAt`. Predicted: NO move (the
+ * row is a gated built-in the hook never saw, so it was never held and
+ * carries no approval fields (#1117 moved `requiresApproval` and "Run
+ * command: …" off rows that ran). Predicted: NO move (the
  * translator drains the queued deltas AFTER the stream event of the
  * same window, as the enricher applied them, so the stream's instant wins
  * exactly as before).
@@ -33,9 +34,10 @@
  * Arm 3 — the completion delta reports an ERROR, and a model event sits
  * between it and the stream's own `error`. Pinned: the translator honours the
  * delta's `result.status: "error"` — the row is FAILED from the
- * instant the failure was observed (`completedAt` and, for a gated shell,
- * `approvalRequestedAt` at the delta's own tick), and the stream's `error`
- * event that follows supplies the text. Until #1097 (as this net first
+ * instant the failure was observed (`completedAt` at the delta's own tick),
+ * and the stream's `error` event that follows supplies the text. Until #1117
+ * a gated shell's ordinary failure also stamped `approvalRequestedAt`, though
+ * nobody was ever asked; a failure is not a request. Until #1097 (as this net first
  * pinned it) the enricher promoted every completion delta to
  * COMPLETED, the monotonic merge then refused the stream's FAILED, and the
  * row ended COMPLETED carrying an `error` — a row that lied. Moved in #1097
@@ -178,7 +180,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     expect(row.result, "the live output reached the row").toBe(FULL_OUTPUT);
     expect(row.isStreaming, "finalize closed the OUTPUT stream").toBe(false);
     expect(row.startedAt < row.completedAt).toBe(true);
-    expect(row.requiresApproval, "a shell is a gated built-in the hook never saw").toBe(true);
+    expect(row.requiresApproval, "a shell the hook never saw was never held").toBe(false);
     expect(row.approvalRequestedAt).toBe("");
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
@@ -268,7 +270,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(row.error, "the stream's error event supplied the text").toBe(SHELL_ERROR);
     expect(row.result).toBe("");
-    expect(row.approvalRequestedAt, "a gated shell's gate stamp shares the observed instant").toBe(row.completedAt);
+    expect(row.approvalRequestedAt, "a failure is not an approval request").toBe("");
 
     const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.error-delta.status.json");

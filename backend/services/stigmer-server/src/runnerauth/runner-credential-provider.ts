@@ -128,14 +128,24 @@ export interface RunnerBootstrapCredentials {
 }
 
 /**
- * What the sandbox ensure steps know when they mint the credential baked
- * into a provisioned sandbox (steps.ts). `sessionId` is empty on the
- * workflow scope; `callerIdentityId` is empty when the invocation site
+ * What the sandbox ensure steps (steps.ts) and the MCP connect lane
+ * (domain/mcpserver/connect-sandbox.ts) know when they mint the credential
+ * baked into a provisioned sandbox. `sessionId` is empty on the workflow
+ * and connect scopes; `callerIdentityId` is empty when the invocation site
  * has no caller (the Java ensure step's null-identity arm, which mints
  * nothing rather than minting unattributed).
+ *
+ * The connect scope binds `executionId` to one connect's synthetic id
+ * (domain/mcpserver/connect-execution-id.ts), whose ExecutionContext row
+ * the connect lane has already created AS `callerIdentityId`: the runner
+ * in a connect sandbox reads the McpServer, and classifies its tools
+ * through the proxy, with this credential, so it must act as the person
+ * who asked for the connect (stigmer/stigmer#1474). An implementation
+ * that switches on `scope` handles every arm; a scope it does not know is
+ * a refusal, never another scope's token.
  */
 export interface SandboxCredentialRequest {
-  readonly scope: "session" | "workflow";
+  readonly scope: "session" | "workflow" | "connect";
   readonly sessionId: string;
   readonly executionId: string;
   readonly org: string;
@@ -222,9 +232,9 @@ export interface RunnerCredentialProvider {
 
   /**
    * The credential baked into a provisioned sandbox (SandboxEnvironment.
-   * stigmerToken). When present, the ensure steps delegate here with the
-   * full provisioning context; absent, they mint on the execution_scoped
-   * lane exactly as before. Returns "" to launch tokenless (the
+   * stigmerToken). When present, the ensure steps and the connect lane
+   * delegate here with the full provisioning context; absent, they mint
+   * on the execution_scoped lane exactly as before. Returns "" to launch tokenless (the
    * redaction-fallback contract lane.ts documents); a thrown error
    * propagates to the invoking step's own failure posture.
    */

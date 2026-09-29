@@ -23,7 +23,6 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 
 import {
   approvalCategory,
-  builtInRequiresApproval,
   getBuiltInGatedList,
   getBuiltInGatedCategories,
   extractArgKey,
@@ -80,22 +79,10 @@ describe("approvalCategory (cross-taxonomy drift-guard)", () => {
   });
 });
 
-describe("builtInRequiresApproval", () => {
-  it("gates mutating/destructive tools in BOTH taxonomies", () => {
-    for (const t of ["Write", "StrReplace", "EditNotebook", "Shell", "Delete", "edit", "shell", "delete", "execute", "write"]) {
-      expect(builtInRequiresApproval(t)).toBe(true);
-    }
-  });
-
-  it("allows read-only built-in tools", () => {
-    for (const t of ["Read", "read", "Grep", "grep", "Glob", "glob", "ls", "think", "task"]) {
-      expect(builtInRequiresApproval(t)).toBe(false);
-    }
-  });
-
-  it("fails open for unknown tools (parity with native, avoids denying auto-approved MCP)", () => {
-    expect(builtInRequiresApproval("SomeFutureTool")).toBe(false);
-    expect(builtInRequiresApproval("search_services")).toBe(false);
+describe("the hook's gated set", () => {
+  it("fails open for unknown tools: no category, so the hook allows them (parity with native, avoids denying auto-approved MCP)", () => {
+    expect(approvalCategory("SomeFutureTool")).toBeUndefined();
+    expect(approvalCategory("search_services")).toBeUndefined();
   });
 
   it("exposes the gated set in the HOOK taxonomy (what the hook matches)", () => {

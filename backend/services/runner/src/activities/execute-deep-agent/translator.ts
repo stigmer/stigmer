@@ -30,10 +30,11 @@
  * mode asks the workspace's git state, asynchronously;
  * `middleware/approval-gate.ts`), and duplicating them would be a second copy
  * of the decision — exactly the drift one writer per fact exists to end. So
- * native emits no `tool_started.gate`; the held call reaches the transcript
- * as `approval_proposed` from the post-stream seed. Until #1097 the builder
- * carried a copy of the decision that gated MCP tools only, a path
- * production never took.
+ * the held call reaches the transcript as `approval_proposed` from the
+ * post-stream seed, the one writer of a row's approval fields; the Cursor
+ * harness answers the same way since #1117. Until #1097 the builder carried a
+ * copy of the decision that gated MCP tools only, a path production never
+ * took.
  *
  * Attribution and provenance are answered for ROOT-scope calls only: a
  * sub-agent's rows carry none on either harness today (#1133), and one

@@ -50,15 +50,17 @@
  *     mid-stream is WAITING until the boundary runs), so they are indexed once
  *     at construction and consumed on match (a declined row is a
  *     closed gate and never matched).
- *   - The GATE and the PROVENANCE. `gate` is the POLICY's word —
- *     this MCP tool's merged policy, or this built-in's category, requires
- *     approval — resolved exactly as the accumulator did, lease- and
- *     bypass-blind; it is NOT the hook's verdict (the hook has arms this side
- *     cannot evaluate: capture mode, grants, bypass, secret blocks — the
- *     lesson behind dropping a parked-at-creation arm that had no producer).
- *     A gated call that STARTED runs until the boundary parks
- *     it through `approval_proposed`. Provenance is the shared read-side
- *     `resolveApprovalProvenance` over the same policies and the run's leases.
+ *   - The PROVENANCE, and never the hold. A row's provenance is the shared
+ *     read-side `resolveApprovalProvenance` over the merged policies and the
+ *     run's leases: which layer governs the call. Whether the call was HELD
+ *     for a person's decision is not answered here, because at tool start
+ *     nobody knows yet: the preToolUse hook decides, with arms this side
+ *     cannot evaluate (capture mode, grants, bypass, secret blocks), and a
+ *     call the hook denies is parked by the turn boundary through
+ *     `approval_proposed` — the one writer of a row's approval fields on both
+ *     harnesses (#1117). Until then this translator stamped the policy's
+ *     category verdict at start, lease- and bypass-blind, so a leased,
+ *     bypassed or capture-mode call that ran read "requires approval".
  *   - The RESULT string (`tool-result.ts`): a failure's text is its `error`
  *     alone.
  *   - The SUB-AGENT: a `task` tool call opens a sub-agent keyed by
@@ -81,12 +83,11 @@
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { GateAnswer, ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
+import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
 import { resolveApprovalProvenance, type MergedToolPolicy, type PolicySource } from "../../shared/approval-policy.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { isDeclinedRow } from "../../shared/tool-row.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
-import { builtInRequiresApproval, lookupMcpToolPolicy, resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
 import { toolCallIdentityToken, toolIdentity, primaryToken } from "./approval-state.js";
 import { contentDigest } from "../../shared/file-tools.js";
 import { subAgentStepEvents } from "./sub-agent-steps.js";
@@ -97,7 +98,7 @@ type ToolCallEvent = Extract<SDKMessage, { type: "tool_call" }>;
 /** The delegation tool: the one tool name this translator knows, because its start opens a sub-agent. */
 const TASK_TOOL = "task";
 
-/** The run's approval posture the translator answers `gate` and `provenance` from. */
+/** The run's approval posture the translator answers `provenance` from. */
 export interface CursorTranslatorOptions {
   /** The merged four-level MCP policy map (`mergeApprovalPolicies`). */
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;
@@ -303,7 +304,7 @@ export class CursorTranslator {
       }
       this.announced.add(rowId);
     }
-    out.push(this.toolStarted(rowId, name, mcp !== undefined, mcpServerSlug, input));
+    out.push(this.toolStarted(rowId, name, mcpServerSlug, input));
     // Deltas that arrived before the stream announced this call follow its
     // start, targeted at the row it resolved to.
     const heldMakers = this.held.get(event.call_id);
@@ -359,7 +360,7 @@ export class CursorTranslator {
     return seededId;
   }
 
-  private toolStarted(callId: string, name: string, isMcp: boolean, mcpServerSlug: string, input: Record<string, unknown>): ToolStartedEvent {
+  private toolStarted(callId: string, name: string, mcpServerSlug: string, input: Record<string, unknown>): ToolStartedEvent {
     const { policies, leases } = this.options;
     const provenance: PolicySource | undefined = resolveApprovalProvenance(
       name,
@@ -368,7 +369,6 @@ export class CursorTranslator {
       leases.categories,
       leases.global,
     );
-    const gate = this.gateOf(name, isMcp, mcpServerSlug, input);
     return {
       kind: "tool_started",
       callId,
@@ -376,24 +376,7 @@ export class CursorTranslator {
       input,
       mcpServerSlug,
       ...(provenance !== undefined ? { provenance } : {}),
-      ...(gate !== undefined ? { gate } : {}),
     };
-  }
-
-  /**
-   * The policy's word that this call requires approval, and the card's
-   * message — or nothing for an ungated call. An MCP call (the `mcp` envelope,
-   * whatever its provider field says) is governed by the merged policy map
-   * alone; a built-in by its category.
-   */
-  private gateOf(name: string, isMcp: boolean, mcpServerSlug: string, input: Record<string, unknown>): GateAnswer | undefined {
-    if (isMcp) {
-      const policy = lookupMcpToolPolicy(name, mcpServerSlug, this.options.policies);
-      return policy ? { message: resolveApprovalMessage(policy.approvalMessage, name, input) } : undefined;
-    }
-    if (!builtInRequiresApproval(name)) return undefined;
-    const message = resolveBuiltInApprovalMessage(name, input);
-    return message === undefined ? undefined : { message };
   }
 
   // ── The delta queue ─────────────────────────────────────────────

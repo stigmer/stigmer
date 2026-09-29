@@ -1,7 +1,9 @@
 /**
  * McpServer connect workflow wire identifiers — cross-edition constants
- * copied character-for-character from Go (connect.go:31-32, 584-586).
- * Renaming one is a wire protocol break (guidelines §2).
+ * copied character-for-character from Go (connect.go:31-32, 584-586), plus
+ * the connect sandbox's task queue (stigmer/stigmer#1474), which a
+ * sandboxed runner polls. Renaming one is a wire protocol break
+ * (guidelines §2).
  */
 
 /** The runner's connect workflow type (Go connectWorkflowName). */
@@ -20,4 +22,16 @@ export const CONNECT_WORKFLOW_NAME = "stigmer/mcp-server/connect";
  */
 export function connectWorkflowIdFor(mcpServerId: string): string {
   return `${CONNECT_WORKFLOW_NAME}/${mcpServerId}`;
+}
+
+/**
+ * The task queue one connect sandbox serves: its runner polls exactly this
+ * queue (STIGMER_TASK_QUEUE) and the connect workflow is started on it. The
+ * colon form of every per-queue name (`session:`, `wfexec:`, `sandbox:`);
+ * the id is the connect's synthetic execution id
+ * (domain/mcpserver/connect-execution-id.ts), unique per attempt, so two
+ * connects of one server never share a sandbox.
+ */
+export function connectTaskQueueFor(connectExecutionId: string): string {
+  return `mcpconnect:${connectExecutionId}`;
 }

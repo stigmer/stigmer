@@ -294,7 +294,7 @@ async function resolveOrProvisionAccount(
   }
 }
 
-/** The account under the subject, any mode; a store fault is INTERNAL, never "no account". */
+/** The account under the subject in any mode but federated; a store fault is INTERNAL, never "no account". */
 async function findAccount(
   deps: PlatformClientMintDeps,
   idpId: string,

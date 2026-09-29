@@ -11,7 +11,12 @@
  * the cloud's verifiers name theirs on the CallerIdentity they mint. The
  * one issuer whose userinfo can answer for a token is the one that issued
  * it — and a verifier already trusted it, so the token goes only where it
- * came from.
+ * came from. The domain calls this only for a caller the platform's own
+ * sign-in vouched for (domain/identityaccount/resolve.ts
+ * `mayProvisionDirectAccount`), so the issuer is always the operator's own
+ * configuration: an issuer an organization admin registered, whose
+ * discovery document could name any address, never reaches this plain
+ * fetch.
  *
  * The endpoint is the discovery document's word, never a guessed
  * `<issuer>/userinfo`: a document that names no `userinfo_endpoint` is

@@ -46,7 +46,9 @@ type IdentityProviderCommandControllerClient interface {
 	// Delete an identity provider.
 	//
 	// Deletion is blocked if any platform-managed organizations reference this
-	// identity provider.
+	// identity provider. The federated accounts the provider vouches for are
+	// deleted with it, with every role they hold, so a provider created again
+	// under the same slug inherits none of them.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*IdentityProvider, error)
 }
 
@@ -118,7 +120,9 @@ type IdentityProviderCommandControllerServer interface {
 	// Delete an identity provider.
 	//
 	// Deletion is blocked if any platform-managed organizations reference this
-	// identity provider.
+	// identity provider. The federated accounts the provider vouches for are
+	// deleted with it, with every role they hold, so a provider created again
+	// under the same slug inherits none of them.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*IdentityProvider, error)
 }
 

@@ -59,7 +59,12 @@ export interface IdentityAccountStore {
   /** Removes the row; no error when it does not exist. */
   deleteById(id: string): Promise<void>;
   findById(id: string): Promise<IdentityAccount | undefined>;
-  /** Any provisioning mode — the getByIdpId RPC's lookup. */
+  /**
+   * The account under a subject in any mode but federated — the getByIdpId
+   * RPC's lookup and the platform-client mint's. A federated subject is its
+   * identity provider's to choose, so it is reached only through the
+   * federated natural key (provider and subject), never by a bare subject.
+   */
   findByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
   /** The platform's own subjects only (no federated, no platform-client) — the verifiers' and whoAmI's lookup. */
   findDirectByIdpId(idpId: string): Promise<IdentityAccount | undefined>;

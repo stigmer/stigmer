@@ -1652,6 +1652,7 @@ export async function composeServer(
         pendingOAuthStates: store.pendingOAuthStates,
         secretService,
         oauthRedirectUri,
+        sandboxLane,
         outboundFetch,
       },
     });

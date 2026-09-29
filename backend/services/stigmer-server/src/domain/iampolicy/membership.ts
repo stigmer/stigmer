@@ -59,8 +59,9 @@
  *   one of them would be an outsider on every organization with nobody
  *   able to grant a way back. At the first boot where the bootstrap-state
  *   marker (ROLES_RECONCILED_KEY) is absent, the arms above run for every
- *   PERSON account (`isPersonAccount`: not a machine account, the row-
- *   level twin of the `user`-class gate), acting as that account, in
+ *   PERSON account (`isPersonAccount`: not a machine, platform-client or
+ *   federated account, the row-level twin of the `user`-class gate),
+ *   acting as that account, in
  *   creation order — the order the sign-ins would have run the hook in,
  *   so arm 4 hands an unclaimed organization to its first sign-in and
  *   not to whoever sorts first by id — and the marker is written after
@@ -200,7 +201,14 @@ export function isPersonStamp(stamp: string): boolean {
  * it exactly its client's auto-grant role on the owning organization and
  * never runs these rules, and the reconciliation must not either, or every
  * product user would become a member of every organization (and the
- * operator-email arm would read an email the platform asserted).
+ * operator-email arm would read an email the platform asserted). Nor does a
+ * federated account, for the same reason at every arm: its subject and its
+ * email are the ones an organization's identity provider asserted, so the
+ * alias rule would read a subject the provider chose as a founder's stamp
+ * (`owner`), the operator-email arm an email it chose (`admin`), and arm 5
+ * would make it a member of every organization. A federated person's roles
+ * come from their provider's configuration and the organization's
+ * administrators, never from these rules.
  */
 export function isPersonAccount(account: IdentityAccount): boolean {
   const spec = account.spec;
@@ -208,7 +216,8 @@ export function isPersonAccount(account: IdentityAccount): boolean {
     spec !== undefined &&
     !spec.isMachineAccount &&
     spec.provisioningMode !== IdentityAccountProvisioningMode.machine &&
-    spec.provisioningMode !== IdentityAccountProvisioningMode.platform_client
+    spec.provisioningMode !== IdentityAccountProvisioningMode.platform_client &&
+    spec.provisioningMode !== IdentityAccountProvisioningMode.federated
   );
 }
 

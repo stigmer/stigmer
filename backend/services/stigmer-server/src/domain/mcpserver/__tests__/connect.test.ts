@@ -6,7 +6,11 @@
  * connect_status bookkeeping (attach skips CONNECTING; results and the
  * terminal phase ride ONE atomic write; failure_code in CamelCase),
  * tool-approval preserve-on-empty, the ephemeral EC lifecycle, and
- * startConnect's two-layer idempotency + dead-runner warning.
+ * startConnect's two-layer idempotency + dead-runner warning, and the
+ * connect route (connect-sandbox.ts, stigmer/stigmer#1474): the shared
+ * runner queue without a sandbox lane, and with one a connect sandbox
+ * per connect, acting as the person through an always-created
+ * ExecutionContext row and released exactly once on every exit.
  *
  * The wire-level halves are pinned by
  * mcpserver-connect.conformance.test.ts on local-execution.
@@ -30,7 +34,19 @@ import { createLogger } from "../../../boot/logger.js";
 import { SecretService } from "../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
-import { RunnerAuthService } from "../../../runnerauth/runnerauth.js";
+import type {
+  RunnerCredentialProvider,
+  SandboxCredentialRequest,
+} from "../../../runnerauth/runner-credential-provider.js";
+import {
+  RunnerAuthService,
+  TOKEN_TYPE_EXECUTION_SCOPED,
+} from "../../../runnerauth/runnerauth.js";
+import type { SandboxLane } from "../../../sandbox/lane.js";
+import type {
+  SandboxEnvironment,
+  SandboxProvisioner,
+} from "../../../sandbox/provisioner.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -48,8 +64,10 @@ import {
   RUNNER_QUEUE_WARNING,
   startConnect as startConnectRpc,
 } from "../start-connect.js";
+import { CONNECT_SANDBOX_PROVISIONING_FAILED } from "../connect-sandbox.js";
 import type {
   ConnectRunOutcome,
+  ConnectTaskQueue,
   ConnectWorkflowInput,
   ConnectWorkflowOutput,
   McpServerConnectEngine,
@@ -82,35 +100,93 @@ interface FakeEngineOptions {
   attached?: boolean;
   running?: boolean;
   pollers?: boolean | undefined;
+  /** The start itself fails (Temporal refused the start). */
+  startError?: Error;
+  /** Runs when a lane begins awaiting the run — the moment an attached lane must already hold nothing. */
+  onAwait?: () => void;
 }
 
 interface FakeEngine extends McpServerConnectEngine {
   readonly startedInputs: ConnectWorkflowInput[];
   readonly startedTimeouts: number[];
+  readonly startedQueues: ConnectTaskQueue[];
+  pollerProbes: number;
 }
 
 function fakeEngine(options: FakeEngineOptions = {}): FakeEngine {
   const startedInputs: ConnectWorkflowInput[] = [];
   const startedTimeouts: number[] = [];
-  return {
+  const startedQueues: ConnectTaskQueue[] = [];
+  const engine: FakeEngine = {
     startedInputs,
     startedTimeouts,
-    async startOrAttachConnect(mcpServerId, input, runTimeoutMs) {
+    startedQueues,
+    pollerProbes: 0,
+    async startOrAttachConnect(mcpServerId, input, runTimeoutMs, taskQueue) {
+      if (options.startError !== undefined) {
+        throw options.startError;
+      }
       startedInputs.push(input);
       startedTimeouts.push(runTimeoutMs);
+      startedQueues.push(taskQueue);
       return {
         workflowId: `stigmer/mcp-server/connect/${mcpServerId}`,
         attached: options.attached ?? false,
-        result: async () => options.outcome ?? { ok: true, output: OK_OUTPUT },
+        result: async () => {
+          options.onAwait?.();
+          return options.outcome ?? { ok: true, output: OK_OUTPUT };
+        },
       };
     },
     async isConnectRunRunning() {
       return options.running ?? false;
     },
     async hasRunnerQueuePollers() {
+      engine.pollerProbes += 1;
       return options.pollers;
     },
   };
+  return engine;
+}
+
+/** A connect-scope provisioner that records every call; the other scopes are unreachable here. */
+interface FakeConnectProvisioner extends SandboxProvisioner {
+  readonly created: Array<{ id: string; env: SandboxEnvironment }>;
+  readonly deprovisioned: string[];
+}
+
+function fakeConnectProvisioner(options: { createError?: Error } = {}): FakeConnectProvisioner {
+  const created: Array<{ id: string; env: SandboxEnvironment }> = [];
+  const deprovisioned: string[] = [];
+  const unreachable = async (): Promise<never> => {
+    throw new Error("only the connect scope is reachable from the connect lanes");
+  };
+  return {
+    created,
+    deprovisioned,
+    ensureSessionSandbox: unreachable,
+    deprovisionSessionSandbox: unreachable,
+    ensureWorkflowSandbox: unreachable,
+    deprovisionWorkflowSandbox: unreachable,
+    async createConnectSandbox(id, env) {
+      if (options.createError !== undefined) {
+        throw options.createError;
+      }
+      created.push({ id, env });
+      return `sbx-${id}`;
+    },
+    async deprovisionConnectSandbox(sandboxId) {
+      deprovisioned.push(sandboxId);
+    },
+    probe: unreachable,
+  };
+}
+
+interface HarnessOptions extends FakeEngineOptions {
+  /** Compose a sandbox lane over this provisioner (absent: the external-runner posture). */
+  provisioner?: SandboxProvisioner;
+  /** The lane's credential provider (default: the harness's execution-scoped runnerAuth). */
+  credentials?: RunnerCredentialProvider;
 }
 
 interface Harness {
@@ -149,8 +225,19 @@ const startConnect = (
   input: Parameters<typeof startConnectRpc>[1],
 ) => startConnectRpc(deps, input, testCaller);
 
-function makeHarness(options: FakeEngineOptions = {}): Harness {
+function makeHarness(options: HarnessOptions = {}): Harness {
   const engine = fakeEngine(options);
+  const runnerAuth = newExecutionScopedRunnerCredentialProvider(
+    RunnerAuthService.fromEnv(),
+  );
+  const sandboxLane: SandboxLane =
+    options.provisioner === undefined
+      ? { enabled: false }
+      : {
+          enabled: true,
+          provisioner: options.provisioner,
+          credentials: options.credentials ?? runnerAuth,
+        };
   const harness: Harness = {
     engine,
     ecCreates: 0,
@@ -182,9 +269,7 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
           return create(ExecutionContextSchema);
         },
       },
-      runnerAuth: newExecutionScopedRunnerCredentialProvider(
-        RunnerAuthService.fromEnv(),
-      ),
+      runnerAuth,
       // The REAL service over a client backed by nothing: the refresh
       // pre-flight arms that need it are exercised in the handshake
       // composed test; here every read throws, which the pre-flight
@@ -210,6 +295,7 @@ function makeHarness(options: FakeEngineOptions = {}): Harness {
       pendingOAuthStates: store.pendingOAuthStates,
       secretService: SecretService.create(undefined),
       oauthRedirectUri: "http://127.0.0.1:8234/auth/oauth/callback",
+      sandboxLane,
       // No arm in this harness dials out; a call is a test bug, not a network.
       outboundFetch: async () => {
         throw new Error("no outbound fetch in this harness");
@@ -346,6 +432,8 @@ describe("connect (blocking lane)", () => {
     expect(result.status?.connectStatus?.failureCode).toBe("");
     // The sync lane passes the 420s budget to the engine.
     expect(harness.engine.startedTimeouts[0]).toBe(CONNECT_TIMEOUT.ms);
+    // No sandbox lane: the shared runner queue, as always.
+    expect(harness.engine.startedQueues).toEqual([{ kind: "runner" }]);
   });
 
   it("preserves existing tool approvals when a reconnect returns none (a degraded runner cannot disarm gates)", async () => {
@@ -613,21 +701,21 @@ describe("startBestEffortConnect (apply tail)", () => {
     const engine = harness.engine;
     harness.deps = { ...harness.deps, engineState: () => MCP_SERVER_ENGINE_DISCONNECTED };
     const server = await seedServer();
-    await startBestEffortConnect(harness.deps, server);
+    await startBestEffortConnect(harness.deps, server, testCaller);
     expect(engine.startedInputs).toHaveLength(0);
   });
 
-  it("skips servers with env declarations (no caller identity in the background)", async () => {
+  it("skips servers with env declarations (their credentials are the connecting person's, not the applier's)", async () => {
     const harness = makeHarness();
     const server = await seedServer({ env: true });
-    await startBestEffortConnect(harness.deps, server);
+    await startBestEffortConnect(harness.deps, server, testCaller);
     expect(harness.engine.startedInputs).toHaveLength(0);
   });
 
   it("connects an env-less server and persists the result", async () => {
     const harness = makeHarness();
     const server = await seedServer();
-    await startBestEffortConnect(harness.deps, server);
+    await startBestEffortConnect(harness.deps, server, testCaller);
     const after = await store.getResource(
       ApiResourceKind.mcp_server,
       server.metadata!.id,
@@ -642,7 +730,7 @@ describe("startBestEffortConnect (apply tail)", () => {
     const server = await seedServer();
     await store.deleteResource(ApiResourceKind.mcp_server, server.metadata!.id);
     await expect(
-      startBestEffortConnect(harness.deps, server),
+      startBestEffortConnect(harness.deps, server, testCaller),
     ).resolves.toBeUndefined();
   });
 
@@ -657,7 +745,7 @@ describe("startBestEffortConnect (apply tail)", () => {
       },
     });
     const server = await seedServer({ stdio: false });
-    await startBestEffortConnect(harness.deps, server);
+    await startBestEffortConnect(harness.deps, server, testCaller);
     const after = await store.getResource(
       ApiResourceKind.mcp_server,
       server.metadata!.id,
@@ -671,5 +759,260 @@ describe("startBestEffortConnect (apply tail)", () => {
     expect(after.status?.connectStatus?.failureMessage).toBe(
       "MCP server 'test' requires OAuth: its endpoint returned an authentication challenge (HTTP 401).",
     );
+  });
+});
+
+describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)", () => {
+  /** The connect id every lane derives the sandbox, its queue and its credential from. */
+  function connectIdOf(harness: Harness): string {
+    const created = harness.engine.startedQueues[0];
+    expect(created?.kind).toBe("sandbox");
+    const name = created?.kind === "sandbox" ? created.name : "";
+    expect(name).toMatch(/^mcpconnect:connect-mcps_test_/);
+    return name.slice("mcpconnect:".length);
+  }
+
+  it("blocking connect of an env-less server: a binding-only row as the person, a sandbox on the connect's own queue, released once", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const harness = makeHarness({ provisioner });
+    const server = await seedServer();
+
+    const result = await connect(harness.deps, connectInput(server.metadata!.id));
+    expect(result.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
+
+    const connectId = connectIdOf(harness);
+    expect(isConnectExecutionId(connectId)).toBe(true);
+    // The row the sandbox credential binds through exists, created AS the
+    // person, even though the server declares no env.
+    expect(harness.ecCreators).toEqual([testCaller]);
+    // It is binding-only: the runner is handed no context to read and no
+    // payload token, the same no-env discovery path as without a lane.
+    expect(harness.engine.startedInputs[0]).toEqual({
+      mcp_server_id: server.metadata!.id,
+    });
+
+    expect(provisioner.created).toHaveLength(1);
+    const sandbox = provisioner.created[0]!;
+    expect(sandbox.id).toBe(connectId);
+    expect(sandbox.env.taskQueue).toBe(`mcpconnect:${connectId}`);
+    expect(sandbox.env.callerClass).toBe(testCaller.callerClass);
+    // The OSS execution-scoped mint, bound to this one connect.
+    expect(
+      harness.deps.runnerAuth.verify(
+        TOKEN_TYPE_EXECUTION_SCOPED,
+        sandbox.env.stigmerToken,
+      ),
+    ).toBe(connectId);
+
+    expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+  });
+
+  it("blocking connect with runtime_env: the row carries the values and the payload names it, and the sandbox is released once", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const harness = makeHarness({ provisioner });
+    const server = await seedServer();
+    await connect(
+      harness.deps,
+      connectInput(server.metadata!.id, { API_KEY: { value: "k", isSecret: true } }),
+    );
+    const connectId = connectIdOf(harness);
+    const input = harness.engine.startedInputs[0];
+    expect(input?.execution_context_id).toBe(connectId);
+    expect(input?.execution_context_token).toBeTruthy();
+    expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+  });
+
+  it("hands a composed mintSandboxCredential the connect scope, the person and the org", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const base = newExecutionScopedRunnerCredentialProvider(RunnerAuthService.fromEnv());
+    const requests: SandboxCredentialRequest[] = [];
+    const credentials: RunnerCredentialProvider = {
+      ...base,
+      isEnabled: (lane) => base.isEnabled(lane),
+      mint: (lane, binding, ttl) => base.mint(lane, binding, ttl),
+      verify: (lane, token) => base.verify(lane, token),
+      mintSandboxCredential(request) {
+        requests.push(request);
+        return "edition-connect-token";
+      },
+    };
+    const harness = makeHarness({ provisioner, credentials });
+    const server = await seedServer();
+    await connect(harness.deps, connectInput(server.metadata!.id));
+    const connectId = connectIdOf(harness);
+    expect(requests).toEqual([
+      {
+        scope: "connect",
+        sessionId: "",
+        executionId: connectId,
+        org: "acme",
+        callerIdentityId: testCaller.identityId,
+      },
+    ]);
+    expect(provisioner.created[0]?.env.stigmerToken).toBe("edition-connect-token");
+  });
+
+  it("releases the sandbox once when the run fails", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const harness = makeHarness({
+      provisioner,
+      outcome: { ok: false, failure: { kind: "application", message: "401" } },
+    });
+    const server = await seedServer({ stdio: false });
+    await expectConnectError(
+      connect(harness.deps, connectInput(server.metadata!.id)),
+      Code.FailedPrecondition,
+      "401",
+    );
+    expect(provisioner.deprovisioned).toHaveLength(1);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+  });
+
+  it("gives its own sandbox back before awaiting another lane's run it attached to", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const heldWhileAwaiting: number[] = [];
+    const harness = makeHarness({
+      provisioner,
+      attached: true,
+      onAwait: () =>
+        heldWhileAwaiting.push(provisioner.created.length - provisioner.deprovisioned.length),
+    });
+    const server = await seedServer();
+    await connect(harness.deps, connectInput(server.metadata!.id));
+    // Nothing idles for the other lane's whole run...
+    expect(heldWhileAwaiting).toEqual([0]);
+    // ...and the release stays exactly once.
+    expect(provisioner.deprovisioned).toHaveLength(1);
+  });
+
+  it("releases the sandbox once when the start itself fails", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const harness = makeHarness({ provisioner, startError: new Error("frontend down") });
+    const server = await seedServer();
+    await expectConnectError(
+      connect(harness.deps, connectInput(server.metadata!.id)),
+      Code.Internal,
+      "failed to start connect workflow",
+    );
+    expect(provisioner.deprovisioned).toHaveLength(1);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+  });
+
+  it("fails fast with Unavailable, recorded on connect_status, when the sandbox cannot be provisioned", async () => {
+    const provisioner = fakeConnectProvisioner({ createError: new Error("quota exceeded") });
+    const harness = makeHarness({ provisioner });
+    const server = await seedServer();
+    await expectConnectError(
+      connect(harness.deps, connectInput(server.metadata!.id)),
+      Code.Unavailable,
+      CONNECT_SANDBOX_PROVISIONING_FAILED,
+    );
+    // No run was started, so nothing waits on a queue nobody serves.
+    expect(harness.engine.startedInputs).toHaveLength(0);
+    expect(provisioner.deprovisioned).toHaveLength(0);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    const after = await store.getResource(
+      ApiResourceKind.mcp_server,
+      server.metadata!.id,
+      McpServerSchema,
+    );
+    expect(after.status?.connectStatus?.phase).toBe(ConnectPhase.failed);
+    expect(after.status?.connectStatus?.failureCode).toBe("Unavailable");
+    expect(after.status?.connectStatus?.failureMessage).toBe(
+      CONNECT_SANDBOX_PROVISIONING_FAILED,
+    );
+  });
+
+  it("startConnect: never probes the sandbox's fresh queue, and the settle releases the sandbox once", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const harness = makeHarness({ provisioner, pollers: false });
+    const server = await seedServer();
+    const result = await startConnect(harness.deps, connectInput(server.metadata!.id));
+    expect(result.status?.connectStatus?.phase).toBe(ConnectPhase.connecting);
+    // The advisory describes the shared queue only; a sandbox created a
+    // moment ago has no poller by construction.
+    expect(result.status?.connectStatus?.warning).toBe("");
+    expect(harness.engine.pollerProbes).toBe(0);
+    const connectId = connectIdOf(harness);
+    await vi.waitFor(() =>
+      expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]),
+    );
+    await vi.waitFor(() => expect(harness.ecDeletes).toEqual(["ectx_1"]));
+  });
+
+  it("startConnect: an attach releases the unused sandbox at once", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const harness = makeHarness({ provisioner, attached: true });
+    const server = await seedServer();
+    await startConnect(harness.deps, connectInput(server.metadata!.id));
+    expect(provisioner.deprovisioned).toHaveLength(1);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+  });
+
+  it("startConnect: a sandbox that cannot be provisioned fails the RPC fast and deletes the row", async () => {
+    const provisioner = fakeConnectProvisioner({ createError: new Error("quota exceeded") });
+    const harness = makeHarness({ provisioner });
+    const server = await seedServer();
+    await expectConnectError(
+      startConnect(harness.deps, connectInput(server.metadata!.id)),
+      Code.Unavailable,
+      CONNECT_SANDBOX_PROVISIONING_FAILED,
+    );
+    expect(harness.engine.startedInputs).toHaveLength(0);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+  });
+
+  it("best-effort connect acts as the applier: its binding row, its sandbox, released once", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const harness = makeHarness({ provisioner });
+    const server = await seedServer();
+    const applier = testCallerIdentity({ identityId: "the-applier" });
+    await startBestEffortConnect(harness.deps, server, applier);
+
+    expect(harness.ecCreators).toEqual([applier]);
+    const connectId = connectIdOf(harness);
+    expect(
+      harness.deps.runnerAuth.verify(
+        TOKEN_TYPE_EXECUTION_SCOPED,
+        provisioner.created[0]!.env.stigmerToken,
+      ),
+    ).toBe(connectId);
+    expect(provisioner.deprovisioned).toEqual([`sbx-${connectId}`]);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+    const after = await store.getResource(
+      ApiResourceKind.mcp_server,
+      server.metadata!.id,
+      McpServerSchema,
+    );
+    expect(after.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
+  });
+
+  it("best-effort connect gives its sandbox back before awaiting a run it attached to", async () => {
+    const provisioner = fakeConnectProvisioner();
+    const heldWhileAwaiting: number[] = [];
+    const harness = makeHarness({
+      provisioner,
+      attached: true,
+      onAwait: () =>
+        heldWhileAwaiting.push(provisioner.created.length - provisioner.deprovisioned.length),
+    });
+    const server = await seedServer();
+    await startBestEffortConnect(harness.deps, server, testCaller);
+    expect(heldWhileAwaiting).toEqual([0]);
+    expect(provisioner.deprovisioned).toHaveLength(1);
+    expect(harness.ecDeletes).toEqual(["ectx_1"]);
+  });
+
+  it("best-effort connect without a lane creates no row and runs on the shared queue, as before", async () => {
+    const harness = makeHarness();
+    const server = await seedServer();
+    await startBestEffortConnect(harness.deps, server, testCaller);
+    expect(harness.ecCreates).toBe(0);
+    expect(harness.engine.startedInputs).toEqual([
+      { mcp_server_id: server.metadata!.id },
+    ]);
+    expect(harness.engine.startedQueues).toEqual([{ kind: "runner" }]);
   });
 });

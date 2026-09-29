@@ -24,7 +24,12 @@
  *       verifier + the store driver — the cloud composition's exact shape:
  *       provisionMyAccount lands the row in the driver, and an API key the
  *       subject minted resolves through the OSS API-key lane to the
- *       driver's account. This is the lane the cloud actually runs over its
+ *       driver's account. A second verifier of the unit's stands for a lane
+ *       that vouches for its own accounts (an organization's identity
+ *       provider): its caller is refused PERMISSION_DENIED before the
+ *       subject its token names is read, whether a platform person already
+ *       holds that subject's direct account or nobody does, and nothing is
+ *       created. This is the lane the cloud actually runs over its
  *       driver; an OSS adapter over the cloud's generic store would miss
  *       every lookup and no other test would notice.
  *   (C) the same posture and verifier + the provision slot registered by
@@ -62,13 +67,17 @@ import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
-import { accountIdFor } from "../../domain/identityaccount/constants.js";
+import {
+  accountIdFor,
+  NOT_A_DIRECT_SIGN_IN_MESSAGE,
+} from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
 import {
@@ -80,7 +89,7 @@ import type { Store } from "../../store/interface.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import type { Authorizer } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
-import type { CallerIdentity } from "../identity.js";
+import type { CallerIdentity, IdentityVerifier } from "../identity.js";
 import type { IdentityFederation } from "../identity-federation.js";
 import type { ServerExtension } from "../registry.js";
 import {
@@ -486,6 +495,37 @@ describe("identity-account points (composed server, trusted-local: driver + fede
 // (B) the cloud's shape: a declared posture, the unit's verifier, the driver
 // ---------------------------------------------------------------------------
 
+/**
+ * A lane that vouches for accounts of its own, the shape of an
+ * organization's identity provider: a JWT-shaped token whose third segment
+ * is `lane`, carrying `sub` (the subject the lane chose) and `acct` (the
+ * account it stamps). Nothing about it is a platform sign-in.
+ */
+function laneJwt(sub: string, acct: string): string {
+  const segment = (value: unknown): string =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${segment({ alg: "none" })}.${segment({ sub, acct })}.lane`;
+}
+
+const laneVerifier: IdentityVerifier = {
+  name: "fake-lane-verifier",
+  verify: (token) => {
+    const segments = token.split(".");
+    if (segments.length !== 3 || segments[2] !== "lane") {
+      return Promise.resolve(null);
+    }
+    const claims = JSON.parse(
+      Buffer.from(segments[1] ?? "", "base64url").toString("utf8"),
+    ) as { acct?: unknown };
+    return Promise.resolve({
+      identityId: typeof claims.acct === "string" ? claims.acct : "",
+      callerClass: "user",
+      issuer: "https://lane.invalid",
+      rawToken: token,
+    });
+  },
+};
+
 describe("identity-account points (composed server, declared posture: the verifiers follow the driver)", () => {
   const SUB = "fake|provisioned-subject";
   const EMAIL = "provisioned@example.com";
@@ -500,7 +540,7 @@ describe("identity-account points (composed server, declared posture: the verifi
     const unit: ServerExtension = {
       name: "fake-iam",
       requireAuthentication: true,
-      identityVerifiers: [fakeVerifier],
+      identityVerifiers: [fakeVerifier, laneVerifier],
       drivers: { identityAccountStore: driver.accounts },
     };
     server = await composeServer({
@@ -534,6 +574,46 @@ describe("identity-account points (composed server, declared posture: the verifi
     expect(await accountIdsIn(driver.store)).toEqual([accountIdFor(SUB)]);
     expect(await accountIdsIn(server.store)).toEqual([]);
   });
+
+  it.each([
+    ["a platform person already holds the subject's direct account", SUB, true],
+    ["nobody holds the subject", "fake|nobody-yet", false],
+  ])(
+    "a lane's own account is refused provisionMyAccount before its subject is read (%s), and nothing is created",
+    async (_case, subject, personHoldsIt) => {
+      if (personHoldsIt) {
+        // The platform person signs in first (idempotent if an earlier case did).
+        await createClient(
+          IdentityAccountCommandController,
+          transportFor(port, fakeJwt(subject, EMAIL)),
+        ).provisionMyAccount({});
+      }
+      const laneAccount = "ida_lane_account";
+      await driver.accounts.save(
+        create(IdentityAccountSchema, {
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "IdentityAccount",
+          metadata: { id: laneAccount, name: "lane person" },
+          spec: {
+            idpId: subject,
+            provisioningMode: IdentityAccountProvisioningMode.federated,
+            identityProviderRef: { org: "acme", slug: "acme-okta" },
+          },
+        }),
+      );
+      const before = await accountIdsIn(driver.store);
+      const refused = await connectErrorOf(
+        createClient(
+          IdentityAccountCommandController,
+          transportFor(port, laneJwt(subject, laneAccount)),
+        ).provisionMyAccount({}),
+      );
+      expect(refused.code).toBe(Code.PermissionDenied);
+      expect(refused.rawMessage).toBe(NOT_A_DIRECT_SIGN_IN_MESSAGE);
+      expect(await accountIdsIn(driver.store)).toEqual(before);
+      await driver.accounts.deleteById(laneAccount);
+    },
+  );
 
   it("an API key the subject minted resolves through the OSS API-key lane to the DRIVER's account", async () => {
     const minted = await createClient(

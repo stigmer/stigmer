@@ -63,6 +63,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
+  accountIdFor,
   ArtifactStorageNotFoundError,
   callerIdentityKey,
   callerIdentityOf,
@@ -126,6 +127,8 @@ import type {
   CallerIdentity,
   ChannelRuntime,
   ComposedServer,
+  ExecutionAudienceShape,
+  ExecutionVisibilityChangedEvent,
   ExternalOrganizationLookup,
   GateSlotName,
   GuestTokenMinting,
@@ -992,13 +995,15 @@ const consumerVaultCodec: SecretCodec = {
  * seam) — the identity a schedule fire acts as, minted per fire. The
  * cloud edition's real driver mints a schedule JWT (sub = the org's
  * system-schedule account, claim = the firing Schedule id); this fake
- * proves the contract compiles from consumer code.
+ * proves the contract compiles from consumer code. The account's id is the
+ * derived id of the lane's own subject (`accountIdFor`), as an edition's
+ * per-org system accounts take it.
  */
 const consumerScheduleFireCaller: ScheduleFireCallerMint = {
   mintFireCaller: (org: string, scheduleId: string) => {
     void scheduleId;
     return Promise.resolve({
-      identityId: `ida_schedule_${org}`,
+      identityId: accountIdFor(`stgm_schedule|${org}`),
       callerClass: "schedule",
       issuer: "stigmer",
       rawToken: "compile-proof.jwt",
@@ -1209,6 +1214,14 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
   onVisibilityChanged: (event: VisibilityChangedEvent) => {
     void event.shapesToCreate;
     void event.shapesToDelete;
+    return Promise.resolve();
+  },
+  onExecutionVisibilityChanged: (event: ExecutionVisibilityChangedEvent) => {
+    const audience: ReadonlyArray<ExecutionAudienceShape> = event.shapes;
+    void event.instanceKind;
+    void event.instanceId;
+    void event.orgId;
+    void audience;
     return Promise.resolve();
   },
 };

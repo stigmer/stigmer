@@ -83,7 +83,7 @@ public interface DeprovisionFederatedAccountInputOrBuilder extends
 
   /**
    * <pre>
-   * When false (default): revoke the account's access in this organization only.
+   * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
    * When true: revoke access AND permanently delete the identity account.
    * </pre>
    *

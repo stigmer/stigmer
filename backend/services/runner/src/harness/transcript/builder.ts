@@ -499,12 +499,11 @@ export class TranscriptBuilder {
     // only when the scope has no message yet.
     const parentMsg = scope.currentAiMessage ?? this.ensureAiMessageForToolCall(scope);
 
-    // A started call is RUNNING, gated or not: a gated call that has started
-    // runs until the harness's boundary parks it through `approval_proposed`
-    // (Cursor), and on native a held call never starts at all — the engine
-    // interrupts before the tool runs and the post-stream seed proposes it.
-    // The builder writes the gate's word it is told and decides nothing
-    // about approval.
+    // A started call is RUNNING and carries no approval fact: whether it is
+    // held is known only after the engine's gate has run, and a held call
+    // reaches the transcript as `approval_proposed` (Cursor's boundary after
+    // the hook denied it; native's post-stream seed, where a held call never
+    // starts at all). The builder decides nothing about approval.
     const tc = create(ToolCallSchema, {
       id: callId,
       name,
@@ -536,13 +535,6 @@ export class TranscriptBuilder {
       tc.policyEngineVersion = POLICY_ENGINE_VERSION;
     }
 
-    // The gate's word: the row says it is gated and what the card will ask;
-    // `approvalRequestedAt` is stamped when the boundary actually parks it
-    // (`approval_proposed`, or a gated row's `tool_error`), never here.
-    if (event.gate) {
-      tc.requiresApproval = true;
-      tc.approvalMessage = event.gate.message;
-    }
 
     parentMsg.toolCalls.push(tc);
     scope.toolCalls.set(callId, tc);
@@ -604,17 +596,15 @@ export class TranscriptBuilder {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
-    // The same upsert as a finish. A gated row that fails is the
-    // Cursor boundary's shape — the hook denied the call and the stream
-    // reports `error`; the boundary parks it after the stream — so the
-    // moment approval became due is stamped here if nothing stamped it yet.
+    // The same upsert as a finish. A call the Cursor hook denied also reports
+    // `error` here; it is an ordinary failure until the boundary parks it
+    // through `approval_proposed`, which stamps the approval fields.
     const wasSettled = isSettled(tc.status);
     const messageChanged = !!message && message !== tc.error;
     const at = observedAt ?? this.instant();
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_FAILED;
     if (!tc.completedAt) tc.completedAt = at;
     if (messageChanged) tc.error = message;
-    if (tc.requiresApproval && !tc.approvalRequestedAt) tc.approvalRequestedAt = at;
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
 

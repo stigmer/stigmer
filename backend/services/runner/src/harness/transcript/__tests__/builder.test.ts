@@ -127,21 +127,18 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts", () =>
     expect(row.error).toBe("EACCES");
   });
 
-  it("a gated row's error stamps approvalRequestedAt once — the boundary's shape (Cursor)", () => {
-    const { sb, status } = feed(builder(), [
+  it("an error alone writes no approval fact — a denied call is an ordinary failure until a proposal parks it (#1117)", () => {
+    const { status } = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
       { kind: "text_delta", runId: "run-1", text: "Running the build." },
-      { kind: "tool_started", callId: "sh-1", name: "Shell", input: { command: "make" }, mcpServerSlug: "", gate: { message: "Run command: make" } },
+      { kind: "tool_started", callId: "sh-1", name: "Shell", input: { command: "make" }, mcpServerSlug: "", provenance: "builtin_category" },
       { kind: "tool_error", callId: "sh-1", message: "Blocked by hook" },
     ]);
     const row = rowOf(status, "sh-1");
-    expect(row.requiresApproval).toBe(true);
-    expect(row.approvalMessage).toBe("Run command: make");
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
-    const stamped = row.approvalRequestedAt;
-    expect(stamped).toContain("T");
-    sb.apply({ kind: "tool_error", callId: "sh-1", message: "again" });
-    expect(rowOf(status, "sh-1").approvalRequestedAt, "stamped once").toBe(stamped);
+    expect(row.requiresApproval).toBe(false);
+    expect(row.approvalMessage).toBe("");
+    expect(row.approvalRequestedAt).toBe("");
   });
 
   it("an ungated row's error stamps no approvalRequestedAt", () => {
@@ -155,12 +152,11 @@ describe("TranscriptBuilder — tool_finished and tool_error are upserts", () =>
       { kind: "tool_finished", callId: "obs-1", result: "", observedAt: "2026-01-01T00:00:07.000Z" },
     ]);
     expect(rowOf(status, "obs-1").completedAt, "the delta's own instant").toBe("2026-01-01T00:00:07.000Z");
-    sb.apply({ kind: "tool_started", callId: "obs-2", name: "Shell", input: { command: "make" }, mcpServerSlug: "", gate: { message: "Run command: make" } });
+    sb.apply({ kind: "tool_started", callId: "obs-2", name: "Shell", input: { command: "make" }, mcpServerSlug: "" });
     sb.apply({ kind: "tool_error", callId: "obs-2", message: "", observedAt: "2026-01-01T00:00:09.000Z" });
-    const gated = rowOf(status, "obs-2");
-    expect(gated.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
-    expect(gated.completedAt).toBe("2026-01-01T00:00:09.000Z");
-    expect(gated.approvalRequestedAt, "the gate's stamp shares the observed instant").toBe("2026-01-01T00:00:09.000Z");
+    const failed = rowOf(status, "obs-2");
+    expect(failed.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(failed.completedAt).toBe("2026-01-01T00:00:09.000Z");
     // The stream's own error, arriving later with the text, fills the message
     // and moves no stamp.
     sb.apply({ kind: "tool_error", callId: "obs-2", message: "blocked" });
@@ -399,17 +395,21 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     const { sb, status } = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
       { kind: "text_delta", runId: "run-1", text: "Running the build." },
-      { kind: "tool_started", callId: "sh-1", name: "Shell", input: { command: "make" }, mcpServerSlug: "", gate: { message: "Run command: make" } },
+      { kind: "tool_started", callId: "sh-1", name: "Shell", input: { command: "make" }, mcpServerSlug: "" },
       { kind: "tool_error", callId: "sh-1", message: "Blocked by hook" },
     ]);
-    const stamped = rowOf(status, "sh-1").approvalRequestedAt;
     sb.apply(proposal("sh-1", { name: "Shell", message: "Run command: make", contentDigest: "d-1" }));
     const row = rowOf(status, "sh-1");
     expect(row.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(row.requiresApproval, "the proposal is the one writer of the hold").toBe(true);
+    expect(row.approvalMessage).toBe("Run command: make");
     expect(row.error).toBe("");
     expect(row.result).toBe("");
     expect(row.completedAt).toBe("");
-    expect(row.approvalRequestedAt, "the first stamp stands").toBe(stamped);
+    const stamped = row.approvalRequestedAt;
+    expect(stamped).toContain("T");
+    sb.apply(proposal("sh-1", { name: "Shell", message: "Run command: make", contentDigest: "d-1" }));
+    expect(rowOf(status, "sh-1").approvalRequestedAt, "the first stamp stands").toBe(stamped);
     expect(row.approvalContentDigest).toBe("d-1");
     expect(status.messages.flatMap((m) => m.toolCalls), "no second row").toHaveLength(1);
     expect(sb.awaitingApproval).toBe(true);
@@ -419,7 +419,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
     const { sb, status } = feed(builder(), [
       { kind: "message_start", runId: "run-1" },
       { kind: "text_delta", runId: "run-1", text: "Editing notes." },
-      { kind: "tool_started", callId: "ed-1", name: "edit", input: { path: "notes.md", content: "partial" }, mcpServerSlug: "", gate: { message: "Write file: notes.md" } },
+      { kind: "tool_started", callId: "ed-1", name: "edit", input: { path: "notes.md", content: "partial" }, mcpServerSlug: "" },
       { kind: "tool_error", callId: "ed-1", message: "Blocked by hook" },
     ]);
     // The boundary's overlay carries the hook's captured input — the whole
@@ -440,7 +440,7 @@ describe("TranscriptBuilder — approval_proposed is the one place a row is ever
 
   it("no tool_started ever sets awaitingApproval; only a proposal does", () => {
     const { sb, status } = feed(builder(), [
-      { kind: "tool_started", callId: "sh-1", name: "Shell", input: {}, mcpServerSlug: "", gate: { message: "Run command" } },
+      { kind: "tool_started", callId: "sh-1", name: "Shell", input: {}, mcpServerSlug: "", provenance: "builtin_category" },
     ]);
     expect(sb.awaitingApproval).toBe(false);
     expect(rowOf(status, "sh-1").status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);

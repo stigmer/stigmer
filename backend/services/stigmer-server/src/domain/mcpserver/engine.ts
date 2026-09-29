@@ -108,6 +108,21 @@ export type ConnectRunOutcome =
   | { readonly ok: true; readonly output: ConnectWorkflowOutput }
   | { readonly ok: false; readonly failure: ConnectRunFailure };
 
+/**
+ * Where a connect run is served — decided by the domain, resolved to a
+ * queue name by the engine:
+ * - "runner": the server's shared runner queue, polled by an external
+ *   runner (the posture with no sandbox provisioner composed, Go
+ *   connect.go:642-645);
+ * - "sandbox": the queue one connect sandbox serves, provisioned for this
+ *   connect alone (connect-sandbox.ts). With a provisioner composed the
+ *   shared queue has no poller at all (boot/compose.ts requires a
+ *   per-queue routing mode beside one, stigmer/stigmer#1474).
+ */
+export type ConnectTaskQueue =
+  | { readonly kind: "runner" }
+  | { readonly kind: "sandbox"; readonly name: string };
+
 /** A started-or-attached connect run (Go client.WorkflowRun). */
 export interface ConnectRun {
   readonly workflowId: string;
@@ -131,16 +146,17 @@ export interface ConnectRun {
 /** The Temporal client operations the connect lanes consume. */
 export interface McpServerConnectEngine {
   /**
-   * Starts the connect workflow on the runner queue, or attaches to the
+   * Starts the connect workflow on `taskQueue`, or attaches to the
    * in-flight run when the deterministic workflow ID reports one already
-   * running (Go startOrAttachConnectWorkflow). Throws on any other start
-   * failure — the lanes map that to Internal "failed to start connect
-   * workflow".
+   * running (Go startOrAttachConnectWorkflow) — an attached run keeps the
+   * queue it was started on. Throws on any other start failure — the
+   * lanes map that to Internal "failed to start connect workflow".
    */
   startOrAttachConnect(
     mcpServerId: string,
     input: ConnectWorkflowInput,
     runTimeoutMs: number,
+    taskQueue: ConnectTaskQueue,
   ): Promise<ConnectRun>;
 
   /**
@@ -152,8 +168,10 @@ export interface McpServerConnectEngine {
   isConnectRunRunning(workflowId: string): Promise<boolean>;
 
   /**
-   * Whether any worker is polling the runner task queue (Go
-   * runnerQueueWarning's DescribeTaskQueue probe). `undefined` when the
+   * Whether any worker is polling the shared runner task queue (Go
+   * runnerQueueWarning's DescribeTaskQueue probe). Asked only for a run
+   * routed there: a connect sandbox's queue has no poller at start by
+   * construction. `undefined` when the
    * question cannot be answered — an unreachable Temporal should not cry
    * wolf on an operation that is about to fail loudly anyway.
    */

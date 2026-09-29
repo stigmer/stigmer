@@ -9,7 +9,8 @@
 // NotFound, cross-org -> InvalidArgument), getByWorkflow listing incl. the
 // auto-provisioned default instance and org scoping, the visibility matrix
 // (private/org/public; platform unsupported), the domain's dedicated
-// execution-visibility axis (updateExecutionVisibility), and spec-first
+// execution-visibility axis (updateExecutionVisibility is its one door after
+// create: update and apply keep the stored level), and spec-first
 // negative paths (environment_refs kind is CEL-pinned to environment).
 //
 // spec.workflow_id immutability on update is pinned (stigmer#646, ruled
@@ -350,6 +351,44 @@ describe("WorkflowInstance conformance — execution visibility", () => {
       executionVisibility: WorkflowExecutionVisibility.private,
     });
     expect(lowered.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.private);
+  });
+
+  it("update and apply keep the stored level whatever the request carries; only updateExecutionVisibility changes it", async () => {
+    // The oss#573 rule for metadata.visibility, on the run axis: a manifest
+    // re-applied without the field (or with a stale level) must never
+    // silently narrow who can observe the runs.
+    const { org } = await target.provisionTenancy();
+    const workflow = await provisionWorkflow(org);
+    const created = await createInstance(org, workflow.metadata!.id, uniqueName("wfi"));
+    const { id, name } = created.metadata!;
+    await clients.workflowInstanceCommand.updateExecutionVisibility({
+      resourceId: id,
+      executionVisibility: WorkflowExecutionVisibility.organization,
+    });
+
+    const updated = await clients.workflowInstanceCommand.update({
+      apiVersion: WORKFLOW_INSTANCE_API_VERSION,
+      kind: WORKFLOW_INSTANCE_KIND,
+      metadata: { id, name, org },
+      spec: {
+        ...makeWorkflowInstanceSpec({ workflowId: workflow.metadata!.id, description: "after" }),
+        executionVisibility: WorkflowExecutionVisibility.private,
+      },
+    });
+    expect(updated.spec?.description, "the update itself landed").toBe("after");
+    expect(updated.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+
+    const applied = await clients.workflowInstanceCommand.apply({
+      apiVersion: WORKFLOW_INSTANCE_API_VERSION,
+      kind: WORKFLOW_INSTANCE_KIND,
+      metadata: { name, org },
+      spec: makeWorkflowInstanceSpec({ workflowId: workflow.metadata!.id, description: "applied" }),
+    });
+    expect(applied.metadata?.id, "apply took the update arm").toBe(id);
+    expect(applied.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+
+    const stored = await clients.workflowInstanceQuery.get({ value: id });
+    expect(stored.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
   });
 
   it("rejects the unspecified zero value (InvalidArgument, protovalidate not_in)", async () => {

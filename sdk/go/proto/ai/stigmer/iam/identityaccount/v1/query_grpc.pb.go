@@ -49,8 +49,9 @@ type IdentityAccountQueryControllerClient interface {
 	// Get an identity account by identity provider ID (Auth0 subject).
 	//
 	// Primarily used for direct and machine accounts where the IDP ID is
-	// the Auth0 user_id or client_id. For federated account lookups,
-	// use getByExternalSub which is scoped to a specific identity provider.
+	// the Auth0 user_id or client_id. A federated account is never answered:
+	// its subject is its identity provider's, so it is looked up with
+	// getByExternalSub, which is scoped to that provider.
 	GetByIdpId(ctx context.Context, in *IdpId, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Get a federated identity account by identity provider reference and external subject.
 	//
@@ -155,8 +156,9 @@ type IdentityAccountQueryControllerServer interface {
 	// Get an identity account by identity provider ID (Auth0 subject).
 	//
 	// Primarily used for direct and machine accounts where the IDP ID is
-	// the Auth0 user_id or client_id. For federated account lookups,
-	// use getByExternalSub which is scoped to a specific identity provider.
+	// the Auth0 user_id or client_id. A federated account is never answered:
+	// its subject is its identity provider's, so it is looked up with
+	// getByExternalSub, which is scoped to that provider.
 	GetByIdpId(context.Context, *IdpId) (*IdentityAccount, error)
 	// Get a federated identity account by identity provider reference and external subject.
 	//

@@ -17,10 +17,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
 import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
+import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { CursorFold, foldCursorEvents } from "../__test-utils__/fold.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
 import { grantToken } from "../approval-state.js";
@@ -118,19 +119,26 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     expect(started).toEqual({ kind: "tool_started", callId: "c1", name: "read", input: { path: "a.md" }, mcpServerSlug: "" });
   });
 
-  it("a gated built-in carries the policy's word: the category's message over the args", () => {
+  it("a gated built-in's start carries its provenance and no approval: only the boundary says a call was held (#1117)", () => {
     const [started] = translator().translate(ev.toolCall("c1", "shell", "running", { command: "npm test" }));
-    expect(started).toMatchObject({ kind: "tool_started", gate: { message: "Run command: npm test" }, provenance: "builtin_category" });
+    expect(started).toEqual({ kind: "tool_started", callId: "c1", name: "shell", input: { command: "npm test" }, mcpServerSlug: "", provenance: "builtin_category" });
     const fold = foldCursorEvents([ev.toolCall("c1", "shell", "running", { command: "npm test" })]);
-    expect(fold.row("c1").requiresApproval).toBe(true);
-    expect(fold.row("c1").approvalMessage).toBe("Run command: npm test");
-    expect(fold.row("c1").status, "gated but RUNNING: the boundary parks it, never the stream").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(fold.row("c1").requiresApproval, "not held yet: the hook has not denied it").toBe(false);
+    expect(fold.row("c1").approvalMessage).toBe("");
+    expect(fold.row("c1").status, "RUNNING: the boundary parks a denied call, never the stream").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
   });
 
-  it("a leased category is still the policy's word (lease-blind, as the accumulator was; the harness difference is #1117)", () => {
-    const t = new CursorTranslator({ policies: new Map(), leases: { global: false, categories: new Set(["shell"]) }, seeded: [] });
-    const [started] = t.translate(ev.toolCall("c1", "shell", "running", { command: "ls" }));
-    expect(started).toMatchObject({ gate: { message: "Run command: ls" }, provenance: "approval_lease" });
+  it("a call under an approve-all lease runs as not held, the lease named as its provenance (#1117)", () => {
+    const leases = { global: false, categories: new Set<ToolApprovalCategory>(["shell"]) };
+    const fold = new CursorFold({ leases }).events(
+      ev.toolCall("c1", "shell", "running", { command: "ls" }),
+      ev.toolCall("c1", "shell", "completed", { command: "ls" }, "a.md"),
+    );
+    expect(fold.row("c1").status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(fold.row("c1").approvalPolicySource).toBe(ApprovalPolicySource.APPROVAL_LEASE);
+    expect(fold.row("c1").requiresApproval, "the lease let it run; nobody was asked").toBe(false);
+    expect(fold.row("c1").approvalMessage).toBe("");
+    expect(fold.row("c1").approvalRequestedAt).toBe("");
   });
 
   it("completed → tool_finished with the result rendered to the row's string; a string as-is, an envelope stringified", () => {
@@ -252,19 +260,19 @@ describe("CursorTranslator — the MCP envelope is unwrapped to the inner tool",
     expect(started).toEqual({ kind: "tool_started", callId: "m1", name: "search_services", input: { query: "db" }, mcpServerSlug: "planton", provenance: "classifier_default" });
   });
 
-  it("a policy that requires approval is the gate, its message resolved over the inner args", () => {
+  it("a policy that requires approval is the call's provenance; the row is not held until the boundary parks it", () => {
     const t = new CursorTranslator({ policies, leases: { global: false, categories: new Set() }, seeded: [] });
     const [started] = t.translate(ev.toolCall("m1", "mcp", "running", MCP_ARGS));
-    expect(started).toMatchObject({ gate: { message: "Search db on search_services" }, provenance: "pinned_override" });
+    expect(started).toEqual({ kind: "tool_started", callId: "m1", name: "search_services", input: { query: "db" }, mcpServerSlug: "planton", provenance: "pinned_override" });
     const fold = new CursorFold({ policies }).events(ev.toolCall("m1", "mcp", "running", MCP_ARGS));
     expect(fold.row("m1").toolKind).toBe(ToolKind.MCP);
+    expect(fold.row("m1").requiresApproval).toBe(false);
     expect(fold.row("m1").argsPreview, "the row's own args, never the envelope").toBe(JSON.stringify({ query: "db" }));
   });
 
   it("an mcp event with no toolName is an ordinary tool named mcp, and is never gated by a built-in category", () => {
     const [started] = translator().translate(ev.toolCall("m1", "mcp", "running", { providerIdentifier: "x" }));
-    expect(started).toMatchObject({ name: "mcp", mcpServerSlug: "", input: { providerIdentifier: "x" } });
-    expect((started as { gate?: unknown }).gate).toBeUndefined();
+    expect(started).toEqual({ kind: "tool_started", callId: "m1", name: "mcp", input: { providerIdentifier: "x" }, mcpServerSlug: "" });
   });
 });
 
@@ -594,7 +602,7 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
     fold.event(ev.thinking("It failed."));
     expect(fold.row("c2").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(fold.row("c2").completedAt).toBe("2026-01-01T00:00:07.000Z");
-    expect(fold.row("c2").approvalRequestedAt, "a gated shell").toBe("2026-01-01T00:00:07.000Z");
+    expect(fold.row("c2").approvalRequestedAt, "a failure is not an approval request (#1117)").toBe("");
     fold.event(ev.toolCall("c2", "shell", "error", { command: "make" }, "sh: make: command not found"));
     expect(fold.row("c2").error).toBe("sh: make: command not found");
     expect(fold.row("c2").status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
