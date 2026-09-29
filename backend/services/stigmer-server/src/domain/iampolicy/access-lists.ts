@@ -24,6 +24,17 @@
  * with the id standing in as the display name, the Java `enrich()`
  * fallback shape.
  *
+ * A resource's list names only people who belong to its organization.
+ * The model bounds every direct grant on an organization-scoped object by
+ * the organization (fga/model/tenancy/organization.fga `affiliated`), and
+ * the grant path revokes a departed person's shares, but it keeps their
+ * authorship row (grant-path.ts), which reaches nothing while they are
+ * away. A row that grants nothing is not access, so an account that holds
+ * no row on the resource's organization is left out of that resource's
+ * list, read from the same rows (one indexed `findByPrincipal` per listed
+ * account). An organization's own list is its roles and is never
+ * filtered.
+ *
  * Every entry names its grantee exactly as the rows hold it: kind, id AND
  * the relation qualifier (`team:<id>#member`), and entries group by all
  * three. A revoke matches the qualifier exactly (grant-path.ts
@@ -53,6 +64,9 @@ import {
 } from "../../pipeline/apiresource-meta.js";
 import { assignableRelations, roleInfoFromRelation } from "./roles.js";
 import type { IamPolicyStore } from "./store.js";
+
+const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);
+const ORGANIZATION_KIND = kindEnumName(ApiResourceKind.organization);
 
 /** The Java resolver's bounds: ≤5 steps, platform terminates the walk. */
 const MAX_HIERARCHY_DEPTH = 5;
@@ -141,9 +155,21 @@ export async function buildPrincipalAccessList(
   if (grants.length === 0) {
     return [];
   }
+  const departed = await accountsOutsideOrganization(
+    policies,
+    hierarchy,
+    grants.map((grant) => grant.policy),
+  );
+  const current = grants.filter((grant) => {
+    const principal = grant.policy.spec?.principal;
+    return !(principal?.kind === ACCOUNT_KIND && departed.has(principal.id));
+  });
+  if (current.length === 0) {
+    return [];
+  }
 
   const enriched = await resolvePrincipalViews(
-    grants.map((g) => g.policy),
+    current.map((g) => g.policy),
     displayResolver,
     principalDisplay,
   );
@@ -152,7 +178,7 @@ export async function buildPrincipalAccessList(
     string,
     { principal: ApiResourceRefView; roles: RoleGrant[] }
   >();
-  for (const grant of grants) {
+  for (const grant of current) {
     const principal = grant.policy.spec?.principal;
     if (principal === undefined) {
       continue;
@@ -188,6 +214,48 @@ export async function buildPrincipalAccessList(
       roles: entry.roles,
     }),
   );
+}
+
+/**
+ * The accounts among the rows that hold no row on the resource's
+ * organization (the module header's rule). Empty for an organization's own
+ * list and for a resource no organization holds.
+ */
+async function accountsOutsideOrganization(
+  policies: IamPolicyStore,
+  hierarchy: ReadonlyArray<HierarchyLevel>,
+  rows: ReadonlyArray<IamPolicy>,
+): Promise<ReadonlySet<string>> {
+  const resource = hierarchy[0];
+  if (resource === undefined || resource.kind === ORGANIZATION_KIND) {
+    return new Set();
+  }
+  const levels = hierarchy.some((level) => level.kind === ORGANIZATION_KIND)
+    ? hierarchy
+    : await resolveHierarchy(policies, resource.kind, resource.id, true);
+  const organization = levels.find((level) => level.kind === ORGANIZATION_KIND);
+  if (organization === undefined) {
+    return new Set();
+  }
+  const accounts = new Set<string>();
+  for (const row of rows) {
+    if (row.spec?.principal?.kind === ACCOUNT_KIND) {
+      accounts.add(row.spec.principal.id);
+    }
+  }
+  const outside = new Set<string>();
+  for (const account of accounts) {
+    const held = await policies.findByPrincipal(ACCOUNT_KIND, account);
+    const inOrganization = held.some(
+      (policy) =>
+        policy.spec?.resource?.kind === ORGANIZATION_KIND &&
+        policy.spec.resource.id === organization.id,
+    );
+    if (!inOrganization) {
+      outside.add(account);
+    }
+  }
+  return outside;
 }
 
 /**

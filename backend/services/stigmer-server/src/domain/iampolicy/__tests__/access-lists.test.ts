@@ -350,3 +350,82 @@ describe("buildPrincipalAccessList", () => {
     ]);
   });
 });
+
+describe("buildPrincipalAccessList: only the organization's people", () => {
+  /** An agent in acme: alice (a member) and dave (no role in acme) each hold a viewer grant. */
+  async function sharedAgent() {
+    const store = fakeIamPolicyStore();
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "agent", id: "a1" },
+          { kind: "organization", id: "acme" },
+        ),
+      ),
+    );
+    await store.save(row(orgRole("ida_alice", "member", "acme")));
+    await store.save(row(orgRole("ida_dave", "member", "globex")));
+    for (const account of ["ida_alice", "ida_dave"]) {
+      await store.save(
+        row(
+          triple({ kind: "identity_account", id: account }, "viewer", {
+            kind: "agent",
+            id: "a1",
+          }),
+        ),
+      );
+    }
+    await store.save(
+      row(
+        triple({ kind: "team", id: "tm_1", relation: "member" }, "viewer", {
+          kind: "agent",
+          id: "a1",
+        }),
+      ),
+    );
+    return store;
+  }
+
+  it("leaves out a person who holds no role in the resource's organization, and keeps teams", async () => {
+    const store = await sharedAgent();
+    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+      { kind: "agent", id: "a1" },
+    ]);
+    expect(
+      entries.map((e) => `${e.principal?.kind}:${e.principal?.id}`),
+    ).toEqual(["identity_account:ida_alice", "team:tm_1"]);
+  });
+
+  it("reads the organization from the walked hierarchy the same way", async () => {
+    const store = await sharedAgent();
+    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+      { kind: "agent", id: "a1" },
+      { kind: "organization", id: "acme" },
+    ]);
+    expect(entries.map((e) => e.principal?.id)).toEqual(["ida_alice", "tm_1"]);
+  });
+
+  it("an organization's own list is its roles and is never filtered", async () => {
+    const store = await sharedAgent();
+    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+      { kind: "organization", id: "globex" },
+    ]);
+    expect(entries.map((e) => e.principal?.id)).toEqual(["ida_dave"]);
+  });
+
+  it("a resource no organization holds is listed as its rows say", async () => {
+    const store = fakeIamPolicyStore();
+    await store.save(
+      row(
+        triple({ kind: "identity_account", id: "ida_dave" }, "viewer", {
+          kind: "agent",
+          id: "loose",
+        }),
+      ),
+    );
+    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+      { kind: "agent", id: "loose" },
+    ]);
+    expect(entries.map((e) => e.principal?.id)).toEqual(["ida_dave"]);
+  });
+});
