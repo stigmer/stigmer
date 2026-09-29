@@ -65,14 +65,7 @@ export function alreadyExistsWithReasonError(
   reason: RefusalReason,
 ): ConnectError {
   return new ConnectError(message, Code.AlreadyExists, undefined, [
-    {
-      desc: ErrorInfoSchema,
-      value: create(ErrorInfoSchema, {
-        reason: reason.reason,
-        domain: ERROR_REASON_DOMAIN,
-        metadata: { ...reason.metadata },
-      }),
-    },
+    reasonDetail(reason),
   ]);
 }
 
@@ -89,15 +82,36 @@ export function failedPreconditionError(
     return new ConnectError(message, Code.FailedPrecondition);
   }
   return new ConnectError(message, Code.FailedPrecondition, undefined, [
-    {
-      desc: ErrorInfoSchema,
-      value: create(ErrorInfoSchema, {
-        reason: reason.reason,
-        domain: ERROR_REASON_DOMAIN,
-        metadata: { ...reason.metadata },
-      }),
-    },
+    reasonDetail(reason),
   ]);
+}
+
+/**
+ * An Unauthenticated refusal a client acts on without parsing text: a
+ * credential that was recognised but authenticates nobody, for a reason
+ * the caller can fix (stigmer/stigmer#1169, a key created before sign-in
+ * was turned on). The code stays Unauthenticated, so a client that keys on
+ * the code alone still treats it as a sign-in problem.
+ */
+export function unauthenticatedWithReasonError(
+  message: string,
+  reason: RefusalReason,
+): ConnectError {
+  return new ConnectError(message, Code.Unauthenticated, undefined, [
+    reasonDetail(reason),
+  ]);
+}
+
+/** The ErrorInfo detail every reasoned refusal carries beside its message. */
+function reasonDetail(reason: RefusalReason) {
+  return {
+    desc: ErrorInfoSchema,
+    value: create(ErrorInfoSchema, {
+      reason: reason.reason,
+      domain: ERROR_REASON_DOMAIN,
+      metadata: { ...reason.metadata },
+    }),
+  };
 }
 
 /** Go AbortedError — retryable conflict (e.g. an in-flight dedupe claim). */

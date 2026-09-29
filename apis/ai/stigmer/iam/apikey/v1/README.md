@@ -24,6 +24,7 @@ API keys provide programmatic access to Stigmer without requiring interactive OA
 - Used in `Authorization: Bearer stk_...` header (same as JWT)
 - Validated by a direct lookup of the key's hash in the server's store, with no cache, so a deleted key is refused on the very next request
 - Resolved to the identity account that created the key
+- A key created while the server had sign-in turned off is refused once sign-in is on. Its creator was the local operator, who is not the account anyone signs in as. The refusal is `UNAUTHENTICATED` with the `ErrorInfo` reason `API_KEY_CREATED_BEFORE_SIGN_IN` (domain `stigmer.ai`, no metadata), so a client can tell it apart from a wrong or expired key. The fix is to sign in and create a new key.
 
 ## API Endpoints
 

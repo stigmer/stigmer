@@ -104,18 +104,7 @@ Compose recreates the services whose settings changed.
 </Tab>
 <Tab value="Kubernetes">
 
-The chart asks for the runner's API key in the same upgrade that sets the
-issuer, and refuses the issuer without it. So on Kubernetes the runner's key
-comes first. While the server still trusts every caller, create it and put it in
-a Secret:
-
-```bash
-stigmer apikey create --name runner --never-expires
-kubectl -n stigmer create secret generic stigmer-runner-token \
-  --from-literal=STIGMER_TOKEN=stk_...
-```
-
-Then add the four values to your values file and upgrade:
+Add the three values to your values file and upgrade:
 
 ```yaml no-validate="Helm values, not a Stigmer resource"
 server:
@@ -123,9 +112,6 @@ server:
     issuer: https://auth.example.com/realms/main
     audience: https://stigmer.example.com
     consoleClientId: stigmer-console
-runner:
-  stigmerToken:
-    existingSecret: stigmer-runner-token
 ```
 
 ```bash
@@ -135,7 +121,9 @@ helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
   --wait
 ```
 
-The pod is recreated; start your port-forward again afterwards.
+The pod is recreated with the server alone. The runner needs its own API key,
+and only someone signed in can create one, so it starts once you give it that
+key below; the upgrade's notes say so. Start your port-forward again afterwards.
 
 </Tab>
 </Tabs>
@@ -189,10 +177,10 @@ that expires stops authenticating on that day. Create a second one for your own
 CLI. Each key is shown exactly once; the server stores only a hash and cannot
 show it again.
 
-Create keys after you sign in: until
-[stigmer#1169](https://github.com/stigmer/stigmer/issues/1169) is fixed, a key
-created while the server still trusted everyone does not work once
-authentication is on.
+Create keys after you sign in. A key created while the server still trusted
+everyone is refused once authentication is on, and the refusal says so: the CLI
+prints that the key was created before sign-in was turned on, and asks you to
+sign in and create a new one.
 
 ### Give the runner its key
 
@@ -215,18 +203,20 @@ Compose recreates the services whose settings changed.
 </Tab>
 <Tab value="Kubernetes">
 
-<Callout type="warn">
-  **A key created before authentication was on stops working when it turns on**
-  ([stigmer#1169](https://github.com/stigmer/stigmer/issues/1169)). Give the
-  runner the `runner` key you just created instead: write it into the Secret and
-  restart the pod so the runner reads it.
-</Callout>
+Put the key in a Secret:
 
 ```bash
 kubectl -n stigmer create secret generic stigmer-runner-token \
-  --from-literal=STIGMER_TOKEN=stk_... \
-  --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n stigmer rollout restart deployment/stigmer
+  --from-literal=STIGMER_TOKEN=stk_...
+```
+
+Name it in your values file and upgrade with the same command as before. The pod
+is recreated with the runner beside the server:
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+runner:
+  stigmerToken:
+    existingSecret: stigmer-runner-token
 ```
 
 Start your port-forward again afterwards; it stops with the pod.

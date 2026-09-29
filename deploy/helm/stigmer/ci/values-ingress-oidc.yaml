@@ -1,7 +1,7 @@
 # The authenticated, reachable profile: an Ingress for the API and the
-# artifact lane, OIDC on, the runner's API key by reference (the two-step
-# install: mint the key on an open install, then upgrade to this). Render
-# and golden only: kind has no issuer to sign in against.
+# artifact lane, OIDC on, the runner's API key by reference (the upgrade
+# after signing in and creating the key; the install before it runs no
+# runner). Render and golden only: kind has no issuer to sign in against.
 secrets:
   existingSecret: stigmer-secrets
 server:

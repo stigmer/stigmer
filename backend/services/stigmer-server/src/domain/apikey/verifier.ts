@@ -34,6 +34,27 @@
  * actor the key recorded at minting. The credential checks run first, so
  * a revoked or expired key never reaches the account store.
  *
+ * One stamp names nobody by construction: the operator's from before
+ * sign-in was turned on (stigmer/stigmer#1169). A key created while the
+ * server trusted every caller carries the operator's email, or "system",
+ * and once sign-in is on the operator is a different account, derived
+ * from the issuer's subject. Carrying the key to either account was
+ * weighed and refused. Carried to the pre-sign-in account, it would be a
+ * live credential no signed-in person could see or revoke, since only a
+ * key's owner may. Carried to the signed-in account, a credential would
+ * change hands on an email match. So such a key is refused by name:
+ * UNAUTHENTICATED, API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE and the
+ * API_KEY_CREATED_BEFORE_SIGN_IN reason, which the CLI turns into the two
+ * commands that fix it. The alternative, admitting a bare email, made
+ * every later check fail as a misleading "Permission denied". The
+ * question is asked only of a stamp that resolved to nobody, through the
+ * identity-account domain's `isPreSignInOperatorStamp`, which makes no
+ * read for an account-id stamp. This verifier is composed only under an
+ * authentication posture (boot/compose.ts), so a server that trusts every
+ * caller never reaches the refusal. The reason is documented where a
+ * key's authentication is (apis/ai/stigmer/iam/apikey/v1/README.md): it
+ * can refuse any RPC, so no single RPC comment owns it.
+ *
  * An accepted key's use is then recorded on its status.last_used_at
  * (identity/credential-use.ts): at most once a resolution, judged from the
  * row this read already holds, written atomically through
@@ -55,8 +76,12 @@ import type {
   IdentityVerifier,
 } from "../../extensions/identity.js";
 import { recordCredentialUse } from "../../identity/credential-use.js";
+import { unauthenticatedWithReasonError } from "../../pipeline/errors.js";
 import type { Store } from "../../store/interface.js";
-import { identityIdForSubject } from "../identityaccount/resolve.js";
+import {
+  identityIdForSubject,
+  isPreSignInOperatorStamp,
+} from "../identityaccount/resolve.js";
 import type { AccountsBySubject } from "../identityaccount/resolve.js";
 import { hashApiKey, isApiKeyToken } from "./keymaterial.js";
 import { findApiKeyByHash } from "./lookup.js";
@@ -66,6 +91,16 @@ export const INVALID_TOKEN_MESSAGE = "invalid token";
 
 /** Java classifyAuthError's "expired" arm. */
 export const TOKEN_EXPIRED_MESSAGE = "token has expired";
+
+/**
+ * The ErrorInfo reason a key created before sign-in was turned on is
+ * refused with (stigmer/stigmer#1169). Wire contract, no metadata.
+ */
+export const API_KEY_CREATED_BEFORE_SIGN_IN = "API_KEY_CREATED_BEFORE_SIGN_IN";
+
+/** The copy of that refusal: what happened and what to do. */
+export const API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE =
+  "this API key was created before sign-in was turned on and no longer authenticates anyone; sign in and create a new key";
 
 export interface ApiKeyVerifierDeps {
   /** Where the keys live — the generic Store, by hash (lookup.ts). */
@@ -105,6 +140,15 @@ export function newApiKeyIdentityVerifier(
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
       const identityId = await identityIdForSubject(accounts, owner.id);
+      if (
+        identityId === owner.id &&
+        (await isPreSignInOperatorStamp(accounts, owner.id))
+      ) {
+        throw unauthenticatedWithReasonError(
+          API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE,
+          { reason: API_KEY_CREATED_BEFORE_SIGN_IN },
+        );
+      }
       await recordKeyUse(store, logger, key, now);
       return {
         identityId,

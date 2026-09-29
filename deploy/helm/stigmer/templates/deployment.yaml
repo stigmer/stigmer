@@ -7,6 +7,10 @@ and artifacts at /artifacts in both, never nested under /data (a claim
 starts empty and a mount nested inside it is created root-owned by the
 runtime, which the non-root server cannot write).
 
+With authentication on and no runner key named yet, the pod is the server
+alone: the runner container and its claim's mount are left out until the
+upgrade that names the key (stigmer.runnerEnabled in _helpers.tpl).
+
 Recreate, one replica: two runners polling one queue mid-rollout would race
 the disk, and a ReadWriteOnce claim cannot follow a rolling pod. Every env
 below has a compose counterpart, in compose's order, and the parity test
@@ -184,6 +188,7 @@ spec:
               mountPath: /data
             - name: artifacts
               mountPath: /artifacts
+        {{- if include "stigmer.runnerEnabled" . }}
         - name: runner
           image: {{ include "stigmer.runnerImage" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -233,7 +238,8 @@ spec:
                   optional: true
             {{- end }}
             {{- with .Values.runner.stigmerToken.existingSecret }}
-            # The runner's API key under authentication (the two-step install).
+            # The runner's API key under authentication, created after
+            # signing in (the chart README, "Authentication").
             - name: STIGMER_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -254,13 +260,16 @@ spec:
               mountPath: /data
             - name: artifacts
               mountPath: /artifacts
+        {{- end }}
       volumes:
         - name: server-data
           persistentVolumeClaim:
             claimName: {{ $fullname }}-server-data
+        {{- if include "stigmer.runnerEnabled" . }}
         - name: runner-data
           persistentVolumeClaim:
             claimName: {{ $fullname }}-runner-data
+        {{- end }}
         - name: artifacts
           persistentVolumeClaim:
             claimName: {{ $fullname }}-artifacts

@@ -144,6 +144,22 @@ http://localhost:7235
 {{- end -}}
 
 {{- /*
+Whether the pod runs the runner. With authentication on, the runner needs its
+own API key, and a key can only be created by someone signed in, so the key
+cannot exist before the first install with the issuer set. That install runs
+the server alone. The operator signs in, creates the key, and the upgrade that
+names its Secret adds the runner (NOTES.txt says so). A key created before
+sign-in was turned on is refused once it is on (stigmer/stigmer#1169), so
+there is no order that avoids this step. Without authentication the runner
+needs no key and always runs.
+*/ -}}
+{{- define "stigmer.runnerEnabled" -}}
+{{- if or (not .Values.server.oidc.issuer) .Values.runner.stigmerToken.existingSecret -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{- /*
 The cross-field refusals: each names the fix in the words the operator needs.
 Rendered once, from the Deployment, so every install runs them. The schema
 handles shape; these handle "set both or neither" and "you forgot the Secret".
@@ -160,9 +176,6 @@ handles shape; these handle "set both or neither" and "you forgot the Secret".
 {{- end -}}
 {{- if and .Values.server.oidc.audience (not .Values.server.oidc.issuer) -}}
 {{- fail "\n\nserver.oidc.audience is set but server.oidc.issuer is not. They go together; set both or neither.\n" -}}
-{{- end -}}
-{{- if and .Values.server.oidc.issuer (not .Values.runner.stigmerToken.existingSecret) -}}
-{{- fail "\n\nserver.oidc.issuer is set but runner.stigmerToken.existingSecret is not. With authentication on, the runner needs an API key to call the server (its own credential; each run is still attributed to the member who started it), and an API key can only be minted by a signed-in operator, so an authenticated install is two steps:\n\n  1. install with server.oidc unset, sign in as the operator and mint the key:\n       stigmer apikey create --name runner\n  2. put it in a Secret and upgrade with OIDC on:\n       kubectl create secret generic stigmer-runner-token --from-literal=STIGMER_TOKEN=stk_...\n       helm upgrade ... --set server.oidc.issuer=... --set server.oidc.audience=... --set runner.stigmerToken.existingSecret=stigmer-runner-token\n\nThe chart refuses the half state rather than let a runner poll Temporal and fail every task UNAUTHENTICATED.\n" -}}
 {{- end -}}
 {{- if and (not .Values.postgres.enabled) (not .Values.externalDatabase.host) -}}
 {{- fail "\n\npostgres.enabled is false but externalDatabase.host is empty. Name the Postgres the server should use (externalDatabase.host, port, user, database, and the password's Secret and key), or leave postgres.enabled true for the bundled one.\n" -}}

@@ -124,27 +124,38 @@ set, and the console signs in through the public PKCE client named in
 at your identity provider, is the
 [authentication guide](https://stigmer.ai/docs/guides/self-hosting/authentication).
 
-With authentication on, the runner needs an API key to call the server, and an
-API key can only be minted by a signed-in operator. The key is the runner's own
-credential (it fetches its configuration and the model registry with it); it
-does not decide whose runs the runner may serve or who is recorded as running
-them. For each run the server hands the runner a credential for that run alone,
-so every member's run executes and is attributed to the member who started it,
-whoever's key the runner process holds. An authenticated install is two steps,
-and the chart refuses the half state in between:
+With authentication on, the runner needs an API key to call the server. The key
+is the runner's own credential (it fetches its configuration and the model
+registry with it); it does not decide whose runs the runner may serve or who is
+recorded as running them. For each run the server hands the runner a credential
+for that run alone, so every member's run executes and is attributed to the
+member who started it, whoever's key the runner process holds. Only someone
+signed in can create a key, so an authenticated install is two steps, and
+sign-in comes first:
 
-1. Install with `server.oidc` unset. Sign in through the port-forward as the
-   operator and mint the runner's key: `stigmer apikey create --name runner`.
-2. Put the key in a Secret and upgrade with OIDC on:
+1. Set the issuer: below as an upgrade of a running install, or the same three
+   values in a first install. The pod runs the server alone, and the install
+   notes say the runner is waiting for its key:
+
+```bash
+helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reuse-values \
+  --set server.oidc.issuer=https://your-issuer.example.com \
+  --set server.oidc.audience=https://stigmer.example.com \
+  --set server.oidc.consoleClientId=stigmer-console
+```
+
+2. Sign in, create the runner's key with no expiry (Settings → API Keys, or
+   `stigmer apikey create --name runner --never-expires`), put it in a Secret
+   and upgrade with its name. The runner starts:
 
 ```bash
 kubectl -n stigmer create secret generic stigmer-runner-token --from-literal=STIGMER_TOKEN=stk_...
 helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer -n stigmer --reuse-values \
-  --set server.oidc.issuer=https://your-issuer.example.com \
-  --set server.oidc.audience=https://stigmer.example.com \
-  --set server.oidc.consoleClientId=stigmer-console \
   --set runner.stigmerToken.existingSecret=stigmer-runner-token
 ```
+
+A key created while the server still trusted every caller is refused once
+authentication is on, with a message saying so. Create keys after you sign in.
 
 Register the console's redirect URI at your provider:
 `https://stigmer.example.com/auth/callback`, and the post-logout redirect

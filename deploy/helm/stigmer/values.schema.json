@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "The shape of values.yaml. additionalProperties is false at every level so a misspelled key fails `helm install` instead of silently doing nothing. Cross-field rules (a Secret is required; OIDC needs a runner token; a disabled dependency needs its external address) are template `fail`s in templates/_helpers.tpl, because they need sentences a schema cannot carry. The Enterprise keys are declared here so their refusal names the reason.",
+  "$comment": "The shape of values.yaml. additionalProperties is false at every level so a misspelled key fails `helm install` instead of silently doing nothing. Cross-field rules (a Secret is required; OIDC needs an audience; a disabled dependency needs its external address) are template `fail`s in templates/_helpers.tpl, because they need sentences a schema cannot carry. The Enterprise keys are declared here so their refusal names the reason.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

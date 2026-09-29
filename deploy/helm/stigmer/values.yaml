@@ -132,14 +132,14 @@ runner:
     # key; workflows without agent tasks run key-free.
     existingSecret: ""
   stigmerToken:
-    # REQUIRED when server.oidc.issuer is set: the API key the runner calls
-    # the server with (STIGMER_TOKEN). It is the runner's own credential;
-    # each run it serves is attributed to the member who started it, not to
-    # the key's holder. An API key needs a signed-in operator, who needs a
-    # running server — so an authenticated install is two steps: install
-    # with OIDC off, mint the key (`stigmer apikey create --name runner`),
-    # then upgrade with OIDC on and this Secret named. The chart refuses
-    # the half state.
+    # With server.oidc.issuer set, the API key the runner calls the server
+    # with (STIGMER_TOKEN). It is the runner's own credential; each run it
+    # serves is attributed to the member who started it, not to the key's
+    # holder. Only someone signed in can create a key, so the install that
+    # sets the issuer runs without the runner: sign in, create the key
+    # (`stigmer apikey create --name runner --never-expires`), put it in a
+    # Secret and upgrade with its name here, and the runner starts. A key
+    # created before sign-in was turned on is refused once it is on.
     existingSecret: ""
     key: STIGMER_TOKEN
   # The runner calls the LLM, runs tools and installs packages at runtime;

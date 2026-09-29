@@ -314,6 +314,7 @@ export {
   internalError,
   invalidArgumentError,
   notFoundError,
+  unauthenticatedWithReasonError,
   unavailableError,
 } from "./pipeline/errors.js";
 export type { RefusalReason } from "./pipeline/errors.js";
@@ -424,6 +425,10 @@ export type {
   OrganizationSlugStore,
 } from "./store/interface.js";
 export { ORGANIZATION_SLUG_RESERVED } from "./domain/organization/slug-ledger.js";
+// The API-key verifier's refusal of a key created before sign-in was
+// turned on (stigmer/stigmer#1169): a client branches on the reason, not
+// the copy.
+export { API_KEY_CREATED_BEFORE_SIGN_IN } from "./domain/apikey/verifier.js";
 // The list index's read shapes, which `Store.queryResources` speaks
 // (store/list-index.ts). Declaring an index stays internal: the list is
 // the composition root's (boot/list-indexes.ts), one per server.

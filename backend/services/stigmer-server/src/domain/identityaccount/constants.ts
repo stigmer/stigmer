@@ -50,6 +50,16 @@ export function accountIdFor(idpId: string): string {
 }
 
 /**
+ * Whether `id` has an account id's shape, `ida_<...>`: a derived id and a
+ * minted one share it (see the header). A shape test, not an existence
+ * check. Its one use is to skip a read that could only miss, since no
+ * account carries an account id as its subject (resolve.ts).
+ */
+export function isAccountIdShaped(id: string): boolean {
+  return id.startsWith(`${ACCOUNT_ID_PREFIX}_`);
+}
+
+/**
  * The subject namespace of the trusted-local posture. An OIDC subject is
  * `<connection>|<id>` by Auth0 convention; `local|` claims the same shape
  * for the one principal no issuer vouches for, so the derived ids of a

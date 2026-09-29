@@ -16,6 +16,15 @@
  * in, so what is pinned is the production pair; only the fault arm
  * substitutes a one-method lookup that rejects.
  *
+ * A key created before sign-in was turned on is refused by name
+ * (stigmer/stigmer#1169): its stamp is the trusted-local operator's email
+ * (or "system"), which names nobody once sign-in is on, so the verifier
+ * answers UNAUTHENTICATED with the sentence and the
+ * API_KEY_CREATED_BEFORE_SIGN_IN reason instead of admitting the email
+ * and letting every later check fail as "Permission denied". An issuer
+ * subject that merely looks like an email is still admitted idp-shaped,
+ * and an account-stamped key costs no extra read.
+ *
  * An accepted key's use lands on its own row (stigmer/stigmer#1255):
  * stamped on the first verify, left alone inside the resolution, moved
  * forward after it; a refused key records nothing; a stamp that cannot be
@@ -28,6 +37,7 @@ import path from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -40,12 +50,17 @@ import type { Logger } from "../../../boot/logger.js";
 import { LAST_USED_RESOLUTION_MS } from "../../../identity/credential-use.js";
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { accountIdFor } from "../../identityaccount/constants.js";
+import {
+  accountIdFor,
+  localIdpIdFor,
+} from "../../identityaccount/constants.js";
 import type { AccountsBySubject } from "../../identityaccount/resolve.js";
 import { newResourceIdentityAccountStore } from "../../identityaccount/resource-store.js";
 import type { IdentityAccountStore } from "../../identityaccount/store.js";
 import { generateApiKeyPlaintext, hashApiKey } from "../keymaterial.js";
 import {
+  API_KEY_CREATED_BEFORE_SIGN_IN,
+  API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE,
   INVALID_TOKEN_MESSAGE,
   TOKEN_EXPIRED_MESSAGE,
   newApiKeyIdentityVerifier,
@@ -323,6 +338,63 @@ describe("creator stamp → account resolution (20260911.11 A6)", () => {
       verifier(counting).verify("stk_never_minted"),
     ).rejects.toBeInstanceOf(ConnectError);
     expect(reads).toEqual([]);
+  });
+});
+
+describe("a key created before sign-in was turned on (stigmer/stigmer#1169)", () => {
+  /** The refusal a pre-sign-in key must answer: the code, the copy, the reason. */
+  function expectRefusedBeforeSignIn(error: unknown): true {
+    const refusal = ConnectError.from(error);
+    expect(refusal.code).toBe(Code.Unauthenticated);
+    expect(refusal.rawMessage).toBe(API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE);
+    const [info] = refusal.findDetails(ErrorInfoSchema);
+    expect(info?.reason).toBe(API_KEY_CREATED_BEFORE_SIGN_IN);
+    expect(info?.domain).toBe("stigmer.ai");
+    return true;
+  }
+
+  it("a key stamped with the configured operator's email is refused by name and records no use", async () => {
+    await provisionAccount(localIdpIdFor("laptop@example.com"), "laptop@example.com");
+    const { plaintext, id } = await seedKey({
+      ownerId: "laptop@example.com",
+      email: "laptop@example.com",
+    });
+
+    await expect(verifier().verify(plaintext)).rejects.toSatisfy(
+      expectRefusedBeforeSignIn,
+    );
+    expect((await storedKey(id)).status?.lastUsedAt).toBeUndefined();
+  });
+
+  it("a key stamped \"system\" by the unconfigured laptop is refused by name", async () => {
+    const { plaintext } = await seedKey({ ownerId: "system", email: "" });
+
+    await expect(verifier().verify(plaintext)).rejects.toSatisfy(
+      expectRefusedBeforeSignIn,
+    );
+  });
+
+  it("an unprovisioned issuer subject that looks like an email is still admitted idp-shaped", async () => {
+    const { plaintext } = await seedKey({ ownerId: "stranger@example.com" });
+
+    expect((await verifier().verify(plaintext))?.identityId).toBe(
+      "stranger@example.com",
+    );
+  });
+
+  it("an account-stamped key makes exactly the one read it made before", async () => {
+    const reads: string[] = [];
+    const counting: AccountsBySubject = {
+      findDirectByIdpId: async (idpId) => {
+        reads.push(idpId);
+        return accounts.findDirectByIdpId(idpId);
+      },
+    };
+    const owner = accountIdFor("auth0|steady");
+    const { plaintext } = await seedKey({ ownerId: owner });
+
+    expect((await verifier(counting).verify(plaintext))?.identityId).toBe(owner);
+    expect(reads).toEqual([owner]);
   });
 });
 

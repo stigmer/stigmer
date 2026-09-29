@@ -2,9 +2,15 @@
 // message, and optional remediation hints. Mirrors the Go CLI's
 // clierr.Classify, including walking the error chain so wrapped RPC errors
 // still map to the right exit code.
+//
+// A refusal that carries a reason the CLI knows gets its own copy. Today
+// that is one: API_KEY_CREATED_BEFORE_SIGN_IN (stigmer/stigmer#1169), an
+// Unauthenticated whose fix is not "sign in again" but "sign in, then
+// create a new key". Its sentence is the server's, and it names the two
+// commands. Every other Unauthenticated keeps the generic sign-in copy.
 
 import { Code, ConnectError } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
+import { getErrorReason, StigmerError } from "@stigmer/sdk";
 import { CliExitError } from "./cli-exit-error.js";
 import { ExitCode } from "./exit-codes.js";
 
@@ -24,6 +30,10 @@ export interface CliError {
 
 // Guards against pathological/circular `cause` chains.
 const MAX_CHAIN_DEPTH = 20;
+
+// The server's reason for refusing a key created before sign-in was turned
+// on (the apikey verifier; apis/ai/stigmer/iam/apikey/v1/README.md).
+const REASON_API_KEY_CREATED_BEFORE_SIGN_IN = "API_KEY_CREATED_BEFORE_SIGN_IN";
 
 export function classify(err: unknown): CliError | null {
   if (err === null || err === undefined) {
@@ -46,6 +56,22 @@ export function classify(err: unknown): CliError | null {
 
   const coded = extractCoded(err);
   if (coded !== undefined) {
+    if (
+      coded.code === Code.Unauthenticated &&
+      getErrorReason(err)?.reason === REASON_API_KEY_CREATED_BEFORE_SIGN_IN
+    ) {
+      return {
+        exitCode: ExitCode.Auth,
+        code: coded.code,
+        cause: toError(err),
+        message: coded.message,
+        hints: [
+          "Sign in, then create a new key:",
+          "  stigmer auth login",
+          "  stigmer apikey create --name <name>",
+        ],
+      };
+    }
     return classifyConnectCode(coded.code, coded.message, toError(err));
   }
 

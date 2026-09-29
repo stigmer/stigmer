@@ -20,7 +20,10 @@
  *     when turned off or when Temporal is external;
  *   - an authenticated external Temporal reaches both containers as the
  *     STIGMER_TEMPORAL_* settings, every secret by secretKeyRef and no
- *     volume, while a plaintext install carries none of those names.
+ *     volume, while a plaintext install carries none of those names;
+ *   - with the issuer set and no runner key named, the pod is the server
+ *     alone, and the runner's claim is still created (stigmer/stigmer#1169:
+ *     only someone signed in can create the key, so sign-in comes first).
  *
  * Goldens live in `golden/<profile>.yaml` with the chart version replaced by
  * a placeholder so a release-pin bump does not churn them. Regenerate with
@@ -234,6 +237,34 @@ test("the bundled Temporal is Ready only when the default namespace exists (stig
     container.readinessProbe.exec.command.join(" "),
     /temporal operator namespace describe -n default/,
   );
+});
+
+test("with the issuer set and no runner key, the pod is the server alone until the key is named (stigmer/stigmer#1169)", () => {
+  const signInFirst = renderProfile("ingress-oidc", {
+    sets: ["runner.stigmerToken.existingSecret="],
+  });
+  const pod = findOne(signInFirst, "Deployment", RELEASE).spec.template.spec;
+  assert.deepEqual(
+    pod.containers.map((c) => c.name),
+    ["server"],
+  );
+  assert.deepEqual(
+    pod.volumes.map((v) => v.name).sort(),
+    ["artifacts", "server-data"],
+  );
+  assert.equal(
+    findAll(signInFirst, "PersistentVolumeClaim", `${RELEASE}-runner-data`)
+      .length,
+    1,
+    "the runner's claim stays, so its data survives the upgrade that adds it",
+  );
+
+  const named = findOne(renderProfile("ingress-oidc"), "Deployment", RELEASE)
+    .spec.template.spec;
+  assert.deepEqual(named.containers.map((c) => c.name).sort(), [
+    "runner",
+    "server",
+  ]);
 });
 
 test("the byo profile renders no bundled Postgres or Temporal", () => {

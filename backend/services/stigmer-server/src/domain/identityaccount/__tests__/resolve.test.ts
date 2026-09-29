@@ -30,6 +30,20 @@
  *   - a caller whose credential names no subject (an opaque token) is
  *     `undefined` with NO second read — the store is never asked about "";
  *   - an idp-shaped caller with no account is `undefined`.
+ *
+ * And the question the API-key verifier asks of a stamp that resolved to
+ * nobody, `isPreSignInOperatorStamp` (stigmer/stigmer#1169): does it name
+ * the operator of the server's life before sign-in was turned on? Written
+ * failing before the export exists.
+ *
+ *   - the `"system"` placeholder does, with no read (it is only ever the
+ *     unconfigured laptop's operator);
+ *   - an email with a `local|<email>` account in the store does;
+ *   - an email with no such account does not (an issuer subject that
+ *     happens to look like an email);
+ *   - an account-id stamp and the empty stamp do not, with no read, so the
+ *     common key costs the verifier nothing;
+ *   - a store fault propagates as the same error.
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
@@ -40,7 +54,11 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { accountIdFor, localIdpIdFor } from "../constants.js";
-import { accountForCaller, identityIdForSubject } from "../resolve.js";
+import {
+  accountForCaller,
+  identityIdForSubject,
+  isPreSignInOperatorStamp,
+} from "../resolve.js";
 import type { AccountsBySubject } from "../resolve.js";
 import { fakeIdentityAccountStore } from "./support.js";
 
@@ -221,5 +239,60 @@ describe("accountForCaller — the account a caller stands for", () => {
     );
 
     expect(account).toBeUndefined();
+  });
+});
+
+describe("isPreSignInOperatorStamp — a stamp from before sign-in was turned on (stigmer/stigmer#1169)", () => {
+  it('the "system" placeholder is the unconfigured laptop\'s operator, with no read', async () => {
+    const accounts = fakeIdentityAccountStore();
+    const bySubject = vi.spyOn(accounts, "findDirectByIdpId");
+
+    expect(await isPreSignInOperatorStamp(accounts, "system")).toBe(true);
+    expect(bySubject).not.toHaveBeenCalled();
+  });
+
+  it("an email with a local|<email> account is the configured operator's", async () => {
+    const accounts = seeded(localIdpIdFor("operator@example.com"));
+    const bySubject = vi.spyOn(accounts, "findDirectByIdpId");
+
+    expect(
+      await isPreSignInOperatorStamp(accounts, "operator@example.com"),
+    ).toBe(true);
+    expect(bySubject).toHaveBeenCalledTimes(1);
+    expect(bySubject).toHaveBeenCalledWith(
+      localIdpIdFor("operator@example.com"),
+    );
+  });
+
+  it("an email with no local|<email> account is not — an issuer subject may look like one", async () => {
+    const accounts = seeded(localIdpIdFor("operator@example.com"));
+
+    expect(
+      await isPreSignInOperatorStamp(accounts, "someone@example.com"),
+    ).toBe(false);
+  });
+
+  it("an account-id stamp and the empty stamp are not, and the store is never asked", async () => {
+    const accounts = seeded(localIdpIdFor("operator@example.com"));
+    const bySubject = vi.spyOn(accounts, "findDirectByIdpId");
+
+    expect(
+      await isPreSignInOperatorStamp(
+        accounts,
+        accountIdFor(localIdpIdFor("operator@example.com")),
+      ),
+    ).toBe(false);
+    expect(await isPreSignInOperatorStamp(accounts, "")).toBe(false);
+    expect(bySubject).not.toHaveBeenCalled();
+  });
+
+  it("a store fault propagates as the same error", async () => {
+    const fault = new Error("store is on fire");
+    const broken: AccountsBySubject = {
+      findDirectByIdpId: () => Promise.reject(fault),
+    };
+    await expect(
+      isPreSignInOperatorStamp(broken, "operator@example.com"),
+    ).rejects.toBe(fault);
   });
 });

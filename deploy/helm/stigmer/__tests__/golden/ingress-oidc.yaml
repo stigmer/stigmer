@@ -393,7 +393,8 @@ spec:
                   name: stigmer-llm-keys
                   key: CURSOR_API_KEY
                   optional: true
-            # The runner's API key under authentication (the two-step install).
+            # The runner's API key under authentication, created after
+            # signing in (the chart README, "Authentication").
             - name: STIGMER_TOKEN
               valueFrom:
                 secretKeyRef:

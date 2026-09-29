@@ -54,11 +54,28 @@
  * what "nobody" means (the fire caller's deterministic refusal, the
  * verifier's liveness sentence), so this function answers `undefined`
  * and never throws for it. The empty stamp is `undefined` with no read.
+ *
+ * The fourth reading asks of a stamp that named nobody whether it is the
+ * operator's from before sign-in was turned on:
+ * `isPreSignInOperatorStamp` (stigmer/stigmer#1169). Under the
+ * trusted-local posture every write is stamped with the operator's email,
+ * or with the "system" placeholder when no email is configured, and the
+ * operator's account carries the subject `local|<that stamp>`. After
+ * sign-in the operator signs in as a different account, one derived from
+ * the issuer's subject, which by construction never collides with a
+ * `local|` one (constants.ts). So such a stamp names a principal no
+ * signed-in person is. The API-key verifier asks this so it can refuse
+ * such a key by name instead of admitting a bare email. The answer is yes
+ * for "system" with no read, and for any other stamp when the store holds
+ * `local|<stamp>`, which is one direct-subject read. An account-id stamp
+ * and the empty stamp answer no with no read: the common key costs its
+ * verifier nothing.
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { idpIdOf } from "./constants.js";
+import { SYSTEM_OPERATOR_IDENTITY_ID } from "../../pipeline/interceptors/auth.js";
+import { idpIdOf, isAccountIdShaped, localIdpIdFor } from "./constants.js";
 import type { IdentityAccountStore } from "./store.js";
 
 /** The one read a verifier needs from the domain: the direct account for a subject. */
@@ -123,4 +140,22 @@ export async function accountForStamp(
     (await accounts.findById(stamp)) ??
     (await accounts.findDirectByIdpId(stamp))
   );
+}
+
+/**
+ * Whether a creator stamp is the operator's from before sign-in was turned
+ * on: the "system" placeholder, or an email whose `local|<email>` account
+ * the store holds. Faults propagate as they are.
+ */
+export async function isPreSignInOperatorStamp(
+  accounts: AccountsBySubject,
+  stamp: string,
+): Promise<boolean> {
+  if (stamp === SYSTEM_OPERATOR_IDENTITY_ID) {
+    return true;
+  }
+  if (stamp === "" || isAccountIdShaped(stamp)) {
+    return false;
+  }
+  return (await accounts.findDirectByIdpId(localIdpIdFor(stamp))) !== undefined;
 }

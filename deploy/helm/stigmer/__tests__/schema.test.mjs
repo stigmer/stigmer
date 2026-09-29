@@ -10,7 +10,6 @@
  *     one-liner to create the Secret;
  *   - an Enterprise key turned on: the sentence naming P4's sp.helm-ee;
  *   - an unknown top-level key (a typo): refused, never silently ignored;
- *   - OIDC on without a runner token: the two-step sentence (F3);
  *   - Postgres disabled without an external host, Temporal likewise;
  *   - Temporal authentication against the bundled Temporal, TLS keys without
  *     TLS or without their Secret, and half a mutual-TLS pair.
@@ -58,21 +57,6 @@ test("a sandbox key is refused: the driver has no artifact path in open source (
     sets: ["sandbox.provisioner=kubernetes"],
   });
   assert.equal(result.ok, false);
-});
-
-test("OIDC on without a runner token is refused with the two-step sentence (F3)", () => {
-  const result = helmTemplate("bundled", {
-    sets: [
-      "server.oidc.issuer=https://issuer.example.com",
-      "server.oidc.audience=stigmer",
-    ],
-  });
-  expectRefusal(
-    result,
-    /runner\.stigmerToken\.existingSecret/,
-    "OIDC without a runner token",
-  );
-  expectRefusal(result, /API key/i, "OIDC without a runner token");
 });
 
 test("half an OIDC configuration is refused at render, before the server would refuse it at boot", () => {

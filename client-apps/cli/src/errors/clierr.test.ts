@@ -1,4 +1,6 @@
+import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerError } from "@stigmer/sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setDebug } from "../runtime.js";
@@ -55,6 +57,51 @@ describe("classify — gRPC code to exit code", () => {
   it("attaches remediation hints for auth failures", () => {
     const result = classify(new ConnectError("nope", Code.Unauthenticated));
     expect(result?.hints).toEqual(["Please sign in:", "  stigmer auth login"]);
+  });
+});
+
+describe("classify — a key created before sign-in was turned on (stigmer/stigmer#1169)", () => {
+  const sentence =
+    "this API key was created before sign-in was turned on and no longer authenticates anyone; sign in and create a new key";
+
+  function refusal(): ConnectError {
+    return new ConnectError(sentence, Code.Unauthenticated, undefined, [
+      {
+        desc: ErrorInfoSchema,
+        value: create(ErrorInfoSchema, {
+          reason: "API_KEY_CREATED_BEFORE_SIGN_IN",
+          domain: "stigmer.ai",
+        }),
+      },
+    ]);
+  }
+
+  const expected = {
+    exitCode: ExitCode.Auth,
+    message: sentence,
+    hints: [
+      "Sign in, then create a new key:",
+      "  stigmer auth login",
+      "  stigmer apikey create --name <name>",
+    ],
+  };
+
+  it("prints the server's sentence and the two commands that fix it", () => {
+    expect(classify(refusal())).toMatchObject(expected);
+  });
+
+  it("does the same when the SDK wraps the refusal", () => {
+    const wrapped = new StigmerError("unauthenticated", sentence, Code.Unauthenticated, {
+      cause: refusal(),
+    });
+    expect(classify(wrapped)).toMatchObject(expected);
+  });
+
+  it("leaves every other Unauthenticated as it was", () => {
+    expect(classify(new ConnectError("invalid token", Code.Unauthenticated))).toMatchObject({
+      message: "Not authenticated",
+      hints: ["Please sign in:", "  stigmer auth login"],
+    });
   });
 });
 
