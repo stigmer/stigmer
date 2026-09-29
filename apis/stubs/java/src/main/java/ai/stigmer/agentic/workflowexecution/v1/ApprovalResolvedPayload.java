@@ -88,8 +88,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Canonical identity of the user who made the decision
-   * (identity-account ID). Empty when not attributed (e.g. the OSS
-   * single-user edition, or timeout auto-resolution).
+   * (identity-account ID). Empty only when no caller made the decision
+   * (timeout auto-resolution); on a local server it is the local operator.
    * </pre>
    *
    * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -111,8 +111,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Canonical identity of the user who made the decision
-   * (identity-account ID). Empty when not attributed (e.g. the OSS
-   * single-user edition, or timeout auto-resolution).
+   * (identity-account ID). Empty only when no caller made the decision
+   * (timeout auto-resolution); on a local server it is the local operator.
    * </pre>
    *
    * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -723,8 +723,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Canonical identity of the user who made the decision
-     * (identity-account ID). Empty when not attributed (e.g. the OSS
-     * single-user edition, or timeout auto-resolution).
+     * (identity-account ID). Empty only when no caller made the decision
+     * (timeout auto-resolution); on a local server it is the local operator.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -745,8 +745,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Canonical identity of the user who made the decision
-     * (identity-account ID). Empty when not attributed (e.g. the OSS
-     * single-user edition, or timeout auto-resolution).
+     * (identity-account ID). Empty only when no caller made the decision
+     * (timeout auto-resolution); on a local server it is the local operator.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -768,8 +768,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Canonical identity of the user who made the decision
-     * (identity-account ID). Empty when not attributed (e.g. the OSS
-     * single-user edition, or timeout auto-resolution).
+     * (identity-account ID). Empty only when no caller made the decision
+     * (timeout auto-resolution); on a local server it is the local operator.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -787,8 +787,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Canonical identity of the user who made the decision
-     * (identity-account ID). Empty when not attributed (e.g. the OSS
-     * single-user edition, or timeout auto-resolution).
+     * (identity-account ID). Empty only when no caller made the decision
+     * (timeout auto-resolution); on a local server it is the local operator.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -803,8 +803,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Canonical identity of the user who made the decision
-     * (identity-account ID). Empty when not attributed (e.g. the OSS
-     * single-user edition, or timeout auto-resolution).
+     * (identity-account ID). Empty only when no caller made the decision
+     * (timeout auto-resolution); on a local server it is the local operator.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>

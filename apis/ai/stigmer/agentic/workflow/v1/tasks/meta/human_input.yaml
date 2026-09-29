@@ -19,7 +19,23 @@ output_schema:
       description: "Validated form response (when form_schema is configured)."
     reviewer:
       type: string
-      description: "Identity of the user who responded."
+      description: "Identity-account id of the person who responded."
+    reviewer_actor:
+      type: object
+      description: "Display snapshot of the reviewer, taken when they responded."
+      properties:
+        id:
+          type: string
+          description: "Identity-account id (the same value as reviewer)."
+        display_name:
+          type: string
+          description: "Human-readable name; empty when unknown."
+        email:
+          type: string
+          description: "Email address; empty when unknown."
+        avatar:
+          type: string
+          description: "Avatar URL; empty when unknown."
     responded_at:
       type: string
       description: "ISO 8601 timestamp of the response."

@@ -176,8 +176,30 @@ responding to a human_input task.
       "type": "string"
     },
     "reviewer": {
-      "description": "Identity of the user who responded.",
+      "description": "Identity-account id of the person who responded.",
       "type": "string"
+    },
+    "reviewer_actor": {
+      "description": "Display snapshot of the reviewer, taken when they responded.",
+      "properties": {
+        "avatar": {
+          "description": "Avatar URL; empty when unknown.",
+          "type": "string"
+        },
+        "display_name": {
+          "description": "Human-readable name; empty when unknown.",
+          "type": "string"
+        },
+        "email": {
+          "description": "Email address; empty when unknown.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Identity-account id (the same value as reviewer).",
+          "type": "string"
+        }
+      },
+      "type": "object"
     }
   },
   "type": "object"

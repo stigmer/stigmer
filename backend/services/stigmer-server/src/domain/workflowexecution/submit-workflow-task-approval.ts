@@ -10,10 +10,17 @@
  * carries status.temporal_workflow_id (NOT spec.workflow_id — every other
  * sender passes the spec reference).
  *
- * Reviewer attribution: OSS is single-user; an explicit client-supplied
- * reviewer is honored, otherwise it stays empty ("Empty when not
- * attributed"). Cloud attributes server-side from the authenticated
- * caller.
+ * Reviewer attribution (stigmer#1415): the decision names the principal
+ * the chain authorized, the id `auditActorFor` stamps as `created_by.id`,
+ * with that caller's display snapshot as `reviewer_actor`, in every
+ * edition and for every caller class. The client-supplied
+ * `SubmitWorkflowTaskApprovalInput.reviewer` is never read: a person's
+ * value is spoofable, and no caller in either edition decides on someone
+ * else's behalf, so delegated attribution waits for the lane that needs it
+ * and is keyed on that lane's own class (the io.proto field comment). On a
+ * laptop the reviewer is the trusted-local operator, exactly as every
+ * laptop resource's `created_by` is. The runner carries both keys opaquely
+ * into the task output and the approval_resolved event.
  */
 import type { JsonValue } from "@bufbuild/protobuf";
 
@@ -38,6 +45,7 @@ import {
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { auditActorFor } from "../../pipeline/steps/defaults.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -160,9 +168,18 @@ export async function submitWorkflowTaskApproval(
         const humanInputSignalName =
           HUMAN_INPUT_SIGNAL_PREFIX + ctx.input.taskName;
 
+        const reviewer = auditActorFor(ctx.callerIdentity);
         const signalPayload: Record<string, JsonValue> = {
           outcome: ctx.input.outcome,
-          reviewer: ctx.input.reviewer,
+          reviewer: reviewer.id,
+          // The runner's HumanInputReviewerActor keys (snake_case, as the
+          // rest of the payload); the actor's platform_client_id has no slot.
+          reviewer_actor: {
+            id: reviewer.id,
+            display_name: reviewer.displayName,
+            email: reviewer.email,
+            avatar: reviewer.avatar,
+          },
           // Go time.Now().UTC().Format(time.RFC3339): seconds precision.
           responded_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
         };
@@ -204,6 +221,7 @@ export async function submitWorkflowTaskApproval(
             executionId,
             taskName: ctx.input.taskName,
             outcome: ctx.input.outcome,
+            reviewer: reviewer.id,
             signalName: humanInputSignalName,
           },
         );

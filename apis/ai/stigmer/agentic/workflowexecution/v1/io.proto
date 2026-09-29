@@ -395,16 +395,17 @@ message SubmitWorkflowTaskApprovalInput {
   // Identity of the reviewer submitting the decision.
   //
   // @internal
-  // Attribution contract:
-  // - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
-  //   The server attributes the decision from the authenticated caller —
-  //   a client-supplied identity is spoofable and is overridden for human
-  //   callers.
-  // - Machine-account callers MAY set it for delegated attribution, e.g.
-  //   a channel broker submitting a decision on behalf of an external
-  //   reviewer (Slack user) where the caller identity is the service
-  //   account and this field is the only truthful source.
-  // Stored in the task output and the approval_resolved event for audit.
+  // Attribution contract: the server ignores this field. It records the
+  // authenticated caller as the reviewer (the principal the request was
+  // authorized as, the same id stamped as created_by.id) together with that
+  // caller's display snapshot, for every caller, in every edition; a
+  // client-supplied identity is spoofable. Clients leave it empty.
+  // Delegated attribution (a channel broker deciding for an external
+  // reviewer such as a Slack user, where the caller is the broker) is not
+  // served today: no caller decides on someone else's behalf. It returns
+  // with the first lane that does, keyed on that lane's own caller class.
+  // The recorded reviewer is stored in the task output and the
+  // approval_resolved event for audit.
   string reviewer = 5;
 
   // Optional comment from the reviewer, stored in the audit trail.

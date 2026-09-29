@@ -1816,8 +1816,8 @@ type ApprovalResolvedPayload struct {
 	// The decision that was made.
 	Action v11.ApprovalAction `protobuf:"varint,1,opt,name=action,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"action,omitempty"`
 	// Canonical identity of the user who made the decision
-	// (identity-account ID). Empty when not attributed (e.g. the OSS
-	// single-user edition, or timeout auto-resolution).
+	// (identity-account ID). Empty only when no caller made the decision
+	// (timeout auto-resolution); on a local server it is the local operator.
 	ResolvedBy string `protobuf:"bytes,2,opt,name=resolved_by,json=resolvedBy,proto3" json:"resolved_by,omitempty"`
 	// Optional comment provided with the decision.
 	Comment string `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
