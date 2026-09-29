@@ -16,8 +16,17 @@
  * Until #1096 the same correlation also fed the write-back
  * coordinator's per-file commit (`onFileModified`); write-back is
  * finalize-only now, the turn runtime's, so publishing is this trigger's one
- * effect. The loop (`turn-stream.ts`) drains {@link pendingPublishPromises}
- * in the settle.
+ * effect.
+ *
+ * One instance per turn, owned by the turn's transcript
+ * (`turn-stream.ts` `createDeepAgentTranscript`) and not by the stream loop,
+ * so the in-flight publishes outlive a stream that throws: the settle
+ * drains them before its safety net, and the turn's `finally`
+ * (`turn.ts`) drains them on every exit, a thrown turn included, before the
+ * runtime writes the terminal status (stigmer#1116). Until then the loop
+ * built this and handed the list out only on its return values, so a turn
+ * that threw left its uploads to land on a status already persisted for the
+ * last time.
  */
 
 import type { TranscriptEvent } from "../../harness/transcript/events.js";
@@ -33,10 +42,24 @@ export class StreamingSideEffects {
   private readonly inputCache = new Map<string, CachedToolInput>();
   private readonly inlinePublisher: InlinePublisher | undefined;
 
-  readonly pendingPublishPromises: Promise<void>[] = [];
+  private readonly pending: Promise<void>[] = [];
 
   constructor(opts: { inlinePublisher?: InlinePublisher }) {
     this.inlinePublisher = opts.inlinePublisher;
+  }
+
+  /** The publishes fired so far, in order; each resolves (a publish logs and swallows its own failure). */
+  get pendingPublishPromises(): readonly Promise<void>[] {
+    return this.pending;
+  }
+
+  /**
+   * Wait for every publish fired so far to land on the status. Idempotent:
+   * a second call over settled publishes returns at once. Bounded by the
+   * artifact storage's own per-call timeouts, as every drain has been.
+   */
+  async drainPublishes(): Promise<void> {
+    if (this.pending.length > 0) await Promise.allSettled(this.pending);
   }
 
   onEvent(event: TranscriptEvent): void {
@@ -54,7 +77,7 @@ export class StreamingSideEffects {
       if (!isFileModifyingTool(cached.toolName)) return;
       const filePath = extractFilePath(cached.input);
       if (!filePath) return;
-      this.pendingPublishPromises.push(this.inlinePublisher.publish(filePath));
+      this.pending.push(this.inlinePublisher.publish(filePath));
     }
   }
 }

@@ -139,6 +139,16 @@ $(SERVER_DIR)/node_modules: $(SERVER_DIR)/package.json
 	@cd $(SERVER_DIR) && npm install
 	@touch $(SERVER_DIR)/node_modules
 
+# site/ is a yarn 4 project with its own lockfile, outside the npm workspace;
+# site/Makefile's `deps` is its install. Every root target that runs a site
+# script depends on this, so a fresh worktree needs no hand-run yarn install.
+# Phony, not a node_modules file target: the install can rewrite site/yarn.lock
+# (the file: hash note above `check`), which would leave such a target always
+# stale or never.
+.PHONY: site-deps
+site-deps:
+	$(MAKE) -C site deps
+
 build-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Compile the TypeScript server
 	@echo "build    $(SERVER_DIR)"
 	@cd $(SERVER_DIR) && npm run build
@@ -239,15 +249,15 @@ stubs-internal-check: ## Verify committed stubs carry no @internal comment secti
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts -check apis/stubs sdk/go/proto
 
-gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
+gen-react-sdk-docs: site-deps ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
 	cd site && yarn generate-react-sdk-docs
 
-gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
+gen-ink-sdk-docs: site-deps ## Generate Ink SDK reference docs from TypeDoc
 	cd sdk/ink && npm run typedoc:json
 	cd site && yarn generate-ink-sdk-docs
 
-gen-theme-docs: ## Generate theme token reference docs from tokens.css
+gen-theme-docs: site-deps ## Generate theme token reference docs from tokens.css
 	cd site && yarn generate-theme-docs
 
 gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
@@ -291,7 +301,7 @@ gen-task-docs-check: ## Verify task docs are up to date (CI)
 	fi; \
 	echo "✓ Task docs are up to date"
 
-gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
+gen-react-sdk-docs-check: site-deps ## Verify React SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd sdk/react && npm run typedoc:json) && \
 	(cd site && REACT_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-react-sdk-docs) && \
@@ -307,7 +317,7 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	fi; \
 	echo "✓ React SDK docs are up to date"
 
-gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
+gen-ink-sdk-docs-check: site-deps ## Verify Ink SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd sdk/ink && npm run typedoc:json) && \
 	(cd site && INK_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-ink-sdk-docs) && \
@@ -323,7 +333,7 @@ gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
 	fi; \
 	echo "✓ Ink SDK docs are up to date"
 
-gen-theme-docs-check: ## Verify theme token docs are up to date (CI)
+gen-theme-docs-check: site-deps ## Verify theme token docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd site && THEME_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-theme-docs) && \
 	rc=0; \
@@ -935,12 +945,22 @@ test-e2e-console-login: ## Run the console sign-in E2E against a server in the O
 #   2. five domain buckets run CONCURRENTLY (`make -j`). Buckets are isolated by
 #      toolchain/directory so they never write to the same files:
 #        check-go    — go vet/test/build + buf lint + go binaries
-#        check-node  — npm typecheck/lint/build/test (web, react, sdk, desktop TS,
-#                      runner, e2e specs) + tsdoc + dep hygiene
+#        check-node  — the ci.ts-workspace lane's typecheck/lint/web+desktop
+#                      suites over the whole workspace, then the runner and
+#                      server builds + tsdoc + dep hygiene
 #        check-site  — vale, prettier --check, site lint/typecheck/build,
 #                      demo validation, link check (all under docs/ + site/)
 #        check-rust  — desktop cargo check + runner-host crate
 #        check-java  — Java proto stubs + SDK (mvn)
+#
+# After `make setup` once, `make check` needs nothing else, in a fresh worktree
+# too: each bucket depends on the installs it reads (the standalone server's
+# node_modules, site/'s yarn install, the Tauri shell's resource directories).
+# That site install can leave site/yarn.lock modified: yarn records a content
+# hash of each file:-linked @stigmer lib, and the hash follows the lib's built
+# dist, so it moves whenever a lib differs from the build ci.docs last hashed.
+# ci.docs re-commits the file on main; what a branch should do with it is
+# stigmer/stigmer#1193.
 #
 # Wall-clock is now ~max(bucket) instead of the sum of every step.
 JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 5)
@@ -966,6 +986,8 @@ check-prep: ## Sequential prep for check: tidy, fix, build + test shared libs, b
 	$(MAKE) node_modules
 	$(MAKE) fix
 	$(MAKE) build-libs
+	# The lane's libs job order: build, the Node-ESM gate over the dists, tests.
+	node scripts/verify-esm-node.mjs
 	$(MAKE) test-libs
 	$(MAKE) build-ts-stubs
 	$(MAKE) gen-sdk-docs
@@ -978,6 +1000,10 @@ check-prep: ## Sequential prep for check: tidy, fix, build + test shared libs, b
 
 # Stage 2 — parallel buckets. Each bucket is internally sequential; libs + proto
 # stubs are already built by check-prep, so no bucket rebuilds shared artifacts.
+# check-node's turbo tasks still reach `^build`, as cache hits on check-prep's
+# builds, and a hit leaves outputs already on disk untouched (measured on turbo
+# 2.10.12: same inode and mtime; only a missing output is restored), so the
+# site bucket reading those dists through its file: links sees no rewrite.
 # The Go compile gate. `go build ./...` per module is what `bazelw build //...`
 # used to be before Bazel's retirement (oss#616's graph arm, 20260904.04): it
 # compiles and links every package, so a committed stub that no other module
@@ -998,34 +1024,27 @@ check-go: ## check bucket: Go build/vet/test over every go.work module + buf lin
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
-check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos, e2e)
-	npm run typecheck -w @stigmer/sdk
-	# The conformance package's typecheck (ci.ts-workspace runs it as the
-	# turbo `typecheck` task whenever the package is affected): it
-	# compiles mcp-server and sdk source under its own stricter options, so
-	# it can be red while both packages' own typechecks are green (#999).
-	npm run typecheck -w @stigmer/conformance
+
+# The workspace half is the ci.ts-workspace lane's own calls, through the same
+# wrapper, over the whole set where the lane takes the affected slice: a member
+# added to the root `workspaces` list is checked here with no edit, and
+# scripts/check-node-parity.test.mjs fails when the lane gains a call this gate
+# does not make. The lane's browser-mode suite (test:a11y, a real Chromium) is
+# the one call left to CI. The runner and server lines are their own lanes'.
+check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (typecheck, lint, web + desktop suites) + runner + server + tsdoc
+	node scripts/turbo-set.mjs workspace typecheck
+	node scripts/turbo-set.mjs workspace lint
 	# The cloud-capability behavior inventory (DD-012 §5): every conformance
 	# row has a test, every test tag names a row. Static — no target boots.
 	$(MAKE) check-conformance-inventory
-	npm run lint -w @stigmer/react
-	npm run typecheck -w @stigmer/react
-	npm run typecheck -w @stigmer/demos
-	# E2E specs typecheck against @stigmer/sdk + @stigmer/protos workspace
-	# source; this catches spec/helper drift faster than the full-stack
-	# ci.e2e-interactive lane (#572), which runs the interactive project.
-	npm run typecheck -w @stigmer/e2e
 	node scripts/verify-scenar-tours.mjs
-	npm run lint -w client-apps/web
-	npm run typecheck -w desktop
-	npm run lint -w desktop
-	npm run build -w client-apps/web
+	npm run build:web
 	# Runs after the web build on purpose: with a fresh out/ present, the
 	# routing gate also cross-checks its derived export set against the
 	# real artifact (hermetic mode elsewhere).
-	node scripts/verify-static-export-routes.mjs
-	npm run test -w client-apps/web
-	npm run test -w desktop
+	$(MAKE) verify-web-routing
+	node scripts/turbo-set.mjs workspace test --only=web
+	node scripts/turbo-set.mjs workspace test --only=desktop
 	cd $(RUNNER_DIR) && npm run typecheck
 	cd $(RUNNER_DIR) && npm run build
 	# Boot the compiled dist with plain node: vitest/tsx interop masks
@@ -1054,7 +1073,7 @@ check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/b
 	@lychee --config .lychee.toml --root-dir . docs/
 
 check-rust: ## check bucket: desktop cargo check + runner-host crate (mirrors ci.crate: fmt/clippy/build/test)
-	cd client-apps/desktop/src-tauri && cargo check --quiet
+	$(MAKE) check-desktop-rust
 	cd crates/stigmer-runner-host && cargo fmt --check
 	cd crates/stigmer-runner-host && cargo clippy --all-targets -- -D warnings
 	cd crates/stigmer-runner-host && cargo build && cargo test
@@ -1224,7 +1243,7 @@ preview: preview-site
 
 docs-build: build-site ## Build the documentation site (production)
 
-gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md)
+gen-llms: site-deps ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md)
 	cd site && yarn generate-llms
 
 # ─── Release ──────────────────────────────────

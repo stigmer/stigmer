@@ -47,13 +47,18 @@ const (
 	Feature_byo_provider_keys Feature = 3
 	// Delivering agents over messaging channels (Slack, WhatsApp) through a
 	// channel runtime. The channel kinds themselves are open source; this
-	// feature tiers the hosted runtime inside Cloud plans and licenses. It
-	// is not an edition gate: the open-source server stores channels freely.
+	// feature tiers the Cloud's hosted runtime inside Cloud plans. It is not
+	// an edition gate, and a license never lists it: the open-source server
+	// stores channels freely, and whether a self-hosted server delivers them
+	// is its edition's to decide, never its license's.
 	Feature_channels Feature = 4
-	// Sharing an agent with individuals and guests through hosted share
-	// links. The agent-share kind itself is open source; this feature tiers
-	// the hosted sharing lane inside Cloud plans and licenses. It is not an
-	// edition gate: the open-source server stores shares freely.
+	// Sharing an agent through hosted share links, with the sharing
+	// organization's members or with anyone who has the link. The agent-share
+	// kind itself is open source; this feature tiers the Cloud's hosted
+	// sharing lane inside Cloud plans. It is not an edition gate, and a
+	// license never lists it: the open-source server stores shares freely,
+	// and whether a self-hosted server serves its links to guests is its
+	// edition's to decide, never its license's.
 	Feature_sharing Feature = 5
 	// Creating teams and adding members to them. The team kind is Enterprise
 	// and Cloud; this feature tiers it inside Cloud plans, so an organization

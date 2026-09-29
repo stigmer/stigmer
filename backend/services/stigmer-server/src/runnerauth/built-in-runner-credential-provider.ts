@@ -11,21 +11,19 @@
  * default alone is composed and none of what follows exists.
  *
  * ONE reading of "what is this runner bound to" — `runnerBindingOf` —
- * feeds everything here and the Authorizer's lane admission
- * (authorization/lane-admission.ts). It re-verifies the caller's own
+ * feeds everything here. It re-verifies the caller's own
  * `rawToken` (the cloud's `verifiedClaims(caller.rawToken)` pattern: one
  * HMAC, no store read) and reads the kind off the bound id's prefix
  * through the contract's table (bound-execution.ts). It checks the
- * caller CLASS first: the lane admission runs on every run-gate check
- * for every caller, and only the runner-subject verifier mints `runner`,
+ * caller CLASS first: only the runner-subject verifier mints `runner`,
  * so a person costs nothing here. It never throws: a person, a runner
  * holding no token, a token this server did not sign, or a binding that
  * names no kind is simply "not a runner binding", and each caller
  * answers its own default for that. A CONNECT binding (`mcp-connect`, a
  * runner reading one discovery's secrets as the person who asked) IS a
- * runner binding, and every capability below answers it by name: it is
- * admitted on no run gate, vouches no lineage, captures no memory, and
- * the exchange mints nothing for it.
+ * runner binding, and every capability below answers it by name: it
+ * vouches no lineage, captures no memory, and the exchange mints nothing
+ * for it.
  *
  * The capabilities, and where they follow or narrow the cloud:
  *
@@ -35,14 +33,11 @@
  *     this, a self-host with sign-in on cannot run any workflow that
  *     calls an agent: the child create's GuardReservedLabels asks the
  *     Authorizer for `can_write_reserved_labels` on the platform object,
- *     which the built-in Authorizer denies for everyone. NARROWER than the
- *     cloud on purpose: the cloud vouches for every runner-class
- *     credential and binds only its workflow lane; here an agent-bound
+ *     which the built-in Authorizer denies for everyone. An agent-bound
  *     runner vouches nothing, because the workflow's `agent_call` activity
  *     is the only producer of the lineage labels and it runs under the
- *     workflow's credential (runner: activities/call-agent.ts). Nothing
- *     observable diverges; do not widen this toward the cloud without a
- *     producer that needs it.
+ *     workflow's credential (runner: activities/call-agent.ts); do not
+ *     widen this without a producer that needs it.
  *   - `authorizeMemoryCapture`: an AGENT-bound runner is ADMITTED with the
  *     human the verifier resolved as the memory's subject — the row's one
  *     principal under the model; without it every memory an enforcing
@@ -158,14 +153,6 @@ export function runnerBindingOf(
   }
   const kind = boundExecutionKindOf(executionId);
   return kind === undefined ? undefined : { kind, executionId };
-}
-
-/** The lane-admission predicate: a runner acting for a WORKFLOW execution (the cloud's `workflow_sandbox`). */
-export function isWorkflowBoundRunner(
-  service: RunnerAuthService,
-  caller: CallerIdentity,
-): boolean {
-  return runnerBindingOf(service, caller)?.kind === "workflow-execution";
 }
 
 /** The kind name the not-found copy carries, by the request's arm (what a `get` on that kind would say). */

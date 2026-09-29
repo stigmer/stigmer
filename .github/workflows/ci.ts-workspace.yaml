@@ -133,16 +133,12 @@ jobs:
       - name: Install dependencies (npm ci, tracked lockfile)
         run: npm ci
 
-      # One root test (verify-docs-tour-parity) imports the tour fixtures,
-      # which import @stigmer/protos from its dist; the root `test` script
-      # has the same order (build:libs first) implicitly.
-      - name: Build @stigmer/protos dist
-        run: node scripts/turbo-set.mjs libs build --only=@stigmer/protos
-
       # Through the root script, never a glob repeated here: the globs live in
-      # package.json's `test:scripts` once, so this lane and `npm test` run the
+      # package.json's `test:root` once, so this lane and `npm test` run the
       # same files. (Before #1087 this step named `scripts/*.test.mjs` alone
-      # and `scripts/lib/*.test.mjs` never ran in CI.)
+      # and `scripts/lib/*.test.mjs` never ran in CI.) The script runs turbo's
+      # `//#test:root`, whose edges in turbo.json build what the root suites
+      # import first (the @stigmer/protos dist), so no step here orders it.
       - name: Root script tests
         run: npm run test:scripts
 

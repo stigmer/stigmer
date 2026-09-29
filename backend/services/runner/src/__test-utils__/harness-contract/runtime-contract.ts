@@ -877,8 +877,10 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
   expect(slimOf(subject, invocation).phase).toBe("EXECUTION_FAILED");
   expect(driver.record.persistedPhases, `${subject.name}: nothing was persisted before the failure`).toEqual([ExecutionPhase.EXECUTION_FAILED]);
   const final = finalStatusOf(harness, driver);
-  expect(final.error).toBe("Execution failed: [Error] runtime fault injected at getAgent");
-  expect(systemMessages(final)).toEqual([TERMINAL_COPY.internalFailure.row, "Error details: [Error] runtime fault injected at getAgent"]);
+  // One grammar for a FAILED `status.error` (stigmer#1122): the described
+  // fault, unframed, exactly what the details row carries.
+  expect(final.error).toBe("[Error] runtime fault injected at getAgent");
+  expect(systemMessages(final)).toEqual([TERMINAL_COPY.internalFailure.row, `Error details: ${final.error}`]);
   expect(driver.record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);
   expect(driver.record.sessionUpdates).toHaveLength(0);
   return { driver, invocations: [invocation], final };

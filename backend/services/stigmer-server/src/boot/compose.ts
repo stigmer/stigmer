@@ -33,7 +33,6 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 
 import { newBuiltInAuthorizer } from "../authorization/authorizer.js";
-import { newLaneAdmittedAuthorizer } from "../authorization/lane-admission.js";
 import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
 import { authorizationPostureOf } from "../authorization/posture.js";
@@ -169,10 +168,7 @@ import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
 import { createRequestMetricsInterceptor } from "../pipeline/interceptors/request-metrics.js";
 import { newPermissiveSingleTeamAuthorizer } from "../pipeline/steps/authorize.js";
-import {
-  isWorkflowBoundRunner,
-  newBuiltInRunnerCredentialProvider,
-} from "../runnerauth/built-in-runner-credential-provider.js";
+import { newBuiltInRunnerCredentialProvider } from "../runnerauth/built-in-runner-credential-provider.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import { newRunnerSubjectIdentityVerifier } from "../runnerauth/runner-subject-verifier.js";
 import { RunnerAuthService } from "../runnerauth/runnerauth.js";
@@ -501,15 +497,13 @@ export async function composeServer(
   // source's built-in provider (runnerauth/built-in-runner-credential-
   // provider.ts — the execution-scoped default plus the lineage-vouching,
   // memory-capture and exchange-gating capabilities an enforcing
-  // self-host needs, and the one reading of a runner's binding the
-  // Authorizer below admits a workflow-bound runner on); otherwise the
+  // self-host needs); otherwise the
   // execution-scoped default, byte-identical to the wiring this seam
   // replaced. Both open-source providers also mint the RUN credential the
   // two execution engines put on every dispatch (the engines below take
   // this object; runnerauth/dispatch-credential.ts) — a composed driver
   // that leaves that capability undefined dispatches without one, its
-  // runners being credentialed another way. Bound HERE, before the
-  // Authorizer, because the lane admission reads the binding.
+  // runners being credentialed another way.
   const runnerAuthService = RunnerAuthService.fromEnv();
   const runnerCredentials =
     extensions.drivers.runnerCredentialProvider ??
@@ -525,12 +519,12 @@ export async function composeServer(
   // controller as an explicit dependency; the Authorize step at position 1
   // of every chain calls it (O2). By posture: an extension's registration;
   // open source's built-in Authorizer (authorization/authorizer.ts — the
-  // cloud's model evaluated over the tuples the row would have had),
-  // decorated with the lane admission (authorization/lane-admission.ts) so
-  // a runner acting for a WORKFLOW execution passes the run gate on the
-  // child executions its `agent_call` creates — the parent workflow
-  // already passed its own, the cloud's `workflow_sandbox` posture; or
-  // the permissive single-team default. The organization directory and the
+  // cloud's model evaluated over the tuples the row would have had), which
+  // checks every caller on the run gate as the person it acts for: a
+  // runner acting for a workflow creates the workflow's child executions
+  // as the workflow's person, who must be able to view the agents the
+  // workflow calls (the runner's own read of each callee already asks
+  // that); or the permissive single-team default. The organization directory and the
   // schedule fire caller are bound beside it under the same posture, so
   // `findMyOrganizations` lists what a person may view and a scheduled run
   // belongs to the person who scheduled it — a fire the internal lane
@@ -538,16 +532,13 @@ export async function composeServer(
   const authorizer: Authorizer =
     extensions.authorizer ??
     (authorizationPosture === "built-in"
-      ? newLaneAdmittedAuthorizer(
-          newBuiltInAuthorizer({
-            store,
-            policies: iamPolicies,
-            accounts: identityAccounts,
-            edition: extensions.edition,
-            logger,
-          }),
-          (caller) => isWorkflowBoundRunner(runnerAuthService, caller),
-        )
+      ? newBuiltInAuthorizer({
+          store,
+          policies: iamPolicies,
+          accounts: identityAccounts,
+          edition: extensions.edition,
+          logger,
+        })
       : newPermissiveSingleTeamAuthorizer());
   const organizationDirectory: OrganizationDirectory | undefined =
     extensions.drivers.organizationDirectory ??

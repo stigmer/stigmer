@@ -15,12 +15,9 @@ import {
 
 describe("GRANTABLE_FEATURES", () => {
   it("offers every license feature and never a plan-only or ungated one", () => {
-    expect(GRANTABLE_FEATURES).toEqual([
-      Feature.sso_enforcement,
-      Feature.byo_provider_keys,
-      Feature.channels,
-      Feature.sharing,
-    ]);
+    expect(GRANTABLE_FEATURES).toEqual([Feature.sso_enforcement, Feature.byo_provider_keys]);
+    expect(GRANTABLE_FEATURES).not.toContain(Feature.channels);
+    expect(GRANTABLE_FEATURES).not.toContain(Feature.sharing);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.teams);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.managed_organizations);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.platform_client);
@@ -49,7 +46,7 @@ describe("formatDayFromToday", () => {
 describe("entitlementParts", () => {
   it("names each limit, saying unlimited where the contract reads absence as unlimited", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrganizations: 1 }, features: [Feature.channels] })),
+      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrganizations: 1 }, features: [Feature.byo_provider_keys] })),
     ).toEqual(["5 users", "1 organization", "1 feature"]);
     expect(entitlementParts(create(EntitlementsSchema, {}))).toEqual([
       "Unlimited users",
@@ -60,7 +57,12 @@ describe("entitlementParts", () => {
 
   it("counts only the features the console offers, as the names and the detail list them", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { features: [Feature.platform_client, Feature.channels] })),
+      entitlementParts(create(EntitlementsSchema, { features: [Feature.platform_client, Feature.byo_provider_keys] })),
+    ).toEqual(["Unlimited users", "Unlimited organizations", "1 feature"]);
+    expect(
+      entitlementParts(
+        create(EntitlementsSchema, { features: [Feature.channels, Feature.sharing, Feature.sso_enforcement] }),
+      ),
     ).toEqual(["Unlimited users", "Unlimited organizations", "1 feature"]);
   });
 });

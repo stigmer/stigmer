@@ -19,6 +19,7 @@ import {
   SETS,
   libsSet,
   resolveSet,
+  rootSet,
   runnerLinkedSet,
   selectPackages,
   splitOnly,
@@ -144,9 +145,28 @@ test("workspace set in this repo contains every publishable lib and the two clie
 test("resolveSet refuses an unknown set and names the known ones", () => {
   assert.throws(
     () => resolveSet("nope"),
-    /unknown set "nope".*Known sets: libs, runner-deps, workspace/,
+    /unknown set "nope".*Known sets: libs, runner-deps, workspace, root/,
   );
-  assert.deepEqual(Object.keys(SETS), ["libs", "runner-deps", "workspace"]);
+  assert.deepEqual(Object.keys(SETS), [
+    "libs",
+    "runner-deps",
+    "workspace",
+    "root",
+  ]);
+});
+
+test("root set is the repository root alone, and refuses --only", () => {
+  assert.deepEqual(rootSet(), ["//"]);
+  assert.deepEqual(turboArgs("root", "test:root"), [
+    "run",
+    "test:root",
+    "--filter=//",
+  ]);
+  assert.throws(
+    () => turboArgs("root", "test:root", ["--only=web"]),
+    /"root" set is the repository root alone; --only does not apply/,
+    "a partition of a one-member set is a usage error, not an empty run",
+  );
 });
 
 test("splitOnly: lifts --only out of the flags, merges repeats, leaves the rest in order", () => {

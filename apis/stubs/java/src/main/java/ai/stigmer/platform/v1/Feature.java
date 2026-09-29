@@ -59,8 +59,10 @@ public enum Feature
    * <pre>
    * Delivering agents over messaging channels (Slack, WhatsApp) through a
    * channel runtime. The channel kinds themselves are open source; this
-   * feature tiers the hosted runtime inside Cloud plans and licenses. It
-   * is not an edition gate: the open-source server stores channels freely.
+   * feature tiers the Cloud's hosted runtime inside Cloud plans. It is not
+   * an edition gate, and a license never lists it: the open-source server
+   * stores channels freely, and whether a self-hosted server delivers them
+   * is its edition's to decide, never its license's.
    * </pre>
    *
    * <code>channels = 4;</code>
@@ -68,10 +70,13 @@ public enum Feature
   channels(4),
   /**
    * <pre>
-   * Sharing an agent with individuals and guests through hosted share
-   * links. The agent-share kind itself is open source; this feature tiers
-   * the hosted sharing lane inside Cloud plans and licenses. It is not an
-   * edition gate: the open-source server stores shares freely.
+   * Sharing an agent through hosted share links, with the sharing
+   * organization's members or with anyone who has the link. The agent-share
+   * kind itself is open source; this feature tiers the Cloud's hosted
+   * sharing lane inside Cloud plans. It is not an edition gate, and a
+   * license never lists it: the open-source server stores shares freely,
+   * and whether a self-hosted server serves its links to guests is its
+   * edition's to decide, never its license's.
    * </pre>
    *
    * <code>sharing = 5;</code>
@@ -154,8 +159,10 @@ public enum Feature
    * <pre>
    * Delivering agents over messaging channels (Slack, WhatsApp) through a
    * channel runtime. The channel kinds themselves are open source; this
-   * feature tiers the hosted runtime inside Cloud plans and licenses. It
-   * is not an edition gate: the open-source server stores channels freely.
+   * feature tiers the Cloud's hosted runtime inside Cloud plans. It is not
+   * an edition gate, and a license never lists it: the open-source server
+   * stores channels freely, and whether a self-hosted server delivers them
+   * is its edition's to decide, never its license's.
    * </pre>
    *
    * <code>channels = 4;</code>
@@ -163,10 +170,13 @@ public enum Feature
   public static final int channels_VALUE = 4;
   /**
    * <pre>
-   * Sharing an agent with individuals and guests through hosted share
-   * links. The agent-share kind itself is open source; this feature tiers
-   * the hosted sharing lane inside Cloud plans and licenses. It is not an
-   * edition gate: the open-source server stores shares freely.
+   * Sharing an agent through hosted share links, with the sharing
+   * organization's members or with anyone who has the link. The agent-share
+   * kind itself is open source; this feature tiers the Cloud's hosted
+   * sharing lane inside Cloud plans. It is not an edition gate, and a
+   * license never lists it: the open-source server stores shares freely,
+   * and whether a self-hosted server serves its links to guests is its
+   * edition's to decide, never its license's.
    * </pre>
    *
    * <code>sharing = 5;</code>

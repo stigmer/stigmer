@@ -108,6 +108,12 @@ function createMockStigmer(methods: MockMethods): Stigmer {
       cancel: methods.cancel,
       terminate: methods.terminate,
     },
+    // The local-worker attach asks who is signed in; answer as a
+    // single-user server does (no account), under which every local
+    // session is served as before.
+    identityAccount: {
+      whoAmI: vi.fn().mockRejectedValue(new Error("Identity account not found for the authenticated user")),
+    },
   } as unknown as Stigmer;
 }
 

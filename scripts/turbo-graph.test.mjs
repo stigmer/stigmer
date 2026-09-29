@@ -10,6 +10,12 @@
 // only fails once the two builds race. This test reads turbo's own dry run and
 // asserts that for every publishable package, every @stigmer/* it names in any
 // dependency field is a `#build` it waits on.
+//
+// It also pins the one edge the root's own suites need: `//#test:root` (the
+// suite behind `npm run test:scripts`) waits on @stigmer/protos#build, because
+// verify-docs-tour-parity imports the tour fixtures, which import the protos
+// dist. That edge once lived as a step order in the CI lane, where
+// `npm test` on a fresh clone could not see it.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -90,4 +96,19 @@ test("every build task caches dist/** and runs in strict env mode", () => {
     );
     assert.equal(task.envMode, "strict", `${task.taskId} env mode`);
   }
+});
+
+test("the root suites wait on the protos build they import", () => {
+  const root = dryRun("root", ["test:root"]);
+  const suite = root.tasks.find((t) => t.taskId === "//#test:root");
+  assert.ok(suite, "//#test:root is registered in turbo.json");
+  assert.ok(
+    suite.dependencies.includes("@stigmer/protos#build"),
+    "//#test:root must wait on @stigmer/protos#build (verify-docs-tour-parity imports its dist)",
+  );
+  assert.equal(
+    suite.resolvedTaskDefinition.cache,
+    false,
+    "the root suites read across the repo, so no cache key could be complete",
+  );
 });

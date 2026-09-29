@@ -27,11 +27,17 @@ export type IssuableTerm = LicenseTerm.trial | LicenseTerm.paid;
 
 /**
  * Features a Cloud plan sells but a license never carries: they tier the
- * hosted runtime, and an Enterprise deployment has them by edition, so
- * offering one on a license would sell a capability the license does not
- * control.
+ * Cloud's hosted runtime, and on a self-hosted deployment the edition
+ * decides whether they exist, never a license, so offering one on a
+ * license would sell a capability the license does not control. A license
+ * issued before a value joined this list may still carry it; the console
+ * shows it nowhere.
  */
-export type PlanOnlyFeature = Feature.teams | Feature.managed_organizations;
+export type PlanOnlyFeature =
+  | Feature.channels
+  | Feature.sharing
+  | Feature.teams
+  | Feature.managed_organizations;
 
 /**
  * Features the contract names but nothing gates: every edition serves them
@@ -71,8 +77,6 @@ export const FEATURE_LABELS: Readonly<
 > = {
   [Feature.sso_enforcement]: FEATURE_COPY[Feature.sso_enforcement],
   [Feature.byo_provider_keys]: FEATURE_COPY[Feature.byo_provider_keys],
-  [Feature.channels]: FEATURE_COPY[Feature.channels],
-  [Feature.sharing]: FEATURE_COPY[Feature.sharing],
 };
 
 /** Every grantable feature, in contract order (derived from the label map). */
@@ -163,7 +167,7 @@ export function limitPart(limit: number | undefined, noun: string): string {
   return limit === undefined ? `Unlimited ${noun}s` : plural(limit, noun);
 }
 
-/** The granted features by name, in contract order: "SSO enforcement, Channels". */
+/** The granted features by name, in contract order: "SSO enforcement, Bring your own provider keys". */
 export function featureNames(features: readonly number[]): string {
   const names = GRANTABLE_FEATURES.filter((f) => features.includes(f)).map((f) => FEATURE_LABELS[f].label);
   return names.length === 0 ? "No features" : names.join(", ");

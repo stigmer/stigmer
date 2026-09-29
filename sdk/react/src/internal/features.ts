@@ -31,7 +31,7 @@ export const FEATURE_COPY: Readonly<
   },
   [Feature.sharing]: {
     label: "Sharing",
-    description: "Share agents with individuals and guests through hosted links.",
+    description: "Share agents through hosted links, with your organization or with anyone who has the link.",
   },
   [Feature.teams]: {
     label: "Teams",

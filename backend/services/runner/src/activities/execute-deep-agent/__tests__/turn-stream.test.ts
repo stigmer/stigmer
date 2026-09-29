@@ -45,7 +45,7 @@ import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import type { ModelPricing } from "../../../shared/model-pricing.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import type { DeepAgentEngine, DeepAgentGateState, DeepAgentGraphInput, DeepAgentWorkspace } from "../turn-setup.js";
-import { consumeDeepAgentStream, createDeepAgentTranscript, type StreamableRun } from "../turn-stream.js";
+import { consumeDeepAgentStream, createDeepAgentTranscript, type DeepAgentTranscript, type StreamableRun } from "../turn-stream.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 import {
   makeMessageFinish,
@@ -129,6 +129,8 @@ interface Harness {
   readonly engine: DeepAgentEngine;
   readonly streamEvents: ReturnType<typeof vi.fn>;
   readonly blobs: Map<string, Buffer>;
+  /** The transcript the last `run` streamed into; its side effects hold the turn's publishes. */
+  readonly transcript: () => DeepAgentTranscript;
   run(run: StreamableRun): ReturnType<typeof consumeDeepAgentStream>;
 }
 
@@ -150,14 +152,19 @@ function harness(options: { gate?: DeepAgentGateState; files?: Record<string, st
   };
   const workspace = workspaceOver(options.files ?? {});
   const graphInput: DeepAgentGraphInput = { kind: "message", input: { messages: [{ role: "user", content: "Say hello." }] } };
+  let transcript: DeepAgentTranscript | undefined;
   return {
     sink,
     engine,
     streamEvents,
     blobs,
+    transcript: () => {
+      if (transcript === undefined) throw new Error("harness: no run yet");
+      return transcript;
+    },
     run(run) {
       streamEvents.mockResolvedValue(run);
-      const transcript = createDeepAgentTranscript(input, sink, engine, workspace);
+      transcript = createDeepAgentTranscript(input, sink, engine, workspace);
       return consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
     },
   };
@@ -245,7 +252,7 @@ describe("consumeDeepAgentStream — what each event becomes", () => {
 
   it("publishes a file-modifying tool's target as an artifact on the status when the call finishes", async () => {
     const h = harness({ files: { "src/main.ts": "console.log('hi');" } });
-    const result = await h.run(
+    await h.run(
       scriptedRun([
         ...textTurn("run-1", "Writing."),
         makeToolStarted("toolu_w", "write_file", { file_path: "src/main.ts", content: "console.log('hi');" }),
@@ -253,8 +260,9 @@ describe("consumeDeepAgentStream — what each event becomes", () => {
       ]),
     );
 
-    expect(result.pendingPublishPromises, "one publish fired mid-turn, for the settle to drain").toHaveLength(1);
-    await Promise.all(result.pendingPublishPromises);
+    const { sideEffects } = h.transcript();
+    expect(sideEffects.pendingPublishPromises, "one publish fired mid-turn, held by the transcript for the drain").toHaveLength(1);
+    await sideEffects.drainPublishes();
     expect(h.sink.status.artifacts.map((a) => a.sandboxPath)).toEqual(["src/main.ts"]);
     expect([...h.blobs.keys()], "the bytes were uploaded under the execution's artifact key").toEqual(["artifacts/aex_fixture_0001/main.ts"]);
   });

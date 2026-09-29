@@ -177,12 +177,12 @@
         {
           "name": "channels",
           "number": 4,
-          "description": "Delivering agents over messaging channels (Slack, WhatsApp) through a\n channel runtime. The channel kinds themselves are open source; this\n feature tiers the hosted runtime inside Cloud plans and licenses. It\n is not an edition gate: the open-source server stores channels freely."
+          "description": "Delivering agents over messaging channels (Slack, WhatsApp) through a\n channel runtime. The channel kinds themselves are open source; this\n feature tiers the Cloud's hosted runtime inside Cloud plans. It is not\n an edition gate, and a license never lists it: the open-source server\n stores channels freely, and whether a self-hosted server delivers them\n is its edition's to decide, never its license's."
         },
         {
           "name": "sharing",
           "number": 5,
-          "description": "Sharing an agent with individuals and guests through hosted share\n links. The agent-share kind itself is open source; this feature tiers\n the hosted sharing lane inside Cloud plans and licenses. It is not an\n edition gate: the open-source server stores shares freely."
+          "description": "Sharing an agent through hosted share links, with the sharing\n organization's members or with anyone who has the link. The agent-share\n kind itself is open source; this feature tiers the Cloud's hosted\n sharing lane inside Cloud plans. It is not an edition gate, and a\n license never lists it: the open-source server stores shares freely,\n and whether a self-hosted server serves its links to guests is its\n edition's to decide, never its license's."
         },
         {
           "name": "teams",

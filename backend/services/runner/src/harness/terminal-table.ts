@@ -11,6 +11,12 @@
  * harness once kept one function per arm (`streaming-terminal.ts`, retired
  * in #1096); since #1096 both harnesses' turns end through this one table.
  *
+ * The `error` of a FAILED arm is the failure itself, never framed: the
+ * `Execution failed:` wording belongs to the rows and to each consumer's
+ * own copy (the console's badge, the CLI's epilogue), so a consumer meets
+ * one grammar whichever arm wrote it. The interruption arms' `Execution
+ * interrupted:` errors are a different outcome, one the user resumes.
+ *
  * The throw-vs-return rule, unchanged from the orchestrator it replaces:
  *  - RETURN when a Temporal retry would only repeat the outcome — a stall
  *    would wedge again, an exhausted budget would burn again, a platform
@@ -293,21 +299,15 @@ export function failedArm(message: string, surface: FailureSurface): TerminalArm
 
 /**
  * An error the runtime caught itself, outside any adapter (a resolution
- * phase, the epilogue): the boilerplate row and the described error as the
- * details, with `status.error` carrying the `Execution failed:` prefix the
- * orchestrator's generic arm always wrote (`describeExecutionError` supplies
- * the two parts). The one arm whose `error` and details row differ, kept as
- * it was because the resolution-error golden pins both.
+ * phase, the epilogue): an `internal` failure like any adapter's, described
+ * as `[<type>] <message>` (`describeExecutionError` supplies the two parts),
+ * so `status.error` reads the same whichever side caught the fault. Until
+ * stigmer#1122 this arm alone prefixed `status.error` with `Execution
+ * failed:`, and a consumer that adds its own failure copy (the CLI's
+ * epilogue) printed the words twice.
  */
 export function unexpectedErrorArm(errorType: string, errorMessage: string): TerminalArm {
-  const described = `[${errorType}] ${errorMessage}`;
-  return {
-    phase: ExecutionPhase.EXECUTION_FAILED,
-    error: `Execution failed: ${described}`,
-    rows: [TERMINAL_COPY.internalFailure.row, `Error details: ${described}`],
-    completes: true,
-    disposition: RETURN,
-  };
+  return failedArm(`[${errorType}] ${errorMessage}`, "internal");
 }
 
 // ── Applying an arm ─────────────────────────────────────────────────────────
