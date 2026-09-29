@@ -5,7 +5,8 @@
 // resolves the {slug}-default instance and dispatches to the runner. Unlike the
 // flat CRUD resources, an execution is a *running thing* — so this module also
 // owns the poll-don't-sleep helpers the execution suites use to await a phase,
-// shared so the smoke test and the domain suite gate on one definition.
+// shared so the smoke test and the domain suite gate on one definition, and the
+// readers of what a run leaves on its public event log.
 import type { InitShape } from "./init-shape";
 import type { WorkflowExecution, WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
@@ -13,6 +14,10 @@ import {
   ExecutionPhase,
   WorkflowTaskStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import {
+  type ApprovalResolvedPayload,
+  WorkflowEventType,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
@@ -198,4 +203,25 @@ export async function awaitParentPendingApproval(
     );
   }
   return exec;
+}
+
+// Every approval_resolved payload the event log holds for `taskName`, in
+// sequence order. The event log is the public stream a console reads for a
+// decided gate (who decided, with what comment), unlike the runner-produced
+// task.output projection, and it is complete once the run is terminal. All
+// matches are returned so a suite asserts there is exactly one rather than a
+// reader hiding a duplicate emission.
+export async function approvalResolutionsOf(
+  clients: ConformanceClients,
+  executionId: string,
+  taskName: string,
+): Promise<ApprovalResolvedPayload[]> {
+  const log = await clients.workflowExecutionQuery.getEventLog({
+    executionId,
+    eventTypes: [WorkflowEventType.approval_resolved],
+    taskName,
+  });
+  return log.events.flatMap((event) =>
+    event.payload.case === "approvalResolved" ? [event.payload.value] : [],
+  );
 }

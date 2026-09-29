@@ -601,12 +601,16 @@ gates at the **task** level (`WORKFLOW_TASK_WAITING_APPROVAL`, surfacing as
 and `submitWorkflowTaskApproval` resolves it by sending a Temporal signal
 (`human_input_{task_name}`) — the handler returns the execution unchanged, so the
 suite polls the per-task status (`support/workflowexecutions.ts` gains
-`taskByName` / `awaitTaskStatus` / `awaitTaskWaitingApproval`). It is **fully
+`taskByName` / `awaitTaskStatus` / `awaitTaskWaitingApproval`, and
+`approvalResolutionsOf` for the event log). It is **fully
 hermetic** (Temporal + runner only; no LLM, MCP, or child execution): the
 `makeHumanInputWorkflow` fixture is `awaitApproval` (human_input) -> `afterApproval`
 (set_vars), the downstream set_vars completing being the proof the gate resumed.
 The suite asserts the server-owned contract — the task-level gate, that `approve`
-completes the run and the downstream task, that a **declared** non-approve outcome
+completes the run and the downstream task, that the approval's one
+`approval_resolved` event carries the submitted comment and names the approving
+caller (the execution's `created_by`, never the client's `reviewer`) as
+`resolved_by` and `resolved_by_actor`, that a **declared** non-approve outcome
 (`deny`) is *data* (resolves and still completes — only the implicit no-outcomes
 binary form fails on deny), that an outcome's `then` **routes** the workflow to
 the named task (proving the submitted outcome value drives behavior through
