@@ -39,8 +39,11 @@ start:
 lint: deps
 	yarn lint
 
-# Run TypeScript type checking
+# Run TypeScript type checking. `~source` (tsconfig.json paths) resolves to
+# .source/, which fumadocs-mdx generates; next build and next dev generate it
+# themselves, but a fresh checkout has none, so typecheck generates it first.
 typecheck: deps
+	yarn fumadocs-mdx
 	yarn typecheck
 
 # Run Vitest unit/component tests (gates check-site and ci.docs)
