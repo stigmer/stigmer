@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { getErrorReason, getUserMessage } from "@stigmer/sdk";
 import type { PlanTerms } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
+import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { Button } from "../button/index.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { formatDay, formatMonthlyMinimum, sharePercent, type OfferedFeature } from "./plan-features.js";
@@ -163,8 +164,7 @@ function body(move: PlanMove, planName: (planId: string) => string, losing: read
           </p>
           {losing.length > 0 && (
             <p>
-              {move.to.metadata?.name} does not include {listFeatures(losing)}. Everything you built keeps working; only
-              creating more is refused.
+              {move.to.metadata?.name} does not include {listFeatures(losing)}. {keepsWorking(losing)}
             </p>
           )}
         </>
@@ -206,6 +206,18 @@ function confirmLabel(move: PlanMove): string {
 }
 
 /** "Teams", "Teams and Managed organizations", "A, B and C". */
+/**
+ * What still works after a switch that gives features up. Everything built
+ * keeps working, except an organization's own provider keys: they are kept
+ * but no longer used, so its agents run on Stigmer's keys, billed as usage.
+ */
+function keepsWorking(losing: readonly OfferedFeature[]): string {
+  return losing.some((lost) => lost.feature === Feature.byo_provider_keys)
+    ? "Your own provider keys are kept but stop being used: your agents run on Stigmer's keys, billed as usage. " +
+        "Everything else you built keeps working; only creating more is refused."
+    : "Everything you built keeps working; only creating more is refused.";
+}
+
 function listFeatures(features: readonly OfferedFeature[]): string {
   const labels = features.map((feature) => feature.label);
   return labels.length <= 1 ? (labels[0] ?? "") : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;

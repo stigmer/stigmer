@@ -137,6 +137,10 @@ describe("PlanSection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Switch to Team" }));
     const down = await screen.findByRole("dialog");
     expect(within(down).getByText(/Team does not include Bring your own provider keys and Managed organizations\./)).toBeTruthy();
+    expect(
+      within(down).getByText(/Your own provider keys are kept but stop being used: your agents run on Stigmer's keys, billed as usage\./),
+    ).toBeTruthy();
+    expect(within(down).queryByText(/Everything you built keeps working/)).toBeNull();
     await userEvent.click(within(down).getByRole("button", { name: "Not now" }));
 
     cleanup();
