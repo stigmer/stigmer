@@ -53,6 +53,8 @@ The runner has two **run modes**, selected by the `STIGMER_RUNNER_MODE` environm
 
 Static mode creates a single Temporal Worker that polls one task queue and runs until it receives `SIGTERM` / `SIGINT`. This is the right mode when the set of work is fixed at startup (a daemon or a pod dedicated to a queue).
 
+On a signal it drains the worker, releases the harnesses, closes its Temporal connection and flushes telemetry, and the process then exits on its own, normally within milliseconds. As the CLI entry (`stigmer-runner`, and the cloud's pool members, which end the same way), a process still alive 5 s after that is made to exit, with one log line naming the resources that kept it alive (`src/exit-backstop.ts`). That line means a leaked handle to fix, not a slow shutdown to tune.
+
 As a library:
 
 ```ts

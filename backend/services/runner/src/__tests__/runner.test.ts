@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { mapOptionsToConfig } from "../runner.js";
+import { describe, it, expect, vi } from "vitest";
+import { mapOptionsToConfig, releaseAfterDrain } from "../runner.js";
 import type { StigmerRunnerOptions, StigmerRunner } from "../runner.js";
 import type { TokenRef } from "../config.js";
 
@@ -222,5 +222,63 @@ describe("public API exports", () => {
   it("exports createStigmerRunner from index", async () => {
     const mod = await import("../index.js");
     expect(typeof mod.createStigmerRunner).toBe("function");
+  });
+});
+
+describe("releaseAfterDrain", () => {
+  function resources(opts: { harnessFails?: boolean; closeFails?: boolean } = {}) {
+    const order: string[] = [];
+    return {
+      order,
+      value: {
+        shutdownHarnesses: vi.fn(async () => {
+          order.push("harnesses");
+          if (opts.harnessFails) {
+            throw new Error("harness boom");
+          }
+        }),
+        connection: {
+          close: vi.fn(async () => {
+            order.push("connection");
+            if (opts.closeFails) {
+              throw new Error("close boom");
+            }
+          }),
+        },
+      },
+    };
+  }
+
+  it("releases the harnesses, then closes the Temporal connection", async () => {
+    const r = resources();
+    const logError = vi.fn<(line: string) => void>();
+
+    await releaseAfterDrain(r.value, logError);
+
+    expect(r.order).toEqual(["harnesses", "connection"]);
+    expect(logError).not.toHaveBeenCalled();
+  });
+
+  it("still closes the connection when a harness teardown fails, and logs it", async () => {
+    const r = resources({ harnessFails: true });
+    const logError = vi.fn<(line: string) => void>();
+
+    await releaseAfterDrain(r.value, logError);
+
+    expect(r.order).toEqual(["harnesses", "connection"]);
+    expect(logError).toHaveBeenCalledTimes(1);
+    expect(logError.mock.calls[0]?.[0]).toContain("Harness shutdown failed after the worker drained");
+    expect(logError.mock.calls[0]?.[0]).toContain("harness boom");
+  });
+
+  it("logs a failed close instead of throwing, so a clean stop stays clean", async () => {
+    const r = resources({ closeFails: true });
+    const logError = vi.fn<(line: string) => void>();
+
+    await expect(releaseAfterDrain(r.value, logError)).resolves.toBeUndefined();
+
+    expect(logError).toHaveBeenCalledTimes(1);
+    expect(logError.mock.calls[0]?.[0]).toContain("Temporal connection close failed after the worker drained");
+    expect(logError.mock.calls[0]?.[0]).toContain("close boom");
   });
 });
