@@ -9,11 +9,13 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useRevokeOrgAccess}. */
 export interface UseRevokeOrgAccessReturn {
   /**
-   * Remove all of a user's access to an organization.
+   * Remove a person from an organization.
    *
-   * Deletes every IAM policy granting the identity account access
-   * to the organization and its child resources (agents, environments,
-   * etc.) in a single operation.
+   * Revokes their roles on the organization and everything they hold on
+   * its resources: what was shared with them (agents, environments,
+   * sessions and the rest) and their team memberships, in a single
+   * operation. What they created stays with the organization; it is
+   * theirs again only if they are invited back.
    */
   readonly revoke: (accountId: string, orgId: string) => Promise<void>;
   /** `true` while the revoke request is in flight. */
@@ -28,10 +30,10 @@ export interface UseRevokeOrgAccessReturn {
  * Behavior hook that wraps `iamPolicy.revokeOrgAccess()` with
  * loading/error state.
  *
- * Removes all IAM policy bindings for a specific identity account
- * within an organization — including bindings on child resources
- * (agents, environments, etc.). This is the "remove member from org"
- * operation.
+ * Removes a person from an organization: their roles on it, what was
+ * shared with them on its resources and their team memberships. From
+ * then on they reach nothing in the organization; what they created
+ * stays with it. This is the "remove member from org" operation.
  *
  * @example
  * ```tsx

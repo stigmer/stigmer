@@ -496,7 +496,9 @@ function RemoveCopy({
     case "member":
       return (
         <>
-          Remove {name} from this organization? This revokes all their access.
+          Remove {name} from this organization? They lose access to everything
+          in it, including what was shared with them and their teams. What
+          they created stays with the organization.
         </>
       );
     case "productUser":
