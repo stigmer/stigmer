@@ -437,9 +437,10 @@ export function mapOptionsToConfig(
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,
     proxyTokenRef: tokenRef,
-    // Env-only like the env-loaded path (loadConfig): the bridge endpoint
-    // is deployment topology, not per-session state.
+    // Env-only like the env-loaded path (loadConfig): the bridge and public
+    // endpoints are deployment topology, not per-session state.
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
+    mcpPublicEndpoint: process.env.STIGMER_MCP_PUBLIC_ENDPOINT || null,
     cursorApiKey: proxyActive
       ? (options.cursorApiKey ?? "proxy-managed")
       : (options.cursorApiKey ?? ""),

@@ -51,8 +51,8 @@
 
 import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
+import { grpcTarget, SERVER_ADDRESS_ENV_KEY } from "./platform-server-address.js";
 import {
-  grpcTarget,
   stdioCredentialEnv,
   type SynthesizedAttachmentOptions,
 } from "./synthesized-attachment.js";
@@ -159,7 +159,7 @@ export function synthesizeMemoryAttachment(
     args: ["mcp-server"],
     env: {
       STIGMER_MCP_ROSTER: "memory",
-      STIGMER_SERVER_ADDRESS: grpcTarget(options.backendEndpoint),
+      [SERVER_ADDRESS_ENV_KEY]: grpcTarget(options.backendEndpoint),
       ...stdioCredentialEnv(options.credential),
       ...nonEmptyEntries([
         [MEMORY_ORG_ENV, context.org],

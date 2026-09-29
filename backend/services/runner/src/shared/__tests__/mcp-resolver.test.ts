@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mcpServerToResolved, mergeMcpServerUsages, resolveMcpServers } from "../mcp-resolver.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+/** The runner endpoints resolution fills STIGMER_SERVER_ADDRESS from. */
+const PLATFORM_ENDPOINTS = testConfig();
 
 function makeUsage(
   slug: string,
@@ -60,7 +64,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({ filesystem: stdioMcpServer("filesystem") });
 
     await expect(
-      resolveMcpServers(client, [makeUsage("filesystem")], {}, "stdio-forbidden"),
+      resolveMcpServers(client, [makeUsage("filesystem")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS),
     ).rejects.toThrow(McpTransportError);
   });
 
@@ -75,7 +79,7 @@ describe("resolveMcpServers — transport guard integration", () => {
         client,
         [makeUsage("github"), makeUsage("filesystem")],
         {},
-        "stdio-forbidden",
+        "stdio-forbidden", PLATFORM_ENDPOINTS,
       ),
     ).rejects.toThrow(McpTransportError);
   });
@@ -84,7 +88,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({ github: httpMcpServer("github") });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("github")], {}, "stdio-forbidden",
+      client, [makeUsage("github")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toHaveLength(1);
@@ -95,7 +99,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({ filesystem: stdioMcpServer("filesystem") });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("filesystem")], {}, "stdio-allowed",
+      client, [makeUsage("filesystem")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toHaveLength(1);
@@ -106,7 +110,7 @@ describe("resolveMcpServers — transport guard integration", () => {
     const client = clientReturning({});
 
     const result = await resolveMcpServers(
-      client, [makeUsage("ghost")], {}, "stdio-forbidden",
+      client, [makeUsage("ghost")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers).toHaveLength(0);
@@ -123,7 +127,7 @@ describe("resolveMcpServers — enabled_tools threading (issue #350)", () => {
     const client = clientReturning({ github: httpMcpServer("github") });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("github", "test-org", ["create_pr"])], {}, "stdio-allowed",
+      client, [makeUsage("github", "test-org", ["create_pr"])], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers[0].enabledTools).toEqual(["create_pr"]);
@@ -135,7 +139,7 @@ describe("resolveMcpServers — enabled_tools threading (issue #350)", () => {
     });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("github")], {}, "stdio-allowed",
+      client, [makeUsage("github")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers[0].enabledTools).toEqual(["search_code"]);
@@ -145,7 +149,7 @@ describe("resolveMcpServers — enabled_tools threading (issue #350)", () => {
     const client = clientReturning({ github: httpMcpServer("github") });
 
     const result = await resolveMcpServers(
-      client, [makeUsage("github")], {}, "stdio-allowed",
+      client, [makeUsage("github")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result.resolvedServers[0].enabledTools).toBeUndefined();
@@ -179,7 +183,7 @@ describe("resolveMcpServers — tool_approval_overrides threading (issue #349)",
         makeUsage("slack"),
       ],
       {},
-      "stdio-allowed",
+      "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     const bySlug = new Map(result.resolvedServers.map((s) => [s.slug, s]));
@@ -208,11 +212,69 @@ describe("resolveMcpServers — tool_approval_overrides threading (issue #349)",
       [makeUsage("github", "test-org", [], [{ toolName: "push", requiresApproval: false }])],
     );
 
-    const result = await resolveMcpServers(client, merged, {}, "stdio-allowed");
+    const result = await resolveMcpServers(client, merged, {}, "stdio-allowed", PLATFORM_ENDPOINTS);
 
     expect(result.resolvedServers[0].toolApprovalOverrides).toEqual([
       { toolName: "push", requiresApproval: false },
     ]);
+  });
+});
+
+describe("resolveMcpServers — the platform STIGMER_SERVER_ADDRESS (stigmer/stigmer#1433)", () => {
+  function declaringAddress(server: any, headers: Record<string, string> = {}) {
+    server.spec.env = { STIGMER_SERVER_ADDRESS: {} };
+    if (server.spec.serverType.case === "http") server.spec.serverType.value.headers = headers;
+    return server;
+  }
+
+  it("fills a stdio server's missing address from the runner's backend endpoint", async () => {
+    const client = clientReturning({ stigmer: declaringAddress(stdioMcpServer("stigmer")) });
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("stigmer")], {}, "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    // testConfig's backend endpoint is http://127.0.0.1:1.
+    expect(result.resolvedServers[0].env).toEqual({ STIGMER_SERVER_ADDRESS: "127.0.0.1:1" });
+  });
+
+  it("keeps the address the execution environment carries", async () => {
+    const client = clientReturning({ stigmer: declaringAddress(stdioMcpServer("stigmer")) });
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("stigmer")], { STIGMER_SERVER_ADDRESS: "api.example.com:443" },
+      "stdio-allowed", PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers[0].env).toEqual({ STIGMER_SERVER_ADDRESS: "api.example.com:443" });
+  });
+
+  it("templates an http header from the operator's public endpoint", async () => {
+    const client = clientReturning({
+      remote: declaringAddress(httpMcpServer("remote"), { "X-Stigmer-Server": "${STIGMER_SERVER_ADDRESS}" }),
+    });
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("remote")], {}, "stdio-forbidden",
+      testConfig({ mcpPublicEndpoint: "https://api.example.com" }),
+    );
+
+    expect(result.resolvedServers[0].headers).toEqual({ "X-Stigmer-Server": "api.example.com:443" });
+  });
+
+  it("never hands an http server the backend endpoint: an unknown address drops it with the named error", async () => {
+    const client = clientReturning({
+      remote: declaringAddress(httpMcpServer("remote"), { "X-Stigmer-Server": "${STIGMER_SERVER_ADDRESS}" }),
+    });
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await resolveMcpServers(
+      client, [makeUsage("remote")], {}, "stdio-forbidden", PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers).toEqual([]);
+    expect(errorLog).toHaveBeenCalledWith(expect.stringContaining("STIGMER_SERVER_ADDRESS"));
+    errorLog.mockRestore();
   });
 });
 

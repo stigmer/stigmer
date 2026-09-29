@@ -98,15 +98,3 @@ export function injectSynthesizedAttachment(
     attachment,
   ];
 }
-
-/**
- * The gRPC dial target (host:port) for a backend endpoint URL — the
- * shape STIGMER_SERVER_ADDRESS wants (the bridge warns on schemes).
- */
-export function grpcTarget(endpoint: string): string {
-  try {
-    return new URL(endpoint).host;
-  } catch {
-    return endpoint;
-  }
-}

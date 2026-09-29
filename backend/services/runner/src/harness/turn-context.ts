@@ -649,7 +649,9 @@ export async function reconcileReinvocation(
  * The MCP-bound env map (and ONLY it, never the agent process env) carries
  * the reserved caller-identity keys, so a server that declares them in
  * spec.env can template the platform-verified caller into its headers;
- * filterEnvToDeclaredKeys keeps every other server blind. The resolved list
+ * filterEnvToDeclaredKeys keeps every other server blind. Resolution fills a
+ * missing STIGMER_SERVER_ADDRESS per server from `config`'s endpoints
+ * (shared/platform-server-address.ts). The resolved list
  * then mutates through the Connect backfill and three synthesized
  * attachments, deliberately AFTER resolve + backfill so the backfill's
  * destructiveHint tightener can never force-gate an attachment's tools:
@@ -702,7 +704,7 @@ export async function resolveMcpServersAndPolicies(
     sessionId,
   );
   let servers = (await resolveMcpServers(
-    client, blueprint.mergedMcpServerUsages, mcpEnvVars, transportPosture,
+    client, blueprint.mergedMcpServerUsages, mcpEnvVars, transportPosture, config,
   )).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
@@ -710,7 +712,7 @@ export async function resolveMcpServersAndPolicies(
   const sessionOrg = session.metadata?.org ?? "";
   servers = await backfillMcpServersIfNeeded(
     client, servers, blueprint.mergedMcpServerUsages, mcpEnvVars, sessionOrg,
-    transportPosture, deps.heartbeat, environment.secretKeys,
+    transportPosture, config, deps.heartbeat, environment.secretKeys,
   );
   deps.timing.mark("backfill_mcp");
 

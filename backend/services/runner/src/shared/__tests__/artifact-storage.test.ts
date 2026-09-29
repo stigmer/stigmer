@@ -647,6 +647,7 @@ describe("loadArtifactStorageConfig", () => {
     temporalConnection: {},
     stigmerBackendEndpoint: "http://localhost:7234",
     mcpBridgeEndpoint: null,
+    mcpPublicEndpoint: null,
     cursorApiKey: "",
     workspaceRootDir: "/tmp",
     maxConcurrentActivities: 5,

@@ -5,6 +5,10 @@ import {
   extractRuntimeEnvForServer,
 } from "../connect-backfill.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+/** The runner endpoints resolution fills STIGMER_SERVER_ADDRESS from. */
+const PLATFORM_ENDPOINTS = testConfig();
 
 function makeServer(overrides: Partial<ResolvedMcpServer> = {}): ResolvedMcpServer {
   return {
@@ -125,7 +129,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org", "stdio-allowed",
+      client, servers, [], {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -138,7 +142,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org", "stdio-allowed",
+      client, servers, [], {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -156,7 +160,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed",
+      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.getMcpServerByReference).toHaveBeenCalledOnce();
@@ -182,7 +186,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed",
+      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.connectMcpServer).toHaveBeenCalledOnce();
@@ -207,7 +211,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     await backfillMcpServersIfNeeded(
-      client, servers, usages, mergedEnv, "org", "stdio-allowed",
+      client, servers, usages, mergedEnv, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.connectMcpServer).toHaveBeenCalledWith(
@@ -225,7 +229,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed",
+      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -243,7 +247,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed",
+      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(result).toBe(servers);
@@ -262,7 +266,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed", onHeartbeat,
+      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS, onHeartbeat,
     );
 
     expect(onHeartbeat).toHaveBeenCalledTimes(2);
@@ -275,7 +279,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org", "stdio-allowed",
+      client, servers, [], {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.getMcpServerByReference).not.toHaveBeenCalled();
@@ -295,7 +299,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed",
+      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(client.connectMcpServer).not.toHaveBeenCalled();
@@ -338,7 +342,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", "stdio-allowed",
+      client, servers, usages, {}, "org", "stdio-allowed", PLATFORM_ENDPOINTS,
     );
 
     expect(callCount).toBe(2);

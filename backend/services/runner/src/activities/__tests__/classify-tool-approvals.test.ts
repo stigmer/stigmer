@@ -727,6 +727,7 @@ function makeConfig() {
     temporalConnection: {},
     stigmerBackendEndpoint: "http://localhost:7234",
   mcpBridgeEndpoint: null,
+  mcpPublicEndpoint: null,
     stigmerTokenRef: { current: "test-token" },
     cursorApiKey: "",
     workspaceRootDir: "/tmp/test",

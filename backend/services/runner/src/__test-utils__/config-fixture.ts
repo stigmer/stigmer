@@ -45,6 +45,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     stigmerBackendEndpoint: INERT_ENDPOINT,
     stigmerTokenRef: { current: null },
     mcpBridgeEndpoint: null,
+    mcpPublicEndpoint: null,
     cursorApiKey: "",
     workspaceRootDir: join(tmpdir(), "stigmer-runner-test-workspaces"),
     mode: "local",

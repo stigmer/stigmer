@@ -14,6 +14,10 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createServer, type Server } from "node:http";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+/** The runner endpoints discovery fills STIGMER_SERVER_ADDRESS from. */
+const PLATFORM_ENDPOINTS = testConfig();
 
 vi.mock("../../idle-watchdog.js", () => ({
   activityStarted: vi.fn(),
@@ -85,7 +89,7 @@ describe("discovery against a 4xx-then-silent-SSE endpoint (issue #239)", () => 
 
     const promise = discoverMcpServer(
       { mcpServerId: "mcp-monday" },
-      { stigmerClient: stigmerClient as never, transportPosture: "stdio-forbidden" },
+      { stigmerClient: stigmerClient as never, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
     );
     // Attach the rejection expectation BEFORE advancing so the rejection is
     // never momentarily unhandled.

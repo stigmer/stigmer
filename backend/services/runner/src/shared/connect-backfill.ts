@@ -21,6 +21,7 @@
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { resolveMcpServers } from "./mcp-resolver.js";
 import type { McpTransportPosture } from "./mcp-transport-guard.js";
+import type { PlatformEndpoints } from "./platform-server-address.js";
 import { withTimeout } from "./with-timeout.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -67,6 +68,7 @@ export async function backfillMcpServersIfNeeded(
   envVars: Record<string, string>,
   org: string,
   transportPosture: McpTransportPosture,
+  platformEndpoints: PlatformEndpoints,
   onHeartbeat?: () => void,
   secretKeys?: ReadonlySet<string>,
 ): Promise<ResolvedMcpServer[]> {
@@ -131,7 +133,9 @@ export async function backfillMcpServersIfNeeded(
 
   // Same posture as the initial resolution: every server here already
   // passed the transport guard once, so re-resolving cannot newly reject.
-  const refreshed = await resolveMcpServers(client, usages, envVars, transportPosture);
+  const refreshed = await resolveMcpServers(
+    client, usages, envVars, transportPosture, platformEndpoints,
+  );
   return refreshed.resolvedServers;
 }
 
