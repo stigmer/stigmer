@@ -156,6 +156,16 @@ export type {
   IdentityAccountStoreContractFixture,
 } from "./domain/identityaccount/store-contract.js";
 export { identityAccountStoreContract } from "./domain/identityaccount/store-contract.js";
+// The runner every kit is built on, for a composition whose own ports need
+// kits of the same shape: a fresh fixture per case, the body over it, the
+// cleanup after, and a failing body reported over a failing cleanup.
+export type {
+  PortContractBody,
+  PortContractCase,
+  PortContractDeclaration,
+  PortContractFixture,
+} from "./store/port-contract.js";
+export { portContractCases } from "./store/port-contract.js";
 // The 20260913.01 IamPolicy seams (Q-OR-1, Q-OR-10): the store PORT a
 // composition drives the domain's grant path through (drivers.iamPolicyStore;
 // a driver throws DuplicatePolicyError for a held id) and its vitest-free

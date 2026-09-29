@@ -100,6 +100,7 @@ import {
   notFoundError,
   PLATFORM_TOKEN_ISSUER,
   platformClientStoreContract,
+  portContractCases,
   platformTokenKeyRingFromPem,
   platformTokenRefusalError,
   signPlatformToken,
@@ -150,6 +151,10 @@ import type {
   PlatformTokenKeyRing,
   PlatformTokenSigningOptions,
   PolicyGrantScope,
+  PortContractBody,
+  PortContractCase,
+  PortContractDeclaration,
+  PortContractFixture,
   PrincipalDisplay,
   PresignedUpload,
   RawResourceDocument,
@@ -267,6 +272,38 @@ export async function runConsumerIdentityAccountStoreContract(): Promise<void> {
   for (const contractCase of consumerIdentityAccountStoreContract()) {
     await contractCase.run();
   }
+}
+
+/**
+ * A composition's OWN port gets a kit of the library's shape through the
+ * exported runner: the port below is one only the consumer declares (a
+ * lookup its driver adds beside the library's store), and its cases come
+ * back as `PortContractCase`s a driver's test iterates exactly like the
+ * library's kits, one fresh fixture per case. Compile-only, as above.
+ */
+interface ConsumerSlugLookup {
+  findIdBySlug(slug: string): Promise<string | undefined>;
+}
+
+const unknownSlugAnswersUndefined: PortContractBody<ConsumerSlugLookup> = async ({ store }) => {
+  if ((await store.findIdBySlug("absent")) !== undefined) {
+    throw new Error("an unknown slug must answer undefined");
+  }
+};
+
+const CONSUMER_SLUG_LOOKUP_CASES: ReadonlyArray<PortContractDeclaration<ConsumerSlugLookup>> = [
+  ["an unknown slug answers undefined", unknownSlugAnswersUndefined],
+];
+
+export function consumerSlugLookupContract(): ReadonlyArray<PortContractCase> {
+  return portContractCases(
+    CONSUMER_SLUG_LOOKUP_CASES,
+    async (): Promise<PortContractFixture<ConsumerSlugLookup>> => ({
+      store: { findIdBySlug: () => Promise.resolve(undefined) },
+      disconnect: () => Promise.resolve(),
+      cleanup: () => Promise.resolve(),
+    }),
+  );
 }
 
 /**
