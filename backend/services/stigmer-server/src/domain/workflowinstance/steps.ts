@@ -3,7 +3,12 @@
  * pkg/domain/workflowinstance/controller: parent-workflow load through the
  * in-process workflow client (the other direction of the mutual edge),
  * the same-org business rule, the spec.workflow_id immutability guard
- * (oss#646), and the default-instance visibility guard (oss#556). Proven by
+ * (oss#646), the default-instance visibility guard (oss#556), and the run
+ * audience's lifecycle: `spec.execution_visibility` is set at create and
+ * changed only by updateExecutionVisibility (Update and Apply keep the
+ * stored level, the oss#573 rule for metadata.visibility), and both doors
+ * tell a composed tuple driver the audience the level names
+ * (stigmer-cloud#720). Proven by
  * workflowinstance.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the family test ../workflow/__tests__/workflow.test.ts (the mutual edge
  * makes the two domains one testable unit).
@@ -15,10 +20,15 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type {
+  ExecutionVisibilityChangedEvent,
+  ResourceAuthorizationLifecycle,
+} from "../../extensions/resource-authorization.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import { isDefaultInstance } from "../../pipeline/apiresource-labels.js";
 import {
@@ -30,6 +40,10 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
+import {
+  executionAudienceShapes,
+  notifyExecutionVisibilityChanged,
+} from "../../pipeline/steps/authorization-tuples.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { rejectDefaultInstanceVisibilityUpdate } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -207,6 +221,114 @@ export function newValidateInstanceUpdateStep(): PipelineStep<InstanceDesc> {
           `spec.workflow_id is immutable (instance runs workflow ${existing.spec?.workflowId ?? ""}) — create a new instance to run a different workflow`,
         );
       }
+    },
+  };
+}
+
+/**
+ * PreserveExecutionVisibility — the run audience is update-immutable: the
+ * stored `spec.execution_visibility` replaces whatever the request carried,
+ * after BuildUpdateState's full spec replacement. updateExecutionVisibility
+ * is its one door after create, so a manifest re-applied without the field,
+ * or with a stale level, never silently narrows who can observe the runs;
+ * ignored rather than rejected for the reason BuildUpdateState ignores a
+ * request-carried metadata.visibility (oss#573): the level has a legitimate
+ * second door, so a stale value is routine and must not fail the update.
+ * Runs after LoadExisting; Apply delegates to Update, so the apply door is
+ * covered too, and Update needs no run-audience event.
+ */
+export function newPreserveExecutionVisibilityStep(): PipelineStep<InstanceDesc> {
+  return {
+    name: "PreserveExecutionVisibility",
+    execute(ctx: RequestContext<InstanceDesc>): void {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as
+        | WorkflowInstance
+        | undefined;
+      if (existing === undefined) {
+        throw internalError(
+          new Error("existing workflow instance not found in context"),
+          "existing workflow instance not found in context",
+        );
+      }
+      const merged = ctx.newState;
+      if (merged.spec !== undefined) {
+        merged.spec.executionVisibility =
+          existing.spec?.executionVisibility ??
+          WorkflowExecutionVisibility.unspecified;
+      }
+    },
+  };
+}
+
+/** The run-audience event for a persisted instance: the audience its stored level names. */
+function executionVisibilityEventOf(
+  instance: WorkflowInstance,
+): ExecutionVisibilityChangedEvent {
+  return {
+    instanceKind: ApiResourceKind.workflow_instance,
+    instanceId: instance.metadata?.id ?? "",
+    orgId: instance.metadata?.org ?? "",
+    shapes: [
+      ...executionAudienceShapes(
+        instance.spec?.executionVisibility ??
+          WorkflowExecutionVisibility.unspecified,
+      ),
+    ],
+  };
+}
+
+/**
+ * CreateExecutionVisibilityTuples — post-persist in the create chain,
+ * beside CreateAuthorizationTuples: an instance created with a level that
+ * names an audience (ORGANIZATION) tells the driver, which writes the
+ * `execution_viewer` tuple the run history is read through. A private or
+ * unset create names nobody and fires nothing (there is no tuple to
+ * remove). The failure copy is the create lane's own.
+ */
+export function newCreateExecutionVisibilityTuplesStep(
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
+): PipelineStep<InstanceDesc> {
+  return {
+    name: "CreateExecutionVisibilityTuples",
+    async execute(ctx: RequestContext<InstanceDesc>): Promise<void> {
+      const event = executionVisibilityEventOf(ctx.newState);
+      if (event.shapes.length === 0) {
+        return;
+      }
+      await notifyExecutionVisibilityChanged(
+        lifecycle,
+        event,
+        "failed to create authorization tuples",
+      );
+    },
+  };
+}
+
+/**
+ * UpdateExecutionVisibilityTuples — post-persist in the
+ * updateExecutionVisibility chain: fires the audience the new level names,
+ * the empty one included, every time. The event is the target state, so a
+ * repeat of the same level converges and a transition away from
+ * ORGANIZATION removes the tuple without knowing the old level.
+ */
+export function newUpdateExecutionVisibilityTuplesStep<
+  Desc extends DescMessage,
+>(
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
+  instanceKey: string,
+): PipelineStep<Desc> {
+  return {
+    name: "UpdateExecutionVisibilityTuples",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      const instance = ctx.get(instanceKey) as WorkflowInstance | undefined;
+      if (instance?.metadata === undefined || instance.metadata.id === "") {
+        return;
+      }
+      await notifyExecutionVisibilityChanged(
+        lifecycle,
+        executionVisibilityEventOf(instance),
+        "failed to update execution visibility tuples",
+      );
     },
   };
 }

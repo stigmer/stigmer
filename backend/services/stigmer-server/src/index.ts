@@ -112,6 +112,8 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // tests pin against.
 export type {
   DefaultInstanceLinkedEvent,
+  ExecutionAudienceShape,
+  ExecutionVisibilityChangedEvent,
   OrganizationAffiliationEvent,
   PolicyGrantedEvent,
   PolicyRevokedEvent,
@@ -306,6 +308,7 @@ export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
 // whichever chain created the row.
 export {
   diffVisibilityShapes,
+  executionAudienceShapes,
   resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "./pipeline/steps/authorization-tuples.js";

@@ -11,12 +11,20 @@
  * `#execution_viewer@organization:<org>#viewer`, the organization's full
  * read audience (the relation also admits `#member`, the legacy shape),
  * and `private` or unset derives nothing, so each run stays its
- * triggerer's. Pure over the row; no related row is read.
+ * triggerer's. Pure over the row; no related row is read. Which level
+ * names which audience is `executionAudienceShapes`
+ * (pipeline/steps/authorization-tuples.ts), the one mapping this
+ * derivation and the lifecycle event a tuple-storing edition hears both
+ * read, so the two editions cannot disagree about who sees the runs.
  */
 import { isMessage } from "@bufbuild/protobuf";
 
 import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+
+import { executionAudienceShapes } from "../../pipeline/steps/authorization-tuples.js";
+
+import type { Tuple } from "../tuples.js";
 
 import type { DerivedRelation } from "./rewrite.js";
 
@@ -26,31 +34,28 @@ export const executionViewer: DerivedRelation = (object, row) => {
   }
   const level =
     row.spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified;
-  switch (level) {
-    case WorkflowExecutionVisibility.organization: {
-      const org = row.metadata?.org ?? "";
-      return Promise.resolve(
-        org === ""
-          ? []
-          : [
-              {
-                object,
-                relation: "execution_viewer",
-                subject: {
-                  form: "userset",
-                  object: { type: "organization", id: org },
-                  relation: "viewer",
-                },
-              },
-            ],
-      );
-    }
-    case WorkflowExecutionVisibility.private:
-    case WorkflowExecutionVisibility.unspecified:
-      return Promise.resolve([]);
-    default: {
-      const exhaustive: never = level;
-      throw new Error(`unknown execution visibility: ${String(exhaustive)}`);
-    }
+  const org = row.metadata?.org ?? "";
+  if (org === "") {
+    return Promise.resolve([]);
   }
+  return Promise.resolve(
+    [...executionAudienceShapes(level)].map((shape): Tuple => {
+      switch (shape) {
+        case "org-viewer":
+          return {
+            object,
+            relation: "execution_viewer",
+            subject: {
+              form: "userset",
+              object: { type: "organization", id: org },
+              relation: "viewer",
+            },
+          };
+        default: {
+          const exhaustive: never = shape;
+          throw new Error(`unknown execution audience: ${String(exhaustive)}`);
+        }
+      }
+    }),
+  );
 };

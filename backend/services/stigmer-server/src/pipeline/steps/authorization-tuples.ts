@@ -27,12 +27,16 @@
  *   - visibility: a driver throw fails the request as Internal — after
  *     persist; retrying the same transition converges (set-diff
  *     idempotency).
+ *   - execution visibility (a workflow instance's run audience): the same,
+ *     through `notifyExecutionVisibilityChanged`; the event is the target
+ *     audience, so a retry converges without the old level.
  *   - the PLATFORM scope arm is dead config in BOTH editions (no kind
  *     uses it; Java's switch falls through to a warn) — ported as the
  *     same conscious warn, never an implementation.
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -48,6 +52,8 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type {
   DefaultInstanceLinkedEvent,
+  ExecutionAudienceShape,
+  ExecutionVisibilityChangedEvent,
   ResolvedParentLink,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
@@ -71,6 +77,29 @@ export async function notifyDefaultInstanceLinked(
     return;
   }
   await lifecycle.onDefaultInstanceLinked(event);
+}
+
+/**
+ * Fires the driver's run-audience event for a workflow instance whose
+ * `spec.execution_visibility` just persisted. No driver (or a driver
+ * without the optional method) = no-op — the OSS posture, where the
+ * relation is derived from the row at check time. A driver throw fails
+ * the request as Internal with `failureMessage`, after persist; the event
+ * is the whole target audience, so the retry converges.
+ */
+export async function notifyExecutionVisibilityChanged(
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
+  event: ExecutionVisibilityChangedEvent,
+  failureMessage: string,
+): Promise<void> {
+  if (lifecycle?.onExecutionVisibilityChanged === undefined) {
+    return;
+  }
+  try {
+    await lifecycle.onExecutionVisibilityChanged(event);
+  } catch (error) {
+    throw internalError(error, failureMessage);
+  }
 }
 import { getKindEnum, getKindMeta, getKindName } from "../apiresource-meta.js";
 import { internalError } from "../errors.js";
@@ -151,6 +180,30 @@ export function diffVisibilityShapes(
     shapesToCreate: [...newShapes].filter((shape) => !oldShapes.has(shape)),
     shapesToDelete: [...oldShapes].filter((shape) => !newShapes.has(shape)),
   };
+}
+
+/**
+ * The run audience a workflow instance's execution visibility names — the
+ * one mapping both editions read: open source's check-time derivation
+ * (authorization/model/execution-viewer.ts) turns it into the tuple the
+ * check walks, and the lifecycle event hands it to an edition that stores
+ * tuples. ORGANIZATION names the organization's viewers; PRIVATE and the
+ * unset level name nobody, so each run stays its triggerer's.
+ */
+export function executionAudienceShapes(
+  level: WorkflowExecutionVisibility,
+): ReadonlySet<ExecutionAudienceShape> {
+  switch (level) {
+    case WorkflowExecutionVisibility.organization:
+      return new Set<ExecutionAudienceShape>(["org-viewer"]);
+    case WorkflowExecutionVisibility.private:
+    case WorkflowExecutionVisibility.unspecified:
+      return new Set<ExecutionAudienceShape>();
+    default: {
+      const exhaustive: never = level;
+      throw new Error(`unknown execution visibility: ${String(exhaustive)}`);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

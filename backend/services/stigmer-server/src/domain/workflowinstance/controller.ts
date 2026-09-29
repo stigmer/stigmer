@@ -6,9 +6,12 @@
  * direction of the mutual edge) and enforces the same-org rule; Update
  * enforces spec.workflow_id immutability (oss#646); UpdateVisibility
  * rejects default instances (oss#556, the FAILED_PRECONDITION wins over
- * the level check as in Cloud); UpdateExecutionVisibility persists the
- * run-observability axis faithfully (no FGA in OSS — the Cloud edition
- * reconciles the execution_viewer relation); Delete deliberately does NOT
+ * the level check as in Cloud); UpdateExecutionVisibility is the one door
+ * that changes the run-observability axis after create (Update and Apply
+ * keep the stored level) and tells a composed tuple driver the audience it
+ * names, as create does — open source derives `execution_viewer` from the
+ * row at check time, an edition that stores tuples writes it
+ * (stigmer-cloud#720); Delete deliberately does NOT
  * cascade executions (oss#582 — run history survives its instance).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
@@ -108,8 +111,11 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { workflowInstanceSearchExtractor } from "./search-extractor.js";
 import {
+  newCreateExecutionVisibilityTuplesStep,
   newLoadParentWorkflowStep,
+  newPreserveExecutionVisibilityStep,
   newRejectDefaultWorkflowInstanceVisibilityUpdateStep,
+  newUpdateExecutionVisibilityTuplesStep,
   newValidateInstanceUpdateStep,
   newValidateSameOrgBusinessRuleStep,
   resolveWorkflowInstanceCreateTargets,
@@ -209,6 +215,9 @@ async function createInstance(
       ),
     )
     .addStep(
+      newCreateExecutionVisibilityTuplesStep(deps.authorizationLifecycle),
+    )
+    .addStep(
       newIndexSearchStep(
         deps.store,
         workflowInstanceSearchExtractor,
@@ -247,6 +256,7 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateInstanceUpdateStep())
     .addStep(newBuildUpdateStateStep())
+    .addStep(newPreserveExecutionVisibilityStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store))
@@ -468,12 +478,14 @@ function newSetInstanceVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
 
 // ---------------------------------------------------------------------------
 // updateExecutionVisibility — update_execution_visibility.go: a targeted
-// spec update (only spec.execution_visibility changes). In this edition
-// there is a single local user and no fine-grained authorization engine,
-// so run observability has no multi-user effect: the setting persists
-// faithfully (the shared web/desktop UI reads it back) with no
-// authorization tuples. Deliberately NOT guarded for default instances —
-// cloud allows it on them too; do not "fix" that.
+// spec update (only spec.execution_visibility changes), and the one door
+// that changes it after create. Open source authorizes run reads from the
+// row itself (authorization/model/execution-viewer.ts), so the persisted
+// level is the grant; a composed tuple driver hears the audience the new
+// level names after the persist (UpdateExecutionVisibilityTuples,
+// stigmer-cloud#720) and makes its stored tuples match. Deliberately NOT
+// guarded for default instances — cloud allows it on them too; do not
+// "fix" that.
 // ---------------------------------------------------------------------------
 
 const UPDATE_EXECUTION_VISIBILITY_INSTANCE_KEY =
@@ -518,6 +530,12 @@ async function updateExecutionVisibility(
         deps.store,
         UPDATE_EXECUTION_VISIBILITY_INSTANCE_KEY,
         "PersistInstanceForExecutionVisibilityUpdate",
+      ),
+    )
+    .addStep(
+      newUpdateExecutionVisibilityTuplesStep(
+        deps.authorizationLifecycle,
+        UPDATE_EXECUTION_VISIBILITY_INSTANCE_KEY,
       ),
     )
     .addStep(

@@ -126,6 +126,8 @@ import type {
   CallerIdentity,
   ChannelRuntime,
   ComposedServer,
+  ExecutionAudienceShape,
+  ExecutionVisibilityChangedEvent,
   ExternalOrganizationLookup,
   GateSlotName,
   GuestTokenMinting,
@@ -1209,6 +1211,14 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
   onVisibilityChanged: (event: VisibilityChangedEvent) => {
     void event.shapesToCreate;
     void event.shapesToDelete;
+    return Promise.resolve();
+  },
+  onExecutionVisibilityChanged: (event: ExecutionVisibilityChangedEvent) => {
+    const audience: ReadonlyArray<ExecutionAudienceShape> = event.shapes;
+    void event.instanceKind;
+    void event.instanceId;
+    void event.orgId;
+    void audience;
     return Promise.resolve();
   },
 };

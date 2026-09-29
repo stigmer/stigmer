@@ -22,7 +22,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
@@ -39,6 +39,12 @@ import {
   ExecutionPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
+import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
+import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
@@ -73,6 +79,7 @@ import type { AuthzCheck } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { OrganizationDirectory } from "../organization-directory.js";
 import type {
+  ExecutionVisibilityChangedEvent,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
   ResourceDeletedEvent,
@@ -1077,8 +1084,10 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
   const createdEvents: ResourceCreatedEvent[] = [];
   const deletedEvents: ResourceDeletedEvent[] = [];
   const visibilityEvents: VisibilityChangedEvent[] = [];
+  const executionVisibilityEvents: ExecutionVisibilityChangedEvent[] = [];
   let failCreates = false;
   let failDeletes = false;
+  let failExecutionVisibility = false;
 
   const fakeLifecycle: ResourceAuthorizationLifecycle = {
     async onResourceCreated(event): Promise<void> {
@@ -1095,6 +1104,12 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     },
     async onVisibilityChanged(event): Promise<void> {
       visibilityEvents.push(event);
+    },
+    async onExecutionVisibilityChanged(event): Promise<void> {
+      if (failExecutionVisibility) {
+        throw new Error("fga is down");
+      }
+      executionVisibilityEvents.push(event);
     },
   };
 
@@ -1396,5 +1411,134 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       expect(missing.code).toBe(Code.NotFound);
       expect(missing.rawMessage).toBe(`Organization not found: ${externalOrgId}`);
     }
+  });
+
+  // The run audience of a workflow instance (`spec.execution_visibility`):
+  // open source derives `execution_viewer` from the row when a check asks;
+  // an edition that stores tuples hears it here (stigmer-cloud#720). The
+  // event carries the audience the level now names — the whole target
+  // state, so a retry or a repeat converges — and fires from the two doors
+  // that may set the level: create, and the dedicated RPC. Update and Apply
+  // ignore a request-carried level (the oss#573 rule for
+  // metadata.visibility), so neither can silently narrow run access.
+  describe("the run audience of a workflow instance", () => {
+    const workflows = () => createClient(WorkflowCommandController, portTransport);
+    const instances = () => createClient(WorkflowInstanceCommandController, portTransport);
+    const instanceQuery = () => createClient(WorkflowInstanceQueryController, portTransport);
+    let workflowId = "";
+
+    beforeAll(async () => {
+      const workflow = await workflows().create(
+        create(WorkflowSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Workflow",
+          metadata: { name: "c2-run-audience-workflow", org: "c2seededorg" },
+          spec: {
+            document: { dsl: "1.0.0", namespace: "tests", name: "c2-run-audience", version: "0.1.0" },
+            tasks: [{ name: "seed", kind: 1, taskConfig: { variables: { greeting: "hello" } } }],
+          },
+        }),
+      );
+      workflowId = workflow.metadata?.id ?? "";
+    });
+
+    function instanceInput(name: string, level: WorkflowExecutionVisibility) {
+      return create(WorkflowInstanceSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "WorkflowInstance",
+        metadata: { name, org: "c2seededorg" },
+        spec: { workflowId, executionVisibility: level },
+      });
+    }
+
+    it("create at ORGANIZATION fires the audience once; the workflow's default instance and a private create fire nothing", async () => {
+      // The workflow's in-process default instance was created in beforeAll
+      // at the unset level, which names no audience.
+      expect(executionVisibilityEvents).toEqual([]);
+      const shared = await instances().create(
+        instanceInput("c2-shared-runs", WorkflowExecutionVisibility.organization),
+      );
+      await instances().create(instanceInput("c2-private-runs", WorkflowExecutionVisibility.private));
+      expect(executionVisibilityEvents).toEqual([
+        {
+          instanceKind: ApiResourceKind.workflow_instance,
+          instanceId: shared.metadata?.id,
+          orgId: "c2seededorg",
+          shapes: ["org-viewer"],
+        },
+      ]);
+    });
+
+    it("updateExecutionVisibility fires the level's audience every time, the empty one included", async () => {
+      const instance = await instances().create(
+        instanceInput("c2-toggled-runs", WorkflowExecutionVisibility.private),
+      );
+      const id = instance.metadata?.id ?? "";
+      executionVisibilityEvents.length = 0;
+      await instances().updateExecutionVisibility({
+        resourceId: id,
+        executionVisibility: WorkflowExecutionVisibility.organization,
+      });
+      await instances().updateExecutionVisibility({
+        resourceId: id,
+        executionVisibility: WorkflowExecutionVisibility.private,
+      });
+      expect(executionVisibilityEvents.map((event) => [event.instanceId, event.shapes])).toEqual([
+        [id, ["org-viewer"]],
+        [id, []],
+      ]);
+    });
+
+    it("update and apply keep the stored level whatever the request carries, and fire nothing", async () => {
+      const instance = await instances().create(
+        instanceInput("c2-kept-runs", WorkflowExecutionVisibility.organization),
+      );
+      const id = instance.metadata?.id ?? "";
+      executionVisibilityEvents.length = 0;
+      const lowered = clone(WorkflowInstanceSchema, instance);
+      lowered.spec!.executionVisibility = WorkflowExecutionVisibility.private;
+      lowered.spec!.description = "edited";
+      const updated = await instances().update(lowered);
+      expect(updated.spec?.description, "the update itself landed").toBe("edited");
+      expect(updated.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+      const reapplied = clone(WorkflowInstanceSchema, lowered);
+      reapplied.spec!.executionVisibility = WorkflowExecutionVisibility.unspecified;
+      const applied = await instances().apply(reapplied);
+      expect(applied.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+      const stored = await instanceQuery().get({ value: id });
+      expect(stored.spec?.executionVisibility).toBe(WorkflowExecutionVisibility.organization);
+      expect(executionVisibilityEvents).toEqual([]);
+    });
+
+    it("a driver failure fails the RPC with the level already persisted; the retry converges", async () => {
+      const instance = await instances().create(
+        instanceInput("c2-retried-runs", WorkflowExecutionVisibility.private),
+      );
+      const id = instance.metadata?.id ?? "";
+      failExecutionVisibility = true;
+      let refused: ConnectError | undefined;
+      try {
+        await instances().updateExecutionVisibility({
+          resourceId: id,
+          executionVisibility: WorkflowExecutionVisibility.organization,
+        });
+      } catch (error) {
+        refused = ConnectError.from(error);
+      } finally {
+        failExecutionVisibility = false;
+      }
+      expect(refused?.code).toBe(Code.Internal);
+      expect(refused?.rawMessage).toBe("failed to update execution visibility tuples");
+      const stored = await instanceQuery().get({ value: id });
+      expect(stored.spec?.executionVisibility, "post-persist: the level landed").toBe(
+        WorkflowExecutionVisibility.organization,
+      );
+      executionVisibilityEvents.length = 0;
+      await instances().updateExecutionVisibility({
+        resourceId: id,
+        executionVisibility: WorkflowExecutionVisibility.organization,
+      });
+      expect(executionVisibilityEvents.map((event) => event.shapes)).toEqual([["org-viewer"]]);
+    });
   });
 });

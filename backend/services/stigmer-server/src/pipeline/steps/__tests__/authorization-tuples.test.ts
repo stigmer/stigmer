@@ -2,6 +2,7 @@
  * Pins the edition-neutral half of the C2 tuple-lifecycle seam
  * (20260827.10, ruling Q2): the visibility shape policy and its set-diff
  * (re-pinning the Java VisibilityTupleReconcilerTest transition matrix),
+ * the run-audience policy of a workflow instance's execution visibility,
  * and the config-driven creation-event resolution
  * (CreateAuthorizationTuplesStepV2's scope/owner/parent semantics,
  * including every failure arm). The driver-facing behavior of the steps
@@ -16,6 +17,7 @@ import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -25,6 +27,7 @@ import { createLogger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import {
   diffVisibilityShapes,
+  executionAudienceShapes,
   resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "../authorization-tuples.js";
@@ -81,6 +84,23 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
         ApiResourceKind.agent_instance,
         V.visibility_platform,
       ),
+    ]).toEqual([]);
+  });
+});
+
+describe("executionAudienceShapes (a workflow instance's run audience)", () => {
+  it("ORGANIZATION names the organization's viewers", () => {
+    expect([
+      ...executionAudienceShapes(WorkflowExecutionVisibility.organization),
+    ]).toEqual(["org-viewer"]);
+  });
+
+  it("PRIVATE and the unset level name nobody, so each run stays its triggerer's", () => {
+    expect([
+      ...executionAudienceShapes(WorkflowExecutionVisibility.private),
+    ]).toEqual([]);
+    expect([
+      ...executionAudienceShapes(WorkflowExecutionVisibility.unspecified),
     ]).toEqual([]);
   });
 });
