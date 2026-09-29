@@ -2,7 +2,8 @@
  * Pins the OIDC identity verifier against a hermetic local issuer (an
  * in-process HTTP server serving real discovery + JWKS documents, tokens
  * signed with a real RS256 keypair — no network, no mocks of jose):
- * claim-or-pass (non-JWT shapes pass, JWT shapes are claimed), the
+ * claim-or-pass (non-JWT shapes and JWTs naming another issuer pass;
+ * this issuer's JWTs are claimed, and a JWT naming no issuer is refused), the
  * identity mapping (sub/iss/email/name), the four byte-pinned Java
  * classifyAuthError arms, and the infrastructure-fault posture (discovery
  * failures are plain errors for the chassis's INTERNAL arm — never
@@ -151,6 +152,32 @@ describe("claim-or-pass", () => {
     expect(await verifier().verify("two.segments")).toBeNull();
     expect(await verifier().verify("a..c")).toBeNull();
   });
+
+  it("passes (null) on a JWT naming another issuer — a composition's own lane for that issuer stays reachable — and fetches nothing", async () => {
+    const token = await mintToken({
+      sub: "s",
+      issuerClaim: "https://tenant.example",
+    });
+    const before = { ...hits };
+    expect(await verifier().verify(token)).toBeNull();
+    expect(hits).toEqual(before);
+  });
+
+  it("passes (null) on an issuer that differs only by a trailing slash: the comparison is exact, as discovery's is", async () => {
+    const token = await mintToken({ sub: "s", issuerClaim: `${issuer}/` });
+    expect(await verifier().verify(token)).toBeNull();
+  });
+
+  it("refuses a JWT naming no issuer with 'invalid token': it is malformed, not another lane's", async () => {
+    const segment = (value: unknown): string =>
+      Buffer.from(JSON.stringify(value)).toString("base64url");
+    const noIssuer = `${segment({ alg: "RS256", kid: "test-key" })}.${segment({
+      sub: "s",
+    })}.${segment("sig")}`;
+    const error = await rejectionOf(verifier().verify(noIssuer));
+    expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
+    expect(ConnectError.from(error).rawMessage).toBe(INVALID_TOKEN_MESSAGE);
+  });
 });
 
 describe("identity mapping", () => {
@@ -202,15 +229,6 @@ describe("the byte-pinned classifyAuthError arms", () => {
     const token = await mintToken({ sub: "s", signWith: "stranger" });
     const error = await rejectionOf(verifier().verify(token));
     expect(ConnectError.from(error).rawMessage).toBe(TOKEN_SIGNATURE_MESSAGE);
-  });
-
-  it("issuer-claim mismatch → 'invalid token' (the fallback arm)", async () => {
-    const token = await mintToken({
-      sub: "s",
-      issuerClaim: "https://evil.test",
-    });
-    const error = await rejectionOf(verifier().verify(token));
-    expect(ConnectError.from(error).rawMessage).toBe(INVALID_TOKEN_MESSAGE);
   });
 
   it("a garbage three-segment token → 'invalid token'", async () => {
@@ -375,7 +393,13 @@ describe("infrastructure faults are never credential rejections", () => {
       accounts: fakeIdentityAccountStore(),
       discovery: newIssuerDiscovery(),
     });
-    const error = await rejectionOf(dead.verify(await mintToken({ sub: "s" })));
+    // The token names the dead issuer, so this lane claims it and must
+    // reach the network: a token naming another issuer passes first.
+    const error = await rejectionOf(
+      dead.verify(
+        await mintToken({ sub: "s", issuerClaim: "http://127.0.0.1:1" }),
+      ),
+    );
     expect(error).not.toBeInstanceOf(ConnectError);
   });
 
@@ -389,7 +413,9 @@ describe("infrastructure faults are never credential rejections", () => {
       discovery: newIssuerDiscovery(),
     });
     const error = await rejectionOf(
-      misconfigured.verify(await mintToken({ sub: "s" })),
+      misconfigured.verify(
+        await mintToken({ sub: "s", issuerClaim: `${issuer}/` }),
+      ),
     );
     expect(error).not.toBeInstanceOf(ConnectError);
     expect(String(error)).toContain("does not match configured issuer");

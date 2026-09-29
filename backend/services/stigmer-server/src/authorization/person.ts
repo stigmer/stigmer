@@ -4,12 +4,16 @@
  * list scope when it lands), so "who is asking" cannot be answered two
  * ways.
  *
- * Two steps, split so the pure half is testable without a store:
+ * The steps, split so the pure half is testable without a store:
  *
  *   `resolvePerson(accounts, caller)` — the I/O: the account the caller
  *   stands for through `accountForCaller` (domain/identityaccount/
  *   resolve.ts, the domain's one statement of that question — the two
  *   reads whoAmI makes), then `personFor`.
+ *
+ *   `personOfAccount(accounts, id)` — the person an account id names
+ *   when no caller stands for them (an invitation's creator), with the
+ *   same alias rule.
  *
  *   `personFor(caller, account)` — the pure half: the account id the
  *   IamPolicy rows name, and every string a creator stamp may carry for
@@ -35,6 +39,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 
 import { isPersonStamp } from "../domain/iampolicy/membership.js";
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
+import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import { accountForCaller } from "../domain/identityaccount/resolve.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { Person } from "./tuples.js";
@@ -51,6 +56,32 @@ export function personFor(
       `caller '${accountId}' names no person — the built-in authorizer evaluates people only`,
     );
   }
+  return withAliases(accountId, account);
+}
+
+/**
+ * The person an account id names when no caller stands for them: the
+ * creator of an invitation, asked whether they could still grant what it
+ * grants. The alias rule is `personFor`'s: the id itself, and the issuer
+ * subject when the account is found. An account that is gone is its id
+ * alone, and the rows that still name it are what the check reads.
+ */
+export async function personOfAccount(
+  accounts: Pick<IdentityAccountStore, "findById">,
+  accountId: string,
+): Promise<Person> {
+  if (!isPersonStamp(accountId)) {
+    throw new Error(
+      `account '${accountId}' names no person — the built-in authorizer evaluates people only`,
+    );
+  }
+  return withAliases(accountId, await accounts.findById(accountId));
+}
+
+function withAliases(
+  accountId: string,
+  account: IdentityAccount | undefined,
+): Person {
   const aliases = new Set<string>([accountId]);
   const subject = account?.spec?.idpId ?? "";
   if (subject !== "") {

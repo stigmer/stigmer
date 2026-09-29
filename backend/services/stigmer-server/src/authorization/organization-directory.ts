@@ -42,6 +42,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { CallerIdentity } from "../extensions/identity.js";
+import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import { ALL_ORGANIZATIONS } from "../extensions/organization-directory.js";
 import { kindEnumName } from "../pipeline/apiresource-meta.js";
@@ -57,6 +58,8 @@ export interface BuiltInOrganizationDirectoryDeps {
   readonly store: Store;
   readonly policies: IamPolicyStore;
   readonly accounts: AccountsByCaller;
+  /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`), handed to every tuple source. */
+  readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
   readonly model?: Model;
 }
 
@@ -81,6 +84,7 @@ export function newBuiltInOrganizationDirectory(
           store: deps.store,
           policies: deps.policies,
           accounts: deps.accounts,
+          rowReaders: deps.rowReaders,
           model,
         },
         person,

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
-import type { HarnessOption } from "../models/harness.js";
+import { isHarnessOption, type HarnessOption } from "../models/harness.js";
 
 /**
  * The current user's account-level execution defaults, shaped for the
@@ -57,10 +57,7 @@ export function useAccountExecutionDefaults(): AccountExecutionDefaults | undefi
     // The proto validates default_harness to the shipped set, but a client
     // must not trust persisted data it did not write — unknown values are
     // treated as undeclared.
-    const harness =
-      prefs.defaultHarness === "native" || prefs.defaultHarness === "cursor"
-        ? (prefs.defaultHarness satisfies HarnessOption)
-        : undefined;
+    const harness = isHarnessOption(prefs.defaultHarness) ? prefs.defaultHarness : undefined;
     const nativeModel = prefs.defaultNativeModel || undefined;
     const cursorModel = prefs.defaultCursorModel || undefined;
     // Only a declared `true` travels — an unset bool is "no preference",

@@ -42,14 +42,16 @@ computes.
   edition evaluates (`authorizer.ts`, arm 2).
 - `tuples.ts` — the tuple vocabulary (object, relation, subject; the string
   notation), the `Person` type (the caller as the model sees them: account id
-  plus the aliases a creator stamp may carry). The model declares no wildcard
+  plus the aliases a creator stamp may carry), and the `Principal` a check asks
+  about: a person, or any other object matched by its own reference. The model declares no wildcard
   subject and no condition, so a check carries no context and the parser refuses
   the `type:*` notation.
 - `person.ts` — the one construction of a `Person`: `resolvePerson` reads the
   caller's account through the port the way whoAmI does, `personFor` builds the
   aliases (the account id and the issuer subject; an email is nobody's) and
   refuses an identity that names no person. Every driver resolves the caller
-  here.
+  here; `personOfAccount` builds the same aliases for an account id no caller
+  stands for (an invitation's creator).
 - `evaluator.ts` — OpenFGA's check over a model and a tuple source: type
   restrictions enforced on direct tuples (model drift fails closed), a memo per
   (object, relation), OpenFGA's depth bound, cycles and undeclared targets as
@@ -68,7 +70,10 @@ computes.
   organization's owner is a row, and a stamp that names no person is no tuple. A
   source may be seeded with candidates' facts (the list scope), so a seeded
   object's tuples derive without a read of its row; a `derived` rule still reads
-  the row it needs.
+  the row it needs. A row is read where the composition keeps it: open source's
+  kinds from the generic Store, an account through the account port, and a kind
+  a unit keeps itself through the reader it registered
+  (`drivers.resourceRowReaders`).
 - `strict-json.ts` — the strict reads both data inputs share (the compiled
   model and the store tests): an unknown key or a wrong shape is a fault naming
   where, never a half-read input.
@@ -78,8 +83,9 @@ computes.
   with the Java copy; a kind this edition does not serve denied (a platform
   capability no self-host holds); the target loaded once through the source;
   `not-found` for a missing row except on the kinds the cloud never probes
-  (`NOT_FOUND_EXEMPT_KINDS`: `identity_account`, `iam_policy` — account ids
-  cannot be enumerated); the model's answer with an empty reason on a denial so
+  (`NOT_FOUND_EXEMPT_KINDS`, the cloud's own set: accounts, policies, platform
+  clients, and the platform, identity providers, invitations and teams an
+  edition above open source serves — ids cannot be enumerated); the model's answer with an empty reason on a denial so
   the annotation's copy wins; every fault `unavailable`, never a denial and
   never a throw.
 - `organization-directory.ts` — `findMyOrganizations` as the cloud answers it
@@ -100,8 +106,14 @@ computes.
   that does not decode skipped; the `internal` class keeps everything (the
   in-process skip); a fault throws and is never an empty answer; an undeclared
   kind is a consumer bug, loud.
+- `policy-check.ts` — the one query-engine verb a unit asks, "is this policy
+  held", answered by the evaluator for a person by account id or for any other
+  object; handed to units as the composition's `authorizationQueries` under
+  the built-in posture. Contextual policies and userset principals are refused.
 - `posture.ts` — the three postures, named once for the composition root and the
-  boot log.
+  boot log, and `kindsWithoutRows`: the served kinds the built-in posture could
+  not read, which refuses the boot of an edition above open source until each
+  has a reader.
 
 ## Proof
 
