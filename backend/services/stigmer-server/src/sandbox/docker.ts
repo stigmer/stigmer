@@ -145,6 +145,9 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       `TEMPORAL_NAMESPACE=${config.temporalNamespace}`,
       "--env",
       `WORKSPACE_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}`,
+      ...(config.mcpPublicEndpoint !== ""
+        ? ["--env", `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`]
+        : []),
     ];
     // Value-less --env inherits from the CLI's environment (module header:
     // the token must never appear in argv). The Temporal connection

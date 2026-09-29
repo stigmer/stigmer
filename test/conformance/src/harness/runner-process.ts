@@ -221,6 +221,11 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
         ? { TEMPORAL_SERVICE_ADDRESS: opts.temporalHostPort, TEMPORAL_NAMESPACE: "default" }
         : {}),
       STIGMER_BACKEND_ENDPOINT: opts.backendEndpoint,
+      // The public address the runner fills a declared STIGMER_SERVER_ADDRESS
+      // from, set the way `stigmer up` sets it
+      // (client-apps/cli/src/local/daemon/components.ts): the server on this
+      // machine is its own public address. A fill is therefore observable.
+      STIGMER_MCP_PUBLIC_ENDPOINT: opts.backendEndpoint,
       // The runner's one token env var serves control-plane auth AND (until a
       // token is minted) the proxy bearer. Cloud bootstrap needs the USER
       // credential here — discovery authenticates with it, and the coordinator

@@ -46,6 +46,7 @@ describe.skipIf(!optedIn || !dockerAnswers())(
       // the smoke only needs the vars INJECTED, not a live server behind
       // them (the runner tolerates an unreachable backend at boot).
       backendEndpoint: "http://host.docker.internal:7234",
+      mcpPublicEndpoint: "https://api.example.com",
       temporalAddress: "host.docker.internal:7233",
       temporalNamespace: "default",
       temporalConnectionEnv: {},
@@ -89,6 +90,9 @@ describe.skipIf(!optedIn || !dockerAnswers())(
       );
       expect(container?.Config.Env).toContain("STIGMER_TOKEN=tok-docker-smoke");
       expect(container?.Config.Env).toContain("MODE=local");
+      expect(container?.Config.Env).toContain(
+        `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`,
+      );
 
       // Idempotent fast path.
       await driver.ensureSessionSandbox(sessionId, {

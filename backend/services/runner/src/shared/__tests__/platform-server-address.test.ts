@@ -1,7 +1,8 @@
 /**
  * Unit tests for the platform STIGMER_SERVER_ADDRESS: the one dial-target
- * rule (shared with `toGrpcAddress` in `@stigmer/react`, same table), which
- * endpoint answers for which transport, and the fill that never overrides.
+ * rule, which endpoint answers for which transport, the fill that never
+ * overrides, and that the address is the only key the platform fills: a
+ * declared STIGMER_API_KEY is the user's to save (stigmer/stigmer#1446).
  */
 
 import { describe, it, expect } from "vitest";
@@ -108,5 +109,14 @@ describe("fillPlatformServerAddress", () => {
     ).toBe("api.example.com:443");
     const env = {};
     expect(fillPlatformServerAddress(server("http"), env, LOCAL)).toBe(env);
+  });
+
+  it("fills the address alone, never a declared STIGMER_API_KEY", () => {
+    const result = fillPlatformServerAddress(
+      server("http", [SERVER_ADDRESS_ENV_KEY, "STIGMER_API_KEY"]),
+      {},
+      WITH_PUBLIC,
+    );
+    expect(result).toEqual({ [SERVER_ADDRESS_ENV_KEY]: "api.example.com:443" });
   });
 });

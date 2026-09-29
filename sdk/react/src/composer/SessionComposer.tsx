@@ -39,12 +39,7 @@ import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.j
 import { FILE_REF_MIME } from "../internal/file-tree/index.js";
 import { useSessionEnvPool } from "../environment/useSessionEnvPool.js";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
-import { useStigmer } from "../hooks.js";
-import { usePublicBaseUrl } from "../public-base-url-context.js";
-import {
-  SYSTEM_ENV_VAR_KEYS,
-  resolveSystemEnvVarValues,
-} from "../environment/systemEnvVars.js";
+import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {
@@ -715,9 +710,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     [personalEnv.environment],
   );
 
-  const stigmer = useStigmer();
-  const publicBaseUrl = usePublicBaseUrl() ?? undefined;
-
   const pool = useSessionEnvPool({
     personalEnvKeys,
     manualSecrets: sessionVariables?.entries,
@@ -1027,15 +1019,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         }
       }
 
+      // Only what the page collected for this run: the platform's own keys
+      // are filled in the runner, below every value a user saved
+      // (systemEnvVars.ts header, stigmer/stigmer#1446).
       const env: Record<string, EnvVarInput> = {};
-
-      // System env vars first, so every value collected below wins —
-      // auto-resolved so MCP servers and agents can reach the server
-      // without manual user input. The address is the server's public one,
-      // or absent when the host names none; the runner fills a missing one
-      // for the stdio servers it spawns (systemEnvVars.ts header).
-      const systemVars = await resolveSystemEnvVarValues(stigmer, { publicBaseUrl });
-      Object.assign(env, systemVars);
 
       if (
         agentSetup.state.status === "ready" &&
@@ -1112,7 +1099,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, stigmer, publicBaseUrl, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
+    [onSubmit, effective, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({

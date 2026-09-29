@@ -1,17 +1,20 @@
 /**
- * The system env vars a submitted session carries (stigmer/stigmer#1433):
- * STIGMER_SERVER_ADDRESS is the server's public address, the provider's
- * `publicBaseUrl` first, else an absolute client `baseUrl`, and absent
- * rather than guessed when neither names one; STIGMER_API_KEY rides along
- * either way.
+ * What a submitted session's runtime env carries (stigmer/stigmer#1446):
+ * only values the page collected for this run. The composer adds nothing of
+ * its own: `STIGMER_SERVER_ADDRESS` is the platform's to fill in the runner,
+ * below every value a user saved, and the signed-in user's bearer never
+ * rides a run as `STIGMER_API_KEY`, where an agent that declares no env
+ * would carry it into its shell. A value the user types for the run still
+ * reaches it, the platform's key name included.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { EnvVarInput, Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import { PublicBaseUrlContext } from "../../public-base-url-context";
+import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables";
 import { SessionComposer } from "../SessionComposer";
 
 function clientAt(baseUrl: string): Stigmer {
@@ -24,15 +27,33 @@ function clientAt(baseUrl: string): Stigmer {
   } as unknown as Stigmer;
 }
 
-async function submittedRuntimeEnv(
-  baseUrl: string,
-  publicBaseUrl?: string,
-): Promise<Record<string, { value: string }> | undefined> {
+/** Session variables holding exactly `env`, as the editor would after typing. */
+function typedVariables(env: Record<string, EnvVarInput>): UseSessionVariablesReturn {
+  return {
+    entries: [],
+    addEntry: vi.fn(),
+    removeEntry: vi.fn(),
+    updateEntry: vi.fn(),
+    clear: vi.fn(),
+    isEmpty: false,
+    hasValidEntries: true,
+    toRuntimeEnv: () => env,
+    toSaveForFutureEnv: () => ({}),
+    hasSaveForFutureEntries: false,
+  };
+}
+
+async function submit(opts: {
+  baseUrl: string;
+  publicBaseUrl?: string;
+  sessionVariables?: UseSessionVariablesReturn;
+}): Promise<{ runtimeEnv: Record<string, EnvVarInput> | undefined; client: Stigmer }> {
   const onSubmit = vi.fn();
+  const client = clientAt(opts.baseUrl);
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <StigmerContext.Provider value={clientAt(baseUrl)}>
-        <PublicBaseUrlContext.Provider value={publicBaseUrl}>
+      <StigmerContext.Provider value={client}>
+        <PublicBaseUrlContext.Provider value={opts.publicBaseUrl}>
           <ModelRegistryContext.Provider
             value={{ models: [], isLoading: false, error: null, refetch: vi.fn() }}
           >
@@ -42,7 +63,9 @@ async function submittedRuntimeEnv(
       </StigmerContext.Provider>
     );
   }
-  render(<SessionComposer onSubmit={onSubmit} />, { wrapper: Wrapper });
+  render(<SessionComposer onSubmit={onSubmit} sessionVariables={opts.sessionVariables} />, {
+    wrapper: Wrapper,
+  });
 
   const textarea = screen.getByRole("textbox");
   fireEvent.change(textarea, { target: { value: "Hello" } });
@@ -50,28 +73,30 @@ async function submittedRuntimeEnv(
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledOnce();
   });
-  return onSubmit.mock.calls[0][2]?.runtimeEnv;
+  return { runtimeEnv: onSubmit.mock.calls[0][2]?.runtimeEnv, client };
 }
 
 afterEach(cleanup);
 
-describe("SessionComposer — system env vars", () => {
-  it("derives the address from an absolute client base URL, as before", async () => {
-    const env = await submittedRuntimeEnv("http://localhost:8080");
+describe("SessionComposer — runtime env carries only what the page collected", () => {
+  it.each([
+    ["an absolute client base URL", "http://localhost:8080", undefined],
+    ["a relative base URL behind a public one", "/", "https://api.example.com"],
+    ["a relative base URL with no public one", "/", undefined],
+  ])("sends no runtime env for a plain submit with %s", async (_label, baseUrl, publicBaseUrl) => {
+    const { runtimeEnv, client } = await submit({ baseUrl, publicBaseUrl });
 
-    expect(env?.STIGMER_SERVER_ADDRESS?.value).toBe("localhost:8080");
+    expect(runtimeEnv).toBeUndefined();
+    expect(client.getAuthCredential, "the bearer is never read for a run").not.toHaveBeenCalled();
   });
 
-  it("uses the host's public base URL behind a relative client base URL", async () => {
-    const env = await submittedRuntimeEnv("/", "https://api.example.com");
+  it("carries a value the user typed, a platform key name included", async () => {
+    const typed = { STIGMER_SERVER_ADDRESS: { value: "mcp.internal:7234", isSecret: false } };
+    const { runtimeEnv } = await submit({
+      baseUrl: "https://api.example.com",
+      sessionVariables: typedVariables(typed),
+    });
 
-    expect(env?.STIGMER_SERVER_ADDRESS?.value).toBe("api.example.com:443");
-  });
-
-  it("never injects an address nobody can dial for a relative base URL with no public one", async () => {
-    const env = await submittedRuntimeEnv("/");
-
-    expect(env).not.toHaveProperty("STIGMER_SERVER_ADDRESS");
-    expect(env?.STIGMER_API_KEY?.value).toBe("test-token");
+    expect(runtimeEnv).toEqual(typed);
   });
 });

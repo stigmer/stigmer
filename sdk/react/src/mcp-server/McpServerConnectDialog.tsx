@@ -156,20 +156,18 @@ function ConnectDialogContent({
 
   const serverName = mcpServer?.metadata?.name ?? slug;
   const serverId = mcpServer?.metadata?.id ?? "";
-  const declaredEnvKeys = Object.keys(mcpServer?.spec?.env ?? {});
-
   const handleConnect = useCallback(async () => {
     if (!serverId) return;
 
     setPhase("connecting");
     try {
-      await connect(serverId, activeOrg, undefined, declaredEnvKeys);
+      await connect(serverId, activeOrg);
       setPhase("success");
       onConnected?.(serverName);
     } catch {
       setPhase("error");
     }
-  }, [serverId, activeOrg, declaredEnvKeys, connect, onConnected, serverName]);
+  }, [serverId, activeOrg, connect, onConnected, serverName]);
 
   const handleCredentialSubmit = useCallback(
     async (values: Record<string, EnvVarInput>) => {
@@ -188,7 +186,7 @@ function ConnectDialogContent({
       void handleConnect();
       return;
     }
-    oauth.startOAuth(serverId, activeOrg, declaredEnvKeys).then(
+    oauth.startOAuth(serverId, activeOrg).then(
       () => {
         creds.refetch();
         setPhase("success");
@@ -203,7 +201,7 @@ function ConnectDialogContent({
         setPhase("error");
       },
     );
-  }, [serverId, activeOrg, declaredEnvKeys, oauth, creds, onConnected, serverName, handleConnect]);
+  }, [serverId, activeOrg, oauth, creds, onConnected, serverName, handleConnect]);
 
   // Auto-trigger connect when credentials become ready (manual-only servers)
   useEffect(() => {

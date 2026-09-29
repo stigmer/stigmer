@@ -948,7 +948,7 @@ export type {
   UseUpdateScheduleSpecReturn,
 } from "./schedule/index.js";
 
-// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
+// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, the platform-filled key set, and styled components
 export {
   useEnvironment,
   useEnvironmentList,
@@ -964,10 +964,6 @@ export {
   EnvVarForm,
   useSessionEnvPool,
   SYSTEM_ENV_VAR_KEYS,
-  toGrpcAddress,
-  buildSystemEnvVars,
-  resolveSystemEnvVarValues,
-  resolveDeclaredSystemEnvVars,
   EnvironmentPicker,
   useToolCredentialsReadiness,
 } from "./environment/index.js";
@@ -993,7 +989,6 @@ export type {
   UseSessionEnvPoolReturn,
   EnvironmentPickerProps,
   ToolCredentialsReadiness,
-  SystemEnvVarOptions,
 } from "./environment/index.js";
 
 // Identity Account — gate hook, self-account data/mutation hooks, the

@@ -155,14 +155,9 @@ classification in a single operation. The backend enumerates the
 server's tools and resource templates, then classifies each tool's
 approval policy via a structured-output LLM call.
 
-Platform system env vars (`STIGMER_SERVER_ADDRESS`,
-`STIGMER_API_KEY`) are injected only when the target MCP server
-declares them in `spec.env`. Pass the server's declared env keys
-via `declaredEnvKeys` so the hook knows which system vars to
-include. When not provided, no system vars are injected.
-
-Additional one-time credentials can be passed via `runtimeEnv`
-and will override both system vars and personal env values.
+Saved credentials need nothing from the caller: the backend resolves
+them. One-time credentials ride `runtimeEnv` and replace that
+resolution for this connect.
 
 **Signature**
 
@@ -175,7 +170,7 @@ function useMcpServerConnect(): UseMcpServerConnectReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Clear the error state." },
-    connect: { type: "(mcpServerId: string, org: string, runtimeEnv?: Record<string, EnvVarInput>, declaredEnvKeys?: readonly string[]) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools, resource templates, and classify tool approval policies via a lightweight LLM call.  Uses the async connect lane (`startConnect` + polling via the SDK's `connectAndWait`, stigmer/stigmer#425): the promise still resolves when the operation settles — legitimately tens of seconds to minutes for heavy servers — but no RPC stays open that long, so the wait survives browser transport limits. Backends without the lane fall back to the blocking `connect` RPC transparently.  Platform system env vars (`STIGMER_SERVER_ADDRESS`, `STIGMER_API_KEY`) are injected only when the MCP server declares them in its `spec.env`. Pass `declaredEnvKeys` so the hook can determine which system vars the server actually needs. When omitted, no system vars are injected.  When `runtimeEnv` is provided, those values are merged on top (caller values win). The backend merges the result on top of the user's personal environment so saved credentials (e.g., OAuth tokens) are still resolved." },
+    connect: { type: "(mcpServerId: string, org: string, runtimeEnv?: Record<string, EnvVarInput>) => Promise<McpServer>", description: "Connect to an MCP server: discover its tools, resource templates, and classify tool approval policies via a lightweight LLM call.  Uses the async connect lane (`startConnect` + polling via the SDK's `connectAndWait`, stigmer/stigmer#425): the promise still resolves when the operation settles — legitimately tens of seconds to minutes for heavy servers — but no RPC stays open that long, so the wait survives browser transport limits. Backends without the lane fall back to the blocking `connect` RPC transparently.  Without `runtimeEnv`, the backend resolves the server's declared variables itself: OAuth tokens from the managed grant, the rest from the caller's personal environment. The platform's own keys are filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`).  With `runtimeEnv`, the backend connects with exactly those values and resolves nothing else (stigmer/stigmer#1453), so pass it only for a one-time connect whose values the caller supplies whole." },
     error: { type: "Error | null", description: "Error from the most recent failed connect, or `null`." },
     isConnecting: { type: "boolean", description: "`true` while the connect operation is in flight (start through settle)." },
   }}
@@ -187,15 +182,13 @@ const { refetch } = useMcpServer(org, slug);
 
 // Saved credentials: already in personal environment
 async function handleConnectSaved() {
-  const envKeys = Object.keys(mcpServer.spec?.env ?? {});
-  await connect(mcpServer.metadata.id, undefined, envKeys);
+  await connect(mcpServer.metadata.id, org);
   refetch();
 }
 
 // One-time use: pass credentials directly
 async function handleConnectTemporary(values: Record<string, EnvVarInput>) {
-  const envKeys = Object.keys(mcpServer.spec?.env ?? {});
-  await connect(mcpServer.metadata.id, values, envKeys);
+  await connect(mcpServer.metadata.id, org, values);
   refetch();
 }
 ```
@@ -444,7 +437,7 @@ function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn
     failedPhase: { type: "OAuthConnectPhase | null", description: "The phase the flow was in when error was thrown, or `null` when there is no error.  The load-bearing value is `\"connecting\"`: it means OAuth sign-in completed (the grant is stored server-side) and only the chained tool-discovery `connect` failed. Consumers should branch on it to (a) render honest copy via getOAuthConnectErrorMessage and (b) retry with a bare `connect` instead of relaunching the popup." },
     isInProgress: { type: "boolean", description: "`true` while any phase of the OAuth flow is in progress." },
     phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", typeDescriptionLink: "#oauthconnectphase" },
-    startOAuth: { type: "(mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]) => Promise<McpServer>", description: "Start the OAuth connect flow for an MCP server.  Opens a popup for the OAuth consent screen, waits for the callback, exchanges the authorization code for tokens, then chains to the `connect` RPC for tool discovery.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
+    startOAuth: { type: "(mcpServerId: string, org: string) => Promise<McpServer>", description: "Start the OAuth connect flow for an MCP server.  Opens a popup for the OAuth consent screen, waits for the callback, exchanges the authorization code for tokens, then chains to the `connect` RPC for tool discovery.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
   }}
 />
 

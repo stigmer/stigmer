@@ -177,6 +177,11 @@ services:
       # durable sqlite saver under HOME.
       MODE: local
       STIGMER_BACKEND_ENDPOINT: http://stigmer-server:7234
+      # The address a remote MCP server dials back on: the one clients reach
+      # the API on (the server's SKILL_TRANSFER_BASE_URL, the chart's
+      # server.publicUrl). The runner fills a declared STIGMER_SERVER_ADDRESS
+      # from it; the in-network address above reaches no one outside.
+      STIGMER_MCP_PUBLIC_ENDPOINT: "${STIGMER_PUBLIC_URL:-http://localhost:7234}"
       TEMPORAL_SERVICE_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: default
       STIGMER_TASK_QUEUE: *runner-task-queue

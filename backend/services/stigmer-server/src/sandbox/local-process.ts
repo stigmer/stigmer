@@ -11,6 +11,7 @@
  * STIGMER_TASK_QUEUE (the one queue this sandbox serves),
  * STIGMER_BACKEND_ENDPOINT / TEMPORAL_SERVICE_ADDRESS (empty values fall
  * back to the runner's own local defaults and Temporal self-discovery),
+ * STIGMER_MCP_PUBLIC_ENDPOINT when the server names its public address,
  * STIGMER_TOKEN when minted ("" stays unset — optional in local mode),
  * and a per-sandbox WORKSPACE_ROOT_DIR so concurrent sandboxes never
  * share a workspace.
@@ -107,6 +108,9 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
     }
     if (config.temporalAddress !== "") {
       childEnv["TEMPORAL_SERVICE_ADDRESS"] = config.temporalAddress;
+    }
+    if (config.mcpPublicEndpoint !== "") {
+      childEnv["STIGMER_MCP_PUBLIC_ENDPOINT"] = config.mcpPublicEndpoint;
     }
     if (env.stigmerToken !== "") {
       childEnv["STIGMER_TOKEN"] = env.stigmerToken;

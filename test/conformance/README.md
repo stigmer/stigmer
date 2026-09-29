@@ -715,7 +715,7 @@ src/
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
                       request-shape)
-                    + mcpserver-connect, mcp-caller-identity, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
+                    + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses (+ benchmark-harnesses/quality-tasks.yaml)
 fixtures/           working-agent/ (the working agent's Go workspace and skills: data, outside the TypeScript include)

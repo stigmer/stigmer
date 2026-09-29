@@ -195,6 +195,10 @@ spec:
               value: local
             - name: STIGMER_BACKEND_ENDPOINT
               value: http://localhost:7234
+            # What a remote MCP server dials back on: the public URL, never
+            # the pod-local address above.
+            - name: STIGMER_MCP_PUBLIC_ENDPOINT
+              value: {{ include "stigmer.publicUrl" . | quote }}
             - name: TEMPORAL_SERVICE_ADDRESS
               value: {{ include "stigmer.temporalHostPort" . | quote }}
             - name: TEMPORAL_NAMESPACE

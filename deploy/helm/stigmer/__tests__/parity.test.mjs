@@ -65,9 +65,11 @@ function composeDefault(composeValue) {
 /**
  * Compose addresses and paths, and what they become for a profile: the
  * bundled dependencies take the release's Service names; a bring-your-own
- * profile takes the addresses its values name; the two public URLs follow
- * the Ingress hosts when there are any, and stay compose's own defaults
- * (the port-forward posture) when there are none.
+ * profile takes the addresses its values name; the two public URLs (the
+ * API's, which the server mints skill URLs from and the runner hands remote
+ * MCP servers, and the artifact lane's) follow the Ingress hosts when there
+ * are any, and stay compose's own defaults (the port-forward posture) when
+ * there are none.
  */
 function addressTable(profile) {
   const values = parse(readFileSync(profileValuesPath(profile), "utf8")) ?? {};
@@ -99,6 +101,7 @@ function addressTable(profile) {
     ]),
     byName: new Map([
       ["SKILL_TRANSFER_BASE_URL", publicUrl],
+      ["STIGMER_MCP_PUBLIC_ENDPOINT", publicUrl],
       ["ARTIFACT_LOCAL_SERVE_URL", artifactPublicUrl],
       ["LOCAL_ARTIFACT_SERVE_URL", artifactPublicUrl],
     ]),

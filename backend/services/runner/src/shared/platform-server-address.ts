@@ -1,23 +1,26 @@
 /**
  * The Stigmer server's address for user-defined MCP servers — the reserved
  * STIGMER_SERVER_ADDRESS key, and the one dial-target rule every writer of
- * that key shares (stigmer/stigmer#1433).
+ * that key shares (stigmer/stigmer#1433, #1446).
  *
- * Which address is right depends on where the consumer runs, so each value
- * comes from the component that knows it:
+ * The runner is the one component that supplies it, because the runner is
+ * the one that knows where the consumer runs:
  *
  *   - A remote HTTP server receives the key only through a templated header,
- *     so it needs the server's PUBLIC address. Only the host page knows that
- *     (`@stigmer/react` supplies it from `publicBaseUrl` or an absolute
- *     `baseUrl` through runtime_env), unless an operator names it to the
- *     runner as STIGMER_MCP_PUBLIC_ENDPOINT.
+ *     so it needs the server's PUBLIC address: STIGMER_MCP_PUBLIC_ENDPOINT,
+ *     which the server hands every sandbox it provisions from its own
+ *     configuration (stigmer/stigmer#1447), or an operator names to a
+ *     runner it starts by hand.
  *   - A stdio server is a child of this runner (only a local runner spawns
  *     one; mcp-transport-guard.ts), so the address the runner itself dials,
  *     STIGMER_BACKEND_ENDPOINT, is right for it by construction.
  *
+ * No page supplies it: a value written into a run's runtime_env sits in the
+ * top merge layer, above every value the user saved (stigmer/stigmer#1446).
+ *
  * The runner FILLS, it never overrides: a non-empty value already in the
- * environment (the page's public address, or one the user set to aim a
- * server elsewhere) stands. A key nobody can supply stays missing, and a
+ * environment (one the user saved or typed to aim a server elsewhere)
+ * stands. A key nobody can supply stays missing, and a
  * header that templates it fails with the resolver's named
  * PlaceholderResolutionError instead of dialing a guess.
  *
@@ -34,8 +37,9 @@ import type { Config } from "../config.js";
 /**
  * Reserved env key: the Stigmer server's gRPC dial target, host:port. The
  * name the mcp-server reads its target from (mcp-server/src/config.ts) and
- * `@stigmer/react` supplies (sdk/react/src/environment/systemEnvVars.ts);
- * a cross-package string, pinned on every side.
+ * `@stigmer/react` keeps out of its setup prompts
+ * (sdk/react/src/environment/systemEnvVars.ts); a cross-package string,
+ * pinned on every side.
  */
 export const SERVER_ADDRESS_ENV_KEY = "STIGMER_SERVER_ADDRESS";
 
@@ -51,8 +55,7 @@ export type PlatformEndpoints = Pick<Config, "mcpPublicEndpoint" | "stigmerBacke
  * the mcp-server derives TLS from it and assumes :443 with TLS for a
  * non-loopback host that has none (mcp-server/src/config.ts). Any other
  * input (a scheme-less host:port, a bare host) is already a dial target and
- * passes through unchanged. `toGrpcAddress` in `@stigmer/react` applies the
- * same rule; the two keep one test table.
+ * passes through unchanged.
  */
 export function grpcTarget(endpoint: string): string {
   let url: URL;

@@ -57,6 +57,11 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     ...base,
     MODE: "local",
     STIGMER_BACKEND_ENDPOINT: `http://localhost:${SERVER_PORT}`,
+    // The server's public address, from which the runner fills a declared
+    // STIGMER_SERVER_ADDRESS for remote MCP servers too (stigmer/stigmer#1447).
+    // On a local install it is the address the console and the CLI already
+    // dial, the one the console page supplied before the platform owned it.
+    STIGMER_MCP_PUBLIC_ENDPOINT: `http://localhost:${SERVER_PORT}`,
     TEMPORAL_SERVICE_ADDRESS: config.temporalAddress,
     TEMPORAL_NAMESPACE,
     WORKSPACE_ROOT_DIR: join(config.dataDir, "workspace"),

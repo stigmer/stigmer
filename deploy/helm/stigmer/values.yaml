@@ -63,7 +63,9 @@ secrets:
 server:
   # The address browsers and the CLI reach the API on; feeds
   # SKILL_TRANSFER_BASE_URL (skill push and download capability URLs are
-  # consumed by the CLI and SDKs, never in-cluster). Empty derives it: the
+  # consumed by the CLI and SDKs, never in-cluster) and the runner's
+  # STIGMER_MCP_PUBLIC_ENDPOINT (the address remote MCP servers are given
+  # to dial back). Empty derives it: the
   # Ingress API host when ingress.enabled, else http://localhost:7234, the
   # port-forward posture and compose's own default.
   publicUrl: ""

@@ -10,7 +10,6 @@ import {
   ConnectInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars.js";
 import { toError } from "../internal/toError.js";
 import {
   openOAuthPopup,
@@ -81,11 +80,9 @@ export interface UseMcpServerOAuthConnectReturn {
    *
    * @param mcpServerId - System-generated ID (metadata.id) of the MCP server.
    * @param org - Organization context for token storage (caller's active org).
-   * @param declaredEnvKeys - Keys from the server's `spec.env` declaration.
-   *   System vars are only injected when declared here.
    * @returns The updated McpServer after tool discovery completes.
    */
-  readonly startOAuth: (mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]) => Promise<McpServer>;
+  readonly startOAuth: (mcpServerId: string, org: string) => Promise<McpServer>;
   /** `true` while any phase of the OAuth flow is in progress. */
   readonly isInProgress: boolean;
   /** Current phase of the OAuth flow. */
@@ -182,7 +179,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
   }, [advancePhase]);
 
   const startOAuth = useCallback(
-    async (mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]): Promise<McpServer> => {
+    async (mcpServerId: string, org: string): Promise<McpServer> => {
       advancePhase("initiating");
       setError(null);
       setFailedPhase(null);
@@ -229,24 +226,11 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
         advancePhase("connecting");
 
-        const systemEnv = declaredEnvKeys
-          ? await resolveDeclaredSystemEnvVars(stigmer, declaredEnvKeys)
-          : {};
-        const runtimeEnvMap: Record<string, { value: string; isSecret: boolean }> = {};
-        for (const [key, envInput] of Object.entries(systemEnv)) {
-          runtimeEnvMap[key] = {
-            value: envInput.value,
-            isSecret: envInput.isSecret ?? false,
-          };
-        }
-
-        const input = create(ConnectInputSchema, {
-          mcpServerId,
-          org,
-          ...(Object.keys(runtimeEnvMap).length > 0
-            ? { runtimeEnv: runtimeEnvMap }
-            : {}),
-        });
+        // No runtime env: the backend resolves the token this flow just
+        // stored from the managed grant, and every other declared variable
+        // from the caller's personal environment. A runtime env would
+        // replace that resolution whole (stigmer/stigmer#1453).
+        const input = create(ConnectInputSchema, { mcpServerId, org });
 
         // Async connect lane (stigmer/stigmer#425): startConnect + poll via
         // the SDK's shared protocol, so the discovery wait can outlive the

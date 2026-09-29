@@ -126,17 +126,16 @@ export interface StigmerProviderProps {
    * The address the Stigmer API is reached at from outside this page, for
    * the URLs the SDK shows a user to copy (the Slack and WhatsApp webhook
    * URLs a channel app registers, and the platform client snippet in the
-   * Share dialog) and for the `STIGMER_SERVER_ADDRESS` a session supplies
-   * to the MCP servers that declare it.
+   * Share dialog). A session's MCP servers get their
+   * `STIGMER_SERVER_ADDRESS` from the platform, never from this value.
    *
    * Omit it when the client's `baseUrl` is absolute: that address is used,
    * exactly as before. Pass it when the client talks to the server through
    * a relative `baseUrl` (a same-origin proxy), because the page's own
    * origin need not be where Slack, Meta, a backend or a remote MCP server
    * can reach the API. Without it, the copy surfaces say they do not know
-   * the server's public address and offer nothing to copy, and sessions
-   * leave `STIGMER_SERVER_ADDRESS` to the runner. Only an absolute
-   * `http(s)` URL is used.
+   * the server's public address and offer nothing to copy. Only an
+   * absolute `http(s)` URL is used.
    *
    * @example
    * ```tsx

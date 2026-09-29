@@ -53,6 +53,7 @@ describe.skipIf(process.platform === "win32")(
 
     const config: SandboxDriverConfig = {
       backendEndpoint: "http://127.0.0.1:7234",
+      mcpPublicEndpoint: "http://127.0.0.1:7234",
       temporalAddress: "127.0.0.1:7233",
       temporalNamespace: "stigmer-smoke",
       temporalConnectionEnv: { STIGMER_TEMPORAL_TLS: "true", STIGMER_TEMPORAL_API_KEY: "k-smoke" },
@@ -114,6 +115,9 @@ describe.skipIf(process.platform === "win32")(
       );
       expect(dump).toContain(
         `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
+      );
+      expect(dump).toContain(
+        `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`,
       );
       expect(dump).toMatch(/WORKSPACE_ROOT_DIR=.+session-ses_smoke/);
       expect(dump).toContain("TEMPORAL_NAMESPACE=stigmer-smoke");

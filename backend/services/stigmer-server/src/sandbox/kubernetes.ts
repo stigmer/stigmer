@@ -316,6 +316,9 @@ export function buildSandboxDeployment(
     { name: "TEMPORAL_NAMESPACE", value: config.temporalNamespace },
     { name: "WORKSPACE_ROOT_DIR", value: WORKSPACE_MOUNT_PATH },
   ];
+  if (config.mcpPublicEndpoint !== "") {
+    containerEnv.push({ name: "STIGMER_MCP_PUBLIC_ENDPOINT", value: config.mcpPublicEndpoint });
+  }
   if (env.stigmerToken !== "") {
     containerEnv.push({
       name: "STIGMER_TOKEN",

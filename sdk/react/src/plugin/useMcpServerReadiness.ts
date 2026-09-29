@@ -109,14 +109,14 @@ export function useMcpServerReadiness(
     oauth.clearError();
     // A sign-in that fails leaves the row on "Sign in" with the reason; one
     // that lands refetches so the row says "Signed in" from the grant.
-    void oauth.startOAuth(id, org, declaredVariables).then(
+    void oauth.startOAuth(id, org).then(
       () => {
         refetch();
         onSignedIn?.(id);
       },
       () => undefined,
     );
-  }, [kind, mcpServer, org, oauth.clearError, oauth.startOAuth, declaredVariables, refetch, onSignedIn]);
+  }, [kind, mcpServer, org, oauth.clearError, oauth.startOAuth, refetch, onSignedIn]);
 
   const error = useMemo(() => {
     if (readError) return readError;
