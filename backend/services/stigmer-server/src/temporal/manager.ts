@@ -43,6 +43,11 @@
  * capability (the TS SDK's Worker.create takes its own dataConverter; Go
  * workers inherit the client's — same coverage, two installation sites,
  * one source array, one construction path).
+ *
+ * One choke point for the SDK's own log lines: every native connect is
+ * preceded by attaching this manager's logger to the process's SDK log
+ * bridge (sdk-logger.ts), so the Runtime logger every worker inherits is
+ * the server logger, with its threshold and its sink (#1037).
  */
 import { Client, Connection } from "@temporalio/client";
 import type { PayloadCodec } from "@temporalio/common";
@@ -54,6 +59,7 @@ import {
 } from "@temporalio/worker";
 
 import type { Logger } from "../boot/logger.js";
+import { processSdkLogBridge } from "./sdk-logger.js";
 
 /**
  * Initial connect: 3 attempts with exponential backoff (1s, 2s between
@@ -504,6 +510,9 @@ export class TemporalManager {
   }
 
   private async createAndRunWorkers(): Promise<void> {
+    // Before the connect: the first native connect creates the SDK's
+    // Runtime, after which its logger can no longer be installed.
+    processSdkLogBridge.attach(this.logger);
     const nativeConnection = await NativeConnection.connect({
       address: this.hostPort,
       ...this.connectionSecurity,

@@ -19,7 +19,9 @@
  * or not; the sink is called after the write, so a stderr fault skips the
  * export of that line rather than the reverse. This module stays free of
  * runtime dependencies on purpose: the SDK that turns an entry into a
- * record belongs to the deployable that chose a collector.
+ * record belongs to the deployable that chose a collector. The Temporal
+ * SDK's own lines ride the same seam: temporal/sdk-logger.ts installs this
+ * logger as the SDK's Runtime logger.
  *
  * The level tiering CONTRACT lives in the logging interceptor
  * (pipeline/interceptors/logging.ts) — this module only provides the

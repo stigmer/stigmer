@@ -19,17 +19,22 @@
  *     (the finding-16 seam — factories never see the NativeConnection);
  *   - a worker's run() rejection logs at ERROR with its queue identity
  *     (a permanent death re-dies on every recreate while the worker
- *     reports RUNNING — the log line is the only signal).
+ *     reports RUNNING — the log line is the only signal);
+ *   - the manager's logger is attached to the SDK log bridge before
+ *     every native connect, first start and reconnect alike (#1037: the
+ *     first native connect creates the Runtime, after which its logger
+ *     cannot be installed).
  *
- * The manager's private dial and the SDK's NativeConnection/Worker.create
- * are stubbed (module mock + private-seam override): the real connect
+ * The manager's private dial, the SDK's NativeConnection/Worker.create and
+ * the process SDK log bridge are stubbed (module mock + private-seam
+ * override), so no test here creates the native Runtime: the real connect
  * path is proven end-to-end by local-execution; these tests pin the
  * manager's OWN state machine and wiring, which only misbehave in windows
  * no live harness can schedule deterministically.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createLogger } from "../../boot/logger.js";
+import { createLogger, type Logger } from "../../boot/logger.js";
 import { TemporalManager, type WorkerFactory } from "../manager.js";
 
 const sdkSpy = vi.hoisted(() => ({
@@ -40,6 +45,19 @@ const sdkSpy = vi.hoisted(() => ({
   /** Options of every NativeConnection.connect and Connection.connect call. */
   nativeConnectCalls: [] as Record<string, unknown>[],
   clientConnectCalls: [] as Record<string, unknown>[],
+  /** Bridge attaches and native connects, in the order they happened. */
+  order: [] as Array<"attach" | "native-connect">,
+  /** The logger of every SDK log bridge attach, in order. */
+  attachedLoggers: [] as unknown[],
+}));
+
+vi.mock("../sdk-logger.js", () => ({
+  processSdkLogBridge: {
+    attach: (logger: unknown) => {
+      sdkSpy.order.push("attach");
+      sdkSpy.attachedLoggers.push(logger);
+    },
+  },
 }));
 
 vi.mock("@temporalio/client", async (importOriginal) => {
@@ -65,6 +83,7 @@ vi.mock("@temporalio/worker", async (importOriginal) => {
     NativeConnection: {
       connect: async (options: Record<string, unknown>) => {
         sdkSpy.nativeConnectCalls.push(options);
+        sdkSpy.order.push("native-connect");
         const connection = { close: async () => {} };
         sdkSpy.lastConnection = connection;
         return connection;
@@ -99,6 +118,8 @@ afterEach(async () => {
   sdkSpy.lastConnection = undefined;
   sdkSpy.nativeConnectCalls.length = 0;
   sdkSpy.clientConnectCalls.length = 0;
+  sdkSpy.order.length = 0;
+  sdkSpy.attachedLoggers.length = 0;
   for (const manager of managers.splice(0)) {
     await manager.close();
   }
@@ -379,5 +400,36 @@ describe("TemporalManager worker-death observability", () => {
     expect(death).toContain('"level":"error"');
     expect(death).toContain('"task_queue":"doomed-queue"');
     expect(death).toContain("poller exploded");
+  });
+});
+
+describe("TemporalManager SDK log routing (#1037)", () => {
+  it("attaches its logger to the SDK log bridge before every native connect", async () => {
+    const logger: Logger = createLogger({
+      level: "error",
+      pretty: false,
+      write: () => {},
+    });
+    const manager = newManager([fakeWorkerFactory({ shutdowns: 0 })], {
+      logger,
+    });
+    stubDial(manager, async () => ({
+      connection: { close: async () => {} },
+      client: {},
+    }));
+
+    await manager.initialConnect();
+    await manager.startWorkers();
+    await (
+      manager as unknown as { attemptReconnection: () => Promise<void> }
+    ).attemptReconnection();
+
+    expect(sdkSpy.order).toEqual([
+      "attach",
+      "native-connect",
+      "attach",
+      "native-connect",
+    ]);
+    expect(sdkSpy.attachedLoggers).toEqual([logger, logger]);
   });
 });
