@@ -22,6 +22,15 @@
  *   - revokeOrgAccess revokes the account's direct rows on the
  *     organization; the inert org-column arm the cloud carried is gone
  *     (Q-OR-9).
+ *   - Leaving an organization: once an account holds no row on an
+ *     organization, the rows it holds on that organization's resources
+ *     go too (shares, team memberships, an owner someone else granted),
+ *     found through the resources' scope links, each through the revoke
+ *     order; its authorship (`owner`/`creator` naming the resource's
+ *     recorded creator) stays, as open source's derived tuple does, for
+ *     the model's organization bound to govern. revokeOrgAccess always
+ *     sweeps, so a retry converges; a revoke by spec sweeps only when it
+ *     removed the last role; cleanupResource never sweeps.
  *   - With no lifecycle composed (the OSS default before the built-in
  *     posture, and any unit that implements only the three required
  *     methods), the path writes rows and notifies nothing.
@@ -61,14 +70,17 @@ import {
   unknownResourceKindMessage,
 } from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
+import type { ResourceCreators } from "../grant-path.js";
 import { DuplicatePolicyError } from "../store.js";
 import {
+  NO_RECORDED_CREATORS,
   fakeIamPolicyStore,
   orgRole,
+  recordedCreators,
   recordingLifecycle,
   triple,
 } from "./support.js";
-import type { RecordedEvent } from "./support.js";
+import type { FakeIamPolicyStore, RecordedEvent } from "./support.js";
 
 const ALICE = "ida_wtr3jcf281yfk9xx61kj59fsme";
 const BOB = "ida_0byc5k14t1e7b7kdxft7hwz1f7";
@@ -114,9 +126,11 @@ const silentLogger = { debug() {}, info() {}, warn() {}, error() {} };
 function pathOver(
   recorded: RecordedEvent[],
   lifecycle: ResourceAuthorizationLifecycle | undefined,
+  creators: ResourceCreators = NO_RECORDED_CREATORS,
 ) {
   const policies = fakeIamPolicyStore(recorded);
   const path = newIamPolicyGrantPath({
+    creators,
     policies,
     lifecycle,
     logger: silentLogger,
@@ -253,6 +267,7 @@ describe("the row for a triple is found by triple, so legacy ids converge", () =
       await racingSave(policy);
     };
     const path = newIamPolicyGrantPath({
+      creators: NO_RECORDED_CREATORS,
       policies,
       lifecycle: recordingLifecycle(recorded),
       logger: silentLogger,
@@ -503,5 +518,190 @@ describe("revokeOrgAccess: the account's direct rows on the organization", () =>
     const { path } = pathOver(recorded, recordingLifecycle(recorded));
     await path.revokeOrgAccess(BOB, "acme");
     expect(recorded).toEqual([]);
+  });
+});
+
+describe("leaving an organization: the account's rows on its resources", () => {
+  const SHARED = "agt_shared0000000000000000000";
+  const AUTHORED = "agt_authored000000000000000000";
+  const ELSEWHERE = "agt_elsewhere0000000000000000";
+  const TEAM = "tm_sre000000000000000000000000";
+  const SESSION = "ses_alice0000000000000000000000";
+  const RUN = "aex_alice0000000000000000000000";
+
+  /** The scope link a resource's creation writes: `organization:<org>` holds `organization` on it. */
+  function scopeLink(kind: string, id: string, org: string): IamPolicySpec {
+    return triple({ kind: "organization", id: org }, "organization", {
+      kind,
+      id,
+    });
+  }
+
+  const bob: CallerIdentity = {
+    ...alice,
+    identityId: BOB,
+    email: "bob@example.com",
+  };
+
+  /**
+   * alice holds acme's admin role, a viewer share on bob's agent, the
+   * owner row of the agent she created, an owner row bob granted her on
+   * his agent, a team membership, and her session's owner row with a run
+   * inside it; bob holds an agent in globex that alice may view.
+   */
+  async function seeded() {
+    const recorded: RecordedEvent[] = [];
+    const creators = recordedCreators({
+      [`agent:${SHARED}`]: BOB,
+      [`agent:${AUTHORED}`]: ALICE,
+      [`agent:${ELSEWHERE}`]: BOB,
+      [`session:${SESSION}`]: ALICE,
+    });
+    const { policies, path } = pathOver(
+      recorded,
+      recordingLifecycle(recorded),
+      creators,
+    );
+    const agent = (id: string) => ({ kind: "agent", id });
+    for (const spec of [
+      orgRole(ALICE, "admin", "acme"),
+      orgRole(ALICE, "member", "globex"),
+      scopeLink("agent", SHARED, "acme"),
+      scopeLink("agent", AUTHORED, "acme"),
+      scopeLink("agent", ELSEWHERE, "globex"),
+      scopeLink("team", TEAM, "acme"),
+      scopeLink("session", SESSION, "acme"),
+      triple({ kind: "session", id: SESSION }, "session", {
+        kind: "agent_execution",
+        id: RUN,
+      }),
+      triple({ kind: "identity_account", id: ALICE }, "viewer", agent(SHARED)),
+      triple({ kind: "identity_account", id: ALICE }, "owner", agent(AUTHORED)),
+      triple({ kind: "identity_account", id: ALICE }, "owner", agent(SHARED)),
+      triple(
+        { kind: "identity_account", id: ALICE },
+        "viewer",
+        agent(ELSEWHERE),
+      ),
+      triple({ kind: "identity_account", id: ALICE }, "member", {
+        kind: "team",
+        id: TEAM,
+      }),
+      triple({ kind: "identity_account", id: ALICE }, "owner", {
+        kind: "session",
+        id: SESSION,
+      }),
+      triple({ kind: "identity_account", id: ALICE }, "viewer", {
+        kind: "agent_execution",
+        id: RUN,
+      }),
+    ]) {
+      await path.grant(spec, bob);
+    }
+    recorded.length = 0;
+    return { recorded, policies, path };
+  }
+
+  function aliceHolds(policies: FakeIamPolicyStore): ReadonlyArray<string> {
+    return [...policies.rows.values()]
+      .filter((policy) => policy.spec?.principal?.id === ALICE)
+      .map(
+        (policy) =>
+          `${policy.spec?.relation} ${policy.spec?.resource?.kind}:${policy.spec?.resource?.id}`,
+      )
+      .sort();
+  }
+
+  it("revokeOrgAccess removes the shares and memberships the account held in the organization and keeps its authorship", async () => {
+    const { recorded, policies, path } = await seeded();
+
+    await path.revokeOrgAccess(ALICE, "acme");
+
+    expect(aliceHolds(policies)).toEqual(
+      [
+        "member organization:globex",
+        `owner agent:${AUTHORED}`,
+        `owner session:${SESSION}`,
+        `viewer agent:${ELSEWHERE}`,
+      ].sort(),
+    );
+    // Every row went through the revoke order: the hook, then the delete.
+    const kinds = recorded.map((event) => event.kind);
+    expect(kinds.filter((kind) => kind === "revoked")).toHaveLength(5);
+    expect(kinds.filter((kind) => kind === "row-delete")).toHaveLength(5);
+    for (let at = 0; at < kinds.length; at += 2) {
+      expect(kinds.slice(at, at + 2)).toEqual(["revoked", "row-delete"]);
+    }
+  });
+
+  it("a resource below another is placed by its parent's scope link", async () => {
+    const { policies, path } = await seeded();
+
+    await path.revokeOrgAccess(ALICE, "acme");
+
+    expect(aliceHolds(policies)).not.toContain(`viewer agent_execution:${RUN}`);
+  });
+
+  it("a retried revokeOrgAccess still sweeps when the organization rows are already gone", async () => {
+    const { policies, path } = await seeded();
+    for (const id of [policyIdFor(orgRole(ALICE, "admin", "acme"))]) {
+      policies.rows.delete(id);
+    }
+
+    await path.revokeOrgAccess(ALICE, "acme");
+
+    expect(aliceHolds(policies)).not.toContain(`viewer agent:${SHARED}`);
+    expect(aliceHolds(policies)).not.toContain(`member team:${TEAM}`);
+  });
+
+  it("revoking the last role by spec sweeps the organization", async () => {
+    const { policies, path } = await seeded();
+
+    await path.revokeBySpec(orgRole(ALICE, "admin", "acme"));
+
+    expect(aliceHolds(policies)).not.toContain(`viewer agent:${SHARED}`);
+    expect(aliceHolds(policies)).toContain(`owner agent:${AUTHORED}`);
+  });
+
+  it("revoking one role by spec while another remains sweeps nothing", async () => {
+    const { policies, path } = await seeded();
+    await path.grant(orgRole(ALICE, "viewer", "acme"), bob);
+
+    await path.revokeBySpec(orgRole(ALICE, "admin", "acme"));
+
+    expect(aliceHolds(policies)).toContain(`viewer agent:${SHARED}`);
+    expect(aliceHolds(policies)).toContain(`member team:${TEAM}`);
+  });
+
+  it("revoking a row that is not an organization role sweeps nothing", async () => {
+    const { policies, path } = await seeded();
+
+    await path.revokeBySpec(
+      triple({ kind: "identity_account", id: ALICE }, "member", {
+        kind: "team",
+        id: TEAM,
+      }),
+    );
+
+    expect(aliceHolds(policies)).toContain(`viewer agent:${SHARED}`);
+  });
+
+  it("an organization's delete (cleanupResource) revokes its own rows and sweeps nothing else", async () => {
+    const { policies, path } = await seeded();
+
+    await path.cleanupResource(
+      create(ApiResourceRefSchema, { kind: "organization", id: "acme" }),
+    );
+
+    expect(aliceHolds(policies)).toContain(`viewer agent:${SHARED}`);
+    expect(aliceHolds(policies)).not.toContain("admin organization:acme");
+  });
+
+  it("an owner row whose principal is not the recorded creator is a grant, and goes", async () => {
+    const { policies, path } = await seeded();
+
+    await path.revokeOrgAccess(ALICE, "acme");
+
+    expect(aliceHolds(policies)).not.toContain(`owner agent:${SHARED}`);
   });
 });

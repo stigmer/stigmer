@@ -71,7 +71,12 @@ import {
   orgAccessOwnerRoleChange,
   specOwnerRoleChange,
 } from "../steps.js";
-import { fakeIamPolicyStore, orgRole, triple } from "./support.js";
+import {
+  NO_RECORDED_CREATORS,
+  fakeIamPolicyStore,
+  orgRole,
+  triple,
+} from "./support.js";
 
 const caller = trustedLocalIdentityFor({
   email: "operator@example.com",
@@ -382,6 +387,7 @@ describe("ValidateGrantableRole", () => {
 describe("Grant and Revoke leave their result under POLICY_RESULT_KEY", () => {
   function pathOverFreshStore() {
     return newIamPolicyGrantPath({
+      creators: NO_RECORDED_CREATORS,
       policies: fakeIamPolicyStore(),
       lifecycle: undefined,
       logger: silent,
@@ -468,7 +474,12 @@ describe("owner is assigned by owners", () => {
     roles: ReadonlyArray<readonly [string, string]>,
   ): Promise<ReturnType<typeof fakeIamPolicyStore> & { readonly ownerReads: () => number }> {
     const store = fakeIamPolicyStore();
-    const path = newIamPolicyGrantPath({ policies: store, lifecycle: undefined, logger: silent });
+    const path = newIamPolicyGrantPath({
+      creators: NO_RECORDED_CREATORS,
+      policies: store,
+      lifecycle: undefined,
+      logger: silent,
+    });
     for (const [account, role] of roles) {
       await path.grant(orgRole(account, role, "acme"), caller);
     }

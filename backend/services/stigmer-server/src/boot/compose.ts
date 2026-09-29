@@ -37,6 +37,7 @@ import { newLaneAdmittedAuthorizer } from "../authorization/lane-admission.js";
 import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
 import { authorizationPostureOf } from "../authorization/posture.js";
+import { newStoreResourceCreators } from "../authorization/resource-creators.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import type { Authorizer } from "../extensions/authorizer.js";
 import { ABSENT_LICENSE_STATUS } from "../extensions/license-status.js";
@@ -445,6 +446,7 @@ export async function composeServer(
     newResourcePlatformClientStore(store);
   const iamPolicyGrantPath = newIamPolicyGrantPath({
     policies: iamPolicies,
+    creators: newStoreResourceCreators(store),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
   });

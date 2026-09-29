@@ -61,7 +61,12 @@ import { policyIdFor } from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import { newBuiltInRoleLifecycle } from "../role-lifecycle.js";
 import type { IamPolicyStore } from "../store.js";
-import { fakeIamPolicyStore, orgRole, triple } from "./support.js";
+import {
+  NO_RECORDED_CREATORS,
+  fakeIamPolicyStore,
+  orgRole,
+  triple,
+} from "./support.js";
 import type { RecordedEvent } from "./support.js";
 
 const ALICE_SUBJECT = "auth0|alice";
@@ -129,6 +134,7 @@ function lifecycleOver(
     }),
   );
   const grantPath = newIamPolicyGrantPath({
+    creators: NO_RECORDED_CREATORS,
     policies: store,
     lifecycle: undefined,
     logger: silentLogger,
