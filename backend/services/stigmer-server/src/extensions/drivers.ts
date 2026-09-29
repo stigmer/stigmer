@@ -46,6 +46,9 @@
  *   - visitor classifier (which callers are visitors: admitted to the
  *     organization's agents without belonging to it, whose runs never
  *     carry its standing context) — landed with stigmer/stigmer#1401
+ *   - resource row readers (where the built-in authorizer reads the rows
+ *     of a kind a unit keeps in a store of its own, so an edition above
+ *     open source can keep open source's authorizer) — landed 2026-09-29
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -53,10 +56,14 @@
  * and sandbox-provisioner drivers merge as name-keyed maps — a
  * duplicated name, or a name shadowing a built-in, is a boot throw (the
  * gateSteps rule: a registration the factory could never reach must fail
- * loudly, not sit dark). OSS defaults install at the boot/compose.ts
+ * loudly, not sit dark); resource row readers merge as a kind-keyed map
+ * under the same rule, with open-source kinds and the identity account
+ * reserved (extensions/resource-row-reader.ts). OSS defaults install at the boot/compose.ts
  * consumption sites, never here (the default-lives-with-the-consumer
  * doctrine).
  */
+import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
@@ -78,6 +85,7 @@ import type { OrganizationDirectory } from "./organization-directory.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
+import type { ResourceRowReader } from "./resource-row-reader.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 
@@ -309,4 +317,15 @@ export interface ExtensionDrivers {
    * visitor — OSS behavior byte-identical.
    */
   readonly visitorClassifier?: VisitorClassifier;
+  /**
+   * Row readers keyed by the kind whose rows they read
+   * (extensions/resource-row-reader.ts): the built-in authorizer's loader
+   * asks a kind's reader before the generic Store, so a unit that keeps a
+   * kind in a store of its own can still be answered by open source's
+   * authorizer. Instances, one per kind across the composed set; an
+   * open-source kind or `identity_account` is a boot throw. When absent,
+   * every row is read from the generic Store and identity accounts through
+   * the account port — OSS behavior byte-identical.
+   */
+  readonly resourceRowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
 }

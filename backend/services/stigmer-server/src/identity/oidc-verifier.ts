@@ -6,11 +6,19 @@
  * Cloud points STIGMER_OIDC_ISSUER at Auth0 and registers NO code here;
  * any self-host points it at their own issuer (Keycloak, Okta, Dex, …).
  *
- * Claim rule: any JWT-shaped token (three non-empty dot-separated
- * segments). API keys never look like JWTs (`stk_` + one Base64URL run),
- * so ordering after the apikey verifier keeps both claims disjoint; a
- * JWT-shaped token that fails verification THROWS (identity.ts contract)
- * with the Java classifyAuthError copy, byte-pinned:
+ * Claim rule: a JWT-shaped token (three non-empty dot-separated segments)
+ * whose `iss` is this lane's issuer, compared exactly, as discovery
+ * compares it. API keys never look like JWTs (`stk_` + one Base64URL run),
+ * so ordering after the apikey verifier keeps both claims disjoint. A JWT
+ * naming another issuer PASSES, so a lane composed after this one (a
+ * composition's own sign-in lane for another issuer) can claim it, and a
+ * token no lane claims is refused by the verifier chain as unclaimed —
+ * UNAUTHENTICATED either way. The `iss` read before verification only
+ * routes the token; it grants nothing, because a claimed token is then
+ * verified whole against this issuer's keys. A JWT-shaped token with no
+ * readable string `iss` is malformed and THROWS "invalid token". A claimed
+ * token that fails verification THROWS (identity.ts contract) with the
+ * Java classifyAuthError copy, byte-pinned:
  *
  *   - expiry → "token has expired"
  *   - audience mismatch → "token audience does not match the expected audience"
@@ -41,10 +49,15 @@
  * issuer is the configured issuer; email/displayName come from the
  * standard `email`/`name` claims when present (the DD-007 Q5 addendum
  * added the fields for exactly these claims), whichever way the subject
- * resolved. Claim-or-pass runs before any of this: a non-JWT token
- * passes with no network.
+ * resolved. Claim-or-pass runs before any of this: a non-JWT token, and a
+ * JWT from another issuer, passes with no network.
  */
-import { createRemoteJWKSet, jwtVerify, errors as joseErrors } from "jose";
+import {
+  createRemoteJWKSet,
+  decodeJwt,
+  jwtVerify,
+  errors as joseErrors,
+} from "jose";
 import type { JWTPayload } from "jose";
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -98,6 +111,9 @@ export function newOidcIdentityVerifier(
       if (!isJwtShaped(token)) {
         return null;
       }
+      if (unverifiedIssuerOf(token) !== config.issuer) {
+        return null;
+      }
       const keys = await jwksFor();
       let payload: JWTPayload;
       try {
@@ -125,6 +141,24 @@ export function newOidcIdentityVerifier(
       };
     },
   };
+}
+
+/**
+ * The `iss` a JWT-shaped token names, read without verifying it — only to
+ * decide which lane verifies it. A payload that does not decode, or names
+ * no string issuer, is a malformed credential this lane refuses outright.
+ */
+function unverifiedIssuerOf(token: string): string {
+  let issuer: unknown;
+  try {
+    issuer = decodeJwt(token).iss;
+  } catch {
+    throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
+  }
+  if (typeof issuer !== "string" || issuer === "") {
+    throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
+  }
+  return issuer;
 }
 
 /** Three non-empty dot-separated segments — the JWS compact shape. */

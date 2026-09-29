@@ -35,10 +35,16 @@ import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/pro
 import { newBuiltInAuthorizer } from "../authorization/authorizer.js";
 import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
-import { authorizationPostureOf } from "../authorization/posture.js";
+import { newBuiltInPolicyCheck } from "../authorization/policy-check.js";
+import { builtInModel } from "../authorization/model/index.js";
+import {
+  authorizationPostureOf,
+  kindsWithoutRows,
+} from "../authorization/posture.js";
 import { newStoreResourceCreators } from "../authorization/resource-creators.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import type { Authorizer } from "../extensions/authorizer.js";
+import type { ComposedServices } from "../extensions/composed-services.js";
 import { ABSENT_LICENSE_STATUS } from "../extensions/license-status.js";
 import { relaxedEgressPolicy } from "../extensions/outbound-egress.js";
 import type { ListReadScope } from "../extensions/list-read-scope.js";
@@ -162,6 +168,8 @@ import {
   initRpcMetrics,
   metricsExportPosture,
 } from "../observability/rpc-metrics.js";
+import { kindEnumName } from "../pipeline/apiresource-meta.js";
+import { quoteJoin } from "../domain/mcpserver/enabledtools/enabledtools.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js";
 import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
@@ -387,27 +395,40 @@ export async function composeServer(
   // authorizer, so the identity stage installs the built-in role
   // lifecycle and the membership rules under both; a composition with its
   // own Authorizer has its own onboarding and gets neither.
+  // An edition above open source serves many organizations; without the
+  // require-authentication posture a request carrying no credential would
+  // act as the laptop's one operator on every one of them. Refused at boot,
+  // before any side effect, whichever authorizer the composition runs.
+  if (!requireAuthentication && extensions.edition !== ServerEdition.oss) {
+    throw new Error(
+      `the composition serves edition '${ServerEdition[extensions.edition]}' without the require-authentication posture — an edition above open source must sign its callers in: declare requireAuthentication on a unit that registers a verifier, or configure STIGMER_OIDC_ISSUER`,
+    );
+  }
   const authorizationPosture = authorizationPostureOf({
     unitAuthorizer: extensions.authorizer !== undefined,
     requireAuthentication,
   });
   const builtInAuthorization = authorizationPosture !== "unit-authorizer";
   // The built-in authorizer evaluates the one model every edition reads,
-  // but it derives each resource's tuples from the rows in this server's
-  // store. A wider edition's kinds are served by extensions that keep
-  // their rows in stores of their own, which the built-in tuple source
-  // cannot read, so a composition that serves a wider edition must bring
-  // its own Authorizer rather than get answers derived from rows that are
-  // not there. Refused at boot, the same class as a misconfigured
-  // registry and the verifierless posture below: caught before any side
-  // effect.
-  if (
-    authorizationPosture === "built-in" &&
-    extensions.edition !== ServerEdition.oss
-  ) {
-    throw new Error(
-      `the composition serves edition '${ServerEdition[extensions.edition]}' under the require-authentication posture but registers no Authorizer — the built-in authorizer enforces the open-source kinds only; register an Authorizer or serve the open-source edition`,
-    );
+  // and derives each resource's tuples from its row. A wider edition's
+  // kinds are served by units that keep their rows in stores of their own,
+  // so each such unit registers a reader for its kinds
+  // (drivers.resourceRowReaders), and the built-in posture serves a wider
+  // edition only when every kind it serves has rows the derivation can
+  // read — never answers derived from rows that are not there. Refused at
+  // boot, the same class as a misconfigured registry and the verifierless
+  // posture below: caught before any side effect.
+  if (authorizationPosture === "built-in") {
+    const unreadable = kindsWithoutRows({
+      edition: extensions.edition,
+      model: builtInModel,
+      readers: extensions.drivers.resourceRowReaders,
+    });
+    if (unreadable.length > 0) {
+      throw new Error(
+        `the composition serves edition '${ServerEdition[extensions.edition]}' under the built-in authorizer but registers no row reader for ${quoteJoin(unreadable.map(kindEnumName))} — register a reader for each kind a unit serves (drivers.resourceRowReaders), or register an Authorizer`,
+      );
+    }
   }
 
   // Stage: identity accounts (20260911.11) — the first domain whose
@@ -536,6 +557,7 @@ export async function composeServer(
           store,
           policies: iamPolicies,
           accounts: identityAccounts,
+          rowReaders: extensions.drivers.resourceRowReaders,
           edition: extensions.edition,
           logger,
         })
@@ -547,6 +569,7 @@ export async function composeServer(
           store,
           policies: iamPolicies,
           accounts: identityAccounts,
+          rowReaders: extensions.drivers.resourceRowReaders,
         })
       : undefined);
   const scheduleFireCaller: ScheduleFireCallerMint | undefined =
@@ -569,6 +592,7 @@ export async function composeServer(
           store,
           policies: iamPolicies,
           accounts: identityAccounts,
+          rowReaders: extensions.drivers.resourceRowReaders,
           logger,
         })
       : undefined);
@@ -1709,10 +1733,12 @@ export async function composeServer(
   //     the issuer left a posture-declaring composition minting keys
   //     nothing verified.
   //   - the OIDC verifier rides the ISSUER alone: it is open source's
-  //     single-issuer lane, and a composition with verifiers of its own
-  //     names their issuers and audiences itself and declares the posture
-  //     instead — so the knob and the extension entries never both claim
-  //     one JWT.
+  //     operator lane, and it claims only tokens its issuer signed
+  //     (identity/oidc-verifier.ts), passing every other JWT on. So the
+  //     knob and a composition's own lanes for other issuers compose side
+  //     by side: the operator signs in through the knob, and a unit's lane
+  //     claims the tokens of the issuers it names. A unit lane must refuse
+  //     to route the operator's issuer (it is claimed here first).
   //   - both OSS verifiers resolve their subject through the identity-
   //     account domain (20260911.11 Q-IA-2, A6): a provisioned user is
   //     stamped with the account id whichever credential they present,
@@ -1725,11 +1751,13 @@ export async function composeServer(
   //     admits the bearer of the server's own execution-scoped runner
   //     token as the human whose run it is, which only means something
   //     when the server enforces who may report on a run. Its place in
-  //     the chain is the contract: BETWEEN `apikey` and `oidc`, because
-  //     the OIDC verifier claims any JWT-shaped token and throws on one
-  //     it cannot verify — composed after it, ours would never see its
-  //     own token, and every runner call would fail as the OIDC verifier's
-  //     fault (stigmer#1137). Until 2026-09-16 this comment read "the
+  //     the chain is the contract: BETWEEN `apikey` and `oidc`. Until
+  //     2026-09-29 the OIDC verifier claimed any JWT-shaped token and threw
+  //     on one it could not verify, so composed after it, ours never saw
+  //     its own token and every runner call failed as the OIDC verifier's
+  //     fault (stigmer#1137); it now claims only its own issuer's tokens,
+  //     and the server's own token is still claimed first, by its own
+  //     lane, whatever issuer an operator configures. Until 2026-09-16 this comment read "the
   //     runner's credential in either posture is an operator-minted API
   //     token via STIGMER_TOKEN — no runner-specific verifier"; that
   //     described a server whose Authorizer was permissive. The operator's
@@ -1858,6 +1886,32 @@ export async function composeServer(
     consoleLane,
   });
 
+  // The hand-over (extensions/composed-services.ts): every unit receives
+  // the composition's own instances — the one Authorizer the Authorize
+  // step calls, the list read scope, the policy check, the tuple lifecycle
+  // and the in-process transport — before composeServer returns, because a
+  // unit's lanes may be called by anyone from then on. The policy check is
+  // the registered engine's, or under the built-in posture the evaluator's.
+  const composedServices: ComposedServices = {
+    authorizer,
+    listReadScope,
+    authorizationQueries:
+      extensions.drivers.authorizationQueries ??
+      (authorizationPosture === "built-in"
+        ? newBuiltInPolicyCheck({
+            store,
+            policies: iamPolicies,
+            accounts: identityAccounts,
+            rowReaders: extensions.drivers.resourceRowReaders,
+          })
+        : undefined),
+    resourceAuthorizationLifecycle: authorizationLifecycle,
+    inProcessTransport: inProcessWiring.transport,
+  };
+  for (const { hook } of extensions.onComposed) {
+    hook(composedServices);
+  }
+
   return {
     healthState,
     store,
@@ -1871,6 +1925,20 @@ export async function composeServer(
     routes,
 
     async start(): Promise<number> {
+      // The units' own boot work first, in unit order, before any worker,
+      // reconciler or listener can reach their lanes: a repair of a unit's
+      // rows must finish before anything serves, and a failed one fails
+      // the start, naming its unit.
+      for (const { unit, hook } of extensions.start) {
+        try {
+          await hook();
+        } catch (error) {
+          throw new Error(
+            `extension '${unit}' failed to start: ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error },
+          );
+        }
+      }
       // Temporal boot is NON-fatal end to end (Go server.go): a failed
       // initial connect leaves the engine unavailable and the monitor
       // retrying; a failed worker start is a warning. Health below flips

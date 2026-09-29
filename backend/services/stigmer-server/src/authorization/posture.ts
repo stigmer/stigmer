@@ -14,19 +14,31 @@
  *     posture (the OSS OIDC issuer, or a unit's declaration). Open source
  *     composes the built-in Authorizer, the organization directory and
  *     the schedule fire caller — the cloud's model evaluated over derived
- *     tuples — so the roles 2b records are enforced.
+ *     tuples — so the roles 2b records are enforced. An edition above
+ *     open source may run it too, once every kind it serves has rows the
+ *     derivation can read (`kindsWithoutRows` below).
  *   - `trusted-local`: no unit Authorizer and no authentication posture —
  *     the laptop. The permissive default stays: one caller, nothing to
  *     separate; the trusted-local identity carries the operator's EMAIL,
  *     never an account id, and pre-2a rows are stamped `"system"`, so an
  *     enforcing evaluator would refuse the laptop's own history. The roles
  *     still exist (the lifecycle and the membership rules run) to feed the
- *     Members page truthfully.
+ *     Members page truthfully. Open source's edition only: a composition
+ *     serving an edition above it refuses to boot here, since an edition
+ *     of many organizations with no sign-in would act as the operator for
+ *     every request that carries no credential.
  *
  * The type lives with the module that gives it meaning (the precedent:
  * `ConsoleSignInPosture` in transport/console/handler.ts); the
  * composition root computes the value once and hands it down.
  */
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+
+import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
+import { kindServedByEdition } from "../pipeline/apiresource-meta.js";
+import type { Model } from "./model/index.js";
+
 export type AuthorizationPosture =
   | "trusted-local"
   | "built-in"
@@ -46,4 +58,30 @@ export function authorizationPostureOf(
     return "unit-authorizer";
   }
   return inputs.requireAuthentication ? "built-in" : "trusted-local";
+}
+
+/**
+ * The kinds an edition serves whose rows the built-in authorizer could not
+ * read: declared by the model with a row schema, served by the edition,
+ * not served by open source (whose kinds are its own store's), and not
+ * `identity_account` (read through the account port), with no reader
+ * registered for them. Empty means the built-in posture can answer every
+ * check the edition's lanes make. The composition root refuses a built-in
+ * posture that leaves any, rather than answer from rows that are not there.
+ */
+export function kindsWithoutRows(inputs: {
+  readonly edition: ServerEdition;
+  readonly model: Model;
+  readonly readers: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
+}): ReadonlyArray<ApiResourceKind> {
+  return inputs.model.declarations
+    .filter(
+      (declaration) =>
+        declaration.schema !== undefined &&
+        declaration.kind !== ApiResourceKind.identity_account &&
+        kindServedByEdition(declaration.kind, inputs.edition) &&
+        !kindServedByEdition(declaration.kind, ServerEdition.oss) &&
+        !inputs.readers.has(declaration.kind),
+    )
+    .map((declaration) => declaration.kind);
 }

@@ -5,13 +5,16 @@
  * enforcement for authorizer and edition, unique unit names, the
  * unknown-gate-slot boot throw, and the O5 driver points (single-instance
  * providers, name-keyed storage-driver registration with duplicate and
- * built-in-shadow throws). The composed-server behavior (services on
+ * built-in-shadow throws), the row readers' kind-keyed merge with its
+ * reserved kinds, and the units' hand-over and start points kept in unit
+ * order. The composed-server behavior (services on
  * both routers, edition on the wire) is pinned by
  * extension-composition.test.ts; empty-set wire byte-identity is pinned by
  * the conformance rosters.
  */
 import { describe, expect, it } from "vitest";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -28,6 +31,7 @@ import type { CallerGuard } from "../caller-guards.js";
 import { DECLARED_GATE_SLOTS, GATE_SLOT_NAMES } from "../gate-slots.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { IdentityVerifier } from "../identity.js";
+import type { ResourceRowReader } from "../resource-row-reader.js";
 import { resolveExtensions } from "../registry.js";
 import type { ServerExtension } from "../registry.js";
 
@@ -146,6 +150,9 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.drivers.secretCodecs.size).toBe(0);
     expect(resolved.services).toEqual([]);
     expect(resolved.workers).toEqual([]);
+    expect(resolved.drivers.resourceRowReaders.size).toBe(0);
+    expect(resolved.onComposed).toEqual([]);
+    expect(resolved.start).toEqual([]);
   });
 
   it("resolves the empty list identically to the omitted set", () => {
@@ -681,5 +688,144 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
     ).toThrowError(
       /extension 'mismatched' registers secret codec 'v2' \(codec declares 'v3'\)/,
     );
+  });
+});
+
+/**
+ * The row readers (drivers.resourceRowReaders): a kind-keyed map merged
+ * across units under the keyed maps' rule — one reader per kind, and none
+ * for a kind open source keeps in its own store or reads through the
+ * account port, since a reader there would answer checks from rows the
+ * lanes never wrote.
+ */
+describe("resolveExtensions — resource row readers", () => {
+  const reader = (): ResourceRowReader => ({
+    findById: () => Promise.resolve(undefined),
+  });
+
+  it("merges readers as a kind-keyed map across units", () => {
+    const providers = reader();
+    const teams = reader();
+    const resolved = resolveExtensions([
+      {
+        name: "identity",
+        drivers: {
+          resourceRowReaders: new Map([
+            [ApiResourceKind.identity_provider, providers],
+          ]),
+        },
+      },
+      {
+        name: "teams",
+        drivers: {
+          resourceRowReaders: new Map([[ApiResourceKind.team, teams]]),
+        },
+      },
+    ]);
+    expect(
+      resolved.drivers.resourceRowReaders.get(
+        ApiResourceKind.identity_provider,
+      ),
+    ).toBe(providers);
+    expect(resolved.drivers.resourceRowReaders.get(ApiResourceKind.team)).toBe(
+      teams,
+    );
+    expect(resolved.drivers.resourceRowReaders.size).toBe(2);
+  });
+
+  it("throws on a second reader for one kind, naming both units", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "first",
+          drivers: {
+            resourceRowReaders: new Map([
+              [ApiResourceKind.invitation, reader()],
+            ]),
+          },
+        },
+        {
+          name: "second",
+          drivers: {
+            resourceRowReaders: new Map([
+              [ApiResourceKind.invitation, reader()],
+            ]),
+          },
+        },
+      ]),
+    ).toThrowError(
+      /extension 'second' registers a row reader for 'invitation', but 'first' already did/,
+    );
+  });
+
+  it("throws on a reader for a kind open source serves from its own store", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "shadowing",
+          drivers: {
+            resourceRowReaders: new Map([[ApiResourceKind.agent, reader()]]),
+          },
+        },
+      ]),
+    ).toThrowError(
+      "extension 'shadowing' registers a row reader for 'agent', which open source serves from its own store — readers are for kinds a unit keeps itself",
+    );
+  });
+
+  it("throws on a reader for the identity account, which the account port reads", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "accounts",
+          drivers: {
+            resourceRowReaders: new Map([
+              [ApiResourceKind.identity_account, reader()],
+            ]),
+          },
+        },
+      ]),
+    ).toThrowError(
+      /registers a row reader for 'identity_account', which is reserved — identity accounts are read through the account port/,
+    );
+  });
+
+  it("throws on a reader for the unknown kind", () => {
+    expect(() =>
+      resolveExtensions([
+        {
+          name: "unknown",
+          drivers: {
+            resourceRowReaders: new Map([
+              [ApiResourceKind.api_resource_kind_unknown, reader()],
+            ]),
+          },
+        },
+      ]),
+    ).toThrowError(/registers a row reader for the unknown kind/);
+  });
+});
+
+/**
+ * The two unit points (extensions/composed-services.ts): each unit's
+ * hand-over and start hook is kept with its unit's name, in unit order,
+ * so compose.ts calls them in that order and a failing start names its
+ * unit. A unit that declares neither contributes nothing.
+ */
+describe("resolveExtensions — the hand-over and start points", () => {
+  it("keeps each unit's hooks with its name, in unit order", () => {
+    const composedFirst = (): void => {};
+    const composedThird = (): void => {};
+    const startFirst = (): Promise<void> => Promise.resolve();
+    const resolved = resolveExtensions([
+      { name: "first", onComposed: composedFirst, start: startFirst },
+      { name: "second" },
+      { name: "third", onComposed: composedThird },
+    ]);
+    expect(resolved.onComposed).toEqual([
+      { unit: "first", hook: composedFirst },
+      { unit: "third", hook: composedThird },
+    ]);
+    expect(resolved.start).toEqual([{ unit: "first", hook: startFirst }]);
   });
 });

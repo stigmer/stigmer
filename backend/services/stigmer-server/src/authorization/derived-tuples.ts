@@ -45,6 +45,10 @@
  *     organization`), so a person who left the organization reads the
  *     team's rows and is admitted by none of them.
  *
+ * A check about an object rather than a person (an organization asked
+ * whether a resource is its own, authorization/policy-check.ts) reads the
+ * rows that name that object directly, and holds no team.
+ *
  * Open source serves no team (the kind's tier is enterprise), so the
  * person's rows name none and the second read never happens: one read per
  * source, an indexed read on the OSS adapter (its list index by
@@ -71,15 +75,19 @@
  * spec fields the facts do not carry), so listing the two instance kinds
  * costs one row read per candidate, stated in the scope's cost pins.
  *
- * Rows are read through the generic Store, with one exception: an
- * `identity_account` object is read through the account PORT
- * (`accounts.findById`), the binding every other reader of accounts —
- * the verifiers, whoAmI, the create path — follows. A composition that
- * registers its own account store and keeps the built-in authorizer
- * therefore still lets a person read their own account (the derivation
- * is `owner@self`); a generic read would miss and deny them their own
- * row. IamPolicy rows are already the port's (`findByPrincipal`), so no
- * second exception is needed for them.
+ * A row is read where the composition keeps it. Open source's kinds are
+ * read through the generic Store. An `identity_account` object is read
+ * through the account PORT (`accounts.findById`), the binding every other
+ * reader of accounts — the verifiers, whoAmI, the create path — follows:
+ * a composition that registers its own account store and keeps the
+ * built-in authorizer therefore still lets a person read their own
+ * account (the derivation is `owner@self`), where a generic read would
+ * miss and deny them their own row. A kind a unit keeps in a store of its
+ * own (an identity provider, an invitation, a team, in the editions that
+ * serve them) is read through the reader the unit registered for it
+ * (`rowReaders`, extensions/resource-row-reader.ts), so a team a grant
+ * names resolves its organization from the row its unit wrote. IamPolicy
+ * rows are already the port's (`findByPrincipal`), so they need no reader.
  */
 import type { Message } from "@bufbuild/protobuf";
 
@@ -91,6 +99,7 @@ import { isPersonStamp } from "../domain/iampolicy/membership.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { VisibilityTupleShape } from "../extensions/resource-authorization.js";
+import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import {
   getKindMeta,
   kindByEnumName,
@@ -105,13 +114,13 @@ import type { Model } from "./model/index.js";
 import { builtInModel } from "./model/index.js";
 import type {
   ObjectRef,
-  Person,
+  Principal,
   RowLoader,
   Subject,
   Tuple,
   TupleSource,
 } from "./tuples.js";
-import { ACCOUNT_TYPE, formatObjectRef } from "./tuples.js";
+import { ACCOUNT_TYPE, formatObjectRef, isPerson } from "./tuples.js";
 
 /**
  * Kinds whose `[identity_account]` owner is recorded as an IamPolicy row
@@ -227,6 +236,8 @@ export interface DerivedTupleSourceDeps {
   readonly policies: IamPolicyStore;
   /** The account port — an `identity_account` object is read through it, never the generic Store (the module header). */
   readonly accounts: Pick<IdentityAccountStore, "findById">;
+  /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`); absent, every other row is the generic Store's. */
+  readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
   /** The declarations to derive with; the built-in model unless a test says otherwise. */
   readonly model?: Model;
 }
@@ -253,7 +264,7 @@ export interface DerivedTupleSourceSeed {
 
 export function newDerivedTupleSource(
   deps: DerivedTupleSourceDeps,
-  person: Person,
+  principal: Principal,
   seed?: DerivedTupleSourceSeed,
 ): DerivedTupleSource {
   const model = deps.model ?? builtInModel;
@@ -312,9 +323,13 @@ export function newDerivedTupleSource(
 
   function rowTuples(): Promise<ReadonlyArray<Tuple>> {
     if (personRows === undefined) {
-      personRows = deps.policies
-        .findByPrincipal(ACCOUNT_TYPE, person.accountId)
-        .then((found) => found.flatMap(tuplesOfPersonRow));
+      personRows = isPerson(principal)
+        ? deps.policies
+            .findByPrincipal(ACCOUNT_TYPE, principal.accountId)
+            .then((found) => found.flatMap(tuplesOfPersonRow))
+        : deps.policies
+            .findByPrincipal(principal.object.type, principal.object.id)
+            .then((found) => found.filter(isDirectGrant).map(tupleOfRow));
     }
     return personRows;
   }
@@ -386,7 +401,7 @@ export function newDerivedTupleSource(
  * the row does not exist.
  */
 async function loadRow(
-  deps: Pick<DerivedTupleSourceDeps, "store" | "accounts">,
+  deps: Pick<DerivedTupleSourceDeps, "store" | "accounts" | "rowReaders">,
   model: Model,
   object: ObjectRef,
 ): Promise<Message | undefined> {
@@ -403,6 +418,10 @@ async function loadRow(
   if (kind === ApiResourceKind.identity_account) {
     return deps.accounts.findById(object.id);
   }
+  const reader = deps.rowReaders?.get(kind);
+  if (reader !== undefined) {
+    return reader.findById(object.id);
+  }
   try {
     return await deps.store.getResource(kind, object.id, declaration.schema);
   } catch (error) {
@@ -411,6 +430,15 @@ async function loadRow(
     }
     throw error;
   }
+}
+
+/**
+ * Whether a row names its principal directly (`organization:o`), not as a
+ * userset (`organization:o#member`): the rows an object principal itself
+ * holds. A userset row grants the object's members, never the object.
+ */
+function isDirectGrant(row: IamPolicy): boolean {
+  return (row.spec?.principal?.relation ?? "") === "";
 }
 
 /** The key a tuple is served under: its object and relation. */

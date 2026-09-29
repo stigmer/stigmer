@@ -70,6 +70,7 @@ import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apireso
 import type { Logger } from "../boot/logger.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 import type { CallerIdentity } from "../extensions/identity.js";
+import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import type {
   ListEntryMeta,
   ListReadScope,
@@ -101,6 +102,8 @@ export interface BuiltInListReadScopeDeps {
   /** The account port: the caller's account, and the parent hops that land on one. */
   readonly accounts: AccountsByCaller;
   readonly logger: Logger;
+  /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`), handed to every tuple source. */
+  readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
   /** The declarations to evaluate; the built-in model unless a test says otherwise. */
   readonly model?: Model;
 }
@@ -126,6 +129,7 @@ export function newBuiltInListReadScope(
         store: deps.store,
         policies: deps.policies,
         accounts: deps.accounts,
+        rowReaders: deps.rowReaders,
         model,
       },
       person,

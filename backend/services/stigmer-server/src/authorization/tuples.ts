@@ -83,6 +83,23 @@ export interface Person {
   readonly aliases: ReadonlySet<string>;
 }
 
+/**
+ * An object other than a person that a check asks about: "does
+ * `organization:o` hold `organization` on this agent", the question a
+ * grant to a team asks before it names the team on a resource. It matches
+ * a tuple's subject by its own reference, with no aliases.
+ */
+export interface ObjectPrincipal {
+  readonly object: ObjectRef;
+}
+
+/** Whom a check asks about: a person through their aliases, or any other object by its reference. */
+export type Principal = Person | ObjectPrincipal;
+
+export function isPerson(principal: Principal): principal is Person {
+  return "accountId" in principal;
+}
+
 // ---------------------------------------------------------------------------
 // The string notation.
 // ---------------------------------------------------------------------------
