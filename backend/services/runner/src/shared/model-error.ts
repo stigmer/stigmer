@@ -88,17 +88,22 @@ export interface ModelErrorContext {
 
 /**
  * Walk the `cause` chain to the root error. LangChain's MiddlewareError (and
- * anything else that chains causes) preserves the original SDK error there.
- * Depth-capped so a pathological cause cycle cannot spin forever.
+ * anything else that chains causes) preserves the original SDK error there,
+ * and the root is the one link carrying the provider's `.status`.
+ *
+ * The chain is as long as the agent's middleware stack: LangChain wraps a
+ * model call's failure once per middleware that implements `wrapModelCall`
+ * (`MiddlewareError.wrap` in its AgentNode), and a native turn stacks
+ * deepagents' own middleware, the to-do list and Stigmer's, well past ten
+ * layers. So the walk has no depth bound; a cause cycle ends it instead, at
+ * the first error seen twice.
  */
 export function unwrapModelError(err: unknown): unknown {
+  const seen = new Set<unknown>([err]);
   let current = err;
-  for (let depth = 0; depth < 10; depth++) {
-    if (current instanceof Error && current.cause instanceof Error) {
-      current = current.cause;
-    } else {
-      return current;
-    }
+  while (current instanceof Error && current.cause instanceof Error && !seen.has(current.cause)) {
+    current = current.cause;
+    seen.add(current);
   }
   return current;
 }

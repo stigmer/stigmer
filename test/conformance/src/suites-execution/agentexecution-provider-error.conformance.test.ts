@@ -20,6 +20,16 @@
 //   where the runner-side classifier is the defense in depth.
 // Both must land as the same platform-attributed error, on status.error AND
 // in every transcript message.
+//
+// Two more arms are classified by their HTTP status, not their text: a
+// provider 401 on the platform's key, and a 401 on an organization's own key
+// (the body the cloud proxy authors for a call it served on that key, whose
+// message carries the organization-key sentinel). A status reaches the
+// classifier only if its walk down the error's `cause` chain gets past every
+// MiddlewareError LangChain wraps it in, one per model-call middleware of the
+// turn, to the provider SDK's error (stigmer/stigmer#1450). A 401 is not
+// retried, and both are scripted `persistent` so the turn's call, not a side
+// call, is the one that fails the run.
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -58,6 +68,27 @@ afterAll(async () => {
 const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
 // The stable code the runner's classifier stamps on the failure.
 const PLATFORM_CAPACITY_CODE = "LLM_PLATFORM_CAPACITY";
+// Lockstep with the runner's ORGANIZATION_PROVIDER_KEY_SENTINEL
+// (shared/model-error.ts) and the cloud proxy's organization-key error body:
+// the call was served on the organization's own provider key.
+const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
+// The stable code a rejected key is classified as, by its 401.
+const AUTHENTICATION_CODE = "LLM_AUTHENTICATION_ERROR";
+
+// Anthropic's envelope for a rejected key.
+const ANTHROPIC_AUTHENTICATION_BODY = {
+  type: "error",
+  error: { type: "authentication_error", message: "invalid x-api-key" },
+};
+
+// The same failure as the cloud proxy relays it from an organization's own key.
+const ORGANIZATION_KEY_AUTHENTICATION_BODY = {
+  type: "error",
+  error: {
+    type: "authentication_error",
+    message: `invalid x-api-key (served on your organization's own Anthropic key) [code: ${ORGANIZATION_PROVIDER_KEY_SENTINEL}]`,
+  },
+};
 
 // The body the cloud proxy authors when the platform's own provider key is
 // rejected upstream — the runner-facing half of that contract.
@@ -150,4 +181,38 @@ describe("AgentExecution provider-error attribution (proxy mode)", () => {
     expectPlatformAttributed(final);
     expect(final.status?.error ?? "", "the incident's tell-tale phrase is gone").not.toContain("credit balance is too low");
   }, FAILURE_ARM_TIMEOUT_MS);
+
+  it("a provider 401 behind the proxy is classified by its status, never labelled by the LangChain wrapper", async () => {
+    mock.enqueueError(401, { body: ANTHROPIC_AUTHENTICATION_BODY, persistent: true });
+
+    const final = await runToFailure();
+
+    expectClassifiedByStatus(final);
+  }, FAILURE_ARM_TIMEOUT_MS);
+
+  it("a 401 on the organization's own key is attributed to that key", async () => {
+    mock.enqueueError(401, { body: ORGANIZATION_KEY_AUTHENTICATION_BODY, persistent: true });
+
+    const final = await runToFailure();
+
+    expectClassifiedByStatus(final);
+    const error = final.status?.error ?? "";
+    expect(error, `the failure is the organization's key (status.error was: ${error})`).toContain(
+      "rejected your organization's own key",
+    );
+    expect(error, "never worded as the platform").not.toContain("Stigmer platform");
+  }, FAILURE_ARM_TIMEOUT_MS);
 });
+
+// A failure the runner can only classify by its HTTP status: the stable code
+// present, and neither the wrapper class nor LangChain's troubleshooting link
+// on status.error or in the transcript.
+function expectClassifiedByStatus(final: AgentExecution): void {
+  const error = final.status?.error ?? "";
+  expect(error, `the status-classified code (status.error was: ${error})`).toContain(AUTHENTICATION_CODE);
+  expect(error, "the LangChain wrapper class never labels the user-visible error").not.toContain("MiddlewareError");
+  expect(error, "LangChain's troubleshooting link never reaches the customer").not.toContain("Troubleshooting URL");
+  for (const message of final.status?.messages ?? []) {
+    expect(message.content, "the wrapper tag must not leak into the transcript").not.toContain("MiddlewareError");
+  }
+}

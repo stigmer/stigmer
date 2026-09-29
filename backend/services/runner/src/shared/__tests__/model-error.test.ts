@@ -30,6 +30,20 @@ function middlewareWrap(inner: Error): Error {
   return wrapped;
 }
 
+/**
+ * Wrap as a native turn does: LangChain adds one MiddlewareError per
+ * middleware implementing `wrapModelCall`, and the production stack has
+ * more than ten of them (stigmer/stigmer#1450).
+ */
+function wrapLikeMiddlewareStack(inner: Error, layers: number): Error {
+  let wrapped = inner;
+  for (let layer = 0; layer < layers; layer++) wrapped = middlewareWrap(wrapped);
+  return wrapped;
+}
+
+/** A middleware stack deeper than any native turn's today. */
+const DEEP_STACK = 30;
+
 /** Mimic a provider SDK APIError: message + numeric `.status`. */
 function sdkError(status: number, message: string): Error {
   return Object.assign(new Error(message), { status });
@@ -63,13 +77,17 @@ describe("unwrapModelError", () => {
     expect(unwrapModelError(wrapped)).toBe(root);
   });
 
-  it("survives a pathological cause cycle via the depth cap", () => {
+  it("walks to the root however deep the middleware stack wraps it", () => {
+    const root = sdkError(401, "401 authentication_error");
+    expect(unwrapModelError(wrapLikeMiddlewareStack(root, DEEP_STACK))).toBe(root);
+  });
+
+  it("ends a cause cycle at the first error seen twice", () => {
     const a = new Error("a");
     const b = new Error("b");
     a.cause = b;
     b.cause = a;
-    // Any chain member is acceptable; the point is it terminates.
-    expect(unwrapModelError(a)).toBeInstanceOf(Error);
+    expect(unwrapModelError(a)).toBe(b);
   });
 
   it("passes non-Error values through", () => {
@@ -559,6 +577,14 @@ describe("classifyModelCallError on the organization's own provider key", () => 
     expect(classified?.code).toBe("LLM_AUTHENTICATION_ERROR");
     expect(classified?.message).toContain("rejected your organization's own key");
     expect(classified?.message).not.toContain("Stigmer platform");
+  });
+
+  it("words a rejected key as the organization's through a native turn's middleware stack", () => {
+    const rejected = sdkError(401, marked('401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'));
+    const { errorType, errorMessage } = describeExecutionError(wrapLikeMiddlewareStack(rejected, DEEP_STACK), proxied);
+    expect(errorType).toBe("LLM_AUTHENTICATION_ERROR");
+    expect(errorMessage).toContain("rejected your organization's own key");
+    expect(errorMessage).not.toContain("MiddlewareError");
   });
 
   it("words a forbidden model as the key's account permission", () => {
