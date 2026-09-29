@@ -72,6 +72,7 @@ import {
   allToolCalls,
   awaitPhase,
   awaitTerminal,
+  decidedByOf,
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
@@ -210,6 +211,11 @@ describe("AgentExecution submitApproval — gate resolution", () => {
       approvalStreamHas(final, toolCallId, ApprovalEventType.APPROVED),
       "the APPROVE decision is an APPROVED event for the same tool call",
     ).toBe(true);
+    // The ledger names who decided: the caller that created the run is the
+    // caller that approved it, recorded as the same principal (#1385).
+    const creator = final.status?.audit?.specAudit?.createdBy?.id ?? "";
+    expect(creator, "the execution records its creator").not.toBe("");
+    expect(decidedByOf(final, toolCallId), "the decision names the approving caller").toBe(creator);
   });
 
   it("SKIP resolves the gate and completes the execution", async () => {

@@ -287,3 +287,20 @@ export function fileReviewStreamHas(
     (event) => event.eventType === type && (changeSetId === undefined || event.changeSetId === changeSetId),
   );
 }
+
+// Who the file-review ledger names as the reviewer of each decision on
+// `changeSetId`: the reviewer_id of every FILE_DECIDED event, in stream order.
+// Read from the append-only stream because file_change_sets is a projection
+// that is empty once the execution is terminal. The server records the
+// principal it authorized, the same id it stamps as created_by on what that
+// caller creates, so a suite compares the two without knowing the edition's
+// identity scheme.
+export function fileReviewersOf(exec: AgentExecution, changeSetId: string): string[] {
+  return (exec.status?.fileReviewEventStream?.events ?? []).flatMap((event) =>
+    event.eventType === FileReviewEventType.FILE_DECIDED &&
+    event.changeSetId === changeSetId &&
+    event.payload.case === "fileDecided"
+      ? [event.payload.value.reviewerId]
+      : [],
+  );
+}

@@ -173,10 +173,10 @@ export async function submitFileDecision(
         }
         const executionId = ctx.input.agentExecutionId;
         const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-        // OSS is single-user with no multi-tenant auth context, so the
-        // reviewer is empty; the Cloud edition populates reviewer_id from
-        // the authenticated caller.
-        const reviewerId = "";
+        // The reviewer is the principal this chain authorized, recorded
+        // exactly as the approval writer records its decider (see
+        // submit-approval.ts RecordApprovalDecision; stigmer/stigmer#1385).
+        const reviewerId = ctx.callerIdentity.identityId;
 
         let updated: AgentExecution;
         try {
@@ -310,6 +310,7 @@ export async function submitFileDecision(
           fileChangeId: ctx.input.fileChangeId,
           scope: enumToJson(FileDecisionScopeSchema, ctx.input.scope),
           action: enumToJson(FileDecisionActionSchema, ctx.input.action),
+          reviewerId: ctx.callerIdentity.identityId,
         });
       },
     })

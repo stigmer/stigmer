@@ -45,10 +45,16 @@ import type { Store } from "../../store/interface.js";
  * The narrow agentexecution forwarding edge (Go
  * AgentExecutionApprovalClient) — method-segregated from the
  * file-decision edge so each handler depends only on the RPC it uses;
- * the in-process agentexecution controller satisfies both.
+ * the in-process agentexecution controller satisfies both. `caller` is
+ * the identity this chain authorized: the child records it as the
+ * decider (stigmer/stigmer#1385), so a decision made through a workflow
+ * names the same person as one made on the agent run directly.
  */
 export interface AgentExecutionApprovalForwarder {
-  submitApproval(input: AgentSubmitApprovalInput): Promise<AgentExecution>;
+  submitApproval(
+    input: AgentSubmitApprovalInput,
+    caller: CallerIdentity,
+  ): Promise<AgentExecution>;
 }
 export type AgentExecutionApprovalForwarderProvider =
   () => AgentExecutionApprovalForwarder;
@@ -159,6 +165,7 @@ export async function submitApproval(
               action: ctx.input.action,
               comment: ctx.input.comment,
             }),
+            ctx.callerIdentity,
           );
         } catch (error) {
           // Flattened to Unavailable; Go's %v embeds the child's grpc-go

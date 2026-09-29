@@ -80,6 +80,7 @@ import {
   createInProcessCallerInterceptor,
   encodeInProcessCaller,
   IN_PROCESS_CALLER_HEADER,
+  serverActingFor,
 } from "../pipeline/interceptors/auth.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { Logger } from "./logger.js";
@@ -340,13 +341,26 @@ export function createInProcessClients(
     },
     // The two HITL forwarding edges — Go's method-segregated
     // AgentExecutionApprovalClient / AgentExecutionFileDecisionClient,
-    // both satisfied by the in-process agentexecution controller.
+    // both satisfied by the in-process agentexecution controller. The
+    // forward runs as the SERVER acting for the workflow's authorized
+    // caller (serverActingFor, never asCaller(caller)): the child's
+    // Authorize keeps the internal skip it always had — the workflow chain
+    // already authorized the decision, and the person need not own the
+    // child's session — while the child's writer records that person as
+    // the decider (stigmer/stigmer#1385).
     workflowExecutionApprovalForwarder: {
-      submitApproval: (input) => agentExecutionCommand.submitApproval(input),
+      submitApproval: (input, caller) =>
+        agentExecutionCommand.submitApproval(
+          input,
+          asCaller(serverActingFor(caller.identityId)),
+        ),
     },
     workflowExecutionFileDecisionForwarder: {
-      submitFileDecision: (input) =>
-        agentExecutionCommand.submitFileDecision(input),
+      submitFileDecision: (input, caller) =>
+        agentExecutionCommand.submitFileDecision(
+          input,
+          asCaller(serverActingFor(caller.identityId)),
+        ),
     },
     // The schedule clock's fire edge — the plain Create RPC (Go's
     // ExecutionCreator). Since O2 every call through this transport

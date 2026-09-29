@@ -58,6 +58,7 @@ import { makeAgent } from "../support/agents";
 import { allToolCalls, awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import {
   awaitFileReview,
+  fileReviewersOf,
   fileReviewStreamHas,
   requireChangeByPath,
   requireReviewSet,
@@ -236,6 +237,11 @@ describe("AgentExecution file review — keep and discard", () => {
     expect(await workspace.readFile(path), "the approved bytes are on disk verbatim").toBe(content);
     expect(fileReviewStreamHas(final, FileReviewEventType.RECONCILED, set.id)).toBe(true);
     expect(await workspace.headSha(), "capture mode never commits").toBe(headBefore);
+    // The decision names its reviewer: the caller that created the run is the
+    // caller that kept the file, recorded as the same principal (#1385).
+    const creator = final.status?.audit?.specAudit?.createdBy?.id ?? "";
+    expect(creator, "the execution records its creator").not.toBe("");
+    expect(fileReviewersOf(final, set.id), "the decision names the reviewing caller").toEqual([creator]);
   });
 
   it("rejecting a MODIFY restores the baseline bytes exactly", async () => {

@@ -41,14 +41,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ApprovalAction,
-  DiffCompleteness,
-  ExecutionPhase as AgentExecutionPhase,
-  FileChangeKind,
   FileDecisionAction,
   FileDecisionScope,
-  FileReviewEventType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import {
   WorkflowExecutionSchema,
@@ -77,10 +72,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
-import {
-  aggregateDigest,
-  fileDigest,
-} from "../../agentexecution/filereview/digest.js";
+import { fileReviewSeed } from "../../agentexecution/__tests__/file-review-seed.js";
 import type { WorkflowExecutionEventRecord } from "../../../store/interface.js";
 
 const silentLogger = createLogger({
@@ -1254,20 +1246,6 @@ describe("submitApproval over the wire (forwarding through the REAL in-process e
 });
 
 describe("submitFileDecision over the wire (propagation through the REAL in-process edge)", () => {
-  function buildChange() {
-    const change = create(CapturedFileChangeSchema, {
-      id: "fc-1",
-      pathBefore: "src/a.ts",
-      pathAfter: "src/a.ts",
-      kind: FileChangeKind.MODIFY,
-      beforeSha256: "a".repeat(64),
-      afterSha256: "b".repeat(64),
-      diffComplete: true,
-    });
-    change.fileDigest = fileDigest(change);
-    return change;
-  }
-
   async function seedChildWithLedger(): Promise<{
     childId: string;
     changeSetId: string;
@@ -1276,8 +1254,7 @@ describe("submitFileDecision over the wire (propagation through the REAL in-proc
     counter += 1;
     const childId = `aexec_wf_child_${counter}`;
     const changeSetId = `cs_wf_${counter}`;
-    const change = buildChange();
-    const aggregate = aggregateDigest([change]);
+    const { status, aggregate } = fileReviewSeed(childId, changeSetId);
     await server.store.saveResource(
       ApiResourceKind.agent_execution,
       childId,
@@ -1292,38 +1269,7 @@ describe("submitFileDecision over the wire (propagation through the REAL in-proc
           org: ORG,
         },
         spec: { message: "Say hello." },
-        status: {
-          phase: AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-          fileReviewEventStream: {
-            executionId: childId,
-            events: [
-              {
-                eventId: `${changeSetId}:${changeSetId}:BASELINE`,
-                changeSetId,
-                eventType: FileReviewEventType.BASELINE_CAPTURED,
-                actor: "runner",
-                payload: {
-                  case: "baselineCaptured",
-                  value: { turnId: "turn-1", harnessId: "harness-1" },
-                },
-              },
-              {
-                eventId: `${changeSetId}:${changeSetId}:CANDIDATE`,
-                changeSetId,
-                eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-                actor: "runner",
-                payload: {
-                  case: "candidateCaptured",
-                  value: {
-                    changes: [change],
-                    aggregateDigest: aggregate,
-                    diffCompleteness: DiffCompleteness.COMPLETE,
-                  },
-                },
-              },
-            ],
-          },
-        },
+        status,
       }),
     );
     return { childId, changeSetId, aggregate };

@@ -69,7 +69,12 @@ import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import { anthropicText, anthropicToolUses } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
-import { requireLlmProxy, requireMcpFixture, submitApprovalPerContract } from "../support/agentexecutions";
+import {
+  decidedByOf,
+  requireLlmProxy,
+  requireMcpFixture,
+  submitApprovalPerContract,
+} from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import {
@@ -307,7 +312,7 @@ describe.skipIf(!forwarderEnabled)(
       // agent-execution handler resolves synchronously — and a decision that did
       // not reach the child is red here, not "the workflow never completed".
       const childExecutionId = pending.childAgentExecutionId;
-      await submitApprovalPerContract({
+      const decidedChild = await submitApprovalPerContract({
         expectedRemaining: 0,
         label: "the forwarded approve clears the child's gate",
         submit: async () => {
@@ -319,6 +324,15 @@ describe.skipIf(!forwarderEnabled)(
           return clients.agentExecutionQuery.get({ value: childExecutionId });
         },
       });
+      // The child names the person who decided through the parent — the
+      // caller that created the workflow execution — not the server that
+      // forwarded the decision (the caller identity propagates; #1385).
+      const creator = execution.status?.audit?.specAudit?.createdBy?.id ?? "";
+      expect(creator, "the workflow execution records its creator").not.toBe("");
+      expect(
+        decidedByOf(decidedChild, pending.approval!.toolCallId),
+        "the child's decision names the caller who decided through the parent",
+      ).toBe(creator);
 
       // The child resumes and the workflow continues — the downstream task running
       // is the proof the forwarded approval reached the child and unblocked it.

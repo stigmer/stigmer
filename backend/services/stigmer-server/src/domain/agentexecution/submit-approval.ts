@@ -223,10 +223,14 @@ export async function submitApproval(
         const action = ctx.input.action;
         const comment = ctx.input.comment;
         const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-        // Decider identity for the approval ledger. OSS is single-user
-        // with no multi-tenant auth context, so the principal is empty;
-        // the Cloud edition populates it from the authenticated caller.
-        const decidedBy = "";
+        // The decider is the principal this chain authorized at position
+        // 1 — the same id auditActorFor stamps as created_by.id, so the
+        // approval ledger and the audit trail name one person the same
+        // way in every edition (the trusted-local operator on a laptop,
+        // the account on a signed-in server; stigmer/stigmer#1385). A
+        // decision forwarded by a workflow arrives as the server acting
+        // for that workflow's caller, so the person is named there too.
+        const decidedBy = ctx.callerIdentity.identityId;
 
         let updated: AgentExecution;
         try {
@@ -385,8 +389,6 @@ export async function submitApproval(
       name: "BuildResponse",
       execute(ctx) {
         const execution = ctx.get(TARGET_RESOURCE_KEY) as AgentExecution;
-        // Audit log the approval decision (caller identity arrives with
-        // the cloud edition's auth context).
         const tc = findToolCallInExecution(execution, ctx.input.toolCallId);
         deps.logger.info("AUDIT: Approval decision submitted", {
           executionId: execution.metadata?.id ?? "",
@@ -394,6 +396,7 @@ export async function submitApproval(
           toolCallId: ctx.input.toolCallId,
           toolName: tc?.name ?? "unknown",
           action: protoName(ApprovalActionSchema, ctx.input.action),
+          decidedBy: ctx.callerIdentity.identityId,
           comment: ctx.input.comment,
         });
       },

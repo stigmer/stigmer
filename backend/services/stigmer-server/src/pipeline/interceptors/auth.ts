@@ -219,15 +219,23 @@ export function trustedLocalIdentityFor(operator: {
 /**
  * The server acting for a principal it has authenticated some other way —
  * the one construction of an `internal` caller outside the in-process
- * transport's own stamp. Its consumer is the PlatformClient mint
- * (domain/platformclient/mint.ts): the request is public and tokenless
- * (so the chain stamped the trusted-local operator), the client proved
- * itself with its secret, and the end-user account and role the mint
- * creates must name the CLIENT as their actor, never the operator.
- * `internal` because the server is the one acting — the create path's
- * Authorize skips it, as for every server-composed request — and never
- * reachable from the wire: no verifier produces it, and the serving
- * chassis overwrites position 1 on every request.
+ * transport's own stamp. Two consumers:
+ *
+ *   - The PlatformClient mint (domain/platformclient/mint.ts): the
+ *     request is public and tokenless (so the chain stamped the
+ *     trusted-local operator), the client proved itself with its secret,
+ *     and the end-user account and role the mint creates must name the
+ *     CLIENT as their actor, never the operator.
+ *   - The workflow HITL forwarding edges (boot/inprocess.ts): the
+ *     workflow chain authorized the person deciding, and the child
+ *     agent execution records them as its decider or reviewer
+ *     (stigmer/stigmer#1385) without authorizing them a second time
+ *     against a session they need not own.
+ *
+ * `internal` because the server is the one acting — Authorize skips it,
+ * as for every server-composed request — and never reachable from the
+ * wire: no verifier produces it, and the serving chassis overwrites
+ * position 1 on every request.
  */
 export function serverActingFor(principalId: string): CallerIdentity {
   if (principalId === "") {

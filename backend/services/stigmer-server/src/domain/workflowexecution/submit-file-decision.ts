@@ -42,11 +42,15 @@ import type { Store } from "../../store/interface.js";
 /**
  * The narrow agentexecution file-decision edge (Go
  * AgentExecutionFileDecisionClient) — method-segregated from the approval
- * edge; the in-process agentexecution controller satisfies both.
+ * edge; the in-process agentexecution controller satisfies both. `caller`
+ * is the identity this chain authorized, which the child records as the
+ * reviewer (the contract on SubmitWorkflowFileDecisionInput: the caller
+ * identity propagates; stigmer/stigmer#1385).
  */
 export interface AgentExecutionFileDecisionForwarder {
   submitFileDecision(
     input: AgentSubmitFileDecisionInput,
+    caller: CallerIdentity,
   ): Promise<AgentExecution>;
 }
 export type AgentExecutionFileDecisionForwarderProvider =
@@ -154,6 +158,7 @@ export async function submitFileDecision(
               reason: ctx.input.reason,
               acknowledgeUnreviewable: ctx.input.acknowledgeUnreviewable,
             }),
+            ctx.callerIdentity,
           );
         } catch (error) {
           // Propagate the child's STATUS unchanged (code + message) — its

@@ -36,24 +36,21 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import {
   ApprovalAction,
   ApprovalEventType,
-  DiffCompleteness,
   ExecutionPhase,
-  FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionOrigin,
   FileDecisionScope,
-  FileReviewEventType,
   MessageType,
   ServiceTier,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
   SubmitApprovalInputSchema,
   SubmitFileDecisionInputSchema,
@@ -66,16 +63,17 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { trustedLocalIdentity } from "../../../pipeline/interceptors/auth.js";
 import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
 import type {
   ConnectedExecutionEngine,
   ExecutionEngineState,
 } from "../engine.js";
-import { EngineWorkflowNotFoundError } from "../engine.js";
-import { aggregateDigest, fileDigest } from "../filereview/digest.js";
+import { ENGINE_DISCONNECTED, EngineWorkflowNotFoundError } from "../engine.js";
 import { submitApproval } from "../submit-approval.js";
 import { submitFileDecision } from "../submit-file-decision.js";
 import { stubConnectedEngine } from "./engine-stub.js";
+import { fileReviewSeed } from "./file-review-seed.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -939,6 +937,16 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
     expect(
       decided?.payload.case === "decided" ? decided.payload.value.comment : "",
     ).toBe("go ahead");
+
+    // A tokenless laptop request is decided by the trusted-local operator,
+    // recorded exactly as its audit actor is (#1385).
+    const operator = trustedLocalIdentity().identityId;
+    expect(tc?.approvedBy).toBe(operator);
+    expect(
+      decided?.payload.case === "decided"
+        ? decided.payload.value.decidedBy
+        : "",
+    ).toBe(operator);
   });
 
   it("is idempotent for a repeated identical submit and refuses a conflicting change", async () => {
@@ -1331,78 +1339,152 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
   });
 });
 
+describe("the decider is the authorized caller (direct calls, #1385)", () => {
+  const decider = testCallerIdentity({ identityId: "usr_decider" });
+
+  function deps() {
+    return {
+      store: server.store,
+      logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
+      broker: server.agentExecutionStreamBroker,
+      engineState: () => ENGINE_DISCONNECTED,
+      gateSteps: new Map(),
+      statusObservers: [],
+    };
+  }
+
+  function decidedByOf(
+    execution: AgentExecution,
+    toolCallId: string,
+  ): string | undefined {
+    const event = (execution.status?.approvalEventStream?.events ?? []).find(
+      (ev) =>
+        ev.approvalRequestId === toolCallId && ev.payload.case === "decided",
+    );
+    return event?.payload.case === "decided"
+      ? event.payload.value.decidedBy
+      : undefined;
+  }
+
+  it("an APPROVE records the caller on the tool call and its decision event", async () => {
+    const id = await seed(gatedSeed());
+
+    const result = await submitApproval(
+      deps(),
+      create(SubmitApprovalInputSchema, {
+        agentExecutionId: id,
+        toolCallId: "tc-1",
+        action: ApprovalAction.APPROVE,
+      }),
+      decider,
+    );
+
+    expect(result.status?.messages[0]?.toolCalls[0]?.approvedBy).toBe(
+      "usr_decider",
+    );
+    expect(decidedByOf(result, "tc-1")).toBe("usr_decider");
+  });
+
+  it("APPROVE_ALL records the caller on the clicked call and every co-pending call it settles", async () => {
+    const id = await seed(
+      gatedSeed({
+        toolCalls: [
+          { id: "tc-shell-1", name: "shell" },
+          { id: "tc-shell-2", name: "bash" },
+          { id: "tc-write", name: "Write" },
+        ],
+      }),
+    );
+
+    const result = await submitApproval(
+      deps(),
+      create(SubmitApprovalInputSchema, {
+        agentExecutionId: id,
+        toolCallId: "tc-shell-1",
+        action: ApprovalAction.APPROVE_ALL,
+      }),
+      decider,
+    );
+
+    const byId = new Map(
+      (result.status?.messages[0]?.toolCalls ?? []).map((tc) => [tc.id, tc]),
+    );
+    for (const settled of ["tc-shell-1", "tc-shell-2"]) {
+      expect(byId.get(settled)?.approvedBy, settled).toBe("usr_decider");
+      expect(decidedByOf(result, settled), settled).toBe("usr_decider");
+    }
+    // The call of another lease class is undecided, so nobody is recorded.
+    expect(byId.get("tc-write")?.approvedBy).toBe("");
+  });
+
+  it("a file decision records the caller as the reviewer, at either scope", async () => {
+    for (const scope of [
+      FileDecisionScope.CHANGE_SET,
+      FileDecisionScope.FILE,
+    ]) {
+      counter += 1;
+      const id = `aexec_reviewer_${counter}`;
+      const slug = `exec-${id.replaceAll("_", "-")}`;
+      const changeSetId = `cs_reviewer_${counter}`;
+      const { status, change, aggregate } = fileReviewSeed(id, changeSetId);
+      await seed({
+        apiVersion: API_VERSION,
+        kind: KIND,
+        metadata: { id, name: slug, slug, org: ORG },
+        spec: { message: "Say hello." },
+        status,
+      });
+
+      const result = await submitFileDecision(
+        deps(),
+        create(SubmitFileDecisionInputSchema, {
+          agentExecutionId: id,
+          changeSetId,
+          scope,
+          action: FileDecisionAction.APPROVE,
+          ...(scope === FileDecisionScope.FILE
+            ? { fileChangeId: change.id, expectedDigest: change.fileDigest }
+            : { expectedDigest: aggregate }),
+        }),
+        decider,
+      );
+
+      const decisions =
+        result.status?.fileChangeSets.find((cs) => cs.id === changeSetId)
+          ?.decisions ?? [];
+      expect(decisions, FileDecisionScope[scope]).toHaveLength(1);
+      expect(decisions[0]?.reviewerId, FileDecisionScope[scope]).toBe(
+        "usr_decider",
+      );
+    }
+  });
+});
+
 describe("submitFileDecision over the wire", () => {
   function ledgerSeed(): {
     init: MessageInitShape<typeof AgentExecutionSchema> & {
       metadata: { id: string };
     };
     changeSetId: string;
-    change: ReturnType<typeof buildChange>;
     aggregate: string;
   } {
     counter += 1;
     const id = `aexec_review_${counter}`;
     const slug = `exec-${id.replaceAll("_", "-")}`;
     const changeSetId = `cs_${counter}`;
-    const change = buildChange();
-    const aggregate = aggregateDigest([change]);
+    const { status, aggregate } = fileReviewSeed(id, changeSetId);
     return {
       init: {
         apiVersion: API_VERSION,
         kind: KIND,
         metadata: { id, name: slug, slug, org: ORG },
         spec: { message: "Say hello." },
-        status: {
-          phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-          fileReviewEventStream: {
-            executionId: id,
-            events: [
-              {
-                eventId: `${changeSetId}:${changeSetId}:BASELINE`,
-                changeSetId,
-                eventType: FileReviewEventType.BASELINE_CAPTURED,
-                actor: "runner",
-                payload: {
-                  case: "baselineCaptured",
-                  value: { turnId: "turn-1", harnessId: "harness-1" },
-                },
-              },
-              {
-                eventId: `${changeSetId}:${changeSetId}:CANDIDATE`,
-                changeSetId,
-                eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-                actor: "runner",
-                payload: {
-                  case: "candidateCaptured",
-                  value: {
-                    changes: [change],
-                    aggregateDigest: aggregate,
-                    diffCompleteness: DiffCompleteness.COMPLETE,
-                  },
-                },
-              },
-            ],
-          },
-        },
+        status,
       },
       changeSetId,
-      change,
       aggregate,
     };
-  }
-
-  function buildChange() {
-    const change = create(CapturedFileChangeSchema, {
-      id: "fc-1",
-      pathBefore: "src/a.ts",
-      pathAfter: "src/a.ts",
-      kind: FileChangeKind.MODIFY,
-      beforeSha256: "a".repeat(64),
-      afterSha256: "b".repeat(64),
-      diffComplete: true,
-    });
-    change.fileDigest = fileDigest(change);
-    return change;
   }
 
   it("records a CHANGE_SET keep, projects DECIDED, and is idempotent on resubmit", async () => {
