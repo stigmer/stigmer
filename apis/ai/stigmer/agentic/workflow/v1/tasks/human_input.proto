@@ -117,9 +117,9 @@ message HumanInputOutcome {
 //
 // "reviewer" is the stable audit key (use it in switch conditions and
 // audit joins); "reviewer_actor" is a display snapshot stamped server-side
-// at decision time (use it in notifications and UIs). Both are absent when
-// the gate resolves without attribution (timeout policies, OSS single-user
-// edition).
+// at decision time (use it in notifications and UIs). Both name the
+// authenticated caller, the local operator on a local server, and are
+// absent when the gate resolves without a decision (timeout policies).
 //
 // YAML Example (approval gate with custom outcomes):
 //   - manager_approval:
