@@ -127,11 +127,11 @@ export function AgentChannelsPanel({
     "can_edit",
   );
 
-  // Installs go through the shared platform Slack/WhatsApp apps, a
-  // cloud-only facility (editions program, DD-001); CRUD is not. Outside
-  // Cloud the cards render and toggles work, but connect affordances give
-  // way to the notice. Installs through a customer's own ChannelApp in
-  // Enterprise are that edition's work, not assumed here.
+  // Installs need a channel delivery runtime, and only Stigmer Cloud
+  // composes one today; CRUD needs none. Outside Cloud the cards render and
+  // toggles work, but connect affordances give way to the notice. When a
+  // self-hosted edition composes a runtime, this becomes a probe of that
+  // runtime rather than an edition compare.
   const installsAvailable = useDeploymentMode() === "cloud";
 
   const { deleteChannel } = useDeleteAgentChannel();

@@ -24,7 +24,7 @@ spec:
   entitlements:
     features:
       - sso_enforcement
-      - channels
+      - byo_provider_keys
   term: paid
   expires_at: "2027-09-01T00:00:00Z"
   grace_until: "2027-10-01T00:00:00Z"

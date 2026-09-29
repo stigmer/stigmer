@@ -39,7 +39,7 @@ export function license(f: LicenseFixture): License {
           ...(f.maxUsers !== undefined && { maxUsers: f.maxUsers }),
           ...(f.maxOrganizations !== undefined && { maxOrganizations: f.maxOrganizations }),
         },
-        features: [...(f.features ?? [Feature.channels])],
+        features: [...(f.features ?? [Feature.sso_enforcement])],
       },
       term: f.term ?? LicenseTerm.paid,
       expiresAt: timestampFromDate(new Date(f.expiresAt)),

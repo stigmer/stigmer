@@ -30,7 +30,7 @@ spec:
   entitlements:
     features:
       - sso_enforcement
-      - channels
+      - byo_provider_keys
   term: paid
   expires_at: "2027-09-01T00:00:00Z"
   grace_until: "2027-10-01T00:00:00Z"
@@ -348,7 +348,7 @@ A capability an entitlement can unlock.
 | `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every tenant, so a plan or license that lists it grants nothing more. |
 | `byo_provider_keys` | Bringing the tenant's own LLM provider keys instead of the platform's metered proxy credentials. |
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
-| `sharing` | Sharing an agent with individuals and guests through hosted share links. |
+| `sharing` | Sharing an agent through hosted share links, with the sharing organization's members or with anyone who has the link. |
 | `teams` | Creating teams and adding members to them. |
 | `managed_organizations` | Creating platform-managed organizations under the tenant's identity provider, the organizations an integrator runs for its own customers. |
 
