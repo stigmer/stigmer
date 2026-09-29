@@ -550,11 +550,12 @@ export interface ApprovalRequirement {
 }
 
 /**
- * THE approval decision for one tool call — the same function the native gate
- * (`middleware/approval-gate.ts`) interrupts on and the native translator
- * reports as `tool_started.gate`, so the row can never disagree with the gate
- * about whether a call waits (since #1097; until then the transcript
- * builder carried its own weaker copy that gated MCP tools only). Its
+ * THE approval decision for one tool call — the function the native gate
+ * (`middleware/approval-gate.ts`) interrupts on. A held call reaches the
+ * transcript only through that interrupt (`approval_proposed`), so the row can
+ * never disagree with the gate about whether a call waits (since #1097; until
+ * then the transcript builder carried its own weaker copy that gated MCP tools
+ * only). Its
  * read-side twin is {@link resolveApprovalProvenance}, which answers "which
  * layer governs this call" for EVERY call, gated or not.
  *

@@ -18,11 +18,12 @@
  *     what a row or a message carries; usage is neither.
  *   - `tool_finished` carries `result: string`; the engine's output
  *     envelope is the translator's to render.
- *   - `tool_started` carries the attribution (`mcpServerSlug`), the
- *     provenance and — where the harness runs a gated call before its
- *     boundary parks it — the gate's word. The translator resolves them from
- *     the harness's policy state; the builder writes what it is told and
- *     decides nothing about approval.
+ *   - `tool_started` carries the attribution (`mcpServerSlug`) and the
+ *     provenance, which the translator resolves from the harness's policy
+ *     state. It never says whether the call is held: a started call is
+ *     running, and a held one reaches the transcript as `approval_proposed`
+ *     on both harnesses, the one writer of a row's approval fields (#1117).
+ *     The builder writes what it is told and decides nothing about approval.
  *   - Scope is `subAgentId?` — the only scope either harness has is
  *     "the root, or one sub-agent by the id its row carries" — and the
  *     translator says when a sub-agent opens and closes
@@ -89,25 +90,18 @@ export interface MessageFinishEvent extends Scoped {
 // ── Tool Events ───────────────────────────────────────────────────
 
 /**
- * The translator's word that a call is GATED — the fields the row carries,
- * never a decision the builder makes (#1097, 2026-09-14). A gated call that
- * has STARTED is running until the
- * harness's boundary parks it through `approval_proposed`: that is Cursor's
- * shape (the SDK runs the tool; the deny-and-retry boundary parks it after
- * the stream). Native never emits this member — LangGraph's `interrupt()`
- * fires before the tool handler runs, so a held call never produces a
- * `tool_started` at all, and the arrival of one IS the engine's word that
- * the call was authorized (capture mode let it flow, a lease or policy
- * cleared it, or the user approved it). Native's gate fact reaches the
- * transcript through `approval_proposed` from the post-stream seed. So a
- * row is never WAITING at creation on either harness; the plan's `parked:
- * true` arm had no producer and was dropped.
+ * A tool call has started. It carries no approval fact, on either harness
+ * (#1117): whether a call is HELD for a person's decision is known only after
+ * the engine's own gate has run, and it reaches the transcript as
+ * `approval_proposed` — native's post-stream seed after LangGraph's
+ * `interrupt()` (which fires before the tool handler, so a held call never
+ * starts), Cursor's deny-and-retry boundary after the preToolUse hook denied
+ * it. A call that runs under a lease, a bypass or capture mode is therefore
+ * never marked as requiring approval. A `gate` member carried the policy's
+ * category verdict here until #1117; it had one producer (Cursor), which made
+ * the field mean different things per harness, and it was dropped, as a
+ * `parked: true` arm with no producer was before it.
  */
-export interface GateAnswer {
-  /** The approval card's message, placeholders already resolved. */
-  readonly message: string;
-}
-
 export interface ToolStartedEvent extends Scoped {
   readonly kind: "tool_started";
   readonly callId: string;
@@ -121,7 +115,6 @@ export interface ToolStartedEvent extends Scoped {
    * on both harnesses today, #1133) or no layer governs it.
    */
   readonly provenance?: PolicySource;
-  readonly gate?: GateAnswer;
 }
 
 export interface ToolArgDeltaEvent extends Scoped {

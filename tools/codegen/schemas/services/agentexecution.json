@@ -5679,7 +5679,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "True if this tool requires approval before execution.\n Determined at runtime by merging:\n   1. McpServerStatus.tool_approvals (system-generated defaults)\n   2. McpServerSpec.pinned_tool_approvals (manual overrides)\n   3. McpServerUsage.tool_approval_overrides (agent-specific)\n   4. AgentExecutionSpec.auto_approve_all (runtime bypass)\n\n When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused\n awaiting user decision via SubmitApproval RPC.",
+          "description": "True when this tool call was held for a person's decision instead of\n running at once.\n\n Every harness sets it the same way: only when the approval gate parks the\n call, never when the call starts. A call that runs under an approval\n lease, auto_approve_all or file-review capture is never held and carries\n false; approval_policy_source names the policy layer that governed the\n call either way.\n\n When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused\n awaiting user decision via SubmitApproval RPC.",
           "required": false
         },
         {

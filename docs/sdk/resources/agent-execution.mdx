@@ -2412,7 +2412,7 @@ Represents a tool call made by the agent during execution.
     startedAt: { type: "string", description: "ISO 8601 timestamp when the tool call started." },
     completedAt: { type: "string", description: "ISO 8601 timestamp when the tool call completed or failed." },
     error: { type: "string", description: "Error message if status == TOOL_CALL_FAILED." },
-    requiresApproval: { type: "boolean", description: "True if this tool requires approval before execution." },
+    requiresApproval: { type: "boolean", description: "True when this tool call was held for a person's decision instead of running at once." },
     approvalMessage: { type: "string", description: "Human-readable message explaining what approval is being requested." },
     approvalRequestedAt: { type: "string", description: "ISO 8601 timestamp when approval was requested." },
     approvalDecidedAt: { type: "string", description: "ISO 8601 timestamp when approval decision was made." },
