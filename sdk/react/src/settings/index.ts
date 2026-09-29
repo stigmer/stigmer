@@ -22,3 +22,5 @@ export { TeamsSection } from "./TeamsSection.js";
 export { OAuthAppsSection } from "./OAuthAppsSection.js";
 export { ChannelAppsSection } from "./ChannelAppsSection.js";
 export { UsageSection } from "./UsageSection.js";
+export { ProviderKeysSection } from "./ProviderKeysSection.js";
+export type { ProviderKeysSectionProps } from "./ProviderKeysSection.js";

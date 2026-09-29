@@ -22,6 +22,9 @@ describe("planUpgradeFeature", () => {
     expect(
       planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "managed_organizations", org_id: "p" })),
     ).toBe(Feature.managed_organizations);
+    expect(
+      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org_id: "acme" })),
+    ).toBe(Feature.byo_provider_keys);
     expect(planUpgradeFeature(new StigmerError("failed-precondition", TEAMS_COPY, 9))).toBeNull();
     expect(planUpgradeFeature(refusal("x", "PAYMENT_METHOD_REQUIRED", { org_id: "acme" }))).toBeNull();
   });

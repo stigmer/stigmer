@@ -67,7 +67,7 @@ describe("PlanSection", () => {
     const plans = await screen.findByRole("list", { name: "Plans" });
     const business = await planOption("Business");
     expect(within(business).getByText("5 managed organizations included, then $25.00/month each")).toBeTruthy();
-    expect(within(business).queryByText(/provider keys/i)).toBeNull();
+    expect(within(business).getByText("Bring your own provider keys")).toBeTruthy();
     expect(within(plans).queryByText("Team 2026")).toBeNull();
     expect(within(plans).getByRole("link", { name: "Talk to us" }).getAttribute("href")).toBe(
       "https://stigmer.ai/contact-sales",
@@ -136,7 +136,7 @@ describe("PlanSection", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Switch to Team" }));
     const down = await screen.findByRole("dialog");
-    expect(within(down).getByText(/Team does not include Managed organizations\./)).toBeTruthy();
+    expect(within(down).getByText(/Team does not include Bring your own provider keys and Managed organizations\./)).toBeTruthy();
     await userEvent.click(within(down).getByRole("button", { name: "Not now" }));
 
     cleanup();

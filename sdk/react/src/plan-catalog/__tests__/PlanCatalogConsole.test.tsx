@@ -47,12 +47,13 @@ describe("PlanCatalogConsole", () => {
     expect(client.plan.list).not.toHaveBeenCalled();
   });
 
-  it("lists every plan, retired ones included, marking a feature not offered yet", async () => {
+  it("lists every plan, retired ones included, with every feature it lists offered", async () => {
     renderConsole(mockClient(true));
     const catalog = await screen.findByRole("list", { name: "Plan catalog" });
     expect(within(catalog).getAllByText("On sale")).toHaveLength(2);
     expect(within(catalog).getByText("Retired")).toBeTruthy();
-    expect(within(catalog).getByText(/Bring your own provider keys \(not offered yet\)/)).toBeTruthy();
+    expect(within(catalog).getAllByText(/Bring your own provider keys/).length).toBeGreaterThan(0);
+    expect(within(catalog).queryByText(/not offered yet/)).toBeNull();
   });
 
   it("retires a plan only after the confirm", async () => {

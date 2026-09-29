@@ -20,6 +20,13 @@ export { useEntitlements } from "./useEntitlements.js";
 export type { UseEntitlementsOptions, UseEntitlementsReturn } from "./useEntitlements.js";
 export { usePeriodEstimate } from "./usePeriodEstimate.js";
 export type { UsePeriodEstimateOptions, UsePeriodEstimateReturn } from "./usePeriodEstimate.js";
+export { useProviderKeys, useProviderKeyActions } from "./useProviderKeys.js";
+export type {
+  ProviderKeyProvider,
+  UseProviderKeysOptions,
+  UseProviderKeysReturn,
+  UseProviderKeyActionsReturn,
+} from "./useProviderKeys.js";
 
 // Behavior hooks
 export { useCreateCheckoutSession } from "./useCreateCheckoutSession.js";
@@ -43,6 +50,8 @@ export type {
 } from "./useSetAutoRechargeConfig.js";
 
 // Styled components
+export { ProviderKeysSection } from "./ProviderKeysSection.js";
+export type { ProviderKeysSectionProps } from "./ProviderKeysSection.js";
 export { BillingSection } from "./BillingSection.js";
 export type { BillingSectionProps } from "./BillingSection.js";
 export { CreditBalanceCard } from "./CreditBalanceCard.js";

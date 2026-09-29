@@ -490,6 +490,73 @@ const { plans } = usePlans();
 ```
 
 
+### useProviderKeyActions
+
+Behaviour hook that saves and removes an organization's own provider
+keys. The caller needs `can_manage_billing` on the organization (its
+admins). Refetch [`useProviderKeys`](#useproviderkeys) after a change.
+
+**Signature**
+
+```tsx
+function useProviderKeyActions(): UseProviderKeyActionsReturn
+```
+
+**Returns** — `UseProviderKeyActionsReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isSubmitting: { type: "boolean", description: "`true` while a save or a removal is in flight." },
+    removeKey: { type: "(orgId: string, provider: ProviderKeyProvider) => Promise<ProviderKey>", description: "Remove the organization's key for a provider; allowed on every plan." },
+    setKey: { type: "(orgId: string, provider: ProviderKeyProvider, apiKey: string) => Promise<ProviderKey>", description: "Save the organization's key for a provider, replacing any it holds. The provider is asked about the key once first, and a key it rejects is refused. Refused with the `PLAN_UPGRADE_REQUIRED` reason when the organization's plan does not include bring-your-own provider keys. Resolves with the saved key, without its secret." },
+  }}
+/>
+
+
+### useProviderKeys
+
+Data hook that lists an organization's own LLM provider keys.
+
+No answer carries a key: each row names the provider, the key's last
+four characters, who saved it and when, when it last served a call, and
+whether the organization's plan still lets it be used. A managed
+organization's list includes its integrator's keys for the providers it
+holds none of (`inheritedFromOrgId`). Every member may read it
+(`can_view_billing`).
+
+Cloud-only.
+
+**Signature**
+
+```tsx
+function useProviderKeys(orgId: string | null, options?: UseProviderKeysOptions): UseProviderKeysReturn
+```
+
+<TypeTable
+  type={{
+    orgId: { type: "string | null", description: "", required: true },
+    options: { type: "UseProviderKeysOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseProviderKeysReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    keys: { type: "readonly ProviderKey[] | null", description: "The keys that serve the organization, its own and any it inherits from its integrator, without their secrets; `null` before the first successful fetch." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+  }}
+/>
+
+```tsx
+const { keys } = useProviderKeys(orgId);
+```
+
+
 ### useSetAutoRechargeConfig
 
 Behavior hook for configuring auto-recharge settings.
@@ -870,6 +937,40 @@ an edition that serves no subscriptions.
 ```
 
 
+### ProviderKeysSection
+
+Settings section for an organization's own LLM provider keys.
+
+On a plan that includes bring-your-own provider keys (Business and
+above), an admin saves an Anthropic or OpenAI key, and the organization's
+agents and workflows then run on it: the provider bills the organization
+directly, and those tokens carry no Stigmer commission and do not count
+toward the plan's usage share. A saved key is never shown again, only its
+last four characters. A managed organization is served by its
+integrator's key for a provider it holds none of, shown read-only.
+
+A key the plan no longer allows is kept and listed as not in use, and
+can be removed; the organization's calls run on Stigmer's keys again,
+billed as usage. Every member sees the list; admins
+(`can_manage_billing`) save, replace and remove.
+
+Cloud-only: in local mode the runner already uses the developer's own
+keys directly.
+
+**Props** — `ProviderKeysSectionProps`
+
+<TypeTable
+  type={{
+    billingHref: { type: "string", description: "Where the plans are, in the host's routing. Defaults to the billing settings route." },
+    className: { type: "string", description: "Additional CSS class names." },
+  }}
+/>
+
+```tsx
+<ProviderKeysSection />
+```
+
+
 ### UpgradeNotice
 
 Says an act needs a plan that includes it, and where to change the plan,
@@ -1093,6 +1194,11 @@ function planUpgradeFeature(error: unknown): Feature | null
 ```
 
 
+### ProviderKeyProvider
+
+The providers an organization may bring its own key for, by their wire names.
+
+
 ### SetAutoRechargeConfigInput
 
 Input for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig).
@@ -1163,6 +1269,17 @@ Options for [`usePlans`](#useplans).
   type={{
     enabled: { type: "boolean", description: "Skip fetching while `false` (stable no-op). Default `true`." },
     includeRetired: { type: "boolean", description: "Include retired plans beside the ones that can still be bought. Default `false`." },
+  }}
+/>
+
+
+### UseProviderKeysOptions
+
+Options for [`useProviderKeys`](#useproviderkeys).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Skip fetching while `false` (stable no-op). Default `true`." },
   }}
 />
 

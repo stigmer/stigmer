@@ -10,6 +10,7 @@ import {
   FileBadge,
   Layers,
   KeyRound,
+  KeySquare,
   Link,
   MessageSquare,
   MousePointerClick,
@@ -102,6 +103,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
     items: [
       { href: "/settings/billing", label: "Billing", icon: CreditCard },
       { href: "/settings/usage", label: "Usage", icon: BarChart3 },
+      { href: "/settings/provider-keys", label: "Provider keys", icon: KeySquare },
     ],
   },
   {

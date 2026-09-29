@@ -24,10 +24,11 @@ const ZERO = BigInt(0);
 /**
  * Features a plan may list ahead of the gate that serves them, which
  * Stigmer Cloud does not offer yet. The console leaves them out of every
- * comparison. Bring-your-own provider keys leaves this set when the proxy
- * uses an organization's own key.
+ * comparison. Empty while every listed feature is served; bring-your-own
+ * provider keys left it when the proxy began serving an organization's own
+ * key (stigmer/stigmer#1425).
  */
-export const NOT_YET_OFFERED: ReadonlySet<Feature> = new Set([Feature.byo_provider_keys]);
+export const NOT_YET_OFFERED: ReadonlySet<Feature> = new Set<Feature>();
 
 /** One feature a plan offers today, with its words. */
 export interface OfferedFeature {

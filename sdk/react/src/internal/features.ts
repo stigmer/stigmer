@@ -23,7 +23,7 @@ export const FEATURE_COPY: Readonly<
   },
   [Feature.byo_provider_keys]: {
     label: "Bring your own provider keys",
-    description: "Use the customer's own LLM provider keys instead of the metered proxy.",
+    description: "Run agents on your own Anthropic and OpenAI keys, with no Stigmer commission on those tokens.",
   },
   [Feature.channels]: {
     label: "Channels",

@@ -19,6 +19,7 @@ import {
   PlatformClientsSection,
   TeamsSection,
   UsageSection,
+  ProviderKeysSection,
 } from "@stigmer/react";
 import { AppShell } from "./shell/AppShell";
 import { SessionLauncher } from "./pages/SessionLauncher";
@@ -336,6 +337,7 @@ const routes: RouteObject[] = [
               { path: "oauth-apps", element: <OAuthAppsSection /> },
               { path: "channel-apps", element: <ChannelAppsSection /> },
               { path: "usage", element: <UsageSection /> },
+              { path: "provider-keys", element: <ProviderKeysSection /> },
               {
                 path: "billing",
                 element: (
