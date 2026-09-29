@@ -8,8 +8,8 @@
  *      since issue #754 — FIRST, so every downstream middleware observes
  *      canonical workspace-absolute paths)
  *   1. Loop detection (always)
- *   2. Execution budget (always — advises at ~80% of the tool-round budget
- *      that LangGraph's `recursionLimit` enforces)
+ *   2. Execution budget (always — counts tool rounds, advises at ~80% of
+ *      `max_tool_rounds` and ends the turn at it)
  *   3. Tool intent (always — bind-time shell schema extension, issue #276)
  *   4. Tool truncation (always)
  *   5. Approval gate (conditional: absent under the global bypass)
@@ -19,11 +19,14 @@
  *   8. OTel spans (always, no-op when OTel not configured)
  *
  * Every middleware here either shapes the graph's tool surface or ADVISES
- * the model; none of them stops the run. A stop — the platform's, the
- * cost cap's, a stall's — is the turn runtime's, delivered to the graph
- * through its abort signal (since #1096; until then a
- * graceful-stop middleware and the cost cap's tool block were second stops
- * inside the graph that the runtime could not see).
+ * the model; none of them stops the run, except the execution budget, which
+ * is `max_tool_rounds`' own enforcement: it ends the turn as the adapter's
+ * `tool_call_limit` outcome, the job LangGraph's recursion limit held until
+ * #1113, so the runtime sees it as an outcome and never as a completion.
+ * Every other stop — the platform's, the cost cap's, a stall's — is the turn
+ * runtime's, delivered to the graph through its abort signal (since #1096;
+ * until then a graceful-stop middleware and the cost cap's tool block were
+ * second stops inside the graph that the runtime could not see).
  *
  * Ahead of this stack the parent graph adds the framework's to-do list
  * middleware (`execute-deep-agent/turn-setup.ts`): it is langchain's, not

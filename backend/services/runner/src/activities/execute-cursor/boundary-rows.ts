@@ -34,7 +34,7 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { lookupMcpToolPolicy, resolveApprovalMessage, getBuiltInApprovalMessage } from "./approval-policy.js";
+import { lookupMcpToolPolicy, resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
 import {
   POLICY_ENGINE_VERSION,
   resolveApprovalProvenance,
@@ -1125,8 +1125,8 @@ function resolveDeniedApprovalMessage(
     if (policy) return resolveApprovalMessage(policy.approvalMessage, name, args);
   }
   if (!mcpServerSlug) {
-    const template = getBuiltInApprovalMessage(name);
-    if (template) return resolveApprovalMessage(template, name, args);
+    const message = resolveBuiltInApprovalMessage(name, args);
+    if (message !== undefined) return message;
   }
   return `Tool requires approval: ${name}`;
 }

@@ -1,26 +1,41 @@
 /**
- * Execution budget middleware for autonomous agents.
+ * Execution budget middleware for autonomous agents: `max_tool_rounds`' own
+ * enforcement, and the advisories that warn the model before it.
  *
- * Two operating modes:
+ * The stop (whenever `maxToolRounds` is set):
+ *   A round is one model response that proposes one or more tool calls
+ *   (parallel calls are one round), counted here as each response returns.
+ *   Once N rounds have been proposed, the next model call does not happen:
+ *   `wrapModelCall` throws `ToolRoundLimitError` in its place, the graph
+ *   ends on round N's tool results, and the native turn reads the error as
+ *   the `tool_call_limit` outcome (`shared/tool-rounds.ts`
+ *   `isToolCallBudgetStop`). Stopping before a model call, never between a
+ *   model call and its tools, is what makes N exact and leaves no proposed
+ *   call unexecuted in the checkpoint. It is the one stop a middleware makes
+ *   (`middleware/index.ts`): the runtime still sees it, as an outcome.
+ *
+ * Two advisory modes:
  *
  * Threshold mode (default, warningInterval=null):
- *   Fires a single SystemMessage at a computed percentage of the
- *   LangGraph recursion limit.
+ *   Fires a single SystemMessage at a percentage of the round budget
+ *   (`maxToolRounds`, or the unbounded advisory figure when unset).
  *
  * Periodic mode (warningInterval set):
- *   Fires a SystemMessage every N model rounds with escalating urgency,
- *   up to maxWarnings times.
+ *   Fires a SystemMessage every N model calls with escalating urgency,
+ *   up to maxWarnings times. Sub-agent stacks use it, with no stop.
  *
  * Uses wrapModelCall (not afterModel) to safely prepend advisory
  * messages to the model's input, avoiding the AIMessage/ToolMessage
  * ordering violation that would occur if we injected between a
- * tool_use AIMessage and its corresponding ToolMessage.
+ * tool_use AIMessage and its corresponding ToolMessage, and so that the
+ * count and the stop add no graph node of their own: a node per round is
+ * exactly the cost that made the old super-step budget drift.
  */
 
-import { SystemMessage } from "@langchain/core/messages";
+import { AIMessage, SystemMessage } from "@langchain/core/messages";
 import type { StigmerMiddleware, ExecutionBudgetConfig } from "./types.js";
+import { ToolRoundLimitError, UNBOUNDED_ADVISORY_TOOL_ROUNDS } from "../shared/tool-rounds.js";
 
-const DEFAULT_RECURSION_LIMIT = 6000;
 const DEFAULT_WARNING_PCT = 80;
 const MIN_WARNING_PCT = 50;
 const MAX_WARNING_PCT = 95;
@@ -46,46 +61,51 @@ const PERIODIC_MESSAGES: readonly string[] = [
     "unless absolutely essential to your conclusion.",
 ];
 
-function computeWarningRound(recursionLimit: number, warningPct: number): number {
-  const estimatedTotalRounds = Math.floor(recursionLimit / 6);
-  const threshold = Math.floor(estimatedTotalRounds * warningPct / 100);
+function computeWarningRound(roundBudget: number, warningPct: number): number {
+  const threshold = Math.floor(roundBudget * warningPct / 100);
   return Math.max(threshold, MIN_ROUNDS_BEFORE_WARNING);
+}
+
+/** Whether a model call's response proposed tools: the round definition (a `Command` response is not one). */
+function isToolRound(response: unknown): boolean {
+  return AIMessage.isInstance(response) && (response.tool_calls?.length ?? 0) > 0;
 }
 
 export function createExecutionBudgetMiddleware(
   config: Partial<ExecutionBudgetConfig> = {},
 ): StigmerMiddleware {
-  const recursionLimit = config.recursionLimit ?? DEFAULT_RECURSION_LIMIT;
+  const maxToolRounds = config.maxToolRounds ?? null;
+  const roundBudget = maxToolRounds ?? UNBOUNDED_ADVISORY_TOOL_ROUNDS;
   const warningPct = config.warningPct ?? DEFAULT_WARNING_PCT;
   const warningInterval = config.warningInterval ?? null;
   const maxWarnings = config.maxWarnings ?? 4;
 
   const isPeriodic = warningInterval !== null;
 
+  if (maxToolRounds !== null && maxToolRounds <= 0) {
+    throw new Error(`maxToolRounds must be positive or null, got ${maxToolRounds}`);
+  }
   if (isPeriodic) {
     if (warningInterval <= 0) throw new Error(`warningInterval must be positive, got ${warningInterval}`);
     if (maxWarnings <= 0) throw new Error(`maxWarnings must be positive, got ${maxWarnings}`);
-  } else {
-    if (warningPct < MIN_WARNING_PCT || warningPct > MAX_WARNING_PCT) {
-      throw new Error(`warningPct must be between ${MIN_WARNING_PCT} and ${MAX_WARNING_PCT}, got ${warningPct}`);
-    }
-    if (recursionLimit <= 0) throw new Error(`recursionLimit must be positive, got ${recursionLimit}`);
+  } else if (warningPct < MIN_WARNING_PCT || warningPct > MAX_WARNING_PCT) {
+    throw new Error(`warningPct must be between ${MIN_WARNING_PCT} and ${MAX_WARNING_PCT}, got ${warningPct}`);
   }
 
   let modelRoundCount = 0;
+  let toolRoundCount = 0;
   let warningCount = 0;
   let nextWarningRound = isPeriodic
     ? warningInterval!
-    : computeWarningRound(recursionLimit, warningPct);
+    : computeWarningRound(roundBudget, warningPct);
   let pendingAdvisory: SystemMessage | null = null;
 
   function createThresholdWarning(): SystemMessage {
-    const estimatedTotal = Math.floor(recursionLimit / 6);
-    const remaining = Math.max(estimatedTotal - modelRoundCount, 0);
+    const remaining = Math.max(roundBudget - toolRoundCount, 0);
     return new SystemMessage({
       content:
-        `You are approaching the step limit for this message ` +
-        `(approximately ${warningPct}% used, ~${remaining} rounds remaining). ` +
+        `You are approaching the tool-round limit for this message ` +
+        `(${toolRoundCount} of ${roundBudget} tool rounds used, ${remaining} remaining). ` +
         `Prioritize completing your current task. Summarize results ` +
         `and any remaining work so the user can continue in the next message.`,
     });
@@ -113,12 +133,11 @@ export function createExecutionBudgetMiddleware(
       }
     } else {
       if (warningCount > 0) return;
-      if (modelRoundCount >= nextWarningRound) {
+      if (toolRoundCount >= nextWarningRound) {
         warningCount = 1;
-        const estimatedTotal = Math.floor(recursionLimit / 6);
         console.warn(
-          `[ExecutionBudget] WARNING: round ${modelRoundCount} of ~${estimatedTotal} ` +
-          `(~${warningPct}% of recursion_limit=${recursionLimit})`,
+          `[ExecutionBudget] WARNING: tool round ${toolRoundCount} of ${roundBudget} ` +
+          `(${warningPct}% threshold)`,
         );
         pendingAdvisory = createThresholdWarning();
       }
@@ -130,14 +149,23 @@ export function createExecutionBudgetMiddleware(
 
     beforeAgent() {
       modelRoundCount = 0;
+      toolRoundCount = 0;
       warningCount = 0;
       pendingAdvisory = null;
       nextWarningRound = isPeriodic
         ? warningInterval!
-        : computeWarningRound(recursionLimit, warningPct);
+        : computeWarningRound(roundBudget, warningPct);
     },
 
     async wrapModelCall(request, handler) {
+      if (maxToolRounds !== null && toolRoundCount >= maxToolRounds) {
+        console.log(
+          `[ExecutionBudget] Tool-round limit reached: ${toolRoundCount}/${maxToolRounds}; ` +
+          `ending the turn before the next model call`,
+        );
+        throw new ToolRoundLimitError(maxToolRounds);
+      }
+
       let effectiveRequest = request;
 
       if (pendingAdvisory !== null) {
@@ -150,6 +178,7 @@ export function createExecutionBudgetMiddleware(
       const response = await handler(effectiveRequest);
 
       modelRoundCount++;
+      if (isToolRound(response)) toolRoundCount++;
       evaluateBudget();
 
       return response;
@@ -162,13 +191,10 @@ export function createExecutionBudgetMiddleware(
           `${warningCount}/${maxWarnings} advisories (interval=${warningInterval})`,
         );
       } else {
-        const estimatedTotal = Math.floor(recursionLimit / 6);
-        const pctUsed = estimatedTotal > 0
-          ? Math.floor(modelRoundCount * 100 / estimatedTotal)
-          : 0;
+        const pctUsed = Math.floor(toolRoundCount * 100 / roundBudget);
         console.log(
-          `[ExecutionBudget] Summary (threshold): ${modelRoundCount} rounds ` +
-          `of ~${estimatedTotal} (~${pctUsed}% used), warnings=${warningCount}`,
+          `[ExecutionBudget] Summary (threshold): ${toolRoundCount} tool rounds ` +
+          `of ${roundBudget} (${pctUsed}% used), warnings=${warningCount}`,
         );
       }
     },

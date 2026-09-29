@@ -11,6 +11,7 @@ import {
   mergeApprovalPolicies,
   lookupMcpToolPolicy,
   resolveApprovalMessage,
+  resolveBuiltInApprovalMessage,
   deriveActiveLeases,
   resolveApprovalProvenance,
   resolveToolApproval,
@@ -551,6 +552,14 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
     });
   });
 
+  it("a gated native file write waits with the file named on its card (#1112)", () => {
+    expect(resolveToolApproval("write_file", "", { file_path: "/workspace/src/app.ts", content: "x" }, new Map(), NO_CATEGORIES)).toEqual({
+      requiresApproval: true,
+      message: "Write file: /workspace/src/app.ts",
+      source: "builtin_category",
+    });
+  });
+
   it("a mutating built-in whose category is leased runs, source approval_lease", () => {
     expect(resolveToolApproval("execute", "", { command: "ls" }, new Map(), new Set<ToolApprovalCategory>(["shell"]))).toEqual({
       requiresApproval: false,
@@ -562,6 +571,38 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
   it("a read-only or unclassified built-in runs (fail-open)", () => {
     expect(resolveToolApproval("read_file", "", { path: "/x" }, new Map(), NO_CATEGORIES).requiresApproval).toBe(false);
     expect(resolveToolApproval("think", "", {}, new Map(), NO_CATEGORIES).requiresApproval).toBe(false);
+  });
+});
+
+describe("resolveBuiltInApprovalMessage — the one card wording for a gated built-in, either harness", () => {
+  it("names the file a native write or edit touches: deepagents' file tools send file_path (#1112)", () => {
+    expect(resolveBuiltInApprovalMessage("write_file", { file_path: "/workspace/src/app.ts", content: "x" })).toBe("Write file: /workspace/src/app.ts");
+    expect(resolveBuiltInApprovalMessage("edit_file", { file_path: "/workspace/README.md", old_string: "a", new_string: "b" })).toBe("Write file: /workspace/README.md");
+  });
+
+  it("names the file from path in the Cursor stream's taxonomy, and from file_path in its hook's", () => {
+    expect(resolveBuiltInApprovalMessage("edit", { path: "src/app.ts" })).toBe("Write file: src/app.ts");
+    expect(resolveBuiltInApprovalMessage("Write", { file_path: "src/app.ts" })).toBe("Write file: src/app.ts");
+    expect(resolveBuiltInApprovalMessage("Delete", { file_path: "old.txt" })).toBe("Delete: old.txt");
+    expect(resolveBuiltInApprovalMessage("delete", { path: "old.txt" })).toBe("Delete: old.txt");
+  });
+
+  it("prefers path when a call carries both names", () => {
+    expect(resolveBuiltInApprovalMessage("write_file", { path: "a.txt", file_path: "b.txt" })).toBe("Write file: a.txt");
+  });
+
+  it("still reads <unknown> when a file call names no file at all", () => {
+    expect(resolveBuiltInApprovalMessage("write_file", { content: "x" })).toBe("Write file: <unknown>");
+  });
+
+  it("words a shell card from the command, in either taxonomy", () => {
+    expect(resolveBuiltInApprovalMessage("execute", { command: "rm -rf build" })).toBe("Run command: rm -rf build");
+    expect(resolveBuiltInApprovalMessage("Shell", { command: "ls" })).toBe("Run command: ls");
+  });
+
+  it("answers undefined for a built-in that is not gated", () => {
+    expect(resolveBuiltInApprovalMessage("read_file", { file_path: "/x" })).toBeUndefined();
+    expect(resolveBuiltInApprovalMessage("Read", { file_path: "/x" })).toBeUndefined();
   });
 });
 

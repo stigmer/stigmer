@@ -229,6 +229,8 @@ export class DeepAgentScenario {
     readonly config: Config,
     script: ScriptSelector,
     onTurn: DeepAgentScenarioOptions["onTurn"],
+    /** Tool calls an EARLIER message of the session settled, in its own record ({@link continueDeepAgentScenario}). */
+    settledEarlier: ReadonlySet<string> = new Set(),
   ) {
     this.model = new ScriptedModel(script, [], {
       onTurn: async (info) => {
@@ -237,8 +239,10 @@ export class DeepAgentScenario {
         // lets the producer run a turn ahead of the consumer. Wait for that
         // ground before ticking, so every stamp of the previous turn precedes
         // this turn's instant, whatever the persist's I/O took (the barrier's
-        // own header on `ExecutionRecord` carries the whole reason).
-        await this.record.whenToolCallsSettled(info.priorToolCallIds);
+        // own header on `ExecutionRecord` carries the whole reason). A
+        // follow-up message's first turn answers the previous message's last
+        // results, which that message's record settled, never this one.
+        await this.record.whenToolCallsSettled(info.priorToolCallIds.filter((id) => !settledEarlier.has(id)));
         this.clock.tick();
         if (onTurn && this.controls) await onTurn(info, this.controls);
       },
@@ -280,6 +284,32 @@ export function beginDeepAgentScenario(options: DeepAgentScenarioOptions): DeepA
     { ...hermeticDeepAgentConfig(options.env, options.checkpointer ?? "memory"), ...options.config },
     options.script,
     options.onTurn,
+  );
+  bindScriptedModel(scenario.model);
+  bindHermeticClient(options.record.client(options.clientOverrides));
+  return scenario;
+}
+
+/**
+ * The session's NEXT message on the scenario's thread: a new record and a new
+ * script over the same environment, runner config and checkpointer, WITHOUT
+ * the reset {@link beginDeepAgentScenario} does. On the `sqlite` checkpointer
+ * the new message therefore runs on the checkpoint the previous one left: the
+ * production shape of "send another message to continue".
+ */
+export function continueDeepAgentScenario(
+  previous: DeepAgentScenario,
+  options: Pick<DeepAgentScenarioOptions, "record" | "script" | "onTurn" | "clientOverrides">,
+): DeepAgentScenario {
+  const settledEarlier = new Set(previous.record.toolCalls().map((tc) => tc.id));
+  const scenario = new DeepAgentScenario(
+    previous.env,
+    previous.clock,
+    options.record,
+    previous.config,
+    options.script,
+    options.onTurn,
+    settledEarlier,
   );
   bindScriptedModel(scenario.model);
   bindHermeticClient(options.record.client(options.clientOverrides));

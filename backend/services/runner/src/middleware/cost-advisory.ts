@@ -7,9 +7,12 @@
  * usage delta the adapter reports moves the runtime's estimate, and when the
  * estimate crosses the cap the runtime stops the turn and settles TERMINATED
  * with the cost-limit copy. The graph learns of the stop through its abort
- * signal, the same way it learns of a platform STOP or a stall. This is the
- * shape `execution-budget.ts` already has beside LangGraph's `recursionLimit`:
- * the middleware warns inside the graph, the engine's own limit enforces.
+ * signal, the same way it learns of a platform STOP or a stall. The
+ * middleware warns inside the graph; the runtime enforces, because the
+ * running estimate advances only in its usage accumulator. The round budget
+ * is the one budget enforced where it is counted (`execution-budget.ts`): a
+ * round is visible only at the model call, and stopping there is what makes
+ * it exact.
  *
  * Until #1096 this module was `cost-cap.ts` and did both: it also
  * blocked every tool call once the running cost passed the cap and gave the

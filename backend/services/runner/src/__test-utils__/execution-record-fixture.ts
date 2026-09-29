@@ -65,7 +65,8 @@ export interface ExecutionRecordOptions {
   readonly maxCostUsd?: number;
   /**
    * `ExecutionConfig.max_tool_rounds`: the hard tool-round budget the engine
-   * enforces (native: LangGraph's `recursionLimit`, `shared/tool-rounds.ts`).
+   * enforces (native: the execution budget middleware's round count,
+   * `shared/tool-rounds.ts`).
    * Omitted or 0 = unlimited, the proto's default. Clamped to the floor of 10
    * by the runner, so a scenario that wants the limit reached scripts a model
    * that keeps calling tools (`repeatLast`).

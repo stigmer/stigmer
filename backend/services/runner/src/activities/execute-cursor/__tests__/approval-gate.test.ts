@@ -24,7 +24,6 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import {
   approvalCategory,
   builtInRequiresApproval,
-  getBuiltInApprovalMessage,
   getBuiltInGatedList,
   getBuiltInGatedCategories,
   extractArgKey,
@@ -111,17 +110,6 @@ describe("builtInRequiresApproval", () => {
     }
     // The injected hook map covers exactly the gated set.
     expect(getBuiltInGatedCategories().map(([n]) => n).sort()).toEqual(getBuiltInGatedList().sort());
-  });
-});
-
-describe("getBuiltInApprovalMessage", () => {
-  it("returns a category template for gated tools in EITHER taxonomy", () => {
-    expect(getBuiltInApprovalMessage("Write")).toContain("{{args.path}}");
-    expect(getBuiltInApprovalMessage("edit")).toContain("{{args.path}}");
-    expect(getBuiltInApprovalMessage("Shell")).toContain("{{args.command}}");
-    expect(getBuiltInApprovalMessage("shell")).toContain("{{args.command}}");
-    expect(getBuiltInApprovalMessage("Read")).toBeUndefined();
-    expect(getBuiltInApprovalMessage("read")).toBeUndefined();
   });
 });
 

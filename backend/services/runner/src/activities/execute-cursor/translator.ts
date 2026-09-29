@@ -86,7 +86,7 @@ import { resolveApprovalProvenance, type MergedToolPolicy, type PolicySource } f
 import { utcTimestamp } from "../../shared/status.js";
 import { isDeclinedRow } from "../../shared/tool-row.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
-import { builtInRequiresApproval, getBuiltInApprovalMessage, lookupMcpToolPolicy, resolveApprovalMessage } from "./approval-policy.js";
+import { builtInRequiresApproval, lookupMcpToolPolicy, resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
 import { toolCallIdentityToken, toolIdentity, primaryToken } from "./approval-state.js";
 import { contentDigest } from "../../shared/file-tools.js";
 import { subAgentStepEvents } from "./sub-agent-steps.js";
@@ -392,8 +392,8 @@ export class CursorTranslator {
       return policy ? { message: resolveApprovalMessage(policy.approvalMessage, name, input) } : undefined;
     }
     if (!builtInRequiresApproval(name)) return undefined;
-    const template = getBuiltInApprovalMessage(name);
-    return template ? { message: resolveApprovalMessage(template, name, input) } : undefined;
+    const message = resolveBuiltInApprovalMessage(name, input);
+    return message === undefined ? undefined : { message };
   }
 
   // ── The delta queue ─────────────────────────────────────────────

@@ -20,6 +20,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SENSITIVE_ARG_KEYS } from "./args-preview.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
+import { extractFilePath } from "./file-tools.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 
 /**
@@ -480,24 +481,65 @@ export function resolveApprovalMessage(
  * THE approval-message template per mutating built-in category — the one
  * table both harnesses word their approval cards from (since #1097).
  * Keyed by category (not raw tool name) so every alias of a mutation renders
- * one message; placeholders resolve against the stream arg shape
- * (`path`/`command`; `resolveApprovalMessage`). The native gate decides with
- * it (`resolveToolApproval`), the Cursor translator words its `gate` from it
- * (`execute-cursor/approval-policy.ts` `getBuiltInApprovalMessage`), and the
- * Cursor boundary resolves a denied call's message through the same path.
+ * one message. It is read only through {@link resolveBuiltInApprovalMessage},
+ * which the native gate (`resolveToolApproval`), the Cursor translator's `gate`
+ * and the Cursor boundary's denied-call message all call, so the three can
+ * never word a card differently.
  *
  * Until then the Cursor harness carried a table of its own and the two differed
  * by a word — `shell` read "Run command" there and "Execute command" here.
  * Unified on the plainer word: a user reads "Run command" and knows
- * what is being asked. Known and deliberately left (#1112):
- * `write` resolves `{{args.path}}`, while deepagents' file tools send
- * `file_path`, so a gated native write reads "Write file: <unknown>".
+ * what is being asked.
  */
 export const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
   write: "Write file: {{args.path}}",
   delete: "Delete: {{args.path}}",
   shell: "Run command: {{args.command}}",
 };
+
+/**
+ * THE approval-card message for a built-in tool of either harness taxonomy, or
+ * `undefined` when the tool is not a gated built-in.
+ *
+ * The `{{args.path}}` a file card reads is filled from `extractFilePath`
+ * (`file-tools.ts`), the one home of "which argument names the file" across
+ * both taxonomies: deepagents' file tools and the Cursor hook send
+ * `file_path`, the Cursor stream sends `path`. Resolving the raw args instead
+ * rendered a gated native write as "Write file: <unknown>" (#1112). The
+ * template keeps its one placeholder, so the table stays harness-neutral.
+ */
+export function resolveBuiltInApprovalMessage(
+  toolName: string,
+  args: Record<string, unknown>,
+): string | undefined {
+  const category = toolApprovalCategory(toolName);
+  return category ? resolveCategoryApprovalMessage(category, toolName, args) : undefined;
+}
+
+function resolveCategoryApprovalMessage(
+  category: ToolApprovalCategory,
+  toolName: string,
+  args: Record<string, unknown>,
+): string {
+  return resolveApprovalMessage(CATEGORY_APPROVAL_MESSAGE[category], toolName, categoryTemplateArgs(category, args));
+}
+
+/** The args a category's template resolves against: a file card reads the file from wherever its taxonomy names it. */
+function categoryTemplateArgs(category: ToolApprovalCategory, args: Record<string, unknown>): Record<string, unknown> {
+  switch (category) {
+    case "write":
+    case "delete": {
+      const path = extractFilePath(args);
+      return path === null ? args : { ...args, path };
+    }
+    case "shell":
+      return args;
+    default: {
+      const exhaustive: never = category;
+      throw new Error(`categoryTemplateArgs: unknown approval category ${String(exhaustive)}`);
+    }
+  }
+}
 
 /** What the gate decides for one call: whether it waits, the message the card shows, and which layer said so. */
 export interface ApprovalRequirement {
@@ -561,7 +603,7 @@ export function resolveToolApproval(
     }
     return {
       requiresApproval: true,
-      message: resolveApprovalMessage(CATEGORY_APPROVAL_MESSAGE[category], toolName, args),
+      message: resolveCategoryApprovalMessage(category, toolName, args),
       source: "builtin_category",
     };
   }

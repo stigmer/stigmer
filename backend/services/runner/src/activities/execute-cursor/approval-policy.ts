@@ -27,9 +27,9 @@ export {
   mergeApprovalPolicies,
   lookupMcpToolPolicy,
   resolveApprovalMessage,
+  resolveBuiltInApprovalMessage,
   POLICY_ENGINE_VERSION,
 } from "../../shared/approval-policy.js";
-import { CATEGORY_APPROVAL_MESSAGE } from "../../shared/approval-policy.js";
 export type { MergedToolPolicy, PolicySource } from "../../shared/approval-policy.js";
 
 /**
@@ -132,20 +132,6 @@ export function getBuiltInGatedCategories(): Array<[string, ApprovalCategory]> {
     if (category) pairs.push([name, category]);
   }
   return pairs;
-}
-
-/**
- * Approval-message template for a gated built-in tool (either taxonomy), or
- * undefined when the tool is not gated. Resolved via {@link approvalCategory}
- * so stream-side names (`edit`/`shell`/`delete`) and hook-side names
- * (`Write`/`Shell`/`Delete`) both map to the same template — the platform's
- * ONE table, `shared/approval-policy.ts` `CATEGORY_APPROVAL_MESSAGE`, shared
- * with the native gate since #1097. Callers resolve the
- * placeholders against the tool args via resolveApprovalMessage.
- */
-export function getBuiltInApprovalMessage(toolName: string): string | undefined {
-  const category = approvalCategory(toolName);
-  return category ? CATEGORY_APPROVAL_MESSAGE[category] : undefined;
 }
 
 /**

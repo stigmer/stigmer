@@ -44,7 +44,7 @@ import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import type { McpConnectionResult } from "../../shared/mcp-manager.js";
 import { tryInferProvider } from "../../shared/llm-proxy.js";
 import { describeExecutionError } from "../../shared/model-error.js";
-import { isGraphRecursionError } from "../../shared/tool-rounds.js";
+import { isToolCallBudgetStop } from "../../shared/tool-rounds.js";
 import {
   buildDeepAgentWorkspace,
   buildEngine,
@@ -98,8 +98,9 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
 }
 
 /**
- * An exception that escaped the turn, classified. The graph's recursion
- * limit is the budget's own signal (`shared/tool-rounds.ts`), not an error:
+ * An exception that escaped the turn, classified. The tool-call budget's stop
+ * (the execution budget's round limit, or its recursion-limit backstop;
+ * `shared/tool-rounds.ts`) is the budget's own signal, not an error:
  * the work is checkpointed and the conversation continues on the next
  * message. Anything else is described by `describeExecutionError` (a model
  * error arrives MiddlewareError-wrapped with raw provider prose and is
@@ -108,7 +109,7 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
  * broke.
  */
 function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapterConfig, modelName: string | undefined): TurnOutcome {
-  if (isGraphRecursionError(err)) {
+  if (isToolCallBudgetStop(err)) {
     console.log(`ExecuteDeepAgent reached the tool-call limit: execution=${input.executionId}`);
     return { kind: "tool_call_limit" };
   }

@@ -71,7 +71,12 @@ export interface LoopDetectionConfig {
 }
 
 export interface ExecutionBudgetConfig {
-  readonly recursionLimit: number;
+  /**
+   * The turn's round budget, already clamped (`shared/tool-rounds.ts`
+   * `resolveToolRoundLimit`); the middleware ends the turn when it is spent.
+   * `null` is unlimited: the advisory still fires, nothing is stopped.
+   */
+  readonly maxToolRounds: number | null;
   readonly warningPct: number;
   readonly warningInterval: number | null;
   readonly maxWarnings: number;

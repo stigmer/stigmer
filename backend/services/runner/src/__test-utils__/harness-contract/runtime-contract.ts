@@ -482,7 +482,7 @@ export async function assertNonExecutingDecisionSettlesSkipped(
  *
  * The execution SETS the budget it exhausts: the record carries the smallest
  * valid `max_tool_rounds` (an unbounded execution has no limit to reach — on
- * native `resolveRecursionLimit(0)` is unlimited, and the first run of this
+ * native `resolveToolRoundLimit(0)` is unlimited, and the first run of this
  * arm against it spun until the test timed out). The fake
  * exhausts whatever budget it is given; a real engine spins its cheapest
  * ungated tool until the graph stops it.

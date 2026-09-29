@@ -71,7 +71,7 @@ import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
 import { findApprovedPlanPath } from "../../shared/implement-plan-prompt.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
-import { resolveRecursionLimit, UNBOUNDED_ADVISORY_RECURSION_LIMIT } from "../../shared/tool-rounds.js";
+import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
@@ -436,10 +436,10 @@ export async function buildEngine(
     : null;
 
   const maxCostUsd = execConfig?.maxCostUsd ?? 0;
-  const recursionLimit = resolveRecursionLimit(execConfig?.maxToolRounds);
+  const toolRoundLimit = resolveToolRoundLimit(execConfig?.maxToolRounds);
   const { middleware, costAdvisory } = buildMiddlewareStack({
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
-    executionBudget: { recursionLimit: recursionLimit ?? UNBOUNDED_ADVISORY_RECURSION_LIMIT, warningPct: 80 },
+    executionBudget: { maxToolRounds: toolRoundLimit, warningPct: 80 },
     toolTruncation: { maxChars: execConfig?.maxToolResultChars || 30_000 },
     costAdvisory: maxCostUsd > 0
       ? {
@@ -546,10 +546,10 @@ export async function buildEngine(
 
   const langgraphConfig: Record<string, unknown> = {
     configurable: { thread_id: input.threadId },
-    // Hard enforcement of max_tool_rounds (null = unlimited): when the graph
-    // exhausts this, the stream throws GraphRecursionError and the adapter
-    // ends the turn `tool_call_limit` with the work checkpointed.
-    ...(recursionLimit !== null ? { recursionLimit } : {}),
+    // max_tool_rounds is enforced by the execution budget middleware, round
+    // by round; this is only its backstop against a graph that loops without
+    // calling the model (`shared/tool-rounds.ts`). Unset = unlimited = none.
+    ...(toolRoundLimit !== null ? { recursionLimit: backstopRecursionLimit(toolRoundLimit) } : {}),
   };
 
   console.log(

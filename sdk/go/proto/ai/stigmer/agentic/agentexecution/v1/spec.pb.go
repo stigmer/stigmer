@@ -352,44 +352,19 @@ type ExecutionConfig struct {
 	ContextManagement *ContextManagementConfig `protobuf:"bytes,2,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
 	// Maximum number of model-to-tools reasoning cycles per message.
 	//
-	// Each "round" is one model call followed by tool execution — the atomic
-	// unit of agent progress.  Internally mapped to LangGraph's recursion_limit
-	// (approximately max_tool_rounds × 6 super-steps).
+	// A round is one model response that proposes one or more tool calls,
+	// followed by their execution; parallel tool calls in one response are one
+	// round. When the limit is reached the run stops with a "send another
+	// message to continue" prompt, and the work done so far is kept. The agent
+	// is advised to wrap up at about 80% of the budget.
 	//
-	// ## Conversion
-	//
-	// LangGraph's recursion_limit counts "super-steps" — individual graph node
-	// executions.  Each model-tool round consumes multiple super-steps because
-	// every active middleware hook (before_model, after_model, etc.) is a
-	// separate graph node.  The conversion formula is:
-	//
-	//	recursion_limit = max_tool_rounds × 6
-	//
-	// The ×6 factor is a floor estimate; actual cost per round depends on the
-	// middleware stack.
-	//
-	// ## Default Behavior
-	//
-	// 0 = unlimited (no artificial recursion limit).
-	// The agent runs until the task completes or loop detection middleware
-	// detects repetitive behavior (7 consecutive / 20 total duplicate
-	// patterns).  This is the recommended default — loop detection is the
-	// primary safety mechanism.
-	//
-	// ## Valid Range
-	//
-	// When set: 10–1000 rounds (60–6000 super-steps).
-	// Values outside this range are clamped to the nearest bound with a
-	// warning log.  Sub-agent graphs have their own independent recursion
-	// limit (LangGraph default: 10,000) and are not affected by this field.
-	//
-	// ## User Experience
-	//
-	// When a limit IS set and the agent approaches it, a graceful wrap-up
-	// message is injected at ~80% of the budget.  At 100%, the user sees
-	// a "send another message to continue" prompt.
-	//
-	// @since Recursion Limit Configurability (D1)
+	// 0 = unlimited, the default and the recommendation: the agent runs until
+	// the task completes or loop detection stops a repetitive pattern (7
+	// consecutive / 20 total duplicate patterns). When set, the valid range is
+	// 10–1000; values outside it are clamped to the nearest bound. The budget
+	// is per message: a follow-up message, or a run resuming after an approval,
+	// starts a fresh count. Sub-agent rounds are not counted, and the Cursor
+	// harness does not enforce this field.
 	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
 	// Maximum number of characters for a single tool result before truncation.
 	// When a tool result exceeds this limit, it is truncated and a marker is
