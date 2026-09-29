@@ -39,7 +39,7 @@ import { KIND_TIERS } from "./gen/resource-availability.js";
 
 /**
  * Edition of the Stigmer backend the client is connected to, as reported
- * by {@link PlatformClient.getServerInfo}.
+ * by `PlatformClient.getServerInfo`.
  *
  * - `"local"` — Stigmer, the open-source edition. `open_source`-tier
  *   resources are served.

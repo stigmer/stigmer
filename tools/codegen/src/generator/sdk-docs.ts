@@ -436,10 +436,10 @@ function docWriteMethodSigs(
     docWriteTab(buf, "Python", "python", `${pyResultVar} = client.${names.py}.${pyName}(id)`);
     docWriteTab(buf, "Java", "java", `${m.outputType} ${resultVar} = client.${names.java}().${tsName}(id);`);
   } else if (resourceInput && hasInputType) {
-    const goFields = docInputFields(specSchema, "go", exampleName);
-    const tsFields = docInputFields(specSchema, "typescript", exampleName);
-    const pyFields = docInputFields(specSchema, "python", exampleName);
-    const javaFields = docInputFields(specSchema, "java", exampleName);
+    const goFields = docInputFields(specSchema, "go", exampleName, cfg.isOrgless);
+    const tsFields = docInputFields(specSchema, "typescript", exampleName, cfg.isOrgless);
+    const pyFields = docInputFields(specSchema, "python", exampleName, cfg.isOrgless);
+    const javaFields = docInputFields(specSchema, "java", exampleName, cfg.isOrgless);
 
     docWriteTab(buf, "TypeScript", "typescript", `const ${resultVar} = await stigmer.${names.ts}.${tsName}({\n${docFormatInputTS(tsFields)}\n});`);
     docWriteTab(buf, "Go", "go", `${resultVar}, err := client.${names.go}.${m.name}(ctx, &stigmer.${inputTypeName}{\n${docFormatInputGo(goFields)}\n})`);
@@ -481,10 +481,17 @@ interface DocFieldEntry {
   value: string;
 }
 
-function docInputFields(specSchema: TaskConfigSchema | null, lang: string, exampleName: string): DocFieldEntry[] {
+// An org-less kind's example shows no org: its metadata.org is always empty,
+// and the server refuses one.
+function docInputFields(
+  specSchema: TaskConfigSchema | null,
+  lang: string,
+  exampleName: string,
+  isOrgless: boolean,
+): DocFieldEntry[] {
   const fields: DocFieldEntry[] = [
     { name: docFieldName("name", lang), value: docQuote(exampleName) },
-    { name: docFieldName("org", lang), value: docQuote("acme") },
+    ...(isOrgless ? [] : [{ name: docFieldName("org", lang), value: docQuote("acme") }]),
     { name: docFieldName("slug", lang), value: docQuote("...") },
     { name: docFieldName("labels", lang), value: docEmptyMap(lang) },
   ];
@@ -720,7 +727,9 @@ function docWriteTypesWithCommons(
   buf.push("<TypeTable\n  type={{\n");
   buf.push('    name: { type: "string", description: "Resource name.", required: true },\n');
   buf.push('    slug: { type: "string", description: "URL-friendly identifier." },\n');
-  buf.push('    org: { type: "string", description: "Organization slug.", required: true },\n');
+  if (!cfg.isOrgless) {
+    buf.push('    org: { type: "string", description: "Organization slug.", required: true },\n');
+  }
   buf.push('    labels: { type: "Record<string, string>", description: "Key-value labels." },\n');
   for (const f of specFields) {
     docWriteTypeFieldWithCommons(buf, f, documentedTypes, commonsTypes);

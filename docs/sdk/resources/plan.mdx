@@ -154,7 +154,6 @@ The plan's slug is its stable handle and must be unique across the catalog. The 
 ```typescript
 const plan = await stigmer.plan.create({
   name: "my-plan",
-  org: "acme",
   slug: "...",
   labels: {},
   instrument: "...",
@@ -168,7 +167,6 @@ const plan = await stigmer.plan.create({
 ```go
 plan, err := client.Plan.Create(ctx, &stigmer.PlanInput{
   Name:         "my-plan",
-  Org:          "acme",
   Slug:         "...",
   Labels:       map[string]string{},
   Instrument:   "...",
@@ -182,7 +180,6 @@ plan, err := client.Plan.Create(ctx, &stigmer.PlanInput{
 ```python
 plan = client.plans.create(PlanInput(
     name="my-plan",
-    org="acme",
     slug="...",
     labels={},
     instrument="...",
@@ -196,7 +193,6 @@ plan = client.plans.create(PlanInput(
 ```java
 Plan plan = client.plans().create(PlanInput.builder()
     .name("my-plan")
-    .org("acme")
     .slug("...")
     .labels(Map.of())
     .instrument("...")
@@ -259,7 +255,6 @@ Input for creating or updating a Plan.
   type={{
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
-    org: { type: "string", description: "Organization slug.", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     instrument: { type: "PlanInstrument", description: "The instrument this plan is bought through.", typeDescriptionLink: "#planinstrument", required: true },
     entitlements: { type: "EntitlementsInput", description: "What the plan permits: its limits and features.", typeDescriptionLink: "#entitlementsinput", required: true },

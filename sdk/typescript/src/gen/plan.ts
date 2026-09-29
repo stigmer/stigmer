@@ -59,7 +59,11 @@ export interface PlanInput {
   id?: string;
   name: string;
   slug?: string;
-  org: string;
+  /**
+   * Always empty: a Plan belongs to the platform, not to an
+   * organization, so `metadata.org` stays unset. Omit it.
+   */
+  org?: "";
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
   instrument: PlanInstrument;
@@ -122,7 +126,7 @@ export function buildPlanProto(input: PlanInput): Plan {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       ...(input.id && { id: input.id }),
       name: input.name,
-      org: input.org,
+      org: input.org ?? "",
       ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
       ...(input.visibility && { visibility: input.visibility }),

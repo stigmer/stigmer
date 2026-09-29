@@ -10,6 +10,7 @@ import {
   kind_meta,
   ResourceTier,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { IamRoleSchema } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** Enum number → lowercase constant name (e.g. 43 → "skill"). */
@@ -17,6 +18,12 @@ export const apiResourceKindEnumNames = new Map<number, string>();
 
 /** Kinds whose kind_meta.is_versioned is true. */
 export const versionedKinds = new Set<number>();
+
+/**
+ * Kinds whose kind_meta.authorization.scope_type is NONE: platform-level
+ * resources whose metadata.org the contract says is empty (License, Plan).
+ */
+export const orglessKinds = new Set<number>();
 
 export interface KindMetaEntry {
   enumName: string;
@@ -41,6 +48,9 @@ for (const value of ApiResourceKindSchema.values) {
 
   if (meta.isVersioned) {
     versionedKinds.add(value.number);
+  }
+  if (meta.authorization?.scopeType === AuthorizationScopeType.NONE) {
+    orglessKinds.add(value.number);
   }
   if (meta.name !== "") {
     idPrefixByMetaName.set(meta.name, meta.idPrefix);
@@ -72,6 +82,14 @@ export function iamRoleName(role: number): string {
 export function isVersionedKind(kindName: string): boolean {
   for (const [num, name] of apiResourceKindEnumNames) {
     if (name === kindName) return versionedKinds.has(num);
+  }
+  return false;
+}
+
+/** Kind NAME → whether the kind has no organization (scope_type NONE). */
+export function isOrglessKind(kindName: string): boolean {
+  for (const [num, name] of apiResourceKindEnumNames) {
+    if (name === kindName) return orglessKinds.has(num);
   }
   return false;
 }

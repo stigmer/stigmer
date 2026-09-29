@@ -8,7 +8,7 @@ import * as path from "node:path";
 
 import type { ServiceSchemaFile } from "./gen-common.js";
 import { isIDType, pascalToSnake } from "./gen-common.js";
-import { isVersionedKind } from "./resource-kind.js";
+import { isOrglessKind, isVersionedKind } from "./resource-kind.js";
 import type { TaskConfigSchema, TypeSchema } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
@@ -22,6 +22,11 @@ export interface SdkResourceConfig {
   idPrefix: string;
   resourceKind: string;
   isVersioned: boolean;
+  /**
+   * The kind has no organization (kind_meta scope_type NONE): its inputs
+   * carry no required org and its docs show none.
+   */
+  isOrgless: boolean;
 }
 
 // Fields that always come from ApiResourceMetadata; spec fields with these
@@ -50,6 +55,7 @@ export function deriveResourceConfig(schema: ServiceSchemaFile, schemaDir: strin
     idPrefix: "",
     resourceKind: "",
     isVersioned: false,
+    isOrgless: false,
   };
 
   // protoResType: prefer the update or delete method's output type over
@@ -102,6 +108,7 @@ export function deriveResourceConfig(schema: ServiceSchemaFile, schemaDir: strin
   cfg.apiVersion = deriveApiVersion(schema.package);
   cfg.resourceKind = resolveResourceKind(schema);
   cfg.isVersioned = isVersionedKind(cfg.resourceKind);
+  cfg.isOrgless = isOrglessKind(cfg.resourceKind);
 
   return cfg;
 }

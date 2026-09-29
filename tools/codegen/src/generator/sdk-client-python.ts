@@ -746,8 +746,16 @@ function generatePythonInputAndProto(
   buf.push(`class ${inputName}:\n`);
   buf.push(`    """Input for creating or updating a ${cfg.protoResType}."""\n\n`);
   buf.push("    name: str\n");
-  buf.push("    org: str\n");
+  if (!cfg.isOrgless) {
+    buf.push("    org: str\n");
+  }
   emitPyFields(buf, requiredFields, imports);
+  if (cfg.isOrgless) {
+    // An org-less kind's org defaults to empty; a value is sent as given, so
+    // the server's refusal names the mistake.
+    buf.push(`    # Always empty: a ${cfg.protoResType} belongs to the platform, not to an organization.\n`);
+    buf.push('    org: str = ""\n');
+  }
   // id: exact update addressing for platform-scoped (org-less) kinds.
   buf.push("    id: str | None = None\n");
   buf.push("    slug: str | None = None\n");

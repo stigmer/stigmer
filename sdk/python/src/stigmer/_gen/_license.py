@@ -49,12 +49,13 @@ class LicenseInput:
     """Input for creating or updating a License."""
 
     name: str
-    org: str
     customer: LicenseCustomerInput | None
     entitlements: EntitlementsInput | None
     term: int
     expires_at: str
     grace_until: str
+    # Always empty: a License belongs to the platform, not to an organization.
+    org: str = ""
     id: str | None = None
     slug: str | None = None
     labels: dict[str, str] | None = None
