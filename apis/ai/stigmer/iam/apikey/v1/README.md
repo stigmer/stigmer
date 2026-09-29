@@ -22,20 +22,21 @@ API keys provide programmatic access to Stigmer without requiring interactive OA
 
 **Authentication:**
 - Used in `Authorization: Bearer stk_...` header (same as JWT)
-- Validated via Redis cache + IAM service lookup
-- Resolved to identity account via owner metadata
+- Validated by a direct lookup of the key's hash in the server's store, with no cache, so a deleted key is refused on the very next request
+- Resolved to the identity account that created the key
 
 ## API Endpoints
+
+The server speaks [Connect](https://connectrpc.com/docs/protocol/): each RPC is a `POST` to `/<package>.<Service>/<method>` with a JSON body in the message's JSON form. The bodies below are written as YAML, the shape the [`curl/`](curl/) samples use.
 
 ### Create API Key
 
 ```yaml
-# POST /api/v1/iam/apikey/create
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyCommandController/create
 apiVersion: iam.stigmer.ai/v1
 kind: ApiKey
 metadata:
   name: ci-cd-key
-  description: Key for GitHub Actions
 spec:
   expiresAt: "2026-12-31T23:59:59Z"
   # OR neverExpires: true
@@ -46,7 +47,7 @@ spec:
 ### List API Keys
 
 ```yaml
-# POST /api/v1/iam/apikey/findAll
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findAll
 {}  # Uses identity from auth header
 ```
 
@@ -55,18 +56,18 @@ spec:
 ### Get API Key
 
 ```yaml
-# POST /api/v1/iam/apikey/get
-value: "api-key-id"
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyQueryController/get
+value: "key_01j9zexample"
 ```
 
 ### Update API Key
 
 ```yaml
-# POST /api/v1/iam/apikey/update
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyCommandController/update
 apiVersion: iam.stigmer.ai/v1
 kind: ApiKey
 metadata:
-  id: "api-key-id"
+  id: "key_01j9zexample"
   name: renamed-key
 spec:
   expiresAt: "2027-12-31T23:59:59Z"
@@ -75,50 +76,30 @@ spec:
 ### Delete (Revoke) API Key
 
 ```yaml
-# POST /api/v1/iam/apikey/delete
-value: "api-key-id"
+# POST /ai.stigmer.iam.apikey.v1.ApiKeyCommandController/delete
+value: "key_01j9zexample"
 ```
 
 ## Backend Implementation
 
+The server's API-key module is `backend/services/stigmer-server/src/domain/apikey/`. Its file headers are the source of truth for the byte-level rules (prefix, hash encoding, error copy); this section is the map.
+
 ### Authentication Flow
 
-1. **Token Extraction**
-   - `GrpcSecurityConfigBase` intercepts all gRPC requests
-   - `AuthTokenExtractor` pulls token from `Authorization` header
-
-2. **API Key Detection**
-   - `RedisApiKeyIntrospector` checks for `stk_` prefix
-   - If match, proceeds with API key validation
-
-3. **Validation**
-   - Hash token with SHA-256
-   - Lookup in Redis cache (`ApiKeyRedisCacheRepo`)
-   - On cache miss, call IAM service (`ApiKeyGrpcRepo`)
-   - Cache result for 1 hour
-
-4. **Expiration Check**
-   - Compare current time vs `spec.expiresAt`
-   - Reject if expired
-
-5. **Identity Resolution**
-   - Extract owner ID from `metadata.ownerId`
-   - Resolve to IDP ID via `IdentityAccountIdToIdpIdCacheProxy`
-   - Build OAuth2 principal with `sub` claim
-
-6. **Security Context**
-   - Set Spring Security authentication
-   - Downstream code sees same principal as JWT auth
+1. **Claim**: the identity verifier chain offers each bearer token to the API-key verifier, which claims tokens starting with `stk_` (case-insensitive). Any other token passes to the next verifier.
+2. **Hash**: the raw token is hashed with SHA-256 and encoded as Base64URL without padding, the form `spec.key_hash` stores.
+3. **Lookup**: the key is read from the store by that hash. There is no cache, so a deleted key is refused on the next request.
+4. **Expiry**: a key whose `spec.expires_at` is set and past is refused with `token has expired`; an unknown or deleted key with `invalid token`.
+5. **Identity**: the request runs as the key's creator (`status.audit.spec_audit.created_by`). Downstream code sees the same principal a signed-in session of that account would.
+6. **Last use**: the key's `status.last_used_at` is stamped, at most once a minute.
 
 ### Key Components
 
-**Java Classes:**
-- `ApiKeyConstants` - Defines `stk_` prefix
-- `ApiKeyHasher` - SHA-256 hashing utility
-- `ApiKeyFingerprintExtractor` - Last 6 chars extraction
-- `RedisApiKeyIntrospector` - Main validation logic
-- `ApiKeyHashToApiKeyCacheProxy` - Cache-aside pattern
-- `GrpcSecurityConfigBase` - Wires up both JWT + API key auth
+**Server modules** (under `backend/services/stigmer-server/src/domain/apikey/`):
+- `keymaterial.ts`: key generation (`stk_` plus 32 random bytes, Base64URL), hashing and the last-six-character fingerprint
+- `verifier.ts`: the verifier-chain entry, which runs the flow above (hashing through `keymaterial.ts`, reading through `lookup.ts`)
+- `lookup.ts`: the one lookup by hash, shared by the verifier and the `getByKeyHash` RPC
+- `controller.ts`: the command and query RPCs
 
 **Proto Definitions:**
 - `api.proto` - ApiKey message, ApiKeyStatus
@@ -132,47 +113,41 @@ value: "api-key-id"
 ### Create and Use in CLI
 
 ```bash
-# Create key
-stigmer iam apikey create \
-  --name ci-key \
-  --expires-at 2026-12-31T23:59:59Z
+# Create a key (expires in 90 days unless --expires-in or --never-expires says otherwise)
+stigmer apikey create --name ci-key --expires-in 90d
 
-# Response includes raw key (save it!)
-# stk_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890AbCdEfGhIjKl
+# The raw key is printed once (save it!)
+# stk_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890AbCdEfG
 
-# Use in subsequent commands
+# Use it for subsequent commands
 export STIGMER_API_KEY="stk_..."
-stigmer workflow list  # Uses API key from env var
+stigmer list agents  # authenticates with the API key
 ```
+
+Every flag is in the CLI reference: [`stigmer apikey`](../../../../../../docs/cli/commands/apikey.mdx).
 
 ### Use in CI/CD
 
 ```yaml
 # GitHub Actions example
-- name: Deploy with Stigmer
+- name: Apply Stigmer resources
   env:
     STIGMER_API_KEY: ${{ secrets.STIGMER_API_KEY }}
   run: |
-    stigmer deploy --environment production
+    stigmer apply -f ./stigmer/
 ```
 
 ### Use in Code
 
-```java
-// Java client example
-var channel = ManagedChannelBuilder
-    .forAddress("api.stigmer.ai", 443)
-    .useTransportSecurity()
-    .build();
+```typescript
+import { createNodeClient } from "@stigmer/sdk/node";
 
-var metadata = new Metadata();
-metadata.put(
-    Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER),
-    "Bearer stk_..."
-);
+const stigmer = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY, // "stk_..."
+});
 
-var stub = ApiKeyCommandControllerGrpc.newBlockingStub(channel)
-    .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
+const agent = await stigmer.agent.get("my-agent");
 ```
 
 ## Security Considerations

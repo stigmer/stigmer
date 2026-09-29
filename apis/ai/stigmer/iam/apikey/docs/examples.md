@@ -44,29 +44,26 @@ spec:
 
 ## CLI: Create a Key and Save It
 
-```bash
-# Apply the YAML to create the key
-stigmer api-key create api-key.yaml
+The CLI creates keys from flags; the YAML shapes above are the body of the `ApiKeyCommandController.create` RPC.
 
-# The raw key is printed in the response — save it immediately.
-# Example response excerpt:
+```bash
+# Create a key that expires in 90 days (the default when no expiry flag is given)
+stigmer apikey create --name ci-pipeline --expires-in 90d
+
+# Or one that never expires
+stigmer apikey create --name ci-pipeline --never-expires
+
+# The raw key (stk_...) is printed once — save it immediately.
+# With --output yaml, it is spec.key_hash in the response:
 #   spec:
-#     key_hash: "sk_live_abc123...xyz789"  ← raw key (one-time only)
+#     key_hash: "stk_AbCd...xyz789"  <- raw key (one-time only)
 #     fingerprint: "xyz789"
 ```
 
-## CLI: List All Keys for the Authenticated User
+## CLI: List the Keys You May View
 
 ```bash
-stigmer api-key list
-```
-
-Sample output:
-
-```
-ID              NAME              FINGERPRINT  EXPIRES             LAST USED
-ak-01ABC123     ci-pipeline       ab12cd        never              2026-03-01
-ak-01DEF456     contractor-access ef34gh        2026-06-30         never
+stigmer list api-key
 ```
 
 ## CLI: Rotate a Key
@@ -74,21 +71,18 @@ ak-01DEF456     contractor-access ef34gh        2026-06-30         never
 Rotation is a delete-then-create operation. There is no in-place key rotation.
 
 ```bash
-# 1. Delete the old key
-stigmer api-key delete ak-01ABC123
+# 1. Create a replacement key
+stigmer apikey create --name ci-pipeline-2 --expires-in 90d
 
-# 2. Create a replacement key
-stigmer api-key create replacement-key.yaml
+# 2. Update all consumers of the old key with the new raw key from step 1.
 
-# 3. Update all consumers of the old key with the new raw key from step 2.
+# 3. Delete the old key
+stigmer delete api-key key_01j9zexample
 ```
 
-## CLI: Update Key Expiry
+## Update Key Expiry
 
-```bash
-# Edit the YAML to update expires_at, then apply
-stigmer api-key update updated-key.yaml
-```
+The CLI has no update command. Send the updated resource to the `ApiKeyCommandController.update` RPC (`POST /ai.stigmer.iam.apikey.v1.ApiKeyCommandController/update`); the expiry fields are the only part of the spec it changes, and the key material is always preserved.
 
 Updated YAML:
 
@@ -97,7 +91,7 @@ apiVersion: iam.stigmer.ai/v1
 kind: ApiKey
 metadata:
   name: contractor-access
-  id: ak-01DEF456
+  id: key_01j9zexample
 spec:
   expires_at: "2026-09-30T23:59:59Z"
   never_expires: false
