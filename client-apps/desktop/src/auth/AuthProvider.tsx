@@ -21,6 +21,12 @@ import {
 import { loadTokens, saveTokens, clearTokens, isExpired } from "./token-store";
 
 export interface AuthState {
+  /**
+   * Whether the app signs in against an identity provider (PKCE) rather
+   * than running with auth disabled against a local server. Decided once,
+   * by the provider that picked the mode; the identity gate reads it.
+   */
+  readonly isAuthEnabled: boolean;
   readonly isAuthenticated: boolean;
   readonly isLoading: boolean;
   readonly isInitialized: boolean;
@@ -99,6 +105,7 @@ function DisabledAuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {}, []);
 
   const state: AuthState = {
+    isAuthEnabled: false,
     isAuthenticated: true,
     isLoading: false,
     isInitialized: true,
@@ -230,6 +237,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
     : null;
 
   const state: AuthState = {
+    isAuthEnabled: true,
     isAuthenticated,
     isLoading,
     isInitialized,

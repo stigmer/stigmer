@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
+import { IdentityAccountGate } from "./identity/IdentityAccountGate";
 import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
 import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext";
 import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
@@ -117,6 +118,18 @@ function RunnerAdapterBridge({
   );
 }
 
+/**
+ * The signed-in app, in the order the web console's `Providers.tsx` keeps:
+ *
+ * 1. AppUpdaterProvider   — update checks run whatever the gates below show
+ * 2. TokenBridge          — keeps the embedded runner's token fresh, gates or not
+ * 3. IdentityAccountGate  — the person's account exists (provisioned on a first
+ *                           sign-in, with the personal organization on Cloud)
+ * 4. FetchCacheProvider   — above OrgProvider so an org switch can clear it
+ * 5. OrgProvider          — asks for the person's organizations, which is why
+ *                           the identity gate must come first
+ * 6. RouterProvider       — the routes, with OrgGate inside the app shell
+ */
 function AppContent({
   isInitialized,
   isAuthenticated,
@@ -139,12 +152,14 @@ function AppContent({
   return (
     <AppUpdaterProvider>
       <TokenBridge />
-      <FetchCacheProvider>
-        <OrgProvider>
-          <RouterProvider router={router} />
-          <Toaster position="bottom-right" richColors />
-        </OrgProvider>
-      </FetchCacheProvider>
+      <IdentityAccountGate>
+        <FetchCacheProvider>
+          <OrgProvider>
+            <RouterProvider router={router} />
+            <Toaster position="bottom-right" richColors />
+          </OrgProvider>
+        </FetchCacheProvider>
+      </IdentityAccountGate>
     </AppUpdaterProvider>
   );
 }

@@ -1,15 +1,9 @@
 import { useCallback, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  Building2,
-  LogOut,
-} from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Building2 } from "lucide-react";
 import { CreateOrganizationForm, useOrgGate } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useAuth } from "../auth/AuthProvider";
+import { GateHeader } from "../shell/GateHeader";
 
 /** Routes that bypass the org gate (user may not have an org yet). */
 const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
@@ -40,36 +34,6 @@ export function OrgGate({ children }: { children: ReactNode }) {
     case "no-orgs":
       return <OnboardingState onRefresh={refresh} />;
   }
-}
-
-// ---------------------------------------------------------------------------
-// Gate header — user identity + sign-out
-// ---------------------------------------------------------------------------
-
-function GateHeader() {
-  const { user, logout } = useAuth();
-  if (!user) return null;
-
-  const displayName = user.name ?? user.email;
-  const initial = (displayName ?? "?").charAt(0).toUpperCase();
-
-  return (
-    <div className="absolute right-0 top-0 flex items-center gap-3 p-4">
-      <div className="flex items-center gap-2">
-        <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <span className="text-xs font-medium">{initial}</span>
-        </div>
-        <span className="text-sm text-muted-foreground">{user.email}</span>
-      </div>
-      <button
-        onClick={logout}
-        className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <LogOut className="size-3.5" />
-        Sign out
-      </button>
-    </div>
-  );
 }
 
 function LoadingState() {
