@@ -61,6 +61,7 @@ import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/age
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
@@ -222,6 +223,18 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     );
     carolId = (await carol.provisionMyAccount({})).metadata?.id ?? "";
     expect(carolId).not.toBe("");
+    // Carol founds the organization her runs belong to, so she holds its
+    // owner role: the model admits a run's creator to it only while they
+    // are in the run's organization.
+    await createClient(
+      OrganizationCommandController,
+      transportFor(port, await issuer.mint("auth0|carol", "carol@example.com")),
+    ).create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: ORG, slug: ORG, org: "" },
+      spec: { description: "the runner-subject lane's organization" },
+    });
   });
 
   afterAll(async () => {
