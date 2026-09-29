@@ -6,7 +6,6 @@ kind: ApiKey
 metadata:
   id: "api-key-id-here"
   name: my-renamed-key
-  description: Updated description
 spec:
   # Update expiration
   expiresAt: "2027-12-31T23:59:59Z"

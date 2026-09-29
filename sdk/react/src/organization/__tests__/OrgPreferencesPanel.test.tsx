@@ -8,7 +8,27 @@ import {
 import type { OrganizationInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
+import type { UseServerInfoReturn } from "../../server-info";
 import { OrgPreferencesPanel } from "../OrgPreferencesPanel";
+
+// The memory row's copy follows the server's posture. The mock client below
+// has no `platform`, so the hook is stubbed file-wide; every case not about
+// posture runs against a server that authenticates its callers.
+function answering(authenticationRequired: boolean): UseServerInfoReturn {
+  return {
+    serverInfo: { deploymentMode: "local", edition: 1, version: "dev", authenticationRequired },
+    isLoading: false,
+    error: null,
+  };
+}
+
+const SIGN_IN_SERVER = answering(true);
+
+let serverInfo: UseServerInfoReturn = SIGN_IN_SERVER;
+
+vi.mock("../../server-info.js", () => ({
+  useServerInfo: () => serverInfo,
+}));
 
 const ORG: Organization = create(OrganizationSchema, {
   metadata: { id: "acme", name: "Acme Corp", slug: "acme", org: "acme" },
@@ -46,7 +66,10 @@ function renderPanel(client: unknown) {
   );
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  serverInfo = SIGN_IN_SERVER;
+});
 
 /**
  * Waits until the form has synced from server data (the panel copies the
@@ -188,6 +211,28 @@ describe("OrgPreferencesPanel", () => {
         screen.getByRole("switch", { name: "Memory" }).hasAttribute("disabled"),
       ).toBe(true),
     );
+  });
+
+  describe("memory copy by server posture (stigmer/stigmer#1404)", () => {
+    const MEMBERS_ALSO_CONSENT = /Each member must also turn memory on/;
+    const SWITCH_ALONE_DECIDES = /this switch alone decides memory/;
+
+    it("tells admins each member must also consent on a server that authenticates its callers", async () => {
+      renderPanel(createMockStigmer());
+      await findSyncedField("We deploy to us-east-1.");
+
+      expect(screen.getByText(MEMBERS_ALSO_CONSENT)).toBeTruthy();
+      expect(screen.queryByText(SWITCH_ALONE_DECIDES)).toBeNull();
+    });
+
+    it("says this switch alone decides on a server that trusts every request: there is no person's switch there", async () => {
+      serverInfo = answering(false);
+      renderPanel(createMockStigmer());
+      await findSyncedField("We deploy to us-east-1.");
+
+      expect(screen.getByText(SWITCH_ALONE_DECIDES)).toBeTruthy();
+      expect(screen.queryByText(MEMBERS_ALSO_CONSENT)).toBeNull();
+    });
   });
 
   it("shows the fetch error with a retry action when loading fails", async () => {

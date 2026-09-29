@@ -1,6 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import {
   ApprovalRequestedPayloadSchema,
+  ApprovalResolvedPayloadSchema,
   ExecutionFailedPayloadSchema,
   WorkflowExecutionEventSchema,
   WorkflowEventType,
@@ -77,5 +78,27 @@ describe("workflowEventToNdjson", () => {
     });
     const env = workflowEventToNdjson(event);
     expect(env.payload).toMatchObject({ task: "review", prompt: "ok?", toolCallId: "tc_1" });
+  });
+
+  it("carries the outcome and autoResolved on approval_resolved, beside action", () => {
+    const event = create(WorkflowExecutionEventSchema, {
+      eventType: WorkflowEventType.approval_resolved,
+      occurredAt: "2026-06-12T13:45:12Z",
+      sequenceNumber: 10n,
+      taskName: "review",
+      payload: {
+        case: "approvalResolved",
+        value: create(ApprovalResolvedPayloadSchema, { outcome: "deny", autoResolved: true }),
+      },
+    });
+    const env = workflowEventToNdjson(event);
+    // resolvedBy is empty for a timeout decision and is stripped.
+    expect(env.payload).toEqual({
+      sequence: 10,
+      task: "review",
+      action: "unspecified",
+      outcome: "deny",
+      autoResolved: true,
+    });
   });
 });

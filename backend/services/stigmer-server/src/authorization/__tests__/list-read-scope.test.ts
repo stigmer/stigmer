@@ -618,22 +618,28 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(storeReads).toEqual({ rows: 0, scans: 0 });
           });
 
-          it("an unprovisioned subject is their raw subject and nothing else: the 3.14-stamped row is theirs, the organization's rows are not", async () => {
-            // `agt_legacy` is stamped with LEGACY's raw subject; a caller
-            // who IS that subject and holds no account reaches it through
-            // the alias, and reaches nothing the organization holds.
+          it("an unprovisioned subject holds no role, so it reaches nothing an organization holds, the row its 3.14 subject stamped included", async () => {
+            // `agt_legacy` is stamped with LEGACY's raw subject. A caller who
+            // IS that subject but holds no account holds no role on the
+            // organization, and every direct grant, authorship included, is
+            // bounded by the organization's `affiliated`: the row becomes
+            // theirs again once they sign in and their roles are assigned
+            // (the next case).
             expect(
               await listAs(idpShaped(LEGACY_SUBJECT), ApiResourceKind.agent, [
                 rows.get(ApiResourceKind.agent)!.get("agt_legacy")!,
                 rows.get(ApiResourceKind.agent)!.get("agt_org")!,
               ]),
-            ).toEqual(["agt_legacy"]);
+            ).toEqual([]);
             expect(
               await listAs(idpShaped(FRESH_SUBJECT), ApiResourceKind.agent),
             ).toEqual([]);
           });
 
           it("a provisioned account whose idp subject stamped the row still owns it — the alias comparison the 3.14 rows need, on the list verb", async () => {
+            // Provisioned: the membership rules gave the account whose
+            // subject stamped rows a role at its first sign-in.
+            await grant(orgRole(LEGACY, "member", ORG));
             expect(
               await listAs(resolved(LEGACY), ApiResourceKind.agent, [
                 rows.get(ApiResourceKind.agent)!.get("agt_legacy")!,

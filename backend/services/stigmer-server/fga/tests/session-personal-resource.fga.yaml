@@ -25,11 +25,20 @@ tuples:
   - user: identity_account:alice
     relation: admin
     object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:bob
     relation: member
     object: organization:acme
+  - user: identity_account:bob
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:carol
     relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
     object: organization:acme
 
   # --- Platform operator (no relation to the session) ---

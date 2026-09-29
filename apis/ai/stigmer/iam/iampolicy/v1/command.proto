@@ -201,19 +201,28 @@ service IamPolicyCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cleanup resource policies - can_bootstrap_iam permission required";
   }
 
-  // Revoke all of a user's access to an organization.
+  // Remove a person from an organization.
   //
-  // Removes every IAM policy that grants the specified identity account access to
-  // resources within the given organization, including policies on the organization
-  // itself and on child resources (environments, agents, etc.).
+  // Removes every role the identity account holds on the organization, then
+  // every IAM policy it holds on the organization's resources: what was
+  // shared with it (agents, environments, sessions and the rest) and its
+  // team memberships. From that moment it reaches nothing in the
+  // organization. What it created stays with the organization and is still
+  // recorded as its work; the authorization model admits a person to their
+  // own work only while they hold a role in the organization, so it becomes
+  // theirs again only if they are invited back. What was shared with them
+  // does not come back.
   //
   // @internal
   // The operation:
   // 1. Validates the input (identity_account_id and organization_id are present)
   // 2. Authorizes caller (can_grant_access on the organization)
-  // 3. Loads all policies where the user is principal within the org scope
-  // 4. Deletes all matching policies from MongoDB
-  // 5. Removes all corresponding tuples from OpenFGA
+  // 3. Revokes the account's policies on the organization itself
+  // 4. Revokes the account's policies on resources the organization holds,
+  //    except the owner and creator policies naming it as a resource's
+  //    recorded creator; each policy's tuple goes before its row
+  // 5. Runs step 4 even when step 3 found nothing, so a retry after a
+  //    partial failure completes the removal
   //
   // Authorization:
   // - Caller must have 'can_grant_access' permission on the organization
@@ -237,7 +246,7 @@ service IamPolicyCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke organization access";
   }
 
-  // Revoke all of a user's access to an organization via the system (bootstrap) path.
+  // Remove a person from an organization via the system (bootstrap) path.
   //
   // The system-flow twin of revokeOrgAccess: identical revocation behavior, but
   // authorized by can_bootstrap_iam on platform:stigmer instead of
@@ -254,10 +263,9 @@ service IamPolicyCommandController {
   //
   // The operation (identical to revokeOrgAccess after authorization):
   // 1. Validates can_bootstrap_iam permission on platform:stigmer
-  // 2. Loads all policies where the identity account is principal within the org
-  //    scope, plus policies directly on the organization itself
-  // 3. Deletes all matching policies from MongoDB
-  // 4. Removes all corresponding tuples from OpenFGA (idempotent if none exist)
+  // 2. Revokes the account's policies on the organization itself, then its
+  //    policies on the organization's resources, keeping its authorship, as
+  //    revokeOrgAccess does
   //
   // Authorization:
   // - Caller must have 'can_bootstrap_iam' permission on platform:stigmer

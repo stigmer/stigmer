@@ -993,6 +993,7 @@ export type {
   UseSessionEnvPoolReturn,
   EnvironmentPickerProps,
   ToolCredentialsReadiness,
+  SystemEnvVarOptions,
 } from "./environment/index.js";
 
 // Identity Account — gate hook, self-account data/mutation hooks, the

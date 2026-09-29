@@ -15,10 +15,12 @@
  *   define can_view: viewer                    → computed("viewer")
  *
  * `and` exists for one shape: a relation that is true only while another
- * holds too (a team's member is a person granted the role AND still one
+ * holds too. Every direct grant on an organization-scoped type is bounded
+ * that way (`([identity_account] and affiliated from organization) or
+ * ...`), and a team's member is a person granted the role AND still one
  * of the organization's viewers, so leaving the organization ends every
- * team-derived grant with no cleanup). Operators nest to any depth, as
- * the DSL's parentheses allow; the evaluator recurses through them.
+ * grant with no cleanup. Operators nest to any depth, as the DSL's
+ * parentheses allow; the evaluator recurses through them.
  * `but not`, wildcards (`type:*`) and conditions have no form here: the
  * reader refuses them by name, and the day the model needs one is a
  * design act.

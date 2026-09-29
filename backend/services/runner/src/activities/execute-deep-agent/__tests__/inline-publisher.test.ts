@@ -97,6 +97,25 @@ describe("InlinePublisher", () => {
     expect(status.artifacts[0].sandboxPath).toBe("src/main.ts");
   });
 
+  it("stamps createdAt when the publish is asked for, never when the upload returns", async () => {
+    // The stream asks for the publish as it folds the write's finish, and the
+    // upload runs on beside the stream; a slow store must not move the stamp.
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.UTC(2026, 0, 1) });
+    try {
+      const askedAt = new Date().toISOString();
+      vi.mocked(storage.upload).mockImplementationOnce(async (key: string) => {
+        vi.setSystemTime(Date.now() + 5_000);
+        return key;
+      });
+
+      await publisher.publish("src/main.ts");
+
+      expect(status.artifacts[0].createdAt).toBe(askedAt);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("deduplicates by path + content hash", async () => {
     await publisher.publish("src/main.ts");
     await publisher.publish("src/main.ts");

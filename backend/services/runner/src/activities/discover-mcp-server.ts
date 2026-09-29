@@ -31,6 +31,12 @@ import {
 } from "../shared/mcp-transport-guard.js";
 import { detectOAuthChallenge } from "../shared/mcp-oauth-detect.js";
 import { injectAnonymousCallerIdentityForDiscovery } from "../shared/caller-identity.js";
+import {
+  fillPlatformServerAddress,
+  platformServerAddress,
+  SERVER_ADDRESS_ENV_KEY,
+  type PlatformEndpoints,
+} from "../shared/platform-server-address.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { withTimeout } from "../shared/with-timeout.js";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -69,10 +75,6 @@ const STDIO_INIT_TIMEOUT_MS = 270_000;
  * so it is refused up front with an actionable error instead.
  */
 const REDACTED_MARKER = "***REDACTED***";
-
-const PLATFORM_INJECTABLE_MAP: Record<string, string> = {
-  STIGMER_SERVER_ADDRESS: "STIGMER_MCP_PUBLIC_ENDPOINT",
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -238,36 +240,6 @@ function structToPlainObject(struct: unknown): Record<string, unknown> | null {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Platform Env Injection
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function injectPlatformEnv(
-  declaredEnvKeys: Set<string>,
-  envVars: Record<string, string>,
-): Record<string, string> {
-  if (declaredEnvKeys.size === 0) return envVars;
-
-  let result: Record<string, string> | undefined;
-
-  for (const [targetKey, sourceKey] of Object.entries(PLATFORM_INJECTABLE_MAP)) {
-    if (!declaredEnvKeys.has(targetKey)) continue;
-    const value = process.env[sourceKey];
-    if (!value) continue;
-
-    if (!result) result = { ...envVars };
-    if (targetKey in result && result[targetKey] !== value) {
-      console.info(
-        `Platform env var '${targetKey}' overrides value from ExecutionContext ` +
-        `(platform infra vars are authoritative)`,
-      );
-    }
-    result[targetKey] = value;
-  }
-
-  return result ?? envVars;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Core Discovery Logic (no Temporal coupling)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -281,6 +253,12 @@ export interface DiscoverDeps {
    * tool enumeration.
    */
   transportPosture: McpTransportPosture;
+  /**
+   * The runner's endpoints a missing STIGMER_SERVER_ADDRESS is filled from
+   * (the runner Config satisfies it) — the same fill execution applies, so
+   * discovery dials what the run will dial.
+   */
+  platformEndpoints: PlatformEndpoints;
 }
 
 export async function discoverMcpServer(
@@ -305,16 +283,25 @@ export async function discoverMcpServer(
   const previousState = extractPreviousState(mcpServer);
 
   const declaredEnv = mcpServer.spec.env ?? {};
+  // A key the platform fills for this transport is not a credential the
+  // connect flow must deliver, so it never makes an empty EC a failure.
+  const platformFillsAddress =
+    platformServerAddress(mcpServer.spec.serverType.case, deps.platformEndpoints) !== null;
+  const credentialDeclarations = platformFillsAddress
+    ? Object.fromEntries(
+        Object.entries(declaredEnv).filter(([key]) => key !== SERVER_ADDRESS_ENV_KEY),
+      )
+    : declaredEnv;
   const envVars = await resolveEnvVarsForDiscovery(
     stigmerClient,
     executionContextId ?? null,
     executionContextToken ?? null,
     slug,
-    declaredEnv,
+    credentialDeclarations,
   );
 
   const declaredEnvKeys = new Set(Object.keys(declaredEnv));
-  const platformEnv = injectPlatformEnv(declaredEnvKeys, envVars);
+  const platformEnv = fillPlatformServerAddress(mcpServer, envVars, deps.platformEndpoints);
 
   // Discovery runs with no session, so every declared caller-identity key
   // resolves to the anonymous sentinel — without it, a server templating
@@ -385,7 +372,9 @@ export async function discoverMcpServer(
  *   sentinel can only produce a misleading 401.
  * - No non-optional declarations → the old lenient path (warn and continue):
  *   servers declaring nothing (or only optional/injected keys like the
- *   caller-identity family) legitimately discover without an EC.
+ *   caller-identity family) legitimately discover without an EC. A
+ *   STIGMER_SERVER_ADDRESS the platform fills for the server's transport is
+ *   left out of the count by the caller (platform-server-address.ts).
  */
 async function resolveEnvVarsForDiscovery(
   client: StigmerClient,
@@ -635,6 +624,7 @@ export function createDiscoverMcpServerActivities(config: Config) {
         return await discoverMcpServer(input, {
           stigmerClient,
           transportPosture: resolveMcpTransportPosture(config.mode),
+          platformEndpoints: config,
         });
       } finally {
         hb.stop();

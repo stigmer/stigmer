@@ -14,19 +14,26 @@
 # Team ghost has membership rows and a grant but no organization link, the
 # state its members are left in when the link is gone: nobody is a member.
 # Team partners belongs to organization other and holds a grant on an acme
-# agent. The model grants it, because it cannot see which organization a
-# grant crosses into; the IAM policy grant gate refuses such a grant before
-# it is written.
+# agent. It reaches nothing: the agent's direct grants are bounded by the
+# agent's own organization, and ext holds no role in acme. The IAM policy
+# grant gate also refuses such a grant before it is written.
 name: team-membership
 model_file: ../../src/authorization/model/data/authorization-model.json
 tuples:
   - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
   - {user: identity_account:vic, relation: viewer, object: organization:acme}
+  - {user: identity_account:vic, relation: affiliated, object: organization:acme}
   - {user: identity_account:mem, relation: member, object: organization:acme}
+  - {user: identity_account:mem, relation: affiliated, object: organization:acme}
   - {user: identity_account:gus, relation: guest, object: organization:acme}
+  - {user: identity_account:gus, relation: affiliated, object: organization:acme}
   - {user: identity_account:back, relation: viewer, object: organization:acme}
+  - {user: identity_account:back, relation: affiliated, object: organization:acme}
   - {user: identity_account:out, relation: member, object: organization:other}
+  - {user: identity_account:out, relation: affiliated, object: organization:other}
   - {user: identity_account:ext, relation: viewer, object: organization:other}
+  - {user: identity_account:ext, relation: affiliated, object: organization:other}
   - {user: organization:acme, relation: organization, object: team:sre}
   - {user: identity_account:vic, relation: member, object: team:sre}
   - {user: identity_account:mem, relation: member, object: team:sre}
@@ -102,11 +109,11 @@ tests:
       - user: identity_account:ana
         object: team:ghost
         assertions: {can_edit: false, can_delete: false, can_grant_access: false}
-  - name: the model grants a team of another organization; the grant gate is what refuses it
+  - name: a team of another organization reaches nothing; the grant gate refuses writing it too
     check:
       - user: identity_account:ext
         object: agent:partner
-        assertions: {viewer: true}
+        assertions: {viewer: false}
       - user: identity_account:vic
         object: agent:partner
         assertions: {viewer: false}
@@ -146,4 +153,4 @@ tests:
         assertions: {viewer: [agent:triage]}
       - user: identity_account:ext
         type: agent
-        assertions: {viewer: [agent:partner]}
+        assertions: {viewer: []}

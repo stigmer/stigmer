@@ -71,7 +71,7 @@ type agent
     # viewer and can_execute, admins can also view, list, and run private
     # agents — the accepted GitHub-org-admin trade (decided 2026-07-13).
     # FGA tuple: agent:<agent_id>#owner@identity_account:<user_id>
-    define owner: [identity_account] or admin from organization
+    define owner: ([identity_account] and affiliated from organization) or admin from organization
     
     # ========================================
     # PLATFORM VISIBILITY (Structural)
@@ -93,7 +93,7 @@ type agent
     # resolving until the boot backfill converges them. team#member is an
     # Enterprise team's grant: every member, bounded by the organization
     # in team.fga.
-    define viewer: [identity_account, organization#member, organization#viewer, team#member] or owner or platform_viewer
+    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or platform_viewer
     
     # ========================================
     # PERMISSIONS

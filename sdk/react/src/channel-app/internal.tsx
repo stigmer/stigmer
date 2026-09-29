@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import { TruncatedText } from "../internal/truncated-text.js";
+import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
 /**
@@ -85,6 +86,26 @@ export function CopyRow({
         />
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * The place of a {@link CopyRow} whose URL cannot be built because the
+ * server's public address is unknown: the same label, then the shared
+ * notice in place of the value and its copy button.
+ */
+export function UnknownAddressRow({
+  label,
+  subject,
+}: {
+  label: string;
+  subject: string;
+}) {
+  return (
+    <div className="stg:space-y-1">
+      <p className="stg:text-xs stg:font-medium stg:text-foreground">{label}</p>
+      <UnknownPublicAddressNotice subject={subject} />
     </div>
   );
 }

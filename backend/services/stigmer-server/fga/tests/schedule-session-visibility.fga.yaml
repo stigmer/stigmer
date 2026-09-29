@@ -35,17 +35,32 @@ tuples:
   - user: identity_account:alice
     relation: admin
     object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:bob
     relation: member
+    object: organization:acme
+  - user: identity_account:bob
+    relation: affiliated
     object: organization:acme
   - user: identity_account:carol
     relation: member
     object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:dave
     relation: member
     object: organization:acme
+  - user: identity_account:dave
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:eve
     relation: admin
+    object: organization:rival
+  - user: identity_account:eve
+    relation: affiliated
     object: organization:rival
 
   # --- The Schedule (tuples written on create: org link + creator owner) ---
@@ -64,6 +79,15 @@ tuples:
   - user: organization:acme
     relation: organization
     object: session:scheduled-run
+  # The system account holds the organization's guest role, as the
+  # hosted edition's system-accounts service always ensures; the role is
+  # what keeps it inside the organization's bound.
+  - user: identity_account:sys-schedule-acme
+    relation: guest
+    object: organization:acme
+  - user: identity_account:sys-schedule-acme
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:sys-schedule-acme
     relation: owner
     object: session:scheduled-run

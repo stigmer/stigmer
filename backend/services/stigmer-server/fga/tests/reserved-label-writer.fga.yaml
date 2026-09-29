@@ -23,6 +23,9 @@ tuples:
   - user: identity_account:mallory
     relation: owner
     object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:acme
 
 tests:
   - name: operator may write reserved labels, tenants may not

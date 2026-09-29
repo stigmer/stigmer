@@ -27,6 +27,10 @@
  * a status the host could reach), and `goldens/file-review-capture.status.json`
  * pins the whole ledger beside Cursor's.
  *
+ * Golden hunk since #1443: the inline artifact's `createdAt` is t=1, the
+ * edit's finish, where it was t=2, the moment the publisher's upload
+ * returned (it reads the clock before its first await now).
+ *
  * Parent phase rows exercised beyond the plain arms: a `local_path` workspace
  * entry (mounted as-is in local mode, the agent rooted at the entry per
  * `provisionWorkspace`); capture-mode derivation on a git tree; the baseline

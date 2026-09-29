@@ -32,10 +32,10 @@ Pre-create checklist and known pitfalls when creating API keys.
 
 ### Setting Both `never_expires` and `expires_at`
 
-When `never_expires: true`, the `expires_at` field is silently ignored. Do not set both.
+Do not set both. The contract says `never_expires` wins, but the server currently expires such a key at `expires_at` ([#1434](https://github.com/stigmer/stigmer/issues/1434)).
 
 ```yaml
-# Ambiguous — expires_at is ignored
+# Ambiguous — the contract and the server disagree on which field wins
 spec:
   expires_at: "2027-01-01T00:00:00Z"
   never_expires: true
@@ -51,10 +51,10 @@ The raw key is returned only in the create response. Subsequent `get` calls retu
 
 ```bash
 # Wrong — this returns the hash, not the raw key
-stigmer api-key get ak-01ABC123
+stigmer get api-key key_01j9zexample
 
-# Correct — save the key immediately after create
-stigmer api-key create key.yaml  # save `spec.key_hash` from this output
+# Correct — save the raw key (stk_...) that create prints, immediately
+stigmer apikey create --name ci-pipeline
 ```
 
 ### Losing the Raw Key

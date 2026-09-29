@@ -129,9 +129,15 @@ export function createStigmerPreview(
     // pre-registered organization fixture. Its localStorage persistence is
     // replay-safe here: with exactly one org, selection always resolves to
     // that org regardless of any previously persisted slug.
+    //
+    // `publicBaseUrl` names the address copyable URLs and snippets are
+    // built from: the client's `"/"` is the router transport's, not an
+    // address anyone outside the page can call (the `buildShareUrl` tours
+    // pass `https://app.stigmer.ai` for the same reason).
     return (
       <StigmerProvider
         client={client}
+        publicBaseUrl="https://api.stigmer.ai"
         colorMode={getEmbedColorMode()}
         reviewRenderers={options?.reviewRenderers}
       >

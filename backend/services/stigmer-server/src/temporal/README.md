@@ -5,6 +5,7 @@ The shared worker infrastructure and the per-domain workers. Landed with D4 #18 
 ## Layout
 
 - `manager.ts` — TemporalManager (ports pkg/server/temporal_manager.go): non-fatal initial connect, 15s health monitor, reconnect with worker recreation, reconnect hooks. Domain code observes the CURRENT client through providers — there is no Go-style creator re-injection.
+- `sdk-logger.ts` — routes the Temporal SDK's own log lines (activity failures, worker lifecycle, workflow `log.*`) through the server logger by installing the SDK's Runtime logger before the first native connect; the header holds the field-redaction table (#1037).
 - `payload-codec.ts` — the decode-only payload codec (ports pkg/encryption/payloadcodec): encode is the identity, decode delegates to @stigmer/temporal-codecs.
 - `workflow-source.ts` — prebuilt-bundle vs bundle-on-boot resolution (runner precedent); prebuilt bundles arrive with #24.
 - `runner-failure.ts` — worker-shutdown classification shared by the execution workflows (ports pkg/runnerfailure, #776).

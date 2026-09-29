@@ -1,9 +1,22 @@
+/**
+ * Unit tests for the SDK's system env vars: the dial-target rule (the same
+ * table as the runner's `grpcTarget`), the address included only when it
+ * can be dialled, and the public address taking precedence over the
+ * client's base URL (stigmer/stigmer#1433).
+ */
 import { describe, it, expect } from "vitest";
+import type { Stigmer } from "@stigmer/sdk";
 import {
   toGrpcAddress,
   buildSystemEnvVars,
+  resolveSystemEnvVarValues,
+  resolveDeclaredSystemEnvVars,
   SYSTEM_ENV_VAR_KEYS,
 } from "../systemEnvVars";
+
+function stigmerAt(baseUrl: string): Stigmer {
+  return { baseUrl, getAuthCredential: async () => "tok" } as unknown as Stigmer;
+}
 
 // ---------------------------------------------------------------------------
 // toGrpcAddress
@@ -36,6 +49,19 @@ describe("toGrpcAddress", () => {
 
   it("returns input unchanged for non-URL strings", () => {
     expect(toGrpcAddress("not-a-url")).toBe("not-a-url");
+  });
+
+  it("keeps an explicit default port", () => {
+    expect(toGrpcAddress("http://stigmer.lan:80")).toBe("stigmer.lan:80");
+  });
+
+  it.each([
+    ["localhost:7234"],
+    ["stigmer-server.stigmer-prod.svc.cluster.local:80"],
+    ["api.stigmer.ai"],
+    ["/"],
+  ])("returns a value that is not an http(s) URL unchanged: %s", (input) => {
+    expect(toGrpcAddress(input)).toBe(input);
   });
 
   it("handles trailing slash", () => {
@@ -99,11 +125,84 @@ describe("buildSystemEnvVars", () => {
     expect(result.STIGMER_API_KEY.value).toBe("unused");
   });
 
+  it.each([["/"], ["/api"], ["localhost:7234"]])(
+    "leaves the address out for a base URL nothing outside the page can dial: %s",
+    (baseUrl) => {
+      const result = buildSystemEnvVars(baseUrl, "tok");
+
+      expect(result).not.toHaveProperty("STIGMER_SERVER_ADDRESS");
+      expect(result.STIGMER_API_KEY.value).toBe("tok");
+    },
+  );
+
+  it("leaves the address out when the base URL is unknown", () => {
+    expect(buildSystemEnvVars(null, "tok")).not.toHaveProperty(
+      "STIGMER_SERVER_ADDRESS",
+    );
+  });
+
   it("keys match SYSTEM_ENV_VAR_KEYS constant", () => {
     const result = buildSystemEnvVars("http://localhost:7234", "tok");
     const resultKeys = new Set(Object.keys(result));
 
     expect(resultKeys).toEqual(SYSTEM_ENV_VAR_KEYS);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveSystemEnvVarValues / resolveDeclaredSystemEnvVars
+// ---------------------------------------------------------------------------
+
+describe("resolveSystemEnvVarValues", () => {
+  it("derives the address from an absolute client base URL", async () => {
+    const result = await resolveSystemEnvVarValues(stigmerAt("https://api.example.com"));
+
+    expect(result.STIGMER_SERVER_ADDRESS.value).toBe("api.example.com:443");
+  });
+
+  it("prefers the host's public base URL over the client's", async () => {
+    const result = await resolveSystemEnvVarValues(stigmerAt("/"), {
+      publicBaseUrl: "https://api.example.com",
+    });
+
+    expect(result.STIGMER_SERVER_ADDRESS.value).toBe("api.example.com:443");
+  });
+
+  it("leaves the address out for a relative client base URL and no public one", async () => {
+    const result = await resolveSystemEnvVarValues(stigmerAt("/"));
+
+    expect(result).not.toHaveProperty("STIGMER_SERVER_ADDRESS");
+    expect(result.STIGMER_API_KEY.value).toBe("tok");
+  });
+
+  it("ignores a public base URL that is not absolute", async () => {
+    const result = await resolveSystemEnvVarValues(stigmerAt("/"), {
+      publicBaseUrl: "api.example.com",
+    });
+
+    expect(result).not.toHaveProperty("STIGMER_SERVER_ADDRESS");
+  });
+});
+
+describe("resolveDeclaredSystemEnvVars", () => {
+  it("passes the public base URL through to the declared address", async () => {
+    const result = await resolveDeclaredSystemEnvVars(
+      stigmerAt("/"),
+      ["STIGMER_SERVER_ADDRESS"],
+      { publicBaseUrl: "https://api.example.com" },
+    );
+
+    expect(result).toEqual({
+      STIGMER_SERVER_ADDRESS: expect.objectContaining({ value: "api.example.com:443" }),
+    });
+  });
+
+  it("answers nothing for a declared address it cannot resolve", async () => {
+    const result = await resolveDeclaredSystemEnvVars(stigmerAt("/"), [
+      "STIGMER_SERVER_ADDRESS",
+    ]);
+
+    expect(result).toEqual({});
   });
 });
 

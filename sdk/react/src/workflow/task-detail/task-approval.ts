@@ -51,15 +51,6 @@ export interface TaskApprovalRequestView {
 }
 
 /**
- * A resolved human_input decision, sourced from the canonical task-output
- * record (the runner stores the reviewer's full response as the task
- * output) and enriched with timing from the `approval_resolved` event.
- *
- * `outcome` is the empty string during the brief window after a decision
- * is signalled but before the status snapshot reflects the task output —
- * consumers render a "finalizing" affordance in that state.
- */
-/**
  * Display identity of the reviewer, snapshotted server-side at decision
  * time (see `reviewer_actor` in the human_input task-output contract).
  * Renderers apply the fallback ladder: displayName → email → raw
@@ -95,6 +86,17 @@ export interface TaskReviewerView {
   readonly isRawId: boolean;
 }
 
+/**
+ * A resolved human_input decision, sourced from the canonical task-output
+ * record (the runner stores the reviewer's full response as the task
+ * output), with the `approval_resolved` event standing in for any field the
+ * status snapshot has not captured yet and supplying the wait duration.
+ *
+ * `outcome` is the empty string only when neither source carries it: in
+ * the brief window before the status snapshot reflects the task output,
+ * for an event recorded before the payload had an `outcome` field.
+ * Consumers render a "finalizing" affordance in that state.
+ */
 export interface TaskDetailApprovalDecision {
   /** Chosen outcome identifier (e.g. "approve", "pause_campaigns"). */
   readonly outcome: string;
@@ -166,7 +168,7 @@ export function deriveTaskApprovalDecision(
   if (resolution === null && outputOutcome === "") return null;
 
   return {
-    outcome: outputOutcome,
+    outcome: outputOutcome || (resolution?.outcome ?? ""),
     reviewer:
       readSnapshotString(taskOutput, "reviewer") || (resolution?.resolvedBy ?? ""),
     reviewerActor: deriveReviewerActor(resolution, taskOutput),
@@ -175,7 +177,12 @@ export function deriveTaskApprovalDecision(
       readSnapshotString(taskOutput, "comment") || (resolution?.comment ?? ""),
     formData: readSnapshotObject(taskOutput, "form_data"),
     waitDurationMs: resolution ? Number(resolution.waitDurationMs) : 0,
-    autoResolved: taskOutput?.["auto_resolved"] === true,
+    // Output first, like every field above: once the snapshot carries the
+    // decision it is the record, and the event only fills the window before.
+    autoResolved:
+      outputOutcome !== ""
+        ? taskOutput?.["auto_resolved"] === true
+        : resolution?.autoResolved === true,
   };
 }
 

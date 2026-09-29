@@ -49,7 +49,7 @@ type oauth_app
     # ========================================
     # Owners (admins included) and direct viewer grants. Organization
     # members and viewers are deliberately absent.
-    define viewer: [identity_account] or owner
+    define viewer: ([identity_account] and affiliated from organization) or owner
     
     # ========================================
     # PERMISSIONS

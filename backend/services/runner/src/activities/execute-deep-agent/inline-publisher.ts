@@ -70,8 +70,13 @@ export class InlinePublisher {
   /**
    * Upload the file at `path` to artifact storage and register it on the
    * status builder. Fire-and-forget: errors are logged and swallowed.
+   *
+   * The artifact's `createdAt` is read here, before the first await: the
+   * stream asks for the publish in the step that folds the write's finish, so
+   * the stamp is the write's, never the moment a slow upload returned.
    */
   async publish(path: string): Promise<void> {
+    const createdAt = utcTimestamp();
     // No artifact store (proxy misconfig): nothing to upload to. Skip silently —
     // this is a best-effort UI publisher and the operator was warned at setup.
     if (!this.artifactStorage) return;
@@ -112,7 +117,7 @@ export class InlinePublisher {
         kind: ExecutionArtifactKind.FILE,
         sizeBytes: BigInt(contentBuffer.length),
         storageKey,
-        createdAt: utcTimestamp(),
+        createdAt,
         contentHash,
       });
 

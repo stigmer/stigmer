@@ -743,7 +743,7 @@ Pure function — no side effects, no async. Suitable for unit
 testing without a live Stigmer client.
 
 ```tsx
-function buildSystemEnvVars(baseUrl: string, credential: string | null): Record<string, EnvVarInput>
+function buildSystemEnvVars(baseUrl: string | null, credential: string | null): Record<string, EnvVarInput>
 ```
 
 
@@ -825,7 +825,7 @@ them causes `runtime_env` to be non-empty on the wire, which
 changes the backend's missing-credential tolerance semantics.
 
 ```tsx
-function resolveDeclaredSystemEnvVars(stigmer: Stigmer, declaredEnvKeys: readonly string[] | ReadonlySet<string>): Promise<Record<string, EnvVarInput>>
+function resolveDeclaredSystemEnvVars(stigmer: Stigmer, declaredEnvKeys: readonly string[] | ReadonlySet<string>, options?: SystemEnvVarOptions): Promise<Record<string, EnvVarInput>>
 ```
 
 
@@ -834,14 +834,18 @@ function resolveDeclaredSystemEnvVars(stigmer: Stigmer, declaredEnvKeys: readonl
 Resolve system env var values from a live `Stigmer` client.
 
 Calls `Stigmer.getAuthCredential` to obtain the current
-credential, then delegates to [`buildSystemEnvVars`](#buildsystemenvvars).
+credential, then delegates to [`buildSystemEnvVars`](#buildsystemenvvars) with the
+server's public address: `options.publicBaseUrl`, else the client's
+`baseUrl`, the order `usePublicBaseUrl` applies.
 
-Intended for use at session submit time — the returned values
-are injected into `runtimeEnv` at the **lowest priority** so
-any user-provided values (personal env, manual secrets) win.
+Intended for use at session submit time. The composer merges the
+returned values first, so values it collects in the page (setup
+answers, session variables) win over them. On the server they ride
+`runtime_env`, which is the top merge layer: a value saved in an
+environment does not override them (stigmer/stigmer#1446).
 
 ```tsx
-function resolveSystemEnvVarValues(stigmer: Stigmer): Promise<Record<string, EnvVarInput>>
+function resolveSystemEnvVarValues(stigmer: Stigmer, options?: SystemEnvVarOptions): Promise<Record<string, EnvVarInput>>
 ```
 
 
@@ -877,13 +881,29 @@ Platform builders who manage setup hooks directly can use this
 set to extend their own `poolKeys`.
 
 
+### SystemEnvVarOptions
+
+Options for [`resolveSystemEnvVarValues`](#resolvesystemenvvarvalues) and [`resolveDeclaredSystemEnvVars`](#resolvedeclaredsystemenvvars).
+
+<TypeTable
+  type={{
+    publicBaseUrl: { type: "string", description: "The server's public base URL, the value `StigmerProvider`'s `publicBaseUrl` carries. Takes precedence over the client's `baseUrl`; only an absolute `http(s)` URL counts." },
+  }}
+/>
+
+
 ### toGrpcAddress
 
 Convert an HTTP(S) base URL to a gRPC host:port address.
 
 The Stigmer server serves both gRPC and gRPC-Web on the same
 endpoint, so stripping the protocol and extracting host:port
-produces a valid gRPC dial target.
+produces a valid gRPC dial target. The port is always explicit
+(80 for http, 443 for https, when the URL names none), because the
+mcp-server derives TLS from it. Any input that is not an http(s) URL
+(a scheme-less `host:port`, a relative path) is returned unchanged;
+[`buildSystemEnvVars`](#buildsystemenvvars) injects only an address built from an
+absolute URL. The runner's `grpcTarget` applies the same rule.
 
 ```tsx
 function toGrpcAddress(httpUrl: string): string
@@ -893,6 +913,7 @@ function toGrpcAddress(httpUrl: string): string
 toGrpcAddress("http://localhost:7234")   // "localhost:7234"
 toGrpcAddress("https://api.stigmer.ai")  // "api.stigmer.ai:443"
 toGrpcAddress("https://api.stigmer.ai:8443") // "api.stigmer.ai:8443"
+toGrpcAddress("localhost:7234")          // "localhost:7234"
 ```
 
 

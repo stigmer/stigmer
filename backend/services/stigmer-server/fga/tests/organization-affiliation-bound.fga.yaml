@@ -1,0 +1,202 @@
+# Every organization-scoped type admits its direct subjects only while
+# they hold a role in the object's organization (`affiliated`, the
+# organization's viewers and guests; tenancy/organization.fga). One
+# object per bounded type, all in organization acme:
+#
+#   stays - a member of acme; authored every object and holds a direct
+#           viewer grant on the credential kinds
+#   left  - authored every object and holds a direct viewer grant on every
+#           one, but holds no role in acme: never joined, or was removed
+#   back  - authored every object, left, and was invited back as a viewer
+#   stray - holds acme's member role and authored the agent, but no
+#           `affiliated` tuple stands for them: the state a crash between
+#           a role's write and its affiliation leaves, which must deny
+#
+# What the suite pins: `left` reaches nothing, however the grant was
+# made; `stays` and `back` keep what they authored; a system account that
+# holds only `guest` keeps the session it owns; a memory's subject reaches
+# the memory only while in the organization; environment's `creator` and
+# a workflow instance's `execution_viewer` are bounded the same way.
+name: organization-affiliation-bound
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  - {user: identity_account:stays, relation: member, object: organization:acme}
+  - {user: identity_account:stays, relation: affiliated, object: organization:acme}
+  - {user: identity_account:back, relation: viewer, object: organization:acme}
+  - {user: identity_account:back, relation: affiliated, object: organization:acme}
+  - {user: identity_account:sys-guest, relation: guest, object: organization:acme}
+  - {user: identity_account:sys-guest, relation: affiliated, object: organization:acme}
+
+  - {user: organization:acme, relation: organization, object: agent:x}
+  - {user: identity_account:stays, relation: owner, object: agent:x}
+  - {user: identity_account:left, relation: owner, object: agent:x}
+  - {user: identity_account:back, relation: owner, object: agent:x}
+  - {user: identity_account:left, relation: viewer, object: agent:x}
+  - {user: organization:acme, relation: organization, object: mcp_server:x}
+  - {user: identity_account:stays, relation: owner, object: mcp_server:x}
+  - {user: identity_account:left, relation: owner, object: mcp_server:x}
+  - {user: identity_account:back, relation: owner, object: mcp_server:x}
+  - {user: identity_account:left, relation: viewer, object: mcp_server:x}
+  - {user: organization:acme, relation: organization, object: skill:x}
+  - {user: identity_account:stays, relation: owner, object: skill:x}
+  - {user: identity_account:left, relation: owner, object: skill:x}
+  - {user: identity_account:back, relation: owner, object: skill:x}
+  - {user: identity_account:left, relation: viewer, object: skill:x}
+  - {user: organization:acme, relation: organization, object: workflow:x}
+  - {user: identity_account:stays, relation: owner, object: workflow:x}
+  - {user: identity_account:left, relation: owner, object: workflow:x}
+  - {user: identity_account:back, relation: owner, object: workflow:x}
+  - {user: identity_account:left, relation: viewer, object: workflow:x}
+  - {user: organization:acme, relation: organization, object: plugin:x}
+  - {user: identity_account:stays, relation: owner, object: plugin:x}
+  - {user: identity_account:left, relation: owner, object: plugin:x}
+  - {user: identity_account:back, relation: owner, object: plugin:x}
+  - {user: identity_account:left, relation: viewer, object: plugin:x}
+  - {user: organization:acme, relation: organization, object: agent_channel:x}
+  - {user: identity_account:stays, relation: owner, object: agent_channel:x}
+  - {user: identity_account:left, relation: owner, object: agent_channel:x}
+  - {user: identity_account:back, relation: owner, object: agent_channel:x}
+  - {user: identity_account:left, relation: viewer, object: agent_channel:x}
+  - {user: organization:acme, relation: organization, object: agent_share:x}
+  - {user: identity_account:stays, relation: owner, object: agent_share:x}
+  - {user: identity_account:left, relation: owner, object: agent_share:x}
+  - {user: identity_account:back, relation: owner, object: agent_share:x}
+  - {user: identity_account:left, relation: viewer, object: agent_share:x}
+  - {user: organization:acme, relation: organization, object: channel_app:x}
+  - {user: identity_account:stays, relation: viewer, object: channel_app:x}
+  - {user: identity_account:left, relation: viewer, object: channel_app:x}
+  - {user: organization:acme, relation: organization, object: schedule:x}
+  - {user: identity_account:stays, relation: owner, object: schedule:x}
+  - {user: identity_account:left, relation: owner, object: schedule:x}
+  - {user: identity_account:back, relation: owner, object: schedule:x}
+  - {user: identity_account:left, relation: viewer, object: schedule:x}
+  - {user: organization:acme, relation: organization, object: artifact:x}
+  - {user: identity_account:stays, relation: owner, object: artifact:x}
+  - {user: identity_account:left, relation: owner, object: artifact:x}
+  - {user: identity_account:back, relation: owner, object: artifact:x}
+  - {user: identity_account:left, relation: viewer, object: artifact:x}
+  - {user: organization:acme, relation: organization, object: agent_instance:x}
+  - {user: identity_account:stays, relation: owner, object: agent_instance:x}
+  - {user: identity_account:left, relation: owner, object: agent_instance:x}
+  - {user: identity_account:back, relation: owner, object: agent_instance:x}
+  - {user: identity_account:left, relation: viewer, object: agent_instance:x}
+  - {user: organization:acme, relation: organization, object: workflow_instance:x}
+  - {user: identity_account:stays, relation: owner, object: workflow_instance:x}
+  - {user: identity_account:left, relation: owner, object: workflow_instance:x}
+  - {user: identity_account:back, relation: owner, object: workflow_instance:x}
+  - {user: identity_account:left, relation: viewer, object: workflow_instance:x}
+  - {user: organization:acme, relation: organization, object: environment:x}
+  - {user: identity_account:stays, relation: owner, object: environment:x}
+  - {user: identity_account:left, relation: owner, object: environment:x}
+  - {user: identity_account:back, relation: owner, object: environment:x}
+  - {user: identity_account:left, relation: viewer, object: environment:x}
+  - {user: organization:acme, relation: organization, object: session:x}
+  - {user: identity_account:stays, relation: owner, object: session:x}
+  - {user: identity_account:left, relation: owner, object: session:x}
+  - {user: identity_account:back, relation: owner, object: session:x}
+  - {user: identity_account:left, relation: viewer, object: session:x}
+  - {user: organization:acme, relation: organization, object: workflow_execution:x}
+  - {user: identity_account:stays, relation: owner, object: workflow_execution:x}
+  - {user: identity_account:left, relation: owner, object: workflow_execution:x}
+  - {user: identity_account:back, relation: owner, object: workflow_execution:x}
+  - {user: identity_account:left, relation: viewer, object: workflow_execution:x}
+  - {user: organization:acme, relation: organization, object: identity_provider:x}
+  - {user: identity_account:stays, relation: viewer, object: identity_provider:x}
+  - {user: identity_account:left, relation: viewer, object: identity_provider:x}
+  - {user: organization:acme, relation: organization, object: oauth_app:x}
+  - {user: identity_account:stays, relation: viewer, object: oauth_app:x}
+  - {user: identity_account:left, relation: viewer, object: oauth_app:x}
+  - {user: organization:acme, relation: organization, object: platform_client:x}
+  - {user: identity_account:stays, relation: viewer, object: platform_client:x}
+  - {user: identity_account:left, relation: viewer, object: platform_client:x}
+  - {user: identity_account:left, relation: participant, object: agent_channel:x}
+  - {user: identity_account:left, relation: creator, object: environment:x}
+  - {user: identity_account:stays, relation: creator, object: environment:x}
+  - {user: identity_account:left, relation: execution_viewer, object: workflow_instance:x}
+  - {user: organization:acme, relation: organization, object: session:guest-chat}
+  - {user: identity_account:sys-guest, relation: owner, object: session:guest-chat}
+  - {user: organization:acme, relation: organization, object: memory:x}
+  - {user: identity_account:left, relation: subject, object: memory:left}
+  - {user: organization:acme, relation: organization, object: memory:left}
+  - {user: identity_account:stays, relation: subject, object: memory:x}
+
+  # stray: a role without its affiliation (written by hand, on purpose).
+  - {user: identity_account:stray, relation: member, object: organization:acme}
+  - {user: identity_account:stray, relation: owner, object: agent:x}
+tests:
+  - name: someone outside the organization reaches nothing, whatever the grant
+    check:
+      - {user: identity_account:left, object: agent:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: mcp_server:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: skill:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: workflow:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: plugin:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: agent_channel:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: agent_share:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: channel_app:x, assertions: {viewer: false, can_view: false}}
+      - {user: identity_account:left, object: schedule:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: artifact:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: agent_instance:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: workflow_instance:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: environment:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: session:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: workflow_execution:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: identity_provider:x, assertions: {viewer: false, can_view: false}}
+      - {user: identity_account:left, object: oauth_app:x, assertions: {viewer: false, can_view: false}}
+      - {user: identity_account:left, object: platform_client:x, assertions: {viewer: false, can_view: false}}
+      - {user: identity_account:left, object: agent_channel:x, assertions: {participant: false}}
+      - {user: identity_account:left, object: environment:x, assertions: {creator: false}}
+      - {user: identity_account:left, object: workflow_instance:x, assertions: {execution_viewer: false}}
+      - {user: identity_account:left, object: memory:left, assertions: {can_view: false, can_edit: false, can_delete: false}}
+  - name: a member keeps what they authored
+    check:
+      - {user: identity_account:stays, object: agent:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: mcp_server:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: skill:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: workflow:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: plugin:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: agent_channel:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: agent_share:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: channel_app:x, assertions: {viewer: true, can_view: true}}
+      - {user: identity_account:stays, object: schedule:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: artifact:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: agent_instance:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: workflow_instance:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: environment:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: session:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: workflow_execution:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: identity_provider:x, assertions: {viewer: true, can_view: true}}
+      - {user: identity_account:stays, object: oauth_app:x, assertions: {viewer: true, can_view: true}}
+      - {user: identity_account:stays, object: platform_client:x, assertions: {viewer: true, can_view: true}}
+      - {user: identity_account:stays, object: environment:x, assertions: {creator: true}}
+      - {user: identity_account:stays, object: memory:x, assertions: {can_view: true}}
+  - name: rejoining gives back what the person authored
+    check:
+      - {user: identity_account:back, object: agent:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: mcp_server:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: skill:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: workflow:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: plugin:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: agent_channel:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: agent_share:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: schedule:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: artifact:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: agent_instance:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: workflow_instance:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: environment:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: session:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: workflow_execution:x, assertions: {owner: true, can_view: true}}
+  - name: a system account that holds only guest keeps the session it owns
+    check:
+      - {user: identity_account:sys-guest, object: session:guest-chat, assertions: {owner: true, can_view: true, can_edit: true}}
+  - name: listings follow the bound
+    list_objects:
+      - {user: identity_account:left, type: agent, assertions: {can_view: []}}
+      - {user: identity_account:left, type: session, assertions: {can_view: []}}
+      - {user: identity_account:stays, type: agent, assertions: {can_view: [agent:x]}}
+      - {user: identity_account:back, type: session, assertions: {can_view: [session:x]}}
+  - name: a role without its affiliation reaches nothing (fail-closed)
+    check:
+      - {user: identity_account:stray, object: agent:x, assertions: {owner: false, can_view: false}}
+      - {user: identity_account:stray, object: organization:acme, assertions: {member: true, affiliated: false}}

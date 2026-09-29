@@ -90,7 +90,7 @@ type workflow_instance
     # ========================================
     # Org admins explicitly excluded — workflow instances are personal resources
     # containing secrets and configuration that admins have no business accessing.
-    define owner: [identity_account]
+    define owner: [identity_account] and affiliated from organization
     
     # ========================================
     # VIEWER ACCESS (Configurable Visibility)
@@ -105,7 +105,7 @@ type workflow_instance
     #   the organization in team.fga
     # Default instances additionally inherit the parent workflow's full
     # viewer set through `viewer from default_of` (see default_of above).
-    define viewer: [identity_account, organization#member, organization#viewer, team#member] or owner or viewer from default_of
+    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or viewer from default_of
     
     # ========================================
     # RUN OBSERVABILITY (Opt-in, Separate from Visibility)
@@ -118,7 +118,7 @@ type workflow_instance
     # execution_viewer@organization:<org>#viewer (the org's full read audience;
     # organization#member is the legacy pre-2026-08-11 shape, kept resolving).
     # Consumed by workflow_execution.viewer via "execution_viewer from workflow_instance".
-    define execution_viewer: [identity_account, organization#member, organization#viewer]
+    define execution_viewer: [identity_account, organization#member, organization#viewer] and affiliated from organization
     
     # ========================================
     # PERMISSIONS

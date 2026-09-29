@@ -73,9 +73,12 @@ async function allowed(
 }
 
 describe("a person against a direct tuple", () => {
+  // carol holds a role on acme, so her account carries the organization's
+  // `affiliated` tuple the model bounds every direct grant with.
   const source = newInMemoryTupleSource([
     tuple("agent:a#organization@organization:acme"),
     tuple("agent:a#owner@identity_account:auth0|carol"),
+    tuple("organization:acme#affiliated@identity_account:ida_carol"),
   ]);
 
   it("matches on any alias, so a row stamped with the 3.14 issuer subject is still its creator's", async () => {
@@ -256,6 +259,7 @@ describe("the walk itself", () => {
     // role AND still one of the organization's viewers.
     const source = newInMemoryTupleSource([
       tuple("organization:acme#viewer@identity_account:ida_vic"),
+      tuple("organization:acme#affiliated@identity_account:ida_vic"),
       tuple("team:sre#organization@organization:acme"),
       tuple("team:sre#member@identity_account:ida_vic"),
       tuple("team:sre#member@identity_account:ida_left"),

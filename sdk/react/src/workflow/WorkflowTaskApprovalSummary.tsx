@@ -31,10 +31,11 @@ export interface WorkflowTaskApprovalSummaryProps {
    */
   readonly outcomes: readonly TaskOutcome[];
   /**
-   * The recorded decision, sourced from the canonical task output. When
-   * `null` — or when its `outcome` is still empty — the gate has been
-   * resolved but the decision record has not yet materialized in the
-   * status snapshot; a "finalizing" affordance is shown instead.
+   * The recorded decision, sourced from the canonical task output with the
+   * `approval_resolved` event standing in until the status snapshot
+   * catches up. When `null` — or when its `outcome` is still empty — the
+   * gate has been resolved but neither source carries the decision yet; a
+   * "finalizing" affordance is shown instead.
    */
   readonly decision: TaskDetailApprovalDecision | null;
   /** Additional CSS class names for the root container. */

@@ -114,6 +114,14 @@ export interface Config {
    */
   readonly mcpBridgeEndpoint: string | null;
   /**
+   * The Stigmer server's public address as an operator names it to this
+   * runner (STIGMER_MCP_PUBLIC_ENDPOINT). When set, it fills a missing
+   * STIGMER_SERVER_ADDRESS for any MCP server that declares the key; null
+   * leaves remote servers to the value the page supplied. See
+   * shared/platform-server-address.ts.
+   */
+  readonly mcpPublicEndpoint: string | null;
+  /**
    * The Cursor API key for direct mode (authenticates with Cursor directly).
    * In proxy mode this is a placeholder (`"proxy-managed"` unless the operator
    * set CURSOR_API_KEY anyway): the credential the SDK transport presents to
@@ -232,6 +240,7 @@ export function loadConfig(): Config {
   const stigmerTokenRef: TokenRef = { current: stigmerTokenValue ?? null };
 
   const mcpBridgeEndpoint = process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null;
+  const mcpPublicEndpoint = process.env.STIGMER_MCP_PUBLIC_ENDPOINT || null;
 
   // In proxy mode the SDK's API key is the control-plane credential, which the
   // Cursor adapter reads from the ref per turn (execute-cursor/turn-setup.ts);
@@ -285,6 +294,7 @@ export function loadConfig(): Config {
     stigmerBackendEndpoint,
     stigmerTokenRef,
     mcpBridgeEndpoint,
+    mcpPublicEndpoint,
     cursorApiKey,
     workspaceRootDir,
     mode,

@@ -46,6 +46,14 @@
 //     refused on `get` and on every change and whose lists omit it
 //     (stigmer/stigmer#1257, #1384: the list once showed every member what
 //     `get` refused them).
+//   - Leaving the organization: a person removed from it (`revokeOrgAccess`)
+//     is refused what they made there on the next call (their session,
+//     their environment; an admin's private agent), and reads and edits it
+//     again once invited back. The model admits a direct grant only while
+//     its holder has a role in the object's organization (`affiliated`),
+//     and a person's authorship is such a grant: derived from the creator
+//     stamp in open source, stored in the cloud, the same answer on every
+//     lane.
 //   - The organization: `find` is UNIMPLEMENTED on every enforcing lane (the
 //     cloud leaves it unrouted; the built-in directory refuses enumeration);
 //     `findMyOrganizations` is the caller's organizations — a member of one
@@ -709,6 +717,112 @@ describe("role enforcement — administrative rows: the organization's current a
 
       await kind.edit(c.admin, c.org, row);
     });
+  });
+});
+
+describe("role enforcement — leaving the organization: what a person made is theirs only while they belong", () => {
+  let tenancy: TenancyContext | undefined;
+
+  beforeAll(async () => {
+    if (enforcing.lane === undefined) return;
+    tenancy = await enforcing.lane.provisionTenancy();
+  });
+
+  // Each arm removes its own person, so none shares the block's cast.
+  async function personOrSkip(
+    ctx: { skip: (note?: string) => never },
+    role: "member" | "admin",
+  ): Promise<{
+    lane: EnforcingLane;
+    cast: Cast;
+    person: ConformanceClients;
+    id: string;
+  }> {
+    const lane = laneOrSkip(ctx);
+    if (tenancy === undefined)
+      ctx.skip("the block's organization was not provisioned");
+    const person =
+      role === "member"
+        ? await lane.provisionMember(tenancy)
+        : await lane.provisionWithRole(tenancy, role);
+    const cast: Cast = {
+      org: tenancy.org,
+      tenancy,
+      owner: lane.clients,
+      admin: person,
+      member: person,
+      viewer: person,
+      outsider: person,
+    };
+    return { lane, cast, person, id: await lane.accountIdOf(person) };
+  }
+
+  async function remove(
+    lane: EnforcingLane,
+    id: string,
+    org: string,
+  ): Promise<void> {
+    await lane.clients.iamPolicyCommand.revokeOrgAccess({
+      identityAccountId: id,
+      organizationId: org,
+    });
+  }
+
+  async function invite(
+    lane: EnforcingLane,
+    id: string,
+    org: string,
+  ): Promise<void> {
+    await lane.clients.iamPolicyCommand.create(
+      organizationRole(id, "member", org),
+    );
+  }
+
+  describe.each(PERSONAL_KINDS.filter((kind) => kind.name !== "api_key"))(
+    "$name",
+    (kind) => {
+      it("a removed member is refused their own row, and reads it again once invited back", async (ctx) => {
+        const { lane, cast, person, id } = await personOrSkip(ctx, "member");
+        const row = await kind.create(person, cast);
+        fixtures.defer(() => kind.delete(person, row).catch(() => undefined));
+        await kind.get(person, row);
+
+        await remove(lane, id, cast.org);
+        await expectGrpcCode(
+          () => kind.get(person, row),
+          Code.PermissionDenied,
+          `a removed member's get on their own ${kind.name}`,
+        );
+        expect(
+          await kind.listIds(person, cast.org),
+          `a removed member's ${kind.name} list`,
+        ).not.toContain(row);
+
+        await invite(lane, id, cast.org);
+        await kind.get(person, row);
+      });
+    },
+  );
+
+  it("a removed admin is refused the private agent they created, and edits it again once invited back", async (ctx) => {
+    const agent = BLUEPRINT_KINDS.find((kind) => kind.name === "agent");
+    if (agent === undefined)
+      throw new Error("the blueprint roster has no agent kind");
+    const { lane, cast, person, id } = await personOrSkip(ctx, "admin");
+    const row = await agent.create(person, cast.org, PRIVATE);
+    fixtures.defer(() => agent.delete(cast.owner, row).catch(() => undefined));
+
+    await remove(lane, id, cast.org);
+    await expectGrpcCode(
+      () => agent.get(person, row),
+      Code.PermissionDenied,
+      "a removed admin's get on the private agent they created",
+    );
+    // The organization keeps it: its owner manages it as before.
+    await agent.get(cast.owner, row);
+
+    await invite(lane, id, cast.org);
+    await agent.edit(person, row);
   });
 });
 

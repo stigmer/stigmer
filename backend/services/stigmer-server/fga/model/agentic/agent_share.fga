@@ -46,12 +46,12 @@ type agent_share
     # ========================================
     # The creator, plus org admins by inheritance (since 2026-07-13, closing
     # the org-Owner-is-not-agent-owner gap platform-wide).
-    define owner: [identity_account] or admin from organization
+    define owner: ([identity_account] and affiliated from organization) or admin from organization
 
     # ========================================
     # VIEWER ACCESS (Explicit Grants)
     # ========================================
-    define viewer: [identity_account] or owner
+    define viewer: ([identity_account] and affiliated from organization) or owner
 
     # ========================================
     # PERMISSIONS

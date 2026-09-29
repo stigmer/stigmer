@@ -94,17 +94,28 @@ describe("deriveTaskApprovalDecision", () => {
     ).toBeNull();
   });
 
-  it("builds a finalizing decision from the event alone (empty outcome)", () => {
+  it("builds a finalizing decision from an event that predates its outcome field", () => {
     const decision = deriveTaskApprovalDecision(makeResolution(), undefined);
     expect(decision).not.toBeNull();
-    // No task output yet: outcome is empty (consumers show a "finalizing"
-    // affordance), reviewer/comment come from the event.
+    // No task output yet and no outcome on the event: outcome is empty
+    // (consumers show a "finalizing" affordance), reviewer/comment come from
+    // the event.
     expect(decision!.outcome).toBe("");
     expect(decision!.reviewer).toBe("admin");
     expect(decision!.comment).toBe("from event");
     expect(decision!.waitDurationMs).toBe(30000);
     expect(decision!.formData).toBeNull();
     expect(decision!.autoResolved).toBe(false);
+  });
+
+  it("takes the outcome and auto_resolved from the event before the snapshot catches up", () => {
+    const decision = deriveTaskApprovalDecision(
+      makeResolution({ action: 0, outcome: "escalate", autoResolved: true, resolvedBy: "" }),
+      undefined,
+    );
+    expect(decision!.outcome).toBe("escalate");
+    expect(decision!.autoResolved).toBe(true);
+    expect(decision!.reviewer).toBe("");
   });
 
   it("sources the decision from the canonical task-output record", () => {
@@ -136,6 +147,15 @@ describe("deriveTaskApprovalDecision", () => {
     expect(decision!.reviewer).toBe("alice"); // snapshot wins
     expect(decision!.comment).toBe("from snapshot"); // snapshot wins
     expect(decision!.waitDurationMs).toBe(12000); // event fills the gap
+  });
+
+  it("prefers the snapshot's outcome and auto_resolved once it carries the decision", () => {
+    const decision = deriveTaskApprovalDecision(
+      makeResolution({ outcome: "deny", autoResolved: true }),
+      { outcome: "approve", reviewer: "alice" } as JsonObject,
+    );
+    expect(decision!.outcome).toBe("approve"); // snapshot wins
+    expect(decision!.autoResolved).toBe(false); // the snapshot's record, not the event's
   });
 
   it("reads auto_resolved and ignores internal keys in the task output", () => {

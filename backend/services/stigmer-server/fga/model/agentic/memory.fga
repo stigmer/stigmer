@@ -56,6 +56,10 @@ type memory
     # ========================================
     # PERMISSIONS (Subject-Only)
     # ========================================
-    define can_view: subject
-    define can_edit: subject
-    define can_delete: subject
+    # The subject reaches their memories only while they belong to the
+    # organization. The bound sits here rather than on `subject`, which is
+    # the kind's structural parent link and stays a direct relation.
+    define subject_in_organization: subject and affiliated from organization
+    define can_view: subject_in_organization
+    define can_edit: subject_in_organization
+    define can_delete: subject_in_organization

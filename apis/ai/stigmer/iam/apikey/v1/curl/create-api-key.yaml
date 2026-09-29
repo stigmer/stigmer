@@ -6,7 +6,6 @@ apiVersion: iam.stigmer.ai/v1
 kind: ApiKey
 metadata:
   name: my-api-key
-  description: API key for CI/CD pipeline
 spec:
   # Set expiration (optional)
   expiresAt: "2026-12-31T23:59:59Z"

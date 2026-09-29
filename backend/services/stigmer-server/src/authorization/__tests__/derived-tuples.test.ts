@@ -379,6 +379,30 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ).toEqual([]);
       });
 
+      it("derives the organization's affiliated tuple from each role row the person holds there, in the same read", async () => {
+        const affiliated = async (person: Person) =>
+          (
+            await sourceFor(person).tuplesOf(
+              parseObjectRef("organization:acme"),
+              "affiliated",
+            )
+          ).map(formatTuple);
+        expect(await affiliated(ROOT)).toEqual([
+          "organization:acme#affiliated@identity_account:ida_root",
+        ]);
+        expect(await affiliated(DAVE)).toEqual([
+          "organization:acme#affiliated@identity_account:ida_dave",
+        ]);
+        // The userset row (a partner organization's members as viewers)
+        // is structure, not a role the person holds: no affiliation.
+        expect(
+          await sourceFor(ROOT).tuplesOf(
+            parseObjectRef("organization:partner"),
+            "affiliated",
+          ),
+        ).toEqual([]);
+      });
+
       it("answers the person's own rows on the organization, and nobody else's", async () => {
         const source = sourceFor(ROOT);
         expect(
@@ -736,6 +760,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         expect(
           (await sourceFor(DAVE).personTuples()).map(formatTuple).sort(),
         ).toEqual([
+          "organization:acme#affiliated@identity_account:ida_dave",
           "organization:acme#member@identity_account:ida_dave",
           "team:tm_core#member@identity_account:ida_dave",
         ]);
@@ -778,6 +803,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         const policies = newResourceIamPolicyStore(opened.store);
         await grant(policies, orgRole(ROOT.accountId, "owner", "acme"));
         await grant(policies, orgRole(DAVE.accountId, "member", "acme"));
+        await grant(policies, orgRole(CAROL.accountId, "member", "acme"));
         await seed("organization", "acme", {
           org: "",
           visibility: ApiResourceVisibility.visibility_private,

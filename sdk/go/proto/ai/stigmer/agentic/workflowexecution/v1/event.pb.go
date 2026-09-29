@@ -1813,7 +1813,7 @@ func (x *ApprovalRequestedPayload) GetPayloadArtifactId() string {
 // Payload for approval_resolved events.
 type ApprovalResolvedPayload struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The decision that was made.
+	// The agent tool approval decision that was made.
 	Action v11.ApprovalAction `protobuf:"varint,1,opt,name=action,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"action,omitempty"`
 	// Canonical identity of the user who made the decision
 	// (identity-account ID). Empty only when no caller made the decision
@@ -1826,8 +1826,13 @@ type ApprovalResolvedPayload struct {
 	WaitDurationMs int64 `protobuf:"varint,4,opt,name=wait_duration_ms,json=waitDurationMs,proto3" json:"wait_duration_ms,omitempty"`
 	// Display identity of the reviewer, snapshotted at decision time.
 	ResolvedByActor *apiresource.ApiResourceAuditActor `protobuf:"bytes,5,opt,name=resolved_by_actor,json=resolvedByActor,proto3" json:"resolved_by_actor,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Outcome chosen at a workflow human_input gate, by its declared name
+	// (for example "approve", "deny" or "revise").
+	Outcome string `protobuf:"bytes,6,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// Whether the gate's timeout policy made the decision, with no reviewer.
+	AutoResolved  bool `protobuf:"varint,7,opt,name=auto_resolved,json=autoResolved,proto3" json:"auto_resolved,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApprovalResolvedPayload) Reset() {
@@ -1893,6 +1898,20 @@ func (x *ApprovalResolvedPayload) GetResolvedByActor() *apiresource.ApiResourceA
 		return x.ResolvedByActor
 	}
 	return nil
+}
+
+func (x *ApprovalResolvedPayload) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *ApprovalResolvedPayload) GetAutoResolved() bool {
+	if x != nil {
+		return x.AutoResolved
+	}
+	return false
 }
 
 // Payload for budget_checkpoint events.
@@ -2317,14 +2336,16 @@ const file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc = "" +
 	"\apayload\x18\b \x01(\v2\x16.google.protobuf.ValueR\apayload\x12\x17\n" +
 	"\aui_hint\x18\t \x01(\tR\x06uiHint\x12.\n" +
 	"\x13payload_artifact_id\x18\n" +
-	" \x01(\tR\x11payloadArtifactId\"\xaf\x02\n" +
+	" \x01(\tR\x11payloadArtifactId\"\xee\x02\n" +
 	"\x17ApprovalResolvedPayload\x12L\n" +
 	"\x06action\x18\x01 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x06action\x12\x1f\n" +
 	"\vresolved_by\x18\x02 \x01(\tR\n" +
 	"resolvedBy\x12\x18\n" +
 	"\acomment\x18\x03 \x01(\tR\acomment\x12(\n" +
 	"\x10wait_duration_ms\x18\x04 \x01(\x03R\x0ewaitDurationMs\x12a\n" +
-	"\x11resolved_by_actor\x18\x05 \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x0fresolvedByActor\"\xe6\x02\n" +
+	"\x11resolved_by_actor\x18\x05 \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x0fresolvedByActor\x12\x18\n" +
+	"\aoutcome\x18\x06 \x01(\tR\aoutcome\x12#\n" +
+	"\rauto_resolved\x18\a \x01(\bR\fautoResolved\"\xe6\x02\n" +
 	"\x17BudgetCheckpointPayload\x120\n" +
 	"\x14cost_consumed_micros\x18\x01 \x01(\x03R\x12costConsumedMicros\x122\n" +
 	"\x15cost_remaining_micros\x18\x02 \x01(\x03R\x13costRemainingMicros\x12'\n" +

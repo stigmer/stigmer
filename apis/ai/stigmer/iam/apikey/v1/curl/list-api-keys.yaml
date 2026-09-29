@@ -1,5 +1,4 @@
-# List all API keys for the authenticated user
-# Returns all API keys owned by the identity account in the auth header
+# List the API keys the caller may view (can_view); on a trusted-local server, every key
 # Each entry shows metadata, fingerprint, and expiration but NOT the raw key
 
 # No request body needed - uses identity from auth header

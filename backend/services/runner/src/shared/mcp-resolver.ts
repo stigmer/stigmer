@@ -12,6 +12,11 @@
  * toCursorMcpConfig (execute-cursor/cursor-mcp-config.ts) for the Cursor
  * SDK — so a behavioral change here (like the transport guard) lands in
  * both execution paths by construction.
+ *
+ * The one platform key filled here is STIGMER_SERVER_ADDRESS
+ * (platform-server-address.ts), before the declared-key filter so the filter
+ * sees the key present; discovery applies the same fill itself because it
+ * resolves a single server without a usage.
  */
 
 import type { McpServerUsage, ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -30,6 +35,7 @@ import {
   PlaceholderResolutionError,
 } from "./placeholder-resolver.js";
 import { effectiveEnabledTools } from "./mcp-enabled-tools.js";
+import { fillPlatformServerAddress, type PlatformEndpoints } from "./platform-server-address.js";
 
 /**
  * Harness-agnostic intermediate representation of a resolved MCP server.
@@ -86,12 +92,16 @@ export interface McpResolutionResult {
  *        resolveMcpTransportPosture(config.mode)). A stdio server under a
  *        forbidding posture throws {@link McpTransportError} and fails the
  *        whole resolution — never degraded to a skipped server.
+ * @param platformEndpoints The runner's endpoints a missing
+ *        STIGMER_SERVER_ADDRESS is filled from (the runner Config satisfies
+ *        it). Required so no resolution path can forget the fill.
  */
 export async function resolveMcpServers(
   client: StigmerClient,
   usages: McpServerUsage[],
   envVars: Record<string, string>,
   transportPosture: McpTransportPosture,
+  platformEndpoints: PlatformEndpoints,
 ): Promise<McpResolutionResult> {
   const resolved: ResolvedMcpServer[] = [];
 
@@ -103,7 +113,7 @@ export async function resolveMcpServers(
       const mcpServer = await client.getMcpServerByReference(ref);
       const serverEnv = filterEnvToDeclaredKeys(
         mcpServer.spec?.env,
-        envVars,
+        fillPlatformServerAddress(mcpServer, envVars, platformEndpoints),
         ref.slug,
       );
       const server = mcpServerToResolved(

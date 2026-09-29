@@ -4,7 +4,7 @@ import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, toChannelAppUpdateInput } from "@stigmer/sdk";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { useStigmer } from "../hooks.js";
+import { usePublicBaseUrl } from "../public-base-url-context.js";
 import { useUpdateChannelApp } from "./useUpdateChannelApp.js";
 import { useDeleteChannelApp } from "./useDeleteChannelApp.js";
 import type { ChannelAppCreateHandoff } from "./CreateChannelAppForm.js";
@@ -17,7 +17,7 @@ import {
   WHATSAPP_CHANNEL_APP_WEBHOOK_FIELDS,
   whatsappChannelAppWebhookUrl,
 } from "./whatsappAppSetup.js";
-import { CopyBlock, CopyRow, FormField } from "./internal.js";
+import { CopyBlock, CopyRow, FormField, UnknownAddressRow } from "./internal.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
@@ -200,7 +200,7 @@ function SlackAppDetail({
   readonly onUpdated?: (app: ChannelApp) => void;
 }) {
   const baseId = useId();
-  const stigmer = useStigmer();
+  const publicBaseUrl = usePublicBaseUrl();
   const { update, isUpdating, error: updateError, clearError } = useUpdateChannelApp();
 
   const slack = channelApp.spec?.providerConfig?.case === "slack"
@@ -214,9 +214,14 @@ function SlackAppDetail({
   const appId = channelApp.metadata?.id ?? "";
   const name = channelApp.metadata?.name ?? "";
 
+  // `undefined` while the server's public address is unknown: the row
+  // says so, and the manifest leaves out its event subscriptions.
   const webhookUrl = useMemo(
-    () => slackChannelAppWebhookUrl(stigmer.baseUrl, appId),
-    [stigmer.baseUrl, appId],
+    () =>
+      publicBaseUrl === null
+        ? undefined
+        : slackChannelAppWebhookUrl(publicBaseUrl, appId),
+    [publicBaseUrl, appId],
   );
   const redirectUrl = useMemo(
     () => slackChannelAppRedirectUrl(consoleOrigin),
@@ -271,11 +276,15 @@ function SlackAppDetail({
           below (Slack verifies it immediately). The completed manifest is
           also available for review or re-paste.
         </p>
-        <CopyRow
-          label="Events request URL"
-          value={webhookUrl}
-          copyTargetId="stgm-chapp-webhook-copy"
-        />
+        {webhookUrl !== undefined ? (
+          <CopyRow
+            label="Events request URL"
+            value={webhookUrl}
+            copyTargetId="stgm-chapp-webhook-copy"
+          />
+        ) : (
+          <UnknownAddressRow label="Events request URL" subject="the events request URL" />
+        )}
         <CopyRow label="OAuth redirect URL" value={redirectUrl} />
         <CopyBlock label="Completed app manifest" value={manifest} />
       </section>
@@ -361,7 +370,7 @@ function WhatsAppAppDetail({
   readonly onUpdated?: (app: ChannelApp) => void;
 }) {
   const baseId = useId();
-  const stigmer = useStigmer();
+  const publicBaseUrl = usePublicBaseUrl();
   const { update, isUpdating, error: updateError, clearError } = useUpdateChannelApp();
 
   const whatsapp = channelApp.spec?.providerConfig?.case === "whatsapp"
@@ -376,9 +385,13 @@ function WhatsAppAppDetail({
   const appId = channelApp.metadata?.id ?? "";
   const name = channelApp.metadata?.name ?? "";
 
+  // `undefined` while the server's public address is unknown: the row says so.
   const webhookUrl = useMemo(
-    () => whatsappChannelAppWebhookUrl(stigmer.baseUrl, appId),
-    [stigmer.baseUrl, appId],
+    () =>
+      publicBaseUrl === null
+        ? undefined
+        : whatsappChannelAppWebhookUrl(publicBaseUrl, appId),
+    [publicBaseUrl, appId],
   );
 
   const canSave =
@@ -432,11 +445,15 @@ function WhatsAppAppDetail({
           </span>{" "}
           webhook field.
         </p>
-        <CopyRow
-          label="Callback URL"
-          value={webhookUrl}
-          copyTargetId="stgm-chapp-webhook-copy"
-        />
+        {webhookUrl !== undefined ? (
+          <CopyRow
+            label="Callback URL"
+            value={webhookUrl}
+            copyTargetId="stgm-chapp-webhook-copy"
+          />
+        ) : (
+          <UnknownAddressRow label="Callback URL" subject="the callback URL" />
+        )}
         {createHandoff?.verifyToken ? (
           <CopyRow
             label="Verify token"

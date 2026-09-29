@@ -53,7 +53,9 @@ export const SLACK_CHANNEL_APP_BOT_EVENTS = [
  * The events webhook URL for one ChannelApp: the per-app route the
  * receiver resolves the app's signing secret by.
  *
- * @param apiBaseUrl the Stigmer API origin (`stigmer.baseUrl`)
+ * @param apiBaseUrl the server's public base URL, absolute (the one
+ *                   `StigmerProvider`'s `publicBaseUrl` names, or the
+ *                   client's `baseUrl` when that is absolute)
  * @param channelAppId the ChannelApp resource id (`chapp_...`)
  */
 export function slackChannelAppWebhookUrl(

@@ -21,13 +21,22 @@ tuples:
   - user: identity_account:alice
     relation: member
     object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:mallory
     relation: member
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
     object: organization:acme
 
   # Org admin — proving admin owner inheritance reaches channels.
   - user: identity_account:ana
     relation: admin
+    object: organization:acme
+  - user: identity_account:ana
+    relation: affiliated
     object: organization:acme
 
   # The channel, created by alice (the config-driven create tuples).
@@ -38,8 +47,22 @@ tuples:
     relation: owner
     object: agent_channel:support-bot-slack
 
-  # An explicit viewer grant to carol (not even an org member).
+  # An explicit viewer grant to carol, who holds the organization's
+  # lowest role: the role reaches nothing here by itself, the grant does.
   - user: identity_account:carol
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:carol
+    relation: viewer
+    object: agent_channel:support-bot-slack
+
+  # The same grant to dave, who holds no role in the organization (never
+  # joined, or was removed): a direct grant reaches only the
+  # organization's people.
+  - user: identity_account:dave
     relation: viewer
     object: agent_channel:support-bot-slack
 
@@ -54,6 +77,15 @@ tests:
           can_delete: true
           can_grant_access: true
           can_view_access: true
+
+  - name: a grant to someone outside the organization reaches nothing
+    check:
+      - user: identity_account:dave
+        object: agent_channel:support-bot-slack
+        assertions:
+          can_view: false
+          can_view_access: false
+          can_edit: false
 
   - name: explicitly granted viewer can read but not mutate
     check:

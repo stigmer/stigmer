@@ -33,17 +33,32 @@ tuples:
   - user: identity_account:swarup
     relation: owner
     object: organization:planton
+  - user: identity_account:swarup
+    relation: affiliated
+    object: organization:planton
   - user: identity_account:priya
     relation: member
+    object: organization:planton
+  - user: identity_account:priya
+    relation: affiliated
     object: organization:planton
   - user: identity_account:veda
     relation: viewer
     object: organization:planton
+  - user: identity_account:veda
+    relation: affiliated
+    object: organization:planton
   - user: identity_account:alice
     relation: member
     object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:mallory
     relation: member
+    object: organization:outsider
+  - user: identity_account:mallory
+    relation: affiliated
     object: organization:outsider
 
   # --- Platform-shared agent + its default instance ---

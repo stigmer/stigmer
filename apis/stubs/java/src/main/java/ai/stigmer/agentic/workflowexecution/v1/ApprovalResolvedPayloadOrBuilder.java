@@ -12,7 +12,7 @@ public interface ApprovalResolvedPayloadOrBuilder extends
 
   /**
    * <pre>
-   * The decision that was made.
+   * The agent tool approval decision that was made.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -21,7 +21,7 @@ public interface ApprovalResolvedPayloadOrBuilder extends
   int getActionValue();
   /**
    * <pre>
-   * The decision that was made.
+   * The agent tool approval decision that was made.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 1 [json_name = "action"];</code>
@@ -110,4 +110,36 @@ public interface ApprovalResolvedPayloadOrBuilder extends
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceAuditActorOrBuilder getResolvedByActorOrBuilder();
+
+  /**
+   * <pre>
+   * Outcome chosen at a workflow human_input gate, by its declared name
+   * (for example "approve", "deny" or "revise").
+   * </pre>
+   *
+   * <code>string outcome = 6 [json_name = "outcome"];</code>
+   * @return The outcome.
+   */
+  java.lang.String getOutcome();
+  /**
+   * <pre>
+   * Outcome chosen at a workflow human_input gate, by its declared name
+   * (for example "approve", "deny" or "revise").
+   * </pre>
+   *
+   * <code>string outcome = 6 [json_name = "outcome"];</code>
+   * @return The bytes for outcome.
+   */
+  com.google.protobuf.ByteString
+      getOutcomeBytes();
+
+  /**
+   * <pre>
+   * Whether the gate's timeout policy made the decision, with no reviewer.
+   * </pre>
+   *
+   * <code>bool auto_resolved = 7 [json_name = "autoResolved"];</code>
+   * @return The autoResolved.
+   */
+  boolean getAutoResolved();
 }

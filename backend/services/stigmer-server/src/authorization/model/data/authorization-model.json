@@ -275,7 +275,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -521,7 +537,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -606,7 +638,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -798,6 +846,13 @@
               }
             ]
           },
+          "affiliated": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
           "can_assign_roles": {},
           "can_create_agent": {},
           "can_create_agent_instance": {},
@@ -870,6 +925,9 @@
               }
             ]
           }
+        },
+        "affiliated": {
+          "this": {}
         },
         "can_assign_roles": {
           "computedUserset": {
@@ -1161,7 +1219,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -1183,7 +1257,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -1290,7 +1380,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -1309,7 +1415,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -1323,7 +1445,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -1404,7 +1542,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -1423,7 +1577,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -1508,7 +1678,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -1624,13 +1810,45 @@
           "this": {}
         },
         "owner": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "viewer": {
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -1800,13 +2018,45 @@
           "this": {}
         },
         "owner": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "viewer": {
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -1907,19 +2157,67 @@
           }
         },
         "creator": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "organization": {
           "this": {}
         },
         "owner": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "viewer": {
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -2073,7 +2371,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -2095,7 +2409,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -2133,7 +2463,8 @@
                 "type": "identity_account"
               }
             ]
-          }
+          },
+          "subject_in_organization": {}
         },
         "source_info": {
           "file": "agentic/memory.fga"
@@ -2142,17 +2473,17 @@
       "relations": {
         "can_delete": {
           "computedUserset": {
-            "relation": "subject"
+            "relation": "subject_in_organization"
           }
         },
         "can_edit": {
           "computedUserset": {
-            "relation": "subject"
+            "relation": "subject_in_organization"
           }
         },
         "can_view": {
           "computedUserset": {
-            "relation": "subject"
+            "relation": "subject_in_organization"
           }
         },
         "organization": {
@@ -2160,6 +2491,27 @@
         },
         "subject": {
           "this": {}
+        },
+        "subject_in_organization": {
+          "intersection": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "subject"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         }
       },
       "type": "memory"
@@ -2258,7 +2610,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -2280,7 +2648,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -2370,7 +2754,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -2389,7 +2789,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -2526,7 +2942,23 @@
           "this": {}
         },
         "owner": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "schedule": {
           "this": {}
@@ -2535,7 +2967,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -2648,7 +3096,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -2670,7 +3134,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -2788,7 +3268,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "tupleToUserset": {
@@ -2810,7 +3306,23 @@
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -2940,19 +3452,67 @@
           "this": {}
         },
         "execution_viewer": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "organization": {
           "this": {}
         },
         "owner": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "viewer": {
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {
@@ -3048,13 +3608,45 @@
           "this": {}
         },
         "owner": {
-          "this": {}
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "viewer": {
           "union": {
             "child": [
               {
-                "this": {}
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "computedUserset": {

@@ -41,7 +41,7 @@ type agent_channel
     # ========================================
     # The creator, plus org admins by inheritance (since 2026-07-13, closing
     # the org-Owner-is-not-agent-owner gap platform-wide).
-    define owner: [identity_account] or admin from organization
+    define owner: ([identity_account] and affiliated from organization) or admin from organization
 
     # ========================================
     # CONVERSATION PARTICIPANTS (Explicit Grants)
@@ -54,7 +54,7 @@ type agent_channel
     # connectors and org admins participate by construction — no
     # double-granting. An Enterprise team's members participate through
     # team#member, bounded by the organization in team.fga.
-    define participant: [identity_account, team#member] or owner
+    define participant: ([identity_account, team#member] and affiliated from organization) or owner
 
     # ========================================
     # VIEWER ACCESS (Explicit Grants)
@@ -64,7 +64,7 @@ type agent_channel
     # participants can see the channel card they participate on. Behavior
     # for existing grants is preserved: owner ⊆ participant ⊆ viewer. A
     # read-only grant may name a team's members too (team#member).
-    define viewer: [identity_account, team#member] or participant
+    define viewer: ([identity_account, team#member] and affiliated from organization) or participant
 
     # ========================================
     # PERMISSIONS

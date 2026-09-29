@@ -58,6 +58,7 @@ Three things are required:
 | `deploymentMode` | `"local" \| "cloud"` | No | Backend deployment mode. Defaults to `"cloud"`. |
 | `executionTarget` | `"local" \| "cloud"` | No | Default execution target for sessions and workflow executions created in this provider. Omit to let the server decide. See [Local Execution](#local-execution). |
 | `runnerAdapter` | `RunnerAdapter` | No | Runner lifecycle adapter, required when `executionTarget` is `"local"`. Omit for cloud. See [Local Execution](#local-execution). |
+| `publicBaseUrl` | `string` | No | The absolute address the Stigmer API is reached at from outside the page, for the URLs components show a user to copy (channel-app webhook URLs, the platform client snippet). Omit when the client's `baseUrl` is absolute; pass it when the client uses a relative `baseUrl` behind a same-origin proxy. Without either, those surfaces say the address is unknown. |
 | `preset` | `ThemePresetId` | No | Built-in theme preset to apply. Omit for the default Stigmer palette. |
 | `className` | `string` | No | Additional CSS classes for theming. Applied to the scoping container *and* mirrored onto the portal container, so token overrides reach portaled surfaces — not a layout channel (see [Style Isolation](#style-isolation)). |
 

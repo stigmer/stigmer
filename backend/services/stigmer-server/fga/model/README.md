@@ -61,7 +61,7 @@ Guest, channel and schedule sessions run as per-org system accounts that hold ex
 Templates discoverable by all org members, with optional platform visibility:
 
 ```fga
-define viewer: [identity_account, organization#member, organization#viewer] or owner or platform_viewer
+define viewer: ([identity_account, organization#member, organization#viewer] and affiliated from organization) or owner or platform_viewer
 ```
 
 Resources: `agent`, `workflow`, `skill`, `mcp_server`, `plugin`
@@ -71,8 +71,8 @@ Resources: `agent`, `workflow`, `skill`, `mcp_server`, `plugin`
 Owner-only access. Org admins explicitly excluded (personal secrets/conversations):
 
 ```fga
-define owner: [identity_account]
-define viewer: [identity_account] or owner
+define owner: [identity_account] and affiliated from organization
+define viewer: ([identity_account] and affiliated from organization) or owner
 ```
 
 Resources: `session`, `environment`
@@ -82,7 +82,7 @@ Resources: `session`, `environment`
 Private by default, expandable to org via an additional tuple:
 
 ```fga
-define viewer: [identity_account, organization#member, organization#viewer] or owner or viewer from default_of
+define viewer: ([identity_account, organization#member, organization#viewer] and affiliated from organization) or owner or viewer from default_of
 ```
 
 Resources: `agent_instance`, `workflow_instance`
@@ -93,7 +93,7 @@ Permissions inherited from parent resource:
 
 ```fga
 # Workflow execution inherits from instance
-define viewer: [identity_account] or owner or viewer from workflow_instance
+define viewer: ([identity_account] and affiliated from organization) or owner or viewer from workflow_instance
 
 # Agent execution inherits from session
 define viewer: viewer from session or owner
@@ -103,6 +103,26 @@ Resources: `workflow_execution`, `agent_execution`
 
 An agent execution holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the execution's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give an execution something of its own is a design change of the list read scope first. A workflow execution is not such a kind, because its opt-in `execution_viewer` is its own.
 
+### Bounded by the Organization (every direct grant)
+
+Every organization-scoped type admits its direct subjects only while they belong to the object's organization:
+
+```fga
+# organization.fga: one stored tuple per person and organization
+define affiliated: [identity_account]
+
+# every relation with a direct list, on every organization-scoped type
+define owner: ([identity_account] and affiliated from organization) or admin from organization
+```
+
+The bound is what makes leaving an organization mean what it says. A person who loses their last role in the organization reaches nothing it holds on the next check, whichever way the grant was made: shared with them directly, recorded as its author (open source derives an author's `owner` tuple from the row's creator stamp; the hosted edition stores it), or through a team. No cleanup has to run first and none can be missed. Rejoining gives back what the person authored, because authorship is a fact about the row; the IamPolicy grant path deletes the shares and team memberships the person held when they left, so those do not come back.
+
+`affiliated` is stored so the bound costs one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The IamPolicy grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration.
+
+`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions and environments they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Platform visibility (`platform_viewer`) sits outside the bound: it is the one arm that crosses organizations by design. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
+
+Resources: every type with an `organization` relation and a direct `identity_account` list
+
 ### Bounded Membership (Teams)
 
 A group that access is shared with as one, whose members must still belong to the group's organization:
@@ -111,7 +131,7 @@ A group that access is shared with as one, whose members must still belong to th
 define member: [identity_account] and viewer from organization
 ```
 
-This is the model's one intersection, and the bound is load-bearing: someone who leaves the organization stops being a member on the next check, with no cleanup, because no application step can express "lost the last organization role". Two rules keep it readable by both editions' model readers: the `and` stands at the top level of its line, and it never shares a line with `or` (a line that would need parentheses is refused). A resource grants the group through the userset `team#member` on the relations its kind lists in `team_grantable_roles`, never on `owner` or an organization role.
+A team's bound is `viewer`, not `affiliated`: a guest is never a team's member. Someone who leaves the organization stops being a member on the next check. A resource grants the group through the userset `team#member` on the relations its kind lists in `team_grantable_roles`, never on `owner` or an organization role.
 
 Resources: `team`
 

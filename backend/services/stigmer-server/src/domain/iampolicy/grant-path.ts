@@ -46,6 +46,41 @@
  * `cleanupResource` and `revokeOrgAccess` take refs and ids their callers
  * read from rows, so they do not refuse.
  *
+ * Leaving an organization. The model bounds every direct grant on an
+ * organization-scoped object by the organization (`[identity_account]
+ * and affiliated from organization`, fga/model/tenancy/organization.fga),
+ * so a person with no role left in an organization reaches nothing in it
+ * on the next check. This path keeps the ROWS truthful to that: when a
+ * revoke leaves an account with no row on an organization, it revokes the
+ * rows the account holds on that organization's resources (a share, a
+ * team membership, an owner granted by someone else), each through the
+ * revoke order, so a departed person is listed nowhere and a return does
+ * not bring the shares back. It keeps AUTHORSHIP: an `owner` or `creator`
+ * row whose principal is the resource's recorded creator, exactly the
+ * tuple open source derives from the creator stamp instead of storing it
+ * (authorization/derived-tuples.ts), so both editions keep the same fact
+ * and the model's bound governs it in both. `revokeOrgAccess` always
+ * sweeps, so a retry after a crash mid-sweep converges; `revokeBySpec`
+ * sweeps when the row it revoked was the account's last on that
+ * organization; `cleanupResource` never sweeps (an organization's or an
+ * account's delete, where the bound already leaves every row inert and a
+ * sweep per member would add failure points to a delete that stops on
+ * the first fault). A resource's organization is read from the scope
+ * links the rows hold (`resolveHierarchy`); open source writes none and
+ * grants nothing below the organization (grant-scope.ts), so there the
+ * sweep finds nothing to do.
+ *
+ * Affiliation. The model's bound reads `organization#affiliated`, a stored
+ * relation that stands exactly while the person holds a row on the
+ * organization. This path is the one writer of those rows, so it announces
+ * every change of them through the lifecycle and never decides the answer
+ * itself: `onOrganizationAffiliationChanging` before a row naming an
+ * account on an organization is deleted (the driver removes the tuple
+ * first, fail-closed), `onOrganizationAffiliationChanged` after such a row
+ * is written or deleted (the driver re-derives the tuple from the committed
+ * rows). `affiliated` itself is refused as a grant on every lane; it is
+ * derived, never granted.
+ *
  * The row this path builds: the proto's apiVersion const and kind, the
  * derived id, the spec as given, and the caller's audit stamp through the
  * platform's one stamper (setAuditFieldsForCreate) — the cloud's
@@ -54,6 +89,7 @@
  * span organizations and none owns it.
  */
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -67,20 +103,64 @@ import type {
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import type {
+  OrganizationAffiliationEvent,
+  ResourceAuthorizationLifecycle,
+} from "../../extensions/resource-authorization.js";
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { setAuditFieldsForCreate } from "../../pipeline/steps/defaults.js";
 import {
+  AFFILIATION_NOT_GRANTABLE_MESSAGE,
   IAM_POLICY_API_VERSION,
   IAM_POLICY_KIND,
   policyIdFor,
 } from "./constants.js";
+import { resolveHierarchy } from "./access-lists.js";
 import { DuplicatePolicyError } from "./store.js";
 import type { IamPolicyStore } from "./store.js";
 import { refsOf, requireWellFormedTriple } from "./wire-refusals.js";
 
 /** The relation `cleanupResource` revokes last on the ref's own rows. */
 const OWNER_RELATION = IamRole[IamRole.owner];
+
+const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);
+const ORGANIZATION_KIND = kindEnumName(ApiResourceKind.organization);
+
+/** The organization relation derived from a person's roles (fga/model/tenancy/organization.fga). */
+const AFFILIATED_RELATION = "affiliated";
+
+/**
+ * The (account, organization) pair a row's affiliation hangs on, or
+ * undefined when the row is not a person's row on an organization (a
+ * structural link, a userset principal, a row on any other kind).
+ */
+function affiliationOf(
+  spec: IamPolicySpec,
+): OrganizationAffiliationEvent | undefined {
+  const principal = spec.principal;
+  const resource = spec.resource;
+  if (
+    principal === undefined ||
+    resource === undefined ||
+    principal.kind !== ACCOUNT_KIND ||
+    principal.relation !== "" ||
+    resource.kind !== ORGANIZATION_KIND
+  ) {
+    return undefined;
+  }
+  return { identityAccountId: principal.id, organizationId: resource.id };
+}
+
+/**
+ * The relations a resource's creation records for its creator: `owner`
+ * on a kind whose owner is its creator, `creator` on a kind that also
+ * records one (the proto's `requires_creator_tuple`). The removal sweep
+ * keeps these when they name the resource's recorded creator.
+ */
+const AUTHORSHIP_RELATIONS: ReadonlySet<string> = new Set([
+  OWNER_RELATION,
+  "creator",
+]);
 
 export interface GrantResult {
   readonly policy: IamPolicy;
@@ -112,15 +192,32 @@ export interface IamPolicyGrantPath {
    * retry it.
    */
   cleanupResource(ref: ApiResourceRef): Promise<void>;
-  /** Revoke every relation the account holds directly on the organization. */
+  /**
+   * Revoke every relation the account holds directly on the organization,
+   * then every row it holds on the organization's resources except its
+   * authorship (the module header's sweep).
+   */
   revokeOrgAccess(
     identityAccountId: string,
     organizationId: string,
   ): Promise<void>;
 }
 
+/**
+ * The recorded creator of a stored resource, the one fact the removal
+ * sweep needs from outside the policy rows.
+ */
+export interface ResourceCreators {
+  /**
+   * The row's `status.audit.spec_audit.created_by.id`, or undefined when
+   * this server stores no row of that kind and id.
+   */
+  creatorOf(kind: string, id: string): Promise<string | undefined>;
+}
+
 export interface IamPolicyGrantPathDeps {
   readonly policies: IamPolicyStore;
+  readonly creators: ResourceCreators;
   /** The composed driver, if any; a driver without the two policy hooks is the same as none. */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly logger: Logger;
@@ -129,7 +226,7 @@ export interface IamPolicyGrantPathDeps {
 export function newIamPolicyGrantPath(
   deps: IamPolicyGrantPathDeps,
 ): IamPolicyGrantPath {
-  const { policies, lifecycle, logger } = deps;
+  const { policies, creators, lifecycle, logger } = deps;
 
   /** The row holding this exact triple — the pair's rows, filtered by relation. */
   async function findByTriple(
@@ -158,15 +255,100 @@ export function newIamPolicyGrantPath(
         `policy ${policy.metadata?.id ?? "?"} has no spec — corrupt row`,
       );
     }
+    const affiliation = affiliationOf(spec);
+    if (affiliation !== undefined) {
+      await lifecycle?.onOrganizationAffiliationChanging?.(affiliation);
+    }
     await lifecycle?.onPolicyRevoked?.({ spec, policy });
     const id = policy.metadata?.id ?? "";
     await policies.deleteById(id);
     logger.info("iam policy revoked", fieldsOf(id, spec));
+    if (affiliation !== undefined) {
+      await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
+    }
+  }
+
+  /** Whether the account still holds any row on the organization. */
+  async function holdsOrganizationRow(
+    accountId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
+    return held.some(
+      (policy) =>
+        policy.spec?.resource?.kind === ORGANIZATION_KIND &&
+        policy.spec.resource.id === organizationId,
+    );
+  }
+
+  /** Whether the row records the resource's creator as its author. */
+  async function isAuthorship(
+    policy: IamPolicy,
+    accountId: string,
+  ): Promise<boolean> {
+    const spec = policy.spec;
+    if (
+      spec?.resource === undefined ||
+      !AUTHORSHIP_RELATIONS.has(spec.relation)
+    ) {
+      return false;
+    }
+    const creator = await creators.creatorOf(
+      spec.resource.kind,
+      spec.resource.id,
+    );
+    return creator === accountId;
+  }
+
+  /** Revoke what the account holds on the organization's resources, authorship kept. */
+  async function sweepOrganization(
+    accountId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
+    let revoked = 0;
+    for (const policy of held) {
+      const resource = policy.spec?.resource;
+      if (resource === undefined || resource.kind === ORGANIZATION_KIND) {
+        continue;
+      }
+      const hierarchy = await resolveHierarchy(
+        policies,
+        resource.kind,
+        resource.id,
+        true,
+      );
+      const inOrganization = hierarchy.some(
+        (level) =>
+          level.kind === ORGANIZATION_KIND && level.id === organizationId,
+      );
+      if (!inOrganization || (await isAuthorship(policy, accountId))) {
+        continue;
+      }
+      await revokeRow(policy);
+      revoked++;
+    }
+    if (revoked > 0) {
+      logger.info("iam policy organization access swept", {
+        identityAccountId: accountId,
+        organizationId,
+        revoked: String(revoked),
+      });
+    }
   }
 
   return {
     async grant(spec, caller): Promise<GrantResult> {
       requireWellFormedTriple(spec);
+      if (
+        spec.relation === AFFILIATED_RELATION &&
+        spec.resource?.kind === ORGANIZATION_KIND
+      ) {
+        throw new ConnectError(
+          AFFILIATION_NOT_GRANTABLE_MESSAGE,
+          Code.InvalidArgument,
+        );
+      }
       let policy = await findByTriple(spec);
       let duplicate = policy !== undefined;
       if (policy === undefined) {
@@ -200,6 +382,11 @@ export function newIamPolicyGrantPath(
       // Deliberately unconditional (cloud#425): a duplicate re-grant is the
       // inline heal for a row whose tuple never landed.
       await lifecycle?.onPolicyGranted?.({ policy, duplicate });
+      // The same unconditional heal for the affiliation the row stands for.
+      const affiliation = affiliationOf(spec);
+      if (affiliation !== undefined) {
+        await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
+      }
       return { policy, duplicate };
     },
 
@@ -210,9 +397,23 @@ export function newIamPolicyGrantPath(
         // No row: a composition still deletes the bare tuple (one written
         // before the row mirror existed); converges the store either way.
         await lifecycle?.onPolicyRevoked?.({ spec, policy: undefined });
-        return undefined;
+        const affiliation = affiliationOf(spec);
+        if (affiliation !== undefined) {
+          // Nothing was deleted; re-deriving from the rows heals a tuple
+          // that outlived them.
+          await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
+        }
+      } else {
+        await revokeRow(existing);
       }
-      await revokeRow(existing);
+      const { principal, resource } = refsOf(spec);
+      if (
+        principal.kind === ACCOUNT_KIND &&
+        resource.kind === ORGANIZATION_KIND &&
+        !(await holdsOrganizationRow(principal.id, resource.id))
+      ) {
+        await sweepOrganization(principal.id, resource.id);
+      }
       return existing;
     },
 
@@ -240,6 +441,7 @@ export function newIamPolicyGrantPath(
       for (const policy of direct) {
         await revokeRow(policy);
       }
+      await sweepOrganization(identityAccountId, organizationId);
     },
   };
 }

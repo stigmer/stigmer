@@ -211,6 +211,22 @@ export interface PolicyRevokedEvent {
 }
 
 /**
+ * A person's organization rows are about to change, or have changed. The
+ * model's `organization#affiliated` (fga/model/tenancy/organization.fga)
+ * stands exactly while the person holds at least one row on the
+ * organization; the grant path announces every change of those rows and an
+ * edition that stores tuples keeps the relation from the announcements.
+ * The grant path never says whether the person is still affiliated: the
+ * driver derives that from the committed rows, so two changes racing on
+ * one person cannot leave the tuple standing on the word of the one that
+ * read first.
+ */
+export interface OrganizationAffiliationEvent {
+  readonly identityAccountId: string;
+  readonly organizationId: string;
+}
+
+/**
  * The driver interface (single-instance point, registered via
  * ExtensionDrivers.resourceAuthorizationLifecycle). Implementations must
  * be idempotent per event — the surrounding chains retry whole requests,
@@ -239,4 +255,27 @@ export interface ResourceAuthorizationLifecycle {
    * rows are the record (the OSS posture).
    */
   onPolicyRevoked?(event: PolicyRevokedEvent): Promise<void>;
+  /**
+   * OPTIONAL: synchronous, BEFORE a row naming an account on an
+   * organization is deleted, ahead of that row's `onPolicyRevoked`. A
+   * driver removes the organization's `affiliated` tuple for the account
+   * here, so a crash anywhere after it leaves the person denied, never
+   * admitted. A throw leaves every row in place for the retry. Absent
+   * method = the edition derives the relation from rows (the OSS posture).
+   */
+  onOrganizationAffiliationChanging?(
+    event: OrganizationAffiliationEvent,
+  ): Promise<void>;
+  /**
+   * OPTIONAL: synchronous, AFTER a row naming an account on an organization
+   * is written (the duplicate arm too, the inline heal) or deleted, and
+   * after a revoke that found no row. A driver re-derives the
+   * organization's `affiliated` tuple for the account from the committed
+   * rows: written while one remains, removed when none does. A throw fails
+   * the request with the rows committed; the next change or the driver's
+   * own reconcile converges. Absent method = as above.
+   */
+  onOrganizationAffiliationChanged?(
+    event: OrganizationAffiliationEvent,
+  ): Promise<void>;
 }

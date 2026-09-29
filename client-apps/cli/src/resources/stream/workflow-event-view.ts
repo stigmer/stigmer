@@ -84,8 +84,14 @@ export function toWorkflowEventView(event: WorkflowExecutionEvent): WorkflowEven
     case "approvalRequested":
       return view("⏳", "warning", `approval requested: ${taskName} — ${event.payload.value.prompt}`);
     case "approvalResolved": {
-      const { action, resolvedBy } = event.payload.value;
-      return view("✓", "success", `approval resolved: ${taskName} — ${approvalActionLabel(action)} by ${resolvedBy}`);
+      const { action, outcome, resolvedBy, autoResolved } = event.payload.value;
+      // A workflow human_input gate reports its declared outcome; the
+      // ApprovalAction enum is the agent tool approval's, and the fallback
+      // for events recorded before the payload carried an outcome.
+      const decision = outcome || approvalActionLabel(action);
+      const by = resolvedBy ? ` by ${resolvedBy}` : "";
+      const timeout = autoResolved ? " (timeout)" : "";
+      return view("✓", "success", `approval resolved: ${taskName} — ${decision}${by}${timeout}`);
     }
     case "budgetCheckpoint": {
       const costUsd = Number(event.payload.value.costConsumedMicros) / 1_000_000;

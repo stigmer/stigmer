@@ -45,8 +45,8 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
+import { grpcTarget, SERVER_ADDRESS_ENV_KEY } from "./platform-server-address.js";
 import {
-  grpcTarget,
   stdioCredentialEnv,
   type SynthesizedAttachmentOptions,
 } from "./synthesized-attachment.js";
@@ -157,7 +157,7 @@ export function synthesizeChannelAttachment(
     args: ["mcp-server"],
     env: {
       STIGMER_MCP_ROSTER: "channels",
-      STIGMER_SERVER_ADDRESS: grpcTarget(options.backendEndpoint),
+      [SERVER_ADDRESS_ENV_KEY]: grpcTarget(options.backendEndpoint),
       ...stdioCredentialEnv(options.credential),
     },
   };

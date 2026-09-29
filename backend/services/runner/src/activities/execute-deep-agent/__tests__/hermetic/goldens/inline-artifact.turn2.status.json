@@ -67,7 +67,7 @@
       "kind": "EXECUTION_ARTIFACT_KIND_FILE",
       "sizeBytes": "32",
       "storageKey": "artifacts/aex_hermetic_0001/report.md",
-      "createdAt": "2026-01-01T00:00:02.000Z",
+      "createdAt": "2026-01-01T00:00:01.000Z",
       "contentHash": "62eae4d09b2b051cf4ac5aa1fd70847b34c47994a1732ff999f47749e71b0441"
     }
   ],

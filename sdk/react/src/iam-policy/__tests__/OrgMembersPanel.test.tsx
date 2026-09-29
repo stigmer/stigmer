@@ -170,7 +170,7 @@ describe("OrgMembersPanel and who is a member", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove Dave" }));
-    expect(screen.getByText(/This revokes all their access/)).toBeTruthy();
+    expect(screen.getByText(/They lose access to everything in it/)).toBeTruthy();
     expect(screen.queryByText(/does not restore it/)).toBeNull();
   });
 

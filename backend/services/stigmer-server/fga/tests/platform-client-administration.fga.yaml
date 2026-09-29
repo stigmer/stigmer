@@ -24,13 +24,21 @@ name: platform-client-administration
 model_file: ../../src/authorization/model/data/authorization-model.json
 tuples:
   - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:root, relation: affiliated, object: organization:acme}
   - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
   - {user: identity_account:carol, relation: admin, object: organization:acme}
+  - {user: identity_account:carol, relation: affiliated, object: organization:acme}
   - {user: identity_account:cody, relation: member, object: organization:acme}
+  - {user: identity_account:cody, relation: affiliated, object: organization:acme}
   - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: affiliated, object: organization:acme}
   - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:vera, relation: affiliated, object: organization:acme}
   - {user: identity_account:vince, relation: member, object: organization:acme}
+  - {user: identity_account:vince, relation: affiliated, object: organization:acme}
   - {user: identity_account:zara, relation: admin, object: organization:other}
+  - {user: identity_account:zara, relation: affiliated, object: organization:other}
   - {user: organization:acme, relation: organization, object: platform_client:web}
   - {user: identity_account:vince, relation: viewer, object: platform_client:web}
   - {user: organization:acme, relation: organization, object: platform_client:unowned}

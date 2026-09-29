@@ -40,6 +40,25 @@ type organization
     # Grants session/execution creation only — not member/viewer inheritance.
     # FGA tuple: organization:<org_id>#guest@identity_account:<guest_account_id>
     define guest: [identity_account]
+    # Anyone who holds a role in the organization, a guest included: the
+    # bound every organization-scoped type puts on its direct grants
+    # (`[identity_account] and affiliated from organization`). A person
+    # who loses their last role here reaches nothing the organization
+    # holds on the next check, however the grant was made (shared with
+    # them, authored by them, or through a team), with no cleanup to wait
+    # for. A guest is included because the organization's system accounts
+    # (guest, channel and schedule sessions) hold `guest` and own the
+    # sessions and environments they create.
+    #
+    # Stored, so the bound costs one read instead of a walk up the role
+    # chain on every object a list checks. It is DERIVED, never granted:
+    # exactly while the person holds at least one role row on the
+    # organization. The IamPolicy grant path refuses it as a grant and
+    # announces every change of a person's organization rows; an edition
+    # that stores tuples writes and removes it from those announcements,
+    # and open source derives it from the rows at check time.
+    # FGA tuple: organization:<org_id>#affiliated@identity_account:<user_id>
+    define affiliated: [identity_account]
     
     # ========================================
     # CRUD OPERATIONS

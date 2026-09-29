@@ -123,6 +123,10 @@ export const ROW_RECORDED_OWNER_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.organization,
 ]);
 
+/** The organization type, and the relation that stands while a person holds a role on it (tenancy/organization.fga). */
+const ORGANIZATION_TYPE = kindEnumName(ApiResourceKind.organization);
+const AFFILIATED_RELATION = "affiliated";
+
 /** The FGA type a team grant names, and the relation that makes a person one of its members (the model's `team#member`). */
 const TEAM_TYPE = kindEnumName(ApiResourceKind.team);
 const TEAM_MEMBER_RELATION = "member";
@@ -231,7 +235,8 @@ export interface DerivedTupleSource extends TupleSource {
   /** The memoised row reads, exposed for a declaration's `derived` rules and for tests. */
   readonly loader: RowLoader;
   /**
-   * The person's own IamPolicy rows as tuples — the ONE read of them this
+   * The person's own IamPolicy rows as tuples, each organization role with
+   * the organization's `affiliated` tuple it stands for — the ONE read of them this
    * source makes, shared with `tuplesOf`. A list-shaped consumer (the
    * organization directory; the list scope) reads its candidate objects
    * from here instead of scanning the port a second time. The rows granted
@@ -309,7 +314,7 @@ export function newDerivedTupleSource(
     if (personRows === undefined) {
       personRows = deps.policies
         .findByPrincipal(ACCOUNT_TYPE, person.accountId)
-        .then((found) => found.map(tupleOfRow));
+        .then((found) => found.flatMap(tuplesOfPersonRow));
     }
     return personRows;
   }
@@ -357,7 +362,10 @@ export function newDerivedTupleSource(
       const fromRows =
         (await reachableTuples()).get(pairKey(object, relation)) ?? [];
       const declaration = model.byType(object.type);
-      if (declaration === undefined) {
+      if (declaration === undefined || isAffiliation(object, relation)) {
+        // An organization's `affiliated` tuples are the person's rows'
+        // (tuplesOfPersonRow); the organization's own row derives none, so
+        // it is not read for them.
         return fromRows;
       }
       const fromRow = (await derivedTuplesOf(object)).filter(onPair);
@@ -424,6 +432,44 @@ function indexByPair(
     }
   }
   return index;
+}
+
+/** Whether the pair is an organization's `affiliated`, which only the person's rows carry. */
+function isAffiliation(object: ObjectRef, relation: string): boolean {
+  return object.type === ORGANIZATION_TYPE && relation === AFFILIATED_RELATION;
+}
+
+/**
+ * A row of the person's as the tuples it stands for: the tuple it records,
+ * and, for a role on an organization, the organization's `affiliated`
+ * tuple. `affiliated` is stored in the model so its bound costs one read
+ * (fga/model/tenancy/organization.fga); it stands exactly while the person
+ * holds a row on the organization, and this edition derives it from those
+ * rows here, in the same one read, where an edition that stores tuples
+ * writes it from the grant path's affiliation announcements. A row that
+ * names a userset (a team's members) is not the person's role and stands
+ * for no affiliation.
+ */
+function tuplesOfPersonRow(row: IamPolicy): ReadonlyArray<Tuple> {
+  const recorded = tupleOfRow(row);
+  const principal = row.spec?.principal;
+  if (
+    recorded.object.type !== ORGANIZATION_TYPE ||
+    recorded.object.id === "" ||
+    principal === undefined ||
+    principal.kind !== ACCOUNT_TYPE ||
+    principal.relation !== ""
+  ) {
+    return [recorded];
+  }
+  return [
+    recorded,
+    {
+      object: recorded.object,
+      relation: AFFILIATED_RELATION,
+      subject: account(principal.id),
+    },
+  ];
 }
 
 /** An IamPolicy row as the tuple it records: `resource#relation@principal`. */

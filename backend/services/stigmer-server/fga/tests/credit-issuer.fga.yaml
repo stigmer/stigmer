@@ -33,6 +33,9 @@ tuples:
   - user: identity_account:mallory
     relation: owner
     object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:acme
 
 tests:
   - name: operators and credit issuers may change credits, org owners may not

@@ -107,6 +107,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // tests pin against.
 export type {
   DefaultInstanceLinkedEvent,
+  OrganizationAffiliationEvent,
   PolicyGrantedEvent,
   PolicyRevokedEvent,
   ResourceAuthorizationLifecycle,
