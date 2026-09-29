@@ -70,8 +70,8 @@ export interface ChannelAppDetailPanelProps {
  *
  * The credentials form is offered to a caller who may edit the app
  * (`can_edit`) and the deletion section to one who may delete it
- * (`can_delete`): its creator and the organization's admins. Someone
- * granted viewer on an app sees its setup values with no actions.
+ * (`can_delete`): the organization's admins. Someone granted viewer on an
+ * app sees its setup values with no actions.
  */
 export function ChannelAppDetailPanel({
   channelApp,
