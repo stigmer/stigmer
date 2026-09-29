@@ -48,6 +48,7 @@ export {
   resolveSystemEnvVarValues,
   resolveDeclaredSystemEnvVars,
 } from "./systemEnvVars.js";
+export type { SystemEnvVarOptions } from "./systemEnvVars.js";
 export { EnvironmentPicker } from "./EnvironmentPicker.js";
 export type { EnvironmentPickerProps } from "./EnvironmentPicker.js";
 export { useToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";

@@ -148,6 +148,7 @@ export function hermeticCursorConfig(env: HermeticEnvironment): Config {
     temporalConnection: {},
     stigmerBackendEndpoint: "http://localhost:7234",
     mcpBridgeEndpoint: null,
+    mcpPublicEndpoint: null,
     stigmerTokenRef: { current: null },
     cursorApiKey: FIXTURE.cursorApiKey,
     workspaceRootDir: env.workspaceRootDir,

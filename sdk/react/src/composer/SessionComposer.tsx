@@ -40,6 +40,7 @@ import { FILE_REF_MIME } from "../internal/file-tree/index.js";
 import { useSessionEnvPool } from "../environment/useSessionEnvPool.js";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
 import { useStigmer } from "../hooks.js";
+import { usePublicBaseUrl } from "../public-base-url-context.js";
 import {
   SYSTEM_ENV_VAR_KEYS,
   resolveSystemEnvVarValues,
@@ -715,6 +716,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
 
   const stigmer = useStigmer();
+  const publicBaseUrl = usePublicBaseUrl() ?? undefined;
 
   const pool = useSessionEnvPool({
     personalEnvKeys,
@@ -1027,10 +1029,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
       const env: Record<string, EnvVarInput> = {};
 
-      // System env vars first (lowest priority) — auto-resolved from
-      // the Stigmer client's connection context so MCP servers and
-      // agents can reach the backend without manual user input.
-      const systemVars = await resolveSystemEnvVarValues(stigmer);
+      // System env vars first, so every value collected below wins —
+      // auto-resolved so MCP servers and agents can reach the server
+      // without manual user input. The address is the server's public one,
+      // or absent when the host names none; the runner fills a missing one
+      // for the stdio servers it spawns (systemEnvVars.ts header).
+      const systemVars = await resolveSystemEnvVarValues(stigmer, { publicBaseUrl });
       Object.assign(env, systemVars);
 
       if (
@@ -1108,7 +1112,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
+    [onSubmit, effective, stigmer, publicBaseUrl, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({

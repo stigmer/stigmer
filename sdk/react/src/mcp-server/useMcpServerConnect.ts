@@ -6,6 +6,7 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { connectAndWait, type EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
+import { usePublicBaseUrl } from "../public-base-url-context.js";
 import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars.js";
 import { toError } from "../internal/toError.js";
 
@@ -95,6 +96,7 @@ export interface UseMcpServerConnectReturn {
  */
 export function useMcpServerConnect(): UseMcpServerConnectReturn {
   const stigmer = useStigmer();
+  const publicBaseUrl = usePublicBaseUrl() ?? undefined;
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -112,7 +114,7 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
 
       try {
         const systemEnv = declaredEnvKeys
-          ? await resolveDeclaredSystemEnvVars(stigmer, declaredEnvKeys)
+          ? await resolveDeclaredSystemEnvVars(stigmer, declaredEnvKeys, { publicBaseUrl })
           : {};
         const mergedEnv = { ...systemEnv, ...(runtimeEnv ?? {}) };
 
@@ -141,7 +143,7 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
         setIsConnecting(false);
       }
     },
-    [stigmer],
+    [stigmer, publicBaseUrl],
   );
 
   return { connect, isConnecting, error, clearError };

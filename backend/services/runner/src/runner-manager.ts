@@ -722,9 +722,10 @@ export function mapManagerOptionsToConfig(
     temporalConnection:
       options.temporalConnection ?? loadTemporalConnectionConfig(getRunnerSecret),
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
-    // Env-only like the env-loaded path (loadConfig): the bridge endpoint
-    // is deployment topology, not per-session state.
+    // Env-only like the env-loaded path (loadConfig): the bridge and public
+    // endpoints are deployment topology, not per-session state.
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
+    mcpPublicEndpoint: process.env.STIGMER_MCP_PUBLIC_ENDPOINT || null,
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,
     // The manager's proxy credential is the minted runner token once adopted

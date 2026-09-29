@@ -4,6 +4,10 @@ import type {
   DiscoveredToolResult,
   DiscoverMcpServerOutput,
 } from "../discover-mcp-server.js";
+import { testConfig } from "../../__test-utils__/config-fixture.js";
+
+/** The runner endpoints discovery fills STIGMER_SERVER_ADDRESS from. */
+const PLATFORM_ENDPOINTS = testConfig();
 
 vi.mock("../../idle-watchdog.js", () => ({
   activityStarted: vi.fn(),
@@ -221,47 +225,83 @@ describe("DiscoverMcpServer activity", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // injectPlatformEnv
+  // STIGMER_SERVER_ADDRESS — the platform fill (shared/platform-server-address.ts)
   // ─────────────────────────────────────────────────────────────────────────
 
-  describe("injectPlatformEnv", () => {
-    const savedEnv = process.env;
-
-    afterEach(() => {
-      process.env = savedEnv;
-    });
-
-    it("returns envVars unchanged when no declared keys match", async () => {
-      const { injectPlatformEnv } = await import("../discover-mcp-server.js");
-      const env = { SOME_KEY: "value" };
-      const result = injectPlatformEnv(new Set(["SOME_KEY"]), env);
-      expect(result).toBe(env);
-    });
-
-    it("injects STIGMER_SERVER_ADDRESS from STIGMER_MCP_PUBLIC_ENDPOINT", async () => {
-      const { injectPlatformEnv } = await import("../discover-mcp-server.js");
-      process.env = { ...savedEnv, STIGMER_MCP_PUBLIC_ENDPOINT: "https://mcp.stigmer.ai" };
-      const result = injectPlatformEnv(
-        new Set(["STIGMER_SERVER_ADDRESS"]),
-        { STIGMER_SERVER_ADDRESS: "stale-value" },
+  describe("the platform STIGMER_SERVER_ADDRESS fill", () => {
+    async function connectionConfigFor(
+      spec: any,
+      executionContext: any,
+      platformEndpoints = PLATFORM_ENDPOINTS,
+    ): Promise<any> {
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
+      const { MultiServerMCPClient } = await import("@langchain/mcp-adapters");
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "stigmer" }, spec }),
+        executionContext,
+      });
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(makeMockMcpClient({ tools: [] }));
+      await discoverMcpServer(
+        { mcpServerId: "mcp-stigmer", executionContextId: "ctx-addr" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints },
       );
-      expect(result.STIGMER_SERVER_ADDRESS).toBe("https://mcp.stigmer.ai");
+      return (vi.mocked(MultiServerMCPClient).mock.calls[0][0] as any).stigmer;
+    }
+
+    it("fills a stdio server's required address from the backend endpoint instead of failing closed", async () => {
+      const spec = makeStdioSpec("stigmer", ["mcp-server"]);
+      spec.env = { STIGMER_SERVER_ADDRESS: { description: "gRPC host:port" } };
+
+      const config = await connectionConfigFor(spec, { spec: { data: {} } });
+
+      // testConfig's backend endpoint is http://127.0.0.1:1.
+      expect(config.env.STIGMER_SERVER_ADDRESS).toBe("127.0.0.1:1");
     });
 
-    it("does not inject when source env var is not set", async () => {
-      const { injectPlatformEnv } = await import("../discover-mcp-server.js");
-      process.env = { ...savedEnv };
-      delete process.env.STIGMER_MCP_PUBLIC_ENDPOINT;
-      const env = { STIGMER_SERVER_ADDRESS: "original" };
-      const result = injectPlatformEnv(new Set(["STIGMER_SERVER_ADDRESS"]), env);
-      expect(result).toBe(env);
+    it("keeps an address the execution context delivered", async () => {
+      const spec = makeStdioSpec("stigmer", ["mcp-server"]);
+      spec.env = { STIGMER_SERVER_ADDRESS: { description: "gRPC host:port" } };
+
+      const config = await connectionConfigFor(
+        spec,
+        { spec: { data: { STIGMER_SERVER_ADDRESS: { value: "other.example:7234" } } } },
+        testConfig({ mcpPublicEndpoint: "https://api.example.com" }),
+      );
+
+      expect(config.env.STIGMER_SERVER_ADDRESS).toBe("other.example:7234");
     });
 
-    it("returns envVars unchanged when declaredEnvKeys is empty", async () => {
-      const { injectPlatformEnv } = await import("../discover-mcp-server.js");
-      const env = { SOME_KEY: "value" };
-      const result = injectPlatformEnv(new Set(), env);
-      expect(result).toBe(env);
+    it("templates an http server's header from the operator's public endpoint", async () => {
+      const spec = makeHttpSpec("https://mcp.example.com");
+      spec.serverType.value.headers = { "X-Stigmer-Server": "${STIGMER_SERVER_ADDRESS}" };
+      spec.env = { STIGMER_SERVER_ADDRESS: {} };
+
+      const config = await connectionConfigFor(
+        spec,
+        { spec: { data: {} } },
+        testConfig({ mcpPublicEndpoint: "https://api.example.com" }),
+      );
+
+      expect(config.headers["X-Stigmer-Server"]).toBe("api.example.com:443");
+    });
+
+    it("never hands an http server the backend endpoint: without a public one its required address is a credential the connect flow owes", async () => {
+      const { discoverMcpServer, CredentialResolutionError } = await import("../discover-mcp-server.js");
+      const spec = makeHttpSpec("https://mcp.example.com");
+      spec.env = { STIGMER_SERVER_ADDRESS: {} };
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "stigmer" }, spec }),
+        executionContext: { spec: { data: {} } },
+      });
+
+      const promise = discoverMcpServer(
+        { mcpServerId: "mcp-stigmer", executionContextId: "ctx-addr" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
+      );
+
+      await expect(promise).rejects.toThrow(CredentialResolutionError);
+      await expect(promise).rejects.toThrow(/STIGMER_SERVER_ADDRESS/);
     });
   });
 
@@ -291,7 +331,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-123" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(result.tools).toHaveLength(2);
@@ -320,7 +360,7 @@ describe("DiscoverMcpServer activity", () => {
       await expect(
         discoverMcpServer(
           { mcpServerId: "mcp-123" },
-          { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+          { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
         ),
       ).rejects.toThrow(McpTransportError);
       expect(mockInitializeConnections).not.toHaveBeenCalled();
@@ -348,7 +388,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-456" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(result.tools).toHaveLength(1);
@@ -369,7 +409,7 @@ describe("DiscoverMcpServer activity", () => {
       });
 
       await expect(
-        discoverMcpServer({ mcpServerId: "mcp-bad" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" }),
+        discoverMcpServer({ mcpServerId: "mcp-bad" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS }),
       ).rejects.toThrow("not found or has no spec");
     });
 
@@ -384,7 +424,7 @@ describe("DiscoverMcpServer activity", () => {
       });
 
       await expect(
-        discoverMcpServer({ mcpServerId: "mcp-noconfig" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" }),
+        discoverMcpServer({ mcpServerId: "mcp-noconfig" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS }),
       ).rejects.toThrow("no valid server type configured");
     });
 
@@ -412,7 +452,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-env", executionContextId: "ctx-abc" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(result.tools).toEqual([]);
@@ -448,7 +488,7 @@ describe("DiscoverMcpServer activity", () => {
           executionContextId: "ctx-abc",
           executionContextToken: "scoped-ec-token",
         },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(mockClient.getExecutionContextByExecutionId).toHaveBeenCalledWith(
@@ -494,7 +534,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-isc", executionContextId: "ctx-isc" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(result.tools).toHaveLength(1);
@@ -522,7 +562,7 @@ describe("DiscoverMcpServer activity", () => {
 
       await discoverMcpServer(
         { mcpServerId: "mcp-no-env" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(mockClient.getExecutionContextByExecutionId).not.toHaveBeenCalled();
@@ -548,7 +588,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-no-res" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(result.tools).toHaveLength(1);
@@ -582,7 +622,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-existing" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(result.previousToolsFingerprint).not.toBe("");
@@ -617,7 +657,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-fp" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       const expected = toolsFingerprint(result.tools);
@@ -640,7 +680,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-empty" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS },
       );
 
       expect(result.newToolsFingerprint).toBe("");
@@ -665,7 +705,7 @@ describe("DiscoverMcpServer activity", () => {
       await expect(
         discoverMcpServer(
           { mcpServerId: "mcp-monday", executionContextId: "ctx-1" },
-          { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+          { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
         ),
       ).rejects.toThrow(CredentialResolutionError);
       expect(mockInitializeConnections).not.toHaveBeenCalled();
@@ -689,7 +729,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-lenient", executionContextId: "ctx-2" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
       );
       expect(result.tools).toEqual([]);
     });
@@ -714,7 +754,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-optional", executionContextId: "ctx-3" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
       );
       expect(result.tools).toEqual([]);
     });
@@ -731,7 +771,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const promise = discoverMcpServer(
         { mcpServerId: "mcp-monday", executionContextId: "ctx-4" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
       );
       await expect(promise).rejects.toThrow(CredentialResolutionError);
       await expect(promise).rejects.toThrow(/delivered no credentials/);
@@ -755,7 +795,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const promise = discoverMcpServer(
         { mcpServerId: "mcp-monday", executionContextId: "ctx-5" },
-        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden", platformEndpoints: PLATFORM_ENDPOINTS },
       );
       await expect(promise).rejects.toThrow(CredentialResolutionError);
       await expect(promise).rejects.toThrow(/MONDAY_ACCESS_TOKEN.*delivered redacted|delivered redacted.*MONDAY_ACCESS_TOKEN/s);
@@ -775,7 +815,7 @@ describe("DiscoverMcpServer activity", () => {
       mockInitializeConnections.mockRejectedValue(new Error("Connection refused"));
 
       await expect(
-        discoverMcpServer({ mcpServerId: "mcp-fail" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" }),
+        discoverMcpServer({ mcpServerId: "mcp-fail" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed", platformEndpoints: PLATFORM_ENDPOINTS }),
       ).rejects.toThrow("Connection refused");
 
       expect(mockClose).toHaveBeenCalled();
@@ -903,6 +943,7 @@ function makeConfig() {
     temporalConnection: {},
     stigmerBackendEndpoint: "http://localhost:7234",
   mcpBridgeEndpoint: null,
+    mcpPublicEndpoint: null,
     stigmerTokenRef: { current: "test-token" },
     cursorApiKey: "",
     workspaceRootDir: "/tmp/test",

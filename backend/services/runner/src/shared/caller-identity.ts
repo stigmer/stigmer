@@ -139,9 +139,8 @@ export function resolveCallerIdentity(
 
 /**
  * Return a NEW env map with the reserved caller-identity keys set —
- * platform values are authoritative over same-named user entries (the
- * injectPlatformEnv precedent: a user env var must never be able to
- * impersonate a caller).
+ * platform values are authoritative over same-named user entries (a user
+ * env var must never be able to impersonate a caller).
  *
  * Call this on the env map handed to MCP resolution ONLY — never on the
  * map that reaches agent subprocess environments. Per-server opt-in is
@@ -174,8 +173,8 @@ export function injectCallerIdentityEnv(
  * Discovery-context injection: the connect workflow resolves the same
  * header templates with no session, so every declared reserved key gets
  * the anonymous sentinel — otherwise a caller-identity-templating server
- * can never be discovered. Gated on the server's declared keys, matching
- * injectPlatformEnv's contract in the discovery activity.
+ * can never be discovered. Gated on the server's declared keys, as every
+ * platform key is (platform-server-address.ts).
  */
 export function injectAnonymousCallerIdentityForDiscovery(
   declaredEnvKeys: ReadonlySet<string>,

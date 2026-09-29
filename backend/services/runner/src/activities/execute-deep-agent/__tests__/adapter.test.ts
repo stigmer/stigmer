@@ -26,6 +26,7 @@ const CONFIG: Config = {
   temporalConnection: {},
   stigmerBackendEndpoint: "http://localhost:7234",
   mcpBridgeEndpoint: null,
+  mcpPublicEndpoint: null,
   stigmerTokenRef: { current: "tok" },
   cursorApiKey: "",
   workspaceRootDir: "/tmp/adapter-test",
