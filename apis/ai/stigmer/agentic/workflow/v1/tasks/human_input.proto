@@ -105,6 +105,7 @@ message HumanInputOutcome {
 //   {
 //     "outcome": "approve",
 //     "form_data": { <validated form response if form_schema is set> },
+//     "comment": "<free text the reviewer attached, when any>",
 //     "reviewer": "<canonical identity of the user who responded>",
 //     "reviewer_actor": {
 //       "id": "<canonical identity>",
@@ -120,6 +121,7 @@ message HumanInputOutcome {
 // at decision time (use it in notifications and UIs). Both name the
 // authenticated caller, the local operator on a local server, and are
 // absent when the gate resolves without a decision (timeout policies).
+// "comment" is present only when the reviewer wrote one.
 //
 // YAML Example (approval gate with custom outcomes):
 //   - manager_approval:

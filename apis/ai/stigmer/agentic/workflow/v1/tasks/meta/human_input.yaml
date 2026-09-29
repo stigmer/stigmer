@@ -17,6 +17,9 @@ output_schema:
     form_data:
       type: object
       description: "Validated form response (when form_schema is configured)."
+    comment:
+      type: string
+      description: "Free-text comment the reviewer attached; absent when none was written, and on a timeout."
     reviewer:
       type: string
       description: "Identity-account id of the person who responded."

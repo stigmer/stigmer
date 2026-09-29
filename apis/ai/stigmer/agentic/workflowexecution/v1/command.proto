@@ -392,7 +392,7 @@ service WorkflowExecutionCommandController {
   // 2. Validates that task_name references a human_input task in the workflow
   // 3. Validates outcome against configured outcomes (if any)
   // 4. Constructs signal name: "human_input_{task_name}"
-  // 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+  // 5. Builds signal payload: {outcome, form_data?, comment?, reviewer, reviewer_actor, responded_at}
   // 6. Sends signal via Temporal SignalWithStart
   // 7. Returns current WorkflowExecution (status updates asynchronously)
   //

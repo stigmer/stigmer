@@ -2325,6 +2325,10 @@
       "outputJsonSchema": {
         "description": "Reviewer response including selected outcome and form data.",
         "properties": {
+          "comment": {
+            "description": "Free-text comment the reviewer attached; absent when none was written, and on a timeout.",
+            "type": "string"
+          },
           "form_data": {
             "description": "Validated form response (when form_schema is configured).",
             "type": "object"

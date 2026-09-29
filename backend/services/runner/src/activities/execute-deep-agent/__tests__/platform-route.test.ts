@@ -3,16 +3,20 @@
 // builds (`createCasCaptureBackend` + `mountPlatformRoute`, parent and
 // sub-agents alike). The stock virtual-rooted backend refuses to follow the
 // workspace link out of the root; the route mounts the platform dir instead,
-// read-only, on the turns the link exists. What is pinned:
+// read-only, on the turns the link exists, and an empty route on every other
+// turn. What is pinned:
 //  - the stock backend's refusal (why the route exists);
 //  - reads, listings and search through the route, for the shell-capable and
 //    the plan-mode backend, with `execute` kept exactly where it was;
 //  - every mutation through the route refused, and a root delete refused
 //    before it touches the workspace or the platform dir;
-//  - no route on a turn without the link.
+//  - on a turn without the link, `.stigmer/` still the platform's: nothing
+//    readable, every write refused and nothing created in the workspace (the
+//    write that used to make a real directory there, #1123), and the root
+//    listing without it.
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FilesystemBackend, isSandboxBackend } from "deepagents";
@@ -120,21 +124,54 @@ describe("platform route", () => {
     });
   });
 
-  it("mounts nothing on a turn without the link", async () => {
-    const workspace = await createCasCaptureBackend({ rootDir: workspaceDir, observer: observer(), shellEnv: {} });
-    expect(await mountPlatformRoute(workspace, { workspaceDir, platformDir })).toBe(workspace);
-    expect(await mountPlatformRoute(workspace, { workspaceDir, platformDir: undefined })).toBe(workspace);
+  describe.each(["shell", "plan"] as const)("the %s backend on a turn without the link", (mode) => {
+    it("refuses every write under .stigmer/ and creates nothing in the workspace", async () => {
+      const backend = v2(await productionBackend(mode));
+      expect(backend).toBeInstanceOf(PlatformRoutedBackend);
+      expect((await backend.write(`${PLATFORM_ROUTE_PREFIX}notes/draft.md`, "x")).error).toMatch(/read-only/);
+      expect((await backend.edit(`/${SKILL}`, "My Skill", "Your Skill")).error).toMatch(/read-only/);
+      const uploads = (await backend.uploadFiles!([[`${PLATFORM_ROUTE_PREFIX}up.bin`, new Uint8Array([1])]])) ?? [];
+      expect(uploads.map((u) => u.error)).toEqual(["permission_denied"]);
+      await expect(lstat(join(workspaceDir, ".stigmer")), "no real directory in the user's tree").rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    });
+
+    it("exposes nothing of the platform dir, which still holds earlier turns' content", async () => {
+      const backend = v2(await productionBackend(mode));
+      expect((await backend.read(`/${SKILL}`)).error).toMatch(/no platform content/);
+      expect((await backend.ls(PLATFORM_ROUTE_PREFIX)).error).toMatch(/no platform content/);
+      const found = (await backend.glob("**/SKILL.md", "/")).files ?? [];
+      expect(found).toEqual([]);
+    });
+
+    it("lists the workspace at the root without .stigmer/", async () => {
+      const backend = v2(await productionBackend(mode));
+      const root = ((await backend.ls("/")).files ?? []).map((f) => f.path);
+      expect(root).toContain("/main.go");
+      expect(root).not.toContain(PLATFORM_ROUTE_PREFIX);
+    });
+
+    it("keeps `execute` exactly where the workspace backend had it", async () => {
+      const backend = await productionBackend(mode);
+      expect(isSandboxBackend(backend)).toBe(mode === "shell");
+    });
   });
 
-  it("mounts nothing when the link points somewhere else", async () => {
+  it("exposes nothing when the link points somewhere else", async () => {
     const other = await mkdtemp(join(tmpdir(), "platform-route-other-"));
     try {
       await ensureStigmerSymlink(workspaceDir, other);
-      const workspace = await createCasCaptureBackend({ rootDir: workspaceDir, observer: observer() });
-      expect(await mountPlatformRoute(workspace, { workspaceDir, platformDir })).toBe(workspace);
+      const backend = v2(await productionBackend("plan"));
+      expect((await backend.read(`/${SKILL}`)).error).toMatch(/no platform content/);
     } finally {
       await rm(other, { recursive: true, force: true });
     }
+  });
+
+  it("mounts nothing for a session without a platform dir", async () => {
+    const workspace = await createCasCaptureBackend({ rootDir: workspaceDir, observer: observer(), shellEnv: {} });
+    expect(await mountPlatformRoute(workspace, { workspaceDir, platformDir: undefined })).toBe(workspace);
   });
 
   it("a workspace entry of its own is untouched by the route", async () => {
