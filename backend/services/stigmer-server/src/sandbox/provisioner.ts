@@ -19,10 +19,12 @@
  *     queue-override lane — dispatch.ts). Ensured critically BEFORE the
  *     execution persists; deprovisioned on the terminal phase transition.
  *   - CONNECT: request-scoped, NOT idempotent; the caller must
- *     deprovision in a finally block. Carried in the contract for the
- *     cloud implementation (its MCP connect lane) — OSS does not invoke
- *     it today because OSS connect runs on the shared runner queue (a
- *     named non-goal, T01 gate ruling Q7).
+ *     deprovision when the connect settles. Every MCP connect provisions
+ *     one when a provisioner is composed, and its workflow runs on the
+ *     queue that sandbox serves (domain/mcpserver/connect-sandbox.ts,
+ *     stigmer/stigmer#1474): with a provisioner the shared runner queue
+ *     has no poller, since boot requires a per-queue routing mode beside
+ *     one. Without a provisioner, connect keeps the shared queue.
  *
  * The probe is ensure-time LIVE-STATE inspection, never a boot-readiness
  * wait (gate ruling Q5): the verified cloud design has NO readiness
@@ -109,8 +111,8 @@ export interface SandboxProvisioner {
   deprovisionWorkflowSandbox(executionId: string): Promise<void>;
   /**
    * Creates a request-scoped connect sandbox and returns the provider's
-   * sandbox id. NOT idempotent — the caller owns deprovision in a
-   * finally block. Unused by OSS wiring today (module header).
+   * sandbox id. NOT idempotent — the caller owns deprovision when the
+   * connect settles (domain/mcpserver/connect-sandbox.ts).
    */
   createConnectSandbox(
     connectRequestId: string,

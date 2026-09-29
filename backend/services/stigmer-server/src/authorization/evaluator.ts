@@ -1,10 +1,13 @@
 /**
  * The evaluator — OpenFGA's check, over the built-in model and a tuple
  * source, small because the model uses five rewrite forms and nothing
- * else (model/rewrite.ts). `checkRelation(object, relation, person)`
- * answers "does this person hold this relation on this object" the way
- * the cloud's engine answers it over stored tuples, so the two editions
- * share one meaning of authorization. There is no context parameter: the
+ * else (model/rewrite.ts). `checkRelation(object, relation, principal)`
+ * answers "does this person (or this object) hold this relation on this
+ * object" the way the cloud's engine answers it over stored tuples, so the
+ * two editions share one meaning of authorization. The principal is
+ * almost always a person; an object principal (an organization) is how a
+ * unit asks the structural questions the cloud asks its engine, such as
+ * whether a resource belongs to an organization. There is no context parameter: the
  * model declares no condition, so a check has no posture to state.
  *
  * The walk, in the order a `.fga` line reads:
@@ -12,7 +15,8 @@
  *     its subject's TYPE is in the line's restriction list — the check
  *     OpenFGA makes at write time, made here at read time, so a derived
  *     tuple the model no longer admits denies instead of allowing. An
- *     object subject matches when it names one of the person's aliases;
+ *     object subject matches a person when it is an account naming one of
+ *     their aliases, and an object principal when it is that very object;
  *     a userset subject is resolved on its own object.
  *   - `computed`: the same object, another relation.
  *   - `from`: every object the tupleset relation links to (again within
@@ -46,8 +50,8 @@
  */
 import type { Model } from "./model/index.js";
 import type { Rewrite, SubjectType } from "./model/rewrite.js";
-import type { ObjectRef, Person, Subject, TupleSource } from "./tuples.js";
-import { ACCOUNT_TYPE, formatObjectRef, pairKey } from "./tuples.js";
+import type { ObjectRef, Principal, Subject, TupleSource } from "./tuples.js";
+import { ACCOUNT_TYPE, formatObjectRef, isPerson, pairKey } from "./tuples.js";
 
 /**
  * OpenFGA's default resolution-depth limit (its `resolveNodeLimit`), so
@@ -88,7 +92,7 @@ export async function checkRelation(
   deps: EvaluationDeps,
   object: ObjectRef,
   relation: string,
-  person: Person,
+  principal: Principal,
 ): Promise<boolean> {
   if (deps.model.byType(object.type) === undefined) {
     throw new AuthorizationEvaluationError(
@@ -96,7 +100,7 @@ export async function checkRelation(
       `no declaration for kind '${object.type}' (target ${formatObjectRef(object)})`,
     );
   }
-  return new Walk(deps, person).resolve(object, relation, 0);
+  return new Walk(deps, principal).resolve(object, relation, 0);
 }
 
 /** One check's state: the memo and the in-progress set, over one source. */
@@ -106,7 +110,7 @@ class Walk {
 
   constructor(
     private readonly deps: EvaluationDeps,
-    private readonly person: Person,
+    private readonly principal: Principal,
   ) {}
 
   resolve(
@@ -203,7 +207,7 @@ class Walk {
     }
   }
 
-  /** Whether one direct tuple's subject reaches the person, within the line's type restriction. */
+  /** Whether one direct tuple's subject reaches the principal, within the line's type restriction. */
   private async subjectHolds(
     subject: Subject,
     restriction: ReadonlyArray<SubjectType>,
@@ -212,12 +216,10 @@ class Walk {
     switch (subject.form) {
       case "object":
         return (
-          subject.object.type === ACCOUNT_TYPE &&
           restriction.some(
             (allowed) =>
-              allowed.form === "object" && allowed.type === ACCOUNT_TYPE,
-          ) &&
-          this.person.aliases.has(subject.object.id)
+              allowed.form === "object" && allowed.type === subject.object.type,
+          ) && this.isPrincipal(subject.object)
         );
       case "userset":
         return (
@@ -233,6 +235,19 @@ class Walk {
         throw new Error(`unknown subject form: ${JSON.stringify(exhaustive)}`);
       }
     }
+  }
+
+  /** Whether an object subject names the principal: one of a person's aliases on an account, or the object principal itself. */
+  private isPrincipal(object: ObjectRef): boolean {
+    if (isPerson(this.principal)) {
+      return (
+        object.type === ACCOUNT_TYPE && this.principal.aliases.has(object.id)
+      );
+    }
+    return (
+      object.type === this.principal.object.type &&
+      object.id === this.principal.object.id
+    );
   }
 
   /** The object types the tupleset line admits — `[organization]`, `[session]` — from its `this` nodes. */

@@ -19,9 +19,12 @@
  * infrastructure fault it is, never as a revocation.
  *
  * Composed between `apikey` and `oidc`, only under an authentication
- * posture (compose.ts): the OIDC verifier claims every JWT-shaped token and
- * throws on one it cannot verify, so a platform token must be claimed
- * before it gets there (stigmer#1137's lesson).
+ * posture (compose.ts). Until 2026-09-29 the OIDC verifier claimed every
+ * JWT-shaped token and threw on one it could not verify, so a platform
+ * token had to be claimed before it got there (stigmer#1137's lesson); it
+ * now claims only its configured issuer's tokens, and the order is kept
+ * so a platform token is claimed by its own lane whatever issuer an
+ * operator configures.
  *
  * The identity is the account the token was minted for: `sub` IS the
  * account id (the mint signs it), so no account read is needed; class

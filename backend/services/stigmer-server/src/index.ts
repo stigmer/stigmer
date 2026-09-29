@@ -66,8 +66,13 @@ export type {
   ExtensionServiceRegistration,
   ResolvedExtensions,
   ResolvedServiceRegistration,
+  ResolvedUnitHook,
   ServerExtension,
 } from "./extensions/registry.js";
+// What the composition hands a unit (ServerExtension.onComposed): its one
+// Authorizer, list read scope, policy check, tuple lifecycle and
+// in-process transport, whichever posture built them.
+export type { ComposedServices } from "./extensions/composed-services.js";
 export type {
   CallerClass,
   CallerIdentity,
@@ -193,6 +198,9 @@ export type { AuthorizationQueryEngine } from "./extensions/authorization-querie
 // How an access list names a grantee that is not a person
 // (drivers.principalDisplay): a team, in the editions that serve teams.
 export type { PrincipalDisplay } from "./extensions/principal-display.js";
+// Where the built-in authorizer reads the rows of a kind a unit keeps in a
+// store of its own (drivers.resourceRowReaders).
+export type { ResourceRowReader } from "./extensions/resource-row-reader.js";
 export type { IdentityFederation } from "./extensions/identity-federation.js";
 export type { AccountsBySubject } from "./domain/identityaccount/resolve.js";
 export { identityIdForSubject } from "./domain/identityaccount/resolve.js";

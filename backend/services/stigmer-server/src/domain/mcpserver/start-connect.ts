@@ -20,6 +20,11 @@
  * run) is not reconciled in place — the fresh start below overwrites it,
  * which is both the repair and the caller's intent.
  *
+ * With a sandbox lane composed the run is served by a connect sandbox
+ * provisioned for this connect (connect-sandbox.ts): the settle task
+ * releases it with the ExecutionContext, and every arm that never hands a
+ * run to the settler (a start failure, an attach) releases it at once.
+ *
  * Proven by mcpserver-connect.conformance.test.ts
  * (CONFORMANCE_TARGET=local-execution), __tests__/connect.test.ts and
  * __tests__/store-faults.test.ts.
@@ -48,11 +53,13 @@ import {
 import {
   ASYNC_CONNECT_TIMEOUT,
   BEST_EFFORT_CONNECT_GET_BUFFER_MS,
+  acquireConnectRouteFor,
   deleteConnectExecutionContext,
   mapConnectFailure,
   prepareConnect,
 } from "./connect.js";
 import type { McpServerConnectDeps } from "./connect.js";
+import type { ConnectRoute } from "./connect-sandbox.js";
 import type { ConnectRun, McpServerConnectEngine } from "./engine.js";
 
 /**
@@ -124,11 +131,34 @@ export async function startConnect(
 
   const prepared = await prepareConnect(deps, mcpServer, input, identity);
 
+  let route: ConnectRoute;
+  try {
+    route = await acquireConnectRouteFor(deps, mcpServerId, {
+      connectExecutionId: prepared.executionId,
+      org: input.org,
+      caller: identity,
+    });
+  } catch (error) {
+    if (prepared.ecResourceId !== "") {
+      await deleteConnectExecutionContext(
+        deps,
+        prepared.ecResourceId,
+        prepared.executionId,
+      );
+    }
+    throw error;
+  }
+
   // Taken before the start so the advisory describes the queue the run is
   // about to join. Warn-only by design: a worker may be booting (the
   // pre-flight has a startup false-negative race), so the operation
-  // proceeds either way and the poller renders the warning as context.
-  const warning = await runnerQueueWarning(engineState.engine);
+  // proceeds either way and the poller renders the warning as context. A
+  // connect sandbox's queue is never probed: it was created a moment ago
+  // and has no poller yet by construction.
+  const warning =
+    route.taskQueue.kind === "runner"
+      ? await runnerQueueWarning(engineState.engine)
+      : "";
 
   let run: ConnectRun;
   try {
@@ -136,8 +166,10 @@ export async function startConnect(
       mcpServerId,
       prepared.workflowInput,
       ASYNC_CONNECT_TIMEOUT.ms,
+      route.taskQueue,
     );
   } catch (error) {
+    await route.release();
     if (prepared.ecResourceId !== "") {
       await deleteConnectExecutionContext(
         deps,
@@ -153,8 +185,10 @@ export async function startConnect(
   }
 
   if (run.attached) {
-    // Lost the residual race to another lane: its run and CONNECTING
-    // record stand, and the ExecutionContext prepared here is unused.
+    // Lost the residual race to another lane: its run, its sandbox and
+    // its CONNECTING record stand, and the route and ExecutionContext
+    // prepared here are unused.
+    await route.release();
     if (prepared.ecResourceId !== "") {
       await deleteConnectExecutionContext(
         deps,
@@ -188,11 +222,11 @@ export async function startConnect(
     // The workflow is already running; hand it to the background settler
     // (which copes with a deleted resource) but fail the RPC honestly —
     // a caller that cannot observe CONNECTING cannot poll.
-    detachSettle(deps, mcpServer, run, prepared);
+    detachSettle(deps, mcpServer, run, route, prepared);
     throw internalError(error, "failed to record connect operation");
   }
 
-  detachSettle(deps, mcpServer, run, prepared);
+  detachSettle(deps, mcpServer, run, route, prepared);
 
   return persisted;
 }
@@ -206,12 +240,14 @@ function detachSettle(
   deps: McpServerConnectDeps,
   mcpServer: McpServer,
   run: ConnectRun,
+  route: ConnectRoute,
   prepared: { readonly ecResourceId: string; readonly executionId: string },
 ): void {
   void settleConnectAsync(
     deps,
     mcpServer,
     run,
+    route,
     prepared.ecResourceId,
     prepared.executionId,
   ).catch((error: unknown) => {
@@ -232,13 +268,15 @@ function detachSettle(
  * first; the slightly longer backstop only guarantees the settle task can
  * never hang if Temporal becomes unreachable. If this process dies before
  * settling, the CONNECTING record goes stale; the next startConnect
- * overwrites it (the orphan contract on ConnectStatus). Never throws —
+ * overwrites it (the orphan contract on ConnectStatus), and a connect
+ * sandbox it held is left to the edition's orphan sweep. Never throws —
  * every failure lands on connect_status or the log.
  */
 async function settleConnectAsync(
   deps: McpServerConnectDeps,
   mcpServer: McpServer,
   run: ConnectRun,
+  route: ConnectRoute,
   ecResourceId: string,
   executionId: string,
 ): Promise<void> {
@@ -298,6 +336,7 @@ async function settleConnectAsync(
       tool_approvals: toolApprovalCount,
     });
   } finally {
+    await route.release();
     if (ecResourceId !== "") {
       await deleteConnectExecutionContext(deps, ecResourceId, executionId);
     }
@@ -306,9 +345,9 @@ async function settleConnectAsync(
 
 /**
  * The dead-runner advisory for connect_status, or "" when a worker is
- * polling the runner task queue — or when the question cannot be answered
- * (an unreachable Temporal should not cry wolf on an operation that is
- * about to fail loudly anyway; Go runnerQueueWarning).
+ * polling the shared runner task queue — or when the question cannot be
+ * answered (an unreachable Temporal should not cry wolf on an operation
+ * that is about to fail loudly anyway; Go runnerQueueWarning).
  */
 async function runnerQueueWarning(
   engine: McpServerConnectEngine,

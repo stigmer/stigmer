@@ -98,6 +98,8 @@ function connectDeps(
     oauthGrants: untouchable("oauthGrants"),
     pendingOAuthStates: untouchable("pendingOAuthStates"),
     secretService: untouchable("secretService"),
+    // The external-runner posture: no connect sandbox is provisioned.
+    sandboxLane: { enabled: false },
     oauthRedirectUri: "http://127.0.0.1:8234/auth/oauth/callback",
     outboundFetch: untouchable("outboundFetch"),
     ...overrides,

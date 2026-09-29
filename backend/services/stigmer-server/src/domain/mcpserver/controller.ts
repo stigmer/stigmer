@@ -323,7 +323,9 @@ async function update(
  * `go StartBestEffortConnect(result)` (apply.go:76), auto discovery
  * through the runner's connect workflow. Fire-and-forget on purpose: the
  * gRPC response must not wait on a discovery run; a disconnected engine
- * makes it a silent no-op (byte parity with Go's nil-client return).
+ * makes it a silent no-op (byte parity with Go's nil-client return). The
+ * applier rides along: with a sandbox lane composed the discovery's
+ * sandbox acts as the person who applied (connect-sandbox.ts).
  */
 async function apply(
   deps: McpServerControllerDeps,
@@ -366,7 +368,11 @@ async function apply(
 
   // startBestEffortConnect's arms never throw by design; the catch is
   // the process-safety net an unhandled rejection would pierce.
-  void startBestEffortConnect(deps.connect, result).catch((error: unknown) => {
+  void startBestEffortConnect(
+    deps.connect,
+    result,
+    callerIdentityOf(ctx),
+  ).catch((error: unknown) => {
     deps.logger.warn("Best-effort connect task failed unexpectedly", {
       mcp_server_id: result.metadata?.id ?? "",
       error: error instanceof Error ? error.message : String(error),

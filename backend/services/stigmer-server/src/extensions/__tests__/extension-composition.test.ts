@@ -17,6 +17,7 @@
  * to before the parameter existed — is pinned where it belongs: the
  * platform domain suite (edition oss) and the four conformance rosters.
  */
+import { generateKeyPairSync } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -66,6 +67,8 @@ import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import { AUTHENTICATION_TOKEN_MISSING_MESSAGE } from "../../pipeline/interceptors/auth.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../pipeline/steps/authorize.js";
+import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
 import type { AuthzCheck } from "../authorizer.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { OrganizationDirectory } from "../organization-directory.js";
@@ -77,6 +80,8 @@ import type {
 } from "../resource-authorization.js";
 import type { AgentExecutionStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
+import type { IdentityVerifier } from "../identity.js";
+import type { ResourceRowReader } from "../resource-row-reader.js";
 
 /** The refusal a call answered; a call that succeeds fails the case. */
 async function refusalOf(work: Promise<unknown>): Promise<ConnectError> {
@@ -91,6 +96,50 @@ async function refusalOf(work: Promise<unknown>): Promise<ConnectError> {
 const BILLING_PROCEDURE =
   "/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount";
 
+/**
+ * What a composition serving an edition above open source must bring: its
+ * callers sign in (compose.ts refuses such an edition trusted-local), and
+ * it supplies its own platform-token key ring (platformtoken/key-ring.ts).
+ * One verifier claims the fixture token; the ring is generated per run.
+ */
+const EDITION_CALLER_TOKEN = "edition-fixture-caller";
+const editionVerifier: IdentityVerifier = {
+  name: "edition-fixture-verifier",
+  verify: (token) =>
+    Promise.resolve(
+      token === EDITION_CALLER_TOKEN
+        ? {
+            identityId: "ida_edition_fixture",
+            callerClass: "user",
+            issuer: "edition-fixture",
+            rawToken: token,
+          }
+        : null,
+    ),
+};
+const editionKeys = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const EDITION_RING = platformTokenKeyRingFromPem({
+  privateKeyPem: editionKeys.privateKey
+    .export({ format: "pem", type: "pkcs8" })
+    .toString(),
+  publicKeyPems: [
+    editionKeys.publicKey.export({ format: "pem", type: "spki" }).toString(),
+  ],
+});
+
+/** A client transport on the bound port presenting the fixture token. */
+function editionCallerTransport(port: number): Transport {
+  return createGrpcTransport({
+    baseUrl: `http://127.0.0.1:${port}`,
+    interceptors: [
+      (next) => (request) => {
+        request.header.set("authorization", `Bearer ${EDITION_CALLER_TOKEN}`);
+        return next(request);
+      },
+    ],
+  });
+}
+
 describe("extension composition (composed server)", () => {
   let server: ComposedServer;
   let dir: string;
@@ -98,9 +147,16 @@ describe("extension composition (composed server)", () => {
   // Captured NDJSON log lines — the interceptor-chain proof reads them.
   const logLines: string[] = [];
 
+  // A cloud-shaped unit: the cloud edition, its own sign-in, its own
+  // Authorizer (a permissive one; this suite pins service visibility and
+  // chain traversal, not authorization) and its own key ring.
   const fakeBillingExtension: ServerExtension = {
     name: "fake-billing",
     edition: ServerEdition.cloud,
+    requireAuthentication: true,
+    identityVerifiers: [editionVerifier],
+    authorizer: newPermissiveSingleTeamAuthorizer(),
+    drivers: { platformTokenKeys: EDITION_RING },
     services: [
       (router): void => {
         // Partial implementation is deliberate: the fake pins service
@@ -132,9 +188,7 @@ describe("extension composition (composed server)", () => {
       host: "127.0.0.1",
     });
     const port = await server.start();
-    portTransport = createGrpcTransport({
-      baseUrl: `http://127.0.0.1:${port}`,
-    });
+    portTransport = editionCallerTransport(port);
   });
 
   afterAll(async () => {
@@ -194,21 +248,35 @@ describe("extension composition (composed server)", () => {
 });
 
 /**
- * The third edition on the wire (editions program, sp.edition-contract):
- * a unit declaring ServerEdition.enterprise is answered verbatim by
- * getServerInfo. The registry is generic over concrete editions, so this
- * pins the end-to-end path (declaration → resolved registry → platform
- * controller → wire) for the value no composition emits yet — the day
- * P4's Enterprise composition declares it, the wire is already proven.
+ * The third edition on the wire, on open source's own authorizer: a unit
+ * declaring ServerEdition.enterprise, signing its callers in and
+ * registering a row reader for each kind the edition serves beyond open
+ * source, boots with no Authorizer of its own and is answered verbatim by
+ * getServerInfo. It pins the end-to-end path (declaration → resolved
+ * registry → the built-in posture's row rule → platform controller →
+ * wire) a self-hosted Enterprise composition takes.
  */
 describe("extension composition (enterprise edition on the wire)", () => {
   let server: ComposedServer;
   let dir: string;
   let portTransport: Transport;
 
+  const noRows: ResourceRowReader = {
+    findById: () => Promise.resolve(undefined),
+  };
   const enterpriseUnit: ServerExtension = {
     name: "fake-enterprise",
     edition: ServerEdition.enterprise,
+    requireAuthentication: true,
+    identityVerifiers: [editionVerifier],
+    drivers: {
+      platformTokenKeys: EDITION_RING,
+      resourceRowReaders: new Map([
+        [ApiResourceKind.identity_provider, noRows],
+        [ApiResourceKind.invitation, noRows],
+        [ApiResourceKind.team, noRows],
+      ]),
+    },
   };
 
   beforeAll(async () => {
@@ -225,9 +293,7 @@ describe("extension composition (enterprise edition on the wire)", () => {
       host: "127.0.0.1",
     });
     const port = await server.start();
-    portTransport = createGrpcTransport({
-      baseUrl: `http://127.0.0.1:${port}`,
-    });
+    portTransport = editionCallerTransport(port);
   });
 
   afterAll(async () => {
@@ -596,7 +662,7 @@ describe("extension composition (require-authentication posture)", () => {
     }
   });
 
-  it("a wider edition under the posture with no Authorizer is a boot throw — the built-in authorizer enforces the open-source kinds only", async () => {
+  it("a wider edition on the built-in authorizer with no row readers is a boot throw naming every kind it cannot read", async () => {
     const enterpriseDir = mkdtempSync(
       path.join(tmpdir(), "require-auth-edition-"),
     );
@@ -616,15 +682,16 @@ describe("extension composition (require-authentication posture)", () => {
           extensions: [
             {
               ...requiringExtension,
-              name: "enterprise-without-authorizer",
+              name: "enterprise-without-readers",
               edition: ServerEdition.enterprise,
+              drivers: { platformTokenKeys: EDITION_RING },
             },
           ],
           portOverride: 0,
           host: "127.0.0.1",
         }),
       ).rejects.toThrowError(
-        /serves edition 'enterprise' under the require-authentication posture but registers no Authorizer/,
+        /serves edition 'enterprise' under the built-in authorizer but registers no row reader for 'identity_provider', 'invitation', 'team'/,
       );
     } finally {
       rmSync(enterpriseDir, { recursive: true, force: true });

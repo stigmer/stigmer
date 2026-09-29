@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
-import { HARNESS_LABELS, type HarnessOption } from "./harness.js";
-
-const OPTIONS: readonly HarnessOption[] = ["native", "cursor"];
+import { HARNESS_LABELS, HARNESS_OPTIONS as OPTIONS, type HarnessOption } from "./harness.js";
 
 /** Props for {@link HarnessSelector}. */
 export interface HarnessSelectorProps {

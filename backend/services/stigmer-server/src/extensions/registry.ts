@@ -42,6 +42,7 @@
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
@@ -62,6 +63,10 @@ import type { ListReadScope } from "./list-read-scope.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ModelCatalogProvider } from "../domain/workflow/registry/model-catalog-provider.js";
+import {
+  kindEnumName,
+  kindServedByEdition,
+} from "../pipeline/apiresource-meta.js";
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
@@ -72,12 +77,14 @@ import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
 import type { Authorizer } from "./authorizer.js";
 import type { CallerGuard } from "./caller-guards.js";
+import type { ComposedServices } from "./composed-services.js";
 import type { ExtensionDrivers } from "./drivers.js";
 import { DECLARED_GATE_SLOTS } from "./gate-slots.js";
 import type { GateSlotName, ResolvedGateSteps } from "./gate-slots.js";
 import type { IdentityVerifier } from "./identity.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
+import type { ResourceRowReader } from "./resource-row-reader.js";
 import type {
   AgentExecutionResponseDecorator,
   AgentExecutionStatusHooks,
@@ -173,6 +180,24 @@ export interface ServerExtension {
   readonly services?: ReadonlyArray<ExtensionServiceRegistration>;
   /** Temporal worker factories, appended to the manager's OSS factory list. */
   readonly workers?: ReadonlyArray<WorkerFactory>;
+  /**
+   * Receives the composition's own instances — the Authorizer, the list
+   * read scope, the policy check, the tuple lifecycle and the in-process
+   * transport — once, in unit order, at the end of `composeServer`
+   * (extensions/composed-services.ts carries the contract).
+   */
+  readonly onComposed?: (composed: ComposedServices) => void;
+  /**
+   * Boot work that must finish before anything serves, run in unit order
+   * first in the server's `start()`; a throw fails the start.
+   */
+  readonly start?: () => Promise<void>;
+}
+
+/** A unit's hand-over or start hook with the unit that contributed it, so a failing start names its unit. */
+export interface ResolvedUnitHook<T> {
+  readonly unit: string;
+  readonly hook: T;
 }
 
 /**
@@ -209,6 +234,12 @@ export interface ResolvedExtensions {
   readonly drivers: ResolvedExtensionDrivers;
   readonly services: ReadonlyArray<ResolvedServiceRegistration>;
   readonly workers: ReadonlyArray<WorkerFactory>;
+  /** The units' hand-over hooks, in unit order. */
+  readonly onComposed: ReadonlyArray<
+    ResolvedUnitHook<(composed: ComposedServices) => void>
+  >;
+  /** The units' start hooks, in unit order. */
+  readonly start: ReadonlyArray<ResolvedUnitHook<() => Promise<void>>>;
 }
 
 /**
@@ -326,6 +357,13 @@ export interface ResolvedExtensionDrivers {
    * run carries its organization's standing context.
    */
   readonly visitorClassifier: VisitorClassifier | undefined;
+  /**
+   * Kind → the reader of that kind's rows (extensions/resource-row-reader.ts),
+   * validated against the kinds open source keeps itself. Empty = the
+   * built-in authorizer reads every row from the generic Store and identity
+   * accounts through the account port, OSS behavior byte-identical.
+   */
+  readonly resourceRowReaders: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
 }
 
 /**
@@ -345,6 +383,9 @@ export function resolveExtensions(
   const responseDecorators: AgentExecutionResponseDecorator[] = [];
   const services: ResolvedServiceRegistration[] = [];
   const workers: WorkerFactory[] = [];
+  const onComposed: ResolvedUnitHook<(composed: ComposedServices) => void>[] =
+    [];
+  const start: ResolvedUnitHook<() => Promise<void>>[] = [];
 
   let edition: ServerEdition | undefined;
   let editionDeclaredBy: string | undefined;
@@ -405,6 +446,8 @@ export function resolveExtensions(
   const sandboxDriverDeclaredBy = new Map<string, string>();
   const secretCodecs = new Map<string, SecretCodec>();
   const secretCodecDeclaredBy = new Map<string, string>();
+  const resourceRowReaders = new Map<ApiResourceKind, ResourceRowReader>();
+  const rowReaderDeclaredBy = new Map<ApiResourceKind, string>();
 
   for (const unit of units) {
     if (unit.name === "") {
@@ -721,6 +764,40 @@ export function resolveExtensions(
       }
     }
 
+    if (unit.drivers?.resourceRowReaders !== undefined) {
+      for (const [kind, reader] of unit.drivers.resourceRowReaders) {
+        if (kind === ApiResourceKind.api_resource_kind_unknown) {
+          throw new Error(
+            `extension '${unit.name}' registers a row reader for the unknown kind — a reader names the kind whose rows it reads`,
+          );
+        }
+        const name = kindEnumName(kind);
+        if (kind === ApiResourceKind.identity_account) {
+          // Accounts are read through the account port, the binding every
+          // other reader of accounts follows; a composition substitutes it
+          // as drivers.identityAccountStore, never as a second reader.
+          throw new Error(
+            `extension '${unit.name}' registers a row reader for '${name}', which is reserved — identity accounts are read through the account port (drivers.identityAccountStore)`,
+          );
+        }
+        if (kindServedByEdition(kind, ServerEdition.oss)) {
+          // Open source keeps its own kinds' rows in its own store; a
+          // reader would answer checks from rows its lanes never wrote.
+          throw new Error(
+            `extension '${unit.name}' registers a row reader for '${name}', which open source serves from its own store — readers are for kinds a unit keeps itself`,
+          );
+        }
+        const declaredBy = rowReaderDeclaredBy.get(kind);
+        if (declaredBy !== undefined) {
+          throw new Error(
+            `extension '${unit.name}' registers a row reader for '${name}', but '${declaredBy}' already did — one reader per kind across the composed set`,
+          );
+        }
+        resourceRowReaders.set(kind, reader);
+        rowReaderDeclaredBy.set(kind, unit.name);
+      }
+    }
+
     if (unit.gateSteps !== undefined) {
       for (const [slot, steps] of unit.gateSteps) {
         if (!DECLARED_GATE_SLOTS.has(slot)) {
@@ -752,6 +829,12 @@ export function resolveExtensions(
       })),
     );
     workers.push(...(unit.workers ?? []));
+    if (unit.onComposed !== undefined) {
+      onComposed.push({ unit: unit.name, hook: unit.onComposed });
+    }
+    if (unit.start !== undefined) {
+      start.push({ unit: unit.name, hook: unit.start });
+    }
   }
 
   return {
@@ -791,8 +874,11 @@ export function resolveExtensions(
       platformTokenKeys,
       guestTokenMinting,
       visitorClassifier,
+      resourceRowReaders,
     },
     services,
     workers,
+    onComposed,
+    start,
   };
 }

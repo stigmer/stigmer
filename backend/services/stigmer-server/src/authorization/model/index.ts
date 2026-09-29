@@ -18,7 +18,10 @@
  * evaluation (authorizer.ts, `kindServedByEdition`): open source refuses a
  * check that targets `team`, `identity_provider`, `invitation` or
  * `platform`, and a tuple that names one resolves over tuples alone, since
- * this edition stores no row of those kinds.
+ * open source stores no row of those kinds. An edition that serves them
+ * keeps their rows in its units' own stores and registers a reader for
+ * each (extensions/resource-row-reader.ts), which the derivation reads them
+ * through.
  *
  * `newModel` exists for tests that need a throwaway model (a cycle, a
  * chain past the depth bound).

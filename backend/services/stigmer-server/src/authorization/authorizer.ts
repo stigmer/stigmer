@@ -64,6 +64,7 @@ import type {
   AuthzDecision,
 } from "../extensions/authorizer.js";
 import type { CallerIdentity } from "../extensions/identity.js";
+import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import {
   kindEnumName,
   kindServedByEdition,
@@ -81,15 +82,18 @@ import { formatObjectRef } from "./tuples.js";
 /**
  * Kinds whose missing row is a denial, never `not-found` (arm 4): the
  * cloud's `PROBE_EXEMPT_KINDS` (stigmer-cloud
- * src/authorizer/fga-authorizer.ts) restricted to the kinds this edition
- * serves — `platform`, `identity_provider` and `invitation` are refused by
- * arm 2 before any row is asked about. The cloud exempts them because
- * their rows live in its own tables, out of its probe's reach; matching
- * the set here keeps the wire identical across editions (an unknown
- * platform client's id is PERMISSION_DENIED with the annotation's copy in
- * both). The cloud pins every kind here inside its own
- * `PROBE_EXEMPT_KINDS`, which is why this set is exported; a kind that
- * moves into open source joins this set in the same change.
+ * src/authorizer/fga-authorizer.ts), the same set. The cloud exempts them
+ * because their rows live in its own tables, out of its probe's reach;
+ * matching the set here keeps the wire identical across editions (an
+ * unknown platform client's id is PERMISSION_DENIED with the annotation's
+ * copy in both), so a member cannot learn which provider, invitation or
+ * team ids exist in an organization they may not read. In open source,
+ * `platform`, `identity_provider`, `invitation` and `team` are refused by
+ * arm 2 before any row is asked about, so their entries matter only to an
+ * edition that serves them. `platform` also has no row at all
+ * (model/bindings.ts, ROWLESS): outside this set every check on it would
+ * answer not-found without evaluating. The cloud pins every kind here
+ * inside its own `PROBE_EXEMPT_KINDS`, which is why this set is exported.
  *
  * `iam_policy` is reachable as a target through the IamPolicy RPCs' own
  * `resource.kind` (a caller may name it); the grant scope refuses such a
@@ -97,9 +101,13 @@ import { formatObjectRef } from "./tuples.js";
  * keeps the wire the same on the way there.
  */
 export const NOT_FOUND_EXEMPT_KINDS: ReadonlySet<ApiResourceKind> = new Set([
+  ApiResourceKind.platform,
   ApiResourceKind.identity_account,
+  ApiResourceKind.identity_provider,
   ApiResourceKind.iam_policy,
   ApiResourceKind.platform_client,
+  ApiResourceKind.invitation,
+  ApiResourceKind.team,
 ]);
 
 /** The Java RequestAuthorizationService's pre-check copy, byte for byte (the cloud renders the same). */
@@ -121,9 +129,11 @@ export interface BuiltInAuthorizerDeps {
   readonly policies: IamPolicyStore;
   /** The account port: the caller's account, and identity_account targets. */
   readonly accounts: AccountsByCaller;
-  /** The served edition (`extensions.edition`); the built-in posture pins it to `oss` at boot. */
+  /** The served edition (`extensions.edition`); above `oss`, boot has checked every served kind's rows are readable. */
   readonly edition: ServerEdition;
   readonly logger: Logger;
+  /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`), handed to every tuple source. */
+  readonly rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>;
   /** The declarations to evaluate; the built-in model unless a test says otherwise. */
   readonly model?: Model;
 }
@@ -163,6 +173,7 @@ export function newBuiltInAuthorizer(deps: BuiltInAuthorizerDeps): Authorizer {
             store: deps.store,
             policies: deps.policies,
             accounts: deps.accounts,
+            rowReaders: deps.rowReaders,
             model,
           },
           person,

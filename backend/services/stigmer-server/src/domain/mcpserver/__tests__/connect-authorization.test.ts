@@ -118,6 +118,7 @@ function deps(authorizer: Authorizer): McpServerConnectDeps {
     pendingOAuthStates: store.pendingOAuthStates,
     secretService: unreachable("secretService"),
     oauthRedirectUri: "http://localhost:7233/oauth/callback",
+    sandboxLane: { enabled: false },
     outboundFetch: async () => {
       throw new Error("no outbound fetch in this harness");
     },
