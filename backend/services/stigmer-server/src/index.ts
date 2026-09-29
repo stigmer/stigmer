@@ -401,8 +401,15 @@ export { newValidateProtoStep } from "./pipeline/steps/validation.js";
 // constructor argument) for BuildNewState to pick the id prefix.
 // CheckDuplicate is deliberately not here: it reads this server's Store,
 // and a composition's own table answers that question in a step of the
-// same name over its own repo.
-export { newBuildNewStateStep } from "./pipeline/steps/defaults.js";
+// same name over its own repo. BuildNewState replaces any id a request
+// carries (stigmer/stigmer#1266); a composition step that derives a
+// create's id before it runs claims that id with assignServerId, the one
+// way an id survives the step.
+export {
+  assignServerId,
+  newBuildNewStateStep,
+  SERVER_ASSIGNED_ID_KEY,
+} from "./pipeline/steps/defaults.js";
 export { newResolveSlugStep } from "./pipeline/steps/slug.js";
 // The update and reference-read steps for the same kinds, on the same
 // terms. An update runs BuildUpdateState after the composition's own

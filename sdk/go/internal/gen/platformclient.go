@@ -91,9 +91,8 @@ func (p *PlatformClientClient) MintGuestToken(ctx context.Context, input *platfo
 type PlatformClientInput struct {
 	// Id is the resource's metadata.id, for exact update addressing when
 	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. On
-	// create, the cloud server stamps its own id regardless; the OSS
-	// server honors a caller-supplied id (existing apply semantics).
+	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
+	// on create: the server assigns every new resource's id.
 	Id                    string
 	Name                  string
 	Slug                  string

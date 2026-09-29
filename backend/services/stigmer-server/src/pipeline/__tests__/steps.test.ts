@@ -2,7 +2,8 @@
  * Pins the shared steps against their Go references (steps/*_test.go,
  * translated): slug generation (cloud-Java-identical, no truncation),
  * duplicate checking with the byte-pinned AlreadyExists copy, create/update
- * state building (status clearing, ULID minting, audit slots #540,
+ * state building (status clearing, ULID minting that replaces any id the
+ * request carried unless an earlier step claimed it #1266, audit slots #540,
  * visibility default + oss#573 immutability), the loaders' error copy, the
  * best-effort search indexing, visibility validation with cloud-identical
  * copy, reference normalization/validation, operator identity (#400), and
@@ -31,8 +32,10 @@ import type { SearchIndexEntry } from "../../store/interface.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import { RequestContext } from "../request-context.js";
 import {
+  assignServerId,
   newBuildNewStateStep,
   generateId,
+  SERVER_ASSIGNED_ID_KEY,
   setOperatorIdentity,
   resetOperatorIdentityForTests,
   auditActorFor,
@@ -213,14 +216,38 @@ describe("BuildNewState", () => {
     );
   });
 
-  it("keeps a client-provided id and explicit visibility (idempotent)", async () => {
-    const ctx = orgCtx(org({ id: "acme" }));
+  it("replaces a client-provided id and keeps an explicit visibility", async () => {
+    const ctx = orgCtx(org({ id: "org_chosen" }));
     ctx.newState.metadata!.visibility = ApiResourceVisibility.visibility_org;
     await newBuildNewStateStep<typeof OrganizationSchema>().execute(ctx);
-    expect(ctx.newState.metadata?.id).toBe("acme");
+    expect(ctx.newState.metadata?.id).toMatch(/^org_[0-9a-hjkmnp-tv-z]{26}$/);
+    expect(ctx.newState.metadata?.id).not.toBe("org_chosen");
     expect(ctx.newState.metadata?.visibility).toBe(
       ApiResourceVisibility.visibility_org,
     );
+  });
+
+  it("keeps an id an earlier step claimed through assignServerId", async () => {
+    const ctx = orgCtx(org({ id: "org_chosen" }));
+    assignServerId(ctx, "org_derived");
+    await newBuildNewStateStep<typeof OrganizationSchema>().execute(ctx);
+    expect(ctx.newState.metadata?.id).toBe("org_derived");
+    expect(ctx.get(SERVER_ASSIGNED_ID_KEY)).toBe("org_derived");
+  });
+
+  it("re-mints a claimed id a later step rewrote: a claim names one value", async () => {
+    const ctx = orgCtx(org());
+    assignServerId(ctx, "org_derived");
+    ctx.newState.metadata!.id = "org_rewritten";
+    await newBuildNewStateStep<typeof OrganizationSchema>().execute(ctx);
+    expect(ctx.newState.metadata?.id).toMatch(/^org_[0-9a-hjkmnp-tv-z]{26}$/);
+  });
+
+  it("mints for an empty id even when the claim recorded an empty one", async () => {
+    const ctx = orgCtx(org());
+    assignServerId(ctx, "");
+    await newBuildNewStateStep<typeof OrganizationSchema>().execute(ctx);
+    expect(ctx.newState.metadata?.id).toMatch(/^org_[0-9a-hjkmnp-tv-z]{26}$/);
   });
 });
 

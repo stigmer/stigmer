@@ -20,7 +20,8 @@
  *   - DeriveAccountId (A1): `metadata.id = accountIdFor(spec.idp_id)`,
  *     replacing whatever the caller sent (the organization's CopySlugToId
  *     precedent, `metadata.proto`'s documented exception). Runs BEFORE
- *     BuildNewState, which mints only when the id is empty.
+ *     BuildNewState and claims the id through `assignServerId`, the one
+ *     way an id survives that step (stigmer/stigmer#1266).
  *   - CheckDuplicate: by SUBJECT, a primary-key read of the derived id —
  *     two accounts may share an email; the account's uniqueness is its
  *     subject, never its slug (the guideline's "domains with different
@@ -59,6 +60,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
+import { assignServerId } from "../../pipeline/steps/defaults.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
@@ -108,7 +110,6 @@ export function newDeriveAccountIdStep(): AccountStep {
   return {
     name: "DeriveAccountId",
     execute(ctx: AccountContext): void {
-      const metadata = requireMetadata(ctx, "derive account id");
       // ValidateProto ran upstream (idp_id is required), so an empty
       // subject here is a pipeline-ordering bug, not bad client input.
       const idpId = specOf(ctx).idpId;
@@ -118,7 +119,7 @@ export function newDeriveAccountIdStep(): AccountStep {
           "derive account id",
         );
       }
-      metadata.id = accountIdFor(idpId);
+      assignServerId(ctx, accountIdFor(idpId));
     },
   };
 }

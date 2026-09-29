@@ -51,6 +51,7 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import {
+  assignServerId,
   generateId,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
@@ -83,11 +84,14 @@ export const LIST_RESULT_KEY = "listResult";
  *
  *  1. Requires metadata.org — memory records are org-scoped (DD-004), so
  *     the org can never be inferred.
- *  2. Mints metadata.id here (not in BuildNewState) when absent, so an
+ *  2. Mints metadata.id here (not in BuildNewState), always, so an
  *     unnamed record can default its name/slug from its own identity:
  *     memories are id-addressed records (the remember tool sends content
  *     only), and the platform's slug machinery requires a name. A
  *     client-supplied name still wins — the default only fills absence.
+ *     The id is claimed through `assignServerId`, so BuildNewState keeps
+ *     it; an id the request carried is replaced, as every create's is
+ *     (stigmer/stigmer#1266).
  *  3. Overwrites spec.subject_identity_account_id, server-derived and
  *     never client-supplied (DD-005 D2), by posture. Under the
  *     single-operator posture (no `personAccounts` composed) it is the
@@ -144,9 +148,7 @@ export function newResolveMemoryDefaultsStep(
         throw internalError(new Error("metadata is nil"), "metadata is nil");
       }
 
-      if (metadata.id === "") {
-        metadata.id = generateId("mem");
-      }
+      assignServerId(ctx, generateId("mem"));
       if (metadata.name === "" && metadata.slug === "") {
         metadata.name = metadata.id;
       }

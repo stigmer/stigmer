@@ -14,7 +14,10 @@
  *   - cascade delete (oss#611): ALL instances of the agent are swept by
  *     spec.agent_id — including a cross-ORG instance — same-org shares are
  *     deleted, cross-org shares of the same agent SURVIVE, and a
- *     bystander agent's instances are untouched.
+ *     bystander agent's instances are untouched;
+ *   - the server assigns a new agent's id (stigmer#1266): an id the
+ *     request carries is replaced, on create and on an apply that
+ *     creates, and the chosen id addresses nothing.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -419,6 +422,42 @@ describe("agent cascade delete (oss#611)", () => {
       org: "",
     });
     expect(bystanderInstances.totalCount).toBe(1);
+  });
+});
+
+describe("agent create — the server assigns the id (stigmer#1266)", () => {
+  const CHOSEN_ID = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
+
+  async function expectMintedNotChosen(created: {
+    metadata?: { id: string };
+  }): Promise<void> {
+    const id = created.metadata?.id ?? "";
+    expect(id).toMatch(/^agt_[0-9a-hjkmnp-tv-z]{26}$/);
+    expect(id).not.toBe(CHOSEN_ID);
+    const fetched = await query.get({ value: id });
+    expect(fetched.metadata?.id).toBe(id);
+    const missing = await grpcError(() => query.get({ value: CHOSEN_ID }));
+    expect(missing.code).toBe(Code.NotFound);
+  }
+
+  it("create replaces a client-supplied id with a minted one", async () => {
+    const input = agentInput();
+    const created = await command.create({
+      ...input,
+      metadata: { ...input.metadata, id: CHOSEN_ID },
+    });
+    await expectMintedNotChosen(created);
+    await command.delete({ value: created.metadata?.id ?? "" });
+  });
+
+  it("an apply that creates (an exported manifest re-applied) replaces the id too", async () => {
+    const input = agentInput();
+    const applied = await command.apply({
+      ...input,
+      metadata: { ...input.metadata, id: CHOSEN_ID },
+    });
+    await expectMintedNotChosen(applied);
+    await command.delete({ value: applied.metadata?.id ?? "" });
   });
 });
 

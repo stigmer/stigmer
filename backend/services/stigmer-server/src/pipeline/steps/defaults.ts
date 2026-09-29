@@ -4,11 +4,26 @@
  *
  * BuildNewState (create-state builder, aligned with Cloud's
  * CreateOperationBuildNewStateStepV2): clears the client-provided status
- * (system-managed), mints metadata.id = {kind-prefix}_{lowercase ULID}
- * when unset, stamps spec_audit and status_audit identically with event
- * "created", and defaults metadata.visibility from the kind's proto
- * VisibilityConfig (blueprints → org, everything else → private; an
- * explicit level is never overwritten).
+ * (system-managed), assigns metadata.id = {kind-prefix}_{lowercase ULID},
+ * stamps spec_audit and status_audit identically with event "created",
+ * and defaults metadata.visibility from the kind's proto VisibilityConfig
+ * (blueprints → org, everything else → private; an explicit level is
+ * never overwritten).
+ *
+ * A create's id is the server's (metadata.proto `id`: "a generated,
+ * prefixed id"), so an id the request carries never survives: it is
+ * replaced, not refused, because an exported manifest applied again
+ * carries its id and must keep working (stigmer/stigmer#1266). For most
+ * kinds a chosen id is cosmetic; for a kind whose id other grants hang
+ * off, choosing it is a grant. The one exception is an id a step EARLIER
+ * in the chain assigned through `assignServerId` (a direct
+ * IdentityAccount's derived id, a Memory's early mint): the step records
+ * the exact id it chose under SERVER_ASSIGNED_ID_KEY, and BuildNewState
+ * keeps metadata.id only while it still equals that record. A claim is a
+ * value, not a flag, so a later step that rewrote the id, or a request
+ * that happened to carry the same string before any claim, keeps nothing.
+ * A kind that derives its id AFTER this step (Organization's CopySlugToId)
+ * needs no claim.
  *
  * SpecAudit/StatusAudit are SLOTS, not steps (stigmer/stigmer#540): every
  * setAuditFieldsForUpdate call site declares which slot it owns —
@@ -66,6 +81,32 @@ import {
   metadataOf,
 } from "./shapes.js";
 
+/**
+ * The context key under which a step records the create id it assigned
+ * before BuildNewState ran (`assignServerId`); its value is that id.
+ */
+export const SERVER_ASSIGNED_ID_KEY = "serverAssignedId";
+
+/**
+ * Assigns a create's id from a step that runs before BuildNewState and
+ * claims it, so BuildNewState keeps it instead of replacing it (module
+ * header). Setting and claiming are one call, so the two cannot drift.
+ */
+export function assignServerId<Desc extends DescMessage>(
+  ctx: RequestContext<Desc>,
+  id: string,
+): void {
+  const metadata = metadataOf(ctx.newState);
+  if (metadata === undefined) {
+    throw internalError(
+      new Error("resource metadata is nil"),
+      "assign server id",
+    );
+  }
+  metadata.id = id;
+  ctx.set(SERVER_ASSIGNED_ID_KEY, id);
+}
+
 export function newBuildNewStateStep<
   Desc extends DescMessage,
 >(): PipelineStep<Desc> {
@@ -86,8 +127,12 @@ export function newBuildNewStateStep<
         clearStatusField(ctx.schema, resource);
       }
 
-      // 2. Mint the id when unset (idempotent): {prefix}_{lowercase ULID}.
-      if (metadata.id === "") {
+      // 2. Assign the id, {prefix}_{lowercase ULID}, whatever the request
+      // carried; keep only an id an earlier step claimed (module header).
+      if (
+        metadata.id === "" ||
+        metadata.id !== ctx.get(SERVER_ASSIGNED_ID_KEY)
+      ) {
         metadata.id = generateId(getIdPrefix(ctx.apiResourceKind));
       }
 

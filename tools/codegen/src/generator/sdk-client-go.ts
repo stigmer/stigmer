@@ -605,9 +605,8 @@ function generateInputTypesV2(
   buf.push(`type ${inputName} struct {\n`);
   buf.push("\t// Id is the resource's metadata.id, for exact update addressing when\n");
   buf.push("\t// set from a loaded resource. Required for updates to platform-scoped\n");
-  buf.push("\t// (org-less) kinds, where the org+slug fallback cannot match. On\n");
-  buf.push("\t// create, the cloud server stamps its own id regardless; the OSS\n");
-  buf.push("\t// server honors a caller-supplied id (existing apply semantics).\n");
+  buf.push("\t// (org-less) kinds, where the org+slug fallback cannot match. Ignored\n");
+  buf.push("\t// on create: the server assigns every new resource's id.\n");
   buf.push("\tId         string\n");
   buf.push("\tName       string\n");
   buf.push("\tSlug       string\n");

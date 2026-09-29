@@ -574,9 +574,8 @@ function generateTSInputTypes(
   buf.push("  /**\n");
   buf.push("   * The resource's `metadata.id`, for exact update addressing when set\n");
   buf.push("   * from a loaded resource. Required for updates to platform-scoped\n");
-  buf.push("   * (org-less) kinds, where the org+slug fallback cannot match. On\n");
-  buf.push("   * create, the cloud server stamps its own id regardless; the OSS\n");
-  buf.push("   * server honors a caller-supplied id (existing apply semantics).\n");
+  buf.push("   * (org-less) kinds, where the org+slug fallback cannot match. Ignored\n");
+  buf.push("   * on create: the server assigns every new resource's id.\n");
   buf.push("   */\n");
   buf.push("  id?: string;\n");
   buf.push("  name: string;\n");

@@ -77,9 +77,8 @@ export interface ChannelAppInput {
   /**
    * The resource's `metadata.id`, for exact update addressing when set
    * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. On
-   * create, the cloud server stamps its own id regardless; the OSS
-   * server honors a caller-supplied id (existing apply semantics).
+   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
+   * on create: the server assigns every new resource's id.
    */
   id?: string;
   name: string;

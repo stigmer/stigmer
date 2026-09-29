@@ -8,8 +8,9 @@
  *     state_changed_at set; the subject is forced to the OSS single-user
  *     sentinel "" (DD-005 D2); provenance is stored as supplied with
  *     tool_call_id force-cleared (the Stage 3 contract); an unnamed
- *     create defaults its name from the minted mem_ id; a missing org is
- *     the exact InvalidArgument copy;
+ *     create defaults its name from the minted mem_ id, and an id the
+ *     request carried is replaced by that mint (stigmer#1266); a missing
+ *     org is the exact InvalidArgument copy;
  *   - enablement fails CLOSED: org switch off is the exact formatted
  *     FailedPrecondition copy, an unknown org is NotFound;
  *   - the 100-per-subject-per-org ceiling refuses the 101st record with
@@ -206,6 +207,19 @@ describe("memory create", () => {
     const org = await createOrg(true);
     const created = await createMemory(org);
     expect(created.metadata?.id).toMatch(/^mem_/);
+    expect(created.metadata?.name).toBe(created.metadata?.id);
+  });
+
+  it("replaces a client-supplied id with its own mint, which the name then follows", async () => {
+    const org = await createOrg(true);
+    const created = await command.create({
+      apiVersion: MEMORY_API_VERSION,
+      kind: MEMORY_KIND,
+      metadata: { org, id: "mem_chosen" },
+      spec: { content: "A fact whose id the caller tried to choose." },
+    });
+    expect(created.metadata?.id).toMatch(/^mem_[0-9a-hjkmnp-tv-z]{26}$/);
+    expect(created.metadata?.id).not.toBe("mem_chosen");
     expect(created.metadata?.name).toBe(created.metadata?.id);
   });
 
