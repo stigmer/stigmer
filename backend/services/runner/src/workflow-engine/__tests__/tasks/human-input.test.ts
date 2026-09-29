@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { executeHumanInputTask } from "../../tasks/human-input.js";
+import {
+  HUMAN_INPUT_FAIL_TIMEOUT_RESOLVED_PATCH,
+  executeHumanInputTask,
+} from "../../tasks/human-input.js";
 import { createState } from "../../state.js";
 import { evaluateExpressionBatch } from "../../expression.js";
 import { TaskStatusAccumulator } from "../../task-status-accumulator.js";
@@ -8,6 +11,7 @@ import type {
   TaskExecutionContext,
   HumanInputExecutionConfig,
   HumanInputResult,
+  HumanInputTimeout,
   AwaitHumanInputFn,
   EmitEventsFn,
   ExpressionEvaluator,
@@ -17,12 +21,16 @@ import type {
 
 const notAvailable = () => { throw new Error("not available in test"); };
 
+/** What the workflow layer reports when the gate's timer wins. */
+const TIMED_OUT: HumanInputTimeout = { timedOut: true };
+
 interface CtxOptions {
   readonly awaitFn?: AwaitHumanInputFn;
   readonly emitFn?: EmitEventsFn;
   readonly evaluateExpressions?: ExpressionEvaluator;
   readonly promoteTaskOutput?: PromoteTaskOutputFn;
   readonly taskStatusAccumulator?: TaskStatusAccumulator;
+  readonly isPatched?: (changeId: string) => boolean;
 }
 
 function makeCtx(
@@ -45,6 +53,7 @@ function makeCtx(
     emitEvents: emitFn,
     promoteTaskOutput: options?.promoteTaskOutput,
     taskStatusAccumulator: options?.taskStatusAccumulator,
+    isPatched: options?.isPatched,
   };
 }
 
@@ -156,11 +165,11 @@ describe("executeHumanInputTask", () => {
       expect(capturedConfig!.timeoutSeconds).toBe(0);
     });
 
-    it("passes onTimeout policy from config", async () => {
+    it("hands the wait only the signal and the timeout; the policy stays with the kernel", async () => {
       let capturedConfig: HumanInputExecutionConfig | undefined;
       const awaitFn: AwaitHumanInputFn = async (config) => {
         capturedConfig = config;
-        return { outcome: "approve", auto_resolved: true, reason: "timeout" };
+        return { outcome: "approve" };
       };
 
       const taskDef: HumanInputTaskDef = {
@@ -170,31 +179,27 @@ describe("executeHumanInputTask", () => {
 
       await executeHumanInputTask(taskDef, "t", createState(), makeCtx(awaitFn));
 
-      expect(capturedConfig!.onTimeout).toBe("approve");
+      expect(capturedConfig).toEqual({ signalName: "human_input_t", timeoutSeconds: 60 });
     });
 
-    it("defaults onTimeout to 'fail' when not set", async () => {
-      let capturedConfig: HumanInputExecutionConfig | undefined;
-      const awaitFn: AwaitHumanInputFn = async (config) => {
-        capturedConfig = config;
-        return { outcome: "approve" };
-      };
-
+    it("fails the task on a timeout when onTimeout is not set", async () => {
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",
         humanInput: { prompt: "Review", timeout: 60 },
       };
 
-      await executeHumanInputTask(taskDef, "t", createState(), makeCtx(awaitFn));
-
-      expect(capturedConfig!.onTimeout).toBe("fail");
+      await expect(
+        executeHumanInputTask(taskDef, "t", createState(), makeCtx(async () => TIMED_OUT)),
+      ).rejects.toThrow("human_input task timed out waiting for signal 'human_input_t'");
     });
   });
 
   describe("error propagation", () => {
-    it("propagates timeout failure errors from orchestrator", async () => {
+    it("propagates an error from the wait untouched and logs no resolution", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
       const awaitFn: AwaitHumanInputFn = async () => {
-        throw new Error("human_input task timed out");
+        throw new Error("workflow cancelled");
       };
 
       const taskDef: HumanInputTaskDef = {
@@ -203,18 +208,86 @@ describe("executeHumanInputTask", () => {
       };
 
       await expect(
-        executeHumanInputTask(taskDef, "t", createState(), makeCtx(awaitFn)),
+        executeHumanInputTask(taskDef, "t", createState(), makeCtx(awaitFn, emitFn)),
+      ).rejects.toThrow("workflow cancelled");
+      expect(emitted.flat().map((e) => e.type)).toEqual(["approval_requested"]);
+    });
+  });
+
+  // A fail-policy timeout ends the gate without a decision. It still closes
+  // the approval in the event log, so a reader never sees a request left
+  // open, and then fails the task with the error it always raised
+  // (stigmer/stigmer#1442).
+  describe("fail-policy timeout", () => {
+    const taskDef: HumanInputTaskDef = {
+      kind: "human_input",
+      humanInput: { prompt: "Review", timeout: 10, onTimeout: "fail" },
+    };
+
+    it("logs one approval_resolved with auto_resolved and no outcome, then fails the task", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const state = createState();
+
+      await expect(
+        executeHumanInputTask(taskDef, "gate", state, makeCtx(async () => TIMED_OUT, emitFn)),
+      ).rejects.toThrow("human_input task timed out waiting for signal 'human_input_gate'");
+
+      const resolutions = emitted.flat().filter((e) => e.type === "approval_resolved");
+      expect(resolutions).toHaveLength(1);
+      expect(resolutions[0]).toMatchObject({
+        taskName: "gate",
+        outcome: "",
+        resolvedBy: "",
+        resolvedByActor: undefined,
+        comment: "",
+        autoResolved: true,
+      });
+      expect(state.data.gate, "a failed gate records no decision").toBeUndefined();
+    });
+
+    it("asks the patch gate by its pinned id before logging", async () => {
+      const isPatched = vi.fn(() => true);
+
+      await expect(
+        executeHumanInputTask(taskDef, "gate", createState(), makeCtx(async () => TIMED_OUT, undefined, { isPatched })),
       ).rejects.toThrow("timed out");
+
+      expect(HUMAN_INPUT_FAIL_TIMEOUT_RESOLVED_PATCH).toBe("human-input-fail-timeout-resolved");
+      expect(isPatched).toHaveBeenCalledWith(HUMAN_INPUT_FAIL_TIMEOUT_RESOLVED_PATCH);
+    });
+
+    it("replays a history from before the patch in the old order: no resolution, the same failure", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      await expect(
+        executeHumanInputTask(
+          taskDef, "gate", createState(),
+          makeCtx(async () => TIMED_OUT, emitFn, { isPatched: () => false }),
+        ),
+      ).rejects.toThrow("human_input task timed out waiting for signal 'human_input_gate'");
+
+      expect(emitted.flat().map((e) => e.type)).toEqual(["approval_requested"]);
+    });
+
+    it("never asks the patch gate for a gate a policy or a reviewer decided", async () => {
+      const isPatched = vi.fn(() => true);
+      const approveOnTimeout: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Review", timeout: 10, onTimeout: "approve" },
+      };
+
+      await executeHumanInputTask(approveOnTimeout, "a", createState(), makeCtx(async () => TIMED_OUT, undefined, { isPatched }));
+      await executeHumanInputTask(taskDef, "b", createState(), makeCtx(async () => ({ outcome: "approve" }), undefined, { isPatched }));
+
+      expect(isPatched).not.toHaveBeenCalled();
     });
   });
 
   describe("auto-resolved results", () => {
     it("handles auto-approve timeout result", async () => {
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "approve",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",
@@ -229,11 +302,7 @@ describe("executeHumanInputTask", () => {
     });
 
     it("handles auto-deny timeout result", async () => {
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "deny",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",
@@ -260,11 +329,7 @@ describe("executeHumanInputTask", () => {
     ];
 
     it("maps timeout auto-approve to the FIRST outcome and routes its then", async () => {
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "approve",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",
@@ -288,11 +353,7 @@ describe("executeHumanInputTask", () => {
     });
 
     it("maps timeout auto-deny to the LAST outcome", async () => {
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "deny",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",
@@ -310,11 +371,7 @@ describe("executeHumanInputTask", () => {
     // — the ordinary name lookup finds the "escalate" outcome and routes its
     // `then`, regardless of the outcome's position in the list.
     it("resolves timeout escalate to the escalate-named outcome and routes its then", async () => {
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "escalate",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const escalateOutcomes = [
         { name: "proceed", label: "Proceed", then: "deployStep" },
@@ -347,11 +404,7 @@ describe("executeHumanInputTask", () => {
     it("reports the mapped outcome on the approval_resolved event", async () => {
       const emitted: WorkflowEventDescriptor[][] = [];
       const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "approve",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",
@@ -385,11 +438,7 @@ describe("executeHumanInputTask", () => {
     });
 
     it("keeps plain approve/deny for binary gates without custom outcomes", async () => {
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "approve",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",
@@ -637,11 +686,7 @@ describe("executeHumanInputTask", () => {
     it("emits approval_resolved with autoResolved true on timeout auto-approve", async () => {
       const emitted: WorkflowEventDescriptor[][] = [];
       const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
-      const awaitFn: AwaitHumanInputFn = async () => ({
-        outcome: "approve",
-        auto_resolved: true,
-        reason: "timeout",
-      });
+      const awaitFn: AwaitHumanInputFn = async () => TIMED_OUT;
 
       const taskDef: HumanInputTaskDef = {
         kind: "human_input",

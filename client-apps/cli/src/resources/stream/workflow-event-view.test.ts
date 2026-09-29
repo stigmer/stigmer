@@ -119,6 +119,19 @@ describe("toWorkflowEventView", () => {
     expect(toWorkflowEventView(event).text).toBe("approval resolved: review — escalate (timeout)");
   });
 
+  it("renders a gate that timed out under the fail policy as ending with no decision", () => {
+    const event = create(WorkflowExecutionEventSchema, {
+      taskName: "review",
+      payload: {
+        case: "approvalResolved",
+        value: create(ApprovalResolvedPayloadSchema, { autoResolved: true }),
+      },
+    });
+    const view = toWorkflowEventView(event);
+    expect(view.tone).toBe("warning");
+    expect(view.text).toBe("approval resolved: review — timed out, no decision");
+  });
+
   it("converts micros to a dollar amount for budget_checkpoint", () => {
     const event = create(WorkflowExecutionEventSchema, {
       payload: { case: "budgetCheckpoint", value: create(BudgetCheckpointPayloadSchema, { costConsumedMicros: 1_234_500n }) },

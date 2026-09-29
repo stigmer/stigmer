@@ -40,7 +40,8 @@
 //   COMPLETED. This proves the submitted *outcome value* drives behavior through
 //   observable task statuses — preferred over reading the task.output projection.
 // - timeout + on_timeout=HUMAN_INPUT_TIMEOUT_FAIL fails the execution on its own,
-//   with no decision submitted.
+//   with no decision submitted, and still closes the approval: the log carries
+//   one approval_resolved with auto_resolved true, no reviewer and no outcome.
 // - A timeout policy that resolves the gate (APPROVE, DENY, ESCALATE) logs one
 //   approval_resolved event with auto_resolved true, no reviewer, and the
 //   outcome the policy resolved to: the first declared outcome, the last, and
@@ -146,8 +147,9 @@ async function soleResolutionOf(executionId: string): Promise<ApprovalResolvedPa
   return resolutions[0]!;
 }
 
-// A gate a timeout policy decided: the event says so, names no reviewer, and
-// carries the outcome the policy resolved to.
+// A gate a timeout policy ended: the event says so, names no reviewer, and
+// carries the outcome the policy resolved to (empty under FAIL, which decides
+// none).
 async function expectTimeoutResolution(executionId: string, outcome: string): Promise<void> {
   const resolved = await soleResolutionOf(executionId);
   expect(resolved.autoResolved, `execution ${executionId}: the event marks the gate auto-resolved`).toBe(true);
@@ -314,6 +316,8 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
       final.status?.phase,
       `timed-out gate should FAIL; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
     ).toBe(ExecutionPhase.EXECUTION_FAILED);
+    // The approval still ends in the log: auto-resolved, with no outcome.
+    await expectTimeoutResolution(executionId, "");
   });
 
   // The APPROVE/DENY pins below close the stigmer/stigmer#779 gap: the

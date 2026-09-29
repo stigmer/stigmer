@@ -118,6 +118,19 @@ describe("deriveTaskApprovalDecision", () => {
     expect(decision!.reviewer).toBe("");
   });
 
+  it("keeps a fail-policy timeout's event as an auto-resolved decision with no outcome", () => {
+    // The gate's task failed, so it has no output; the event is the whole record.
+    const decision = deriveTaskApprovalDecision(
+      makeResolution({ action: 0, outcome: "", autoResolved: true, resolvedBy: "", comment: "" }),
+      undefined,
+    );
+    expect(decision).not.toBeNull();
+    expect(decision!.outcome).toBe("");
+    expect(decision!.autoResolved).toBe(true);
+    expect(decision!.reviewer).toBe("");
+    expect(decision!.waitDurationMs).toBe(30000);
+  });
+
   it("sources the decision from the canonical task-output record", () => {
     const decision = deriveTaskApprovalDecision(null, {
       outcome: "approve",

@@ -85,6 +85,12 @@ export function toWorkflowEventView(event: WorkflowExecutionEvent): WorkflowEven
       return view("⏳", "warning", `approval requested: ${taskName} — ${event.payload.value.prompt}`);
     case "approvalResolved": {
       const { action, outcome, resolvedBy, autoResolved } = event.payload.value;
+      // A gate that timed out under the fail policy ends its approval with no
+      // decision at all; the task_failed line that follows says why the run
+      // stopped.
+      if (autoResolved && !outcome) {
+        return view("⏱", "warning", `approval resolved: ${taskName} — timed out, no decision`);
+      }
       // A workflow human_input gate reports its declared outcome; the
       // ApprovalAction enum is the agent tool approval's, and the fallback
       // for events recorded before the payload carried an outcome.

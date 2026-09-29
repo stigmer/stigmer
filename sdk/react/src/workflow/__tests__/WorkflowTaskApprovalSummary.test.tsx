@@ -182,6 +182,22 @@ describe("WorkflowTaskApprovalSummary", () => {
       expect(screen.getByText(/finalizing/i)).toBeTruthy();
     });
 
+    // A gate that timed out under the fail policy logs an auto-resolved
+    // decision with no outcome (stigmer/stigmer#1442): final, not pending.
+    it("presents a fail-policy timeout as ending with no decision, never as finalizing", () => {
+      render(
+        <WorkflowTaskApprovalSummary
+          {...baseProps}
+          decision={makeDecision({ outcome: "", reviewer: "", autoResolved: true, waitDurationMs: 30_000 })}
+        />,
+      );
+      expect(screen.queryByText(/finalizing/i)).toBeNull();
+      expect(screen.getByText("Timed out — no decision")).toBeTruthy();
+      expect(screen.queryByText("auto-resolved"), "the header already says a timeout ended it").toBeNull();
+      expect(screen.getByText(/waited/)).toBeTruthy();
+      expect(screen.queryByText(/^by/), "no reviewer decided").toBeNull();
+    });
+
     it("still renders the prompt while finalizing", () => {
       render(<WorkflowTaskApprovalSummary {...baseProps} decision={null} />);
       expect(screen.getByText("Review today's plan.")).toBeTruthy();

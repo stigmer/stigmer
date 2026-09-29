@@ -35,7 +35,9 @@ export interface WorkflowTaskApprovalSummaryProps {
    * `approval_resolved` event standing in until the status snapshot
    * catches up. When `null` — or when its `outcome` is still empty — the
    * gate has been resolved but neither source carries the decision yet; a
-   * "finalizing" affordance is shown instead.
+   * "finalizing" affordance is shown instead. The one exception is an
+   * auto-resolved decision with an empty outcome: the gate timed out under
+   * the fail policy and ended without a decision, which is final.
    */
   readonly decision: TaskDetailApprovalDecision | null;
   /** Additional CSS class names for the root container. */
@@ -74,13 +76,17 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
   decision,
   className,
 }: WorkflowTaskApprovalSummaryProps) {
-  const isFinalizing = !decision || decision.outcome === "";
+  // A fail-policy timeout ends the gate with no outcome; that is the record,
+  // not a decision still on its way.
+  const timedOutUndecided = decision !== null && decision.autoResolved && decision.outcome === "";
+  const isFinalizing = !decision || (decision.outcome === "" && !timedOutUndecided);
 
   const outcomeLabel = useMemo(() => {
+    if (timedOutUndecided) return "Timed out — no decision";
     if (!decision || !decision.outcome) return "";
     const match = outcomes.find((o) => o.name === decision.outcome);
     return match?.label || capitalize(decision.outcome.replace(/_/g, " "));
-  }, [decision, outcomes]);
+  }, [decision, outcomes, timedOutUndecided]);
 
   const tone: DecisionTone = useMemo(
     () => (decision && !isFinalizing ? resolveTone(decision.outcome) : "neutral"),
@@ -117,7 +123,7 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
             <ToneIcon tone={tone} />
             {outcomeLabel}
           </span>
-          {decision!.autoResolved && (
+          {decision!.autoResolved && !timedOutUndecided && (
             <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
               auto-resolved
             </span>

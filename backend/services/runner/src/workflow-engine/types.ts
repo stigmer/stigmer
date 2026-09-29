@@ -561,10 +561,20 @@ export interface RunWorkflowExecutionConfig {
 }
 
 /**
- * Blocks workflow execution until a human provides input via signal.
- * Supports configurable timeout with policies (fail, approve, deny, escalate).
+ * Blocks workflow execution until a human provides input via signal, or
+ * until the timeout elapses. Reports which happened and nothing more: the
+ * timeout policy (fail, approve, deny, escalate) is the kernel's to apply
+ * (`tasks/human-input.ts`), so one module owns every way a gate can end.
  */
-export type AwaitHumanInputFn = (config: HumanInputExecutionConfig) => Promise<HumanInputResult>;
+export type AwaitHumanInputFn = (config: HumanInputExecutionConfig) => Promise<HumanInputResponse>;
+
+/** What a wait at a human_input gate ended with: the reviewer's decision, or the timeout. */
+export type HumanInputResponse = HumanInputResult | HumanInputTimeout;
+
+/** The gate's timeout elapsed before any decision arrived. */
+export interface HumanInputTimeout {
+  readonly timedOut: true;
+}
 
 /**
  * Internal timeout-policy vocabulary — the loader-normalized form of the
@@ -577,8 +587,8 @@ export type HumanInputTimeoutPolicy = "fail" | "approve" | "deny" | "escalate";
 
 export interface HumanInputExecutionConfig {
   readonly signalName: string;
+  /** Seconds to wait before reporting a {@link HumanInputTimeout}; 0 waits indefinitely. */
   readonly timeoutSeconds: number;
-  readonly onTimeout: HumanInputTimeoutPolicy;
 }
 
 export interface HumanInputResult {

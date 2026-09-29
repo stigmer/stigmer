@@ -32,6 +32,16 @@
  * activation and attached to the approval_requested event — inline when
  * small, as an artifact reference when at/above the promotion threshold —
  * so the approval record captures exactly what the reviewer saw.
+ *
+ * Timeout policy lives here, whole. `ctx.awaitHumanInput()` only reports
+ * that the timer won; this module decides what that means. approve, deny and
+ * escalate resolve the gate to a declared outcome. fail logs an
+ * approval_resolved with `auto_resolved` set and no outcome, then fails the
+ * task with the error it has always raised, so every approval_requested in
+ * the event log is closed by an approval_resolved (stigmer/stigmer#1442).
+ * That emit is a new workflow command on an existing path, so it runs behind
+ * {@link HUMAN_INPUT_FAIL_TIMEOUT_RESOLVED_PATCH}: a history recorded before
+ * it replays the old order (no emit, then the throw).
  */
 
 import type {
@@ -41,6 +51,9 @@ import type {
   WorkflowState,
   TaskExecutionContext,
   HumanInputResult,
+  HumanInputResponse,
+  HumanInputTimeout,
+  HumanInputTimeoutPolicy,
 } from "../types.js";
 import { resolveConfigExpressions, resolveEmbeddedExpressions } from "../resolve.js";
 import { isStrictExpr } from "../expression-utils.js";
@@ -48,6 +61,13 @@ import { isStrictExpr } from "../expression-utils.js";
 const SIGNAL_PREFIX = "human_input_";
 const DEFAULT_TIMEOUT_SECONDS = 0;
 const DEFAULT_ON_TIMEOUT = "fail" as const;
+
+/**
+ * Temporal patch id for logging approval_resolved before a fail-policy
+ * timeout fails the task. Wire bytes: a rename makes every history that
+ * carries the marker replay down the old path.
+ */
+export const HUMAN_INPUT_FAIL_TIMEOUT_RESOLVED_PATCH = "human-input-fail-timeout-resolved";
 
 /**
  * Executes a human_input task. Called from `runSingleTask` in do-executor
@@ -97,28 +117,21 @@ export async function executeHumanInputTask(
     ]);
   }
 
-  const result: HumanInputResult = applyTimeoutOutcomeContract(
-    await ctx.awaitHumanInput({
-      signalName,
-      timeoutSeconds,
-      onTimeout,
-    }),
-    config.outcomes,
-  );
+  const response = await ctx.awaitHumanInput({ signalName, timeoutSeconds });
+  const result = isTimeout(response)
+    ? resolveTimeout(onTimeout, config.outcomes)
+    : response;
 
-  if (ctx.emitEvents) {
-    await ctx.emitEvents([{
-      type: "approval_resolved",
-      taskName,
-      occurredAt: new Date().toISOString(),
-      outcome: result.outcome,
-      resolvedBy: result.reviewer ?? "",
-      resolvedByActor: result.reviewer_actor,
-      comment: result.comment ?? "",
-      waitDurationMs: Date.now() - approvalRequestedAt,
-      autoResolved: result.auto_resolved ?? false,
-    }]);
+  if (result === undefined) {
+    if (ctx.isPatched?.(HUMAN_INPUT_FAIL_TIMEOUT_RESOLVED_PATCH) ?? true) {
+      await emitApprovalResolved(ctx, taskName, approvalRequestedAt, {
+        outcome: "", auto_resolved: true, reason: "timeout",
+      });
+    }
+    throw new Error(`human_input task timed out waiting for signal '${signalName}'`);
   }
+
+  await emitApprovalResolved(ctx, taskName, approvalRequestedAt, result);
 
   state.addData({ [taskName]: result });
 
@@ -136,35 +149,72 @@ function validateConfig(config: HumanInputConfig, taskName: string): void {
   }
 }
 
+function isTimeout(response: HumanInputResponse): response is HumanInputTimeout {
+  return "timedOut" in response;
+}
+
 /**
- * Applies the proto contract for timeout auto-resolution with custom
- * outcomes (HumanInputTaskConfig.outcomes doc): auto-approve resolves to
- * the FIRST declared outcome and auto-deny to the LAST, so `then` routing
- * and downstream outcome switches see declared outcome names — never the
- * orchestrator's internal approve/deny words, which a reviewer of a
- * custom-outcome gate was never offered. Binary gates (no custom outcomes)
- * keep the plain approve/deny result.
+ * The decision a timeout policy makes, or `undefined` when the policy is
+ * fail and the gate ends without one.
+ *
+ * With custom outcomes the proto contract (HumanInputTaskConfig.outcomes doc)
+ * applies: auto-approve resolves to the FIRST declared outcome and auto-deny
+ * to the LAST, so `then` routing and downstream outcome switches see declared
+ * outcome names, never approve/deny words a reviewer of a custom-outcome gate
+ * was never offered. Binary gates (no custom outcomes) keep plain approve/deny.
  *
  * Escalate needs no remapping by construction (stigmer/stigmer#781): its
- * policy word IS the declared outcome's name — the loader (and the server
+ * policy word IS the declared outcome's name. The loader (and the server
  * validator) only accept the escalate policy when an outcome named
- * "escalate" with `then` exists, so the caller's ordinary name lookup
- * routes the escalation branch.
+ * "escalate" with `then` exists, so the caller's ordinary name lookup routes
+ * the escalation branch.
  */
-function applyTimeoutOutcomeContract(
-  result: HumanInputResult,
+function resolveTimeout(
+  policy: HumanInputTimeoutPolicy,
   outcomes: HumanInputConfig["outcomes"],
-): HumanInputResult {
-  if (!result.auto_resolved || result.reason !== "timeout" || !outcomes?.length) {
-    return result;
+): HumanInputResult | undefined {
+  const decided = (outcome: string): HumanInputResult => ({
+    outcome, auto_resolved: true, reason: "timeout",
+  });
+  switch (policy) {
+    case "approve":
+      return decided(outcomes?.length ? outcomes[0].name : "approve");
+    case "deny":
+      return decided(outcomes?.length ? outcomes[outcomes.length - 1].name : "deny");
+    case "escalate":
+      return decided("escalate");
+    case "fail":
+      return undefined;
+    default: {
+      const unreachable: never = policy;
+      throw new Error(`human_input: unknown timeout policy '${String(unreachable)}'`);
+    }
   }
-  if (result.outcome === "approve") {
-    return { ...result, outcome: outcomes[0].name };
-  }
-  if (result.outcome === "deny") {
-    return { ...result, outcome: outcomes[outcomes.length - 1].name };
-  }
-  return result;
+}
+
+/**
+ * Logs how the gate's approval ended. A timeout's decision carries no
+ * reviewer, no comment and `auto_resolved`; a fail timeout's carries no
+ * outcome either.
+ */
+async function emitApprovalResolved(
+  ctx: TaskExecutionContext,
+  taskName: string,
+  approvalRequestedAt: number,
+  result: HumanInputResult,
+): Promise<void> {
+  if (!ctx.emitEvents) return;
+  await ctx.emitEvents([{
+    type: "approval_resolved",
+    taskName,
+    occurredAt: new Date().toISOString(),
+    outcome: result.outcome,
+    resolvedBy: result.reviewer ?? "",
+    resolvedByActor: result.reviewer_actor,
+    comment: result.comment ?? "",
+    waitDurationMs: Date.now() - approvalRequestedAt,
+    autoResolved: result.auto_resolved ?? false,
+  }]);
 }
 
 interface ResolvedReviewPayload {

@@ -732,9 +732,11 @@ message ApprovalResolvedPayload {
   // When a timeout policy decides the gate, this is the outcome the policy
   // resolved to, and auto_resolved is true: for approve the first declared
   // outcome, for deny the last ("approve" or "deny" when the gate declares
-  // none), for escalate the outcome named "escalate". Empty for
-  // agent tool approvals, which carry action instead, and for events
-  // recorded before this field existed.
+  // none), for escalate the outcome named "escalate". Empty with
+  // auto_resolved true when the gate timed out under the fail policy: no
+  // decision was made, and the task_failed event that follows ends the
+  // task. Empty for agent tool approvals, which carry action instead, and
+  // for events recorded before this field existed.
   //
   // @since Approval Outcome (stigmer/stigmer#1431)
   string outcome = 6;
@@ -743,7 +745,9 @@ message ApprovalResolvedPayload {
   //
   // @internal
   // When true, resolved_by and resolved_by_actor are empty and outcome is
-  // the policy's outcome. Always false for agent tool approvals.
+  // the policy's outcome, or empty when the policy is fail and the gate
+  // ended without a decision (stigmer/stigmer#1442). Always false for agent
+  // tool approvals.
   //
   // @since Approval Outcome (stigmer/stigmer#1431)
   bool auto_resolved = 7;
