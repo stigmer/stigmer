@@ -735,18 +735,6 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ## Types
 
-### buildSystemEnvVars
-
-Build system env var entries from raw connection parameters.
-
-Pure function — no side effects, no async. Suitable for unit
-testing without a live Stigmer client.
-
-```tsx
-function buildSystemEnvVars(baseUrl: string | null, credential: string | null): Record<string, EnvVarInput>
-```
-
-
 ### diffEnv
 
 Computes the list of environment variables a resource requires that
@@ -814,41 +802,6 @@ Keys that do not exist in the environment are silently ignored.
 />
 
 
-### resolveDeclaredSystemEnvVars
-
-Resolve only the system env vars that the target resource actually
-declares in its environment specification.
-
-System vars (`STIGMER_SERVER_ADDRESS`, `STIGMER_API_KEY`) should
-only be injected when the resource needs them — blindly injecting
-them causes `runtime_env` to be non-empty on the wire, which
-changes the backend's missing-credential tolerance semantics.
-
-```tsx
-function resolveDeclaredSystemEnvVars(stigmer: Stigmer, declaredEnvKeys: readonly string[] | ReadonlySet<string>, options?: SystemEnvVarOptions): Promise<Record<string, EnvVarInput>>
-```
-
-
-### resolveSystemEnvVarValues
-
-Resolve system env var values from a live `Stigmer` client.
-
-Calls `Stigmer.getAuthCredential` to obtain the current
-credential, then delegates to [`buildSystemEnvVars`](#buildsystemenvvars) with the
-server's public address: `options.publicBaseUrl`, else the client's
-`baseUrl`, the order `usePublicBaseUrl` applies.
-
-Intended for use at session submit time. The composer merges the
-returned values first, so values it collects in the page (setup
-answers, session variables) win over them. On the server they ride
-`runtime_env`, which is the top merge layer: a value saved in an
-environment does not override them (stigmer/stigmer#1446).
-
-```tsx
-function resolveSystemEnvVarValues(stigmer: Stigmer, options?: SystemEnvVarOptions): Promise<Record<string, EnvVarInput>>
-```
-
-
 ### SessionEnvPoolInput
 
 Inputs to the session env pool from all env-var sources.
@@ -870,51 +823,11 @@ gracefully handles `undefined` inputs.
 
 ### SYSTEM_ENV_VAR_KEYS
 
-Environment variable keys that the SDK can resolve automatically
-from the current `Stigmer` client context.
+Environment variable keys the platform fills itself, so the setup hooks
+never prompt a user for them and the credential forms never ask for them.
 
-Used by setup hooks to exclude these keys from the "missing
-variables" prompt and by the session composer to inject their
-values into runtime env at submit time.
-
-Platform builders who manage setup hooks directly can use this
-set to extend their own `poolKeys`.
-
-
-### SystemEnvVarOptions
-
-Options for [`resolveSystemEnvVarValues`](#resolvesystemenvvarvalues) and [`resolveDeclaredSystemEnvVars`](#resolvedeclaredsystemenvvars).
-
-<TypeTable
-  type={{
-    publicBaseUrl: { type: "string", description: "The server's public base URL, the value `StigmerProvider`'s `publicBaseUrl` carries. Takes precedence over the client's `baseUrl`; only an absolute `http(s)` URL counts." },
-  }}
-/>
-
-
-### toGrpcAddress
-
-Convert an HTTP(S) base URL to a gRPC host:port address.
-
-The Stigmer server serves both gRPC and gRPC-Web on the same
-endpoint, so stripping the protocol and extracting host:port
-produces a valid gRPC dial target. The port is always explicit
-(80 for http, 443 for https, when the URL names none), because the
-mcp-server derives TLS from it. Any input that is not an http(s) URL
-(a scheme-less `host:port`, a relative path) is returned unchanged;
-[`buildSystemEnvVars`](#buildsystemenvvars) injects only an address built from an
-absolute URL. The runner's `grpcTarget` applies the same rule.
-
-```tsx
-function toGrpcAddress(httpUrl: string): string
-```
-
-```tsx
-toGrpcAddress("http://localhost:7234")   // "localhost:7234"
-toGrpcAddress("https://api.stigmer.ai")  // "api.stigmer.ai:443"
-toGrpcAddress("https://api.stigmer.ai:8443") // "api.stigmer.ai:8443"
-toGrpcAddress("localhost:7234")          // "localhost:7234"
-```
+Platform builders who manage setup hooks directly can use this set to
+extend their own `poolKeys`.
 
 
 ### ToolCredentialsReadiness

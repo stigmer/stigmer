@@ -46,6 +46,7 @@ import type { IpcCommand, IpcResponse } from "./ipc-protocol.js";
 
 import { handleUnhandledRejection } from "./activities/execute-cursor/rejection-capture.js";
 import { installProcessPipeGuards, reportFatal } from "./pipe-safety.js";
+import { armExitBackstop } from "./exit-backstop.js";
 
 // Guard the host pipes before anything writes to them. A dropped stderr/stdout
 // reader otherwise turns the next write into an uncaught EPIPE loop that starves
@@ -510,17 +511,20 @@ async function main(): Promise<void> {
     await runManagerMode(config);
     // Manager mode is driven by the host over stdin. Once it returns — via the IPC `shutdown`
     // command or stdin EOF when the host process dies — exit deterministically so a stray open
-    // handle can't keep a shut-down runner alive as an orphan (issue #177). Static mode is left
-    // to exit naturally so its OTel flush completes.
+    // handle can't keep a shut-down runner alive as an orphan (issue #177).
     process.exit(0);
   }
 
+  // Static and pool modes exit naturally once their shutdown has returned (worker drained,
+  // OTel flushed). The backstop is the safety net, not the path: a healthy runner exits in
+  // milliseconds and it never fires; a leaked handle gets a named bound and a log line naming
+  // it, instead of holding the process for the orchestrator's whole grace (exit-backstop.ts).
   if (runnerMode === "pool") {
     await runPoolMode(config, poolMemberId!);
-    return;
+  } else {
+    await runStaticMode(config);
   }
-
-  await runStaticMode(config);
+  armExitBackstop();
 }
 
 main().catch((err) => {

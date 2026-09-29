@@ -773,6 +773,7 @@ export async function composeServer(
     {
       config: {
         backendEndpoint: config.sandboxBackendEndpoint,
+        mcpPublicEndpoint: config.sandboxMcpPublicEndpoint,
         temporalAddress: config.sandboxTemporalAddress,
         temporalNamespace: config.temporalNamespace,
         temporalConnectionEnv: temporalConnectionEnv(config.temporalConnection),

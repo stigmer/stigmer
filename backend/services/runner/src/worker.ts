@@ -34,7 +34,17 @@ export interface StartWorkerOptions {
   payloadCodecs?: PayloadCodec[];
 }
 
-export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
+/**
+ * The worker and the connection it polls on. The caller owns both: it runs
+ * and shuts down the worker, then closes the connection once `run()` has
+ * resolved (the SDK refuses to close a connection a worker still holds).
+ */
+export interface StartedWorker {
+  readonly worker: Worker;
+  readonly connection: NativeConnection;
+}
+
+export async function startWorker(opts: StartWorkerOptions): Promise<StartedWorker> {
   const { config, activities, payloadCodecs } = opts;
 
   const connection = await NativeConnection.connect({
@@ -109,5 +119,5 @@ export async function startWorker(opts: StartWorkerOptions): Promise<Worker> {
     },
   });
 
-  return worker;
+  return { worker, connection };
 }

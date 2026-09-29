@@ -41,14 +41,7 @@ export type {
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
 } from "./useSessionEnvPool.js";
-export {
-  SYSTEM_ENV_VAR_KEYS,
-  toGrpcAddress,
-  buildSystemEnvVars,
-  resolveSystemEnvVarValues,
-  resolveDeclaredSystemEnvVars,
-} from "./systemEnvVars.js";
-export type { SystemEnvVarOptions } from "./systemEnvVars.js";
+export { SYSTEM_ENV_VAR_KEYS } from "./systemEnvVars.js";
 export { EnvironmentPicker } from "./EnvironmentPicker.js";
 export type { EnvironmentPickerProps } from "./EnvironmentPicker.js";
 export { useToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";

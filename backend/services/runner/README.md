@@ -53,6 +53,8 @@ The runner has two **run modes**, selected by the `STIGMER_RUNNER_MODE` environm
 
 Static mode creates a single Temporal Worker that polls one task queue and runs until it receives `SIGTERM` / `SIGINT`. This is the right mode when the set of work is fixed at startup (a daemon or a pod dedicated to a queue).
 
+On a signal it drains the worker, releases the harnesses, closes its Temporal connection and flushes telemetry, and the process then exits on its own, normally within milliseconds. As the CLI entry (`stigmer-runner`, and the cloud's pool members, which end the same way), a process still alive 5 s after that is made to exit, with one log line naming the resources that kept it alive (`src/exit-backstop.ts`). That line means a leaked handle to fix, not a slow shutdown to tune.
+
 As a library:
 
 ```ts
@@ -229,7 +231,7 @@ These tune internal behavior or support testing. Most operators never set them.
 | `STREAMING_MAX_INTERVAL_MS` | `5000` | Maximum time before a forced keepalive status update. Clamped up to the min if set lower. |
 | `STREAMING_BURST_THRESHOLD` | `50` | Event count that triggers an immediate status update (burst protection). |
 | `SKIP_MCP_CONNECT_BACKFILL` | `false` | When `true`, skips MCP Connect backfill. |
-| `STIGMER_MCP_PUBLIC_ENDPOINT` | _(none)_ | The server's public endpoint. Fills `STIGMER_SERVER_ADDRESS` (as `host:port`) for MCP servers that declare it and carry no value; without it, only stdio servers are filled, from `STIGMER_BACKEND_ENDPOINT`. A value already present is never overridden. |
+| `STIGMER_MCP_PUBLIC_ENDPOINT` | _(none)_ | The server's public endpoint. A server that provisions this runner's sandbox sets it from its own configuration (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`). Fills `STIGMER_SERVER_ADDRESS` (as `host:port`) for MCP servers that declare it and carry no value; without it, only stdio servers are filled, from `STIGMER_BACKEND_ENDPOINT`. A value already present is never overridden. |
 | `CURSOR_EVENT_RECORD_DIR` | _(none)_ | Directory to record Cursor harness events (debugging/fixtures). |
 | `V3_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent harness events (debugging/fixtures). |
 | `RECORD_FIXTURES` | `0` | When `1`, records HTTP fixtures for replay-based tests. |

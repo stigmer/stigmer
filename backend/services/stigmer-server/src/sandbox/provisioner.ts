@@ -134,6 +134,16 @@ export interface SandboxDriverConfig {
    * STIGMER_BACKEND_ENDPOINT.
    */
   readonly backendEndpoint: string;
+  /**
+   * The server's PUBLIC address, the one a remote MCP server can dial back
+   * (STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT). Injected as
+   * STIGMER_MCP_PUBLIC_ENDPOINT, from which the runner fills a declared,
+   * missing STIGMER_SERVER_ADDRESS (the runner's platform-server-address
+   * module, stigmer/stigmer#1447). Empty injects nothing: the runner then
+   * fills only its stdio children, and a remote server's templated address
+   * stays unresolved rather than guessed.
+   */
+  readonly mcpPublicEndpoint: string;
   /** Temporal address as reachable from inside a sandbox (TEMPORAL_SERVICE_ADDRESS). */
   readonly temporalAddress: string;
   /** The Temporal namespace the sandbox's runner polls in (TEMPORAL_NAMESPACE). */

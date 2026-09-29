@@ -424,13 +424,14 @@ fn negotiate_ready(line: &str) -> Result<u32, RunnerHostError> {
 }
 
 /// Env keys `extra_env` may not set: every key [`build_env`] can emit. Each has a typed
-/// `RunnerConfig` field (or, for `STIGMER_RUNNER_MODE` / `NODE_TLS_REJECT_UNAUTHORIZED`,
-/// is derived by the host), so an `extra_env` entry could only shadow or contradict it.
+/// `RunnerConfig` field (or, for `STIGMER_RUNNER_MODE` / `NODE_TLS_REJECT_UNAUTHORIZED` /
+/// `STIGMER_MCP_PUBLIC_ENDPOINT`, is derived by the host), so an `extra_env` entry could only shadow or contradict it.
 /// The `reserved_env_covers_everything_build_env_emits` test keeps this list and
 /// `build_env` from drifting apart.
 const RESERVED_ENV_KEYS: &[&str] = &[
     "STIGMER_RUNNER_MODE",
     "STIGMER_BACKEND_ENDPOINT",
+    "STIGMER_MCP_PUBLIC_ENDPOINT",
     "TEMPORAL_SERVICE_ADDRESS",
     "TEMPORAL_NAMESPACE",
     "STIGMER_TOKEN",
@@ -451,6 +452,11 @@ const RESERVED_ENV_KEYS: &[&str] = &[
 /// embedding path, where the runner self-discovers Temporal from the control
 /// plane using `STIGMER_TOKEN`.
 ///
+/// `STIGMER_MCP_PUBLIC_ENDPOINT` follows `stigmer_endpoint`: the host's app reaches
+/// the server there, so it is the address a remote MCP server that declares
+/// `STIGMER_SERVER_ADDRESS` is given too (stigmer/stigmer#1447). The runner fills
+/// that key from it and never overrides a value the user saved.
+///
 /// Assumes `extra_env` passed [`validate_extra_env`], so appending it cannot
 /// duplicate a key emitted above.
 fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
@@ -458,6 +464,10 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
         ("STIGMER_RUNNER_MODE".to_string(), "manager".to_string()),
         (
             "STIGMER_BACKEND_ENDPOINT".to_string(),
+            config.stigmer_endpoint.clone(),
+        ),
+        (
+            "STIGMER_MCP_PUBLIC_ENDPOINT".to_string(),
             config.stigmer_endpoint.clone(),
         ),
     ];
@@ -718,6 +728,10 @@ mod tests {
         assert_eq!(env_value(&env, "STIGMER_RUNNER_MODE"), Some("manager"));
         assert_eq!(
             env_value(&env, "STIGMER_BACKEND_ENDPOINT"),
+            Some("https://api.stigmer.ai")
+        );
+        assert_eq!(
+            env_value(&env, "STIGMER_MCP_PUBLIC_ENDPOINT"),
             Some("https://api.stigmer.ai")
         );
         assert_eq!(env_value(&env, "STIGMER_TOKEN"), Some("tok"));

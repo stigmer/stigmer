@@ -263,9 +263,8 @@ export function McpServerDetailView({
   const handleOAuthSignIn = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
 
-    const envKeys = Object.keys(mcpServer.spec?.env ?? {});
     try {
-      await oauth.startOAuth(mcpServer.metadata.id, activeOrg ?? org, envKeys);
+      await oauth.startOAuth(mcpServer.metadata.id, activeOrg ?? org);
       credentials.refetch();
       refetch();
     } catch {
@@ -305,9 +304,8 @@ export function McpServerDetailView({
       return;
     }
 
-    const envKeys = Object.keys(mcpServer.spec?.env ?? {});
     try {
-      await connection.connect(mcpServer.metadata.id, activeOrg ?? org, undefined, envKeys);
+      await connection.connect(mcpServer.metadata.id, activeOrg ?? org);
       // Discovery succeeded — retire the OAuth chain's stale
       // discovery-failure error so the banner doesn't outlive the state
       // it described.
@@ -330,9 +328,8 @@ export function McpServerDetailView({
         }
 
         if (mcpServer?.metadata?.id) {
-          const envKeys = Object.keys(mcpServer.spec?.env ?? {});
           const connectOrg = activeOrg ?? org;
-          await connection.connect(mcpServer.metadata.id, connectOrg, values, envKeys);
+          await connection.connect(mcpServer.metadata.id, connectOrg, values);
           refetch();
         }
 

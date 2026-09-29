@@ -239,6 +239,15 @@ export interface ServerConfig {
    */
   readonly sandboxBackendEndpoint: string;
   /**
+   * The server's public address as a remote MCP server reaches it
+   * (STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT), handed to every provisioned
+   * sandbox's runner as STIGMER_MCP_PUBLIC_ENDPOINT
+   * (sandbox/provisioner.ts, SandboxDriverConfig.mcpPublicEndpoint).
+   * Optional: empty hands nothing, and remote servers that template
+   * STIGMER_SERVER_ADDRESS get no address.
+   */
+  readonly sandboxMcpPublicEndpoint: string;
+  /**
    * Temporal address as reachable from inside a sandbox
    * (STIGMER_SANDBOX_TEMPORAL_ADDRESS). Defaults to TEMPORAL_HOST_PORT —
    * right whenever both resolve the same way (host networking,
@@ -382,6 +391,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     sandboxBackendEndpoint: envString(
       env,
       "STIGMER_SANDBOX_BACKEND_ENDPOINT",
+      "",
+    ),
+    sandboxMcpPublicEndpoint: envString(
+      env,
+      "STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT",
       "",
     ),
     sandboxTemporalAddress: envString(

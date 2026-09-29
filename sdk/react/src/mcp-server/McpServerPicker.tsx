@@ -428,11 +428,6 @@ export function McpServerPicker({
       (oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.PENDING ||
         oauthStatus?.vendorApprovalStatus === VendorApprovalStatus.REJECTED);
 
-    // System env vars are only injected when the server declares them —
-    // the dialog and detail view pass these on every OAuth chain and
-    // bare connect; the picker must too.
-    const declaredEnvKeys = Object.keys(entry.mcpServer.spec?.env ?? {});
-
     // Scope the shared hooks' signals to the server they belong to.
     const isOwnOAuthAttempt = oauthAttemptKey === view.serverKey;
     const oauthError = isOwnOAuthAttempt ? oauth.error : null;
@@ -476,12 +471,7 @@ export function McpServerPicker({
                 // server-side. Retry bare discovery; never relaunch the
                 // popup (stigmer/stigmer#418).
                 try {
-                  await discovery.connect(
-                    serverId,
-                    connectOrg,
-                    undefined,
-                    declaredEnvKeys,
-                  );
+                  await discovery.connect(serverId, connectOrg);
                   // Discovery succeeded — retire the chain's stale
                   // failure and re-evaluate the entry so it resolves
                   // ready with the discovered tools.
@@ -494,7 +484,7 @@ export function McpServerPicker({
               }
 
               try {
-                await oauth.startOAuth(serverId, connectOrg, declaredEnvKeys);
+                await oauth.startOAuth(serverId, connectOrg);
                 setup.onServerAdded(ref);
               } catch {
                 // error state managed by oauth hook

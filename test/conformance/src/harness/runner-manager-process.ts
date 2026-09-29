@@ -82,6 +82,8 @@ export async function spawnManagerRunner(opts: ManagerRunnerOptions): Promise<Ma
       TEMPORAL_SERVICE_ADDRESS: opts.temporalHostPort,
       TEMPORAL_NAMESPACE: "default",
       STIGMER_BACKEND_ENDPOINT: opts.backendEndpoint,
+      // As runner-process.ts: the public address `stigmer up` names.
+      STIGMER_MCP_PUBLIC_ENDPOINT: opts.backendEndpoint,
       STIGMER_CLOUD_API_URL: opts.registryOrigin,
       WORKSPACE_ROOT_DIR: workspaceDir,
       LOG_LEVEL: "info",

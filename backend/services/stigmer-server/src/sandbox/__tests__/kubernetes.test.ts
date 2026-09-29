@@ -10,7 +10,9 @@
  *   - deprovision deletes Deployment + Secret (+ PVC when persistent);
  *   - the manifests carry the Java shapes: Recreate, the runner command,
  *     MODE=local, the secretKeyRef token env only when a token exists,
- *     the empty Secret for token-less sandboxes.
+ *     the empty Secret for token-less sandboxes;
+ *   - the server's public address rides as STIGMER_MCP_PUBLIC_ENDPOINT
+ *     only when configured (stigmer/stigmer#1447).
  */
 import { describe, expect, it } from "vitest";
 
@@ -33,6 +35,7 @@ const silentLogger = { info: () => {} };
 
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://stigmer-server.stigmer.svc:7234",
+  mcpPublicEndpoint: "https://api.example.com",
   temporalAddress: "temporal.stigmer.svc:7233",
   temporalNamespace: "stigmer",
   temporalConnectionEnv: {},
@@ -209,12 +212,26 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
     );
     expect(envByName.get("TEMPORAL_NAMESPACE")?.value).toBe("stigmer");
     expect(envByName.get("WORKSPACE_ROOT_DIR")?.value).toBe("/workspace");
+    expect(envByName.get("STIGMER_MCP_PUBLIC_ENDPOINT")?.value).toBe(
+      config.mcpPublicEndpoint,
+    );
     expect(envByName.get("STIGMER_TOKEN")?.valueFrom?.secretKeyRef?.name).toBe(
       `${sandboxBaseName("session", "ses_1")}-env`,
     );
     expect(deployment.spec?.template.spec?.automountServiceAccountToken).toBe(
       false,
     );
+  });
+
+  it("a server with no public address hands the runner none", () => {
+    const deployment = buildSandboxDeployment("session", "ses_1", env, {
+      ...config,
+      mcpPublicEndpoint: "",
+    });
+    const names = (
+      deployment.spec?.template.spec?.containers[0]?.env ?? []
+    ).map((entry) => entry.name);
+    expect(names).not.toContain("STIGMER_MCP_PUBLIC_ENDPOINT");
   });
 
   it("a token-less sandbox omits the token env but keeps the (empty) Secret", () => {

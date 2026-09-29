@@ -6,8 +6,6 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { connectAndWait, type EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
-import { usePublicBaseUrl } from "../public-base-url-context.js";
-import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars.js";
 import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useMcpServerConnect}. */
@@ -23,23 +21,19 @@ export interface UseMcpServerConnectReturn {
    * survives browser transport limits. Backends without the lane fall
    * back to the blocking `connect` RPC transparently.
    *
-   * Platform system env vars (`STIGMER_SERVER_ADDRESS`,
-   * `STIGMER_API_KEY`) are injected only when the MCP server
-   * declares them in its `spec.env`. Pass `declaredEnvKeys` so the
-   * hook can determine which system vars the server actually needs.
-   * When omitted, no system vars are injected.
+   * Without `runtimeEnv`, the backend resolves the server's declared
+   * variables itself: OAuth tokens from the managed grant, the rest from
+   * the caller's personal environment. The platform's own keys are
+   * filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`).
    *
-   * When `runtimeEnv` is provided, those values are merged on top
-   * (caller values win). The backend merges the result on top of
-   * the user's personal environment so saved credentials (e.g.,
-   * OAuth tokens) are still resolved.
+   * With `runtimeEnv`, the backend connects with exactly those values
+   * and resolves nothing else (stigmer/stigmer#1453), so pass it only
+   * for a one-time connect whose values the caller supplies whole.
    *
    * @param mcpServerId - System-generated ID of the MCP server (metadata.id).
    * @param org - The caller's active organization slug. Required for
    *   OAuth grant lookup and personal environment resolution.
-   * @param runtimeEnv - Optional additional environment variables.
-   * @param declaredEnvKeys - Keys from the server's `spec.env` declaration.
-   *   System vars are only injected when declared here.
+   * @param runtimeEnv - Optional one-time values for this connect.
    * @returns The updated McpServer with populated status.discovered_capabilities
    *          and status.tool_approvals.
    */
@@ -47,7 +41,6 @@ export interface UseMcpServerConnectReturn {
     mcpServerId: string,
     org: string,
     runtimeEnv?: Record<string, EnvVarInput>,
-    declaredEnvKeys?: readonly string[],
   ) => Promise<McpServer>;
   /** `true` while the connect operation is in flight (start through settle). */
   readonly isConnecting: boolean;
@@ -65,14 +58,9 @@ export interface UseMcpServerConnectReturn {
  * server's tools and resource templates, then classifies each tool's
  * approval policy via a structured-output LLM call.
  *
- * Platform system env vars (`STIGMER_SERVER_ADDRESS`,
- * `STIGMER_API_KEY`) are injected only when the target MCP server
- * declares them in `spec.env`. Pass the server's declared env keys
- * via `declaredEnvKeys` so the hook knows which system vars to
- * include. When not provided, no system vars are injected.
- *
- * Additional one-time credentials can be passed via `runtimeEnv`
- * and will override both system vars and personal env values.
+ * Saved credentials need nothing from the caller: the backend resolves
+ * them. One-time credentials ride `runtimeEnv` and replace that
+ * resolution for this connect.
  *
  * @example
  * ```tsx
@@ -81,22 +69,19 @@ export interface UseMcpServerConnectReturn {
  *
  * // Saved credentials: already in personal environment
  * async function handleConnectSaved() {
- *   const envKeys = Object.keys(mcpServer.spec?.env ?? {});
- *   await connect(mcpServer.metadata.id, undefined, envKeys);
+ *   await connect(mcpServer.metadata.id, org);
  *   refetch();
  * }
  *
  * // One-time use: pass credentials directly
  * async function handleConnectTemporary(values: Record<string, EnvVarInput>) {
- *   const envKeys = Object.keys(mcpServer.spec?.env ?? {});
- *   await connect(mcpServer.metadata.id, values, envKeys);
+ *   await connect(mcpServer.metadata.id, org, values);
  *   refetch();
  * }
  * ```
  */
 export function useMcpServerConnect(): UseMcpServerConnectReturn {
   const stigmer = useStigmer();
-  const publicBaseUrl = usePublicBaseUrl() ?? undefined;
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -107,19 +92,13 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
       mcpServerId: string,
       org: string,
       runtimeEnv?: Record<string, EnvVarInput>,
-      declaredEnvKeys?: readonly string[],
     ): Promise<McpServer> => {
       setIsConnecting(true);
       setError(null);
 
       try {
-        const systemEnv = declaredEnvKeys
-          ? await resolveDeclaredSystemEnvVars(stigmer, declaredEnvKeys, { publicBaseUrl })
-          : {};
-        const mergedEnv = { ...systemEnv, ...(runtimeEnv ?? {}) };
-
         const runtimeEnvMap: Record<string, { value: string; isSecret: boolean }> = {};
-        for (const [key, envInput] of Object.entries(mergedEnv)) {
+        for (const [key, envInput] of Object.entries(runtimeEnv ?? {})) {
           runtimeEnvMap[key] = {
             value: envInput.value,
             isSecret: envInput.isSecret ?? false,
@@ -143,7 +122,7 @@ export function useMcpServerConnect(): UseMcpServerConnectReturn {
         setIsConnecting(false);
       }
     },
-    [stigmer, publicBaseUrl],
+    [stigmer],
   );
 
   return { connect, isConnecting, error, clearError };

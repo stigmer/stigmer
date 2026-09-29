@@ -54,6 +54,9 @@ describe("buildRunnerEnv", () => {
     expect(env.MODE).toBe("local");
     expect(env.STIGMER_RUNNER_MODE).toBeUndefined(); // static mode
     expect(env.STIGMER_BACKEND_ENDPOINT).toBe("http://localhost:7234");
+    expect(env.STIGMER_MCP_PUBLIC_ENDPOINT, "remote MCP servers get the local server's address").toBe(
+      "http://localhost:7234",
+    );
     expect(env.TEMPORAL_SERVICE_ADDRESS).toBe("127.0.0.1:7233");
     expect(env.TEMPORAL_NAMESPACE).toBe("default");
     expect(env.WORKSPACE_ROOT_DIR).toBe("/home/u/.stigmer/data/workspace");

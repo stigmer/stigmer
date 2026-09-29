@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import type { Config, TokenRef } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
+import type { NativeConnection } from "@temporalio/worker";
 import type { WorkerActivities } from "./worker.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
@@ -348,7 +349,7 @@ export async function createStigmerRunner(
   const shutdownController = registerWorkerShutdownSignal(config.taskQueue);
 
   const { startWorker } = await import("./worker.js");
-  const worker = await startWorker({ config, activities, payloadCodecs });
+  const { worker, connection } = await startWorker({ config, activities, payloadCodecs });
   markBoot("worker_created");
 
   return {
@@ -363,18 +364,10 @@ export async function createStigmerRunner(
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
-      // The worker has drained — every harness releases what it still holds
-      // (the Cursor harness: its parked session agents, whose executor leases
-      // dispose with the process, #215). Logged, never thrown: the drain has
-      // already happened and the process is exiting, so a teardown failure
-      // must not mask a clean stop.
-      try {
-        await shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS));
-      } catch (err) {
-        console.error(
-          `[runner] Harness shutdown failed after the worker drained (continuing): ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
+      await releaseAfterDrain({
+        shutdownHarnesses: () => shutdownHarnesses(adaptersOf(HARNESS_ADAPTERS)),
+        connection,
+      });
     },
     shutdown() {
       tokenRenewal?.stop();
@@ -402,6 +395,54 @@ function validateOptions(options: StigmerRunnerOptions): void {
   // temporalAddress is intentionally NOT required: when omitted, the runner
   // discovers it from the control plane (token-only embedding), falling back to
   // localhost when no token is present.
+}
+
+/** What a drained static worker still holds, released by {@link releaseAfterDrain}. */
+export interface DrainedWorkerResources {
+  /** Releases what every harness still holds (the registry's `shutdownHarnesses` over the table). */
+  readonly shutdownHarnesses: () => Promise<void>;
+  /** The Temporal connection the drained worker polled on; this runner opened it, so it closes it. */
+  readonly connection: Pick<NativeConnection, "close">;
+}
+
+/**
+ * The static runner's teardown once `worker.run()` has resolved, in the
+ * manager's order (runner-manager.ts `shutdown`): harnesses, then the
+ * Temporal connection.
+ *
+ * - Harnesses first: they release what they still hold (the Cursor harness:
+ *   its parked session agents, whose executor leases dispose with the
+ *   process, #215) over their own channels, never the Temporal one.
+ * - The connection last, and only after the drain: the SDK refuses to close
+ *   a connection a worker still holds, and `run()` releases it on its way
+ *   out.
+ *
+ * Each step is logged, never thrown: the drain has already happened and the
+ * process is exiting, so a teardown failure must not mask a clean stop, and
+ * one step failing does not skip the next.
+ */
+export async function releaseAfterDrain(
+  resources: DrainedWorkerResources,
+  logError: (line: string) => void = (line) => console.error(line),
+): Promise<void> {
+  try {
+    await resources.shutdownHarnesses();
+  } catch (err) {
+    logError(
+      `[runner] Harness shutdown failed after the worker drained (continuing): ${errorText(err)}`,
+    );
+  }
+  try {
+    await resources.connection.close();
+  } catch (err) {
+    logError(
+      `[runner] Temporal connection close failed after the worker drained (continuing): ${errorText(err)}`,
+    );
+  }
+}
+
+function errorText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 /**

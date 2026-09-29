@@ -114,10 +114,11 @@ export interface Config {
    */
   readonly mcpBridgeEndpoint: string | null;
   /**
-   * The Stigmer server's public address as an operator names it to this
-   * runner (STIGMER_MCP_PUBLIC_ENDPOINT). When set, it fills a missing
+   * The Stigmer server's public address (STIGMER_MCP_PUBLIC_ENDPOINT), which
+   * the server hands every sandbox it provisions or an operator names to a
+   * runner started by hand. When set, it fills a missing
    * STIGMER_SERVER_ADDRESS for any MCP server that declares the key; null
-   * leaves remote servers to the value the page supplied. See
+   * leaves a remote server's address unfilled. See
    * shared/platform-server-address.ts.
    */
   readonly mcpPublicEndpoint: string | null;

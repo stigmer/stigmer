@@ -96,8 +96,9 @@ You never edit the compose file or the chart.
 | Files a run produces                         | The `artifacts` volume                | The `stigmer-artifacts` claim        | The release. One disk the server writes and the runner reads.               |
 | The runner's own state                       | The `runner-data` volume              | The `stigmer-runner-data` claim      | The release. Checkpoints and Agents' working directories, not backup state. |
 | The runner's own API key                     | `STIGMER_TOKEN`                       | `runner.stigmerToken.existingSecret` | You, once [authentication is on](./authentication#give-the-runner-its-key). |
+| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                  | `server.publicUrl`                   | You, when clients reach the API anywhere but this machine's port.           |
 
-Three of these rows carry a design decision worth knowing.
+Four of these rows carry a design decision worth knowing.
 
 **The LLM key lives with the runner and nowhere else.** The server has no
 setting for it. Agents on the native Harness need `ANTHROPIC_API_KEY`; Agents on
@@ -118,6 +119,13 @@ that per-run credential, so the runner's key doesn't decide whose runs it serves
 or who is recorded as running them. The authenticated install asks for it; the
 authentication guide says when to create it, and
 [Back up and upgrade your stack](./operations) how to rotate it.
+
+**An MCP server's way back to the server comes from the runner.** A tool server
+that declares `STIGMER_SERVER_ADDRESS` and holds no value for it gets one from
+the runner: the public address for a remote server, and the address the runner
+dials for a server it starts itself. A value you saved for that key always wins.
+The public address is the one clients reach the API on, so the stack's own
+default, this machine's port, only serves tool servers on this machine.
 
 ## One trust domain
 
@@ -156,10 +164,12 @@ Session) and `kubernetes` (a Deployment per Session in the namespace
 `STIGMER_SANDBOX_K8S_NAMESPACE` names). The container drivers need the addresses
 a sandbox reaches the server and Temporal on, `STIGMER_SANDBOX_BACKEND_ENDPOINT`
 and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and take the image and command from
-`STIGMER_SANDBOX_RUNNER_IMAGE` and `STIGMER_SANDBOX_RUNNER_COMMAND`. Each
-sandboxed runner gets the server's Temporal namespace and its
-`STIGMER_TEMPORAL_*` connection settings, the credentials through the same
-channel as the runner's token.
+`STIGMER_SANDBOX_RUNNER_IMAGE` and `STIGMER_SANDBOX_RUNNER_COMMAND`. Every
+driver hands its runners the server's public address when
+`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT` names it; without it, remote tool servers
+that declare `STIGMER_SERVER_ADDRESS` get no address. Each sandboxed runner gets
+the server's Temporal namespace and its `STIGMER_TEMPORAL_*` connection
+settings, the credentials through the same channel as the runner's token.
 
 A provisioner changes how runs are routed. Each Session gets its own queue,
 `session:<id>`, which is `STIGMER_ACTIVITY_ROUTING=session`; and a Session is

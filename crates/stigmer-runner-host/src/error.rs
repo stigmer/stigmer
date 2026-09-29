@@ -100,6 +100,7 @@ fn typed_field_hint(key: &str) -> &'static str {
         "TEMPORAL_SERVICE_ADDRESS" => "; use the `temporal_address` field instead",
         "TEMPORAL_NAMESPACE" => "; use the `temporal_namespace` field instead",
         "STIGMER_BACKEND_ENDPOINT" => "; use the `stigmer_endpoint` field instead",
+        "STIGMER_MCP_PUBLIC_ENDPOINT" => "; it follows the `stigmer_endpoint` field",
         "WORKSPACE_ROOT_DIR" => "; use the `workspace_root_dir` field instead",
         "STIGMER_PROXY_ENDPOINT" => "; use the `proxy_endpoint` field instead",
         _ => "",
