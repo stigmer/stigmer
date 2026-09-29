@@ -12,12 +12,15 @@
  *
  * Deliberately NO search-extractor and NO index steps anywhere in this
  * domain: memory is not_search_indexed by design (privacy — content is
- * subject-only and must not surface in org-visible search).
+ * subject-only and must not surface in org-visible search). The list
+ * index the reads use (list-index.ts) is not search: the store keeps it
+ * beside the row, and it holds the org, the subject id and the creation
+ * instant, never content.
  *
  * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/memory.test.ts.
  */
-import { create, equals, fromBinary, isMessage } from "@bufbuild/protobuf";
+import { create, equals, isMessage } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 import type { ConnectError } from "@connectrpc/connect";
 
@@ -52,7 +55,6 @@ import {
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
 import { memoryCaptureCredentialOf } from "../../pipeline/steps/guard-memory-capture.js";
-import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import {
@@ -61,6 +63,7 @@ import {
 } from "../identityaccount/resolve.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { listOrganizationMemories, listSubjectMemories } from "./queries.js";
 import {
   MAX_MEMORIES_PER_SUBJECT,
   MEMORY_ACCOUNT_DISABLED_MESSAGE,
@@ -349,10 +352,9 @@ export function newCheckMemoryEnablementStep(
 /**
  * CheckMemoryCap — Go checkMemoryCapStep: enforces the
  * per-subject-per-org record ceiling at create (DD-006 D5). Counted
- * across all lifecycle states. A full-scan count matches the store's
- * local/OSS posture at the kind's dozens-of-records scale (the schedule
- * list precedent); the cloud edition counts through an indexed
- * repository query.
+ * across all lifecycle states, from the subject's own rows in the org
+ * through the memory list index (queries.ts), so a capture never reads
+ * another person's or another organization's memories.
  */
 export function newCheckMemoryCapStep(
   store: Store,
@@ -364,26 +366,11 @@ export function newCheckMemoryCapStep(
       const org = newState.metadata?.org ?? "";
       const subject = newState.spec?.subjectIdentityAccountId ?? "";
 
-      let rows: Uint8Array[];
+      let count: number;
       try {
-        rows = await store.listResources(ApiResourceKind.memory);
+        count = (await listSubjectMemories(store, org, subject)).length;
       } catch (error) {
         throw internalError(error, "failed to count memories for cap check");
-      }
-
-      let count = 0;
-      for (const bytes of rows) {
-        const existing = unmarshalMemory(bytes);
-        if (existing === undefined) {
-          continue;
-        }
-        if ((existing.metadata?.org ?? "") !== org) {
-          continue;
-        }
-        if ((existing.spec?.subjectIdentityAccountId ?? "") !== subject) {
-          continue;
-        }
-        count++;
       }
 
       if (count >= MAX_MEMORIES_PER_SUBJECT) {
@@ -643,12 +630,12 @@ export function newTransitionMemoryLifecycleStep(
 }
 
 /**
- * ListMemoriesByOrg — Go listMemoriesByOrgStep (list.go): loads all
- * memories and filters by org, sorted by created_at descending (newest
- * first) — the schedule list posture. Ordering is chronological only;
- * grouping pending proposals first is the console's presentation concern
- * (DD-005 D4), deliberately not an RPC parameter at the kind's
- * dozens-of-records scale.
+ * ListMemoriesByOrg — Go listMemoriesByOrgStep (list.go): reads the
+ * org's memories through the memory list index (queries.ts), created_at
+ * descending (newest first) — the index order, which the read scope
+ * keeps. Ordering is chronological only; grouping pending proposals first
+ * is the console's presentation concern (DD-005 D4), deliberately not an
+ * RPC parameter at the kind's dozens-of-records scale.
  */
 export function newListMemoriesByOrgStep(
   store: Store,
@@ -661,20 +648,13 @@ export function newListMemoriesByOrgStep(
     ): Promise<void> {
       const org = ctx.input.org;
 
-      let rows: Uint8Array[];
+      let orgMemories: Memory[];
       try {
-        rows = await store.listResources(ApiResourceKind.memory);
+        orgMemories = await listOrganizationMemories(store, org);
       } catch (error) {
         throw internalError(error, "failed to list memories");
       }
 
-      const decoded: Memory[] = [];
-      for (const bytes of rows) {
-        const memory = unmarshalMemory(bytes);
-        if (memory !== undefined) {
-          decoded.push(memory);
-        }
-      }
       // 20260830.01 census lane 11: the org equality serves the Java
       // handler's org arm in both editions and runs FIRST; the scope
       // narrows the org's rows last (the scope is the last per-row
@@ -683,15 +663,8 @@ export function newListMemoriesByOrgStep(
         listReadScope,
         ctx.callerIdentity,
         ApiResourceKind.memory,
-        decoded.filter((memory) => (memory.metadata?.org ?? "") === org),
+        orgMemories,
         "",
-      );
-
-      memories.sort((a, b) =>
-        compareCreatedAtDesc(
-          a.status?.audit?.specAudit?.createdAt,
-          b.status?.audit?.specAudit?.createdAt,
-        ),
       );
 
       ctx.set(
@@ -703,16 +676,4 @@ export function newListMemoriesByOrgStep(
       );
     },
   };
-}
-
-/**
- * Decodes a stored memory, skipping invalid entries (should not happen in
- * normal operation) — Go unmarshalMemory.
- */
-function unmarshalMemory(data: Uint8Array): Memory | undefined {
-  try {
-    return fromBinary(MemorySchema, data);
-  } catch {
-    return undefined;
-  }
 }

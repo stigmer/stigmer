@@ -57,6 +57,7 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 
 import { createLogger } from "../../../boot/logger.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
+import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
@@ -86,7 +87,9 @@ let store: Store;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-create-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
+    listIndexes: LIST_INDEXES,
+  });
 });
 
 afterEach(() => {
@@ -403,11 +406,11 @@ function failingGetStore(): Store {
   });
 }
 
-/** Wraps the real store but fails every listResources (the scan-fault arm). */
-function failingListStore(): Store {
+/** Wraps the real store but fails every queryResources (the read-fault arm). */
+function failingQueryStore(): Store {
   return new Proxy(store, {
     get(target, prop, receiver) {
-      if (prop === "listResources") {
+      if (prop === "queryResources") {
         return async () => {
           throw new Error("simulated store fault");
         };
@@ -567,7 +570,7 @@ describe("newComposeRecalledMemoriesStep", () => {
     memoryEnabled?: boolean;
     memories?: SeededMemory[];
     failingGet?: boolean;
-    failingList?: boolean;
+    failingQuery?: boolean;
     wantEnabled: boolean;
     wantMemoryIds: string[];
   }> = [
@@ -716,11 +719,11 @@ describe("newComposeRecalledMemoriesStep", () => {
       wantMemoryIds: [],
     },
     {
-      name: "memory scan fault -> DISABLED, never enabled-with-zero-facts",
+      name: "memory read fault -> DISABLED, never enabled-with-zero-facts",
       orgId: "test-org",
       seedOrg: true,
       memoryEnabled: true,
-      failingList: true,
+      failingQuery: true,
       wantEnabled: false,
       wantMemoryIds: [],
     },
@@ -748,8 +751,8 @@ describe("newComposeRecalledMemoriesStep", () => {
       if (tt.failingGet) {
         stepStore = failingGetStore();
       }
-      if (tt.failingList) {
-        stepStore = failingListStore();
+      if (tt.failingQuery) {
+        stepStore = failingQueryStore();
       }
       const step = newComposeRecalledMemoriesStep(stepStore, silentLogger);
 
@@ -895,6 +898,26 @@ describe("the compose steps where callers are persons", () => {
       state: MemoryLifecycleState.lifecycle_state_proposed,
       createdAt: new Date("2026-09-04T00:00:00Z"),
     });
+    // Carol's own confirmed fact in another organization: the subject key
+    // reads her rows everywhere, and the org narrows them (stigmer#1405).
+    await seedMemory({
+      id: "mem_carol_elsewhere",
+      orgId: "other-org",
+      subject: CAROL,
+      content: "Carol's, elsewhere",
+      state: confirmed,
+      createdAt: new Date("2026-08-15T00:00:00Z"),
+    });
+    // Seeded last and dated first: recall's order is created_at, not the
+    // index's newest-first read or the write order.
+    await seedMemory({
+      id: "mem_carol_first",
+      orgId: "test-org",
+      subject: CAROL,
+      content: "Carol's first",
+      state: confirmed,
+      createdAt: new Date("2026-08-31T00:00:00Z"),
+    });
   }
 
   async function recall(
@@ -907,11 +930,14 @@ describe("the compose steps where callers are persons", () => {
     return ctx.newState.spec?.recalledMemories;
   }
 
-  it("recalls exactly the run's person's confirmed facts", async () => {
+  it("recalls exactly the run's person's confirmed facts in its organization, oldest first", async () => {
     await seedRecallRows();
     const got = await recall(directory({ memoryEnabled: true }), carol);
     expect(got?.enabled).toBe(true);
-    expect(got?.facts.map((f) => f.memoryId)).toEqual(["mem_carol"]);
+    expect(got?.facts.map((f) => f.memoryId)).toEqual([
+      "mem_carol_first",
+      "mem_carol",
+    ]);
   });
 
   it("recalls nothing and offers no remember tool when the person's own switch is off", async () => {

@@ -9,17 +9,16 @@
  * embeds, channel senders, schedule runs — stay refused; "the label is
  * not authorization; the server refuses."
  *
- * The credential class is read from the VERIFIED token's own claims
- * (position 1 verified it; decoding here is a read of trusted state):
- * every Stigmer-minted non-first-party credential carries the
- * `platform_client_id` claim (StigmerJwtIssuer stamps it on user, guest,
- * channel, and schedule tokens alike), so its presence IS the exclusion
- * the Java RequestCallerIdentity.isFirstPartyHumanOperator computes. The
- * claim counts only on a platform token (`iss: "stigmer"`, read through
- * decodeVerifiedPlatformTokenPayload as the PlatformClient origin guard
- * reads it): a bearer another verifier claimed is some other issuer's,
- * whatever claims it carries, and is never taken for a Stigmer-minted
- * one (stigmer#1312).
+ * Who counts as that operator is stated ONCE, in
+ * `isFirstPartyHumanOperator` (extensions/identity.ts), the same
+ * allow-list recall and the person's declared preferences read on
+ * execution create, so the two halves of the memory loop cannot disagree
+ * about who a person is (stigmer#1406): a wire `user` that is not
+ * server-composed and whose bearer is not a PlatformClient token. Being
+ * an allow-list, it refuses a caller class this gate has never heard of
+ * — the half that must fail closed is capture (CheckMemoryEnablement's
+ * header). The PlatformClient arm reads the VERIFIED token's own claims,
+ * and only on a platform token (stigmer#1312, the predicate's own doc).
  *
  * RUNNER credentials carry neither the machine class nor that claim —
  * their eligibility is EDITION POLICY, so the gate consults the composed
@@ -34,16 +33,15 @@
  * below), `no-opinion` (not a credential the implementation classifies —
  * this gate's own logic applies). The capability throws its own
  * byte-pinned refusal for the org-mismatch arm. With no capability
- * composed the gate's logic is byte-identical to before the seam: OSS
- * trusted-local callers carry no token and OIDC console logins are not
- * platform tokens — the step admits both, so the single-user posture is
- * unchanged (proven by the rosters).
+ * composed only the allow-list runs: the OSS trusted-local identity and
+ * OIDC console logins are wire `user`s with no platform token, so the
+ * single-user posture is unchanged (proven by the rosters).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import {
-  carriesPlatformClientClaim,
+  isFirstPartyHumanOperator,
   isServerComposedRequest,
 } from "../../extensions/identity.js";
 import type { PipelineStep } from "../pipeline.js";
@@ -108,10 +106,7 @@ export function newGuardMemoryCaptureStep<Desc extends DescMessage>(
           }
         }
       }
-      if (
-        caller.callerClass === "machine" ||
-        carriesPlatformClientClaim(caller.rawToken)
-      ) {
+      if (!isFirstPartyHumanOperator(caller)) {
         throw new ConnectError(
           MEMORY_CAPTURE_CALLER_MESSAGE,
           Code.PermissionDenied,

@@ -3,14 +3,16 @@
  * stigmer-cloud#564): the authorizeMemoryCapture capability's three
  * verdicts (admit stashes the proved claims, refuse answers the
  * byte-pinned PERMISSION_DENIED copy, no-opinion falls through to the
- * gate's own machine/platform_client_id logic), the capture org handed to
- * the capability, the org-mismatch throw propagating untouched, and the
- * absent-capability posture staying byte-identical to the pre-seam gate
- * (trusted-local and OIDC callers admit; machine and
- * platform_client_id-carrying callers refuse). The claim counts only on a
- * platform token (stigmer#1312): the refusing cases carry tokens signed by
- * the envelope every Stigmer lane mints through, and another issuer's
- * token carrying the same claim is admitted.
+ * first-party allow-list), the capture org handed to the capability, the
+ * org-mismatch throw propagating untouched, and the allow-list itself
+ * (stigmer#1406): trusted-local and OIDC callers admit; machine,
+ * PlatformClient-token and every other caller class — runner, the hosted
+ * edition's guest / channel / schedule lanes, a class no edition has
+ * named yet — refuse, with the capability absent or answering
+ * no-opinion. The claim counts only on a platform token (stigmer#1312):
+ * the refusing cases carry tokens signed by the envelope every Stigmer
+ * lane mints through, and another issuer's token carrying the same claim
+ * is admitted.
  */
 import { generateKeyPairSync } from "node:crypto";
 
@@ -42,6 +44,20 @@ const LOCAL_USER: CallerIdentity = {
   issuer: "",
   rawToken: "",
 };
+
+/**
+ * Every caller class that is not a person at the console, CLI or SDK:
+ * the OSS runner and machine classes, the hosted edition's minted lanes
+ * (their class is their token_type), and a class no edition names yet.
+ */
+const NON_PERSON_CLASSES = [
+  "machine",
+  "runner",
+  "guest",
+  "channel",
+  "schedule",
+  "a_lane_added_later",
+];
 
 /** A cloud-shaped caller whose class is its token_type (sandbox lane). */
 const SANDBOX_CALLER: CallerIdentity = {
@@ -182,7 +198,11 @@ describe("GuardMemoryCapture with the capability composed", () => {
         return { verdict: "no-opinion" };
       }),
     );
-    await step.execute(memoryCtx(SANDBOX_CALLER, "org_zeta"));
+    // No opinion on a caller that is not a person: the allow-list refuses
+    // it after the capability has seen the request.
+    await expect(
+      step.execute(memoryCtx(SANDBOX_CALLER, "org_zeta")),
+    ).rejects.toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
     expect(observed).toEqual([{ caller: SANDBOX_CALLER, org: "org_zeta" }]);
   });
 
@@ -216,6 +236,23 @@ describe("GuardMemoryCapture with the capability composed", () => {
     );
   });
 
+  it.each(NON_PERSON_CLASSES)(
+    "no-opinion falls through: a %s caller is refused, with or without the claim",
+    async (callerClass) => {
+      const step = newGuardMemoryCaptureStep<typeof MemorySchema>(
+        providerWith(() => ({ verdict: "no-opinion" })),
+      );
+      for (const rawToken of [
+        "",
+        mintedToken({ platform_client_id: "pc_1" }),
+      ]) {
+        await expect(
+          step.execute(memoryCtx({ ...LOCAL_USER, callerClass, rawToken })),
+        ).rejects.toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
+      }
+    },
+  );
+
   it("no-opinion falls through: another issuer's platform_client_id claim is admitted", async () => {
     // Both editions' capabilities answer no-opinion for a person, so this
     // is the path an OIDC login takes in production.
@@ -243,7 +280,7 @@ describe("GuardMemoryCapture with the capability composed", () => {
   });
 });
 
-describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => {
+describe("GuardMemoryCapture without the capability (the allow-list alone)", () => {
   it("admits trusted-local and OIDC callers", async () => {
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
     await step.execute(memoryCtx(LOCAL_USER));
@@ -288,11 +325,31 @@ describe("GuardMemoryCapture without the capability (the pre-seam gate)", () => 
     );
   });
 
-  it("admits a runner-shaped caller — the recorded pre-fix posture", async () => {
-    // With no capability composed the gate cannot classify runner
-    // credentials — the single-user OSS posture admits them (the #564
-    // narrowing is CLOUD policy, shipped in the cloud capability).
+  it("refuses a runner-shaped caller no capability classifies", async () => {
+    // A runner acting for a person captures only through a provider that
+    // proves whose run it is (the capability's admit). Unclassified, it is
+    // not the person, so the allow-list refuses it (stigmer#1406) — the
+    // trusted-local laptop's runner is not this caller: no verifier claims
+    // its token there, so it arrives as the operator (pipeline/interceptors/auth.ts).
     const step = newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
-    await step.execute(memoryCtx(SANDBOX_CALLER));
+    await expect(step.execute(memoryCtx(SANDBOX_CALLER))).rejects.toThrowError(
+      MEMORY_CAPTURE_CALLER_MESSAGE,
+    );
   });
+
+  it.each(NON_PERSON_CLASSES)(
+    "refuses a %s caller, with or without the claim",
+    async (callerClass) => {
+      const step =
+        newGuardMemoryCaptureStep<typeof MemorySchema>(providerWith());
+      for (const rawToken of [
+        "",
+        mintedToken({ platform_client_id: "pc_1" }),
+      ]) {
+        await expect(
+          step.execute(memoryCtx({ ...LOCAL_USER, callerClass, rawToken })),
+        ).rejects.toThrowError(MEMORY_CAPTURE_CALLER_MESSAGE);
+      }
+    },
+  );
 });

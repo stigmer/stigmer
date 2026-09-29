@@ -165,7 +165,10 @@ export function isServerComposedRequest(caller: CallerIdentity): boolean {
  * (not machine, not impersonated, no token_type, not a PlatformClient user
  * token). Stated once for every consumer that must tell the person from a
  * lane acting near them: memory recall and the person's declared
- * preferences on execution create (domain/agentexecution/create-steps.ts).
+ * preferences on execution create (domain/agentexecution/create-steps.ts),
+ * and memory capture's fall-through for a credential the composed runner
+ * provider does not classify (pipeline/steps/guard-memory-capture.ts), so
+ * both halves of the memory loop admit the same people (stigmer#1406).
  *
  * An ALLOW-list, so a lane this module has never heard of is excluded by
  * construction: the class must be `user` (every human verifier stamps it —

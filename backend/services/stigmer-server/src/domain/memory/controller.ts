@@ -185,7 +185,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * content is subject-only and must not surface in org-visible search).
  *
  * Authorization: GuardMemoryCapture decides WHO may capture (the composed
- * RunnerCredentialProvider), AuthorizeResolvedTarget decides WHERE
+ * RunnerCredentialProvider, then the first-party allow-list recall shares,
+ * extensions/identity.ts), AuthorizeResolvedTarget decides WHERE
  * (can_create_session on the organization), and CreateAuthorizationTuples
  * runs against the composed lifecycle. ResolveMemoryDefaults names the
  * person the memory is about and CheckMemoryEnablement requires both

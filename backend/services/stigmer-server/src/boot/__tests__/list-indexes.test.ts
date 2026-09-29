@@ -31,6 +31,10 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "iam_policy{principal=field:spec.principal.id}",
   },
+  memory: {
+    revision: 1,
+    fingerprint: "memory{subject=field:spec.subject_identity_account_id}",
+  },
   session: {
     revision: 1,
     fingerprint:

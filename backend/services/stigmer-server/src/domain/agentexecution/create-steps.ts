@@ -11,7 +11,7 @@
  * resolves an agent-less blueprint. Nothing here resolves a stored default
  * agent into that shape.
  */
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -28,8 +28,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
-import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -61,6 +59,7 @@ import type { Store } from "../../store/interface.js";
 import { buildDefaultInstanceRequest } from "../agentinstance/defaultinstance.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import { accountForCaller } from "../identityaccount/resolve.js";
+import { listSubjectMemories } from "../memory/queries.js";
 
 import type { AgentExecutionStatusObserver } from "../../extensions/status-hooks.js";
 
@@ -678,40 +677,23 @@ export function newComposeRecalledMemoriesStep(
 }
 
 /**
- * Scans the memory kind for `subject`'s confirmed records in the org,
- * oldest-first — the run's person's account id, or the single-operator
- * "" sentinel. Facts carry only memory_id + content (the id is the
- * transparency link back to the addressable record). Undecodable rows are
- * skipped — one bad record must not take recall down.
+ * Reads `subject`'s confirmed records in the org through the memory list
+ * index (domain/memory/queries.ts), oldest-first — the run's person's
+ * account id, or the single-operator "" sentinel. Facts carry only
+ * memory_id + content (the id is the transparency link back to the
+ * addressable record). Undecodable rows are skipped — one bad record must
+ * not take recall down.
  */
 async function loadConfirmedFacts(
   store: Store,
   orgId: string,
   subject: string,
 ) {
-  const rows = await store.listResources(ApiResourceKind.memory);
-  const memories: Memory[] = [];
-  for (const data of rows) {
-    let memory: Memory;
-    try {
-      memory = fromBinary(MemorySchema, data);
-    } catch {
-      continue;
-    }
-    if ((memory.metadata?.org ?? "") !== orgId) {
-      continue;
-    }
-    if ((memory.spec?.subjectIdentityAccountId ?? "") !== subject) {
-      continue;
-    }
-    if (
-      memory.status?.lifecycleState !==
-      MemoryLifecycleState.lifecycle_state_confirmed
-    ) {
-      continue;
-    }
-    memories.push(memory);
-  }
+  const memories = (await listSubjectMemories(store, orgId, subject)).filter(
+    (memory) =>
+      memory.status?.lifecycleState ===
+      MemoryLifecycleState.lifecycle_state_confirmed,
+  );
 
   // Oldest-first on created_at (seconds then nanos; untimestamped rows
   // first) — mirrors the cloud repo's ORDER BY created_at ASC.

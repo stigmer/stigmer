@@ -13,7 +13,10 @@
  *   - enablement fails CLOSED: org switch off is the exact formatted
  *     FailedPrecondition copy, an unknown org is NotFound;
  *   - the 100-per-subject-per-org ceiling refuses the 101st record with
- *     the exact copy and never blocks another org;
+ *     the exact copy and never blocks another org or counts another
+ *     person's rows;
+ *   - list answers one org's rows newest created first, the list index's
+ *     order (stigmer#1405);
  *   - confirm/reject are one contract with opposite verdicts: idempotent
  *     re-decisions write NOTHING (no audit bump), cross-decisions are
  *     refused with the pinned copy;
@@ -29,6 +32,7 @@ import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -234,30 +238,36 @@ describe("memory enablement (fail-closed)", () => {
   });
 });
 
+/**
+ * Seeds a full ceiling for `subject` in `org` directly through the store
+ * (the RPC path would be needlessly slow at 100 creates).
+ */
+async function seedCeiling(org: string, subject: string): Promise<void> {
+  for (let i = 0; i < MAX_MEMORIES_PER_SUBJECT; i++) {
+    const id = generateId("mem");
+    const seeded = create(MemorySchema, {
+      apiVersion: MEMORY_API_VERSION,
+      kind: MEMORY_KIND,
+      metadata: { id, name: id, slug: id, org },
+      spec: { content: `Seeded fact ${i}.`, subjectIdentityAccountId: subject },
+    });
+    await server.store.saveResource(
+      ApiResourceKind.memory,
+      id,
+      MemorySchema,
+      seeded,
+    );
+  }
+}
+
 describe("memory cap", () => {
   it("refuses the record past the per-subject ceiling, visibly, without blocking other orgs", async () => {
     const org = await createOrg(true);
     const otherOrg = await createOrg(true);
 
-    // Seed the ceiling directly through the store (the RPC path would be
-    // needlessly slow at 100 creates); the refused create goes through
-    // the RPC. Seeded rows carry the sentinel subject "" the create path
-    // would derive.
-    for (let i = 0; i < MAX_MEMORIES_PER_SUBJECT; i++) {
-      const id = generateId("mem");
-      const seeded = create(MemorySchema, {
-        apiVersion: MEMORY_API_VERSION,
-        kind: MEMORY_KIND,
-        metadata: { id, name: id, slug: id, org },
-        spec: { content: `Seeded fact ${i}.`, subjectIdentityAccountId: "" },
-      });
-      await server.store.saveResource(
-        ApiResourceKind.memory,
-        id,
-        MemorySchema,
-        seeded,
-      );
-    }
+    // The refused create goes through the RPC. Seeded rows carry the
+    // sentinel subject "" the create path would derive.
+    await seedCeiling(org, "");
 
     const error = await grpcError(() => createMemory(org, "One too many."));
     expect(error.code).toBe(Code.FailedPrecondition);
@@ -269,6 +279,14 @@ describe("memory cap", () => {
       "Different org, plenty of room.",
     );
     expect(unblocked.metadata?.id).toMatch(/^mem_/);
+  });
+
+  it("counts only the subject's own rows: another person's full ceiling in the org does not block", async () => {
+    const org = await createOrg(true);
+    await seedCeiling(org, "ida_someone_else");
+
+    const created = await createMemory(org, "Plenty of room for me.");
+    expect(created.metadata?.id).toMatch(/^mem_/);
   });
 });
 
@@ -479,5 +497,43 @@ describe("memory list", () => {
     for (const item of listed.items) {
       expect(item.metadata?.org).toBe(org);
     }
+  });
+
+  it("answers newest created first, whatever the write order", async () => {
+    const org = await createOrg(true);
+    // Seeded through the store so each row carries a chosen creation
+    // instant; written oldest-last to prove the order is not the write's.
+    const seeded = [
+      { id: generateId("mem"), day: 3 },
+      { id: generateId("mem"), day: 1 },
+      { id: generateId("mem"), day: 2 },
+    ];
+    for (const { id, day } of seeded) {
+      await server.store.saveResource(
+        ApiResourceKind.memory,
+        id,
+        MemorySchema,
+        create(MemorySchema, {
+          apiVersion: MEMORY_API_VERSION,
+          kind: MEMORY_KIND,
+          metadata: { id, name: id, slug: id, org },
+          spec: { content: `Fact of day ${day}.` },
+          status: {
+            audit: {
+              specAudit: {
+                createdAt: timestampFromDate(new Date(Date.UTC(2026, 8, day))),
+              },
+            },
+          },
+        }),
+      );
+    }
+
+    const listed = await query.list({ org });
+    expect(listed.items.map((m) => m.spec?.content)).toEqual([
+      "Fact of day 3.",
+      "Fact of day 2.",
+      "Fact of day 1.",
+    ]);
   });
 });
