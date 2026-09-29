@@ -87,11 +87,17 @@ export const IamPolicyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Revoke all of a user's access to an organization.
+     * Remove a person from an organization.
      *
-     * Removes every IAM policy that grants the specified identity account access to
-     * resources within the given organization, including policies on the organization
-     * itself and on child resources (environments, agents, etc.).
+     * Removes every role the identity account holds on the organization, then
+     * every IAM policy it holds on the organization's resources: what was
+     * shared with it (agents, environments, sessions and the rest) and its
+     * team memberships. From that moment it reaches nothing in the
+     * organization. What it created stays with the organization and is still
+     * recorded as its work; the authorization model admits a person to their
+     * own work only while they hold a role in the organization, so it becomes
+     * theirs again only if they are invited back. What was shared with them
+     * does not come back.
      *
      * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.revokeOrgAccess
      */
@@ -102,7 +108,7 @@ export const IamPolicyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Revoke all of a user's access to an organization via the system (bootstrap) path.
+     * Remove a person from an organization via the system (bootstrap) path.
      *
      * The system-flow twin of revokeOrgAccess: identical revocation behavior, but
      * authorized by can_bootstrap_iam on platform:stigmer instead of

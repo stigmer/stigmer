@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput",
           "outputType": "Empty",
           "outputFullType": "google.protobuf.Empty",
-          "description": "Revoke all of a user's access to an organization.\n\n Removes every IAM policy that grants the specified identity account access to\n resources within the given organization, including policies on the organization\n itself and on child resources (environments, agents, etc.)."
+          "description": "Remove a person from an organization.\n\n Removes every role the identity account holds on the organization, then\n every IAM policy it holds on the organization's resources: what was\n shared with it (agents, environments, sessions and the rest) and its\n team memberships. From that moment it reaches nothing in the\n organization. What it created stays with the organization and is still\n recorded as its work; the authorization model admits a person to their\n own work only while they hold a role in the organization, so it becomes\n theirs again only if they are invited back. What was shared with them\n does not come back."
         },
         {
           "name": "BootstrapRevokeOrgAccess",
@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput",
           "outputType": "Empty",
           "outputFullType": "google.protobuf.Empty",
-          "description": "Revoke all of a user's access to an organization via the system (bootstrap) path.\n\n The system-flow twin of revokeOrgAccess: identical revocation behavior, but\n authorized by can_bootstrap_iam on platform:stigmer instead of\n can_grant_access on the organization."
+          "description": "Remove a person from an organization via the system (bootstrap) path.\n\n The system-flow twin of revokeOrgAccess: identical revocation behavior, but\n authorized by can_bootstrap_iam on platform:stigmer instead of\n can_grant_access on the organization."
         }
       ]
     },
