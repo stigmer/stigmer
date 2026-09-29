@@ -474,8 +474,38 @@ describe("executeHumanInputTask", () => {
       expect(resolved.outcome).toBe("reject");
       expect(resolved.resolvedBy).toBe("carol");
       expect(resolved.resolvedByActor).toBeUndefined();
+      expect(resolved.comment).toBe("");
       expect(resolved.autoResolved).toBe(false);
       expect(resolved.waitDurationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it("carries the reviewer's comment into approval_resolved and the task output", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "deny",
+        reviewer: "ida_01abc",
+        comment: "Rollback plan is missing",
+        responded_at: "2026-05-20T10:00:00Z",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Confirm?" },
+      };
+
+      const state = createState();
+      await executeHumanInputTask(taskDef, "gate", state, makeCtx(awaitFn, emitFn));
+
+      const resolved = emitted[1][0];
+      if (resolved.type !== "approval_resolved") throw new Error("unexpected");
+      expect(resolved.comment).toBe("Rollback plan is missing");
+      expect(state.data.gate).toEqual({
+        outcome: "deny",
+        reviewer: "ida_01abc",
+        comment: "Rollback plan is missing",
+        responded_at: "2026-05-20T10:00:00Z",
+      });
     });
 
     it("carries the reviewer_actor display snapshot into approval_resolved and the task output", async () => {
@@ -625,6 +655,7 @@ describe("executeHumanInputTask", () => {
 
       expect(resolved.autoResolved).toBe(true);
       expect(resolved.outcome).toBe("approve");
+      expect(resolved.comment).toBe("");
     });
   });
 

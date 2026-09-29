@@ -30,9 +30,18 @@
  *
  * WHEN IT IS MOUNTED
  * ------------------
- * On the turns where the workspace link points at the platform dir — the
- * turns whose skill or attachment phase made it — so what the agent can
- * reach is exactly what the link exposes to the shell on the same turn.
+ * On every turn: `.stigmer/` is the platform's name whether or not the turn
+ * mounted anything, so a write there never reaches the workspace. Before
+ * #1123 the route existed only on linked turns, and a write under `.stigmer/`
+ * on any other turn made a real directory in the user's tree that the next
+ * link displaced. What the route exposes follows the link, so the file tools
+ * reach exactly what the shell reaches on the same turn:
+ * - on a turn whose skill or attachment phase made the link, the platform dir
+ *   ({@link PlatformContentBackend});
+ * - on any other turn, nothing ({@link NoPlatformContentBackend}): the dir
+ *   still holds earlier turns' skills and inputs, which this turn's shell
+ *   cannot reach, so the file tools must not either. The root listing then
+ *   leaves `.stigmer/` out, as the tree does.
  * The link itself stays: shell commands (a skill's own scripts among them)
  * run in the workspace and resolve `.stigmer/…` through it.
  */
@@ -40,10 +49,16 @@
 import { CompositeBackend, FilesystemBackend } from "deepagents";
 import type {
   AnyBackendProtocol,
+  BackendProtocolV2,
   DeleteResult,
   EditResult,
+  FileDownloadResponse,
   FileUploadResponse,
+  GlobResult,
+  GrepResult,
   LsResult,
+  ReadRawResult,
+  ReadResult,
   WriteResult,
 } from "deepagents";
 import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
@@ -51,11 +66,22 @@ import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/wo
 /** The route prefix, with the trailing slash `CompositeBackend` needs to match `/.stigmer/x` but never `/.stigmerx`. */
 export const PLATFORM_ROUTE_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
 
+/** The path as the agent named it: the route hands its backend the path with the prefix stripped. */
+function agentPath(routedPath: string): string {
+  return `${PLATFORM_ROUTE_PREFIX.slice(0, -1)}${routedPath}`;
+}
+
 function readOnly(routedPath: string): string {
-  const agentPath = `${PLATFORM_ROUTE_PREFIX.slice(0, -1)}${routedPath}`;
   return (
-    `Error: '${agentPath}' is platform content (skills, attached inputs, the approved plan) ` +
+    `Error: '${agentPath(routedPath)}' is platform content (skills, attached inputs, the approved plan) ` +
     "and is read-only; write your own files in the workspace"
+  );
+}
+
+function noPlatformContent(routedPath: string): string {
+  return (
+    `Error: '${agentPath(routedPath)}' does not exist: this turn has no platform content ` +
+    "(no skills or attached inputs)"
   );
 }
 
@@ -83,17 +109,80 @@ export class PlatformContentBackend extends FilesystemBackend {
 }
 
 /**
- * The workspace backend with the platform mounted at {@link PLATFORM_ROUTE_PREFIX}.
+ * The `.stigmer/` route on a turn that exposes no platform content: nothing
+ * to read, list or find, and every mutation refused with the same message
+ * the platform dir's route gives. It stands on no filesystem, so it cannot
+ * create or reveal anything, and `ls` answers "does not exist" rather than
+ * an empty listing because the root listing leaves `.stigmer/` out.
+ */
+export class NoPlatformContentBackend implements BackendProtocolV2 {
+  ls(path: string): LsResult {
+    return { error: noPlatformContent(path) };
+  }
+
+  read(filePath: string): ReadResult {
+    return { error: noPlatformContent(filePath) };
+  }
+
+  readRaw(filePath: string): ReadRawResult {
+    return { error: noPlatformContent(filePath) };
+  }
+
+  grep(): GrepResult {
+    return { matches: [] };
+  }
+
+  glob(): GlobResult {
+    return { files: [] };
+  }
+
+  write(filePath: string): WriteResult {
+    return { error: readOnly(filePath) };
+  }
+
+  edit(filePath: string): EditResult {
+    return { error: readOnly(filePath) };
+  }
+
+  delete(filePath: string): DeleteResult {
+    return { error: readOnly(filePath) };
+  }
+
+  uploadFiles(files: Array<[string, Uint8Array]>): FileUploadResponse[] {
+    return files.map(([path]) => ({ path, error: "permission_denied" }));
+  }
+
+  downloadFiles(paths: string[]): FileDownloadResponse[] {
+    return paths.map((path) => ({ path, content: null, error: "file_not_found" }));
+  }
+}
+
+/**
+ * The workspace backend with `.stigmer/` routed to {@link PLATFORM_ROUTE_PREFIX}'s
+ * backend for this turn.
  *
  * One behaviour differs from the stock router: listing `/`. The composite
- * adds each route to the root listing, and the workspace backend already
- * lists `.stigmer/` by following the link, so the stock listing names the
- * same directory twice; the root listing is de-duplicated by path.
+ * adds each route to the root listing whatever the route holds. With the
+ * platform exposed, the workspace backend also lists `.stigmer/` by following
+ * the link, so the stock listing names the same directory twice and is
+ * de-duplicated by path. With nothing exposed, `.stigmer/` is left out of the
+ * root listing altogether: the route has nothing to show, and a real
+ * `.stigmer` the workspace may hold is unreachable behind it.
  */
 export class PlatformRoutedBackend extends CompositeBackend {
+  private readonly exposesPlatform: boolean;
+
+  constructor(backend: AnyBackendProtocol, platform: PlatformContentBackend | NoPlatformContentBackend) {
+    super(backend, { [PLATFORM_ROUTE_PREFIX]: platform });
+    this.exposesPlatform = platform instanceof PlatformContentBackend;
+  }
+
   override async ls(path: string): Promise<LsResult> {
     const result = await super.ls(path);
     if (path !== "/" || !result.files) return result;
+    if (!this.exposesPlatform) {
+      return { ...result, files: result.files.filter((entry) => entry.path !== PLATFORM_ROUTE_PREFIX) };
+    }
     const seen = new Set<string>();
     return {
       ...result,
@@ -114,21 +203,21 @@ export interface PlatformRouteOptions {
 }
 
 /**
- * Mount the platform route over `backend` when this turn exposes platform
- * content; otherwise hand `backend` back unchanged. `execute` and the
- * sandbox identity stay the workspace backend's (`CompositeBackend` delegates
- * both to its default), so a shell-capable graph keeps its `execute` tool and
- * a plan-mode graph stays without one.
+ * Mount the `.stigmer/` route over `backend` for this turn: the platform dir
+ * when the workspace link points at it, the empty route otherwise. Only a
+ * session without a platform dir gets `backend` back unchanged. `execute`
+ * and the sandbox identity stay the workspace backend's (`CompositeBackend`
+ * delegates both to its default), so a shell-capable graph keeps its
+ * `execute` tool and a plan-mode graph stays without one.
  */
 export async function mountPlatformRoute(
   backend: AnyBackendProtocol,
   options: PlatformRouteOptions,
 ): Promise<AnyBackendProtocol> {
   const { workspaceDir, platformDir } = options;
-  if (platformDir === undefined || !(await stigmerSymlinkPointsAt(workspaceDir, platformDir))) {
-    return backend;
-  }
-  return new PlatformRoutedBackend(backend, {
-    [PLATFORM_ROUTE_PREFIX]: new PlatformContentBackend(platformDir),
-  });
+  if (platformDir === undefined) return backend;
+  const platform = (await stigmerSymlinkPointsAt(workspaceDir, platformDir))
+    ? new PlatformContentBackend(platformDir)
+    : new NoPlatformContentBackend();
+  return new PlatformRoutedBackend(backend, platform);
 }

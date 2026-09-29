@@ -189,8 +189,8 @@ agent channel still installs through this app.
 
 The credentials form is offered to a caller who may edit the app
 (`can_edit`) and the deletion section to one who may delete it
-(`can_delete`): its creator and the organization's admins. Someone
-granted viewer on an app sees its setup values with no actions.
+(`can_delete`): the organization's admins. Someone granted viewer on an
+app sees its setup values with no actions.
 
 **Props** — `ChannelAppDetailPanelProps`
 
@@ -224,7 +224,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No channel apps registered yet.\" The list holds only the apps the caller may view (their creator, anyone granted viewer on one, and the organization's admins), so a host that knows the caller may not manage channel apps should say who does instead." },
+    emptyState: { type: "ReactNode", description: "Shown when the list is empty. Defaults to \"No channel apps registered yet.\" The list holds only the apps the caller may view (the organization's admins, and anyone granted viewer on an app), so a host that knows the caller may not manage channel apps should say who does instead." },
     onEdit: { type: "(app: ChannelApp) => void", description: "Fired when the user wants to view/edit a channel app. When provided, rows become interactive with a pencil icon button." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can trigger a list refresh." },
     org: { type: "string", description: "Organization slug to list channel apps for.", required: true },

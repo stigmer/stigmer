@@ -114,7 +114,7 @@ export async function executeHumanInputTask(
       outcome: result.outcome,
       resolvedBy: result.reviewer ?? "",
       resolvedByActor: result.reviewer_actor,
-      comment: "",
+      comment: result.comment ?? "",
       waitDurationMs: Date.now() - approvalRequestedAt,
       autoResolved: result.auto_resolved ?? false,
     }]);

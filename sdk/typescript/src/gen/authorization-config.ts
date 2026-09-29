@@ -26,7 +26,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.agent_instance, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.agent_share, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.agent_channel, [IamRole.owner, IamRole.viewer, IamRole.participant]],
-  [ApiResourceKind.channel_app, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.channel_app, [IamRole.viewer]],
   [ApiResourceKind.workflow, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.workflow_instance, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.workflow_execution, [IamRole.owner, IamRole.viewer]],

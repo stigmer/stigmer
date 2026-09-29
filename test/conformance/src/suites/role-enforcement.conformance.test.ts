@@ -36,20 +36,16 @@
 //     organization's blueprints and members and never reads a member's
 //     conversations, keys or environments.
 //   - Administrative rows (an OAuth app, which carries its organization's
-//     vendor credentials, and a platform client, which mints tokens into
-//     it): the organization's current admins', whoever created the row —
-//     `owner` is `admin from organization` and the kind records none
-//     (stigmer/stigmer#1321, #1329) — so an admin who did not create one
-//     reads, lists, edits and deletes it, and a creator demoted below admin
-//     keeps nothing of it. Never a member's or a viewer's, who are refused
-//     on `get` and on every change and whose lists omit it
-//     (stigmer/stigmer#1257: the list once showed every member what `get`
-//     refused them).
-//   - Creator-owned credential rows (a channel app, which carries its
-//     organization's Slack or Meta app secrets): `owner` is the creator or
-//     an admin of the organization, so the same read, list, edit and
-//     delete cells hold, a member's and a viewer's list omits it
-//     (stigmer/stigmer#1384), and the demoted-creator cell is not claimed.
+//     vendor credentials, a platform client, which mints tokens into it,
+//     and a channel app, which carries its Slack or Meta app secrets): the
+//     organization's current admins', whoever created the row — `owner` is
+//     `admin from organization` and the kind records none
+//     (stigmer/stigmer#1321, #1329, #1409) — so an admin who did not create
+//     one reads, lists, edits and deletes it, and a creator demoted below
+//     admin keeps nothing of it. Never a member's or a viewer's, who are
+//     refused on `get` and on every change and whose lists omit it
+//     (stigmer/stigmer#1257, #1384: the list once showed every member what
+//     `get` refused them).
 //   - The organization: `find` is UNIMPLEMENTED on every enforcing lane (the
 //     cloud leaves it unrouted; the built-in directory refuses enumeration);
 //     `findMyOrganizations` is the caller's organizations — a member of one
@@ -577,13 +573,6 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
     delete: (using, id) =>
       using.platformClientCommand.delete({ resourceId: id }),
   },
-];
-
-// The credential kinds whose creator is a stored owner beside the
-// organization's admins (`owner: [identity_account] or admin from
-// organization`). Every cell of `adminManagesTheRow` holds for them; the
-// demoted-creator cell does not, so it is not run.
-const CREATOR_OWNED_CREDENTIAL_KINDS: ReadonlyArray<AdministrativeKind> = [
   {
     name: "channel_app",
     async create(using, org) {
@@ -607,78 +596,6 @@ const CREATOR_OWNED_CREDENTIAL_KINDS: ReadonlyArray<AdministrativeKind> = [
   },
 ];
 
-// The cells every organization credential shares, whoever its model makes
-// its owner: the creator and an admin who did not create it read, list,
-// edit and delete it, and a member and a viewer are refused each and never
-// list it.
-function adminManagesTheRow(
-  kind: AdministrativeKind,
-  castOrSkip: (ctx: { skip: (note?: string) => never }) => Cast,
-): void {
-  it("the creator and an admin who did not create the row read and list it; a member and a viewer are refused and do not list it", async (ctx) => {
-    const c = castOrSkip(ctx);
-    const { id } = await kind.create(c.owner, c.org);
-    fixtures.defer(() => kind.delete(c.owner, id).catch(() => undefined));
-
-    await kind.get(c.owner, id);
-    expect(
-      await kind.listIds(c.owner, c.org),
-      `the creator's ${kind.name} list`,
-    ).toContain(id);
-
-    await kind.get(c.admin, id);
-    expect(
-      await kind.listIds(c.admin, c.org),
-      `an admin's ${kind.name} list`,
-    ).toContain(id);
-
-    await expectGrpcCode(
-      () => kind.get(c.member, id),
-      Code.PermissionDenied,
-      `a member's get on the organization's ${kind.name}`,
-    );
-    expect(
-      await kind.listIds(c.member, c.org),
-      `a member's ${kind.name} list`,
-    ).not.toContain(id);
-
-    await expectGrpcCode(
-      () => kind.get(c.viewer, id),
-      Code.PermissionDenied,
-      `a viewer's get on the organization's ${kind.name}`,
-    );
-    expect(
-      await kind.listIds(c.viewer, c.org),
-      `a viewer's ${kind.name} list`,
-    ).not.toContain(id);
-  });
-
-  it("an admin who did not create the row edits and deletes it; a member and a viewer are refused both", async (ctx) => {
-    const c = castOrSkip(ctx);
-    const row = await kind.create(c.owner, c.org);
-    fixtures.defer(() => kind.delete(c.owner, row.id).catch(() => undefined));
-
-    for (const [who, clients] of [
-      ["a member", c.member],
-      ["a viewer", c.viewer],
-    ] as const) {
-      await expectGrpcCode(
-        () => kind.edit(clients, c.org, row),
-        Code.PermissionDenied,
-        `${who}'s edit of the organization's ${kind.name}`,
-      );
-      await expectGrpcCode(
-        () => kind.delete(clients, row.id),
-        Code.PermissionDenied,
-        `${who}'s delete of the organization's ${kind.name}`,
-      );
-    }
-
-    await kind.edit(c.admin, c.org, row);
-    await kind.delete(c.admin, row.id);
-  });
-}
-
 describe("role enforcement — administrative rows: the organization's current admins', never a member's or a viewer's, and nobody's for having created one", () => {
   let cast: Cast | undefined;
 
@@ -694,7 +611,68 @@ describe("role enforcement — administrative rows: the organization's current a
   }
 
   describe.each(ADMINISTRATIVE_KINDS)("$name", (kind) => {
-    adminManagesTheRow(kind, castOrSkip);
+    it("the creator and an admin who did not create the row read and list it; a member and a viewer are refused and do not list it", async (ctx) => {
+      const c = castOrSkip(ctx);
+      const { id } = await kind.create(c.owner, c.org);
+      fixtures.defer(() => kind.delete(c.owner, id).catch(() => undefined));
+
+      await kind.get(c.owner, id);
+      expect(
+        await kind.listIds(c.owner, c.org),
+        `the creator's ${kind.name} list`,
+      ).toContain(id);
+
+      await kind.get(c.admin, id);
+      expect(
+        await kind.listIds(c.admin, c.org),
+        `an admin's ${kind.name} list`,
+      ).toContain(id);
+
+      await expectGrpcCode(
+        () => kind.get(c.member, id),
+        Code.PermissionDenied,
+        `a member's get on the organization's ${kind.name}`,
+      );
+      expect(
+        await kind.listIds(c.member, c.org),
+        `a member's ${kind.name} list`,
+      ).not.toContain(id);
+
+      await expectGrpcCode(
+        () => kind.get(c.viewer, id),
+        Code.PermissionDenied,
+        `a viewer's get on the organization's ${kind.name}`,
+      );
+      expect(
+        await kind.listIds(c.viewer, c.org),
+        `a viewer's ${kind.name} list`,
+      ).not.toContain(id);
+    });
+
+    it("an admin who did not create the row edits and deletes it; a member and a viewer are refused both", async (ctx) => {
+      const c = castOrSkip(ctx);
+      const row = await kind.create(c.owner, c.org);
+      fixtures.defer(() => kind.delete(c.owner, row.id).catch(() => undefined));
+
+      for (const [who, clients] of [
+        ["a member", c.member],
+        ["a viewer", c.viewer],
+      ] as const) {
+        await expectGrpcCode(
+          () => kind.edit(clients, c.org, row),
+          Code.PermissionDenied,
+          `${who}'s edit of the organization's ${kind.name}`,
+        );
+        await expectGrpcCode(
+          () => kind.delete(clients, row.id),
+          Code.PermissionDenied,
+          `${who}'s delete of the organization's ${kind.name}`,
+        );
+      }
+
+      await kind.edit(c.admin, c.org, row);
+      await kind.delete(c.admin, row.id);
+    });
 
     it("a creator demoted below admin keeps nothing of the row they created; the organization's admins still manage it", async (ctx) => {
       const c = castOrSkip(ctx);
@@ -731,25 +709,6 @@ describe("role enforcement — administrative rows: the organization's current a
 
       await kind.edit(c.admin, c.org, row);
     });
-  });
-});
-
-describe("role enforcement — creator-owned credential rows: their creator's and the organization's admins', never a member's or a viewer's", () => {
-  let cast: Cast | undefined;
-
-  beforeAll(async () => {
-    if (enforcing.lane === undefined) return;
-    cast = await castOf(enforcing.lane);
-  });
-
-  function castOrSkip(ctx: { skip: (note?: string) => never }): Cast {
-    laneOrSkip(ctx);
-    if (cast === undefined) ctx.skip("the block's people were not provisioned");
-    return cast;
-  }
-
-  describe.each(CREATOR_OWNED_CREDENTIAL_KINDS)("$name", (kind) => {
-    adminManagesTheRow(kind, castOrSkip);
   });
 });
 

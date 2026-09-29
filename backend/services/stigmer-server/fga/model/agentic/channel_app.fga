@@ -1,28 +1,43 @@
 module agentic
 
 # ========================================
-# CHANNEL APP TYPE (Organization-scoped, Owner-managed Credentials)
+# CHANNEL APP TYPE (Organization-scoped)
 # ========================================
-# Customer-owned messaging-platform apps (e.g. a Slack app) that agent
-# channels install through instead of the shared platform app (BYO,
-# since 2026-07-15). Holds provider credentials: OAuth client id/secret and
-# the webhook signing secret.
+# Customer-owned messaging-platform apps (a Slack app, a Meta app for
+# WhatsApp) that agent channels install through instead of the shared
+# platform app (bring your own app, since 2026-07-15). Holds the provider's
+# credentials: a Slack app's OAuth client secret and webhook signing
+# secret, a Meta app's app secret, access token and verify token.
 #
-# Access model: RESTRICTED (the oauth_app posture) with org-admin
-# inheritance (the agent_channel shape). Channel apps contain sensitive
-# credentials, so plain org members get NO implicit access. Org admins
-# inherit owner — the operator-of-last-resort rationale applies with
-# force to a credential holder: an ex-employee owner must never strand
-# secret rotation. (oauth_app predates admin owner inheritance and gives
-# admins view-only; this type follows the newer platform-wide direction.)
+# Access model: RESTRICTED, managed by the organization's current admins
+# Channel apps carry the organization's credentials with a messaging
+# provider, so they are the organization's credential, not a person's.
+# Plain members and viewer-role members of the organization see nothing.
+# `owner` is computed, never stored: it is the organization's admins, as
+# an OAuth app or a platform client is managed, so an app stays manageable
+# whoever created it, and a creator who is demoted below admin or removed
+# loses control of it with the role. Rotating or replacing a secret must
+# end with the role that allowed it. The creator is recorded in the audit
+# trail (kind_meta `owner_type` NONE). Public visibility is intentionally
+# unsupported to prevent credential leakage.
 #
-# Public visibility is intentionally unsupported to prevent credential
-# leakage.
+# An app keeps delivering when its creator leaves: inbound webhooks and
+# outbound delivery read the app's secrets as the server, and binding an
+# agent channel to an app asks only that both are the organization's.
 #
-# FGA tuples on creation (config-driven from the channel_app kind config:
-# ORGANIZATION scope + DIRECT owner):
-# - channel_app:<id>#organization@organization:<org>
-# - channel_app:<id>#owner@identity_account:<creator>
+# Permission pattern:
+# - Org Admin (and org owner, through admin): full management, secret
+#   rotation included. Secrets are redacted on every response.
+# - Direct viewer grant: can see the app and who has access to it
+# - Org Members and Viewers: no access (administrative resource)
+#
+# FGA tuple on creation (the kind's creation event: organization scope, no
+# owner; private, so no visibility tuple):
+# - channel_app:chapp_abc#organization@organization:acme
+#
+# Checks the handlers make: `can_create_channel_app` on the organization
+# to create; `can_view` to get, get by reference, and to keep a row in the
+# organization's list; `can_edit` to update; `can_delete` to delete.
 
 type channel_app
   relations
@@ -32,15 +47,16 @@ type channel_app
     define organization: [organization]
 
     # ========================================
-    # OWNERSHIP (Attribution + Admin)
+    # OWNERSHIP
     # ========================================
-    # The creator, plus org admins by inheritance (the operator of last resort).
-    define owner: [identity_account] or admin from organization
+    # Every current admin of the app's organization, and nobody else.
+    define owner: admin from organization
 
     # ========================================
-    # VIEWER ACCESS (Explicit Grants)
+    # VIEWER ACCESS
     # ========================================
-    # Restricted: regular org members cannot see channel apps.
+    # Owners (admins included) and direct viewer grants. Organization
+    # members and viewers are deliberately absent.
     define viewer: [identity_account] or owner
 
     # ========================================

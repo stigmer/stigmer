@@ -221,8 +221,8 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Create a channel app.
-     * The creator's organization owns the channel app. The creator is
-     * granted the owner role automatically.
+     * The creator's organization owns the channel app, and the organization's
+     * current admins manage it.
      * </pre>
      */
     default void create(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -305,8 +305,8 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Create a channel app.
-     * The creator's organization owns the channel app. The creator is
-     * granted the owner role automatically.
+     * The creator's organization owns the channel app, and the organization's
+     * current admins manage it.
      * </pre>
      */
     public void create(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -377,8 +377,8 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Create a channel app.
-     * The creator's organization owns the channel app. The creator is
-     * granted the owner role automatically.
+     * The creator's organization owns the channel app, and the organization's
+     * current admins manage it.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp create(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
@@ -446,8 +446,8 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Create a channel app.
-     * The creator's organization owns the channel app. The creator is
-     * granted the owner role automatically.
+     * The creator's organization owns the channel app, and the organization's
+     * current admins manage it.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp create(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
@@ -516,8 +516,8 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Create a channel app.
-     * The creator's organization owns the channel app. The creator is
-     * granted the owner role automatically.
+     * The creator's organization owns the channel app, and the organization's
+     * current admins manage it.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> create(

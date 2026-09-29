@@ -594,6 +594,8 @@ export interface HumanInputResult {
   readonly reviewer_actor?: HumanInputReviewerActor;
   readonly responded_at?: string;
   readonly form_data?: Record<string, unknown>;
+  /** Free-text comment the reviewer attached. Absent when none was written, and always on a timeout. */
+  readonly comment?: string;
   readonly auto_resolved?: boolean;
   readonly reason?: string;
 }

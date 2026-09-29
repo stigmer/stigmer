@@ -40,8 +40,8 @@ type ChannelAppCommandControllerClient interface {
 	Apply(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Create a channel app.
 	//
-	// The creator's organization owns the channel app. The creator is
-	// granted the owner role automatically.
+	// The creator's organization owns the channel app, and the organization's
+	// current admins manage it.
 	Create(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Update an existing channel app.
 	//
@@ -117,8 +117,8 @@ type ChannelAppCommandControllerServer interface {
 	Apply(context.Context, *ChannelApp) (*ChannelApp, error)
 	// Create a channel app.
 	//
-	// The creator's organization owns the channel app. The creator is
-	// granted the owner role automatically.
+	// The creator's organization owns the channel app, and the organization's
+	// current admins manage it.
 	Create(context.Context, *ChannelApp) (*ChannelApp, error)
 	// Update an existing channel app.
 	//
