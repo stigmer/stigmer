@@ -35,6 +35,7 @@ import type {
   ConnectRun,
   ConnectRunFailure,
   ConnectRunOutcome,
+  ConnectTaskQueue,
   ConnectWorkflowInput,
   ConnectWorkflowOutput,
   McpServerConnectEngine,
@@ -58,13 +59,17 @@ export class TemporalMcpServerConnectEngine implements McpServerConnectEngine {
     mcpServerId: string,
     input: ConnectWorkflowInput,
     runTimeoutMs: number,
+    taskQueue: ConnectTaskQueue,
   ): Promise<ConnectRun> {
     const { client, config, logger } = this.deps;
     const workflowId = connectWorkflowIdFor(mcpServerId);
     // MCP connect is not session-scoped (it discovers tools at the server
-    // level), so it always routes to the default runner queue regardless
-    // of routing mode (connect.go:642-645).
-    const runnerQueue = config.runnerQueue;
+    // level), so it never takes the agent-execution routing mode: it runs
+    // on the shared runner queue (connect.go:642-645) or, with a sandbox
+    // provisioner composed, on the queue its own connect sandbox serves —
+    // the domain decides which (engine.ts ConnectTaskQueue).
+    const runnerQueue =
+      taskQueue.kind === "runner" ? config.runnerQueue : taskQueue.name;
 
     let handle: WorkflowHandle;
     let attached = false;

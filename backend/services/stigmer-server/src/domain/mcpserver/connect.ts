@@ -9,7 +9,9 @@
  *
  * Discovery runs on the RUNNER: this module starts the runner's
  * stigmer/mcp-server/connect workflow through the engine seam
- * (engine.ts) and never registers a worker.
+ * (engine.ts) and never registers a worker. Which runner serves it — the
+ * shared queue's, or a connect sandbox provisioned for this connect alone
+ * — is connect-sandbox.ts's decision (stigmer/stigmer#1474).
  *
  * Proven by mcpserver-connect.conformance.test.ts
  * (CONFORMANCE_TARGET=local-execution), __tests__/connect.test.ts and
@@ -38,6 +40,7 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
@@ -57,6 +60,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
+import type { SandboxLane } from "../../sandbox/lane.js";
 import type {
   OAuthGrantStore,
   PendingOAuthStateStore,
@@ -65,6 +69,8 @@ import type {
 import { ResourceNotFoundError } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
 import { newConnectExecutionId } from "./connect-execution-id.js";
+import { acquireConnectRoute } from "./connect-sandbox.js";
+import type { ConnectRoute, ConnectRouteRequest } from "./connect-sandbox.js";
 import {
   persistConnectFailure,
   persistConnectResult,
@@ -74,6 +80,7 @@ import type {
   ConnectRun,
   ConnectRunFailure,
   ConnectWorkflowInput,
+  McpServerConnectEngine,
   McpServerEngineStateProvider,
 } from "./engine.js";
 import { refreshTokenIfExpired } from "./oauth/refresh.js";
@@ -219,6 +226,13 @@ export interface McpServerConnectDeps {
   readonly secretService: SecretService;
   readonly oauthRedirectUri: string;
   /**
+   * The composed sandbox lane (sandbox/lane.ts): disabled, a connect runs
+   * on the shared runner queue; enabled, every connect provisions its own
+   * connect sandbox and always creates its ExecutionContext row, the
+   * binding its sandbox's credential acts through (connect-sandbox.ts).
+   */
+  readonly sandboxLane: SandboxLane;
+  /**
    * The ONE fetch this slice dials user-supplied URLs with: the MCP
    * endpoint probed at save time and the login server reached on Sign in
    * (discovery, registration, the authorize preflight, token exchange and
@@ -297,13 +311,21 @@ export async function connect(
 
   const prepared = await prepareConnect(deps, mcpServer, input, identity);
 
+  let route: ConnectRoute | undefined;
   try {
+    route = await acquireConnectRouteFor(deps, mcpServerId, {
+      connectExecutionId: prepared.executionId,
+      org: input.org,
+      caller: identity,
+    });
+
     let run: ConnectRun;
     try {
       run = await engineState.engine.startOrAttachConnect(
         mcpServerId,
         prepared.workflowInput,
         CONNECT_TIMEOUT.ms,
+        route.taskQueue,
       );
     } catch (error) {
       deps.logger.error("Failed to start MCP connect workflow", {
@@ -311,6 +333,13 @@ export async function connect(
         error: error instanceof Error ? error.message : String(error),
       });
       throw internalError(error, "failed to start connect workflow");
+    }
+
+    // An attached run is served by the sandbox of the lane that started
+    // it: this lane's own sandbox, if one was provisioned, is given back
+    // now rather than held idle for the other lane's whole run.
+    if (run.attached) {
+      await route.release();
     }
 
     // Record the operation on connect_status. Skipped when attached: the
@@ -387,6 +416,8 @@ export async function connect(
 
     return persisted;
   } finally {
+    // Idempotent: a no-op when the attach arm already released it.
+    await route?.release();
     if (prepared.ecResourceId !== "") {
       await deleteConnectExecutionContext(
         deps,
@@ -394,6 +425,27 @@ export async function connect(
         prepared.executionId,
       );
     }
+  }
+}
+
+/**
+ * Resolves a connect's route (connect-sandbox.ts) for every lane alike: a
+ * sandbox that cannot be provisioned is recorded on connect_status as the
+ * connect's failure before the refusal propagates, so the server's page
+ * says why instead of waiting on a run that was never started.
+ */
+export async function acquireConnectRouteFor(
+  deps: McpServerConnectDeps,
+  mcpServerId: string,
+  request: ConnectRouteRequest,
+): Promise<ConnectRoute> {
+  try {
+    return await acquireConnectRoute(deps.sandboxLane, deps.logger, request);
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      await persistConnectFailure(deps.store, deps.logger, mcpServerId, error);
+    }
+    throw error;
   }
 }
 
@@ -420,10 +472,17 @@ export async function connect(
  * bound to this connect's ExecutionContext, and under the built-in
  * posture the runner-subject verifier resolves its bearer to the person
  * that row was created by — which is why the row is created as `identity`
- * and not as the server. The end state where every RPC of a discovery
- * acts as the person (the cloud's connect-sandbox shape) needs a row an
- * env-less connect would also create; it creates none today, so that is
- * a design act of its own, not a widening to make here.
+ * and not as the server.
+ *
+ * With a sandbox lane composed there is no operator key: the connect
+ * sandbox's runner acts as the person on EVERY RPC of its discovery, with
+ * a credential bound to this connect (connect-sandbox.ts). That binding
+ * resolves through the ExecutionContext row, so on the lane the row is
+ * always created, as `identity`, even for a server that declares no env
+ * (an empty `data` map; stigmer/stigmer#1474). Such a binding-only row
+ * carries nothing to read, so the workflow input names no context for it
+ * and no payload token: the runner's discovery takes the same no-env path
+ * it takes today. Without a lane an env-less connect still creates no row.
  */
 export async function prepareConnect(
   deps: McpServerConnectDeps,
@@ -444,18 +503,26 @@ export async function prepareConnect(
 
   const executionId = newConnectExecutionId(mcpServerId);
 
-  const ecResourceId = await createConnectExecutionContext(
+  const ecRow = await createConnectExecutionContext(
     deps,
     mcpServer,
     executionId,
     callerOrg,
     input.runtimeEnv,
     identity,
+    deps.sandboxLane.enabled,
   );
+  const ecResourceId = ecRow?.resourceId ?? "";
 
   const workflowInput: ConnectWorkflowInput = {
     mcp_server_id: mcpServerId,
-    ...(ecResourceId !== "" ? { execution_context_id: executionId } : {}),
+  };
+  if (ecRow === undefined || ecRow.bindingOnly) {
+    return { workflowInput, ecResourceId, executionId };
+  }
+  const withContext: ConnectWorkflowInput = {
+    ...workflowInput,
+    execution_context_id: executionId,
   };
 
   // Mint the decrypt-lane token for the EC just created (oss#535) — see
@@ -464,10 +531,7 @@ export async function prepareConnect(
   // with declared credentials will refuse the redacted read with an
   // actionable error, and credential-less servers connect fine without
   // the token.
-  if (
-    ecResourceId !== "" &&
-    deps.runnerAuth.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)
-  ) {
+  if (deps.runnerAuth.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)) {
     try {
       const minted = deps.runnerAuth.mint(
         TOKEN_TYPE_EXECUTION_SCOPED,
@@ -476,7 +540,7 @@ export async function prepareConnect(
       );
       return {
         workflowInput: {
-          ...workflowInput,
+          ...withContext,
           execution_context_token: minted.token,
         },
         ecResourceId,
@@ -493,7 +557,18 @@ export async function prepareConnect(
     }
   }
 
-  return { workflowInput, ecResourceId, executionId };
+  return { workflowInput: withContext, ecResourceId, executionId };
+}
+
+/**
+ * The connect's ExecutionContext row, when one was created: its resource
+ * id (for the settle's delete) and whether it is binding-only — created on
+ * the sandbox lane for a connect with nothing to carry (prepareConnect's
+ * header).
+ */
+interface ConnectExecutionContextRow {
+  readonly resourceId: string;
+  readonly bindingOnly: boolean;
 }
 
 /**
@@ -503,8 +578,11 @@ export async function prepareConnect(
  * When runtime_env is provided, the values are used directly (one-time
  * use). When runtime_env is empty, variables are resolved from two
  * sources: OAuth-managed variables from the grant's managed environment,
- * the remainder from the user's personal environment. Returns "" when the
- * MCP server has no env declarations and no runtime_env.
+ * the remainder from the user's personal environment. When nothing
+ * resolves (no env declarations and no runtime_env, or no values) it
+ * creates no row and returns undefined, unless `bindingRowRequired`: the
+ * sandbox lane's connect needs the row as its credential's binding, so it
+ * is created with empty `data` and reported binding-only.
  *
  * The row is created as `caller`, the person connecting (see the
  * ConnectExecutionContextClient doc): its creator stamp is the connect
@@ -517,8 +595,9 @@ async function createConnectExecutionContext(
   callerOrg: string,
   runtimeEnv: { [key: string]: ExecutionValue },
   caller: CallerIdentity,
-): Promise<string> {
-  let ecData: { [key: string]: ExecutionValue };
+  bindingRowRequired: boolean,
+): Promise<ConnectExecutionContextRow | undefined> {
+  let ecData: { [key: string]: ExecutionValue } = {};
 
   if (Object.keys(runtimeEnv).length > 0) {
     ecData = runtimeEnv;
@@ -531,44 +610,26 @@ async function createConnectExecutionContext(
     );
   } else {
     const envDecls = mcpServer.spec?.env ?? {};
-    if (Object.keys(envDecls).length === 0) {
+    if (Object.keys(envDecls).length > 0) {
+      ecData = await resolveConnectEnvironment(
+        deps,
+        mcpServer,
+        executionId,
+        callerOrg,
+        envDecls,
+      );
+    } else if (!bindingRowRequired) {
       deps.logger.debug(
         "MCP server has no env declarations — skipping ExecutionContext creation",
         { execution_id: executionId },
       );
-      return "";
+      return undefined;
     }
-
-    const mcpServerId = mcpServer.metadata?.id ?? "";
-
-    // Split resolution: OAuth vars from managed env, rest from personal.
-    const { oauthVars, remainingDecls } = await resolveOAuthVarsFromManagedEnv(
-      deps,
-      mcpServerId,
-      callerOrg,
-      envDecls,
-    );
-
-    let personalVars: { [key: string]: ExecutionValue } = {};
-    if (Object.keys(remainingDecls).length > 0) {
-      personalVars = await resolveFromPersonalEnvironment(
-        deps,
-        callerOrg,
-        remainingDecls,
-      );
-    }
-
-    ecData = { ...personalVars, ...oauthVars };
-
-    deps.logger.info("Resolved env vars for connect ExecutionContext", {
-      execution_id: executionId,
-      oauth_count: Object.keys(oauthVars).length,
-      personal_count: Object.keys(personalVars).length,
-    });
   }
 
-  if (Object.keys(ecData).length === 0) {
-    return "";
+  const bindingOnly = Object.keys(ecData).length === 0;
+  if (bindingOnly && !bindingRowRequired) {
+    return undefined;
   }
 
   let created: ExecutionContext;
@@ -599,7 +660,48 @@ async function createConnectExecutionContext(
     data_entries: Object.keys(ecData).length,
   });
 
-  return resourceId;
+  return { resourceId, bindingOnly };
+}
+
+/**
+ * Resolves a server's declared env for its connect: OAuth-managed
+ * variables from the grant's managed environment, the remainder from the
+ * caller's personal environment (Go createConnectExecutionContext's
+ * resolution half).
+ */
+async function resolveConnectEnvironment(
+  deps: McpServerConnectDeps,
+  mcpServer: McpServer,
+  executionId: string,
+  callerOrg: string,
+  envDecls: { [key: string]: EnvVarDeclaration },
+): Promise<{ [key: string]: ExecutionValue }> {
+  const mcpServerId = mcpServer.metadata?.id ?? "";
+
+  // Split resolution: OAuth vars from managed env, rest from personal.
+  const { oauthVars, remainingDecls } = await resolveOAuthVarsFromManagedEnv(
+    deps,
+    mcpServerId,
+    callerOrg,
+    envDecls,
+  );
+
+  let personalVars: { [key: string]: ExecutionValue } = {};
+  if (Object.keys(remainingDecls).length > 0) {
+    personalVars = await resolveFromPersonalEnvironment(
+      deps,
+      callerOrg,
+      remainingDecls,
+    );
+  }
+
+  deps.logger.info("Resolved env vars for connect ExecutionContext", {
+    execution_id: executionId,
+    oauth_count: Object.keys(oauthVars).length,
+    personal_count: Object.keys(personalVars).length,
+  });
+
+  return { ...personalVars, ...oauthVars };
 }
 
 /**
@@ -1071,14 +1173,22 @@ export function tokenAuthMethodFromSpec(
  *
  * A disconnected engine returns SILENTLY — byte parity with Go's
  * nil-temporalClient no-op (connect.go:1048). Servers that declare env
- * vars are skipped: creating an ExecutionContext requires the caller's
- * request context (for personal environment resolution), which a
- * background task does not have. If the server is deleted before the
- * workflow completes, persistence is skipped — expected for best-effort.
+ * vars are skipped: resolving their credentials needs the connecting
+ * person's own environments, which an apply does not stand for. If the
+ * server is deleted before the workflow completes, persistence is skipped
+ * — expected for best-effort.
+ *
+ * `applier` is the caller whose apply fired this connect. Without a
+ * sandbox lane it is unused: the shared runner's own credential reads the
+ * server, exactly as before. With one, the connect runs in a connect
+ * sandbox acting as the applier (connect-sandbox.ts), so the lane first
+ * creates the binding-only ExecutionContext row as the applier
+ * (prepareConnect) and deletes it when the run settles.
  */
 export async function startBestEffortConnect(
   deps: McpServerConnectDeps,
   mcpServer: McpServer,
+  applier: CallerIdentity,
 ): Promise<void> {
   const engineState = deps.engineState();
   if (!engineState.connected) {
@@ -1098,13 +1208,71 @@ export async function startBestEffortConnect(
   }
 
   const mcpServerId = mcpServer.metadata?.id ?? "";
+  const org = mcpServer.metadata?.org ?? "";
+
+  let prepared: PreparedConnect | undefined;
+  let route: ConnectRoute | undefined;
+  try {
+    if (deps.sandboxLane.enabled) {
+      prepared = await prepareConnect(
+        deps,
+        mcpServer,
+        create(ConnectInputSchema, { mcpServerId, org }),
+        applier,
+      );
+      route = await acquireConnectRouteFor(deps, mcpServerId, {
+        connectExecutionId: prepared.executionId,
+        org,
+        caller: applier,
+      });
+    }
+    await runBestEffortConnect(
+      deps,
+      engineState.engine,
+      mcpServer,
+      prepared?.workflowInput ?? { mcp_server_id: mcpServerId },
+      route,
+    );
+  } catch (error) {
+    deps.logger.warn("Best-effort connect could not start (non-fatal)", {
+      mcp_server_id: mcpServerId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    await route?.release();
+    if (prepared !== undefined && prepared.ecResourceId !== "") {
+      await deleteConnectExecutionContext(
+        deps,
+        prepared.ecResourceId,
+        prepared.executionId,
+      );
+    }
+  }
+}
+
+/**
+ * The run half of the best-effort connect: start or attach, record
+ * CONNECTING, await, and persist the outcome. Every arm is non-fatal and
+ * returns. The caller owns the route (undefined: the shared runner queue)
+ * and the ExecutionContext; an attach gives the route's sandbox back at
+ * once, since the other lane's run is served by its own.
+ */
+async function runBestEffortConnect(
+  deps: McpServerConnectDeps,
+  engine: McpServerConnectEngine,
+  mcpServer: McpServer,
+  workflowInput: ConnectWorkflowInput,
+  route: ConnectRoute | undefined,
+): Promise<void> {
+  const mcpServerId = mcpServer.metadata?.id ?? "";
 
   let run: ConnectRun;
   try {
-    run = await engineState.engine.startOrAttachConnect(
+    run = await engine.startOrAttachConnect(
       mcpServerId,
-      { mcp_server_id: mcpServerId },
+      workflowInput,
       CONNECT_TIMEOUT.ms,
+      route?.taskQueue ?? { kind: "runner" },
     );
   } catch (error) {
     deps.logger.warn(
@@ -1121,7 +1289,9 @@ export async function startBestEffortConnect(
   // applied server sees the auto-connect in progress rather than
   // nothing. Skipped when attached (the starting lane's record stands);
   // failures stay non-fatal like everything else on this path.
-  if (!run.attached) {
+  if (run.attached) {
+    await route?.release();
+  } else {
     try {
       await persistConnectStarting(deps.store, mcpServerId, run.workflowId, "");
     } catch (error) {
