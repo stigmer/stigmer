@@ -16,6 +16,7 @@ import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1
 
 import type {
   PolicyGrantedEvent,
+  OrganizationAffiliationEvent,
   PolicyRevokedEvent,
   ResourceAuthorizationLifecycle,
 } from "../../../extensions/resource-authorization.js";
@@ -84,6 +85,10 @@ export type RecordedEvent =
       readonly kind: "revoked";
       readonly id: string | undefined;
       readonly relation: string;
+    }
+  | {
+      readonly kind: "affiliation-changing" | "affiliation-changed";
+      readonly pair: string;
     };
 
 export interface FakeIamPolicyStore extends IamPolicyStore {
@@ -184,9 +189,34 @@ export function fakeIamPolicyStore(
 /** A lifecycle that records the two policy hooks and can be told to fail either. */
 export function recordingLifecycle(
   recorded: RecordedEvent[],
-  faults: { readonly granted?: Error; readonly revoked?: Error } = {},
+  faults: {
+    readonly granted?: Error;
+    readonly revoked?: Error;
+    readonly changing?: Error;
+  } = {},
+  options: { readonly affiliation?: boolean } = {},
 ): ResourceAuthorizationLifecycle {
+  const pair = (event: OrganizationAffiliationEvent): string =>
+    `${event.identityAccountId}@${event.organizationId}`;
+  const affiliation: Pick<
+    ResourceAuthorizationLifecycle,
+    "onOrganizationAffiliationChanging" | "onOrganizationAffiliationChanged"
+  > =
+    options.affiliation === true
+      ? {
+          async onOrganizationAffiliationChanging(event) {
+            if (faults.changing !== undefined) {
+              throw faults.changing;
+            }
+            recorded.push({ kind: "affiliation-changing", pair: pair(event) });
+          },
+          async onOrganizationAffiliationChanged(event) {
+            recorded.push({ kind: "affiliation-changed", pair: pair(event) });
+          },
+        }
+      : {};
   return {
+    ...affiliation,
     async onResourceCreated() {},
     async onResourceDeleted() {},
     async onVisibilityChanged() {},

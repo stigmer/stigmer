@@ -62,6 +62,7 @@ import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../../extensions/resource-authorization.js";
 import {
+  AFFILIATION_NOT_GRANTABLE_MESSAGE,
   IAM_POLICY_API_VERSION,
   IAM_POLICY_KIND,
   malformedTripleMessage,
@@ -703,5 +704,138 @@ describe("leaving an organization: the account's rows on its resources", () => {
     await path.revokeOrgAccess(ALICE, "acme");
 
     expect(aliceHolds(policies)).not.toContain(`owner agent:${SHARED}`);
+  });
+});
+
+describe("affiliation: every change of an account's organization rows is announced", () => {
+  const TEAM = "tm_core000000000000000000000";
+
+  function announcing(faults: { changing?: Error } = {}) {
+    const recorded: RecordedEvent[] = [];
+    const { policies, path } = pathOver(
+      recorded,
+      recordingLifecycle(recorded, faults, { affiliation: true }),
+    );
+    return { recorded, policies, path };
+  }
+
+  it("a role granted announces changed after the row's grant hook, on the duplicate arm too", async () => {
+    const { recorded, path } = announcing();
+    await path.grant(orgRole(ALICE, "member", "acme"), alice);
+    await path.grant(orgRole(ALICE, "member", "acme"), alice);
+    expect(recorded.map((event) => event.kind)).toEqual([
+      "row-save",
+      "granted",
+      "affiliation-changed",
+      "granted",
+      "affiliation-changed",
+    ]);
+    expect(recorded.at(-1)).toEqual({
+      kind: "affiliation-changed",
+      pair: `${ALICE}@acme`,
+    });
+  });
+
+  it("a role revoked announces changing before its revoke hook and changed after the delete", async () => {
+    const { recorded, path } = announcing();
+    await path.grant(orgRole(ALICE, "admin", "acme"), alice);
+    await path.grant(orgRole(ALICE, "viewer", "acme"), alice);
+    recorded.length = 0;
+
+    await path.revokeBySpec(orgRole(ALICE, "admin", "acme"));
+
+    expect(recorded.map((event) => event.kind)).toEqual([
+      "affiliation-changing",
+      "revoked",
+      "row-delete",
+      "affiliation-changed",
+    ]);
+  });
+
+  it("a revoke that finds no row still announces changed, so a tuple that outlived its rows heals", async () => {
+    const { recorded, path } = announcing();
+    await path.revokeBySpec(orgRole(ALICE, "member", "acme"));
+    expect(recorded.map((event) => event.kind)).toEqual([
+      "revoked",
+      "affiliation-changed",
+    ]);
+  });
+
+  it("every path that deletes a role announces it: revokeOrgAccess and an organization's delete", async () => {
+    const { recorded, path } = announcing();
+    await path.grant(orgRole(ALICE, "admin", "acme"), alice);
+    await path.grant(orgRole(BOB, "member", "acme"), alice);
+    recorded.length = 0;
+
+    await path.revokeOrgAccess(ALICE, "acme");
+    expect(
+      recorded.filter((event) => event.kind === "affiliation-changing"),
+    ).toEqual([{ kind: "affiliation-changing", pair: `${ALICE}@acme` }]);
+
+    recorded.length = 0;
+    await path.cleanupResource(
+      create(ApiResourceRefSchema, { kind: "organization", id: "acme" }),
+    );
+    expect(
+      recorded.filter((event) => event.kind === "affiliation-changing"),
+    ).toEqual([{ kind: "affiliation-changing", pair: `${BOB}@acme` }]);
+  });
+
+  it("a row of any other shape announces nothing: a share, a team membership, a userset on an organization", async () => {
+    const { recorded, path } = announcing();
+    await path.grant(
+      triple({ kind: "identity_account", id: ALICE }, "viewer", {
+        kind: "agent",
+        id: AGENT,
+      }),
+      alice,
+    );
+    await path.grant(
+      triple({ kind: "identity_account", id: ALICE }, "member", {
+        kind: "team",
+        id: TEAM,
+      }),
+      alice,
+    );
+    await path.grant(
+      triple({ kind: "team", id: TEAM, relation: "member" }, "viewer", {
+        kind: "organization",
+        id: "acme",
+      }),
+      alice,
+    );
+    expect(
+      recorded.filter((event) => event.kind.startsWith("affiliation")),
+    ).toEqual([]);
+  });
+
+  it("a fault in changing stops the revoke with the row in place", async () => {
+    const fault = new Error("tuple store down");
+    const { policies, path } = announcing({ changing: fault });
+    await path.grant(orgRole(ALICE, "member", "acme"), alice);
+
+    await expect(
+      path.revokeBySpec(orgRole(ALICE, "member", "acme")),
+    ).rejects.toBe(fault);
+
+    expect(
+      policies.rows.has(policyIdFor(orgRole(ALICE, "member", "acme"))),
+    ).toBe(true);
+  });
+
+  it("affiliated is refused as a grant before any read, write or hook", async () => {
+    const { recorded, path } = announcing();
+    const refusal = await path
+      .grant(orgRole(ALICE, "affiliated", "acme"), alice)
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+    expect(refusal).toBeInstanceOf(ConnectError);
+    expect((refusal as ConnectError).code).toBe(Code.InvalidArgument);
+    expect((refusal as ConnectError).rawMessage).toBe(
+      AFFILIATION_NOT_GRANTABLE_MESSAGE,
+    );
+    expect(recorded).toEqual([]);
   });
 });

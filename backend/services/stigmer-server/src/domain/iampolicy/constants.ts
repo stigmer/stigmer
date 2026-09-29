@@ -308,6 +308,14 @@ export function malformedTripleMessage(field: string): string {
 export const OWNER_ASSIGNMENT_DENIED_MESSAGE =
   "only an owner of the organization can grant, revoke or remove the owner role";
 
+/**
+ * A grant of the organization's `affiliated` relation (INVALID_ARGUMENT, on
+ * every lane): it is derived from a person's organization roles, never
+ * granted (fga/model/tenancy/organization.fga).
+ */
+export const AFFILIATION_NOT_GRANTABLE_MESSAGE =
+  "affiliated is derived from a person's organization roles and is never granted";
+
 /** Revoking or removing the last owner of an organization (FAILED_PRECONDITION). */
 export const LAST_OWNER_MESSAGE =
   "an organization must keep at least one owner; make another member an owner first";
