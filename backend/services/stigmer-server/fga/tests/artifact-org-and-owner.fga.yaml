@@ -26,16 +26,28 @@ tuples:
   - user: identity_account:victor
     relation: viewer
     object: organization:acme
+  - user: identity_account:victor
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:ana
     relation: admin
     object: organization:acme
+  - user: identity_account:ana
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:eve
     relation: member
+    object: organization:rival
+  - user: identity_account:eve
+    relation: affiliated
     object: organization:rival
 
   # Guest identity: an org GUEST, deliberately not an org viewer.
   - user: identity_account:acme-guest
     relation: guest
+    object: organization:acme
+  - user: identity_account:acme-guest
+    relation: affiliated
     object: organization:acme
 
   # Artifact produced by a signed-in member's execution.

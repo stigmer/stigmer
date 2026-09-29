@@ -23,13 +23,22 @@ tuples:
   - user: identity_account:alice
     relation: member
     object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:mallory
     relation: member
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
     object: organization:acme
 
   # Org admin — proving admin owner inheritance reaches channel apps.
   - user: identity_account:ana
     relation: admin
+    object: organization:acme
+  - user: identity_account:ana
+    relation: affiliated
     object: organization:acme
 
   # The channel app, created by alice (the config-driven create tuples).
@@ -44,6 +53,9 @@ tuples:
   # lowest role: the role reaches nothing here by itself, the grant does.
   - user: identity_account:carol
     relation: viewer
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
     object: organization:acme
   - user: identity_account:carol
     relation: viewer

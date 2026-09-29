@@ -8,6 +8,9 @@
 #   left  - authored every object and holds a direct viewer grant on every
 #           one, but holds no role in acme: never joined, or was removed
 #   back  - authored every object, left, and was invited back as a viewer
+#   stray - holds acme's member role and authored the agent, but no
+#           `affiliated` tuple stands for them: the state a crash between
+#           a role's write and its affiliation leaves, which must deny
 #
 # What the suite pins: `left` reaches nothing, however the grant was
 # made; `stays` and `back` keep what they authored; a system account that
@@ -19,8 +22,11 @@ model_file: ../../src/authorization/model/data/authorization-model.json
 
 tuples:
   - {user: identity_account:stays, relation: member, object: organization:acme}
+  - {user: identity_account:stays, relation: affiliated, object: organization:acme}
   - {user: identity_account:back, relation: viewer, object: organization:acme}
+  - {user: identity_account:back, relation: affiliated, object: organization:acme}
   - {user: identity_account:sys-guest, relation: guest, object: organization:acme}
+  - {user: identity_account:sys-guest, relation: affiliated, object: organization:acme}
 
   - {user: organization:acme, relation: organization, object: agent:x}
   - {user: identity_account:stays, relation: owner, object: agent:x}
@@ -117,6 +123,9 @@ tuples:
   - {user: organization:acme, relation: organization, object: memory:left}
   - {user: identity_account:stays, relation: subject, object: memory:x}
 
+  # stray: a role without its affiliation (written by hand, on purpose).
+  - {user: identity_account:stray, relation: member, object: organization:acme}
+  - {user: identity_account:stray, relation: owner, object: agent:x}
 tests:
   - name: someone outside the organization reaches nothing, whatever the grant
     check:
@@ -190,3 +199,7 @@ tests:
       - {user: identity_account:left, type: session, assertions: {can_view: []}}
       - {user: identity_account:stays, type: agent, assertions: {can_view: [agent:x]}}
       - {user: identity_account:back, type: session, assertions: {can_view: [session:x]}}
+  - name: a role without its affiliation reaches nothing (fail-closed)
+    check:
+      - {user: identity_account:stray, object: agent:x, assertions: {owner: false, can_view: false}}
+      - {user: identity_account:stray, object: organization:acme, assertions: {member: true, affiliated: false}}

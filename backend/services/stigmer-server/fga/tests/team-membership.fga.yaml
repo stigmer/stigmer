@@ -21,12 +21,19 @@ name: team-membership
 model_file: ../../src/authorization/model/data/authorization-model.json
 tuples:
   - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
   - {user: identity_account:vic, relation: viewer, object: organization:acme}
+  - {user: identity_account:vic, relation: affiliated, object: organization:acme}
   - {user: identity_account:mem, relation: member, object: organization:acme}
+  - {user: identity_account:mem, relation: affiliated, object: organization:acme}
   - {user: identity_account:gus, relation: guest, object: organization:acme}
+  - {user: identity_account:gus, relation: affiliated, object: organization:acme}
   - {user: identity_account:back, relation: viewer, object: organization:acme}
+  - {user: identity_account:back, relation: affiliated, object: organization:acme}
   - {user: identity_account:out, relation: member, object: organization:other}
+  - {user: identity_account:out, relation: affiliated, object: organization:other}
   - {user: identity_account:ext, relation: viewer, object: organization:other}
+  - {user: identity_account:ext, relation: affiliated, object: organization:other}
   - {user: organization:acme, relation: organization, object: team:sre}
   - {user: identity_account:vic, relation: member, object: team:sre}
   - {user: identity_account:mem, relation: member, object: team:sre}

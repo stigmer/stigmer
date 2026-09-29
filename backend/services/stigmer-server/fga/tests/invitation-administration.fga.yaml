@@ -25,11 +25,17 @@ name: invitation-administration
 model_file: ../../src/authorization/model/data/authorization-model.json
 tuples:
   - {user: identity_account:root, relation: owner, object: organization:acme}
+  - {user: identity_account:root, relation: affiliated, object: organization:acme}
   - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
   - {user: identity_account:carl, relation: member, object: organization:acme}
+  - {user: identity_account:carl, relation: affiliated, object: organization:acme}
   - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: affiliated, object: organization:acme}
   - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:vera, relation: affiliated, object: organization:acme}
   - {user: identity_account:zara, relation: admin, object: organization:other}
+  - {user: identity_account:zara, relation: affiliated, object: organization:other}
   - {user: organization:acme, relation: organization, object: invitation:link}
   - {user: organization:acme, relation: organization, object: invitation:relinked}
 tests:

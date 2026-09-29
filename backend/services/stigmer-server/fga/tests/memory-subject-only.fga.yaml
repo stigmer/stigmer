@@ -12,11 +12,20 @@ tuples:
   - user: identity_account:alice
     relation: member
     object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:mallory
     relation: member
     object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:ana
     relation: admin
+    object: organization:acme
+  - user: identity_account:ana
+    relation: affiliated
     object: organization:acme
 
   # Alice's memory (the config-driven create tuples: org + subject).

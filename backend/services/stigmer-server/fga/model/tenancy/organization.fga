@@ -49,7 +49,16 @@ type organization
     # for. A guest is included because the organization's system accounts
     # (guest, channel and schedule sessions) hold `guest` and own the
     # sessions and environments they create.
-    define affiliated: viewer or guest
+    #
+    # Stored, so the bound costs one read instead of a walk up the role
+    # chain on every object a list checks. It is DERIVED, never granted:
+    # exactly while the person holds at least one role row on the
+    # organization. The IamPolicy grant path refuses it as a grant and
+    # announces every change of a person's organization rows; an edition
+    # that stores tuples writes and removes it from those announcements,
+    # and open source derives it from the rows at check time.
+    # FGA tuple: organization:<org_id>#affiliated@identity_account:<user_id>
+    define affiliated: [identity_account]
     
     # ========================================
     # CRUD OPERATIONS

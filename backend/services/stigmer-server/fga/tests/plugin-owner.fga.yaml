@@ -18,17 +18,32 @@ tuples:
   - user: identity_account:alice
     relation: member
     object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:oscar
     relation: admin
+    object: organization:acme
+  - user: identity_account:oscar
+    relation: affiliated
     object: organization:acme
   - user: identity_account:dave
     relation: member
     object: organization:acme
+  - user: identity_account:dave
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:vera
     relation: viewer
     object: organization:acme
+  - user: identity_account:vera
+    relation: affiliated
+    object: organization:acme
   - user: identity_account:mallory
     relation: member
+    object: organization:other
+  - user: identity_account:mallory
+    relation: affiliated
     object: organization:other
 
   # A PRIVATE plugin alice installed (no visibility tuples).

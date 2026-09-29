@@ -108,14 +108,16 @@ An agent execution holds nothing of its own: its one direct relation is the `ses
 Every organization-scoped type admits its direct subjects only while they belong to the object's organization:
 
 ```fga
-# organization.fga
-define affiliated: viewer or guest
+# organization.fga: one stored tuple per person and organization
+define affiliated: [identity_account]
 
 # every relation with a direct list, on every organization-scoped type
 define owner: ([identity_account] and affiliated from organization) or admin from organization
 ```
 
 The bound is what makes leaving an organization mean what it says. A person who loses their last role in the organization reaches nothing it holds on the next check, whichever way the grant was made: shared with them directly, recorded as its author (open source derives an author's `owner` tuple from the row's creator stamp; the hosted edition stores it), or through a team. No cleanup has to run first and none can be missed. Rejoining gives back what the person authored, because authorship is a fact about the row; the IamPolicy grant path deletes the shares and team memberships the person held when they left, so those do not come back.
+
+`affiliated` is stored so the bound costs one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The IamPolicy grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration.
 
 `affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions and environments they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Platform visibility (`platform_viewer`) sits outside the bound: it is the one arm that crosses organizations by design. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
 

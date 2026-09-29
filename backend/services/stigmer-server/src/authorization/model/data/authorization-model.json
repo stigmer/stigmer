@@ -846,7 +846,13 @@
               }
             ]
           },
-          "affiliated": {},
+          "affiliated": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
           "can_assign_roles": {},
           "can_create_agent": {},
           "can_create_agent_instance": {},
@@ -921,20 +927,7 @@
           }
         },
         "affiliated": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "viewer"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "guest"
-                }
-              }
-            ]
-          }
+          "this": {}
         },
         "can_assign_roles": {
           "computedUserset": {
