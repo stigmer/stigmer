@@ -10,12 +10,14 @@
  *   a real repo never leaves Stigmer files behind in it (see issue #173); only
  *   a minimal, transient `.cursor/hooks.json` referencing the absolute script
  *   path is written into the workspace itself.
+ * - `displaced/` — a real `.stigmer` entry found in the workspace when the
+ *   platform link takes the name, kept rather than deleted (stigmer-link.ts).
  *
  * This module replaces the duplicated `getPlatformDir` helpers in
  * execute-cursor/skill-resolver.ts and shared/attachment-resolver.ts.
  */
 
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
@@ -108,6 +110,22 @@ export async function ensurePlatformDir(sessionId: string): Promise<string> {
   const dir = getPlatformDir(sessionId);
   await mkdir(dir, { recursive: true });
   return dir;
+}
+
+/**
+ * Compute where a real `.stigmer` entry found in a workspace is moved when the
+ * platform link takes the name — `displaced/<stamp>` beside the session's
+ * `platform/` and `hitl/` trees (see stigmer-link.ts). Outside the workspace,
+ * so a real repo is never left holding it (issue #173) and a write-back never
+ * commits it; outside `platform/`, so the agent never reads it back as
+ * platform content.
+ *
+ * Takes the platform dir rather than a session id, unlike its siblings: the
+ * link step knows only the dir it links to, and the session dir is its parent.
+ * Pure function — performs no I/O.
+ */
+export function getDisplacedDir(platformDir: string, stamp: string): string {
+  return join(dirname(platformDir), "displaced", stamp);
 }
 
 /**
