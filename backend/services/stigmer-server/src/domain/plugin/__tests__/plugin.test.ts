@@ -19,7 +19,6 @@
  * identical push refused before the slug is judged.
  */
 import { mkdtempSync, rmSync } from "node:fs";
-import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -85,34 +84,24 @@ let mcpServers: Client<typeof McpServerCommandController>;
 let mcpServerQuery: Client<typeof McpServerQueryController>;
 let dir: string;
 
-async function reserveFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const probe = net.createServer();
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      const { port } = probe.address() as net.AddressInfo;
-      probe.close(() => resolve(port));
-    });
-  });
-}
-
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "plugin-domain-test-"));
-  const grpcPort = await reserveFreePort();
+  // An ephemeral port needs no reservation: the transfer lane mints its
+  // capability URLs for the port the listener actually binds
+  // (boot/skill-transfer-origin.ts, stigmer#1386), and the artifact lane
+  // binds ephemeral beside it (boot/artifact-lane.ts). A port probed and
+  // released first could be taken by another worker before the bind
+  // (stigmer#1353).
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
-      GRPC_PORT: String(grpcPort),
-      // The reserved port is the unified one only; its +1 neighbour is not
-      // reserved, and a lane that cannot bind fails the boot (#1089), so
-      // the artifact lane binds ephemeral.
-      ARTIFACT_HTTP_PORT: "0",
       DB_PATH: path.join(dir, "stigmer.db"),
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       STORAGE_PATH: path.join(dir, "storage"),
     }),
     logger: silentLogger,
+    portOverride: 0,
     host: "127.0.0.1",
   });
   const port = await server.start();
@@ -786,7 +775,6 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
 
   beforeAll(async () => {
     enforcingDir = mkdtempSync(path.join(tmpdir(), "plugin-domain-enforcing-"));
-    const grpcPort = await reserveFreePort();
     const authorizer: Authorizer = {
       authorize(_caller, check) {
         if (check.permission === IamPermission.can_write_reserved_labels) {
@@ -804,16 +792,13 @@ describe("Plugin push under an authorizer that enforces reserved labels", () => 
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
         TEMPORAL_HOST_PORT: "127.0.0.1:1",
-        GRPC_PORT: String(grpcPort),
-        // The reserved port is the unified one only; its +1 neighbour is not
-        // reserved, and a lane that cannot bind fails the boot (#1089), so
-        // the artifact lane binds ephemeral.
-        ARTIFACT_HTTP_PORT: "0",
         DB_PATH: path.join(enforcingDir, "stigmer.db"),
         ARTIFACT_LOCAL_BASE_PATH: path.join(enforcingDir, "artifacts"),
         STORAGE_PATH: path.join(enforcingDir, "storage"),
       }),
       logger: silentLogger,
+      // Ephemeral, as the composition above: no port is reserved ahead.
+      portOverride: 0,
       host: "127.0.0.1",
       extensions: [{ name: "reserved-labels-enforced", authorizer }],
     });

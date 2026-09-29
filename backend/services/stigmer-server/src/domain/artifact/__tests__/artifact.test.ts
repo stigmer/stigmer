@@ -1,7 +1,8 @@
 /**
  * Pins the artifact domain against Go's artifact_controller_test.go —
- * through the real stack (composed server, native gRPC client, the port+1
- * file server on a pre-picked free port).
+ * through the real stack (composed server, native gRPC client, the file
+ * server on the ephemeral port it binds beside the server's, reached through
+ * the download URLs the server mints).
  *
  * The load-bearing pins the conformance suite CANNOT cover:
  *   - the 50MB domain cap → ResourceExhausted with Go's copy (sits behind
@@ -19,7 +20,6 @@
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
-import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -59,29 +59,13 @@ const silentLogger = createLogger({
 type CommandClient = Client<typeof ArtifactCommandController>;
 type QueryClient = Client<typeof ArtifactQueryController>;
 
-/** A free loopback port, picked ahead so the file server can pin it. */
-async function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const probe = net.createServer();
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      const address = probe.address();
-      const port =
-        address !== null && typeof address === "object" ? address.port : 0;
-      probe.close(() => resolve(port));
-    });
-  });
-}
-
 let server: ComposedServer;
 let command: CommandClient;
 let query: QueryClient;
 let dir: string;
-let artifactPort: number;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "artifact-domain-test-"));
-  artifactPort = await freePort();
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 3).toString("base64"));
   vi.stubEnv(
     "STIGMER_RUNNER_TOKEN_KEY",
@@ -96,7 +80,6 @@ beforeAll(async () => {
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
-      ARTIFACT_HTTP_PORT: String(artifactPort),
     }),
     logger: silentLogger,
     portOverride: 0,
@@ -397,14 +380,20 @@ describe("artifact domain — the local file-server lane", () => {
   });
 
   it("answers 404 for missing keys and refuses path traversal out of the root", async () => {
-    const missing = await fetch(`http://127.0.0.1:${artifactPort}/nope`);
+    // The lane binds an ephemeral port; a minted URL is how a caller learns
+    // its origin, so the probes below address the same listener.
+    const created = await command.create(artifactInput());
+    const download = await query.getDownloadUrl({
+      value: created.metadata!.id,
+    });
+    const lane = new URL(download.url).origin;
+
+    const missing = await fetch(`${lane}/nope`);
     expect(missing.status).toBe(404);
 
     // The SQLite db sits one level above the artifact root — a traversal
     // escape would serve it.
-    const traversal = await fetch(
-      `http://127.0.0.1:${artifactPort}/..%2Fstigmer.db`,
-    );
+    const traversal = await fetch(`${lane}/..%2Fstigmer.db`);
     expect(traversal.status).toBe(404);
   });
 });

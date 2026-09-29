@@ -18,6 +18,16 @@ const TCP_READY_TIMEOUT_MS = 20_000;
 const TCP_READY_POLL_MS = 100;
 const LOG_TAIL_BYTES = 8_000;
 
+// The Temporal address of a server spawned with no engine behind it. It must
+// stay dead for the whole run: Temporal's client counts any gRPC listener
+// there as a live frontend (its connect probe tolerates UNIMPLEMENTED), so a
+// sibling server landing on it flips the engine to connected and the engine
+// gate stops refusing (stigmer#1221). Port 1 lies below every operating
+// system's ephemeral range and is privileged on Linux, so no listen(0), no
+// getFreePort() and no sibling this run spawns can ever take it; a connect
+// there is refused at once. The composed server tests use the same address.
+const ENGINELESS_TEMPORAL_HOST_PORT = "127.0.0.1:1";
+
 // The OAuth callback URL every conformance server boots with (see the env
 // block below). Exported so the OAuth suite can assert the redirect_uri the
 // server presents to an authorization server against the value the harness
@@ -66,9 +76,10 @@ export interface RunningServer {
 
 export interface SpawnServerOptions {
   // A live Temporal frontend host:port the server should connect to. Omit it
-  // for the CRUD slice (Class A): the server is then pointed at a freshly
-  // allocated closed port so its non-fatal connection attempt fails fast
-  // instead of retrying the live default at localhost:7233. The execution
+  // for the CRUD slice (Class A): the server is then pointed at
+  // ENGINELESS_TEMPORAL_HOST_PORT, an address no process in the run can take,
+  // so its non-fatal connection attempt fails fast instead of retrying the
+  // live default at localhost:7233 or finding a sibling server. The execution
   // target (Class B) passes its dev-server address so workflowCreator is
   // injected and executions can actually run.
   temporalHostPort?: string;
@@ -90,7 +101,7 @@ export async function spawnServer(
 ): Promise<RunningServer> {
   const port = await getFreePort();
   const artifactHttpPort = await getFreePort();
-  const temporalHostPort = opts.temporalHostPort ?? `127.0.0.1:${await getFreePort()}`;
+  const temporalHostPort = opts.temporalHostPort ?? ENGINELESS_TEMPORAL_HOST_PORT;
   const stateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
   // The base path IS the artifact root (#285); mirror the production
   // ~/.stigmer/data/artifacts shape. The runner is pointed at this same dir.
