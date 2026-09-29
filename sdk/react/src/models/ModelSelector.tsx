@@ -47,7 +47,7 @@ export interface ModelSelectorProps {
   readonly onHarnessChange?: (harness: HarnessOption) => void;
   /**
    * Restrict which harnesses appear in the dropdown.
-   * When omitted, shows all registered harnesses that have models in the registry.
+   * When omitted, shows every harness the platform runs ({@link HARNESS_OPTIONS}).
    */
   readonly availableHarnesses?: readonly HarnessOption[];
   /** Override the curated (featured) list for the current harness. */
@@ -218,12 +218,7 @@ export function ModelSelector({
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const resolvedHarnesses = useMemo(() => {
-    if (availableHarnesses) return availableHarnesses;
-    // For now, show native and cursor (the two harnesses with models in the registry).
-    // Future harnesses will be added to the registry and appear here automatically.
-    return HARNESS_OPTIONS.filter((h) => h === "native" || h === "cursor");
-  }, [availableHarnesses]);
+  const resolvedHarnesses = availableHarnesses ?? HARNESS_OPTIONS;
 
   const selectedModel = (value ? getModel(value) : undefined) ?? defaultModel ?? undefined;
 

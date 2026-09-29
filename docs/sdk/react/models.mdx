@@ -138,7 +138,7 @@ base per-token rates and costs more only through extra reasoning
 
 <TypeTable
   type={{
-    availableHarnesses: { type: "readonly HarnessOption[]", description: "Restrict which harnesses appear in the dropdown. When omitted, shows all registered harnesses that have models in the registry." },
+    availableHarnesses: { type: "readonly HarnessOption[]", description: "Restrict which harnesses appear in the dropdown. When omitted, shows every harness the platform runs (HARNESS_OPTIONS)." },
     className: { type: "string", description: "Additional CSS class names for the trigger button." },
     compact: { type: "boolean", description: "Compact mode: smaller trigger, no descriptions. Default: false." },
     curatedModels: { type: "readonly string[]", description: "Override the curated (featured) list for the current harness." },
@@ -250,10 +250,8 @@ User-facing labels for each harness option.
 String literal alias for the proto `Harness` enum.
 
 Used on component props and hook options so platform builders
-do not need to import proto enums to use the SDK.
-
-This union grows as new execution engines are integrated.
-Each value must have a corresponding entry in `HARNESS_META`.
+do not need to import proto enums to use the SDK. Exactly the
+engines the platform runs; it grows only when the proto enum does.
 
 
 ### ModelInfo
