@@ -139,6 +139,16 @@ $(SERVER_DIR)/node_modules: $(SERVER_DIR)/package.json
 	@cd $(SERVER_DIR) && npm install
 	@touch $(SERVER_DIR)/node_modules
 
+# site/ is a yarn 4 project with its own lockfile, outside the npm workspace;
+# site/Makefile's `deps` is its install. Every root target that runs a site
+# script depends on this, so a fresh worktree needs no hand-run yarn install.
+# Phony, not a node_modules file target: the install can rewrite site/yarn.lock
+# (the file: hash note above `check`), which would leave such a target always
+# stale or never.
+.PHONY: site-deps
+site-deps:
+	$(MAKE) -C site deps
+
 build-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Compile the TypeScript server
 	@echo "build    $(SERVER_DIR)"
 	@cd $(SERVER_DIR) && npm run build
@@ -239,15 +249,15 @@ stubs-internal-check: ## Verify committed stubs carry no @internal comment secti
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@node_modules/.bin/tsx tools/codegen/src/stubscrub/main.ts -check apis/stubs sdk/go/proto
 
-gen-react-sdk-docs: ## Generate React SDK reference docs from TypeDoc
+gen-react-sdk-docs: site-deps ## Generate React SDK reference docs from TypeDoc
 	cd sdk/react && npm run typedoc:json
 	cd site && yarn generate-react-sdk-docs
 
-gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
+gen-ink-sdk-docs: site-deps ## Generate Ink SDK reference docs from TypeDoc
 	cd sdk/ink && npm run typedoc:json
 	cd site && yarn generate-ink-sdk-docs
 
-gen-theme-docs: ## Generate theme token reference docs from tokens.css
+gen-theme-docs: site-deps ## Generate theme token reference docs from tokens.css
 	cd site && yarn generate-theme-docs
 
 gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
@@ -291,7 +301,7 @@ gen-task-docs-check: ## Verify task docs are up to date (CI)
 	fi; \
 	echo "✓ Task docs are up to date"
 
-gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
+gen-react-sdk-docs-check: site-deps ## Verify React SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd sdk/react && npm run typedoc:json) && \
 	(cd site && REACT_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-react-sdk-docs) && \
@@ -307,7 +317,7 @@ gen-react-sdk-docs-check: ## Verify React SDK docs are up to date (CI)
 	fi; \
 	echo "✓ React SDK docs are up to date"
 
-gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
+gen-ink-sdk-docs-check: site-deps ## Verify Ink SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd sdk/ink && npm run typedoc:json) && \
 	(cd site && INK_SDK_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-ink-sdk-docs) && \
@@ -323,7 +333,7 @@ gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
 	fi; \
 	echo "✓ Ink SDK docs are up to date"
 
-gen-theme-docs-check: ## Verify theme token docs are up to date (CI)
+gen-theme-docs-check: site-deps ## Verify theme token docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
 	(cd site && THEME_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-theme-docs) && \
 	rc=0; \
@@ -1233,7 +1243,7 @@ preview: preview-site
 
 docs-build: build-site ## Build the documentation site (production)
 
-gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md)
+gen-llms: site-deps ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md)
 	cd site && yarn generate-llms
 
 # ─── Release ──────────────────────────────────
