@@ -12,11 +12,15 @@
  * (stigmer#1387, stigmer#1397): recall is the run's person's own
  * confirmed facts, behind the first-party gate, the org switch and the
  * person's own, and user_context is that person's standing context — the
- * retired Java steps' gates, in their order.
+ * retired Java steps' gates, in their order. The organization's half is
+ * pinned against the composed visitor classifier (stigmer/stigmer#1401):
+ * every lane keeps it but a visitor, whose run never reads the
+ * organization, and a classifier that throws withholds it.
  */
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import type { VisitorClassifier } from "../../../extensions/visitor-classifier.js";
 import type { AccountsByCaller } from "../../identityaccount/resolve.js";
 import { fakeIdentityAccountStore } from "../../identityaccount/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -494,6 +498,108 @@ describe("newComposeDeclaredPreferencesStep", () => {
       expect(got?.userContext).toBe("");
     });
   }
+});
+
+describe("newComposeDeclaredPreferencesStep for visitors", () => {
+  const ORG_CONTEXT = "We deploy to us-east-1.";
+  const channelSender = testCallerIdentity({ callerClass: "channel" });
+  const member = testCallerIdentity();
+
+  /** The hosted edition's shape: a visitor is a caller of a visitor class. */
+  const channelIsVisitor: VisitorClassifier = {
+    isVisitor: (caller) => caller.callerClass === "channel",
+  };
+
+  /** Wraps the real store, counting organization reads. */
+  function countingStore(): { store: Store; orgReads: () => number } {
+    let reads = 0;
+    const counted = new Proxy(store, {
+      get(target, prop, receiver) {
+        if (prop === "getResource") {
+          return (kind: ApiResourceKind, ...rest: unknown[]) => {
+            if (kind === ApiResourceKind.organization) {
+              reads += 1;
+            }
+            return Reflect.apply(target.getResource, target, [kind, ...rest]);
+          };
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    return { store: counted, orgReads: () => reads };
+  }
+
+  async function compose(
+    caller: CallerIdentity,
+    classifier: VisitorClassifier | undefined,
+    options: { store?: Store; logger?: typeof silentLogger } = {},
+  ) {
+    await seedOrg("test-org", ORG_CONTEXT);
+    const step = newComposeDeclaredPreferencesStep(
+      options.store ?? store,
+      options.logger ?? silentLogger,
+      undefined,
+      classifier,
+    );
+    const execution = newExecution("ses_1", "agt_1");
+    // The injection attempt: the field is server-owned on this path too.
+    execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
+      orgContext: "injected org context",
+    });
+    const ctx = newContext(execution, caller);
+    await step.execute(ctx);
+    return ctx.newState.spec?.declaredPreferences;
+  }
+
+  it("composes no organization context for a visitor, and never reads the organization", async () => {
+    const counted = countingStore();
+    const got = await compose(channelSender, channelIsVisitor, {
+      store: counted.store,
+    });
+    expect(got, "server-owned field stamped for a visitor").toBeDefined();
+    expect(got?.orgContext).toBe("");
+    expect(counted.orgReads()).toBe(0);
+  });
+
+  it("keeps the organization's context for a member when a classifier is composed", async () => {
+    const got = await compose(member, channelIsVisitor);
+    expect(got?.orgContext).toBe(ORG_CONTEXT);
+  });
+
+  it("keeps the organization's context for every caller when no classifier is composed", async () => {
+    const got = await compose(channelSender, undefined);
+    expect(got?.orgContext).toBe(ORG_CONTEXT);
+  });
+
+  it("classifies a propagated visitor as a visitor (in-process keeps the class)", async () => {
+    const got = await compose(
+      testCallerIdentity({ callerClass: "channel", origin: "in-process" }),
+      channelIsVisitor,
+    );
+    expect(got?.orgContext).toBe("");
+  });
+
+  it("withholds the organization's context when the classifier throws, and logs it at ERROR", async () => {
+    const lines: string[] = [];
+    const logger = createLogger({
+      level: "error",
+      pretty: false,
+      write: (line) => lines.push(line),
+    });
+    const got = await compose(
+      member,
+      {
+        isVisitor: () => {
+          throw new Error("classifier fault");
+        },
+      },
+      { logger },
+    );
+    expect(got?.orgContext).toBe("");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("Visitor classifier failed");
+    expect(lines[0]).toContain("classifier fault");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -980,12 +1086,14 @@ describe("the compose steps where callers are persons", () => {
   async function declared(
     accounts: AccountsByCaller | undefined,
     caller: CallerIdentity,
+    classifier?: VisitorClassifier,
   ) {
     await seedOrg("test-org", "We deploy to us-east-1.");
     const step = newComposeDeclaredPreferencesStep(
       store,
       silentLogger,
       accounts,
+      classifier,
     );
     const execution = newExecution("ses_1", "agt_1");
     execution.spec!.declaredPreferences = create(DeclaredPreferencesSchema, {
@@ -1027,6 +1135,35 @@ describe("the compose steps where callers are persons", () => {
       expect(got?.userContext).toBe("");
     });
   }
+
+  // The hosted edition's classifier composed beside the person directory:
+  // the channel sender is its one visitor here, so it alone loses the
+  // organization's half; every other lane keeps it (stigmer/stigmer#1401).
+  const hostedClassifier: VisitorClassifier = {
+    isVisitor: (caller) => caller.callerClass === "channel",
+  };
+  for (const [name, caller] of notFirstParty) {
+    const visitor = hostedClassifier.isVisitor(caller);
+    it(`${visitor ? "withholds" : "keeps"} the organization's context for ${name} under a visitor classifier`, async () => {
+      const got = await declared(
+        directory({ standingContext: "Call me Carol." }),
+        caller,
+        hostedClassifier,
+      );
+      expect(got?.orgContext).toBe(visitor ? "" : "We deploy to us-east-1.");
+      expect(got?.userContext).toBe("");
+    });
+  }
+
+  it("keeps both halves for Carol herself under a visitor classifier", async () => {
+    const got = await declared(
+      directory({ standingContext: "Call me Carol." }),
+      carol,
+      hostedClassifier,
+    );
+    expect(got?.orgContext).toBe("We deploy to us-east-1.");
+    expect(got?.userContext).toBe("Call me Carol.");
+  });
 });
 
 // ---------------------------------------------------------------------------

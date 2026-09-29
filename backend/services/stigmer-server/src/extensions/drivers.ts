@@ -43,6 +43,9 @@
  *     `cloud.iam_platform_client` driver fills, the RS256 key ring every
  *     self-signed token rides, and the one token method only an edition
  *     that hosts shared-agent pages serves) — landed 2026-09-23
+ *   - visitor classifier (which callers are visitors: admitted to the
+ *     organization's agents without belonging to it, whose runs never
+ *     carry its standing context) — landed with stigmer/stigmer#1401
  *
  * Merge rules (enforced by resolveExtensions, DD-006 §2b): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -76,6 +79,7 @@ import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
+import type { VisitorClassifier } from "./visitor-classifier.js";
 
 /** The driver contributions of one extension unit. */
 export interface ExtensionDrivers {
@@ -296,4 +300,13 @@ export interface ExtensionDrivers {
    * (extensions/guest-token-minting.ts carries the contract).
    */
   readonly guestTokenMinting?: GuestTokenMinting;
+  /**
+   * The visitor classifier (single-instance point): which callers are
+   * visitors, admitted to the organization's agents without belonging to
+   * it (extensions/visitor-classifier.ts carries the contract). When
+   * composed, ComposeDeclaredPreferences composes no organization
+   * standing context onto a visitor's run; when absent, nobody is a
+   * visitor — OSS behavior byte-identical.
+   */
+  readonly visitorClassifier?: VisitorClassifier;
 }

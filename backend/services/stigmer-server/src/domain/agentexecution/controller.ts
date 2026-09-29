@@ -39,6 +39,7 @@ import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
+import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type {
   AgentExecutionResponseDecorator,
@@ -165,6 +166,12 @@ export interface AgentExecutionControllerDeps {
    * empty-string sentinel.
    */
   readonly personAccounts: AccountsByCaller | undefined;
+  /**
+   * The composed visitor classifier (stigmer/stigmer#1401) —
+   * ComposeDeclaredPreferences composes no organization standing context
+   * onto a visitor's run; undefined = nobody is a visitor (open source).
+   */
+  readonly visitorClassifier: VisitorClassifier | undefined;
   /**
    * The shared broadcast fabric for subscribe streams. ONE instance spans
    * both routers (serving + in-process) — see stream-broker.ts; the
@@ -379,6 +386,7 @@ async function createExecution(
         deps.store,
         deps.logger,
         deps.personAccounts,
+        deps.visitorClassifier,
       ),
     )
     .addStep(
