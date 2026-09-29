@@ -54,6 +54,7 @@ import type { SecretCodec } from "../../encryption/codec.js";
 import type { EncryptionScope } from "../../encryption/encryption.js";
 import { REDACTED_MARKER } from "../../encryption/encryption.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -127,6 +128,7 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [ORG]);
   envCommand = createClient(EnvironmentCommandController, transport);
   oauthCommand = createClient(OAuthAppCommandController, transport);
   channelCommand = createClient(ChannelAppCommandController, transport);

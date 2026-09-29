@@ -82,6 +82,7 @@ import type { AgentExecutionStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
 import type { IdentityVerifier } from "../identity.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
+import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 
 /** The refusal a call answered; a call that succeeds fails the case. */
 async function refusalOf(work: Promise<unknown>): Promise<ConnectError> {
@@ -913,6 +914,7 @@ describe("extension composition (O4 gate slots + status hooks)", () => {
     portTransport = createGrpcTransport({
       baseUrl: `http://127.0.0.1:${port}`,
     });
+    await seedOrganizations(portTransport, ["acme"]);
   });
 
   afterAll(async () => {

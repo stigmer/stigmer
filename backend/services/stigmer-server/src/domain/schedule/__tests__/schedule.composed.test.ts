@@ -44,6 +44,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { TRIGGER_DISABLED_MESSAGE } from "../trigger.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -73,6 +74,7 @@ beforeAll(async () => {
   });
   const port = await server.start();
   transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+  await seedOrganizations(transport, ["acme", "other-org"]);
   command = createClient(ScheduleCommandController, transport);
   query = createClient(ScheduleQueryController, transport);
   agentCommand = createClient(AgentCommandController, transport);

@@ -29,7 +29,12 @@
  *     nothing to separate; the laptop's rows are stamped `"system"`):
  *     tokenless reads and organization enumeration keep working, and
  *     the retired public level is refused here exactly as it is under
- *     every other posture (the level is gone, not gated).
+ *     every other posture (the level is gone, not gated). One question
+ *     is answered as under sign-in: a request naming an Organization the
+ *     server does not hold is NOT_FOUND with the same sentence, whether
+ *     it writes (a create, an apply, a session) or reads (a usage
+ *     report), so nothing is stored under a slug no Organization holds
+ *     (stigmer#1163). The OIDC arm pins the same sentence beside it.
  *   - a unit's own Authorizer: nothing built in is installed; the unit's
  *     answer stands even against the founder.
  *
@@ -67,6 +72,7 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
@@ -102,6 +108,10 @@ const VISITOR = "fake|visitor";
 const ORG = "built-in-org";
 /** Founded AFTER the member provisioned: the member holds no row on it. */
 const OTHER_ORG = "built-in-other-org";
+/** Never created on any server in this file: the phantom target of stigmer#1163. */
+const MISSING_ORG = "never-created-org";
+/** The load-first chain's copy for it, which every posture's Authorize step answers. */
+const MISSING_ORG_NOT_FOUND = `Organization not found: ${MISSING_ORG}`;
 
 function apiKeyInput(name: string) {
   return {
@@ -316,6 +326,20 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
         }),
       ),
     ).toBe(Code.NotFound);
+  });
+
+  it("a create into an Organization that does not exist is NOT_FOUND with the load-first copy — the sentence the trusted-local arm pins too (stigmer#1163)", async () => {
+    const failure = await failureOf(
+      createClient(AgentCommandController, asFounder()).create(
+        agentInput(
+          "Phantom Agent",
+          ApiResourceVisibility.visibility_org,
+          MISSING_ORG,
+        ),
+      ),
+    );
+    expect(failure.code).toBe(Code.NotFound);
+    expect(failure.rawMessage).toBe(MISSING_ORG_NOT_FOUND);
   });
 
   it("an outsider on an EXISTING organization and its agent hears PERMISSION_DENIED — the cloud's answer; NOT_FOUND is for what does not exist", async () => {
@@ -645,6 +669,61 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
       org: ORG,
     });
     expect(search.entries.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("a request naming an Organization that does not exist is NOT_FOUND, as under sign-in, and stores nothing (stigmer#1163)", async () => {
+    const anonymous = transportFor(port);
+    const agents = createClient(AgentCommandController, anonymous);
+    const phantom = agentInput(
+      "Phantom Laptop Agent",
+      ApiResourceVisibility.visibility_org,
+      MISSING_ORG,
+    );
+    const refusals = [
+      ["create", await failureOf(agents.create(phantom))],
+      ["apply", await failureOf(agents.apply(phantom))],
+      [
+        "a session",
+        await failureOf(
+          createClient(SessionCommandController, anonymous).create({
+            apiVersion: "agentic.stigmer.ai/v1",
+            kind: "Session",
+            metadata: { name: "Phantom Session", org: MISSING_ORG },
+            spec: {},
+          }),
+        ),
+      ],
+      [
+        "a usage report",
+        await failureOf(
+          createClient(
+            AgentExecutionQueryController,
+            anonymous,
+          ).getOrgUsageReport({
+            orgId: MISSING_ORG,
+            fromDate: "2026-09-01",
+            toDate: "2026-09-30",
+          }),
+        ),
+      ],
+    ] as const;
+    for (const [lane, failure] of refusals) {
+      expect(failure.code, lane).toBe(Code.NotFound);
+      expect(failure.rawMessage, lane).toBe(MISSING_ORG_NOT_FOUND);
+    }
+    // The search lane skips authorization and indexes on write, so a
+    // phantom row would surface here; the laptop's full scan finds none.
+    const search = await createClient(SearchService, anonymous).search({
+      kinds: [ApiResourceKind.agent],
+      org: MISSING_ORG,
+    });
+    expect(search.entries).toEqual([]);
+    // The positive beside it: the same agent, applied into the
+    // Organization the server holds, lands.
+    const landed = await agents.apply(
+      agentInput("Phantom Laptop Agent", ApiResourceVisibility.visibility_org),
+    );
+    expect(landed.metadata?.org).toBe(ORG);
   });
 });
 

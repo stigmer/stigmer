@@ -18,8 +18,11 @@
  *     open source may run it too, once every kind it serves has rows the
  *     derivation can read (`kindsWithoutRows` below).
  *   - `trusted-local`: no unit Authorizer and no authentication posture —
- *     the laptop. The permissive default stays: one caller, nothing to
- *     separate; the trusted-local identity carries the operator's EMAIL,
+ *     the laptop. The permissive driver (trusted-local-authorizer.ts): one
+ *     caller, nothing to separate, so every check is allowed except one
+ *     that names an Organization the server does not hold, which is
+ *     not-found as under the other two postures (stigmer#1163). The
+ *     trusted-local identity carries the operator's EMAIL,
  *     never an account id, and pre-2a rows are stamped `"system"`, so an
  *     enforcing evaluator would refuse the laptop's own history. The roles
  *     still exist (the lifecycle and the membership rules run) to feed the

@@ -229,7 +229,8 @@ export function newLoadByExecutionIdStep(
  * Ordered before the duplicate check so an unauthorized caller learns
  * nothing about which execution ids exist.
  *
- * OSS byte-identity: the permissive authorizer allows every check, so the
+ * OSS byte-identity: the trusted-local authorizer allows every check on
+ * an Organization that exists (trusted-local-authorizer.ts), so the
  * single-user posture is unchanged (the rosters prove it).
  */
 export function newAuthorizeExecutionContextCreateStep(

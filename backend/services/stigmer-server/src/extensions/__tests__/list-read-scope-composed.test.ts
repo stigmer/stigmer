@@ -65,6 +65,7 @@ import {
 } from "../../pipeline/interceptors/auth.js";
 import type { ListReadScope } from "../list-read-scope.js";
 import type { ServerExtension } from "../registry.js";
+import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -130,6 +131,7 @@ describe("list read scope (composed server, fake scope)", () => {
     });
     const port = await server.start();
     transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+    await seedOrganizations(transport, ["acme"]);
 
     // Two rows per kind — one the scope will keep, one it must hide.
     // Seeded through the store: the write path is not under test.

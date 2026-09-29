@@ -6,7 +6,8 @@
 //
 // This is a managed target — it owns the server process lifecycle. The
 // server runs single-tenant with no auth and no Temporal (not needed for
-// the CRUD domains), so tenancy provisioning is just a unique org slug.
+// the CRUD domains), so tenancy provisioning is one fresh Organization per
+// scope, created by the one implicit caller (support/organizations.ts).
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ensureTsServerEntry } from "../harness/ts-build";
 import {
@@ -23,7 +24,7 @@ import {
   type ProvisionedStorage,
   type RunningServer,
 } from "../harness/server-process";
-import { uniqueOrg } from "../support/naming";
+import { createUniqueOrganization } from "../support/organizations";
 import type {
   CapabilityFlags,
   EnforcingLane,
@@ -220,15 +221,20 @@ export class LocalTarget implements TargetProfile {
   }
 
   async provisionTenancy(): Promise<TenancyContext> {
-    // No auth and no bootstrap org: a unique slug is a fully isolated scope.
-    return { org: uniqueOrg() };
+    // No auth and no bootstrap org: a fresh Organization is a fully isolated
+    // scope. It is created, not just named: a write into an Organization the
+    // server does not hold is NOT_FOUND (stigmer#1163).
+    const { slug } = await createUniqueOrganization(this.clients().organizationCommand, "tenancy");
+    return { org: slug };
   }
 
   // Single-tenant and deliberately unguarded: the one implicit caller IS the
-  // operator, so the ordinary clients and a fresh slug satisfy the privileged
-  // contract (stigmer#547).
+  // operator, so the ordinary clients and a fresh Organization satisfy the
+  // privileged contract (stigmer#547).
   async provisionPrivilegedScope(): Promise<PrivilegedScope> {
-    return { clients: this.clients(), context: { org: uniqueOrg() }, cleanup: async () => {} };
+    const clients = this.clients();
+    const { slug } = await createUniqueOrganization(clients.organizationCommand, "the privileged scope");
+    return { clients, context: { org: slug }, cleanup: async () => {} };
   }
 
   async cleanupTenancy(): Promise<void> {

@@ -100,11 +100,12 @@ export const AUTHORIZATION_UNAVAILABLE_MESSAGE =
 export const AUTHORIZATION_DENIED_FALLBACK_MESSAGE = "permission denied";
 
 /**
- * The OSS default Authorizer: the permissive single-team posture (DD-007
- * §3) — one trust domain, every authenticated caller may do everything,
- * exactly the pre-O2 behavior. Installed by the composition root when no
- * extension registers an Authorizer (the default lives with the consumer
- * that defines its semantics — registry.ts contract).
+ * The permissive single-team Authorizer (DD-007 §3): one trust domain,
+ * every check allowed, exactly the pre-O2 behavior. Kept for the suites
+ * that need an Authorizer with no opinion at all; no posture composes it.
+ * A server without sign-in composes the trusted-local driver
+ * (authorization/trusted-local-authorizer.ts), which is this plus the
+ * not-found arm for an Organization that does not exist (stigmer#1163).
  */
 export function newPermissiveSingleTeamAuthorizer(): Authorizer {
   return {

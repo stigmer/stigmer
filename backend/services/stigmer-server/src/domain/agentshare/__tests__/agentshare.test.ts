@@ -52,6 +52,7 @@ import {
   sameOrgInvariantMessage,
 } from "../constants.js";
 import { findShareByOrgAndSlug, sharingLinkTokenAllowed } from "../steps.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -96,6 +97,22 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  // Every Organization a describe below writes into (each names its own).
+  await seedOrganizations(transport, [
+    "create-test-org",
+    "launchgate-test-org",
+    "update-test-org",
+    "profile-test-org",
+    "audience-test-org",
+    "rotate-test-org",
+    "apply-isolation-org",
+    "apply-sem-org",
+    "gba-bystander-org",
+    "gba-provider-org",
+    "gba-org",
+    "provider-org",
+    "consumer-org",
+  ]);
   shares = createClient(AgentShareCommandController, transport);
   query = createClient(AgentShareQueryController, transport);
   agents = createClient(AgentCommandController, transport);

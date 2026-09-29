@@ -30,6 +30,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -68,6 +69,7 @@ beforeAll(async () => {
   const port = await server.start();
   baseUrl = `http://127.0.0.1:${port}`;
   const transport: Transport = createGrpcTransport({ baseUrl });
+  await seedOrganizations(transport, [ORG, "other-org"]);
   command = createClient(SkillCommandController, transport);
   query = createClient(SkillQueryController, transport);
 });

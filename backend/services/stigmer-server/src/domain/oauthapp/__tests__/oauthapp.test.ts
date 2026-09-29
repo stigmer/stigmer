@@ -53,6 +53,7 @@ import {
   deleteBlockedByMcpServerMessage,
 } from "../constants.js";
 import { resolveOAuthAppRef } from "../refresolution.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -94,6 +95,19 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  // Not "stigmer" or "res-org-none": the ref-resolution cases need an org
+  // that does not exist here.
+  await seedOrganizations(transport, [
+    ORG,
+    "other-org",
+    "org-a",
+    "org-b",
+    "res-org-a",
+    "res-org-b",
+    "res-org-c",
+    "res-org-d",
+    "res-org-e",
+  ]);
   return {
     server,
     command: createClient(OAuthAppCommandController, transport),

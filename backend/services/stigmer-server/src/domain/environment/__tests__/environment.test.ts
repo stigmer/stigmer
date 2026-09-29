@@ -38,6 +38,7 @@ import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { ENCRYPTED_PREFIX, isCiphertextShaped } from "../../../encryption/encryption.js";
 import { REDACTED_MARKER } from "../constants.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -84,6 +85,18 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [
+    ORG,
+    "other-org",
+    "personal-org-a",
+    "personal-org-b",
+    "personal-org-c",
+    "personal-org-d",
+    "read-org",
+    "vis-org-a",
+    "vis-org-b",
+    "list-org",
+  ]);
   return {
     server,
     command: createClient(EnvironmentCommandController, transport),

@@ -74,6 +74,7 @@ import { submitApproval } from "../submit-approval.js";
 import { submitFileDecision } from "../submit-file-decision.js";
 import { stubConnectedEngine } from "./engine-stub.js";
 import { fileReviewSeed } from "./file-review-seed.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -123,6 +124,15 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [
+    ORG,
+    "org-a",
+    "org-b",
+    "org-report",
+    "org-summary",
+    "other-org",
+    "org-never-used",
+  ]);
   command = createClient(AgentExecutionCommandController, transport);
   query = createClient(AgentExecutionQueryController, transport);
 });

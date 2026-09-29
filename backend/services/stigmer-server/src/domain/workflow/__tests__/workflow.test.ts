@@ -46,6 +46,7 @@ import {
   SYSTEM_MANAGED_LABEL,
 } from "../../../pipeline/apiresource-labels.js";
 import { defaultWorkflowInstanceSlug } from "../../workflowinstance/defaultinstance.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -83,6 +84,7 @@ beforeAll(async () => {
   });
   const port = await server.start();
   transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+  await seedOrganizations(transport, [ORG, "other-org"]);
   command = createClient(WorkflowCommandController, transport);
   query = createClient(WorkflowQueryController, transport);
   instanceCommand = createClient(WorkflowInstanceCommandController, transport);

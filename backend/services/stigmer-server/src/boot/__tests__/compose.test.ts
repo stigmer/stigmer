@@ -40,6 +40,7 @@ import path from "node:path";
 import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
 import { createLogger } from "../logger.js";
+import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -175,10 +176,11 @@ describe("the skill transfer lane", () => {
     const server = await compose();
     const port = await server.start();
     try {
-      const command = createClient(
-        SkillCommandController,
-        createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` }),
-      );
+      const transport = createGrpcTransport({
+        baseUrl: `http://127.0.0.1:${port}`,
+      });
+      await seedOrganizations(transport, ["acme"]);
+      const command = createClient(SkillCommandController, transport);
       // The lane stages bytes as given; the archive is validated at push,
       // which this case does not reach.
       const body = new TextEncoder().encode("staged skill bytes\n");

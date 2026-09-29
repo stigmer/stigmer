@@ -68,6 +68,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { invalidArgumentError } from "../../../pipeline/errors.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ChannelRuntime } from "../channel-runtime.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -273,6 +274,7 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [ORG]);
   channels = createClient(AgentChannelCommandController, transport);
   query = createClient(AgentChannelQueryController, transport);
   agents = createClient(AgentCommandController, transport);

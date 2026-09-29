@@ -18,7 +18,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeAgentInstance } from "../support/agentinstances";
-import { uniqueName } from "../support/naming";
+import { uniqueName, uniqueOrg } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -231,6 +231,21 @@ describe("Agent conformance — negative paths", () => {
       Code.InvalidArgument,
       "create without name",
     );
+  });
+
+  it("rejects a create and an apply into an Organization that does not exist (contract: NotFound, the load-first copy)", async () => {
+    // A slug no Organization holds. Every edition answers this before any
+    // permission question and with the same sentence, whether the server
+    // signs its callers in or not (stigmer#1163): nothing is stored under
+    // a slug nothing lists.
+    const missing = uniqueOrg();
+    for (const [lane, call] of [
+      ["create", () => clients.agentCommand.create(makeAgent({ org: missing, name: uniqueName("phantom") }))],
+      ["apply", () => clients.agentCommand.apply(makeAgent({ org: missing, name: uniqueName("phantom") }))],
+    ] as const) {
+      const error = await expectGrpcCode(call, Code.NotFound, `${lane} into a missing organization`);
+      expect(error.rawMessage, lane).toBe(`Organization not found: ${missing}`);
+    }
   });
 });
 

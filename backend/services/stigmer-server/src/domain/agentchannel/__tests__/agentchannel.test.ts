@@ -61,6 +61,7 @@ import {
   providerImmutableMessage,
   sameOrgInvariantMessage,
 } from "../constants.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -106,6 +107,14 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [
+    ORG,
+    "acme",
+    "channel-other-org",
+    "channel-bystander-org",
+    "channel-apply-org",
+    "channel-list-org",
+  ]);
   channels = createClient(AgentChannelCommandController, transport);
   query = createClient(AgentChannelQueryController, transport);
   agents = createClient(AgentCommandController, transport);

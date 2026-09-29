@@ -41,6 +41,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -82,6 +83,7 @@ beforeAll(async () => {
   });
   const port = await server.start();
   transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+  await seedOrganizations(transport, [ORG, "globex"]);
   command = createClient(AgentCommandController, transport);
   query = createClient(AgentQueryController, transport);
   instanceCommand = createClient(AgentInstanceCommandController, transport);

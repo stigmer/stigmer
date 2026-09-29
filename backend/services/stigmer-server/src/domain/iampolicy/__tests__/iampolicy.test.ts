@@ -65,6 +65,7 @@ import {
   roleNotGrantableMessage,
   unknownPermissionMessage,
 } from "../constants.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 import { orgRole, triple } from "./support.js";
 
 const OPERATOR_EMAIL = "operator@example.com";
@@ -115,6 +116,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
     });
     const port = await server.start();
     transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+    await seedOrganizations(transport, ["acme"]);
     command = createClient(IamPolicyCommandController, transport);
     query = createClient(IamPolicyQueryController, transport);
     organizations = createClient(OrganizationCommandController, transport);
@@ -191,7 +193,21 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
     it("deleting the organization cleans its rows", async () => {
       const org = await newOrganization();
       await organizations.delete({ value: org });
-      const count = await query.getPrincipalsCount({
+      // The wire now refuses a count of an Organization that is gone
+      // (stigmer#1163), so the rows are counted by the server itself: the
+      // in-process caller skips authorization.
+      const wire = await grpcError(() =>
+        query.getPrincipalsCount({
+          orgId: org,
+          principalKind: "identity_account",
+        }),
+      );
+      expect(wire.code).toBe(Code.NotFound);
+      expect(wire.rawMessage).toBe(`Organization not found: ${org}`);
+      const count = await createClient(
+        IamPolicyQueryController,
+        server.inProcessTransport,
+      ).getPrincipalsCount({
         orgId: org,
         principalKind: "identity_account",
       });

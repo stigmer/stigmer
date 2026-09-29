@@ -61,6 +61,7 @@ import {
   deleteExecutionContextForExecution,
 } from "../temporal/delete-execution-context.js";
 import { executionContextSearchExtractor } from "../search-extractor.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -112,6 +113,7 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [ORG, "test-org"]);
   return {
     server,
     command: createClient(ExecutionContextCommandController, transport),

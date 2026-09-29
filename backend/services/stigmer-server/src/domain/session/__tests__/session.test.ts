@@ -64,6 +64,7 @@ import {
   newConfigFromEnv,
 } from "../../agentexecution/temporal/config.js";
 import { newValidateExecutionTargetImmutabilityStep } from "../steps.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -107,6 +108,7 @@ beforeAll(async () => {
   });
   const port = await server.start();
   transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+  await seedOrganizations(transport, [ORG]);
   agentCommand = createClient(AgentCommandController, transport);
   command = createClient(SessionCommandController, transport);
   query = createClient(SessionQueryController, transport);

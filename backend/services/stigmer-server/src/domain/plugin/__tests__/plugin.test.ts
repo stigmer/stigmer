@@ -65,6 +65,7 @@ import {
   PLUGIN_VERSION_LABEL,
   SYSTEM_LABEL,
 } from "../../../pipeline/apiresource-labels.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -108,6 +109,7 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [ORG]);
   plugins = createClient(PluginCommandController, transport);
   pluginQuery = createClient(PluginQueryController, transport);
   agents = createClient(AgentCommandController, transport);

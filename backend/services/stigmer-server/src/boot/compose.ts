@@ -43,6 +43,7 @@ import {
 } from "../authorization/posture.js";
 import { newStoreResourceCreators } from "../authorization/resource-creators.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
+import { newTrustedLocalAuthorizer } from "../authorization/trusted-local-authorizer.js";
 import type { Authorizer } from "../extensions/authorizer.js";
 import type { ComposedServices } from "../extensions/composed-services.js";
 import { ABSENT_LICENSE_STATUS } from "../extensions/license-status.js";
@@ -175,7 +176,6 @@ import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js
 import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
 import { createRequestMetricsInterceptor } from "../pipeline/interceptors/request-metrics.js";
-import { newPermissiveSingleTeamAuthorizer } from "../pipeline/steps/authorize.js";
 import { newBuiltInRunnerCredentialProvider } from "../runnerauth/built-in-runner-credential-provider.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
 import { newRunnerSubjectIdentityVerifier } from "../runnerauth/runner-subject-verifier.js";
@@ -545,7 +545,10 @@ export async function composeServer(
   // runner acting for a workflow creates the workflow's child executions
   // as the workflow's person, who must be able to view the agents the
   // workflow calls (the runner's own read of each callee already asks
-  // that); or the permissive single-team default. The organization directory and the
+  // that); or, trusted-local, open source's permissive driver
+  // (authorization/trusted-local-authorizer.ts), which separates no callers
+  // and answers only whether a named Organization exists, as the other two
+  // do (stigmer#1163). The organization directory and the
   // schedule fire caller are bound beside it under the same posture, so
   // `findMyOrganizations` lists what a person may view and a scheduled run
   // belongs to the person who scheduled it — a fire the internal lane
@@ -561,7 +564,7 @@ export async function composeServer(
           edition: extensions.edition,
           logger,
         })
-      : newPermissiveSingleTeamAuthorizer());
+      : newTrustedLocalAuthorizer({ store }));
   const organizationDirectory: OrganizationDirectory | undefined =
     extensions.drivers.organizationDirectory ??
     (authorizationPosture === "built-in"

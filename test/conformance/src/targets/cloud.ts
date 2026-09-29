@@ -33,7 +33,8 @@ import {
 } from "../harness/direct-login-tenant";
 import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
 import { awaitGrpcReady } from "../harness/grpc-ready";
-import { uniqueName, uniqueOrg } from "../support/naming";
+import { uniqueName } from "../support/naming";
+import { createUniqueOrganization } from "../support/organizations";
 import type {
   CapabilityFlags,
   DirectLoginTenant,
@@ -44,8 +45,6 @@ import type {
   TenancyContext,
 } from "./target";
 
-const ORG_API_VERSION = "tenancy.stigmer.ai/v1";
-const ORG_KIND = "Organization";
 
 // The credit seed for a funded org, mirroring the integration harness's
 // ProvisionTestBillingAccount ($100 in micro-USD): cloud authorizes billing
@@ -252,16 +251,10 @@ export class CloudTarget implements TargetProfile {
     if (operatorClients === undefined) {
       throw new Error("CloudTarget.setup() must run before provisionPrivilegedScope()");
     }
-    const created = await operatorClients.organizationCommand.create({
-      apiVersion: ORG_API_VERSION,
-      kind: ORG_KIND,
-      metadata: { name: uniqueOrg() },
-    });
-    const slug = created.metadata?.slug;
-    const id = created.metadata?.id;
-    if (slug === undefined || slug === "" || id === undefined || id === "") {
-      throw new Error("operator organization create returned no slug/id; cannot provision the privileged scope");
-    }
+    const { slug, id } = await createUniqueOrganization(
+      operatorClients.organizationCommand,
+      "the operator's privileged scope",
+    );
     return {
       clients: operatorClients,
       context: { org: slug },
@@ -320,16 +313,7 @@ export class CloudTarget implements TargetProfile {
   }
 
   async provisionTenancy(): Promise<TenancyContext> {
-    const created = await this.clients().organizationCommand.create({
-      apiVersion: ORG_API_VERSION,
-      kind: ORG_KIND,
-      metadata: { name: uniqueOrg() },
-    });
-    const slug = created.metadata?.slug;
-    const id = created.metadata?.id;
-    if (slug === undefined || slug === "" || id === undefined || id === "") {
-      throw new Error("organization create returned no slug/id; cannot provision tenancy");
-    }
+    const { slug, id } = await createUniqueOrganization(this.clients().organizationCommand, "tenancy");
     this.provisionedOrgIds.set(slug, id);
     return { org: slug };
   }

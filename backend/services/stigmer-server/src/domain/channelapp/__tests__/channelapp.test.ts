@@ -50,6 +50,7 @@ import {
   noExistingSecretMessage,
   plaintextRequiredMessage,
 } from "../constants.js";
+import { seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -100,6 +101,12 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
+  await seedOrganizations(transport, [
+    ORG,
+    "some-other-org",
+    "acme-slack-queries",
+    "acme-wa-queries",
+  ]);
   command = createClient(ChannelAppCommandController, transport);
   query = createClient(ChannelAppQueryController, transport);
 });

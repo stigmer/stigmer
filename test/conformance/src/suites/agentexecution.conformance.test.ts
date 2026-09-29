@@ -29,7 +29,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentexecutions";
 import { collectStream } from "../support/collect-stream";
-import { uniqueName } from "../support/naming";
+import { uniqueName, uniqueOrg } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -285,7 +285,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     expect(err.rawMessage).toBe("agent_execution not found: aexec_01conformancemissing");
   });
 
-  it("the session/agent/org usage reports answer zero-valued SHAPES with no existence check", async (ctx) => {
+  it("the session/agent/org usage reports answer zero-valued SHAPES for nothing to aggregate", async (ctx) => {
     // Single-user posture only: where orgs are real, an unauthorized scope
     // answers PermissionDenied instead of a zero report — the aggregation
     // reads are authorization-gated per scope on the multi-tenant edition.
@@ -294,6 +294,9 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     // "nothing to aggregate" — they answer structurally complete,
     // zero-valued reports (OSS deliberately records no usage data at all,
     // so on this edition even populated executions aggregate to zero).
+    // The session report names no Organization and checks no existence;
+    // the agent and org reports name one, which must exist (below).
+    const { org } = await target.provisionTenancy();
     const session = await clients.agentExecutionQuery.getSessionUsageReport({
       sessionId: "ses_01conformancemissing",
     });
@@ -307,7 +310,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
 
     const agent = await clients.agentExecutionQuery.getAgentUsageReport({
       agentId: "agt_01conformancemissing",
-      orgId: "conf-org-missing",
+      orgId: org,
     });
     // The name resolves only when the org has executions; until then the
     // id is echoed — pinned so clients know not to treat it as a name.
@@ -318,17 +321,38 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     expect(agent.totalExecutions).toBe(0);
 
     const orgReport = await clients.agentExecutionQuery.getOrgUsageReport({
-      orgId: "conf-org-missing",
+      orgId: org,
       fromDate: "2026-01-01",
       toDate: "2026-01-31",
     });
-    expect(orgReport.orgId).toBe("conf-org-missing");
+    expect(orgReport.orgId).toBe(org);
     expect(orgReport.totalAgents).toBe(0);
     expect(orgReport.totalSessions).toBe(0);
     expect(orgReport.totalExecutions).toBe(0);
     expect(orgReport.modelBreakdown).toHaveLength(0);
     expect(orgReport.topAgentsByCost).toHaveLength(0);
     expect(orgReport.dailyCosts).toHaveLength(0);
+  });
+
+  it("the agent/org usage reports of an Organization that does not exist are NotFound with the load-first copy", async () => {
+    // Nothing to aggregate is a zero report (above); no Organization at all
+    // is NOT_FOUND, the answer every edition gives for a scope it does not
+    // hold, with or without sign-in (stigmer#1163).
+    const missing = uniqueOrg();
+    for (const [lane, call] of [
+      [
+        "agent report",
+        () => clients.agentExecutionQuery.getAgentUsageReport({ agentId: "agt_01conformancemissing", orgId: missing }),
+      ],
+      [
+        "org report",
+        () =>
+          clients.agentExecutionQuery.getOrgUsageReport({ orgId: missing, fromDate: "2026-01-01", toDate: "2026-01-31" }),
+      ],
+    ] as const) {
+      const error = await expectGrpcCode(call, Code.NotFound, `${lane} of a missing organization`);
+      expect(error.rawMessage, lane).toBe(`Organization not found: ${missing}`);
+    }
   });
 
   it("the agent/org usage reports refuse missing scope fields (InvalidArgument)", async () => {
