@@ -48,6 +48,11 @@
  *     observed earlier and delivers later stamps its own instant
  *     (`observedAt`); an output chunk for a settled row is stale
  *     and dropped — the completion's result is the whole output.
+ *   - One observation, one instant: the facts a translator made of one
+ *     raw engine event, folded through {@link applyObservation}, share
+ *     one clock read for every stamp they make (a Cursor completion with
+ *     no running before it starts and finishes at the same instant,
+ *     stigmer#1390); {@link apply} alone reads the clock per fact.
  *   - The AI-message boundary (native's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
@@ -148,6 +153,8 @@ export class TranscriptBuilder {
   private readonly observer: TranscriptObserver | undefined;
   private _dirty = false;
   private _awaitingApproval = false;
+  /** The one instant of the observation being folded, while {@link applyObservation} runs; absent otherwise. */
+  private observationInstant: string | undefined;
 
   /**
    * Builds INTO `status`, by reference: its `messages`, `subAgentExecutions`
@@ -231,6 +238,32 @@ export class TranscriptBuilder {
         `[TranscriptBuilder] Observer error: execution=${this.executionId} kind=${event.kind}: ${err}`,
       );
     }
+  }
+
+  /**
+   * Fold the facts ONE harness observation yields — the events a translator
+   * made of one raw engine event — at one instant: the clock is read once,
+   * and every stamp the facts make (a row's start and finish, a sub-agent's
+   * open and close, a message's timestamp) is that instant. A Cursor
+   * completion the stream reports with no running before it is a start and a
+   * finish in one event, and it must carry one instant, not two reads a
+   * millisecond apart (stigmer#1390). A fact that carries its own
+   * `observedAt` keeps it. Each fact is applied exactly as {@link apply}
+   * applies it, observer included.
+   */
+  applyObservation(facts: readonly TranscriptEvent[]): void {
+    const outer = this.observationInstant;
+    this.observationInstant = outer ?? utcTimestamp();
+    try {
+      for (const fact of facts) this.apply(fact);
+    } finally {
+      this.observationInstant = outer;
+    }
+  }
+
+  /** The instant a stamp records: the observation's, while one is being folded, else now. */
+  private instant(): string {
+    return this.observationInstant ?? utcTimestamp();
   }
 
   private fold(event: TranscriptEvent): void {
@@ -354,7 +387,7 @@ export class TranscriptBuilder {
       subject: event.subject,
       input: event.input,
       status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
-      startedAt: utcTimestamp(),
+      startedAt: this.instant(),
     });
     this.state.openSubAgent(row);
     this._dirty = true;
@@ -364,7 +397,7 @@ export class TranscriptBuilder {
     const scope = this.state.subAgent(event.subAgentId);
     if (!scope) return;
     scope.row.status = SubAgentStatus.SUB_AGENT_COMPLETED;
-    scope.row.completedAt = utcTimestamp();
+    scope.row.completedAt = this.instant();
     if (event.output !== undefined) scope.row.output = event.output;
     finalizeStreaming(scope.transcript);
     this._dirty = true;
@@ -374,7 +407,7 @@ export class TranscriptBuilder {
     const scope = this.state.subAgent(event.subAgentId);
     if (!scope) return;
     scope.row.status = SubAgentStatus.SUB_AGENT_FAILED;
-    scope.row.completedAt = utcTimestamp();
+    scope.row.completedAt = this.instant();
     scope.row.error = event.error;
     finalizeStreaming(scope.transcript);
     this._dirty = true;
@@ -427,7 +460,7 @@ export class TranscriptBuilder {
     const msg = create(AgentMessageSchema, {
       type: MessageType.MESSAGE_THINKING,
       content: text,
-      timestamp: utcTimestamp(),
+      timestamp: this.instant(),
       isStreaming: true,
     });
     scope.messages.push(msg);
@@ -476,7 +509,7 @@ export class TranscriptBuilder {
       id: callId,
       name,
       status: ToolCallStatus.TOOL_CALL_RUNNING,
-      startedAt: utcTimestamp(),
+      startedAt: this.instant(),
     });
 
     if (Object.keys(input).length > 0) {
@@ -543,8 +576,8 @@ export class TranscriptBuilder {
     const resultChanged = !!result && result !== tc.result;
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
     // The instant the harness OBSERVED the completion when it delivers it
-    // later (Cursor's queued delta); otherwise now.
-    if (!tc.completedAt) tc.completedAt = observedAt ?? utcTimestamp();
+    // later (Cursor's queued delta); otherwise the fold's instant.
+    if (!tc.completedAt) tc.completedAt = observedAt ?? this.instant();
     if (resultChanged) tc.result = result;
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
@@ -577,7 +610,7 @@ export class TranscriptBuilder {
     // moment approval became due is stamped here if nothing stamped it yet.
     const wasSettled = isSettled(tc.status);
     const messageChanged = !!message && message !== tc.error;
-    const at = observedAt ?? utcTimestamp();
+    const at = observedAt ?? this.instant();
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_FAILED;
     if (!tc.completedAt) tc.completedAt = at;
     if (messageChanged) tc.error = message;
@@ -629,7 +662,7 @@ export class TranscriptBuilder {
   // ── Post-Stream Facts ──────────────────────────────────────────────
 
   private handleApprovalProposed(scope: Transcript, event: ApprovalProposedEvent): void {
-    const now = utcTimestamp();
+    const now = this.instant();
     const existing = scope.toolCalls.get(event.callId);
     if (existing) {
       // Reopen (Cursor's `markWaitingApproval`): the boundary is re-proposing
@@ -693,7 +726,7 @@ export class TranscriptBuilder {
     scope.messages.push(create(AgentMessageSchema, {
       type: MessageType.MESSAGE_SYSTEM,
       content: text,
-      timestamp: utcTimestamp(),
+      timestamp: this.instant(),
     }));
     this._dirty = true;
   }
@@ -712,7 +745,7 @@ export class TranscriptBuilder {
     const msg = create(AgentMessageSchema, {
       type: MessageType.MESSAGE_AI,
       content: "",
-      timestamp: utcTimestamp(),
+      timestamp: this.instant(),
       isStreaming: true,
     });
 
@@ -737,7 +770,7 @@ export class TranscriptBuilder {
     const msg = create(AgentMessageSchema, {
       type: MessageType.MESSAGE_AI,
       content: "",
-      timestamp: utcTimestamp(),
+      timestamp: this.instant(),
       isStreaming: false,
     });
 

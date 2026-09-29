@@ -220,7 +220,10 @@ export async function consumeCursorTurnStream(
       // The stream event, then the deltas that arrived since the last one —
       // the enricher's order, kept so a completion the delta channel reported
       // in the same window as the stream's own defers to the stream's instant.
-      for (const fact of translator.translate(event)) transcript.apply(fact);
+      // The stream event is one observation, folded at one instant (a
+      // completion with no running before it starts and finishes together);
+      // each drained delta is its own, and carries `observedAt` where it stamps.
+      transcript.applyObservation(translator.translate(event));
       for (const fact of translator.drainDeltas()) transcript.apply(fact);
 
       // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
