@@ -50,6 +50,12 @@
  * to persist "0 files" beside a one-file change set. The runtime now
  * refreshes the strip on every write, the terminal one included.
  *
+ * Golden hunk since #1443, in both goldens: the artifact's `createdAt` is
+ * t=1, the write's finish, where it was t=2. The publisher read the clock
+ * after its upload, which runs beside the stream, so the stamp landed on
+ * either side of the next model turn's tick and flaked under the full
+ * suite; it reads the clock before its first await now.
+ *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
  */
@@ -148,6 +154,7 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     expect(existsSync(join(env.artifactPath, run1.artifacts[0].storageKey)), "the bytes reached the store").toBe(true);
     const writeRow = record.toolCalls().find((tc) => tc.id === WRITE_CALL_ID)!;
     expect(writeRow.status, "capture mode let the write flow").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(run1.artifacts[0].createdAt, "the artifact is stamped at its write's finish").toBe(writeRow.completedAt);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/inline-artifact.turn1.status.json");
 

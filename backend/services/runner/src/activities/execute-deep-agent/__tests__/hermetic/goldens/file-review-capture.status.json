@@ -40,7 +40,7 @@
       "kind": "EXECUTION_ARTIFACT_KIND_FILE",
       "sizeBytes": "22",
       "storageKey": "artifacts/aex_hermetic_0001/notes.md",
-      "createdAt": "2026-01-01T00:00:02.000Z",
+      "createdAt": "2026-01-01T00:00:01.000Z",
       "contentHash": "e4cdd09e8ca79e376a6ec5766d190754bc8ee4a2d6c5c7f4d86a9dc7fdf25a0f"
     }
   ],
