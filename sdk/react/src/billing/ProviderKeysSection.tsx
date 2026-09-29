@@ -191,6 +191,7 @@ function ProviderRow({
 }) {
   const inputId = useId();
   const [value, setValue] = useState("");
+  const [confirming, setConfirming] = useState(false);
   const inherited = stored !== undefined && stored.inheritedFromOrgId !== "";
   const own = stored !== undefined && !inherited;
 
@@ -206,6 +207,7 @@ function ProviderRow({
   const remove = async () => {
     try {
       await actions.removeKey(orgId, provider.id);
+      setConfirming(false);
       onDone();
     } catch {
       // The hook holds the error; the section renders it.
@@ -219,7 +221,7 @@ function ProviderRow({
           <p className="stg:text-foreground stg:text-xs stg:font-medium">{provider.name}</p>
           <p className="stg:text-muted-foreground stg:text-[0.7rem]">{describe(stored)}</p>
         </div>
-        {!editing && (
+        {!editing && !confirming && (
           <div className="stg:flex stg:shrink-0 stg:gap-2">
             {canSave && !inherited && (
               <Button size="sm" variant="outline" onClick={onEdit} disabled={actions.isSubmitting}>
@@ -227,13 +229,38 @@ function ProviderRow({
               </Button>
             )}
             {canRemove && own && (
-              <Button size="sm" variant="ghost" onClick={() => void remove()} disabled={actions.isSubmitting}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  actions.clearError();
+                  setConfirming(true);
+                }}
+                disabled={actions.isSubmitting}
+              >
                 Remove
               </Button>
             )}
           </div>
         )}
       </div>
+      {confirming && (
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-2.5 stg:py-2">
+          <p className="stg:text-foreground stg:min-w-0 stg:flex-1 stg:text-xs">
+            {stored?.inUse
+              ? `Remove your ${provider.name} key? Your agents' ${provider.name} calls go back to Stigmer's keys, billed as usage.`
+              : `Remove your ${provider.name} key? It is not in use on this plan.`}
+          </p>
+          <div className="stg:flex stg:shrink-0 stg:gap-2">
+            <Button size="sm" variant="destructive" onClick={() => void remove()} disabled={actions.isSubmitting}>
+              {actions.isSubmitting ? "Removing…" : "Remove key"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={actions.isSubmitting}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
       {editing && (
         <form
           className="stg:flex stg:flex-wrap stg:items-end stg:gap-2"

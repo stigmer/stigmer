@@ -1,5 +1,6 @@
 // The provider keys section over a mock client: an admin on Business saves a
-// key (never shown back) and removes one; a viewer sees the list with no
+// key (never shown back) and removes one after confirming, or cancels and
+// keeps it; a viewer sees the list with no
 // actions; an organization whose plan lacks the feature sees the upgrade
 // notice, and its kept keys marked not in use with only Remove; a refused
 // save shows the upgrade notice from the refusal's reason; a managed
@@ -110,14 +111,29 @@ describe("ProviderKeysSection", () => {
     expect(document.body.textContent).not.toContain("secret-9876");
   });
 
-  it("lets an admin remove the organization's own key", async () => {
+  it("lets an admin remove the organization's own key, once confirmed", async () => {
     const client = mockClient({ keys: [key("openai")] });
     renderSection(client);
     const openai = await row("OpenAI");
     expect(within(openai).getByText(/Key ending in o222/)).toBeTruthy();
     await userEvent.click(within(openai).getByRole("button", { name: "Remove" }));
+    expect(
+      within(await row("OpenAI")).getByText("Remove your OpenAI key? Your agents' OpenAI calls go back to Stigmer's keys, billed as usage."),
+    ).toBeTruthy();
+    expect(client.providerkey.delete).not.toHaveBeenCalled();
+    await userEvent.click(within(await row("OpenAI")).getByRole("button", { name: "Remove key" }));
     await waitFor(() => expect(client.providerkey.delete).toHaveBeenCalledWith(expect.objectContaining({ orgId: "acme", provider: "openai" })));
     expect(await within(await row("OpenAI")).findByText(/Not set/)).toBeTruthy();
+  });
+
+  it("keeps the key when the admin cancels the removal", async () => {
+    const client = mockClient({ keys: [key("openai")] });
+    renderSection(client);
+    await userEvent.click(within(await row("OpenAI")).getByRole("button", { name: "Remove" }));
+    await userEvent.click(within(await row("OpenAI")).getByRole("button", { name: "Cancel" }));
+    expect(within(await row("OpenAI")).getByText(/Key ending in o222/)).toBeTruthy();
+    expect(within(await row("OpenAI")).getByRole("button", { name: "Remove" })).toBeTruthy();
+    expect(client.providerkey.delete).not.toHaveBeenCalled();
   });
 
   it("shows a viewer the keys with no actions", async () => {
@@ -135,6 +151,8 @@ describe("ProviderKeysSection", () => {
     await waitFor(() => expect(within(anthropic).getByRole("button", { name: "Remove" })).toBeTruthy());
     expect(within(anthropic).queryByRole("button", { name: "Replace" })).toBeNull();
     expect(within(await row("OpenAI")).queryByRole("button", { name: "Add key" })).toBeNull();
+    await userEvent.click(within(anthropic).getByRole("button", { name: "Remove" }));
+    expect(within(await row("Anthropic")).getByText("Remove your Anthropic key? It is not in use on this plan.")).toBeTruthy();
   });
 
   it("shows the upgrade notice from a refused save's reason", async () => {
