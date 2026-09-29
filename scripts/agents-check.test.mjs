@@ -19,6 +19,8 @@ import { test } from "node:test";
 import {
   HOOKS_FILE,
   HOOK_TOOL_MATCHER,
+  LEAK_PATTERNS,
+  RECORD_CODE_PATTERNS,
   SKILL_LIMITS,
   WORD_BUDGETS,
   asPathCitation,
@@ -205,6 +207,28 @@ test("a citation resolves relative to the citing file or the root; anything else
     assert.deepEqual(checkCitations(root, collectGuidanceFiles(root)), [
       "backend/services/runner/AGENTS.md:3: cited path does not exist: src/gone.ts",
     ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("both pattern lists are exported for source guards, and guidance is judged by LEAK_PATTERNS alone", () => {
+  for (const list of [LEAK_PATTERNS, RECORD_CODE_PATTERNS]) {
+    assert.ok(list.length > 0);
+    for (const { name, re } of list) {
+      assert.equal(typeof name, "string");
+      assert.ok(re instanceof RegExp, name);
+    }
+  }
+  const codes = (text) => RECORD_CODE_PATTERNS.filter(({ re }) => re.test(text)).map(({ name }) => name);
+  assert.deepEqual(codes("closes the C2 hand-forward"), ["short record code"]);
+  assert.deepEqual(codes("decided in sp.some-entry"), ["entry name"]);
+  assert.deepEqual(codes("carried over at Stage 3"), ["stage or slice label"]);
+  assert.deepEqual(codes("the §4a crypto lane"), ["record section"]);
+  assert.deepEqual(codes("RFC 3986 §6.2.2.1, OIDC Discovery §4, RS256, HTTP/2, E2E"), []);
+  const root = repo({ "AGENTS.md": "The C2 lane, sp.some-entry, Stage 3 and §4a are guidance's own words.\n" });
+  try {
+    assert.deepEqual(checkLeakage(root, ["AGENTS.md"], { privateRepo: false }), []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

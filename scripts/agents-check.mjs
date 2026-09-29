@@ -176,15 +176,34 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * record-internal ids (task files `T01_`, decisions `DD-012`, rulings `Q-AB-1`,
  * findings `F-CD-2`) that only a holder of the records can resolve, and stay
  * findings everywhere. The shapes are illustrative; none of these examples
- * names a real record.
+ * names a real record. Exported so a source guard over files a repository
+ * publishes refuses the same shapes instead of restating them.
  */
-const LEAK_PATTERNS = [
+export const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },
   { name: "planning-record id", re: /\b20[0-9]{6}\.[0-9]{2}\b/, privateOk: true },
   { name: "task file id", re: /\bT0[0-9]_[0-9]/, privateOk: false },
   { name: "decision id", re: /\bDD-[0-9]{3}\b/, privateOk: false },
   { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*-[0-9]+\b/, privateOk: false },
   { name: "finding id", re: /\bF-[A-Z][A-Z0-9]*-[0-9]+\b/, privateOk: false },
+];
+
+/**
+ * Planning-record shapes that are legitimate in guidance but never in a file a
+ * repository publishes: a bare short code (`C2`, `P4`), an entry name
+ * (`sp.some-entry`), a stage or slice label (`Stage 3`), and a record section
+ * (`§4a`; a standard's numbered section such as RFC 3986's `§6.2.2` does not
+ * match). The gate never applies this list, because guidance uses such codes
+ * in its own right. It is for a source guard that walks a DECLARED set of
+ * files bound for publication, never for a repository-wide scan: a bare short
+ * code collides with ordinary names elsewhere (`S3` is Amazon S3). The shapes
+ * are illustrative; none of these examples names a real record.
+ */
+export const RECORD_CODE_PATTERNS = [
+  { name: "short record code", re: /\b[A-Z][0-9]{1,2}\b/ },
+  { name: "entry name", re: /\bsp\.[a-z][a-z-]+/ },
+  { name: "stage or slice label", re: /\b(?:Stage|Slice) [0-9]/ },
+  { name: "record section", re: /§[0-9]+[a-z]\b/ },
 ];
 
 /**
