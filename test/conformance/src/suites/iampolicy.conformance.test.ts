@@ -812,7 +812,12 @@ describe.skipIf(!capabilities.perResourceGrants)(
       );
       const agentId = agent.metadata?.id ?? "";
       fixtures.defer(() => clients.agentCommand.delete({ value: agentId }));
+      // A share reaches only the resource's organization's people, so the
+      // grantee holds the organization's lowest role first.
       const viewer = syntheticAccountId();
+      await clients.iamPolicyCommand.create(
+        organizationRole(viewer, "viewer", org),
+      );
       const grant = policyTriple(
         { kind: "identity_account", id: viewer },
         "viewer",
@@ -829,6 +834,36 @@ describe.skipIf(!capabilities.perResourceGrants)(
 
       const deleted = await clients.iamPolicyCommand.delete(grant);
       expect(deleted.metadata?.id).toBe(created.metadata?.id);
+    });
+
+    it("a share with someone who holds no role in the agent's organization is FAILED_PRECONDITION, and nothing is written", async () => {
+      const org = await createOwnedOrganization();
+      const agent = await clients.agentCommand.create(
+        makeAgent({ org, name: uniqueName("unshared-agent") }),
+      );
+      const agentId = agent.metadata?.id ?? "";
+      fixtures.defer(() => clients.agentCommand.delete({ value: agentId }));
+      const outsider = syntheticAccountId();
+
+      const error = await expectGrpcCode(
+        () =>
+          clients.iamPolicyCommand.create(
+            policyTriple({ kind: "identity_account", id: outsider }, "viewer", {
+              kind: "agent",
+              id: agentId,
+            }),
+          ),
+        Code.FailedPrecondition,
+        "a share with someone outside the agent's organization",
+      );
+      expect(error.rawMessage).toBe(
+        `identity account '${outsider}' is not a member of organization '${org}'; add them to the organization before sharing its resources with them`,
+      );
+      const roles = await clients.iamPolicyQuery.getPrincipalResourceRoles({
+        principal: ref("identity_account", outsider),
+        resource: ref("agent", agentId),
+      });
+      expect(roles.roles).toEqual([]);
     });
 
     it("checkMyPermission(can_grant_access) on an agent the caller's organization owns is the Authorizer's answer: true", async () => {
