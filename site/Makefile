@@ -36,11 +36,11 @@ start:
 	yarn start
 
 # Run ESLint
-lint:
+lint: deps
 	yarn lint
 
 # Run TypeScript type checking
-typecheck:
+typecheck: deps
 	yarn typecheck
 
 # Run Vitest unit/component tests (gates check-site and ci.docs)

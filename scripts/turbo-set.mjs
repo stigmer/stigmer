@@ -4,7 +4,7 @@
  * Runs one Turborepo task over a named set of workspace packages.
  *
  * The root package.json scripts (`build:libs`, `clean:libs`, `test`,
- * `build:runner-deps`) each mean "this task, over this set of packages". The
+ * `test:scripts`, `build:runner-deps`) each mean "this task, over this set of packages". The
  * sets already have a home; this script reads them from it instead of
  * repeating eleven `--filter` flags per script:
  *
@@ -17,7 +17,13 @@
  *                step by hand).
  *   workspace    every member of the root package.json `workspaces` list, in
  *                that order. The CI lane runs `typecheck` and `lint` over it,
- *                and names web or desktop out of it for their test suites.
+ *                and names web or desktop out of it for their test suites;
+ *                `make check-node` runs the same calls over the whole set.
+ *   root         the repository root itself, `//` in turbo's filter syntax:
+ *                the tasks turbo.json registers as `//#<task>`, backed by a
+ *                root package.json script. `test:scripts` runs `test:root`
+ *                through it, so the graph builds what the root suites
+ *                import before they run.
  *
  * `--only=<name,...>` narrows a set to the named packages (the intersection,
  * in the set's order). It is how the CI lane runs a set over exactly the
@@ -27,6 +33,8 @@
  * a misspelt name that silently selected nothing would make a green job that
  * ran no tests. An empty intersection is not an error: the wrapper says so
  * and exits 0, since "nothing in this set changed" is a normal CI outcome.
+ * The root set has one member and is never partitioned, so `--only` with it
+ * is refused.
  *
  * Task edges, outputs and cache inputs live in turbo.json; this script only
  * chooses the packages and the flags that belong to a set:
@@ -60,6 +68,7 @@
  *   node scripts/turbo-set.mjs libs build --force        # bypass the cache
  *   node scripts/turbo-set.mjs runner-deps build
  *   node scripts/turbo-set.mjs libs test --only=@stigmer/sdk,@stigmer/react
+ *   node scripts/turbo-set.mjs root test:root
  *
  * Every extra argument other than --only is handed to `turbo run` unchanged,
  * so `npm run build:libs -- --dry-run` works.
@@ -129,10 +138,16 @@ export function workspaceSet(rootDir = root) {
   );
 }
 
+/** The root package, by turbo's name for it. */
+export function rootSet() {
+  return ["//"];
+}
+
 export const SETS = {
   libs: libsSet,
   "runner-deps": runnerLinkedSet,
   workspace: workspaceSet,
+  root: rootSet,
 };
 
 /** Resolve a set name to package names, or throw with the valid names. */
@@ -184,6 +199,11 @@ export function splitOnly(extra) {
 export function selectPackages(set, only = null, rootDir = root) {
   const members = resolveSet(set, rootDir);
   if (only === null) return members;
+  if (set === "root") {
+    throw new Error(
+      'turbo-set: the "root" set is the repository root alone; --only does not apply to it.',
+    );
+  }
   const workspace = new Set(workspaceSet(rootDir));
   const unknown = only.filter((name) => !workspace.has(name));
   if (unknown.length > 0) {

@@ -149,6 +149,20 @@
     },
     "@stigmer/e2e#test": {
       "cache": false
+    },
+
+    // The repository root's own suites: scripts/**, scripts/lib/** and the
+    // Helm chart's tests, the globs in the root `test:root` script, which
+    // `npm run test:scripts` reaches through scripts/turbo-set.mjs's root set.
+    // A root suite that imports a workspace package's build output declares
+    // that package's build here, so every caller gets it first:
+    // scripts/verify-docs-tour-parity.test.mjs imports the tour fixtures,
+    // which import @stigmer/protos from its dist. Never cached: the suites
+    // read files across the whole repository (workflows, the Makefile, docs,
+    // the chart), which no input list here would keep complete.
+    "//#test:root": {
+      "dependsOn": ["@stigmer/protos#build"],
+      "cache": false
     }
   }
 }

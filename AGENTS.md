@@ -82,7 +82,8 @@ with `proseWrap: always`; Vale lints `docs/` only.
 - `make help` lists every target with its one-line purpose; the Makefile is the
   orchestrator.
 - `make setup` once; `make check` is the full local CI gate (`check-prep` then
-  parallel `check-go check-node check-site check-rust check-java`).
+  parallel `check-go check-node check-site check-rust check-java`) and needs no
+  other setup.
 - `make codegen` after any `.proto` change; the `*-check` twins
   (`gen-sdk-docs-check`, `gen-task-registry-check`, `gen-ipc-fixtures-check`,
   `stubs-internal-check`) are the freshness gates CI runs.
