@@ -773,11 +773,12 @@ lint-web: ## Lint web console and React SDK
 typecheck-web: ## Typecheck web console, SDK, and React SDK
 	npm run typecheck -w @stigmer/sdk
 	npm run typecheck -w @stigmer/react
+	npm run typecheck -w client-apps/web
 
 verify-web-routing: ## Verify every web route resolves through nginx.conf's static-export rules
 	node scripts/verify-static-export-routes.mjs
 
-verify-web: lint-web typecheck-web verify-web-routing ## Lint + typecheck + routing gate for web (~30s)
+verify-web: lint-web typecheck-web verify-web-routing test-web ## Lint, typecheck, routing gate and component tests for web
 
 test-web: ## Run web console component tests (Vitest)
 	npm run test -w client-apps/web

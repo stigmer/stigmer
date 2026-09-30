@@ -44,7 +44,7 @@ const mocks = vi.hoisted(() => {
 
   const manager = {
     signinRedirectCallback: vi.fn(async () => user),
-    getUser: vi.fn(async () => null),
+    getUser: vi.fn(async (): Promise<User | null> => null),
     signinRedirect: vi.fn(),
     signoutRedirect: vi.fn(async () => {}),
     removeUser: vi.fn(async () => {}),
