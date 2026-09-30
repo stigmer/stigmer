@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { InlineEditBaseProps } from "./types.js";
+import { useInlineDraft } from "./useInlineDraft.js";
 
 /** Props for {@link InlineEditText}. */
 export interface InlineEditTextProps extends InlineEditBaseProps {
@@ -24,6 +25,10 @@ export interface InlineEditTextProps extends InlineEditBaseProps {
  * Displays the value as styled text. On click, transitions to an input
  * with inline confirm/cancel controls. Confirm triggers `onSave`;
  * cancel reverts. Escape key also cancels.
+ *
+ * The draft is seeded from `value` when editing opens. While the editor is
+ * open, a draft the user has edited keeps their text if `value` changes, and
+ * an untouched draft follows the new `value`.
  */
 export function InlineEditText({
   value,
@@ -36,34 +41,15 @@ export function InlineEditText({
   error,
   className,
 }: InlineEditTextProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  // The stored value the draft was last seeded from.
-  const [seed, setSeed] = useState(value);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isEditing, setIsEditing, draft, setDraft, startEditing } =
+    useInlineDraft(value, inputRef);
 
   const handleEdit = useCallback(() => {
-    setDraft(value);
-    setSeed(value);
     setLocalError(null);
-    setIsEditing(true);
-  }, [value]);
-
-  // An untouched draft follows the stored value, so a save never writes a
-  // stale copy over a change made elsewhere; once the user edits, the draft
-  // is theirs until they save or cancel. Adjusted during render (the
-  // ResizableSplit idiom) so the field never shows the stale value.
-  if (value !== seed) {
-    setSeed(value);
-    if (draft === seed) setDraft(value);
-  }
-
-  // A layout effect, not a frame later: focus lands in the same commit that
-  // shows the field, so the first keystroke after the click reaches it.
-  useLayoutEffect(() => {
-    if (isEditing) inputRef.current?.focus();
-  }, [isEditing]);
+    startEditing();
+  }, [startEditing]);
 
   const handleConfirm = useCallback(async () => {
     const trimmed = draft.trim();
