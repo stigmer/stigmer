@@ -122,10 +122,11 @@ when a matching file is touched: `ts-server-dev-guidelines`,
 procedures a person invokes by name (`disable-model-invocation: true`), because
 they act on git, GitHub or a release: `commit-stigmer-oss-changes`,
 `create-stigmer-oss-pull-request`, `release-stigmer-oss`,
-`wrap-up-github-issue`, and `test-gate` (a posture rather than an action, but
-one a session should not adopt uninvited). `verify-stigmer-oss-changes` is the
-one action skill the model may reach for on its own, because a session should
-verify before it commits.
+`wrap-up-github-issue`, and `review-pull-request` (which posts a review verdict,
+and which the pull-request skill runs by path). Two skills the model reaches for
+on its own: `verify-stigmer-oss-changes`, because a session should verify before
+it commits, and `test-gate`, the posture every code change is written under,
+because a change ships with the tests that pin it.
 
 `CLAUDE.md` and a `.claude` skills folder are deliberately absent: no Claude
 Code session runs here yet, and Cursor also reads `CLAUDE.md`, so an import file
