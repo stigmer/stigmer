@@ -127,7 +127,7 @@ summary line in the final message. Never report unverified work as done.
   `make lint-docs format-docs-check check-docs-yaml check-docs-inventory build-site`,
   `make -C site lint typecheck`.
 - `scripts/**`: `npm run test:scripts`. `.github/**`: `make lint-workflows`. Any
-  `AGENTS.md` or `.agents/**`: `make agents-check`.
+  `AGENTS.md` or `.agents/**`: `make agents-check format-docs-check`.
 
 ## Hard laws
 
@@ -135,8 +135,8 @@ summary line in the final message. Never report unverified work as done.
   worktree to the window: changing the window's folder set disconnects every
   other chat's tools until a reload. Package guides and path-scoped skills reach
   a worktree through `scripts/agents-context-hook.mjs` (`.agents/README.md`).
-  Branch `fix/<component>-<issue>-<slug>` for an issue, `<type>/<project-slug>`
-  for a program; one PR per branch; merging is a separate, explicitly requested
+  Branch `fix/<component>-<issue>-<slug>` for an issue, `<type>/<slug>-m<N>` per
+  milestone; one PR per milestone; merging is a separate, explicitly requested
   act.
 - Nothing a reader of this public repository cannot open goes into source, docs,
   rules, guidance or issues: no private planning paths, task ids, ruling or

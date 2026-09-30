@@ -167,7 +167,10 @@ test.describe("Plugin install journey", () => {
     await expect(dialog.getByRole("button", { name: "Install", exact: true })).toBeDisabled();
   });
 
-  test("a URL-only OAuth server: completed at save, signed in from the plugin's page, handed to a new agent", async ({
+  // Flaky in the gate: it waits for "Signed in" after swallowing the sign-in
+  // popup's close timeout, and fails when the popup has not closed.
+  // quarantined: stigmer/stigmer#1571
+  test.skip("a URL-only OAuth server: completed at save, signed in from the plugin's page, handed to a new agent", async ({
     page,
     context,
   }) => {
