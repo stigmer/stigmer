@@ -1,0 +1,1 @@
+Second scratch file for the merge-queue probe; deleted with the probe branch.
