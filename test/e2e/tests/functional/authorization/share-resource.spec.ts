@@ -1,3 +1,5 @@
+import { create } from "@bufbuild/protobuf";
+import { GetAgentInstancesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { test, expect } from "../../../fixtures";
 import { openManageAccessFromKebab } from "../../../helpers/access";
 
@@ -60,5 +62,41 @@ test.describe("Manage access on an agent", () => {
     dialog = await openManageAccessFromKebab(page);
     await dialog.getByRole("button", { name: "Close" }).click();
     await expect(dialog).toBeHidden();
+  });
+});
+
+test.describe("Manage access on a session", () => {
+  test("on the open-source server, a session page offers no Manage access button", async ({
+    page,
+    testAgent,
+    stigmerClient,
+  }) => {
+    test.skip(
+      !!process.env.STIGMER_E2E_CLOUD,
+      "a session's People axis is the Enterprise and Cloud editions'; this pins the open-source posture",
+    );
+    const instances = await stigmerClient.agentInstance.getByAgent(
+      create(GetAgentInstancesByAgentRequestSchema, { agentId: testAgent.id }),
+    );
+    const instanceId = instances.items[0]?.metadata?.id;
+    expect(instanceId, "every agent gets a default instance").toBeTruthy();
+    const session = await stigmerClient.session.create({
+      name: `e2e-session-${Date.now()}`,
+      org: testAgent.org,
+      agentInstanceId: instanceId,
+      subject: "manage access posture",
+    });
+    try {
+      await page.goto(`/sessions/${session.metadata!.id}`);
+
+      // The session page itself is up, so the absence below is a posture,
+      // not a page that never rendered.
+      await expect(page.getByRole("form", { name: "Send message" })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByRole("button", { name: /Manage access/i })).toHaveCount(0);
+    } finally {
+      await stigmerClient.session.delete(session.metadata!.id).catch(() => {});
+    }
   });
 });
