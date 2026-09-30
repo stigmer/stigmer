@@ -18,8 +18,10 @@
  *   - no valueless `return` in a test callback's own body: `return;` there is
  *     a pass that never ran. Returning a value (`return ctx.skip(...)`, a
  *     promise) is fine, and nested functions are not the test's body;
- *   - no vitest config setting `passWithNoTests`, `retry` or `allowOnly`: a
- *     suite that finds no tests, or retries one into green, has not passed.
+ *   - no vitest config setting `passWithNoTests`, `retry` or `allowOnly`, and
+ *     no Playwright config setting `retries`: a suite that finds no tests, or
+ *     retries one into green, has not passed. A flaky case is quarantined by
+ *     name instead (below).
  *
  * Rules on the change (with --base):
  *   - a deleted case. A case is keyed by its package, describe chain and
@@ -73,7 +75,10 @@ import { fileURLToPath } from "node:url";
 
 /** Tracked files the rules read, as git pathspecs. */
 export const TEST_PATHSPECS = ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx", "*.test.mts", "*.spec.mts"];
-export const CONFIG_PATHSPECS = ["vitest.config.*", "vitest.*.config.*", "**/vitest.config.*", "**/vitest.*.config.*"];
+export const CONFIG_PATHSPECS = [
+  "vitest.config.*", "vitest.*.config.*", "**/vitest.config.*", "**/vitest.*.config.*",
+  "playwright.config.*", "**/playwright.config.*",
+];
 
 /** The functions a test file registers cases and suites with. */
 const TEST_ROOTS = new Set(["it", "test", "describe", "suite"]);
@@ -87,8 +92,8 @@ const REGISTRATION_MEMBERS = new Set([
 const SKIP_MEMBERS = new Set(["skip", "skipIf", "runIf", "todo", "fixme"]);
 /** A call that asserts: `expect(...)`, `assert.equal(...)`, a helper such as `expectGrpcCode(...)`, `fail(...)`. */
 const ASSERTION = /^(expect|assert|fail$)/i;
-/** Vitest options that let a suite pass without its tests having passed. */
-const FORBIDDEN_CONFIG = ["passWithNoTests", "retry", "allowOnly"];
+/** Vitest and Playwright options that let a suite pass without its tests having passed. */
+const FORBIDDEN_CONFIG = ["passWithNoTests", "retry", "allowOnly", "retries"];
 
 /** A skip whose condition names one of these carries its reason by construction. */
 export const BY_CONSTRUCTION = [
@@ -283,7 +288,7 @@ export function inventoryFile(ts, path, text) {
   return { path, cases, skips, findings };
 }
 
-/** Finds the vitest options that let a suite pass without passing. */
+/** Finds the vitest and Playwright options that let a suite pass without passing. */
 export function checkConfig(ts, path, text) {
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const findings = [];

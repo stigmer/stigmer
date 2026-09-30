@@ -2,10 +2,12 @@ import { test as base, expect } from "@playwright/test";
 import { createNodeClient } from "@stigmer/sdk/node";
 import type { Stigmer } from "@stigmer/sdk";
 import {
+  createTestOrg,
   createTestAgent,
   createTestWorkflow,
   createTestWaitWorkflow,
   createMultiKindTestWorkflow,
+  type TestOrgResult,
   type TestAgentResult,
   type TestWorkflowResult,
 } from "./seed-helpers";
@@ -15,6 +17,7 @@ type WorkerFixtures = {
 };
 
 type TestFixtures = {
+  freshOrg: TestOrgResult;
   testAgent: TestAgentResult;
   testWorkflow: TestWorkflowResult;
   testWaitWorkflow: TestWorkflowResult;
@@ -33,6 +36,18 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     },
     { scope: "worker" },
   ],
+
+  // An organization of the test's own, made the console's active org before
+  // the first page loads (the org switcher's own localStorage key), so a
+  // spec sees only what it seeded.
+  freshOrg: async ({ stigmerClient, page }, use) => {
+    const result = await createTestOrg(stigmerClient);
+    await page.addInitScript((slug) => {
+      localStorage.setItem("stigmer:activeOrgSlug", slug);
+    }, result.slug);
+    await use(result);
+    await result.cleanup();
+  },
 
   testAgent: async ({ stigmerClient }, use) => {
     const result = await createTestAgent(stigmerClient);

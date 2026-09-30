@@ -12,7 +12,7 @@
 # (release.npm-libs.yaml), which runs the SAME scripts/smoke-compose.mjs
 # against the pushed images on native amd64 + arm64 runners.
 #
-# Path filter: the compose surface only. Server/runner SOURCE changes are
+# When it runs (its list in scripts/ci-lanes.mjs): the compose surface only. Server/runner SOURCE changes are
 # gated by ci.stigmer-server / ci.runner (+ the conformance lanes); this
 # workflow guards the topology, the images' packaging seams, and the smoke
 # itself.
@@ -21,55 +21,20 @@
 name: ci.compose-stack
 
 on:
-  pull_request:
-    paths:
-      - "docker-compose.yml"
-      - "docker-compose.dev.yml"
-      - ".env.example"
-      - "scripts/smoke-compose.mjs"
-      # The whole lib, not one file: the smoke imports stigmer-smoke.mjs and
-      # the build-from-source path runs bundle-slim.mjs, which imports
-      # source-map-pragma.mjs (#1087).
-      - "scripts/lib/**"
-      # The compose-runner image installs the CLI tarballs these two stage
-      # (the stage script packs through publish-libs.mjs --only); a change
-      # to either is a change to what the runner image contains.
-      - "scripts/stage-compose-runner-cli.mjs"
-      - "scripts/publish-libs.mjs"
-      - "backend/services/runner/Dockerfile.sandbox"
-      - "backend/services/stigmer-server/Dockerfile"
-      - "Makefile"
-      - ".github/workflows/ci.compose-stack.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "docker-compose.yml"
-      - "docker-compose.dev.yml"
-      - ".env.example"
-      - "scripts/smoke-compose.mjs"
-      # The whole lib, not one file: the smoke imports stigmer-smoke.mjs and
-      # the build-from-source path runs bundle-slim.mjs, which imports
-      # source-map-pragma.mjs (#1087).
-      - "scripts/lib/**"
-      # The compose-runner image installs the CLI tarballs these two stage
-      # (the stage script packs through publish-libs.mjs --only); a change
-      # to either is a change to what the runner image contains.
-      - "scripts/stage-compose-runner-cli.mjs"
-      - "scripts/publish-libs.mjs"
-      - "backend/services/runner/Dockerfile.sandbox"
-      - "backend/services/stigmer-server/Dockerfile"
-      - "Makefile"
-      - ".github/workflows/ci.compose-stack.yaml"
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: compose-stack-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   compose-gate:

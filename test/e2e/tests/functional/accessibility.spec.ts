@@ -10,11 +10,9 @@ import AxeBuilder from "@axe-core/playwright";
  * Initial rollout: fails on critical and serious violations only.
  * Moderate and minor violations are logged but do not fail.
  *
- * Known exclusions:
- * - SessionComposer textarea lacks aria-label (only placeholder);
- *   tracked as a backlog fix in the SDK.
- * - Workflow canvas (React Flow) has complex a11y characteristics
- *   that are not meaningful to audit structurally.
+ * Known exclusion: the workflow canvas (React Flow) has complex a11y
+ * characteristics that are not meaningful to audit structurally, so no
+ * audited page includes it.
  *
  * Prerequisites:
  * - Local dev server (auto-started by Playwright config)
@@ -23,7 +21,6 @@ import AxeBuilder from "@axe-core/playwright";
 async function runAxeAudit(page: import("@playwright/test").Page) {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa"])
-    .exclude('[role="form"][aria-label="Send message"] textarea')
     .analyze();
 
   const serious = results.violations.filter(
@@ -100,12 +97,12 @@ test.describe("Keyboard navigation", () => {
   }) => {
     await page.goto("/");
 
-    const composerForm = page.locator(
-      '[role="form"][aria-label="Send message"]',
-    );
+    const composerForm = page.getByRole("form", { name: "Start a new session" });
     await expect(composerForm).toBeVisible({ timeout: 15_000 });
 
-    const textarea = composerForm.locator("textarea");
+    const textarea = composerForm.getByRole("textbox", {
+      name: "Describe what you need help with…",
+    });
     await expect(textarea).toBeVisible();
 
     await textarea.focus();

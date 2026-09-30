@@ -900,14 +900,20 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-test-e2e: ## Run Playwright functional E2E tests against local dev server
-	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=functional
+# The three targets below install from the ROOT for test-e2e-approval's
+# reason: `cd test/e2e && npm ci` prunes the root-hoisted packages of a local
+# monorepo checkout, because test/e2e is a workspace member.
+test-e2e: ## Run Playwright functional E2E tests (boots a fresh local stack unless one listens on :7234)
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=functional
 
 test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set STIGMER_E2E_BASE_URL)
-	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test --project=smoke
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test --project=smoke
 
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
-	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && npx playwright test
 
 test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial, full backend stack)
 	# Install workspace deps from the ROOT (matches .github/workflows/ci.e2e.yaml).
@@ -967,9 +973,9 @@ test-e2e-console-login: ## Run the console sign-in E2E against a server in the O
 # node_modules, site/'s yarn install, the Tauri shell's resource directories).
 # That site install can leave site/yarn.lock modified: yarn records a content
 # hash of each file:-linked @stigmer lib, and the hash follows the lib's built
-# dist, so it moves whenever a lib differs from the build ci.docs last hashed.
-# ci.docs re-commits the file on main; what a branch should do with it is
-# stigmer/stigmer#1193.
+# dist, so it moves whenever a lib differs from the build last committed.
+# Every install of it is non-immutable, so a stale hash fails nothing; what a
+# branch should do with the rewrite is stigmer/stigmer#1193.
 #
 # Wall-clock is now ~max(bucket) instead of the sum of every step.
 JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 5)

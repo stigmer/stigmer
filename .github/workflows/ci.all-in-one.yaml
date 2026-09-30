@@ -14,7 +14,7 @@
 # native runners: the packages carry a per-arch native bridge, and the
 # smoke run here is the exact platform proof — no QEMU.
 #
-# Path filter: the image's own tree, the two scripts and their shared
+# When it runs (its list in scripts/ci-lanes.mjs): the image's own tree, the two scripts and their shared
 # probes, the CLI's local stack (the composition the image runs), the
 # packaging scripts the staging calls, the Makefile (smoke-all-in-one lives
 # there), and this file.
@@ -23,43 +23,20 @@
 name: ci.all-in-one
 
 on:
-  pull_request:
-    paths:
-      - "deploy/all-in-one/**"
-      - "scripts/stage-all-in-one.mjs"
-      - "scripts/smoke-all-in-one.mjs"
-      - "scripts/lib/**"
-      - "scripts/publish-libs.mjs"
-      - "client-apps/cli/src/local/**"
-      - "client-apps/cli/src/commands/up.ts"
-      - "backend/services/runner/scripts/bundle-slim.mjs"
-      - "backend/services/stigmer-server/scripts/bundle-slim.mjs"
-      - "Makefile"
-      - ".github/workflows/ci.all-in-one.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "deploy/all-in-one/**"
-      - "scripts/stage-all-in-one.mjs"
-      - "scripts/smoke-all-in-one.mjs"
-      - "scripts/lib/**"
-      - "scripts/publish-libs.mjs"
-      - "client-apps/cli/src/local/**"
-      - "client-apps/cli/src/commands/up.ts"
-      - "backend/services/runner/scripts/bundle-slim.mjs"
-      - "backend/services/stigmer-server/scripts/bundle-slim.mjs"
-      - "Makefile"
-      - ".github/workflows/ci.all-in-one.yaml"
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: all-in-one-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   # One job body, two native runners. `make smoke-all-in-one` builds the

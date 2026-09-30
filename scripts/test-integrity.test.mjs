@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import {
   applyDeclarations,
   byConstruction,
+  CONFIG_PATHSPECS,
   checkConfig,
   compareInventories,
   formatReport,
@@ -132,6 +133,13 @@ it("vitest options that pass a suite without passing are refused; their off valu
   assert.deepEqual(on.map((f) => f.message.split("`")[1]), ["passWithNoTests: true", "retry: 2", "allowOnly: true"]);
   const off = checkConfig(ts, "vitest.config.ts", `export default { test: { passWithNoTests: false, retry: 0, allowOnly: false } };`);
   assert.deepEqual(off, []);
+});
+
+it("a Playwright config that retries a failure into green is refused; zero retries is not", () => {
+  const on = checkConfig(ts, "test/e2e/playwright.config.ts", `export default defineConfig({ retries: process.env.CI ? 2 : 0, forbidOnly: !!process.env.CI });`);
+  assert.deepEqual(on.map((f) => f.message.split("`")[1]), ["retries: process.env.CI ? 2 : 0"]);
+  assert.deepEqual(checkConfig(ts, "site/playwright.config.ts", `export default defineConfig({ retries: 0 });`), []);
+  assert.ok(CONFIG_PATHSPECS.includes("**/playwright.config.*"), "the tool reads Playwright configs");
 });
 
 // ─── Comparing base and head ────────────────────────────────────────────

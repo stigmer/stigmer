@@ -53,7 +53,10 @@ export default defineConfig({
   // regression. CI skips the pixel comparisons; every functional assertion
   // still runs. The screenshots remain a local regression tool.
   ignoreSnapshots: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // No retries anywhere: a spec that passes on its second try has failed, and
+  // a flaky one is quarantined by name on an issue instead
+  // (scripts/test-integrity.mjs refuses a config that retries).
+  retries: 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
     ? [

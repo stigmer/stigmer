@@ -1,0 +1,200 @@
+# =============================================================================
+# The gate: one required check over every CI lane
+# =============================================================================
+# Every pull request and every merge-queue entry runs this one workflow. Its
+# first job asks scripts/ci-lanes.mjs which lanes the change needs (the path
+# map lives there, with the reason for each entry); it then calls each needed
+# lane as a reusable workflow; and its last job, `Gate`, passes only when
+# every needed lane passed. `Gate` and `Test integrity` (ci.integrity.yaml)
+# are the required checks on `main`, for everyone, through the merge queue:
+# the queue runs this workflow again on the exact commit it will land, on top
+# of `main` and every entry ahead of it, and lands that commit only if `Gate`
+# passed there.
+#
+# Why one workflow. A lane that decided for itself whether to run could not be
+# required: a lane whose filter did not match never created its check, and a
+# skipped check satisfies a required one (#662 merged over a red docs lane,
+# #688). Here the lane set is explicit, a YAML error in a lane fails the run
+# instead of silently not reporting, and re-running a failed lane re-computes
+# the verdict in the same run.
+#
+# `Gate` runs under `if: always()`, never `!cancelled()` or `success()`: a
+# required check that is skipped counts as passed, so `Gate` must run in every
+# case and decide (a cancelled run's `Gate` sees cancelled lanes and fails).
+#
+# Called lanes do not inherit this workflow's `env` (GitHub does not pass a
+# caller's workflow-level env down), so each lane sets STIGMER_TEST_GATE=1
+# itself; their `github` context is this workflow's, which is why the lanes
+# carry no concurrency of their own and ci.ts-workspace names its own file
+# for turbo-affected.mjs. scripts/ci-lanes.test.mjs holds this file, the map
+# and the lanes to one shape.
+# =============================================================================
+
+name: ci.gate
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A superseded pull-request push cancels its run; a queue entry, a push to
+# main and a dispatch never cancel (each queue entry has its own
+# gh-readonly-queue ref, so entries never share a group).
+concurrency:
+  group: gate-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  lanes:
+    name: Lanes this change needs
+    runs-on: ubuntu-latest
+    outputs:
+      all-in-one: ${{ steps.select.outputs.all-in-one }}
+      authorization-model: ${{ steps.select.outputs.authorization-model }}
+      codegen: ${{ steps.select.outputs.codegen }}
+      compose-stack: ${{ steps.select.outputs.compose-stack }}
+      conformance: ${{ steps.select.outputs.conformance }}
+      conformance-execution: ${{ steps.select.outputs.conformance-execution }}
+      crate: ${{ steps.select.outputs.crate }}
+      docs: ${{ steps.select.outputs.docs }}
+      e2e-interactive: ${{ steps.select.outputs.e2e-interactive }}
+      go-sdk: ${{ steps.select.outputs.go-sdk }}
+      helm-chart: ${{ steps.select.outputs.helm-chart }}
+      install-script: ${{ steps.select.outputs.install-script }}
+      java-sdk: ${{ steps.select.outputs.java-sdk }}
+      plugins-static: ${{ steps.select.outputs.plugins-static }}
+      proto-breaking: ${{ steps.select.outputs.proto-breaking }}
+      runner: ${{ steps.select.outputs.runner }}
+      stigmer-server: ${{ steps.select.outputs.stigmer-server }}
+      ts-workspace: ${{ steps.select.outputs.ts-workspace }}
+    steps:
+      # Full commit graph, no blobs: the selection diffs trees against the
+      # range's base (the ci.ts-workspace `changes` job's checkout).
+      - name: Checkout (full history, no blobs)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Select the lanes
+        id: select
+        run: node scripts/ci-lanes.mjs
+
+  all-in-one:
+    needs: lanes
+    if: needs.lanes.outputs.all-in-one == 'true'
+    uses: ./.github/workflows/ci.all-in-one.yaml
+
+  authorization-model:
+    needs: lanes
+    if: needs.lanes.outputs.authorization-model == 'true'
+    uses: ./.github/workflows/ci.authorization-model.yaml
+
+  codegen:
+    needs: lanes
+    if: needs.lanes.outputs.codegen == 'true'
+    uses: ./.github/workflows/ci.codegen.yaml
+
+  compose-stack:
+    needs: lanes
+    if: needs.lanes.outputs.compose-stack == 'true'
+    uses: ./.github/workflows/ci.compose-stack.yaml
+
+  conformance:
+    needs: lanes
+    if: needs.lanes.outputs.conformance == 'true'
+    uses: ./.github/workflows/ci.conformance.yaml
+
+  conformance-execution:
+    needs: lanes
+    if: needs.lanes.outputs.conformance-execution == 'true'
+    uses: ./.github/workflows/ci.conformance-execution.yaml
+
+  crate:
+    needs: lanes
+    if: needs.lanes.outputs.crate == 'true'
+    uses: ./.github/workflows/ci.crate.yaml
+
+  docs:
+    needs: lanes
+    if: needs.lanes.outputs.docs == 'true'
+    uses: ./.github/workflows/ci.docs.yaml
+
+  e2e-interactive:
+    needs: lanes
+    if: needs.lanes.outputs.e2e-interactive == 'true'
+    uses: ./.github/workflows/ci.e2e-interactive.yaml
+
+  go-sdk:
+    needs: lanes
+    if: needs.lanes.outputs.go-sdk == 'true'
+    uses: ./.github/workflows/ci.go-sdk.yaml
+
+  helm-chart:
+    needs: lanes
+    if: needs.lanes.outputs.helm-chart == 'true'
+    uses: ./.github/workflows/ci.helm-chart.yaml
+
+  install-script:
+    needs: lanes
+    if: needs.lanes.outputs.install-script == 'true'
+    uses: ./.github/workflows/ci.install-script.yaml
+
+  java-sdk:
+    needs: lanes
+    if: needs.lanes.outputs.java-sdk == 'true'
+    uses: ./.github/workflows/ci.java-sdk.yaml
+
+  plugins-static:
+    needs: lanes
+    if: needs.lanes.outputs.plugins-static == 'true'
+    uses: ./.github/workflows/ci.plugins-static.yaml
+
+  proto-breaking:
+    needs: lanes
+    if: needs.lanes.outputs.proto-breaking == 'true'
+    uses: ./.github/workflows/ci.proto-breaking.yaml
+
+  runner:
+    needs: lanes
+    if: needs.lanes.outputs.runner == 'true'
+    uses: ./.github/workflows/ci.runner.yaml
+
+  stigmer-server:
+    needs: lanes
+    if: needs.lanes.outputs.stigmer-server == 'true'
+    uses: ./.github/workflows/ci.stigmer-server.yaml
+
+  ts-workspace:
+    needs: lanes
+    if: needs.lanes.outputs.ts-workspace == 'true'
+    uses: ./.github/workflows/ci.ts-workspace.yaml
+
+  gate:
+    name: Gate
+    needs: [lanes, all-in-one, authorization-model, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Every lane this change needs passed
+        env:
+          GATE_NEEDS: ${{ toJSON(needs) }}
+        run: node scripts/ci-lanes.mjs verdict

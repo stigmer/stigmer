@@ -23,29 +23,11 @@
 name: ci.authorization-model
 
 on:
-  pull_request:
-    paths:
-      - "backend/services/stigmer-server/fga/**"
-      - "backend/services/stigmer-server/src/authorization/model/data/**"
-      - "tools/codegen/src/authorization-model/**"
-      - "tools/codegen/package.json"
-      - "package-lock.json"
-      - ".github/workflows/ci.authorization-model.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/services/stigmer-server/fga/**"
-      - "backend/services/stigmer-server/src/authorization/model/data/**"
-      - "tools/codegen/src/authorization-model/**"
-      - "tools/codegen/package.json"
-      - "package-lock.json"
-      - ".github/workflows/ci.authorization-model.yaml"
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: authorization-model-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main and dispatch runs queue.
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -54,6 +36,10 @@ env:
   FGA_CLI_VERSION: "0.7.20"
   # sha256 of fga_0.7.20_linux_amd64.tar.gz, from the release's checksums.txt.
   FGA_CLI_SHA256: f0136868bdced6f8fded1876d41aa8d594d23588183497f6d876c1a5343529a4
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   model:

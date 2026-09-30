@@ -36,15 +36,22 @@
  *     (WORKSPACE_TOOLING: the root manifests and scripts/**), changed. Turbo
  *     attributes these to the root package and no task; but a root
  *     devDependency bump (tsx, @tailwindcss/cli) is what several build scripts
- *     run, and a change to this lane must exercise this lane.
+ *     run, and a change to this lane must exercise this lane. The lane runs
+ *     as a workflow ci.gate.yaml calls, whose GITHUB_WORKFLOW_REF names the
+ *     caller, so the lane passes its own file with --lane-file; the caller's
+ *     file counts too, since a change to the orchestrator is a change to how
+ *     this lane runs.
  *   - turbo could not compare (no base ref, an SCM error): its own fallback
  *     is to run everything, made visible here as a `::warning::` so a
  *     misconfigured base is never a quietly-full run forever.
  *
  * The base ref is derived from GitHub's own event, not left to turbo's
  * detection, so the summary can print it: a pull request compares with
- * `origin/<base branch>`, a push with the event's `before`, anything else
- * (a developer at a terminal) with origin/main unless --base says otherwise.
+ * `origin/<base branch>`, a merge-queue entry with the queue's base commit
+ * (the entry's head sits on `main` plus the entries ahead of it), a push with
+ * the event's `before`, anything else (a developer at a terminal) with
+ * origin/main unless --base says otherwise. scripts/ci-lanes.mjs reads the
+ * same range, so the gate and this lane agree on what changed.
  *
  * Outputs (always on stdout; appended to GITHUB_OUTPUT when set):
  *   packages=<JSON array of names, workspace order>
@@ -56,6 +63,7 @@
  * Usage:
  *   node scripts/turbo-affected.mjs                      # in CI, from the event
  *   node scripts/turbo-affected.mjs --base origin/main   # at a terminal
+ *   node scripts/turbo-affected.mjs --lane-file .github/workflows/ci.ts-workspace.yaml
  */
 
 import { spawnSync } from "node:child_process";
@@ -108,6 +116,13 @@ export function resolveRange(env, flags = {}, readEvent = readEventPayload) {
       source: "pull_request base branch",
     };
   }
+  if (env.GITHUB_EVENT_NAME === "merge_group") {
+    const group = readEvent(env)?.merge_group;
+    if (group?.base_sha && group?.head_sha) {
+      return { base: group.base_sha, head: group.head_sha, source: "merge_group base commit" };
+    }
+    return { base: null, head, source: "merge_group event without its commits" };
+  }
   if (env.GITHUB_EVENT_NAME === "push") {
     const before = readEvent(env)?.before;
     if (typeof before === "string" && before && !ZERO_SHA.test(before)) {
@@ -133,16 +148,17 @@ export function workflowFileOf(env) {
 
 /**
  * Why everything must run, from the event and the changed file list, or
- * null when the package graph's answer stands.
+ * null when the package graph's answer stands. `laneFile` is the lane's own
+ * workflow file (--lane-file); the running workflow's file counts as well.
  */
-export function everythingBecause(env, changedFiles) {
+export function everythingBecause(env, changedFiles, laneFile = null) {
   if (env.GITHUB_EVENT_NAME === "workflow_dispatch") {
     return "workflow_dispatch: a manual run runs everything";
   }
-  const workflow = workflowFileOf(env);
+  const workflows = new Set([laneFile, workflowFileOf(env)].filter(Boolean));
   const hits = changedFiles.filter(
     (file) =>
-      (workflow && file === workflow) ||
+      workflows.has(file) ||
       WORKSPACE_TOOLING.some(
         (path) =>
           file === path || (path.endsWith("/") && file.startsWith(path)),
@@ -191,8 +207,8 @@ export function readAffected(query) {
  * The decision: the package list in workspace order, a reason when it is
  * everything, and the rows behind it.
  */
-export function decide({ env, changedFiles, query, workspace }) {
-  const because = everythingBecause(env, changedFiles);
+export function decide({ env, changedFiles, query, workspace, laneFile = null }) {
+  const because = everythingBecause(env, changedFiles, laneFile);
   if (because) {
     return {
       packages: workspace,
@@ -268,17 +284,22 @@ export function summaryMarkdown(decision, range) {
   return lines.join("\n") + "\n";
 }
 
-function changedFilesSince(base, head) {
+/**
+ * The files changed between the merge base of `base` and `head`, and `head`;
+ * null when git cannot compare. With head `HEAD`, the working tree counts.
+ */
+export function changedFilesSince(base, head) {
   const mergeBase = spawnSync("git", ["merge-base", base, head], {
     cwd: root,
     encoding: "utf8",
   });
   if (mergeBase.status !== 0) return null;
-  // No explicit head: compares the merge-base with the working tree, the same
-  // view turbo takes (uncommitted edits count), so a terminal run is honest.
+  // HEAD compares the merge-base with the working tree, the same view turbo
+  // takes (uncommitted edits count), so a terminal run is honest; an explicit
+  // head (a merge-queue entry's) compares the two commits.
   const diff = spawnSync(
     "git",
-    ["diff", "--name-only", mergeBase.stdout.trim()],
+    ["diff", "--name-only", mergeBase.stdout.trim(), ...(head === "HEAD" ? [] : [head])],
     {
       cwd: root,
       encoding: "utf8",
@@ -319,12 +340,12 @@ function parseFlags(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const [key, inline] = arg.split("=", 2);
-    if (key !== "--base" && key !== "--head") {
+    if (key !== "--base" && key !== "--head" && key !== "--lane-file") {
       throw new Error(`turbo-affected: unknown argument "${arg}"`);
     }
     const value = inline ?? argv[++i];
-    if (!value) throw new Error(`turbo-affected: ${key} needs a ref`);
-    flags[key.slice(2)] = value;
+    if (!value) throw new Error(`turbo-affected: ${key} needs a value`);
+    flags[key === "--lane-file" ? "laneFile" : key.slice(2)] = value;
   }
   return flags;
 }
@@ -341,7 +362,7 @@ function main(argv, env) {
     query = queryAffected(range);
   }
 
-  const decision = decide({ env, changedFiles, query, workspace });
+  const decision = decide({ env, changedFiles, query, workspace, laneFile: flags.laneFile ?? null });
   const setsByName = Object.fromEntries(
     Object.entries(SETS).map(([set, resolver]) => [set, resolver()]),
   );

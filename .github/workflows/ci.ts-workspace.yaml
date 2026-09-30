@@ -10,9 +10,10 @@
 # hand-written `paths:` list that approximated the package graph and said so
 # in its comments ("sdk/react consumes @stigmer/theme workspace source, so a
 # theme change can break react's typecheck without touching sdk/react/**").
-# Turborepo derives that graph from the manifests, so this lane has no
-# `paths:` at all: it runs on every pull request and push, and its first job
-# asks turbo which packages the change reaches.
+# Turborepo derives that graph from the manifests, so this lane has no path
+# list at all: ci.gate.yaml calls it for every change (`always` in
+# scripts/ci-lanes.mjs), and its first job asks turbo which packages the
+# change reaches.
 #
 # How the jobs are cut: by TASK, not by package group. `libs` builds and tests
 # the publishable @stigmer/* packages (the set publish-libs.mjs publishes);
@@ -29,15 +30,16 @@
 # answer is a package list the other jobs hand to scripts/turbo-set.mjs as
 # `--only`; turbo builds the dependencies (`^build`) itself. Three cases run
 # everything, because turbo cannot see the change: a manual dispatch; a change
-# to this file or to the workspace tooling (root manifests, scripts/**); an
-# SCM fallback, which also prints a warning. The job summary shows base, head
+# to this file (passed as --lane-file, since a called workflow's own ref
+# names ci.gate.yaml), to ci.gate.yaml, or to the workspace tooling (root
+# manifests, scripts/**); an SCM fallback, which also prints a warning. The job summary shows base, head
 # and turbo's reason per task, so a skipped job can be trusted from the PR.
 # It is the only job that needs git history: a full commit graph without
 # blobs (`filter: blob:none`), since `git diff --name-only` reads trees.
 #
 # Skipped, not absent: a job whose packages did not change reports
-# conclusion "skipped", which branch protection accepts (the shape ci.docs'
-# `changes` job established when the noop twin retired, #709).
+# conclusion "skipped", and the lane still succeeds as a whole, which is what
+# `Gate` reads.
 #
 # --- The SDK typecheck gate's history (moved here from ci.ts-sdk) ------------
 # ci.ts-sdk was created after the #607/#628 incident: a fresh checkout showed
@@ -75,16 +77,11 @@
 name: ci.ts-workspace
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
   workflow_dispatch: {}
-
-concurrency:
-  group: ci-ts-workspace-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -101,6 +98,10 @@ env:
   # this lane runs turbo (owner ruling D3, 2026-09-10; the wrapper sets it
   # too, this covers any direct call).
   TURBO_TELEMETRY_DISABLED: "1"
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   # Which packages does this change reach? See the header. Also runs the root
@@ -142,9 +143,11 @@ jobs:
       - name: Root script tests
         run: npm run test:scripts
 
+      # --lane-file: called from ci.gate.yaml, GITHUB_WORKFLOW_REF names the
+      # caller, so the lane names its own file for the run-everything rule.
       - name: Verdict
         id: verdict
-        run: node scripts/turbo-affected.mjs
+        run: node scripts/turbo-affected.mjs --lane-file .github/workflows/ci.ts-workspace.yaml
 
   # The publishable @stigmer/* packages: build (tsconfig.build.json, what
   # ships), then their unit suites, then the Node-ESM gate over the dists

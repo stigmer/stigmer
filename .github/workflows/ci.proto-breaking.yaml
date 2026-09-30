@@ -18,19 +18,20 @@
 name: ci.proto-breaking
 
 on:
-  pull_request:
-    paths:
-      - "apis/**"
-      - ".github/workflows/ci.proto-breaking.yaml"
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: proto-breaking-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; dispatch runs queue (stigmer#725 rule).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   buf-breaking:

@@ -174,7 +174,9 @@ Fixed-height embedding (stigmer/stigmer#260) is an explicit opt-in the host
 applies from its own CSS:
 `.stgm[data-stgm-root] { height: 100%; min-height: 0 }`. Two marker attributes
 are stable public selectors: `data-stgm-root` on the in-tree container only and
-`data-stgm-portal` on the portal container only, never both on one element. The
+`data-stgm-portal` on the portal container only, never both on one element; a
+popup opened inside a modal `DialogShell` portals into that dialog's own
+unmarked target, since the top layer would cover the body container. The
 `className` prop is a theming channel mirrored onto both scope containers and
 must never become a layout channel.
 `sdk/react/src/__tests__/provider-theme-scope.test.tsx` pins the markers and

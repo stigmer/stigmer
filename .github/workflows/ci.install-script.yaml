@@ -12,22 +12,11 @@
 name: ci.install-script
 
 on:
-  pull_request:
-    paths:
-      - "site/public/install.sh"
-      - ".github/workflows/ci.install-script.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "site/public/install.sh"
-      - ".github/workflows/ci.install-script.yaml"
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: install-script-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Make the installer's `npm install` resilient to transient registry drops
 # (ECONNRESET). npm reads these npm_config_* vars, so the install retries
@@ -38,6 +27,10 @@ env:
   npm_config_fetch_retry_factor: "2"
   npm_config_fetch_retry_mintimeout: "20000"
   npm_config_fetch_retry_maxtimeout: "120000"
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   shellcheck:

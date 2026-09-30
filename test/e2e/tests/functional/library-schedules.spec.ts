@@ -115,9 +115,11 @@ test.describe("Schedules list page", () => {
       await expect(
         page.getByRole("heading", { name: seeded.scheduleSlug }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByText("Asia/Kolkata").first()).toBeVisible();
+      // The zone shows in the cadence line; other copies of it (a select's
+      // options, a tooltip) are hidden, so match the visible one.
+      await expect(page.getByText("Asia/Kolkata").filter({ visible: true }).first()).toBeVisible();
       await expect(page.getByText("Send today's reminders.")).toBeVisible();
-      await expect(page.getByRole("button", { name: "Run now" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Run now", exact: true })).toBeVisible();
     } finally {
       await seeded.cleanup();
     }
@@ -274,8 +276,11 @@ test.describe("Disabled-vs-paused rendering", () => {
         timeout: 15_000,
       });
       await expect(page.getByText("Disabled").first()).toBeVisible();
-      // Run now refuses client-side while the schedule cannot fire.
-      await expect(page.getByRole("button", { name: "Run now" })).toBeDisabled();
+      // A disabled schedule's primary action is "Enable & run now", the
+      // one-click staged-test flow, never a bare "Run now"
+      // (ScheduleDetailView's primaryAction).
+      await expect(page.getByRole("button", { name: "Enable & run now" })).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Run now", exact: true })).toHaveCount(0);
 
       // Enable through the banner: a full-proto re-apply via the
       // manifest engine (the lossless write path).
@@ -285,7 +290,8 @@ test.describe("Disabled-vs-paused rendering", () => {
         timeout: 15_000,
       });
       await expect(page.getByText("Active").first()).toBeVisible();
-      await expect(page.getByRole("button", { name: "Run now" })).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Run now", exact: true })).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Enable & run now" })).toHaveCount(0);
 
       // Server-side confirmation: enabled flipped, nothing else touched.
       const after = await stigmerClient.schedule.getByReference({
