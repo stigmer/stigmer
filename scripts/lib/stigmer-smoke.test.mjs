@@ -430,8 +430,9 @@ async function stateLane() {
     return row;
   };
   const get = (body) => rows.get(body.value);
-  // A Map, not an object: the path is the caller's, and an object lookup would
-  // reach inherited properties (a path of "constructor").
+  // A Map, and a function check at the call: the path is the caller's, so it
+  // must never reach an inherited property (a path of "constructor") or call
+  // something that is not a route.
   const routes = new Map(Object.entries({
     [ORG_CREATE]: create("org"),
     "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
@@ -454,7 +455,7 @@ async function stateLane() {
     request.on("data", (chunk) => (raw += chunk));
     request.on("end", () => {
       const route = routes.get((request.url ?? "").replace(/^\//, ""));
-      const answer = route === undefined ? undefined : route(JSON.parse(raw || "{}"));
+      const answer = typeof route === "function" ? route(JSON.parse(raw || "{}")) : undefined;
       response.writeHead(answer === undefined ? 404 : 200, { "content-type": "application/json" });
       response.end(JSON.stringify(answer ?? { code: "not_found" }));
     });
