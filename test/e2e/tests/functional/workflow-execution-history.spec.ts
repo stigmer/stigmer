@@ -1,8 +1,7 @@
 import { test, expect } from "../../fixtures";
-import type { Stigmer } from "@stigmer/sdk";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
 import { navigateToWorkflowDetail } from "../../helpers/workflow-detail";
+import { awaitWorkflowExecutionCompleted } from "../../helpers/workflow-execution";
 
 /**
  * The Executions tab of a workflow detail page: the history table, the
@@ -14,15 +13,6 @@ import { navigateToWorkflowDetail } from "../../helpers/workflow-detail";
  * stack's real runner, so the tab has exactly one completed row to show.
  */
 
-async function runToCompletion(client: Stigmer, executionId: string): Promise<void> {
-  await expect
-    .poll(
-      async () => (await client.workflowExecution.get(executionId)).status?.phase,
-      { timeout: 60_000, message: "the seeded execution completes" },
-    )
-    .toBe(ExecutionPhase.EXECUTION_COMPLETED);
-}
-
 test.describe("Workflow execution history", () => {
   test("a completed execution is listed in the history table with its columns", async ({
     page,
@@ -33,7 +23,7 @@ test.describe("Workflow execution history", () => {
       org: testWorkflow.org,
     });
     try {
-      await runToCompletion(stigmerClient, execution.id);
+      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 
@@ -59,7 +49,7 @@ test.describe("Workflow execution history", () => {
       org: testWorkflow.org,
     });
     try {
-      await runToCompletion(stigmerClient, execution.id);
+      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 
@@ -78,7 +68,7 @@ test.describe("Workflow execution history", () => {
       org: testWorkflow.org,
     });
     try {
-      await runToCompletion(stigmerClient, execution.id);
+      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 
@@ -111,7 +101,7 @@ test.describe("Workflow execution history", () => {
       org: testWorkflow.org,
     });
     try {
-      await runToCompletion(stigmerClient, execution.id);
+      await awaitWorkflowExecutionCompleted(stigmerClient, execution.id);
       await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
       await page.getByRole("tab", { name: "Executions" }).click();
 

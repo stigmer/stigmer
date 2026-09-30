@@ -4,6 +4,7 @@ import {
   createTestWorkflowExecution,
 } from "../../fixtures/seed-helpers";
 import {
+  awaitWorkflowExecutionCompleted,
   navigateToExecution,
   waitForPhaseBadge,
 } from "../../helpers/workflow-execution";
@@ -80,6 +81,9 @@ test.describe("Workflow execution comparison", () => {
     );
 
     try {
+      // The picker offers only finished runs, and exec2's page shows only
+      // exec2's phase: wait for exec1 on the server first (#1552).
+      await awaitWorkflowExecutionCompleted(stigmerClient, exec1.id);
       await navigateToExecution(page, exec2.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
@@ -112,6 +116,9 @@ test.describe("Workflow execution comparison", () => {
     );
 
     try {
+      // The picker offers only finished runs, and exec2's page shows only
+      // exec2's phase: wait for exec1 on the server first (#1552).
+      await awaitWorkflowExecutionCompleted(stigmerClient, exec1.id);
       await navigateToExecution(page, exec2.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
@@ -151,6 +158,9 @@ test.describe("Workflow execution comparison", () => {
     );
 
     try {
+      // The picker offers only finished runs, and exec2's page shows only
+      // exec2's phase: wait for exec1 on the server first (#1552).
+      await awaitWorkflowExecutionCompleted(stigmerClient, exec1.id);
       await navigateToExecution(page, exec2.id);
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });

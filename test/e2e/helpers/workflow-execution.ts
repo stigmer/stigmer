@@ -1,5 +1,7 @@
 import type { Page, Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
+import type { Stigmer } from "@stigmer/sdk";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 
 export type WorkflowPhase =
   | "Pending"
@@ -32,6 +34,31 @@ export async function navigateToExecution(
     state: "visible",
     timeout: 30_000,
   });
+}
+
+/**
+ * Polls the server until a workflow execution has completed.
+ *
+ * A seeded execution (`createTestWorkflowExecution`) returns as soon as the
+ * create call does, before the runner has run it. A spec whose page needs a
+ * finished run that it does not open itself (a second run in the comparison
+ * picker, a completed row in the history table) waits here first, so the
+ * precondition is established rather than assumed (#1552).
+ */
+export async function awaitWorkflowExecutionCompleted(
+  client: Stigmer,
+  executionId: string,
+): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        (await client.workflowExecution.get(executionId)).status?.phase,
+      {
+        timeout: 60_000,
+        message: `workflow execution ${executionId} completes`,
+      },
+    )
+    .toBe(ExecutionPhase.EXECUTION_COMPLETED);
 }
 
 export async function waitForPhaseBadge(
