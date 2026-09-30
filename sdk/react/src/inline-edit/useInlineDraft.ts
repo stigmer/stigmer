@@ -1,5 +1,22 @@
 "use client";
 
+/**
+ * The draft, focus and caret contract shared by the click-to-edit text
+ * editors (`InlineEditText`, `InlineEditTextarea`, `InlineEditImage`), kept in
+ * one place so the three cannot drift apart. Internal: not exported from the
+ * package.
+ *
+ * - Opening seeds the draft from the stored value and focuses the field in
+ *   the commit that shows it, never a frame later, so a selection made right
+ *   after opening (select-all, then type) is not collapsed afterwards
+ *   (stigmer/stigmer#1575). A layout effect is used rather than a passive one
+ *   because, in a browser, a passive effect may run after paint and after the
+ *   next input.
+ * - An untouched draft follows the stored value, so a save never writes a
+ *   stale copy over a change made elsewhere; once the user edits, the draft
+ *   is theirs until they save or cancel. The follow is adjusted during render
+ *   (the `ResizableSplit` idiom), so the field never shows the stale value.
+ */
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import type { RefObject } from "react";
 
@@ -18,18 +35,8 @@ export interface UseInlineDraftReturn {
 }
 
 /**
- * The draft, focus and caret contract shared by the click-to-edit text
- * editors (`InlineEditText`, `InlineEditTextarea`, `InlineEditImage`), kept in
- * one place so the three cannot drift apart. Internal: not exported from the
- * package.
- *
- * - Opening seeds the draft from the stored value and focuses the field in
- *   the commit that shows it, never a frame later, so a selection made right
- *   after opening (select-all, then type) is not collapsed afterwards
- *   (stigmer/stigmer#1575). `caretAtEnd` also puts the caret at the end.
- * - An untouched draft follows the stored value, so a save never writes a
- *   stale copy over a change made elsewhere; once the user edits, the draft
- *   is theirs until they save or cancel.
+ * Holds an inline editor's open state and draft, and places focus when the
+ * field opens (the contract in this module's header).
  *
  * @param value - The stored value.
  * @param fieldRef - The input or textarea shown while editing.
@@ -46,8 +53,7 @@ export function useInlineDraft(
   // The stored value the draft was last seeded from.
   const [seed, setSeed] = useState(value);
 
-  // Adjusted during render (the ResizableSplit idiom), so the field never
-  // shows the stale value for a frame.
+  // An untouched draft follows the stored value (see the module header).
   if (value !== seed) {
     setSeed(value);
     if (draft === seed) setDraft(value);
