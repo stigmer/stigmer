@@ -1,116 +1,94 @@
-import { test, expect, type Page } from "@playwright/test";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { test, expect } from "../../../fixtures";
+import { openManageAccessFromKebab, visibilityBadge } from "../../../helpers/access";
 
 /**
- * Blueprint Visibility Tests
+ * Blueprint visibility, the General access axis of "Manage access".
  *
- * Visibility editing now lives inside the unified "Manage access" dialog: the
- * detail-page header shows a read-only visibility badge, and the editable
- * segmented control moved into the dialog's *General access* section (one
- * editing surface for "who can get to this?"). These specs drive that dialog.
+ * A blueprint (agent, workflow) is created at Organization visibility, the
+ * blueprint default. Its detail header shows the level as a badge that opens
+ * the Manage access dialog, and the dialog's General access control is where
+ * the level changes: Private or Organization, never the retired public
+ * level. A change is written to the server and the header follows it.
  *
- * Prerequisites:
- * - Running against a Cloud-connected backend with FGA enabled
- * - Test user has at least one private agent/workflow/skill
+ * Run against the open-source server, where the owner of a resource holds
+ * this control in every edition (the audience permission). Each test seeds
+ * its own resource, so nothing here depends on what the stack holds.
  */
-
-/**
- * Opens the kebab "Manage access" dialog for a Family A detail page. Returns the
- * dialog locator, or null when the action is not offered (gated on
- * `can_view_access`).
- */
-async function openManageAccessFromKebab(page: Page) {
-  const kebab = page.getByRole("button", { name: "More actions" });
-  if (!(await kebab.isVisible())) return null;
-  await kebab.click();
-
-  const item = page.getByRole("menuitem", { name: "Manage access" });
-  if (!(await item.isVisible())) return null;
-  await item.click();
-
-  return page.getByRole("dialog");
-}
-
-test.describe("Blueprint Visibility", () => {
-  test.describe("Agent visibility", () => {
-    test("header shows a read-only visibility badge", async ({ page }) => {
-      await page.goto("/library/agents");
-      await page.waitForLoadState("networkidle");
-
-      const firstAgent = page.locator('[role="listitem"]').first();
-      await firstAgent.click();
-      await page.waitForLoadState("networkidle");
-
-      // The inline control is now a read-only badge naming the current level.
-      await expect(
-        page
-          .getByText(/^(Private|Organization|Platform)$/)
-          .first(),
-      ).toBeVisible();
-    });
-
-    test("General access control is editable inside the dialog", async ({
+test.describe("Blueprint visibility", () => {
+  test.describe("Agent", () => {
+    test("the header badge names the level and opens Manage access", async ({
       page,
+      testAgent,
     }) => {
-      await page.goto("/library/agents");
-      await page.waitForLoadState("networkidle");
+      await page.goto(`/library/agents/${testAgent.org}/${testAgent.slug}`);
 
-      const firstAgent = page.locator('[role="listitem"]').first();
-      await firstAgent.click();
-      await page.waitForLoadState("networkidle");
+      const badge = visibilityBadge(page);
+      await expect(badge).toHaveText("Organization", { timeout: 15_000 });
+      await badge.click();
 
-      const dialog = await openManageAccessFromKebab(page);
-      if (dialog) {
-        await expect(dialog.getByText("General access")).toBeVisible();
-        // Editable only for can_edit; the control is a popover trigger naming
-        // the current level. Assert it when the owner can edit.
-        const control = dialog.getByRole("button", {
-          name: /Resource visibility/i,
-        });
-        if (await control.isVisible()) {
-          await expect(control).toBeEnabled();
-        }
-      }
+      const dialog = page.getByRole("dialog", { name: "Manage access" });
+      await expect(dialog.getByRole("heading", { name: "General access" })).toBeVisible();
     });
 
-    test("the visibility control never offers Public", async ({ page }) => {
-      await page.goto("/library/agents");
-      await page.waitForLoadState("networkidle");
-
-      const firstAgent = page.locator('[role="listitem"]').first();
-      await firstAgent.click();
-      await page.waitForLoadState("networkidle");
-
+    test("the visibility control offers exactly Private and Organization", async ({
+      page,
+      testAgent,
+    }) => {
+      await page.goto(`/library/agents/${testAgent.org}/${testAgent.slug}`);
       const dialog = await openManageAccessFromKebab(page);
-      if (dialog) {
-        const control = dialog.getByRole("button", {
-          name: /Resource visibility/i,
-        });
-        if (await control.isVisible()) {
-          await control.click();
-          // The public level is retired: the ladder is Private / Organization
-          // [/ Platform], and no row offers the retired level.
-          await expect(page.getByRole("option", { name: /^Private/i })).toBeVisible();
-          await expect(page.getByRole("option", { name: /^Public/i })).toHaveCount(0);
-        }
-      }
+
+      const control = dialog.getByRole("button", { name: "Resource visibility: Organization" });
+      await expect(control).toBeEnabled();
+      await control.click();
+
+      const listbox = page.getByRole("listbox", { name: "Resource visibility" });
+      await expect(listbox).toBeVisible();
+      // toBeVisible checks the box, not what covers it: a trial click checks
+      // that the option really receives the pointer (it once did not: #1509).
+      await listbox.getByRole("option", { name: /^Private/ }).click({ trial: true });
+      const options = listbox.getByRole("option");
+      await expect(options).toHaveCount(2);
+      await expect(options.nth(0)).toHaveAccessibleName(/^Private/);
+      await expect(options.nth(1)).toHaveAccessibleName(/^Organization/);
+      await expect(page.getByRole("option", { name: /^Public/ })).toHaveCount(0);
+    });
+
+    test("choosing Private writes it to the server and the header follows", async ({
+      page,
+      testAgent,
+      stigmerClient,
+    }) => {
+      await page.goto(`/library/agents/${testAgent.org}/${testAgent.slug}`);
+      const dialog = await openManageAccessFromKebab(page);
+
+      await dialog.getByRole("button", { name: "Resource visibility: Organization" }).click();
+      await page.getByRole("option", { name: /^Private/ }).click();
+
+      await expect(dialog.getByRole("button", { name: "Resource visibility: Private" })).toBeVisible({
+        timeout: 15_000,
+      });
+      await dialog.getByRole("button", { name: "Done" }).click();
+      await expect(visibilityBadge(page)).toHaveText("Private");
+
+      const stored = await stigmerClient.agent.get(testAgent.id);
+      expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
     });
   });
 
-  test.describe("Workflow visibility", () => {
-    test("workflow detail exposes Manage access with a General access section", async ({
+  test.describe("Workflow", () => {
+    test("the workflow's Manage access dialog carries the same General access control", async ({
       page,
+      testWorkflow,
     }) => {
-      await page.goto("/library/workflows");
-      await page.waitForLoadState("networkidle");
-
-      const firstWorkflow = page.locator('[role="listitem"]').first();
-      await firstWorkflow.click();
-      await page.waitForLoadState("networkidle");
+      await page.goto(`/library/workflows/${testWorkflow.org}/${testWorkflow.slug}`);
+      await expect(visibilityBadge(page)).toHaveText("Organization", { timeout: 15_000 });
 
       const dialog = await openManageAccessFromKebab(page);
-      if (dialog) {
-        await expect(dialog.getByText("General access")).toBeVisible();
-      }
+      await expect(dialog.getByRole("heading", { name: "General access" })).toBeVisible();
+      await expect(
+        dialog.getByRole("button", { name: "Resource visibility: Organization" }),
+      ).toBeEnabled();
     });
   });
 });

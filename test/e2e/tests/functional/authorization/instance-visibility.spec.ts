@@ -1,84 +1,72 @@
-import { test, expect } from "@playwright/test";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { test, expect } from "../../../fixtures";
+import { createTestWorkflowInstance } from "../../../fixtures/seed-helpers";
 
 /**
- * Instance Visibility Tests
+ * Instance visibility, on a workflow's Instances tab.
  *
- * Verifies the popover visibility selector (private/org) on instance detail
- * panels: the current-state chip opens a listbox of levels, an Organization
- * escalation shows the light inline confirm, and the retired public level is
- * offered nowhere.
+ * An instance is created private (instances are personal kinds). Its row's
+ * Visibility cell is a popover selector naming the level; it offers exactly
+ * Private and Organization, never the retired public level, and escalating
+ * to Organization asks for a light inline confirmation before it writes.
  *
- * Prerequisites:
- * - Running against a Cloud-connected backend with FGA enabled
- * - Test user has at least one agent/workflow instance they own
- *
- * These are data-dependent smokes: each assertion is guarded so the suite
- * stays green when the seeded account has no editable instance to exercise.
+ * Each test seeds its own workflow and instance. The selector is present on
+ * the open-source server too: the level is stored and enforced without
+ * OpenFGA.
  */
-
-async function openFirstWorkflowInstances(page: import("@playwright/test").Page) {
-  await page.goto("/library/workflows");
-  await page.waitForLoadState("networkidle");
-
-  const firstWorkflow = page.locator('[role="listitem"]').first();
-  if (!(await firstWorkflow.isVisible())) return false;
-  await firstWorkflow.click();
-  await page.waitForLoadState("networkidle");
-
-  // The visibility control lives in each instance row's "Visibility" column,
-  // so revealing the Instances tab is enough — no row expansion needed.
-  const instancesTab = page.getByRole("tab", { name: /instances/i });
-  if (await instancesTab.isVisible()) {
-    await instancesTab.click();
-  }
-  return true;
-}
-
-/** The editable trigger (a button); absent when the user lacks can_edit. */
-function visibilityTrigger(page: import("@playwright/test").Page) {
-  return page.getByRole("button", { name: /Instance visibility:/i }).first();
-}
-
-test.describe("Instance Visibility", () => {
-  test("opens a popover listing private and organization, never public", async ({
+test.describe("Instance visibility", () => {
+  test("a new instance shows Private and offers exactly Private and Organization", async ({
     page,
+    testWorkflow,
+    stigmerClient,
   }) => {
-    test.skip(!(await openFirstWorkflowInstances(page)), "no workflow in the library to open");
+    const instance = await createTestWorkflowInstance(stigmerClient, testWorkflow);
+    try {
+      await page.goto(`/library/workflows/${testWorkflow.org}/${testWorkflow.slug}`);
+      await page.getByRole("tab", { name: "Instances" }).click();
 
-    const trigger = visibilityTrigger(page);
-    test.skip(!(await trigger.isVisible()), "no editable visibility control (the user lacks can_edit)");
-    await trigger.click();
+      const trigger = page.getByRole("button", { name: "Instance visibility: Private" });
+      await expect(trigger).toBeVisible({ timeout: 15_000 });
+      await trigger.click();
 
-    const listbox = page.getByRole("listbox", { name: "Instance visibility" });
-    await expect(listbox).toBeVisible();
-    await expect(listbox.getByRole("option", { name: /Private/i })).toBeVisible();
-    await expect(
-      listbox.getByRole("option", { name: /Organization/i }),
-    ).toBeVisible();
-    // The public level is retired; instances offer exactly two levels.
-    await expect(listbox.getByRole("option", { name: /Public/i })).toHaveCount(0);
+      const listbox = page.getByRole("listbox", { name: "Instance visibility" });
+      await expect(listbox).toBeVisible();
+      const options = listbox.getByRole("option");
+      await expect(options).toHaveCount(2);
+      await expect(options.nth(0)).toHaveAccessibleName(/^Private/);
+      await expect(options.nth(1)).toHaveAccessibleName(/^Organization/);
+      await expect(page.getByRole("option", { name: /^Public/ })).toHaveCount(0);
+    } finally {
+      await instance.cleanup();
+    }
   });
 
-  test("escalating to organization shows the inline confirm", async ({
+  test("escalating to Organization asks first, then writes the level", async ({
     page,
+    testWorkflow,
+    stigmerClient,
   }) => {
-    test.skip(!(await openFirstWorkflowInstances(page)), "no workflow in the library to open");
+    const instance = await createTestWorkflowInstance(stigmerClient, testWorkflow);
+    try {
+      await page.goto(`/library/workflows/${testWorkflow.org}/${testWorkflow.slug}`);
+      await page.getByRole("tab", { name: "Instances" }).click();
+      await page.getByRole("button", { name: "Instance visibility: Private" }).click();
+      await page
+        .getByRole("listbox", { name: "Instance visibility" })
+        .getByRole("option", { name: /^Organization/ })
+        .click();
 
-    const trigger = visibilityTrigger(page);
-    test.skip(!(await trigger.isVisible()), "no editable visibility control (the user lacks can_edit)");
-    await trigger.click();
+      const confirm = page.getByRole("alert").filter({ hasText: "Make visible to all org members" });
+      await expect(confirm).toBeVisible();
+      await confirm.getByRole("button", { name: /confirm|make visible|yes/i }).first().click();
 
-    const orgOption = page
-      .getByRole("listbox", { name: "Instance visibility" })
-      .getByRole("option", { name: /Organization/i });
-    test.skip(!(await orgOption.isVisible()), "no organization option offered");
-    await orgOption.click();
-
-    // Escalating from private shows the light inline prompt; if the instance
-    // was already org-visible the click is a no-op and no alert appears.
-    const inlineConfirm = page.getByRole("alert");
-    if (await inlineConfirm.isVisible()) {
-      await expect(inlineConfirm).toContainText("Make visible to all org members");
+      await expect(
+        page.getByRole("button", { name: "Instance visibility: Organization" }),
+      ).toBeVisible({ timeout: 15_000 });
+      const stored = await stigmerClient.workflowInstance.get(instance.id);
+      expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    } finally {
+      await instance.cleanup();
     }
   });
 });

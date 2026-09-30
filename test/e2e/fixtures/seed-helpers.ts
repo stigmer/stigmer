@@ -61,6 +61,30 @@ export async function ensureBootstrapOrg(client: Stigmer): Promise<void> {
   }
 }
 
+export interface TestOrgResult {
+  slug: string;
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * An organization of the test's own, so a spec can assert an empty list or
+ * an exact set of resources without the other specs' seeds in view. The
+ * slug is unique per call; the cleanup deletes the organization (and fails
+ * quietly if a spec left resources in it, since the stack is torn down
+ * after the run anyway).
+ */
+export async function createTestOrg(client: Stigmer): Promise<TestOrgResult> {
+  const slug = `e2e-org-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const org = await client.organization.create({ name: slug, slug, org: slug });
+  const id = org.metadata!.id;
+  return {
+    slug,
+    cleanup: async () => {
+      await client.organization.delete(id).catch(() => {});
+    },
+  };
+}
+
 export interface TestAgentResult {
   id: string;
   slug: string;
@@ -155,6 +179,33 @@ export async function createTestWorkflow(
     org,
     cleanup: async () => {
       await client.workflow.delete(id).catch(() => {});
+    },
+  };
+}
+
+export interface TestWorkflowInstanceResult {
+  id: string;
+  slug: string;
+  cleanup: () => Promise<void>;
+}
+
+/** A workflow instance (private, the kind's default) of an existing workflow. */
+export async function createTestWorkflowInstance(
+  client: Stigmer,
+  workflow: { id: string; org: string },
+): Promise<TestWorkflowInstanceResult> {
+  const name = `e2e-wi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const instance = await client.workflowInstance.create({
+    name,
+    org: workflow.org,
+    workflowId: workflow.id,
+  });
+  const id = instance.metadata!.id;
+  return {
+    id,
+    slug: instance.metadata!.slug,
+    cleanup: async () => {
+      await client.workflowInstance.delete(id).catch(() => {});
     },
   };
 }

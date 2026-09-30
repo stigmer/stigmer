@@ -1,166 +1,129 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../../fixtures";
+import type { Stigmer } from "@stigmer/sdk";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { createTestWorkflowExecution } from "../../fixtures/seed-helpers";
+import { navigateToWorkflowDetail } from "../../helpers/workflow-detail";
 
 /**
- * Execution history tab tests (T13).
+ * The Executions tab of a workflow detail page: the history table, the
+ * health metrics strip, the phase filters, and a row that opens its
+ * execution.
  *
- * These tests navigate to a workflow detail page, switch to the
- * Executions tab, and verify the execution history table, health
- * metrics strip, filter bar, and failure analysis panel render
- * correctly.
- *
- * Requires at least one workflow to exist in the local dev server.
- * Tests skip gracefully when no workflows or executions are available.
+ * Each case seeds its own workflow (`testWorkflow`, two `set_vars` tasks
+ * that need no model) and runs one execution of it to completion on the
+ * stack's real runner, so the tab has exactly one completed row to show.
  */
+
+async function runToCompletion(client: Stigmer, executionId: string): Promise<void> {
+  await expect
+    .poll(
+      async () => (await client.workflowExecution.get(executionId)).status?.phase,
+      { timeout: 60_000, message: "the seeded execution completes" },
+    )
+    .toBe(ExecutionPhase.EXECUTION_COMPLETED);
+}
+
 test.describe("Workflow execution history", () => {
-  let workflowUrl: string | null = null;
+  test("a completed execution is listed in the history table with its columns", async ({
+    page,
+    stigmerClient,
+    testWorkflow,
+  }) => {
+    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+      org: testWorkflow.org,
+    });
+    try {
+      await runToCompletion(stigmerClient, execution.id);
+      await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
+      await page.getByRole("tab", { name: "Executions" }).click();
 
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await page.goto("/library/workflows");
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(3000);
-
-    const firstCard = page.locator('[role="listitem"]').first();
-    const firstRow = page.locator("table tbody tr").first();
-
-    if (await firstCard.isVisible().catch(() => false)) {
-      await firstCard.click();
-      await page.waitForLoadState("networkidle");
-      workflowUrl = page.url();
-    } else if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
-      await page.waitForLoadState("networkidle");
-      workflowUrl = page.url();
+      const table = page.getByRole("table", { name: "Execution history" });
+      await expect(table).toBeVisible({ timeout: 15_000 });
+      for (const name of ["Name", "Status", "Duration"]) {
+        await expect(table.getByRole("columnheader", { name })).toBeVisible();
+      }
+      const rows = table.locator("tbody tr");
+      await expect(rows).toHaveCount(1);
+      await expect(rows.first()).toContainText("Completed");
+    } finally {
+      await execution.cleanup();
     }
-
-    await page.close();
   });
 
-  test("executions tab renders the execution history table", async ({ page }) => {
-    test.skip(!workflowUrl, "No workflows available");
+  test("the health metrics strip renders once the workflow has a run", async ({
+    page,
+    stigmerClient,
+    testWorkflow,
+  }) => {
+    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+      org: testWorkflow.org,
+    });
+    try {
+      await runToCompletion(stigmerClient, execution.id);
+      await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
+      await page.getByRole("tab", { name: "Executions" }).click();
 
-    await page.goto(workflowUrl!);
-    await page.waitForLoadState("networkidle");
-
-    const executionsTab = page.locator('[role="tab"]:has-text("Executions")');
-    await expect(executionsTab).toBeVisible({ timeout: 10_000 });
-    await executionsTab.click();
-
-    // The execution history section should be visible
-    const historySection = page.locator('[aria-label="Execution history"]');
-    await expect(historySection).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("health metrics strip renders when data is available", async ({ page }) => {
-    test.skip(!workflowUrl, "No workflows available");
-
-    await page.goto(workflowUrl!);
-    await page.waitForLoadState("networkidle");
-
-    const executionsTab = page.locator('[role="tab"]:has-text("Executions")');
-    await executionsTab.click();
-
-    const metricsStrip = page.locator('[aria-label="Execution health metrics"]');
-    // Strip renders when summary data loads (may show skeleton first)
-    const stripOrLoading = page.locator(
-      '[aria-label="Execution health metrics"], [aria-label="Loading health metrics"]',
-    );
-    await expect(stripOrLoading.first()).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("filter bar renders phase filter chips", async ({ page }) => {
-    test.skip(!workflowUrl, "No workflows available");
-
-    await page.goto(workflowUrl!);
-    await page.waitForLoadState("networkidle");
-
-    const executionsTab = page.locator('[role="tab"]:has-text("Executions")');
-    await executionsTab.click();
-
-    const filterBar = page.locator('[aria-label="Execution filters"]');
-    await expect(filterBar).toBeVisible({ timeout: 10_000 });
-
-    // Phase chips should be present
-    const completedChip = filterBar.locator('button:has-text("Completed")');
-    await expect(completedChip).toBeVisible();
-
-    const failedChip = filterBar.locator('button:has-text("Failed")');
-    await expect(failedChip).toBeVisible();
-  });
-
-  test("phase filter chips toggle and filter the table", async ({ page }) => {
-    test.skip(!workflowUrl, "No workflows available");
-
-    await page.goto(workflowUrl!);
-    await page.waitForLoadState("networkidle");
-
-    const executionsTab = page.locator('[role="tab"]:has-text("Executions")');
-    await executionsTab.click();
-
-    await page.waitForTimeout(2000);
-
-    const filterBar = page.locator('[aria-label="Execution filters"]');
-    const failedChip = filterBar.locator('button:has-text("Failed")');
-
-    // Click Failed filter chip
-    await failedChip.click();
-    await expect(failedChip).toHaveAttribute("aria-pressed", "true");
-
-    // Click again to deactivate
-    await failedChip.click();
-    await expect(failedChip).toHaveAttribute("aria-pressed", "false");
-  });
-
-  test("execution table has sortable column headers", async ({ page }) => {
-    test.skip(!workflowUrl, "No workflows available");
-
-    await page.goto(workflowUrl!);
-    await page.waitForLoadState("networkidle");
-
-    const executionsTab = page.locator('[role="tab"]:has-text("Executions")');
-    await executionsTab.click();
-
-    await page.waitForTimeout(2000);
-
-    const table = page.locator('[aria-label="Execution history"]');
-    if (!(await table.isVisible().catch(() => false))) {
-      test.skip(true, "No execution history table rendered (possibly no executions)");
-      return;
+      await expect(page.getByLabel("Execution health metrics")).toBeVisible({ timeout: 15_000 });
+    } finally {
+      await execution.cleanup();
     }
-
-    // Table should have Name and Status column headers
-    const nameHeader = table.locator("th", { hasText: "Name" });
-    await expect(nameHeader).toBeVisible();
-
-    const statusHeader = table.locator("th", { hasText: "Status" });
-    await expect(statusHeader).toBeVisible();
-
-    const durationHeader = table.locator("th", { hasText: "Duration" });
-    await expect(durationHeader).toBeVisible();
   });
 
-  test("clicking a row navigates to execution detail", async ({ page }) => {
-    test.skip(!workflowUrl, "No workflows available");
+  test("the Failed filter hides the completed run, and clearing it brings the run back", async ({
+    page,
+    stigmerClient,
+    testWorkflow,
+  }) => {
+    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+      org: testWorkflow.org,
+    });
+    try {
+      await runToCompletion(stigmerClient, execution.id);
+      await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
+      await page.getByRole("tab", { name: "Executions" }).click();
 
-    await page.goto(workflowUrl!);
-    await page.waitForLoadState("networkidle");
+      const filters = page.getByLabel("Execution filters");
+      await expect(filters.getByRole("button", { name: /Completed/ })).toBeVisible({
+        timeout: 15_000,
+      });
+      const failed = filters.getByRole("button", { name: /Failed/ });
+      const rows = page.getByRole("table", { name: "Execution history" }).locator("tbody tr");
+      await expect(rows).toHaveCount(1);
 
-    const executionsTab = page.locator('[role="tab"]:has-text("Executions")');
-    await executionsTab.click();
+      await failed.click();
+      await expect(failed).toHaveAttribute("aria-pressed", "true");
+      await expect(rows.filter({ hasText: "Completed" })).toHaveCount(0);
 
-    await page.waitForTimeout(2000);
-
-    const firstRow = page.locator('[aria-label="Execution history"] tbody tr').first();
-    if (!(await firstRow.isVisible().catch(() => false))) {
-      test.skip(true, "No execution rows to click");
-      return;
+      await failed.click();
+      await expect(failed).toHaveAttribute("aria-pressed", "false");
+      await expect(rows).toHaveCount(1);
+    } finally {
+      await execution.cleanup();
     }
+  });
 
-    const initialUrl = page.url();
-    await firstRow.click();
-    await page.waitForTimeout(1000);
+  test("clicking the run's row opens that execution", async ({
+    page,
+    stigmerClient,
+    testWorkflow,
+  }) => {
+    const execution = await createTestWorkflowExecution(stigmerClient, testWorkflow.id, {
+      org: testWorkflow.org,
+    });
+    try {
+      await runToCompletion(stigmerClient, execution.id);
+      await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
+      await page.getByRole("tab", { name: "Executions" }).click();
 
-    // URL should have changed (navigated to execution detail)
-    expect(page.url()).not.toBe(initialUrl);
+      await page
+        .getByRole("table", { name: "Execution history" })
+        .locator("tbody tr")
+        .first()
+        .click({ timeout: 15_000 });
+
+      await expect(page).toHaveURL(new RegExp(execution.id));
+    } finally {
+      await execution.cleanup();
+    }
   });
 });

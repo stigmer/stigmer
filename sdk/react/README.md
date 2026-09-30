@@ -210,7 +210,7 @@ The scoping container ships with no layout styling — it sizes to its content, 
 
 This is opt-in rather than an SDK default because `height: 100%` is not safe in arbitrary layouts (under a `flex-1` parent it resolves against the flexed size and balloons) — only the host knows its layout.
 
-Two marker attributes are stable public selectors: `data-stgm-root` on the in-tree container, `data-stgm-portal` on the portal container appended to `document.body`. See the [theming guide](../../docs/sdk/theme/theming.mdx) for the full sizing and embedding reference.
+Two marker attributes are stable public selectors: `data-stgm-root` on the in-tree container, `data-stgm-portal` on the portal container appended to `document.body`. A popup opened inside an SDK modal dialog renders inside that dialog instead, so it is not under `[data-stgm-portal]`. See the [theming guide](../../docs/sdk/theme/theming.mdx) for the full sizing and embedding reference.
 
 ## Local Execution
 

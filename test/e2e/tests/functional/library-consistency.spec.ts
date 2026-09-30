@@ -1,85 +1,61 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../../fixtures";
+import { createTestAgent, createTestWorkflow } from "../../fixtures/seed-helpers";
 
 /**
- * Cross-resource consistency tests.
- *
- * Verifies that agents and workflows share consistent UI patterns:
- * both default to card view, both have search inputs, and both
- * detail pages share the same structural patterns.
+ * The agent and workflow libraries share one list pattern: the same
+ * heading, search and header action, and the card view as the default
+ * presentation of what an organization holds. Each case seeds one resource
+ * into an organization of its own (`freshOrg`), so the list it opens holds
+ * exactly that card.
  */
+const LIBRARIES = [
+  {
+    kind: "agent",
+    path: "/library/agents",
+    heading: "Agents",
+    search: "Search agents…",
+    create: { name: "Create agent", href: "/library/agents/new" },
+    seed: createTestAgent,
+  },
+  {
+    kind: "workflow",
+    path: "/library/workflows",
+    heading: "Workflows",
+    search: "Search workflows…",
+    create: { name: "Create workflow", href: "/library/workflows/new" },
+    seed: createTestWorkflow,
+  },
+] as const;
+
 test.describe("Library consistency: agents and workflows", () => {
-  const LIBRARY_SECTIONS = [
-    { path: "/library/agents", label: "Agent workbench", heading: "Agents" },
-    { path: "/library/workflows", label: "Workflow workbench", heading: "Workflows" },
-  ];
+  for (const library of LIBRARIES) {
+    test(`the ${library.kind} library lists a seeded ${library.kind} as the only card, in the default card view`, async ({
+      page,
+      stigmerClient,
+      freshOrg,
+    }) => {
+      const seeded = await library.seed(stigmerClient, { org: freshOrg.slug });
+      try {
+        await page.goto(library.path);
 
-  for (const section of LIBRARY_SECTIONS) {
-    test(`${section.heading} list page has heading`, async ({ page }) => {
-      await page.goto(section.path);
-      await page.waitForLoadState("networkidle");
+        await expect(page.getByRole("heading", { level: 1, name: library.heading })).toBeVisible({
+          timeout: 15_000,
+        });
+        await expect(page.getByRole("textbox", { name: library.search })).toBeVisible();
+        await expect(
+          page.getByRole("link", { name: library.create.name }).first(),
+        ).toHaveAttribute("href", library.create.href);
 
-      const heading = page.locator(`h1:has-text("${section.heading}")`);
-      await expect(heading).toBeVisible({ timeout: 10_000 });
-    });
+        const views = page.getByRole("radiogroup", { name: "View mode" });
+        await expect(views.getByRole("radio", { name: "Card view" })).toBeChecked();
 
-    test(`${section.heading} list page has search input`, async ({ page }) => {
-      await page.goto(section.path);
-      await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(2000);
-
-      const searchInput = page.locator('input[type="search"], input[placeholder*="Search"]');
-      await expect(searchInput).toBeVisible({ timeout: 10_000 });
-    });
-
-    test(`${section.heading} list page has workbench`, async ({ page }) => {
-      await page.goto(section.path);
-      await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(2000);
-
-      const workbench = page.locator(`[aria-label="${section.label}"]`);
-      await expect(workbench).toBeVisible({ timeout: 10_000 });
+        const cards = page.getByRole("list", { name: "Resource cards" }).getByRole("listitem");
+        await expect(cards).toHaveCount(1, { timeout: 15_000 });
+        await expect(cards).toContainText(seeded.slug);
+        await expect(page.getByRole("table")).toHaveCount(0);
+      } finally {
+        await seeded.cleanup();
+      }
     });
   }
-
-  test("both list pages default to card view or empty state", async ({ page }) => {
-    for (const section of LIBRARY_SECTIONS) {
-      await page.goto(section.path);
-      await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(3000);
-
-      // Each should show either card grid or empty state — never a bare table by default
-      const cardGrid = page.locator('[role="list"][aria-label="Resource cards"]');
-      const emptyState = page.locator(`text="No ${section.heading.toLowerCase()} yet"`);
-      const table = page.locator("table");
-
-      const hasCards = await cardGrid.isVisible().catch(() => false);
-      const hasEmpty = await emptyState.isVisible().catch(() => false);
-      const hasTable = await table.isVisible().catch(() => false);
-
-      // Default should be cards or empty — not bare table
-      // (Table is only shown if user explicitly switched)
-      expect(
-        hasCards || hasEmpty,
-      ).toBeTruthy();
-    }
-  });
-
-  test("both list pages have a Create button in the header area", async ({ page }) => {
-    for (const section of LIBRARY_SECTIONS) {
-      await page.goto(section.path);
-      await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(2000);
-
-      const createLink = page.locator(
-        `a:has-text("Create ${section.heading.toLowerCase().replace(/s$/, "")}")`,
-      );
-
-      // The create button should be somewhere on the page
-      const hasCreate = await createLink.isVisible().catch(() => false);
-      // Fall back to checking for any "Create" link/button
-      const anyCreate = await page.locator('a:has-text("Create")').first().isVisible().catch(() => false);
-
-      expect(hasCreate || anyCreate).toBeTruthy();
-    }
-  });
 });

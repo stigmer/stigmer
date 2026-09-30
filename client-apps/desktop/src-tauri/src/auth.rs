@@ -1,7 +1,7 @@
 use serde::Serialize;
 use tauri::{Emitter, Manager};
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub(crate) struct AuthCallbackPayload {
     pub code: Option<String>,
     pub state: Option<String>,
@@ -166,4 +166,81 @@ pub(crate) fn param(url: &url::Url, key: &str) -> Option<String> {
     url.query_pairs()
         .find(|(k, _)| k == key)
         .map(|(_, v)| v.into_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parsed(request: &str) -> AuthCallbackPayload {
+        parse_callback_request(request)
+    }
+
+    #[test]
+    fn a_callback_request_carries_its_code_and_state() {
+        let payload =
+            parsed("GET /auth/callback?code=c-1&state=s-1 HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+        assert_eq!(payload.code.as_deref(), Some("c-1"));
+        assert_eq!(payload.state.as_deref(), Some("s-1"));
+        assert_eq!(payload.error, None);
+    }
+
+    #[test]
+    fn a_callback_request_carries_the_providers_error_decoded() {
+        let payload = parsed(
+            "GET /auth/callback?error=access_denied&error_description=Denied%20by%20user&state=s HTTP/1.1\r\n\r\n",
+        );
+        assert_eq!(payload.error.as_deref(), Some("access_denied"));
+        assert_eq!(payload.error_description.as_deref(), Some("Denied by user"));
+        assert_eq!(payload.code, None);
+    }
+
+    #[test]
+    fn a_missing_state_reads_as_none_for_the_web_layer_to_refuse() {
+        let payload = parsed("GET /auth/callback?code=c HTTP/1.1\r\n\r\n");
+        assert_eq!(payload.code.as_deref(), Some("c"));
+        assert_eq!(payload.state, None);
+    }
+
+    #[test]
+    fn only_the_request_line_is_read() {
+        // A header that looks like a query must not supply a code.
+        let payload =
+            parsed("GET /auth/callback HTTP/1.1\r\nX-Evil: /?code=forged&state=s\r\n\r\n");
+        assert_eq!(payload.code, None);
+        assert_eq!(payload.state, None);
+    }
+
+    #[test]
+    fn an_empty_request_or_one_with_no_path_carries_nothing() {
+        for request in ["", "GET", "\r\n\r\n"] {
+            let payload = parsed(request);
+            assert_eq!(
+                (payload.code, payload.state, payload.error),
+                (None, None, None),
+                "{request:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_path_that_makes_no_url_is_reported_as_a_parse_error() {
+        // The path is appended to `http://localhost`, so a leading `:` makes
+        // it a port, and one out of range makes no URL at all.
+        let payload = parsed("GET :99999/auth/callback?code=c HTTP/1.1\r\n\r\n");
+        assert_eq!(payload.code, None);
+        assert_eq!(payload.error.as_deref(), Some("parse_error"));
+        assert_eq!(
+            payload.error_description.as_deref(),
+            Some("Failed to parse auth callback URL")
+        );
+    }
+
+    #[test]
+    fn the_method_is_not_checked() {
+        // The loopback server answers whatever method arrives; only the query
+        // matters. Pinned so that a change to that is deliberate.
+        let payload = parsed("POST /auth/callback?code=c&state=s HTTP/1.1\r\n\r\n");
+        assert_eq!(payload.code.as_deref(), Some("c"));
+    }
 }

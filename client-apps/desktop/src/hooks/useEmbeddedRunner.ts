@@ -22,7 +22,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { resolveResource } from "@tauri-apps/api/path";
 import { loadTokens } from "../auth/token-store";
 
-interface RunnerConfig {
+export interface RunnerConfig {
   nodeBinary: string;
   runnerEntry: string;
   /** Optional: omitted by default so the runner self-discovers it via the token. */
@@ -69,7 +69,11 @@ function normalizeToUrl(endpoint: string): string {
   return endpoint.endsWith(":443") ? `https://${endpoint}` : `http://${endpoint}`;
 }
 
-async function getRunnerConfig(): Promise<RunnerConfig> {
+/**
+ * The configuration the embedded runner starts with. Exported for its tests;
+ * the hook below is its only caller.
+ */
+export async function getRunnerConfig(): Promise<RunnerConfig> {
   // The runner's control-plane endpoint. In local dev this is the grpcwebproxy
   // sidecar; in production it is the Stigmer Cloud API. Falling back to
   // VITE_STIGMER_API_URL (not localhost) is what lets the production desktop —
@@ -157,32 +161,36 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
   const startingRef = useRef<Promise<void> | null>(null);
 
   const ensureRunning = useCallback(async (): Promise<void> => {
-    if (startingRef.current) {
-      await startingRef.current;
-      return;
+    // One check-and-start at a time. The guard covers the status read as well
+    // as the start: set after the read, two callers arriving together would
+    // both see "not running" and both start, and the host refuses the second
+    // (stigmer/stigmer#1505). It clears once the attempt settles, so a later
+    // call reads the host again and restarts a runner that has since exited.
+    if (!startingRef.current) {
+      const attempt = (async () => {
+        const status = await invoke<RunnerStatus>("runner_status");
+        if (status.running) {
+          setIsRunning(true);
+          setActiveSessions(status.activeSessions);
+          setActiveWorkflowExecutions(status.activeWorkflowExecutions ?? []);
+          return;
+        }
+        const config = await getRunnerConfig();
+        await invoke("start_runner", { config });
+        setIsRunning(true);
+        setError(null);
+      })();
+      startingRef.current = attempt;
+      attempt
+        .finally(() => {
+          if (startingRef.current === attempt) startingRef.current = null;
+        })
+        .catch(() => {});
     }
-
-    const status = await invoke<RunnerStatus>("runner_status");
-    if (status.running) {
-      setIsRunning(true);
-      setActiveSessions(status.activeSessions);
-      setActiveWorkflowExecutions(status.activeWorkflowExecutions ?? []);
-      return;
-    }
-
-    const startPromise = (async () => {
-      const config = await getRunnerConfig();
-      await invoke("start_runner", { config });
-      setIsRunning(true);
-      setError(null);
-    })();
-
-    startingRef.current = startPromise;
 
     try {
-      await startPromise;
+      await startingRef.current;
     } catch (err) {
-      startingRef.current = null;
       setError(String(err));
       setIsRunning(false);
       throw err;

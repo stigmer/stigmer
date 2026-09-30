@@ -49,6 +49,11 @@ The two containers are distinguishable through stable, documented marker
 attributes: the in-tree scope carries `data-stgm-root`, the portal
 container carries `data-stgm-portal`. You can rely on both in host CSS.
 
+One exception: a popup opened inside an SDK dialog renders inside that
+dialog, because a modal dialog sits in the browser's top layer and would
+otherwise cover it. Such a popup inherits its theme from the in-tree scope
+and is not under `[data-stgm-portal]`.
+
 ## Sizing and fixed-height embedding
 
 The in-tree scope ships with **no layout styling** — it sizes to its

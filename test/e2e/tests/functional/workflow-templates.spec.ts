@@ -78,13 +78,18 @@ test.describe("Workflow template gallery", () => {
     await expect(templateOption).toBeVisible({ timeout: 10_000 });
     await templateOption.click();
 
+    const cards = page.locator('[role="list"][aria-label="Workflow templates"] [role="listitem"]');
+    await expect(cards.first()).toBeVisible();
+    const unfiltered = await cards.count();
+
     const integrationTab = page.locator('[role="tab"]:has-text("Integration")');
     await integrationTab.click();
+    await expect(integrationTab).toHaveAttribute("aria-selected", "true");
 
-    const cards = page.locator('[role="list"][aria-label="Workflow templates"] [role="listitem"]');
-    const count = await cards.count();
-    expect(count).toBeGreaterThan(0);
-    expect(count).toBeLessThan(8);
+    // A narrower, non-empty set than the whole gallery, however large the
+    // catalog grows.
+    await expect.poll(() => cards.count()).toBeLessThan(unfiltered);
+    await expect(cards.first()).toBeVisible();
   });
 
   test("back button returns to creation picker", async ({ page }) => {

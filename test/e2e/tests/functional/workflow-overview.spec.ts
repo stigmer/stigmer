@@ -63,7 +63,7 @@ test.describe("Workflow overview page", () => {
     await expect(controls).toBeVisible({ timeout: 10_000 });
   });
 
-  test("summary cards section is present", async ({
+  test("a workflow that has never run shows the no-executions summary", async ({
     page,
     testMultiKindWorkflow,
   }) => {
@@ -73,17 +73,11 @@ test.describe("Workflow overview page", () => {
       testMultiKindWorkflow.slug,
     );
 
-    // Summary cards render with stat labels — at minimum one should be
-    // visible (skeletons while loading, "No executions yet" empty state,
-    // or the actual stat cards). Scoped to the Overview tabpanel: the
-    // hidden Executions tabpanel carries its own "No executions yet".
+    // Scoped to the Overview tabpanel: the hidden Executions tabpanel
+    // carries its own "No executions yet".
     const overviewPanel = page.getByRole("tabpanel", { name: "Overview" });
-    const summarySection = overviewPanel.locator("text=Total Executions").or(
-      overviewPanel.locator("text=Success Rate"),
-    ).or(
-      overviewPanel.locator("text=No executions yet"),
-    );
-    await expect(summarySection.first()).toBeVisible({ timeout: 10_000 });
+    await expect(overviewPanel.getByText("No executions yet")).toBeVisible({ timeout: 10_000 });
+    await expect(overviewPanel.getByText("Total Executions")).toHaveCount(0);
   });
 
   test("clicking a task node opens a popover", async ({
