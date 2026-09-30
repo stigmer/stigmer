@@ -32,16 +32,21 @@
 
 name: ci.gate
 
+# No `push` trigger: `main` only ever receives a commit the merge queue has
+# already run this workflow on, so a push run would test that commit twice.
+# `main`'s result is the `Gate` check run on its head commit.
 on:
   pull_request:
   merge_group:
-  push:
-    branches: [main]
   workflow_dispatch:
 
-# A superseded pull-request push cancels its run; a queue entry, a push to
-# main and a dispatch never cancel (each queue entry has its own
-# gh-readonly-queue ref, so entries never share a group).
+# A superseded pull-request push cancels its run. GitHub keeps one PENDING run
+# per group and replaces it with a newer one even without cancel-in-progress,
+# so a shared group drops coverage in a burst: that is how a push trigger on
+# `main` skipped a merged commit's lanes (#1524, as #725 once did). Queue
+# entries never share a group (each has its own gh-readonly-queue ref), so
+# every entry is judged; two dispatches of one ref can only drop a duplicate
+# manual run.
 concurrency:
   group: gate-${{ github.head_ref || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

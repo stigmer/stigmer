@@ -1333,9 +1333,9 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 		echo "  .env.example           #STIGMER_VERSION=v$$ENV_PIN"; \
 		echo "  deploy/helm/stigmer/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the chart's image tags default to v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
 		echo "  docs/guides/self-hosting/operations.mdx  $$DOCS_PIN   (the version a reader copies into .env and helm upgrade --version)"; \
-		echo "Bump them and COMMIT before tagging:"; \
+		echo "Bump them in a pull request, and tag the merged commit:"; \
 		echo "  make release-pins version=$$NEW_VERSION"; \
-		echo "  git commit -am 'chore(release): bump the release pins to $$NEW_VERSION'"; \
+		echo "  (.agents/skills/release-stigmer-oss/SKILL.md, section 3)"; \
 		exit 1; \
 	fi; \
 	echo "$$LATEST_TAG -> $$NEW_TAG (release pins OK)"; \

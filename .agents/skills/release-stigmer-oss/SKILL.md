@@ -92,14 +92,26 @@ chart's image tags default to the app version), and the two upgrade examples on
 `.env` and into `helm upgrade --version`; the page went stale once when nothing
 owned it).
 
+Nothing reaches `main` but through the merge queue, so the pins go in a pull
+request of their own:
+
 ```bash
+git fetch origin
+git switch -c chore/release-pins-<X.Y.Z> origin/main
 make release-pins version=<X.Y.Z>
 git commit -am "chore(release): bump the release pins to <X.Y.Z>"
-git push origin main
+git push -u origin chore/release-pins-<X.Y.Z>
+gh pr create --title "chore(release): bump the release pins to <X.Y.Z>" --body "The five release pins for v<X.Y.Z>."
+gh pr merge <n> --auto --match-head-commit "$(git rev-parse HEAD)"
+gh pr view <n> --json state,mergeCommit   # repeat until MERGED
+git switch main && git pull --ff-only
 ```
 
-Tag that commit. The pin push is a plain docs-and-pins commit; the PR gates its
-paths touch build from source and stay green before the images exist.
+The pins touch the docs, compose-stack and helm-chart lanes' paths, so `Gate`
+runs those three on the pull request and again in the queue: expect about half
+an hour before it merges. They build from source, so they stay green before the
+images exist. Tag the merged commit (`main`'s head once the pull request says
+`MERGED`); `make release` refuses a `HEAD` whose pins disagree.
 
 ## 4. Release notes
 
