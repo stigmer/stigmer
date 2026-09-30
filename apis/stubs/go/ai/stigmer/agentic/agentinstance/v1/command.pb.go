@@ -31,7 +31,7 @@ const file_ai_stigmer_agentic_agentinstance_v1_command_proto_rawDesc = "" +
 	"\x05apply\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x12v\n" +
 	"\x06create\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"\x04и\x18\x01\x12\xae\x01\n" +
 	"\x06update\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"<¸\x188\b\x02\x10-\"\vmetadata.id*%unauthorized to update agent instance\x12\xc6\x01\n" +
-	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"G¸\x18C\b\x04\x10-\"\vresource_id*0unauthorized to update agent instance visibility\x12\xaa\x01\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"G¸\x18C\b0\x10-\"\vresource_id*0unauthorized to update agent instance visibility\x12\xaa\x01\n" +
 	"\x06delete\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"6¸\x182\b\x03\x10-\"\x05value*%unauthorized to delete agent instance\x1a\x04\xa0\xff+-B\xc6\x02\n" +
 	"'com.ai.stigmer.agentic.agentinstance.v1B\fCommandProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 

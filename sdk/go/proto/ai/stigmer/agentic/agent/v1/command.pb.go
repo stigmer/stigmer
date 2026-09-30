@@ -31,7 +31,7 @@ const file_ai_stigmer_agentic_agent_v1_command_proto_rawDesc = "" +
 	"\x05apply\x12\".ai.stigmer.agentic.agent.v1.Agent\x1a\".ai.stigmer.agentic.agent.v1.Agent\x12\x9b\x01\n" +
 	"\x06create\x12\".ai.stigmer.agentic.agent.v1.Agent\x1a\".ai.stigmer.agentic.agent.v1.Agent\"I¸\x18E\b\x06\x10\x1e\"\fmetadata.org*1unauthorized to create agent in this organization\x12\x85\x01\n" +
 	"\x06update\x12\".ai.stigmer.agentic.agent.v1.Agent\x1a\".ai.stigmer.agentic.agent.v1.Agent\"3¸\x18/\b\x02\x10(\"\vmetadata.id*\x1cunauthorized to update agent\x12\xad\x01\n" +
-	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\">¸\x18:\b\x04\x10(\"\vresource_id*'unauthorized to update agent visibility\x12\x81\x01\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\">¸\x18:\b0\x10(\"\vresource_id*'unauthorized to update agent visibility\x12\x81\x01\n" +
 	"\x06delete\x12$.ai.stigmer.agentic.agent.v1.AgentId\x1a\".ai.stigmer.agentic.agent.v1.Agent\"-¸\x18)\b\x03\x10(\"\x05value*\x1cunauthorized to delete agent\x1a\x04\xa0\xff+(B\x90\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 

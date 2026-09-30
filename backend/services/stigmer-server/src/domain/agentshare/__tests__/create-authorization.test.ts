@@ -1,6 +1,6 @@
 /**
  * Pins the create lane's two questions (steps.ts, resolveShareCreateTargets):
- * can_grant_access on the referenced agent, then can_create_agent_share on the
+ * can_manage_audience on the referenced agent, then can_create_agent_share on the
  * share's organization, in that order, each with its byte-pinned copy. A
  * share's agent lives in the share's organization (the resolve step refuses
  * anything else before this runs), so the two bars are one organization's:
@@ -47,10 +47,10 @@ function ctxFor(shareOrg: string, stash = true) {
 }
 
 describe("resolveShareCreateTargets", () => {
-  it("asks can_grant_access on the referenced agent, then can_create_agent_share on the share's organization", () => {
+  it("asks can_manage_audience on the referenced agent, then can_create_agent_share on the share's organization", () => {
     expect(resolveShareCreateTargets(ctxFor("publisher-org"))).toEqual([
       {
-        permission: IamPermission.can_grant_access,
+        permission: IamPermission.can_manage_audience,
         resourceKind: ApiResourceKind.agent,
         resourceId: "agt_01helper",
         deniedMessage: SHARE_AGENT_DENIED_MESSAGE,

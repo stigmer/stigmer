@@ -68,15 +68,16 @@ export function WorkflowInstanceDetailPanel({
   const visibility = meta?.visibility ?? ApiResourceVisibility.visibility_private;
   // Run observability is a separate axis from instance visibility, and only
   // meaningful while the instance is private (ORG/PUBLIC already expose runs
-  // by inheritance). It is offered only to those who can grant access, so it
-  // rides into the dialog as the resource-specific section — present only when
-  // both conditions hold.
-  const { allowed: canGrantAccess } = useCheckPermission(
+  // by inheritance). It is offered only to those who may change who reaches
+  // the instance (can_manage_audience, the server's bar on
+  // updateExecutionVisibility), so it rides into the dialog as the
+  // resource-specific section — present only when both conditions hold.
+  const { allowed: canManageAudience } = useCheckPermission(
     id ? { kind: "workflow_instance", id } : null,
-    "can_grant_access",
+    "can_manage_audience",
   );
   const runVisibilitySection =
-    visibility === ApiResourceVisibility.visibility_private && canGrantAccess
+    visibility === ApiResourceVisibility.visibility_private && canManageAudience
       ? {
           title: "Run visibility",
           description:

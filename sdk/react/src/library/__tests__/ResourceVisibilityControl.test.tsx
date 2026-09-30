@@ -1,9 +1,12 @@
 /**
  * Pins the permission the visibility control asks before it offers the
- * interactive selector: `can_grant_access` on the resource, the same bar the
- * server's `updateVisibility` annotations carry. Visibility decides who
- * reaches a resource, so it is an access decision; an editor, who holds
- * `can_edit` and not `can_grant_access`, gets the read-only badge.
+ * interactive selector: `can_manage_audience` on the resource, the same bar
+ * the server's `updateVisibility` annotations carry. Visibility decides who
+ * reaches a resource, so it is the owner's; an editor, who holds `can_edit`
+ * and not `can_manage_audience`, gets the read-only badge. Never
+ * `can_grant_access`: the self-check answers that false on every kind the
+ * edition grants no roles on, which would hide the selector from the owner
+ * on open source (stigmer#1495).
  *
  * The gate itself is PermissionGate's to test; here it is stubbed to record
  * the relation it was asked for and render its fallback, so the assertion is
@@ -57,7 +60,7 @@ const KINDS: ReadonlyArray<[VisibilityResourceKind, string]> = [
 
 describe("ResourceVisibilityControl", () => {
   it.each(KINDS)(
-    "asks can_grant_access on %s before offering the selector, never can_edit",
+    "asks can_manage_audience on %s before offering the selector, never can_edit or can_grant_access",
     (kind, fgaKind) => {
       render(
         <ResourceVisibilityControl
@@ -68,7 +71,7 @@ describe("ResourceVisibilityControl", () => {
         />,
       );
       const gate = screen.getByTestId("gate");
-      expect(gate.getAttribute("data-relation")).toBe("can_grant_access");
+      expect(gate.getAttribute("data-relation")).toBe("can_manage_audience");
       expect(gate.getAttribute("data-kind")).toBe(fgaKind);
     },
   );

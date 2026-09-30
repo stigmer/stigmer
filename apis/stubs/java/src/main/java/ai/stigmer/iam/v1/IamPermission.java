@@ -67,6 +67,15 @@ public enum IamPermission
   can_assign_roles(47),
   /**
    * <pre>
+   * Whether the caller may change who reaches the resource: its visibility,
+   * who observes its runs, a share link to it, or a channel it answers on.
+   * </pre>
+   *
+   * <code>can_manage_audience = 48;</code>
+   */
+  can_manage_audience(48),
+  /**
+   * <pre>
    * Organization-level create permissions.
    * </pre>
    *
@@ -409,6 +418,15 @@ public enum IamPermission
   public static final int can_assign_roles_VALUE = 47;
   /**
    * <pre>
+   * Whether the caller may change who reaches the resource: its visibility,
+   * who observes its runs, a share link to it, or a channel it answers on.
+   * </pre>
+   *
+   * <code>can_manage_audience = 48;</code>
+   */
+  public static final int can_manage_audience_VALUE = 48;
+  /**
+   * <pre>
    * Organization-level create permissions.
    * </pre>
    *
@@ -728,6 +746,7 @@ public enum IamPermission
       case 4: return can_grant_access;
       case 5: return can_view_access;
       case 47: return can_assign_roles;
+      case 48: return can_manage_audience;
       case 6: return can_create_agent;
       case 7: return can_create_workflow;
       case 8: return can_create_session;

@@ -27,7 +27,7 @@ export interface AccessResource {
  * dialog. Optional because not every resource has visibility (e.g. sessions
  * and workflow executions do not). When present, the dialog renders the
  * shared `ResourceVisibilityControl`, which owns level selection and
- * the `can_grant_access` gate.
+ * the `can_manage_audience` gate.
  */
 export interface AccessVisibility {
   /** Resource kind, selecting both the updateVisibility RPC and FGA type. */

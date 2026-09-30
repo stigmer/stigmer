@@ -132,4 +132,13 @@ type workflow_instance
     # IAM POLICY MANAGEMENT
     # ========================================
     define can_grant_access: owner
+    
+    # ========================================
+    # AUDIENCE
+    # ========================================
+    # Who reaches this workflow instance (visibility and who observes its runs) is its owner's to change.
+    # Kept apart from can_grant_access, which the self-check answers false
+    # wherever the edition grants no roles on the kind: the audience is the
+    # owner's in every edition. An editor never holds it.
+    define can_manage_audience: owner
     define can_view_access: viewer

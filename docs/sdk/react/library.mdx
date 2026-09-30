@@ -375,7 +375,7 @@ row can carry (Private / Organization / Platform, and the retired Public
 for a row from before its retirement).
 
 Rendered wherever the interactive [`VisibilitySelector`](#visibilityselector) is not
-available — for anyone who lacks `can_grant_access`, and while a permission check
+available — for anyone who lacks `can_manage_audience`, and while a permission check
 is in flight — so a resource's visibility is always legible rather than
 silently blank. Shares the chip styling with the selector trigger so the
 read-only and editable states are visually consistent.
@@ -431,7 +431,7 @@ active theme.
   type={{
     ariaLabel: { type: "string", description: "Accessible name for the control. Defaults to \"Resource visibility\"." },
     className: { type: "string", description: "Additional CSS classes applied to the root element." },
-    disabled: { type: "boolean", description: "Disables all interaction (e.g., when the user lacks can_grant_access)." },
+    disabled: { type: "boolean", description: "Disables all interaction (e.g., when the user lacks can_manage_audience)." },
     isPending: { type: "boolean", description: "Shows a spinner/disabled state while the RPC is in flight." },
     mode: { type: "VisibilitySelectorMode", description: "Presentation + confirmation mode.  - `\"manage\"` (default) — a compact current-state chip opens a popover   ladder of levels. Escalations are confirmed by severity: a light   inline prompt for levels carrying VisibilityLevelOption.confirmPrompt   (e.g. Organization), and a blocking modal for levels carrying   VisibilityLevelOption.confirmDialog (Platform). This is   the live-resource case. - `\"create\"` — an inline radio list that applies immediately, with no   escalation confirmation. Used to pick an initial value while creating   a resource (typically inside a native `<dialog>`, where a portaled   popover would render beneath the modal's top layer)." },
     onVisibilityChange: { type: "(v: ApiResourceVisibility) => void", description: "Called when the user selects (and, for escalations, confirms) a level.", required: true },

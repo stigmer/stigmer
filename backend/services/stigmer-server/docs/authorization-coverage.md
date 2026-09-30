@@ -65,7 +65,7 @@ The first domain registered after this inventory's O2 baseline (registration ord
 | EnvironmentCommandController.apply | none | chain-with-Authorize |
 | EnvironmentCommandController.create | config: can_create_environment on organization (field metadata.org), error_msg yes | chain-with-Authorize |
 | EnvironmentCommandController.update | config: can_edit on environment (field metadata.id), error_msg yes | chain-with-Authorize |
-| EnvironmentCommandController.updateVisibility | config: can_grant_access on environment (field resource_id), error_msg yes | chain-with-Authorize |
+| EnvironmentCommandController.updateVisibility | config: can_manage_audience on environment (field resource_id), error_msg yes | chain-with-Authorize |
 | EnvironmentCommandController.delete | config: can_edit on environment (field resource_id), error_msg yes | chain-with-Authorize |
 | EnvironmentCommandController.updateVariables | config: can_edit on environment (field environment_id), error_msg yes | chain-with-Authorize |
 | EnvironmentCommandController.removeVariables | config: can_edit on environment (field environment_id), error_msg yes | chain-with-Authorize |
@@ -106,7 +106,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentCommandController.apply | none | chain-with-Authorize |
 | AgentCommandController.create | config: can_create_agent on organization (field metadata.org), error_msg yes | chain-with-Authorize |
 | AgentCommandController.update | config: can_edit on agent (field metadata.id), error_msg yes | chain-with-Authorize |
-| AgentCommandController.updateVisibility | config: can_grant_access on agent (field resource_id), error_msg yes | chain-with-Authorize |
+| AgentCommandController.updateVisibility | config: can_manage_audience on agent (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentCommandController.delete | config: can_delete on agent (field value), error_msg yes | chain-with-Authorize |
 | AgentQueryController.get | config: can_view on agent (field value), error_msg yes | chain-with-Authorize |
 | AgentQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
@@ -118,7 +118,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | AgentInstanceCommandController.apply | none | chain-with-Authorize |
 | AgentInstanceCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_create_agent_instance on metadata.org, then can_create_instance on the parent agent LoadParentAgent stashed; a default instance the server composed in-process for the parent's organization asks nothing) |
 | AgentInstanceCommandController.update | config: can_edit on agent_instance (field metadata.id), error_msg yes | chain-with-Authorize |
-| AgentInstanceCommandController.updateVisibility | config: can_grant_access on agent_instance (field resource_id), error_msg yes | chain-with-Authorize |
+| AgentInstanceCommandController.updateVisibility | config: can_manage_audience on agent_instance (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentInstanceCommandController.delete | config: can_delete on agent_instance (field value), error_msg yes | chain-with-Authorize |
 | AgentInstanceQueryController.get | config: can_view on agent_instance (field value), error_msg yes | chain-with-Authorize |
 | AgentInstanceQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
@@ -144,7 +144,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | AgentShareCommandController.apply | none | chain-with-Authorize |
-| AgentShareCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_grant_access on the referenced agent, then can_create_agent_share on the share's organization; the resolve step refuses an agent outside that organization before either is asked) |
+| AgentShareCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_manage_audience on the referenced agent, then can_create_agent_share on the share's organization; the resolve step refuses an agent outside that organization before either is asked) |
 | AgentShareCommandController.update | config: can_edit on agent_share (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentShareCommandController.rotateShareLink | config: can_edit on agent_share (field resource_id), error_msg yes | chain-with-Authorize |
 | AgentShareCommandController.delete | config: can_delete on agent_share (field value), error_msg yes | chain-with-Authorize |
@@ -160,7 +160,7 @@ All six RPCs are chains, and the proto deliberately marks every one `is_skip_aut
 | Method | Annotation | Handler |
 |---|---|---|
 | AgentChannelCommandController.apply | none | chain-with-Authorize |
-| AgentChannelCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_grant_access on the referenced agent ResolveChannelDefaults stashed) |
+| AgentChannelCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_manage_audience on the referenced agent ResolveChannelDefaults stashed) |
 | AgentChannelCommandController.update | config: can_edit on agent_channel (field metadata.id), error_msg yes | chain-with-Authorize |
 | AgentChannelCommandController.initiateInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: `authorizeDirect` AFTER the load (the Java LoadChannel-then-authorize order — missing ids answer NOT_FOUND for everyone), then refuse FAILED_PRECONDITION on the storing edition or delegate to `drivers.channelRuntime` (C2 close-out, 20260827.10 — the interim stub's owed can_edit arm) |
 | AgentChannelCommandController.completeInstall | config: can_edit on agent_channel (field resource_id), error_msg yes | direct: same load → `authorizeDirect` → refuse-or-delegate |
@@ -271,7 +271,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | WorkflowCommandController.apply | none | chain-with-Authorize |
 | WorkflowCommandController.create | config: can_create_workflow on organization (field metadata.org), error_msg yes | chain-with-Authorize |
 | WorkflowCommandController.update | config: can_edit on workflow (field metadata.id), error_msg yes | chain-with-Authorize |
-| WorkflowCommandController.updateVisibility | config: can_grant_access on workflow (field resource_id), error_msg yes | chain-with-Authorize |
+| WorkflowCommandController.updateVisibility | config: can_manage_audience on workflow (field resource_id), error_msg yes | chain-with-Authorize |
 | WorkflowCommandController.delete | config: can_delete on workflow (field value), error_msg yes | chain-with-Authorize |
 | WorkflowCommandController.validateSpec | config: can_create_workflow on organization (field metadata.org), error_msg yes | direct: validation-only, nothing persisted (Layer-2 validator over the domain-owned registry store); annotation DELIBERATELY not evaluated — matches the Java handler's documented "no persist, no authorize" posture (C2 Stage-4 gate ruling; the annotation mismatch is recorded, not an omission) |
 | WorkflowCommandController.tagVersion | config: can_edit on workflow (field workflow_id), error_msg yes | chain-with-Authorize |
@@ -287,8 +287,8 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | WorkflowInstanceCommandController.apply | none | chain-with-Authorize |
 | WorkflowInstanceCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_execute on the parent workflow LoadParentWorkflow stashed, before the same-org rule; a default instance the server composed in-process for the parent's organization asks nothing) |
 | WorkflowInstanceCommandController.update | config: can_edit on workflow_instance (field metadata.id), error_msg yes | chain-with-Authorize |
-| WorkflowInstanceCommandController.updateVisibility | config: can_grant_access on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
-| WorkflowInstanceCommandController.updateExecutionVisibility | config: can_grant_access on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
+| WorkflowInstanceCommandController.updateVisibility | config: can_manage_audience on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
+| WorkflowInstanceCommandController.updateExecutionVisibility | config: can_manage_audience on workflow_instance (field resource_id), error_msg yes | chain-with-Authorize |
 | WorkflowInstanceCommandController.delete | config: can_delete on workflow_instance (field value), error_msg yes | chain-with-Authorize |
 | WorkflowInstanceQueryController.get | config: can_view on workflow_instance (field value), error_msg yes | chain-with-Authorize |
 | WorkflowInstanceQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
@@ -327,7 +327,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | McpServerCommandController.apply | none | chain-with-Authorize |
 | McpServerCommandController.create | config: can_create_mcp_server on organization (field metadata.org), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.update | config: can_edit on mcp_server (field metadata.id), error_msg yes | chain-with-Authorize |
-| McpServerCommandController.updateVisibility | config: can_grant_access on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
+| McpServerCommandController.updateVisibility | config: can_manage_audience on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.delete | config: can_delete on mcp_server (field resource_id), error_msg yes | chain-with-Authorize |
 | McpServerCommandController.connect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: blocking connect flow over the engine seam (ephemeral ExecutionContext, decrypt-lane token mint, runner workflow start); authorizeDirect AFTER the load (#224). The ephemeral EC is created as the caller and the connect token, under the built-in posture, admits the runner as that caller for the EC read (`src/domain/mcpserver/connect-execution-id.ts`; `src/runnerauth/bound-execution.ts` `mcp-connect`); the discovery's McpServer read rides the runner's own credential, an organization admin's key under the chart's install, whom the model makes an owner of every McpServer in the organization |
 | McpServerCommandController.startConnect | config: can_connect on mcp_server (field mcp_server_id), error_msg yes | direct: async connect lane over the engine seam; authorizeDirect AFTER the load (#224) |
@@ -348,7 +348,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | SkillCommandController.push | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize |
 | SkillCommandController.createArtifactUploadUrl | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize |
 | SkillCommandController.pushFromExecutionArtifact | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize BY DELEGATION: the handler validates the storage-key ownership prefix directly, downloads the execution artifact, then calls the shared push pipeline WITH ITS OWN method descriptor (the runLifecyclePipeline pattern — the pipeline's authorizing descriptor is a caller-supplied parameter), so this method's own annotation is the one evaluated. |
-| SkillCommandController.updateVisibility | config: can_grant_access on skill (field resource_id), error_msg yes | chain-with-Authorize |
+| SkillCommandController.updateVisibility | config: can_manage_audience on skill (field resource_id), error_msg yes | chain-with-Authorize |
 | SkillCommandController.delete | config: can_delete on skill (field value), error_msg yes | chain-with-Authorize |
 | SkillQueryController.get | config: can_view on skill (field value), error_msg yes | chain-with-Authorize |
 | SkillQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; the ladder is LoadSkillByReference) |
@@ -362,7 +362,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 |---|---|---|
 | PluginCommandController.push | config: can_create_plugin on organization (field org), error_msg yes | chain-with-Authorize (two chains over one context, plan then install; the plan chain additionally pre-authorises the caller for every member kind's create permission — can_create_skill, can_create_agent, can_create_workflow — before any write, and each member's own chain evaluates it again in-process as the caller) |
 | PluginCommandController.createArtifactUploadUrl | config: can_create_plugin on organization (field org), error_msg yes | chain-with-Authorize |
-| PluginCommandController.updateVisibility | config: can_grant_access on plugin (field resource_id), error_msg yes | chain-with-Authorize (the fan-out to members rides each member kind's own updateVisibility chain in-process as the caller) |
+| PluginCommandController.updateVisibility | config: can_manage_audience on plugin (field resource_id), error_msg yes | chain-with-Authorize (the fan-out to members rides each member kind's own updateVisibility chain in-process as the caller) |
 | PluginCommandController.delete | config: can_delete on plugin (field value), error_msg yes | chain-with-Authorize (members are deleted through their own delete chains in-process as the caller) |
 | PluginQueryController.get | config: can_view on plugin (field value), error_msg yes | chain-with-Authorize |
 | PluginQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedPlugin — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |

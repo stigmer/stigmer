@@ -85,7 +85,7 @@ describe("useCanCreateAgentShare", () => {
       relation: b.relation,
     }));
     expect(bars).toHaveLength(2);
-    expect(bars).toContainEqual({ kind: "agent", id: "agt_1", relation: "can_grant_access" });
+    expect(bars).toContainEqual({ kind: "agent", id: "agt_1", relation: "can_manage_audience" });
     // An Organization's id equals its slug (ApiResourceMetadata.id), and
     // the share lives in the agent's organization, never the viewer's.
     expect(bars).toContainEqual({
@@ -95,8 +95,18 @@ describe("useCanCreateAgentShare", () => {
     });
   });
 
-  it("refuses an editor of the agent — publishing asks can_grant_access, the owner's, not can_edit", async () => {
-    const client = createMockStigmer({ can_edit: true, can_grant_access: false });
+  it("allows the agent's owner on open source, where the self-check answers can_grant_access false everywhere but organizations (stigmer#1495)", async () => {
+    const client = createMockStigmer({ can_grant_access: false });
+    const { result } = renderHook(() => useCanCreateAgentShare(makeAgent()), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(permissionCheckOf(client)).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.allowed).toBe(true));
+  });
+
+  it("refuses an editor of the agent — publishing asks can_manage_audience, the owner's, not can_edit", async () => {
+    const client = createMockStigmer({ can_edit: true, can_manage_audience: false });
     const { result } = renderHook(() => useCanCreateAgentShare(makeAgent()), {
       wrapper: wrapper(client),
     });

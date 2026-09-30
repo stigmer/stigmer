@@ -119,14 +119,14 @@ export function AgentChannelsPanel({
   // label worth showing.
   const { channelApps } = useChannelAppList(agent.metadata?.org || null);
 
-  // Mirrors the server's create bar (agent can_grant_access — the
+  // Mirrors the server's create bar (agent can_manage_audience — the
   // permission the create/apply handlers enforce on the referenced agent:
   // a channel puts the agent in front of a wider audience, the owner's
   // decision, not an editor's) so the connect affordance never appears to
   // someone whose create would be refused.
   const { allowed: canCreate } = useCheckPermission(
     agentId ? { kind: "agent", id: agentId } : null,
-    "can_grant_access",
+    "can_manage_audience",
   );
 
   // Installs need a channel delivery runtime, and only Stigmer Cloud

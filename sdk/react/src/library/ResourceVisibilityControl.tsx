@@ -71,10 +71,10 @@ export interface ResourceVisibilityControlProps {
  *
  * Behavior:
  * - Always renders a legible state: a read-only {@link VisibilityBadge}
- *   is shown to anyone without `can_grant_access` and while the permission
- *   check is in flight — never a silent blank.
+ *   is shown to anyone without `can_manage_audience` and while the
+ *   permission check is in flight — never a silent blank.
  * - Upgrades to the interactive {@link VisibilitySelector} for users with
- *   `can_grant_access`, the server's bar on every `updateVisibility`:
+ *   `can_manage_audience`, the server's bar on every `updateVisibility`:
  *   visibility decides who reaches the resource, so an editor, who may
  *   change the definition, sees the badge. Persists changes via
  *   {@link useUpdateVisibility} and invokes
@@ -169,7 +169,7 @@ export function ResourceVisibilityControl({
   return (
     <PermissionGate
       resource={{ kind: FGA_KIND[kind], id: resourceId }}
-      relation="can_grant_access"
+      relation="can_manage_audience"
       fallback={badge}
       loading={badge}
     >

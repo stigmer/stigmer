@@ -59,7 +59,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "to update workflow\022\266\001\n\020updateVisibility\022" +
       "5.ai.stigmer.commons.apiresource.UpdateV" +
       "isibilityInput\032(.ai.stigmer.agentic.work" +
-      "flow.v1.Workflow\"A\302\270\030=\010\004\0202\"\013resource_id*" +
+      "flow.v1.Workflow\"A\302\270\030=\0100\0202\"\013resource_id*" +
       "*unauthorized to update workflow visibil" +
       "ity\022\220\001\n\006delete\022*.ai.stigmer.agentic.work" +
       "flow.v1.WorkflowId\032(.ai.stigmer.agentic." +

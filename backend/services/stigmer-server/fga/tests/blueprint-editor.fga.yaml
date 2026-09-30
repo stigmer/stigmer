@@ -1,6 +1,7 @@
 # An editor of one blueprint (agent, workflow, MCP server) changes its
 # definition and does whatever a viewer can, and decides nothing about who
-# else reaches it: delete and access control stay the owner's. The grant is
+# else reaches it: delete, grants (can_grant_access) and the audience
+# (can_manage_audience) stay the owner's. The grant is
 # bounded by the organization like every direct grant.
 #
 # Cast (organization acme; every blueprint is private, so no org tuple):
@@ -58,13 +59,13 @@ tests:
     check:
       - user: identity_account:ed
         object: agent:bot
-        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_create_instance: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false}
+        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_create_instance: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
       - user: identity_account:ed
         object: workflow:flow
-        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false}
+        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
       - user: identity_account:ed
         object: mcp_server:tools
-        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_use: true, can_connect: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false}
+        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_use: true, can_connect: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
   - name: an editor runs the agent through its default instance, as its viewers do
     check:
       - user: identity_account:ed
@@ -74,13 +75,13 @@ tests:
     check:
       - user: identity_account:ted
         object: agent:bot
-        assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false}
+        assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
       - user: identity_account:ted
         object: workflow:flow
-        assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false}
+        assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
       - user: identity_account:ted
         object: mcp_server:tools
-        assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false}
+        assertions: {editor: true, can_edit: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
   - name: a viewer, a member without a grant and someone outside the organization edit nothing
     check:
       - {user: identity_account:vw, object: agent:bot, assertions: {editor: false, can_view: true, can_edit: false}}
@@ -94,10 +95,10 @@ tests:
       - {user: identity_account:left, object: mcp_server:tools, assertions: {editor: false, viewer: false, can_view: false, can_edit: false}}
   - name: the owner and the organization's admins keep everything
     check:
-      - {user: identity_account:own, object: agent:bot, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true}}
-      - {user: identity_account:adm, object: agent:bot, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true}}
-      - {user: identity_account:own, object: workflow:flow, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true}}
-      - {user: identity_account:adm, object: mcp_server:tools, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true}}
+      - {user: identity_account:own, object: agent:bot, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true, can_manage_audience: true}}
+      - {user: identity_account:adm, object: agent:bot, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true, can_manage_audience: true}}
+      - {user: identity_account:own, object: workflow:flow, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true, can_manage_audience: true}}
+      - {user: identity_account:adm, object: mcp_server:tools, assertions: {owner: true, can_edit: true, can_delete: true, can_grant_access: true, can_manage_audience: true}}
   - name: an editor's listings carry what they edit
     list_objects:
       - {user: identity_account:ed, type: agent, assertions: {can_edit: [agent:bot], can_view: [agent:bot]}}

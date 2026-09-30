@@ -58,7 +58,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "vironment\022\277\001\n\020updateVisibility\0225.ai.stig" +
       "mer.commons.apiresource.UpdateVisibility" +
       "Input\032..ai.stigmer.agentic.environment.v" +
-      "1.Environment\"D\302\270\030@\010\004\0205\"\013resource_id*-un" +
+      "1.Environment\"D\302\270\030@\0100\0205\"\013resource_id*-un" +
       "authorized to update environment visibil" +
       "ity\022\253\001\n\006delete\0226.ai.stigmer.commons.apir" +
       "esource.ApiResourceDeleteInput\032..ai.stig" +

@@ -88,8 +88,8 @@ type agent
     # ========================================
     # A person or a team granted edit on this one agent: may change its
     # definition, run it and schedule it, and may not delete it or decide
-    # who else reaches it (visibility, share links, channels and grants ask
-    # can_grant_access, the owner's). Implies viewer. Bounded by the
+    # who else reaches it (its audience asks can_manage_audience and grants
+    # ask can_grant_access, both the owner's). Implies viewer. Bounded by the
     # organization like every direct grant. Only an edition that widens the
     # policy grant scope past the organization writes the row.
     # FGA tuple: agent:<id>#editor@identity_account:<user> (or team:<id>#member)
@@ -139,4 +139,13 @@ type agent
     # IAM POLICY MANAGEMENT
     # ========================================
     define can_grant_access: owner
+    
+    # ========================================
+    # AUDIENCE
+    # ========================================
+    # Who reaches this agent (visibility, a share link to it, a channel it answers on) is its owner's to change.
+    # Kept apart from can_grant_access, which the self-check answers false
+    # wherever the edition grants no roles on the kind: the audience is the
+    # owner's in every edition. An editor never holds it.
+    define can_manage_audience: owner
     define can_view_access: viewer

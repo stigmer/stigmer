@@ -20,7 +20,8 @@
  *     on the in-process transport (the `internal` class);
  *   - checkMyPermission's three arms: an enterprise-tiered kind is false
  *     with the Authorizer never consulted (the settings navigation stays
- *     hidden); can_grant_access outside the scope is false; an
+ *     hidden); can_grant_access outside the scope is false, while
+ *     can_manage_audience is the Authorizer's answer on every kind; an
  *     organization permission is the composed Authorizer's answer; an
  *     unknown permission is INVALID_ARGUMENT;
  *   - the tuple-half queries are UNIMPLEMENTED with the edition named;
@@ -482,6 +483,20 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
       // The permissive single-team Authorizer allows everything it is asked.
       expect(onOrg.isAuthorized).toBe(true);
       expect(viewAgent.isAuthorized).toBe(true);
+    });
+
+    it("can_manage_audience is the Authorizer's answer on every kind, where can_grant_access is false outside the scope — the console's audience controls stay the owner's on open source (stigmer#1495)", async () => {
+      for (const [kind, id] of [
+        ["agent", "agt_01hzzzzzzzzzzzzzzzzzzzzzzz"],
+        ["workflow_instance", "win_01hzzzzzzzzzzzzzzzzzzzzzzz"],
+      ] as const) {
+        const resource = create(ApiResourceRefSchema, { kind, id });
+        const audience = await query.checkMyPermission({ resource, relation: "can_manage_audience" });
+        const grant = await query.checkMyPermission({ resource, relation: "can_grant_access" });
+        // The permissive single-team Authorizer allows everything it is asked.
+        expect(audience.isAuthorized, kind).toBe(true);
+        expect(grant.isAuthorized, kind).toBe(false);
+      }
     });
 
     it("an unknown permission is INVALID_ARGUMENT, quoted", async () => {

@@ -55,7 +55,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       " plugin in this organization\022\260\001\n\020updateV" +
       "isibility\0225.ai.stigmer.commons.apiresour" +
       "ce.UpdateVisibilityInput\032$.ai.stigmer.ag" +
-      "entic.plugin.v1.Plugin\"?\302\270\030;\010\004\020:\"\013resour" +
+      "entic.plugin.v1.Plugin\"?\302\270\030;\0100\020:\"\013resour" +
       "ce_id*(unauthorized to update plugin vis" +
       "ibility\022\206\001\n\006delete\022&.ai.stigmer.agentic." +
       "plugin.v1.PluginId\032$.ai.stigmer.agentic." +

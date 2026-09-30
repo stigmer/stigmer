@@ -60,7 +60,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ation\022\255\001\n\020updateVisibility\0225.ai.stigmer." +
       "commons.apiresource.UpdateVisibilityInpu" +
       "t\032\".ai.stigmer.agentic.skill.v1.Skill\">\302" +
-      "\270\030:\010\004\020+\"\013resource_id*\'unauthorized to up" +
+      "\270\030:\0100\020+\"\013resource_id*\'unauthorized to up" +
       "date skill visibility\022\201\001\n\006delete\022$.ai.st" +
       "igmer.agentic.skill.v1.SkillId\032\".ai.stig" +
       "mer.agentic.skill.v1.Skill\"-\302\270\030)\010\003\020+\"\005va" +

@@ -43,7 +43,7 @@ export interface ManageAccessDialogProps {
  * Each section renders only when it applies:
  * - **General access** — only when {@link ManageAccessDialogProps.visibility}
  *   is provided. Delegates to {@link ResourceVisibilityControl}, which owns
- *   level selection and the `can_grant_access` gate.
+ *   level selection and the `can_manage_audience` gate.
  * - **People with access** — only when the resource kind has grantable roles
  *   (`hasGrantableRoles`, proto-generated single source of truth). Delegates
  *   to {@link PeopleWithAccess}, which gates grant/revoke on `can_grant_access`.

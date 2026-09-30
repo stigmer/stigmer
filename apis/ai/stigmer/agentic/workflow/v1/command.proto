@@ -54,10 +54,10 @@ service WorkflowCommandController {
   // also be able to read.
   //
   // @internal
-  // Authorization: can_grant_access on the workflow for every transition.
-  // Visibility decides who reaches the resource, so it is an access decision,
-  // the owner's, and not an edit: an editor may change the definition but not
-  // its audience. The level is checked against the kind's VisibilityConfig
+  // Authorization: can_manage_audience on the workflow for every transition.
+  // Visibility decides who reaches the resource, so it is the owner's decision
+  // and not an edit: an editor may change the definition but not its audience.
+  // The level is checked against the kind's VisibilityConfig
   // (visibility_public is refused for every kind); the reference floor is a
   // pipeline step on this chain. Visibility transitions trigger FGA tuple
   // management in Cloud mode: - PRIVATE → ORG: creates
@@ -65,7 +65,7 @@ service WorkflowCommandController {
   // member viewer tuple
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Workflow) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
-    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
     option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow visibility";
   }

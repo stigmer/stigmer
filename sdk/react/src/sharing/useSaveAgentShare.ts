@@ -162,7 +162,7 @@ export interface UseSaveAgentShareReturn {
  *
  * Commits via `stigmer.agentShare.apply()` — an idempotent upsert keyed
  * on the share's `(org, slug)` identity — so one code path serves both
- * creation (the server authorizes on the referenced agent's `can_grant_access`
+ * creation (the server authorizes on the referenced agent's `can_manage_audience`
  * and the organization's `can_create_agent_share`) and every later
  * edit. There is deliberately no create/update
  * branching: the share slug is unique per org, which makes

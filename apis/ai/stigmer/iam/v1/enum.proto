@@ -35,6 +35,17 @@ enum IamPermission {
   // above your own".
   can_assign_roles = 47;
 
+  // Whether the caller may change who reaches the resource: its visibility,
+  // who observes its runs, a share link to it, or a channel it answers on.
+  //
+  // @internal
+  // Its own permission, apart from can_grant_access, because the self-check
+  // answers can_grant_access false wherever the edition grants no roles on
+  // the kind (the console hides grant controls there), while every edition
+  // lets an owner change a resource's audience. The owner's in the model on
+  // every kind that asks it; an editor never holds it.
+  can_manage_audience = 48;
+
   // Organization-level create permissions.
   can_create_agent = 6;
   can_create_workflow = 7;

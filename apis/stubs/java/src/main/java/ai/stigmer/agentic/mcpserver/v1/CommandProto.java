@@ -61,7 +61,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "d to delete mcp server\022\272\001\n\020updateVisibil" +
       "ity\0225.ai.stigmer.commons.apiresource.Upd" +
       "ateVisibilityInput\032*.ai.stigmer.agentic." +
-      "mcpserver.v1.McpServer\"C\302\270\030?\010\004\020,\"\013resour" +
+      "mcpserver.v1.McpServer\"C\302\270\030?\0100\020,\"\013resour" +
       "ce_id*,unauthorized to update mcp server" +
       " visibility\022\244\001\n\007connect\022-.ai.stigmer.age" +
       "ntic.mcpserver.v1.ConnectInput\032*.ai.stig" +

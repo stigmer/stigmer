@@ -48,7 +48,7 @@ A blueprint (`agent`, `workflow`, `mcp_server`) is granted to a person or a team
 | `editor` | everything a viewer can, and change its definition (`can_edit`): update, tag a version, schedule an agent | delete it, or decide who else reaches it |
 | `owner` | everything (the creator, and the organization's admins by inheritance) | |
 
-Who else reaches a resource is `can_grant_access`, the owner's: granting and revoking, and every act that widens the audience without a grant, namely `updateVisibility` on every kind, publishing an agent on a share link and binding it to a channel. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
+Who else reaches a resource is the owner's, through two permissions. `can_grant_access` is granting and revoking. `can_manage_audience` is every act that changes the audience without a grant: `updateVisibility` on every kind, `updateExecutionVisibility` on a workflow instance, publishing an agent on a share link and binding it to a channel. They are two permissions because the self-check answers `can_grant_access` false wherever the edition grants no roles on the kind (the console then hides grant controls), while every edition lets an owner change an audience. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
 
 ## Agent vs Workflow Asymmetry
 
@@ -279,7 +279,8 @@ agent:pr-reviewer#editor@team:tm-sre#member     ← or a team
 Dan edits the agent while he is in Acme, and cannot delete it or share it on:
 ```
 can_edit → owner or editor → [identity_account:dan] and affiliated from organization:acme
-can_grant_access → owner   (never an editor)
+can_grant_access → owner      (never an editor)
+can_manage_audience → owner   (never an editor)
 ```
 
 ## File Organization

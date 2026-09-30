@@ -86,9 +86,9 @@ export const SHARE_ORGANIZATION_DENIED_MESSAGE =
 
 /**
  * The create lane's authorization questions, for AuthorizeResolvedTarget
- * after ResolveShareDefaults, agent first: can_grant_access on the agent
- * (sharing puts it in front of a wider audience, so it decides who reaches
- * the agent: the owner's act, never an editor's, who may change the
+ * after ResolveShareDefaults, agent first: can_manage_audience on the
+ * agent (sharing puts it in front of a wider audience, so it decides who
+ * reaches the agent: the owner's act, never an editor's, who may change the
  * definition but not its audience) and then can_create_agent_share on the
  * organization (a share spends the
  * organization's credits on the open internet, an admin-level act). The
@@ -106,7 +106,7 @@ export function resolveShareCreateTargets(
   }
   return [
     {
-      permission: IamPermission.can_grant_access,
+      permission: IamPermission.can_manage_audience,
       resourceKind: ApiResourceKind.agent,
       resourceId: agent.metadata?.id ?? "",
       deniedMessage: SHARE_AGENT_DENIED_MESSAGE,

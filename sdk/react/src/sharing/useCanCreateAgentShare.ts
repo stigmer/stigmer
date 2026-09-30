@@ -18,7 +18,7 @@ export interface UseCanCreateAgentShareReturn {
  * installed copy), and creating one asks two questions of that
  * organization, both of which the create handler enforces:
  *
- * - `can_grant_access` on the agent — a share puts the agent in front of a
+ * - `can_manage_audience` on the agent — a share puts the agent in front of a
  *   wider audience, so it is the owner's decision; an editor, who may change
  *   the definition, may not publish it.
  * - `can_create_agent_share` on the organization (admin by default) — a
@@ -50,7 +50,7 @@ export function useCanCreateAgentShare(
 
   const { allowed: canPublishAgent } = useCheckPermission(
     agentId ? { kind: "agent", id: agentId } : null,
-    "can_grant_access",
+    "can_manage_audience",
   );
   const { allowed: canCreateInOrg } = useCheckPermission(
     agentOrg ? { kind: "organization", id: agentOrg } : null,

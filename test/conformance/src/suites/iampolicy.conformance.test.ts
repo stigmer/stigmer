@@ -802,6 +802,26 @@ describe.skipIf(capabilities.perResourceGrants)(
   },
 );
 
+describe("IamPolicy conformance — the audience permission, in every edition", () => {
+  it("checkMyPermission(can_manage_audience) on an agent the caller owns is true, whatever the edition grants per resource (stigmer#1495)", async () => {
+    // The console's visibility picker, Create share and Connect channel
+    // mirror the server's can_manage_audience bar. Unlike can_grant_access,
+    // the self-check never overrides it, so the owner is offered them in
+    // every edition.
+    const org = await createOwnedOrganization();
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("audience-agent") }),
+    );
+    const agentId = agent.metadata?.id ?? "";
+    fixtures.defer(() => clients.agentCommand.delete({ value: agentId }));
+    const result = await clients.iamPolicyQuery.checkMyPermission({
+      resource: ref("agent", agentId),
+      relation: "can_manage_audience",
+    });
+    expect(result.isAuthorized).toBe(true);
+  });
+});
+
 describe.skipIf(!capabilities.perResourceGrants)(
   "IamPolicy conformance — per-resource grants (the composed scope)",
   () => {

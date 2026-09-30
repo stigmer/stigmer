@@ -55,10 +55,10 @@ type workflow
     # ========================================
     # A person or a team granted edit on this one workflow: may change its
     # definition, tag its versions and run it, and may not delete it or decide
-    # who else reaches it (visibility and grants ask can_grant_access, the
-    # owner's). Implies viewer. Bounded by the organization like every direct
-    # grant. Only an edition that widens the policy grant scope past the
-    # organization writes the row.
+    # who else reaches it (its audience asks can_manage_audience and grants
+    # ask can_grant_access, both the owner's). Implies viewer. Bounded by the
+    # organization like every direct grant. Only an edition that widens the
+    # policy grant scope past the organization writes the row.
     # FGA tuple: workflow:<id>#editor@identity_account:<user> (or team:<id>#member)
     define editor: [identity_account, team#member] and affiliated from organization
     
@@ -89,4 +89,13 @@ type workflow
     # IAM POLICY MANAGEMENT
     # ========================================
     define can_grant_access: owner
+    
+    # ========================================
+    # AUDIENCE
+    # ========================================
+    # Who reaches this workflow (visibility) is its owner's to change.
+    # Kept apart from can_grant_access, which the self-check answers false
+    # wherever the edition grants no roles on the kind: the audience is the
+    # owner's in every edition. An editor never holds it.
+    define can_manage_audience: owner
     define can_view_access: viewer

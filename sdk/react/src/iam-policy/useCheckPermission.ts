@@ -69,7 +69,10 @@ interface SettledCheck {
  * `false` (so operator-only navigation never appears where the seat
  * does not exist), `can_grant_access` on a resource the edition does not
  * share per person is `false` (open source grants roles on organizations
- * only), and everything else is the edition's authorizer's answer. By
+ * only), and everything else is the edition's authorizer's answer. So a
+ * control that changes who reaches a resource (its visibility, a share, a
+ * channel) asks `can_manage_audience`, never `can_grant_access`: the owner
+ * holds it in every edition. By
  * default the hook *fails open* while the check is in flight or when the
  * RPC fails, so a transient error never hides a control the server would
  * honor. Pass `{ fail: "closed" }` for surfaces that must stay hidden

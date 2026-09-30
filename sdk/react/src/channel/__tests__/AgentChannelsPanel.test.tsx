@@ -516,13 +516,33 @@ describe("AgentChannelsPanel", () => {
     ).toBeTruthy();
   });
 
-  it("offers no connect affordance to an editor of the agent — connecting asks can_grant_access, the owner's", async () => {
-    // An editor holds can_edit on the agent but not can_grant_access: a
+  it("offers connect to the agent's owner on open source, where the self-check answers can_grant_access false everywhere but organizations (stigmer#1495)", async () => {
+    const checkMyPermission = vi.fn((input: unknown) => {
+      const { relation } = input as { relation: string };
+      return Promise.resolve({ isAuthorized: relation !== "can_grant_access" });
+    });
+    const client = createMockStigmer({ checkMyPermission });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(checkMyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ relation: "can_manage_audience" }),
+      ),
+    );
+    expect(await screen.findByRole("button", { name: /connect to slack/i })).toBeTruthy();
+  });
+
+  it("offers no connect affordance to an editor of the agent — connecting asks can_manage_audience, the owner's", async () => {
+    // An editor holds can_edit on the agent but not can_manage_audience: a
     // channel puts the agent in front of a wider audience, which is the
     // owner's decision, and the server's create bar says the same.
     const checkMyPermission = vi.fn((input: unknown) => {
       const { relation } = input as { relation: string };
-      return Promise.resolve({ isAuthorized: relation !== "can_grant_access" });
+      return Promise.resolve({ isAuthorized: relation !== "can_manage_audience" });
     });
     const client = createMockStigmer({ checkMyPermission });
     render(
@@ -536,7 +556,7 @@ describe("AgentChannelsPanel", () => {
     );
     await waitFor(() =>
       expect(checkMyPermission).toHaveBeenCalledWith(
-        expect.objectContaining({ relation: "can_grant_access" }),
+        expect.objectContaining({ relation: "can_manage_audience" }),
       ),
     );
     await waitFor(() =>

@@ -190,7 +190,7 @@ export const CHANNEL_CREATE_DENIED_MESSAGE =
 
 /**
  * The create lane's authorization question, for AuthorizeResolvedTarget
- * after ResolveChannelDefaults: can_grant_access on the REFERENCED AGENT.
+ * after ResolveChannelDefaults: can_manage_audience on the REFERENCED AGENT.
  * The RPC is is_skip_authorization because its target is that agent,
  * resolved from a slug, not a request field. Binding an agent to a channel
  * puts it in front of a wider audience, so it decides who reaches the agent:
@@ -208,7 +208,7 @@ export function resolveChannelCreateTargets(
   }
   return [
     {
-      permission: IamPermission.can_grant_access,
+      permission: IamPermission.can_manage_audience,
       resourceKind: ApiResourceKind.agent,
       resourceId: agent.metadata?.id ?? "",
       deniedMessage: CHANNEL_CREATE_DENIED_MESSAGE,
