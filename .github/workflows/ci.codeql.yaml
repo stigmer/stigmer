@@ -1,0 +1,93 @@
+# =============================================================================
+# Code scanning: CodeQL over every language the repository ships
+# =============================================================================
+# Analyses the TypeScript, Go, Java, Python and Rust sources with CodeQL and
+# uploads the results to the repository's code scanning. A ruleset rule on
+# `main` ("Require code scanning results", tool CodeQL) refuses a change that
+# introduces a high or critical security alert, or an error-level alert,
+# relative to the base; alerts already on `main` are listed on the Security
+# tab and never block an unrelated change.
+#
+# Advanced setup, not GitHub's default setup: default setup analyses `push`
+# and `pull_request` only, so it never reports on a merge-queue commit and a
+# required code-scanning result would wait there forever. This workflow runs
+# on `merge_group` as well.
+#
+# No `paths:` filter, and every language on every change: a required result
+# that a filter skipped would never arrive, the same wedge. `push` to `main`
+# keeps the default branch's analysis current (it is what "new" is measured
+# against), and the weekly run applies newly published queries to old code.
+#
+# Workflows are not a CodeQL language here: ci.workflows.yaml audits them.
+# Not a lane of ci.gate.yaml: a lane passes or fails on its run, while this
+# check's verdict is code scanning's comparison with the base.
+# =============================================================================
+
+name: ci.codeql
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          # CodeQL cannot analyse Go without a build; autobuild reads go.work.
+          - language: go
+            build-mode: autobuild
+          - language: java-kotlin
+            build-mode: none
+          - language: python
+            build-mode: none
+          - language: rust
+            build-mode: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@88585263c0627ee42c0e1c5143a112c8d6f4aa18 # v4.38.2
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Build (Go)
+        if: matrix.build-mode == 'autobuild'
+        uses: github/codeql-action/autobuild@88585263c0627ee42c0e1c5143a112c8d6f4aa18 # v4.38.2
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@88585263c0627ee42c0e1c5143a112c8d6f4aa18 # v4.38.2
+        with:
+          category: /language:${{ matrix.language }}
