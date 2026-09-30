@@ -290,6 +290,24 @@ canonical id to whatever you named the deployment in the portal:
 export STIGMER_FOUNDRY_DEPLOYMENT_MAP="claude-sonnet-4-6=my-sonnet-deployment"
 ```
 
+## Send Claude calls through an LLM gateway
+
+If your network routes model traffic through a gateway in front of Anthropic (a
+proxy that logs, filters or meters requests), point the `public` backend at it
+with `ANTHROPIC_BASE_URL`. It is the API root the gateway serves, without `/v1`:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_BASE_URL=https://llm-gateway.internal
+```
+
+The key still travels with each request, so the gateway sees what Anthropic
+would. Leave the variable unset to call api.anthropic.com. A value that is not
+an `http://` or `https://` URL stops the runner at startup with a message that
+names it. The variable is ignored, with a startup warning, when a backend on
+this page is selected (each has its own endpoint) and when the runner uses the
+Stigmer Cloud proxy.
+
 ## Bound each model request with a timeout
 
 Set `STIGMER_LLM_REQUEST_TIMEOUT_MS` to cap how long the runner waits for a
@@ -311,6 +329,7 @@ Every failure names the variable or permission to fix. The common ones:
 | Symptom                                                     | Fix                                                                                                                     |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Runner refuses to start, names `CLOUD_ML_REGION`            | Set the region (e.g. `asia-south1`, or `global`).                                                                       |
+| Runner refuses to start, names `ANTHROPIC_BASE_URL`         | Set it to the gateway's full URL, scheme included (`https://llm-gateway.internal`), or unset it.                        |
 | Runner refuses to start, names `AWS_REGION`                 | Set the region explicitly (e.g. `ap-south-1`) — the runner never assumes `us-east-1`.                                   |
 | Runner refuses to start, names `ANTHROPIC_FOUNDRY_RESOURCE` | Set the Foundry resource name (or `ANTHROPIC_FOUNDRY_BASE_URL` — exactly one of the two).                               |
 | "could not acquire Google credentials"                      | Set `GOOGLE_APPLICATION_CREDENTIALS`, or run on a GCP identity (workload identity / metadata server).                   |

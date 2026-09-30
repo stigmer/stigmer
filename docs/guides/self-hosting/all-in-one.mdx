@@ -63,6 +63,10 @@ architectures before the image publishes.
 Without `-v`, Docker still keeps your data in an anonymous volume, but
 `docker rm` discards it. Name the volume.
 
+If your model traffic goes through an LLM gateway in front of Anthropic, add
+`-e ANTHROPIC_BASE_URL=https://llm-gateway.internal` beside the key (see
+[Send Claude calls through an LLM gateway](/docs/guides/runners/model-backends#send-claude-calls-through-an-llm-gateway)).
+
 ## Stop, restart, upgrade
 
 ```bash

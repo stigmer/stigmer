@@ -3,8 +3,9 @@
  * the compose gate (scripts/smoke-compose.mjs) and the all-in-one image smoke
  * (scripts/smoke-all-in-one.mjs) prove the same facts the same way: a server
  * that answers SERVING, a console lane that serves its contract, an artifact
- * file server on its published port, and one end-to-end run through the
- * runner. A smoke that needs a new probe adds it here, never inline.
+ * file server on its published port, and the end-to-end runs through the
+ * runner (a workflow, then an agent answered by the install's model). A smoke
+ * that needs a new probe adds it here, never inline.
  *
  * Plain node + fetch, no dependencies — runnable everywhere CI is. Every
  * probe takes the server's base URL so the same code serves a stack on
@@ -13,7 +14,19 @@
 
 import { connect } from "node:net";
 
-/** Poll `probe` until it returns a truthy value, failing at the deadline with the last error. */
+/**
+ * Thrown by a probe to end the wait at once: the state it read can never turn
+ * into the one awaited (an execution that reached a terminal failure). Every
+ * other error is transient to {@link pollUntil}, which retries it until the
+ * deadline (#1514: a terminal failure used to be retried like a connection
+ * refused, and reported as a timeout).
+ */
+export class PollStop extends Error {}
+
+/**
+ * Poll `probe` until it returns a truthy value, failing at the deadline with
+ * the last error, or at once when the probe throws {@link PollStop}.
+ */
 export async function pollUntil(label, timeoutMs, probe, { intervalMs = 2000 } = {}) {
   const deadline = Date.now() + timeoutMs;
   let lastError = "";
@@ -23,6 +36,7 @@ export async function pollUntil(label, timeoutMs, probe, { intervalMs = 2000 } =
       if (result !== undefined && result !== false) return result;
       lastError = "probe returned falsy";
     } catch (error) {
+      if (error instanceof PollStop) throw error;
       lastError = error instanceof Error ? error.message : String(error);
     }
     await sleep(intervalMs);
@@ -222,11 +236,96 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}) {
     );
     const phase = current.status?.phase ?? "EXECUTION_PHASE_UNSPECIFIED";
     if (TERMINAL_FAILURES.has(phase)) {
-      throw new Error(`execution reached ${phase}: ${JSON.stringify(current.status?.error ?? {})}`);
+      throw new PollStop(`execution reached ${phase}: ${JSON.stringify(current.status?.error ?? {})}`);
     }
     return phase === "EXECUTION_COMPLETED";
   });
   return executionId;
+}
+
+/**
+ * The agent line every self-host smoke draws after the workflow: create an
+ * organization and an agent with no tools, send it one message, and wait for
+ * EXECUTION_COMPLETED with the model's reply as the last message. It completes
+ * only if the install wired a model the runner can reach, the runner called
+ * it, and the answer travelled back to the record a user reads — which the
+ * workflow line cannot show, since no workflow step calls a model. The smokes
+ * point the install at fake-model.mjs, so `expectText` is its reply. Returns
+ * the ids and the reply, so an upgrade rehearsal can read them back. A
+ * terminal failure surfaces immediately with the execution's own error.
+ */
+export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {} }) {
+  if (typeof expectText !== "string" || expectText === "") {
+    throw new Error("runAgentToReply needs the reply text the install's model answers with");
+  }
+  const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const org = await connectJson(baseUrl, "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create", {
+    apiVersion: "tenancy.stigmer.ai/v1",
+    kind: "Organization",
+    metadata: { name: `smoke-agent-org-${suffix}` },
+  });
+  const orgId = org.metadata?.id;
+  if (!orgId) throw new Error(`organization create returned no id: ${JSON.stringify(org)}`);
+
+  const agent = await connectJson(baseUrl, "ai.stigmer.agentic.agent.v1.AgentCommandController/create", {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Agent",
+    metadata: { name: `smoke-agent-${suffix}`, org: orgId },
+    spec: {
+      description: "self-host smoke fixture",
+      instructions: "Answer the message in one short sentence.",
+      mcpServerUsages: [],
+    },
+  });
+  const agentId = agent.metadata?.id;
+  if (!agentId) throw new Error(`agent create returned no id: ${JSON.stringify(agent)}`);
+  log(`agent ${agentId} created`);
+
+  const execution = await connectJson(
+    baseUrl,
+    "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create",
+    {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "AgentExecution",
+      metadata: { name: `smoke-aex-${suffix}`, org: orgId },
+      spec: { agentId, message: "Say hello." },
+    },
+  );
+  const executionId = execution.metadata?.id;
+  if (!executionId) throw new Error(`agent execution create returned no id: ${JSON.stringify(execution)}`);
+  log(`agent execution ${executionId} created — awaiting the model's reply...`);
+
+  const completed = await pollUntil("agent execution EXECUTION_COMPLETED", timeoutMs, async () => {
+    const current = await readAgentExecution(baseUrl, executionId);
+    const phase = current.status?.phase ?? "EXECUTION_PHASE_UNSPECIFIED";
+    if (TERMINAL_FAILURES.has(phase)) {
+      throw new PollStop(`agent execution reached ${phase}: ${current.status?.error || "(no error recorded)"}`);
+    }
+    return phase === "EXECUTION_COMPLETED" ? current : false;
+  });
+  const reply = lastAiReply(completed);
+  if (!reply.includes(expectText)) {
+    throw new Error(
+      `agent execution completed, but its last reply is not the model's: expected it to contain ` +
+        `${JSON.stringify(expectText)}, got ${JSON.stringify(reply)}`,
+    );
+  }
+  log(`agent replied: ${reply}`);
+  return { orgId, agentId, executionId, reply };
+}
+
+/** One agent execution, as the query lane returns it. */
+export async function readAgentExecution(baseUrl, executionId) {
+  return connectJson(baseUrl, "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get", {
+    value: executionId,
+  });
+}
+
+/** The content of an execution's last AI message, or "" when it has none. */
+export function lastAiReply(execution) {
+  const messages = execution.status?.messages ?? [];
+  const ai = messages.filter((message) => message.type === "MESSAGE_AI" && !message.isStreaming);
+  return ai.at(-1)?.content ?? "";
 }
 
 /** Fails when the port is already taken — a stigmer stack is running. */

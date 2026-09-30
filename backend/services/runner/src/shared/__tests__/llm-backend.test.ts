@@ -5,6 +5,7 @@ import {
   toBedrockModelId,
   toFoundryDeploymentName,
   parseAnthropicBackend,
+  parseAnthropicBaseUrl,
   parseOpenAiBackend,
   parseBedrockModelMap,
   parseFoundryDeploymentMap,
@@ -93,6 +94,32 @@ describe("parseAnthropicBackend", () => {
       expect(result.message).toContain("foundry");
     }
   });
+});
+
+describe("parseAnthropicBaseUrl", () => {
+  it.each([
+    // Unset / blank → Anthropic's own address.
+    [undefined, undefined],
+    ["", undefined],
+    ["   ", undefined],
+    // A gateway or a local stand-in, trimmed and without a trailing slash.
+    ["https://llm-gateway.internal", "https://llm-gateway.internal"],
+    ["  http://127.0.0.1:4010/  ", "http://127.0.0.1:4010"],
+    ["http://host.docker.internal:4010//", "http://host.docker.internal:4010"],
+  ])("%j -> %j", (raw, expected) => {
+    expect(parseAnthropicBaseUrl({ ANTHROPIC_BASE_URL: raw })).toEqual({ ok: true, baseUrl: expected });
+  });
+
+  it.each(["llm-gateway.internal:8080", "ftp://llm-gateway.internal", "not a url"])(
+    "refuses %j, naming the variable and the value",
+    (raw) => {
+      const result = parseAnthropicBaseUrl({ ANTHROPIC_BASE_URL: raw });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.message).toContain(`ANTHROPIC_BASE_URL="${raw}" is not an http(s) URL`);
+      }
+    },
+  );
 });
 
 describe("parseOpenAiBackend", () => {
@@ -507,6 +534,39 @@ describe("checkDirectCredentials", () => {
 describe("preflightLlmBackends", () => {
   it("is clean for an unconfigured deployment (today's default)", () => {
     expect(preflightLlmBackends({})).toEqual({ error: null, warnings: [] });
+  });
+
+  it("is clean for a direct deployment pointed at a gateway", () => {
+    expect(preflightLlmBackends({ ANTHROPIC_BASE_URL: "https://llm-gateway.internal" }))
+      .toEqual({ error: null, warnings: [] });
+  });
+
+  it("fails an ANTHROPIC_BASE_URL that is not an http(s) URL", () => {
+    const result = preflightLlmBackends({ ANTHROPIC_BASE_URL: "llm-gateway.internal" });
+    expect(result.error).toContain('ANTHROPIC_BASE_URL="llm-gateway.internal" is not an http(s) URL');
+  });
+
+  it("warns that ANTHROPIC_BASE_URL is ignored under a backend with its own endpoint", () => {
+    const result = preflightLlmBackends({
+      STIGMER_ANTHROPIC_BACKEND: "vertex",
+      CLOUD_ML_REGION: "asia-south1",
+      ANTHROPIC_BASE_URL: "https://llm-gateway.internal",
+    });
+    expect(result.error).toBeNull();
+    expect(result.warnings).toEqual([
+      "STIGMER_ANTHROPIC_BACKEND=vertex is set; ANTHROPIC_BASE_URL is ignored — the vertex backend has its own endpoint.",
+    ]);
+  });
+
+  it("warns that ANTHROPIC_BASE_URL is ignored under the proxy, and never fails over it", () => {
+    const result = preflightLlmBackends({
+      STIGMER_PROXY_ENDPOINT: "https://api.stigmer.ai",
+      ANTHROPIC_BASE_URL: "not a url",
+    });
+    expect(result.error).toBeNull();
+    expect(result.warnings).toEqual([
+      "STIGMER_PROXY_ENDPOINT is set; ANTHROPIC_BASE_URL=not a url is ignored — the proxy owns provider routing.",
+    ]);
   });
 
   it("is clean for a fully-configured vertex deployment", () => {

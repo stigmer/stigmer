@@ -1,18 +1,55 @@
-# The one definition of the Linux system packages Tauri compiles against:
+# The one installer of the Linux system packages Tauri compiles against:
 # webkit2gtk and the app-indicator and librsvg libraries the shell links, and
 # patchelf for the Linux bundles. Every job that compiles the Tauri shell, or
-# the runner-host crate's `tauri` feature, on Ubuntu calls this step, so the
-# list lives in one place and a Tauri upgrade that needs another package
-# changes it once (the reason turbo-cache is an action too).
+# the runner-host crate's `tauri` feature, on Ubuntu calls this action, so the
+# list lives in one place (apt-cache.sh, beside this file) and a Tauri upgrade
+# that needs another package changes it once (the reason turbo-cache is an
+# action too).
+#
+# The archives come from the cache ci.tauri-linux-deps-cache.yaml writes on
+# main, when it has them: apt-cache.sh's header says why (a slow mirror held
+# the gate for up to 20 minutes, #1529) and how every cached file is checked
+# against the package index before apt sees it. A miss, or a file that does
+# not match, is downloaded as it always was.
+#
+# This is a reader. There is no save here and must never be, for the reason
+# turbo-cache gives: a reader that saved would turn every lane into a writer.
+# Unlike turbo-cache it restores on every event, the merge queue and main
+# included. A replayed Turbo output could differ from a fresh build; a cached
+# archive here either hashes to what the fresh index names or is not used, so
+# the cache cannot change what a lane installs.
 name: Install Tauri's Linux packages
 description: >-
   apt-get install the system libraries Tauri 2 compiles and bundles against
-  on an Ubuntu runner.
+  on an Ubuntu runner, with the archives from main's cache after a SHA256
+  check against the package index.
+outputs:
+  key:
+    description: The content-addressed cache key for this runner's archive set.
+    value: ${{ steps.resolve.outputs.key }}
+  cache-hit:
+    description: "'true' when the exact key was restored."
+    value: ${{ steps.restore.outputs.cache-hit }}
 runs:
   using: composite
   steps:
+    - name: Resolve the archives apt will fetch
+      id: resolve
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/apt-cache.sh" resolve'
+
+    - name: Restore the archives main cached
+      id: restore
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/tauri-apt
+        key: ${{ steps.resolve.outputs.key }}
+        restore-keys: ${{ steps.resolve.outputs.prefix }}
+
+    - name: Seed the cached archives that match the index
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/apt-cache.sh" seed'
+
     - name: Install Tauri's Linux packages
       shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      run: '"$GITHUB_ACTION_PATH/apt-cache.sh" install'

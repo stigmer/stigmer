@@ -6,7 +6,10 @@
 // is caught, not mirrored. The Host-derived arm is the #1087 incident: four
 // gates accepted `http://<host>` after the server stopped serving it. The
 // bootstrap probe: polls the caller's organizations until the `stigmer`
-// organization the bootstrap creates is present. Run via
+// organization the bootstrap creates is present. The run probes: an agent run
+// passes only on the model's reply, and a terminal failure (of an agent or a
+// workflow run) ends the wait at once instead of being retried to the
+// deadline (#1514). Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test` and
 // ci.ts-workspace).
 
@@ -14,7 +17,13 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import { assertConsoleServed, waitForBootstrapOrganization } from "./stigmer-smoke.mjs";
+import {
+  assertConsoleServed,
+  pollUntil,
+  runAgentToReply,
+  runSetVarsWorkflow,
+  waitForBootstrapOrganization,
+} from "./stigmer-smoke.mjs";
 
 const TRUSTED_LOCAL_DOCUMENT = {
   apiUrl: "",
@@ -210,4 +219,152 @@ test("matches the organization by slug, never by name", async () => {
   } finally {
     await lane.close();
   }
+});
+
+/**
+ * A Connect-JSON lane that answers by procedure: `routes` maps a procedure's
+ * last segment ("create", "get") under its service to a function of the call
+ * count, so a test scripts what each poll reads. Unrouted calls answer 404.
+ */
+async function serveConnectLane(routes) {
+  const calls = new Map();
+  const server = createServer((request, response) => {
+    const procedure = (request.url ?? "").replace(/^\//, "");
+    const route = routes[procedure];
+    if (route === undefined) {
+      response.writeHead(404, { "content-type": "application/json" });
+      response.end(JSON.stringify({ code: "not_found", message: procedure }));
+      return;
+    }
+    const n = (calls.get(procedure) ?? 0) + 1;
+    calls.set(procedure, n);
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify(route(n)));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    baseUrl: `http://127.0.0.1:${server.address().port}`,
+    calls: (procedure) => calls.get(procedure) ?? 0,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
+
+const ORG_CREATE = "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create";
+const AGENT_CREATE = "ai.stigmer.agentic.agent.v1.AgentCommandController/create";
+const AEX_CREATE = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create";
+const AEX_GET = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get";
+const REPLY = "This is the Stigmer fake model's default reply; no real model was called.";
+
+function agentLane(executionAt) {
+  return serveConnectLane({
+    [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
+    [AGENT_CREATE]: () => ({ metadata: { id: "agt_smoke_1" } }),
+    [AEX_CREATE]: () => ({ metadata: { id: "aex_smoke_1" } }),
+    [AEX_GET]: executionAt,
+  });
+}
+
+function completedWith(messages) {
+  return { metadata: { id: "aex_smoke_1" }, status: { phase: "EXECUTION_COMPLETED", messages } };
+}
+
+test("an agent run passes on the model's reply, and yields the ids an upgrade reads back", async () => {
+  const lane = await agentLane((n) =>
+    n === 1
+      ? { status: { phase: "EXECUTION_IN_PROGRESS", messages: [] } }
+      : completedWith([
+          { type: "MESSAGE_HUMAN", content: "Say hello." },
+          { type: "MESSAGE_AI", content: REPLY },
+        ]),
+  );
+  try {
+    const result = await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
+    assert.deepEqual(result, { orgId: "org_smoke_1", agentId: "agt_smoke_1", executionId: "aex_smoke_1", reply: REPLY });
+    assert.equal(lane.calls(AEX_GET), 2);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("an agent run that completes without the model's reply fails, naming both texts", async () => {
+  const lane = await agentLane(() =>
+    completedWith([
+      { type: "MESSAGE_AI", content: REPLY },
+      { type: "MESSAGE_AI", content: "something else answered" },
+    ]),
+  );
+  try {
+    await assert.rejects(
+      runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY }),
+      /last reply is not the model's: expected it to contain .*got "something else answered"/,
+    );
+  } finally {
+    await lane.close();
+  }
+});
+
+test("an agent run that fails ends the wait at once with the execution's error", async () => {
+  const lane = await agentLane(() => ({
+    status: { phase: "EXECUTION_FAILED", error: "400 invalid_request_error: the model refused" },
+  }));
+  const started = Date.now();
+  try {
+    await assert.rejects(
+      runAgentToReply(lane.baseUrl, 60_000, { expectText: REPLY }),
+      /agent execution reached EXECUTION_FAILED: 400 invalid_request_error: the model refused/,
+    );
+    assert.ok(Date.now() - started < 5_000, "the failure waited for the deadline");
+    assert.equal(lane.calls(AEX_GET), 1);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("an agent run needs the reply text the install's model answers with", async () => {
+  await assert.rejects(runAgentToReply("http://127.0.0.1:9", 1_000, {}), /needs the reply text/);
+});
+
+test("a workflow run that fails ends the wait at once (#1514)", async () => {
+  const lane = await serveConnectLane({
+    [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
+    "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": () => ({ metadata: { id: "wfl_smoke_1" } }),
+    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create": () => ({
+      metadata: { id: "wex_smoke_1" },
+    }),
+    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get": () => ({
+      status: { phase: "EXECUTION_FAILED", error: { message: "set_vars failed" } },
+    }),
+  });
+  const started = Date.now();
+  try {
+    await assert.rejects(runSetVarsWorkflow(lane.baseUrl, 60_000), /execution reached EXECUTION_FAILED: .*set_vars failed/);
+    assert.ok(Date.now() - started < 5_000, "the failure waited for the deadline");
+  } finally {
+    await lane.close();
+  }
+});
+
+test("pollUntil retries a transient error until the probe succeeds", async () => {
+  let n = 0;
+  const value = await pollUntil(
+    "a flaky probe",
+    5_000,
+    async () => {
+      n += 1;
+      if (n < 3) throw new Error("connection refused");
+      return "ready";
+    },
+    { intervalMs: 10 },
+  );
+  assert.equal(value, "ready");
+  assert.equal(n, 3);
+});
+
+test("pollUntil reports a timeout with the probe's last error", async () => {
+  await assert.rejects(
+    pollUntil("never", 50, async () => {
+      throw new Error("still booting");
+    }, { intervalMs: 10 }),
+    /timed out waiting for never \(50ms\): still booting/,
+  );
 });

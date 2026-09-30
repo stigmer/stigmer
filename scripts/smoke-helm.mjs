@@ -18,7 +18,13 @@
  *   2. through a port-forward, the same probes as the compose stack and the
  *      all-in-one: health SERVING, the console's /config.json contract, the
  *      artifact file server, one END-TO-END `set_vars` workflow execution
- *      through the runner with zero LLM keys;
+ *      through the runner with zero LLM keys, then one AGENT RUN answered by
+ *      a model: the release is installed the way the chart's README tells a
+ *      user to configure one (runner.llm.existingSecret for the key,
+ *      runner.extraEnv for ANTHROPIC_BASE_URL), pointed at a fake Anthropic
+ *      API on this host (scripts/lib/fake-model.mjs), which the pods reach
+ *      by host.docker.internal where the kind node resolves it (Docker
+ *      Desktop) and by the kind network's gateway otherwise (Linux);
  *   3. (bundled profile) the adversarial arms: the bundled Temporal admits
  *      the stigmer pod and refuses a pod outside the release (its
  *      NetworkPolicy, enforced by kind's network plugin); the pod is deleted
@@ -48,6 +54,8 @@
  *   --profiles=bundled,byo   which profiles to run (default: both)
  *   --cluster=<name>         use an existing kind cluster and leave it
  *   --keep                   leave the cluster running for debugging
+ *   --fake-model=error       the fake answers every model call with an error,
+ *                            so the agent run must fail (its red-first check)
  *
  * The port-forward uses the product's fixed ports 7234/7235, so this smoke
  * refuses to start if they are occupied. Keys are generated fresh per run;
@@ -68,9 +76,11 @@ import {
   assertPortFree,
   connectJson,
   pollUntil,
+  runAgentToReply,
   runSetVarsWorkflow,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
+import { FAKE_MODEL_API_KEY, fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
@@ -85,6 +95,8 @@ const IMAGE_REGISTRY = "ghcr.io/stigmer";
 const SERVER_REPOSITORY = "stigmer-server";
 const RUNNER_REPOSITORY = "stigmer-runner";
 const DEV_TAG = "compose-dev";
+/** The Secret each profile's namespace carries for runner.llm.existingSecret. */
+const LLM_SECRET = "stigmer-smoke-llm";
 
 // First install pulls or loads two large images, starts Postgres, lets
 // auto-setup create Temporal's schema, and waits through the server's
@@ -102,10 +114,13 @@ function parseArgs() {
     profiles: ["bundled", "byo"],
     cluster: "",
     keep: false,
+    fakeModel: "reply",
   };
   for (const arg of process.argv.slice(2)) {
     let m;
-    if (arg === "--build") args.mode = "build";
+    const fakeModelMode = parseFakeModelArg(arg);
+    if (fakeModelMode !== undefined) args.fakeModel = fakeModelMode;
+    else if (arg === "--build") args.mode = "build";
     else if (arg === "--published")
       args.mode = args.mode === "" ? "published" : args.mode;
     else if ((m = arg.match(/^--version=(.+)$/)) !== null) args.version = m[1];
@@ -259,7 +274,10 @@ function freshSecretLiterals(withPostgresPassword, postgresPassword) {
   return literals;
 }
 
-/** The chart's Secret in the profile's namespace, with fresh keys. */
+/**
+ * The chart's Secret in the profile's namespace, with fresh keys, and the
+ * LLM key Secret the release names in runner.llm.existingSecret.
+ */
 function createChartSecret(namespace, postgresPassword) {
   kubectl(["create", "namespace", namespace]);
   kubectl([
@@ -271,6 +289,44 @@ function createChartSecret(namespace, postgresPassword) {
     "stigmer-secrets",
     ...freshSecretLiterals(true, postgresPassword),
   ]);
+  kubectl([
+    "-n",
+    namespace,
+    "create",
+    "secret",
+    "generic",
+    LLM_SECRET,
+    `--from-literal=ANTHROPIC_API_KEY=${FAKE_MODEL_API_KEY}`,
+  ]);
+}
+
+/**
+ * The name a pod on this kind cluster reaches the host by. Docker Desktop
+ * resolves host.docker.internal inside the node (and so, through CoreDNS, in
+ * every pod) and does not route the kind network's gateway to the host;
+ * Linux Docker does the reverse. The node's own resolver decides.
+ */
+function hostAddressFromKind(cluster) {
+  const resolved = spawnSync(
+    "docker",
+    ["exec", `${cluster}-control-plane`, "getent", "hosts", "host.docker.internal"],
+    { encoding: "utf8" },
+  );
+  if (resolved.status === 0 && resolved.stdout.trim() !== "") return "host.docker.internal";
+  const gateways = run("docker", [
+    "network",
+    "inspect",
+    "kind",
+    "--format",
+    "{{range .IPAM.Config}}{{.Gateway}} {{end}}",
+  ])
+    .trim()
+    .split(/\s+/)
+    .filter((gateway) => /^\d+\.\d+\.\d+\.\d+$/.test(gateway));
+  if (gateways.length === 0) {
+    throw new Error("no way to reach the host from kind: host.docker.internal does not resolve and the kind network has no IPv4 gateway");
+  }
+  return gateways[0];
 }
 
 /** The BYO stand-ins: their Secret shares the chart's database password. */
@@ -325,6 +381,14 @@ function helmInstallArgs(verb, namespace, profile, args) {
     "--wait",
     "--timeout",
     INSTALL_TIMEOUT,
+    // The model, as a user configures it: the key from a Secret, the address
+    // as an extra runner env var (the chart has no dedicated value for it).
+    "--set",
+    `runner.llm.existingSecret=${LLM_SECRET}`,
+    "--set",
+    "runner.extraEnv[0].name=ANTHROPIC_BASE_URL",
+    "--set",
+    `runner.extraEnv[0].value=${args.modelBaseUrl}`,
   ];
   if (args.mode === "build") {
     helmArgs.push(
@@ -447,8 +511,8 @@ async function portForward(namespace) {
   };
 }
 
-/** The shared probes: SERVING, the console contract, the artifact lane, one run. */
-async function probeStack(namespace) {
+/** The shared probes: SERVING, the console contract, the artifact lane, a workflow run, an agent run. */
+async function probeStack(namespace, fake) {
   const baseUrl = `http://127.0.0.1:${SERVER_PORT}`;
   const forward = await portForward(namespace);
   try {
@@ -466,6 +530,13 @@ async function probeStack(namespace) {
     );
     log(
       `end-to-end run: execution ${executionId} COMPLETED through the runner`,
+    );
+    const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, {
+      expectText: fake.replyText,
+      log,
+    });
+    log(
+      `agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`,
     );
     return executionId;
   } finally {
@@ -701,7 +772,7 @@ function dumpDiagnostics(namespace) {
   }
 }
 
-async function runProfile(profile, args, postgresPassword) {
+async function runProfile(profile, args, postgresPassword, fake) {
   const namespace = `smoke-${profile}`;
   log(`=== profile ${profile} (namespace ${namespace}) ===`);
   createChartSecret(namespace, postgresPassword);
@@ -716,7 +787,7 @@ async function runProfile(profile, args, postgresPassword) {
   assertZeroRestarts(namespace);
   log("every container reached Ready with zero restarts");
 
-  const executionId = await probeStack(namespace);
+  const executionId = await probeStack(namespace, fake);
   if (profile === "bundled") {
     await adversarialArms(namespace, profile, args, executionId);
   }
@@ -741,6 +812,7 @@ async function main() {
   const postgresPassword = randomBytes(24).toString("hex");
   let failed = false;
   let currentNamespace = "";
+  const fake = await startFakeModel({ host: "0.0.0.0", mode: args.fakeModel });
   try {
     if (ownCluster) {
       log(`kind create cluster ${cluster}`);
@@ -750,10 +822,12 @@ async function main() {
     }
     run("kubectl", ["config", "use-context", `kind-${cluster}`]);
     if (args.mode === "build") buildAndLoadImages(cluster);
+    args.modelBaseUrl = fakeModelEnv(fake, hostAddressFromKind(cluster)).ANTHROPIC_BASE_URL;
+    log(`the model: the fake at ${args.modelBaseUrl}, mode ${args.fakeModel}`);
 
     for (const profile of args.profiles) {
       currentNamespace = `smoke-${profile}`;
-      await runProfile(profile, args, postgresPassword);
+      await runProfile(profile, args, postgresPassword, fake);
     }
     log("PASS");
   } catch (error) {
@@ -770,6 +844,7 @@ async function main() {
     } else if (ownCluster) {
       log(`--keep: cluster ${cluster} left running`);
     }
+    await fake.close();
   }
   process.exit(failed ? 1 : 0);
 }

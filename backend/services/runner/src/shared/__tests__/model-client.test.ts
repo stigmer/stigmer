@@ -58,6 +58,7 @@ describe("buildChatModel", () => {
     delete process.env.STIGMER_OPENAI_BACKEND;
     delete process.env.CLOUD_ML_REGION;
     delete process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS;
+    delete process.env.ANTHROPIC_BASE_URL;
   });
 
   afterEach(() => {
@@ -277,6 +278,80 @@ describe("buildChatModel", () => {
         expect(args).not.toHaveProperty("maxRetries");
       },
     );
+  });
+
+  // ─── The public API's address (ANTHROPIC_BASE_URL) ─────────────────────────
+
+  describe("the public Anthropic API's address", () => {
+    it("sends a direct-mode Anthropic client to ANTHROPIC_BASE_URL, trailing slash dropped", async () => {
+      process.env.ANTHROPIC_API_KEY = "sk-direct";
+      process.env.ANTHROPIC_BASE_URL = "http://llm-gateway.internal:8080/";
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-haiku-4.5" });
+
+      expect(lastAnthropicArgs()).toMatchObject({
+        apiKey: "sk-direct",
+        clientOptions: { baseURL: "http://llm-gateway.internal:8080" },
+      });
+    });
+
+    it("lets the proxy's provider path win over it", async () => {
+      process.env.ANTHROPIC_BASE_URL = "http://llm-gateway.internal:8080";
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({
+        modelName: "claude-haiku-4.5",
+        proxyEndpoint: "https://api.stigmer.ai",
+        stigmerToken: "tok",
+      });
+
+      expect(lastAnthropicArgs()).toMatchObject({
+        clientOptions: { baseURL: "https://api.stigmer.ai/v1/proxy/llm/anthropic" },
+      });
+    });
+
+    it("leaves a backend adapter on its own endpoint", async () => {
+      process.env.ANTHROPIC_BASE_URL = "http://llm-gateway.internal:8080";
+      process.env.STIGMER_ANTHROPIC_BACKEND = "vertex";
+      process.env.CLOUD_ML_REGION = "asia-south1";
+      mockRegistryResponse([
+        { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic" },
+      ]);
+
+      await buildChatModel({ modelName: "claude-sonnet-4.6" });
+
+      const args = lastAnthropicArgs();
+      expect(args).toHaveProperty("createClient");
+      expect(args).not.toHaveProperty("clientOptions");
+    });
+
+    it("leaves the OpenAI client on its default address", async () => {
+      process.env.ANTHROPIC_BASE_URL = "http://llm-gateway.internal:8080";
+      mockRegistryResponse([
+        { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
+      ]);
+
+      await buildChatModel({ modelName: "gpt-4.1" });
+
+      const args = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      expect(args).not.toHaveProperty("configuration");
+    });
+
+    it("refuses a value that is not an http(s) URL instead of sending to it", async () => {
+      process.env.ANTHROPIC_BASE_URL = "llm-gateway.internal:8080";
+      mockRegistryResponse([
+        { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" },
+      ]);
+
+      await expect(buildChatModel({ modelName: "claude-haiku-4.5" }))
+        .rejects.toThrow(/ANTHROPIC_BASE_URL="llm-gateway.internal:8080" is not an http\(s\) URL/);
+      expect(mockAnthropicCtor).not.toHaveBeenCalled();
+    });
   });
 
   // ─── Provider backends (STIGMER_ANTHROPIC_BACKEND) ─────────────────────────

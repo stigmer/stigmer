@@ -1,0 +1,22 @@
+# The RPC contract's waivers: the declared RPCs that no conformance test here
+# tags as `[rpc:<Service>.<method>]`, each with the reason it is not.
+#
+# Every RPC the API declares is either tagged on the conformance test that
+# pins its promise and sends it (the transport's recorder fails a tagged test
+# that never sends its RPC, src/harness/rpc-recorder.ts), or listed here.
+# src/inventory/rpc-contract.ts holds the two equal. There are two kinds and
+# nothing else:
+#
+#   - rpc: <Service>.<method>
+#     kind: gap               # no conformance test pins it yet
+#     issue: <number>         # the open stigmer issue that owns the test
+#     reason: <one sentence>
+#
+#   - rpc: <Service>.<method>
+#     kind: proven-elsewhere  # its promise is pinned in another layer
+#     proven_by: <repository-relative path to a *.test.ts carrying the same tag>
+#     reason: <one sentence on why the conformance suite is the wrong layer>
+#
+# An RPC is waived once, never both waived and tagged, and a waiver names a
+# declared RPC; a `proven_by` file must exist and carry the tag.
+waivers: []

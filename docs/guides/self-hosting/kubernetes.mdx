@@ -93,6 +93,17 @@ executions; Agent runs fail at the LLM call. You can add the key later: create
 this Secret, add its line to your values file, and run the `helm upgrade` shown
 further down this page.
 
+If your model traffic goes through an LLM gateway in front of Anthropic, give
+the runner its address in your values file (see
+[Send Claude calls through an LLM gateway](/docs/guides/runners/model-backends#send-claude-calls-through-an-llm-gateway)):
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+runner:
+  extraEnv:
+    - name: ANTHROPIC_BASE_URL
+      value: https://llm-gateway.internal
+```
+
 ### Write your values file and install
 
 Create a file called `values.yaml`. It names the Secrets you just created and

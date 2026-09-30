@@ -13,8 +13,8 @@
  * What one pass proves, in order:
  *   1. the container reaches Docker `healthy` — this executes the
  *      Dockerfile's HEALTHCHECK line, which no other test touches;
- *   2. the banner carries the evaluation label, and with no LLM credential
- *      the no-key warning — the words a first-time user reads;
+ *   2. the banner carries the evaluation label and, with the model
+ *      configured, no no-key warning;
  *   3. the real health service answers SERVING and the console lane serves
  *      its contract (/config.json, / as HTML);
  *   4. the backend was bootstrapped on first boot: the `stigmer` organization
@@ -24,9 +24,13 @@
  *      EXECUTION_COMPLETED: only possible if the embedded Temporal, the
  *      server's workers AND the embedded runner all work inside the one
  *      container (this is also the only boot check the EMITTED slim npm
- *      packages get, the shape a laptop's `stigmer up` acquires);
+ *      packages get, the shape a laptop's `stigmer up` acquires); then an
+ *      agent answers: the container is started the way a user configures a
+ *      model (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), pointed at a fake
+ *      Anthropic API on this host (scripts/lib/fake-model.mjs), and the
+ *      run must complete with the fake's reply as its last message;
  *   6. the artifact file server answers on its published port;
- *   7. state survives `docker restart`;
+ *   7. state survives `docker restart`, the agent's reply included;
  *   8. state and liveness survive an UNCLEAN restart (`docker kill`, then
  *      `docker start`): the stale PID and lock files a fresh PID namespace
  *      makes deterministic must not make the daemon signal itself or refuse
@@ -35,14 +39,18 @@
  *   9. `docker stop -t 30` (SIGTERM through tini) exits 0;
  *  10. a bind mount the non-root user cannot write is refused with the
  *      entrypoint's message (skipped where the host does not enforce
- *      ownership, e.g. Docker Desktop on macOS).
+ *      ownership, e.g. Docker Desktop on macOS);
+ *  11. started with no LLM credential, the banner warns that agents will
+ *      not execute — the words a first-time user reads.
  *
  * Usage:
- *   node scripts/smoke-all-in-one.mjs [--image=TAG]
+ *   node scripts/smoke-all-in-one.mjs [--image=TAG] [--fake-model=error]
  *
  *   Without --image: builds a local image from deploy/all-in-one/stage
  *   (stage-all-in-one.mjs must have run; `make smoke-all-in-one` does both).
  *   With --image: smokes the given tag as-is (the release lane's mode).
+ *   --fake-model=error: the fake answers every model call with an error, so
+ *   step 5's agent run must fail — the red-first check of that step.
  *
  * Plain node + docker CLI, no dependencies — runnable everywhere CI is.
  */
@@ -56,12 +64,16 @@ import {
   assertArtifactLane,
   assertConsoleServed,
   connectJson,
+  lastAiReply,
   pollUntil,
+  readAgentExecution,
+  runAgentToReply,
   runSetVarsWorkflow,
   sleep,
   waitForBootstrapOrganization,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
+import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const imageRoot = join(repoRoot, "deploy", "all-in-one");
@@ -73,15 +85,20 @@ const RUN_COMPLETED_TIMEOUT_MS = 180_000;
 const STOP_GRACE_SECONDS = 30;
 // Three ticks of Temporal's 5s supervisor: a restart loop shows within one.
 const SUPERVISOR_WINDOW_MS = 16_000;
+// deploy/all-in-one/entrypoint.sh's words when no LLM credential is set.
+const NO_KEY_WARNING = "Agents will not execute";
 
 function parseArgs() {
   let image = "";
+  let fakeModel = "reply";
   for (const arg of process.argv.slice(2)) {
     const m = arg.match(/^--image=(.+)$/);
+    const mode = parseFakeModelArg(arg);
     if (m !== null) image = m[1];
+    else if (mode !== undefined) fakeModel = mode;
     else fail(`unknown argument: ${arg}`);
   }
-  return { image };
+  return { image, fakeModel };
 }
 
 function fail(message) {
@@ -152,16 +169,19 @@ function temporalPid(container) {
 }
 
 async function main() {
-  const { image: givenImage } = parseArgs();
+  const { image: givenImage, fakeModel } = parseArgs();
   const image = givenImage !== "" ? givenImage : buildLocalImage();
 
   const suffix = `${Date.now()}`;
   const container = `stigmer-aio-smoke-${suffix}`;
   const volume = `${container}-data`;
   let failed = false;
+  // The container reaches this host by the gateway name Docker maps below.
+  const fake = await startFakeModel({ host: "0.0.0.0", mode: fakeModel });
+  const modelEnv = fakeModelEnv(fake, "host.docker.internal");
 
   try {
-    log(`docker run ${image} (no LLM credential on purpose)`);
+    log(`docker run ${image} (the model: the fake at ${modelEnv.ANTHROPIC_BASE_URL}, mode ${fakeModel})`);
     docker([
       "run",
       "--detach",
@@ -171,6 +191,12 @@ async function main() {
       "127.0.0.1::7234",
       "--publish",
       "127.0.0.1::7235",
+      "--add-host",
+      "host.docker.internal:host-gateway",
+      "--env",
+      `ANTHROPIC_API_KEY=${modelEnv.ANTHROPIC_API_KEY}`,
+      "--env",
+      `ANTHROPIC_BASE_URL=${modelEnv.ANTHROPIC_BASE_URL}`,
       "--volume",
       `${volume}:/data`,
       image,
@@ -182,19 +208,21 @@ async function main() {
     await waitHealthy(container);
     log("docker health: healthy");
 
-    // 2. The banner and the no-key warning; the runner's mirrored lines
-    // follow the server's gate by a moment, so this polls like the rest.
+    // 2. The banner, with no no-key warning now that a model is configured;
+    // the runner's mirrored lines follow the server's gate by a moment, so
+    // this polls like the rest.
     await pollUntil("banner and mirrored component logs", HEALTHY_TIMEOUT_MS, () => {
       const logs = docker(["logs", container]);
-      for (const needle of ["EVALUATION ONLY", "NOT FOR PRODUCTION", "Agents will not execute"]) {
+      for (const needle of ["EVALUATION ONLY", "NOT FOR PRODUCTION"]) {
         if (!logs.includes(needle)) throw new Error(`container logs lack ${JSON.stringify(needle)}`);
       }
+      if (logs.includes(NO_KEY_WARNING)) throw new Error("the no-key warning printed with a model configured");
       if (!logs.includes("[stigmer-server]") || !logs.includes("[runner]")) {
         throw new Error("container logs carry no mirrored server/runner lines yet");
       }
       return true;
     });
-    log("banner: evaluation label, no-key warning, and mirrored component logs present");
+    log("banner: evaluation label and mirrored component logs present; no no-key warning");
 
     // 3. SERVING and the console lane.
     await waitForServing(baseUrl, HEALTHY_TIMEOUT_MS);
@@ -210,6 +238,8 @@ async function main() {
     // 5. The end-to-end run through Temporal, the server's workers and the runner.
     const executionId = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
     log(`end-to-end run: execution ${executionId} COMPLETED inside the one container`);
+    const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
+    log(`agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
 
     // 6. The artifact lane on its published port.
     await assertArtifactLane(artifactUrl);
@@ -228,7 +258,11 @@ async function main() {
     if (after.status?.phase !== "EXECUTION_COMPLETED") {
       throw new Error(`execution ${executionId} not found or not completed after restart: ${JSON.stringify(after.status)}`);
     }
-    log("state survived docker restart");
+    const agentAfter = await readAgentExecution(restartedBase, agentRun.executionId);
+    if (lastAiReply(agentAfter) !== agentRun.reply) {
+      throw new Error(`agent execution ${agentRun.executionId} lost its reply across the restart: ${JSON.stringify(agentAfter.status)}`);
+    }
+    log("state survived docker restart, the agent's reply included");
 
     // 8. Unclean restart: stale pid/lock files on the volume, fresh PID namespace.
     log("docker kill (unclean stop), then docker start");
@@ -268,6 +302,9 @@ async function main() {
     // 10. An unwritable bind mount is refused with the entrypoint's message.
     await assertUnwritableBindMountRefused(image, suffix);
 
+    // 11. Without a credential, the banner says agents will not execute.
+    await assertNoKeyWarning(image, suffix);
+
     log("PASS");
   } catch (error) {
     failed = true;
@@ -286,8 +323,27 @@ async function main() {
   } finally {
     spawnSync("docker", ["rm", "--force", container], { stdio: "ignore" });
     spawnSync("docker", ["volume", "rm", "--force", volume], { stdio: "ignore" });
+    await fake.close();
   }
   process.exit(failed ? 1 : 0);
+}
+
+/**
+ * Boots the image with no LLM credential on a volume of its own and waits for
+ * the entrypoint's warning, which it prints before the stack starts; the
+ * container is removed as soon as the words are seen.
+ */
+async function assertNoKeyWarning(image, suffix) {
+  const container = `stigmer-aio-smoke-nokey-${suffix}`;
+  const volume = `${container}-data`;
+  try {
+    docker(["run", "--detach", "--name", container, "--volume", `${volume}:/data`, image]);
+    await pollUntil("the no-key warning", HEALTHY_TIMEOUT_MS, () => docker(["logs", container]).includes(NO_KEY_WARNING));
+    log("no LLM credential: the banner warns that agents will not execute");
+  } finally {
+    spawnSync("docker", ["rm", "--force", container], { stdio: "ignore" });
+    spawnSync("docker", ["volume", "rm", "--force", volume], { stdio: "ignore" });
+  }
 }
 
 async function assertUnwritableBindMountRefused(image, suffix) {

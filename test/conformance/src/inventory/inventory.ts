@@ -208,7 +208,9 @@ export async function collectTags(suiteRoots: readonly string[], cwd: string): P
   return tags;
 }
 
-async function listTestFiles(root: string): Promise<string[]> {
+// Every `*.test.ts` under `root`, sorted; the RPC contract's tag scan walks the
+// same suites.
+export async function listTestFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
   const files: string[] = [];
   for (const entry of entries) {

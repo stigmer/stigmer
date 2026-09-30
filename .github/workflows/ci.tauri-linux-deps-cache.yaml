@@ -1,0 +1,98 @@
+# =============================================================================
+# Tauri package cache writer (main only)
+# =============================================================================
+# The Tauri lanes (ci.ts-workspace's desktop-rust, ci.crate's rust job) fetch
+# about 75 MB of Ubuntu archives on every run, and a slow mirror has held the
+# gate for up to 20 minutes on that download (#1529). This lane is the one
+# writer of the cache that serves them; .github/actions/tauri-linux-deps is
+# the one reader. apt-cache.sh's header carries the trust model: every cached
+# archive is hash-checked against the fresh package index before apt sees it.
+#
+# When it runs:
+#   - on a push to main that changes the action or this file, so a new
+#     package list has an entry before the next lane asks for it;
+#   - daily, because the key is content-addressed from the archives apt would
+#     fetch: a noble-updates release or a runner image roll changes it, and an
+#     entry nobody reads is evicted in about 1.3 days while the repository's
+#     cache sits above its 10 GB quota (2026-09-30). Daily rather than
+#     ci.e2e's weekdays, so Monday does not start with the entry gone;
+#   - on dispatch, as the "warm it now" button.
+# Not on every push: turbo-cache keys by commit and must, but this key changes
+# only when the archives do, so a per-merge job would take a runner slot from
+# the gate and save nothing new.
+#
+# On an exact hit the job installs from the cache and saves nothing. On a miss
+# or a prefix-only restore it stages exactly the archives this install used
+# and saves them under the new key.
+#
+# This lane blocks no PR. Red here means the Tauri lanes download from the
+# mirror again: slower, never wrong. A red push or scheduled run files one
+# issue per breakage window.
+# =============================================================================
+
+name: ci.tauri-linux-deps-cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/actions/tauri-linux-deps/**"
+      - ".github/workflows/ci.tauri-linux-deps-cache.yaml"
+  schedule:
+    - cron: "23 5 * * *"
+  # A dispatch is watched, so it does not notify.
+  workflow_dispatch:
+
+concurrency:
+  group: tauri-linux-deps-cache-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  write:
+    name: Write the Tauri package cache
+    # The only runner the reading lanes use; its key prefix
+    # (tauri-apt-ubuntu24.04-amd64-) is the one they restore from.
+    runs-on: ubuntu-latest
+    # On a miss this job downloads from the same mirror the lanes do.
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Tauri's Linux packages
+        id: deps
+        uses: ./.github/actions/tauri-linux-deps
+
+      - name: Stage exactly the archives this install used
+        if: steps.deps.outputs.cache-hit != 'true'
+        run: .github/actions/tauri-linux-deps/apt-cache.sh stage
+
+      - name: Save the Tauri package cache
+        if: steps.deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/tauri-apt
+          key: ${{ steps.deps.outputs.key }}
+
+  # Push and scheduled runs are unattended; dispatches are watched (#477).
+  # Shared file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Tauri Package Cache Writer Failure Issue
+    needs: [write]
+    if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-tauri-linux-deps-cache-failure
+      title: "ci.tauri-linux-deps-cache: the Tauri package cache writer is failing on main"
+      body-context: >-
+        This lane installs the Linux packages Tauri compiles against and saves
+        their archives for the desktop-rust and crate lanes to restore. While
+        it is red, those lanes download from the Ubuntu mirror again: slower,
+        never wrong. A failure here is usually a mirror outage, a package the
+        index no longer resolves, or a change to apt-cache.sh that this lane
+        did not follow.
