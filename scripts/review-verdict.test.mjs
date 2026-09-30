@@ -181,6 +181,8 @@ test("a reviewer's output that could not be posted honestly is refused", () => {
     [{ verdict: "approve", reviewer: "m" }, /findings is a list/],
     [{ verdict: "approve", reviewer: "m", findings: [{ path: "a.ts", severity: "blocking", summary: "x" }] }, /approve cannot carry a blocking finding/],
     [{ verdict: "changes-needed", reviewer: "m", findings: [{ path: "a.ts", severity: "major", summary: "x" }] }, /severity must be one of/],
+    [{ verdict: "changes-needed", reviewer: "m", findings: [] }, /names at least one blocking finding/],
+    [{ verdict: "changes-needed", reviewer: "m", findings: [{ path: "a.ts", severity: "minor", summary: "x" }] }, /names at least one blocking finding/],
     [{ verdict: "changes-needed", reviewer: "m", findings: [{ path: "a.ts", line: "3", severity: "minor", summary: "x" }] }, /line is not a line number/],
     [{ verdict: "changes-needed", reviewer: "m", findings: [{ severity: "minor", summary: "x" }] }, /path is missing/],
     [{ verdict: "changes-needed", reviewer: "m", findings: [{ path: "a.ts", severity: "minor" }] }, /summary is missing/],
@@ -361,7 +363,7 @@ test("a posted verdict reruns the head's newest check run once it has finished",
 
 test("a head with no check run, or a repository without the workflow, is said so, not rerun", () => {
   const none = fakeGh({ "run list": "[]" });
-  assert.match(rejudge("stigmer/stigmer", HEAD, none.api), /no ci\.review\.yaml run exists for aaaaaaaaaa.*merge main into the branch and push/);
+  assert.match(rejudge("stigmer/stigmer", HEAD, none.api), /no ci\.review\.yaml run exists for aaaaaaaaaa.*conflicts with its base.*Merge main into the branch and push/);
   assert.deepEqual(none.calls, ["run list"]);
   const missing = new Error("Command failed");
   missing.stderr = "could not find any workflows named ci.review.yaml";

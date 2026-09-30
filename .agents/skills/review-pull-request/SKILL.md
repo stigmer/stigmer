@@ -20,7 +20,8 @@ header has the rules. The `Review verdict` check (`ci.review.yaml`) requires a
 current `approve` on stigmer; on stigmer-cloud the merge hook does.
 
 The session that owns the pull request runs this at the end of its verification,
-so a `changes-needed` is fixed before anyone is asked to merge. The merge skill
+so a `changes-needed` is fixed before anyone is asked to merge. Stigmer's merges
+are armed from stigmer-cloud's merge skill (`merge-stigmer-pull-request`), which
 runs it again only when the verdict is missing or stale.
 
 ## Procedure

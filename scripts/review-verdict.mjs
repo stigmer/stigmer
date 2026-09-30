@@ -220,9 +220,9 @@ export function verdictProblems(output) {
     if (!SEVERITIES.includes(f?.severity)) problems.push(`findings[${i}].severity must be one of ${SEVERITIES.join(", ")}`);
     if (typeof f?.summary !== "string" || f.summary.trim() === "") problems.push(`findings[${i}].summary is missing`);
   }
-  if (output.verdict === "approve" && (output.findings ?? []).some((f) => f?.severity === "blocking")) {
-    problems.push("an approve cannot carry a blocking finding");
-  }
+  const blocking = (Array.isArray(output.findings) ? output.findings : []).some((f) => f?.severity === "blocking");
+  if (output.verdict === "approve" && blocking) problems.push("an approve cannot carry a blocking finding");
+  if (output.verdict === "changes-needed" && !blocking) problems.push("a changes-needed names at least one blocking finding, the change to make");
   return problems;
 }
 
@@ -384,7 +384,7 @@ export function rejudge(repo, head, api = gh) {
     throw error;
   }
   if (runs.length === 0) {
-    return `no ${CHECK_WORKFLOW} run exists for ${head.slice(0, 10)} (pushed before the workflow existed): merge main into the branch and push, or comment \`@dependabot rebase\`, and the new run reads this verdict`;
+    return `no ${CHECK_WORKFLOW} run exists for ${head.slice(0, 10)}: it was pushed before the workflow existed, or it conflicts with its base (GitHub runs no workflow then). Merge main into the branch and push, or comment \`@dependabot rebase\`, and the new run reads this verdict`;
   }
   const id = String(runs[0].databaseId);
   if (runs[0].status !== "completed") {
