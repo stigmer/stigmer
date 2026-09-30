@@ -23,6 +23,7 @@
  */
 
 import type { PluginErrorKind } from "./outcome.js";
+import { trimTrailing } from "./trim.js";
 
 export interface PluginFileEntry {
   /** Plugin-relative POSIX path, no leading `./`, files only. */
@@ -142,7 +143,7 @@ export function resolveDeclaredPath(value: string): DeclaredPathOutcome {
   if (GLOB_CHARACTERS.test(value)) return { ok: false, kind: "path-glob-unsupported" };
   if (value === "." || value === "./") return { ok: true, path: "" };
   if (!value.startsWith("./")) return { ok: false, kind: "path-not-relative" };
-  const trimmed = value.slice(2).replace(/\/+$/, "");
+  const trimmed = trimTrailing(value.slice(2), "/");
   if (trimmed === "") return { ok: true, path: "" };
   if (!isContainedPath(trimmed)) return { ok: false, kind: "path-escapes-root" };
   return { ok: true, path: trimmed };

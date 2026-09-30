@@ -14,6 +14,7 @@ export {
   type MintUserTokenInput,
   type MintUserTokenResult,
 } from "./platform-client-auth.js";
+import { trimTrailing } from "./internal/trim.js";
 
 /**
  * Configuration for creating a Node.js-compatible Stigmer client.
@@ -158,7 +159,7 @@ export function normalizeEndpoint(raw: string): string {
 
   // gRPC targets are host:port; the scheme (if any) is informational and is
   // stripped so the TLS decision derives solely from the resolved port.
-  endpoint = endpoint.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  endpoint = trimTrailing(endpoint.replace(/^https?:\/\//i, ""), "/");
   if (endpoint === "") {
     throw new Error("normalizeEndpoint: endpoint has no host");
   }

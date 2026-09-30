@@ -41,6 +41,7 @@ import {
 } from "./useSaveAgentShare.js";
 import { useRotateShareLink } from "./useRotateShareLink.js";
 import { useShareToolReadiness } from "./useShareToolReadiness.js";
+import { trimTrailing } from "../internal/trim.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
@@ -1521,7 +1522,7 @@ function buildDeveloperSnippet(
   org: string,
   slug: string,
 ): string {
-  const baseUrl = JSON.stringify(apiBaseUrl.replace(/\/+$/, ""));
+  const baseUrl = JSON.stringify(trimTrailing(apiBaseUrl, "/"));
   return [
     `import { createPlatformClientAuth } from "@stigmer/sdk/node";`,
     ``,

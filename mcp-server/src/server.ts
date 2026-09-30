@@ -45,6 +45,7 @@ import { registerWorkflowResources } from "./domains/workflows/resources.js";
 import { registerWorkflowTools } from "./domains/workflows/tools.js";
 import { registerValidateWorkflowYamlTool } from "./domains/workflows/validate.js";
 import { log } from "./logger.js";
+import { trimTrailing } from "./trim.js";
 
 /**
  * Server version. Overridable at publish/build time; "dev" otherwise, matching
@@ -573,7 +574,7 @@ function serveProtectedResourceMetadata(
  * protected-resource-metadata document (RFC 9728 §5.1). Mirrors Go bearerChallenge.
  */
 function bearerChallenge(cfg: Config): string {
-  const metadataURL = cfg.oauth.resource.replace(/\/+$/, "") + PROTECTED_RESOURCE_METADATA_PATH;
+  const metadataURL = trimTrailing(cfg.oauth.resource, "/") + PROTECTED_RESOURCE_METADATA_PATH;
   const params = [`realm="stigmer"`, `resource_metadata="${metadataURL}"`];
   if (cfg.oauth.scopesSupported.length > 0) {
     params.push(`scope="${cfg.oauth.scopesSupported.join(" ")}"`);

@@ -4,6 +4,7 @@
 // `**` zero-to-many-directories wildcard.
 
 import { matchName } from "./match.js";
+import { trimTrailing } from "../../trim.js";
 
 export enum MatchResult {
   NoMatch = 0,
@@ -116,7 +117,7 @@ export function parsePattern(raw: string, domain: readonly string[]): Pattern {
   }
 
   if (!p.endsWith("\\ ")) {
-    p = p.replace(/ +$/, "");
+    p = trimTrailing(p, " ");
   }
 
   let dirOnly = false;
