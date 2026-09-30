@@ -3,31 +3,31 @@
 # =============================================================================
 # Analyses the TypeScript, Go, Java, Python and Rust sources with CodeQL and
 # uploads the results to the repository's code scanning. A ruleset rule on
-# `main` ("Require code scanning results", tool CodeQL) refuses a change that
-# introduces a high or critical security alert, or an error-level alert,
-# relative to the base; alerts already on `main` are listed on the Security
+# `main` ("Require code scanning results", tool CodeQL) refuses a pull request
+# that introduces a high or critical security alert, or an error-level alert,
+# relative to its base; alerts already on `main` are listed on the Security
 # tab and never block an unrelated change.
 #
-# Advanced setup, not GitHub's default setup: default setup analyses `push`
-# and `pull_request` only, so it never reports on a merge-queue commit and a
-# required code-scanning result would wait there forever. This workflow runs
-# on `merge_group` as well.
+# The rule judges the pull request before it can enter the merge queue. It
+# never waits on a merge-group commit, and GitHub posts no code-scanning check
+# on one, so this workflow does not run on `merge_group`: a required `CodeQL`
+# check would wait there forever (measured on a scratch queue, 2026-09-30).
+# Two queued pull requests that only together add an alert are caught by the
+# `push` analysis of `main`, which is also what "new" is measured against.
+# The weekly run applies newly published queries to old code.
 #
-# No `paths:` filter, and every language on every change: a required result
-# that a filter skipped would never arrive, the same wedge. `push` to `main`
-# keeps the default branch's analysis current (it is what "new" is measured
-# against), and the weekly run applies newly published queries to old code.
+# No `paths:` filter, and every language on every pull request: a required
+# result that a filter skipped would never arrive.
 #
-# Workflows are not a CodeQL language here: ci.workflows.yaml audits them.
-# Not a lane of ci.gate.yaml: a lane passes or fails on its run, while this
-# check's verdict is code scanning's comparison with the base.
+# Workflows (CodeQL's `actions` language) are left out: a dedicated workflow
+# auditor covers them more strictly, and one finding reported by two tools is
+# two triage queues.
 # =============================================================================
 
 name: ci.codeql
 
 on:
   pull_request:
-  merge_group:
   push:
     branches: [main]
   schedule:
@@ -78,16 +78,16 @@ jobs:
           cache: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@88585263c0627ee42c0e1c5143a112c8d6f4aa18 # v4.38.2
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
       - name: Build (Go)
         if: matrix.build-mode == 'autobuild'
-        uses: github/codeql-action/autobuild@88585263c0627ee42c0e1c5143a112c8d6f4aa18 # v4.38.2
+        uses: github/codeql-action/autobuild@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
 
       - name: Analyze
-        uses: github/codeql-action/analyze@88585263c0627ee42c0e1c5143a112c8d6f4aa18 # v4.38.2
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: /language:${{ matrix.language }}

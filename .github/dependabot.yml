@@ -1,0 +1,104 @@
+# =============================================================================
+# Dependabot: security updates for every manifest
+# =============================================================================
+# Every entry sets `open-pull-requests-limit: 0`, which turns its version
+# updates off; security updates are not subject to that limit, so Dependabot
+# still opens a pull request when an advisory affects a dependency. Each entry
+# groups its security updates, so one advisory that touches several
+# directories arrives as one pull request, not one per lockfile. Upgrades that
+# are not security fixes stay with the maintainers and the release cycle. The
+# cooldown binds version updates only; it is set on every entry so that one
+# turned on later cannot adopt a release published in the last seven days.
+#
+# Dependabot pull requests pass the same required checks as any other.
+# =============================================================================
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directories:
+      - "/"
+      - "/backend/services/stigmer-server"
+      - "/backend/services/runner"
+      - "/site"
+      - "/test/extension-consumer"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directories:
+      - "/apis/stubs/go"
+      - "/sdk/go"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
+    groups:
+      go-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directories:
+      - "/crates/stigmer-runner-host"
+      - "/client-apps/desktop/src-tauri"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
+    groups:
+      cargo-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: maven
+    directories:
+      - "/apis/stubs/java"
+      - "/sdk/java"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
+    groups:
+      maven-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directories:
+      - "/apis/stubs/python/stigmer"
+      - "/sdk/python"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
+    groups:
+      pip-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
+    groups:
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
