@@ -264,6 +264,9 @@ describe("DialogShell portal target (stigmer#1509)", () => {
     expect(published).toBeInstanceOf(HTMLElement);
     expect(dialogOf(container).contains(published!)).toBe(true);
     expect(published!.hasAttribute("data-stgm-portal")).toBe(false);
+    // Fixed, so the dialog's scrolling box cannot clip what it holds
+    // (proven in Chromium by dialog-popups.layout.test.tsx).
+    expect(published!.className).toContain("stg:fixed");
   });
 
   it("a non-modal shell passes the inherited container through", () => {

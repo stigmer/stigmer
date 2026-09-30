@@ -95,7 +95,9 @@ export interface DialogShellProps {
  * refuse every click. The shell therefore owns an empty portal target as
  * its last child and re-provides it through {@link PortalContainerContext}:
  * every SDK popup below it lands in the top layer with the dialog, themed
- * by ordinary inheritance from the provider's in-tree scope. The target
+ * by ordinary inheritance from the provider's in-tree scope. The target is
+ * a zero-size fixed box, so the dialog's own scrolling box never clips a
+ * popup that extends past its edge. The target
  * carries no `data-stgm-portal` marker; that selector keeps meaning the one
  * body container. A non-modal shell is in-flow, so it keeps the provider's
  * container.
@@ -227,7 +229,18 @@ export function DialogShell({
       >
         {children}
       </PortalContainerContext.Provider>
-      {modal && <div ref={setPortalTarget} />}
+      {/* A zero-size fixed box at the viewport origin, not an in-flow
+          div: a fixed box's containing block is the viewport, so popups
+          positioned inside it escape the dialog's own overflow clip (a
+          modal dialog scrolls its content) while staying in its top layer.
+          An in-flow target left every popup cut off at the dialog's edge
+          in Chromium. */}
+      {modal && (
+        <div
+          ref={setPortalTarget}
+          className="stg:fixed stg:top-0 stg:left-0 stg:size-0"
+        />
+      )}
     </dialog>
   );
 }
