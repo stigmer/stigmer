@@ -26,10 +26,10 @@ var File_ai_stigmer_iam_invitation_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_invitation_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/iam/invitation/v1/command.proto\x12\x1cai.stigmer.iam.invitation.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a%ai/stigmer/iam/invitation/v1/io.proto2\xa7\x03\n" +
+	"*ai/stigmer/iam/invitation/v1/command.proto\x12\x1cai.stigmer.iam.invitation.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a%ai/stigmer/iam/invitation/v1/io.proto2\xec\x03\n" +
 	"\x1bInvitationCommandController\x12\xac\x01\n" +
-	"\x06create\x12(.ai.stigmer.iam.invitation.v1.Invitation\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"N¸\x18J\b\x04\x10\x1e\"\fmetadata.org*6unauthorized to create invitation in this organization\x12d\n" +
-	"\x06revoke\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04и\x18\x01\x12m\n" +
+	"\x06create\x12(.ai.stigmer.iam.invitation.v1.Invitation\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"N¸\x18J\b\x04\x10\x1e\"\fmetadata.org*6unauthorized to create invitation in this organization\x12\xa8\x01\n" +
+	"\x06revoke\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"H¸\x18D\b\x02\x10\x14\"\x05value*7unauthorized to revoke invitations in this organization\x12m\n" +
 	"\x06redeem\x123.ai.stigmer.iam.invitation.v1.RedeemInvitationInput\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04и\x18\x01\x1a\x04\xa0\xff+\x14B\x99\x02\n" +
 	" com.ai.stigmer.iam.invitation.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 

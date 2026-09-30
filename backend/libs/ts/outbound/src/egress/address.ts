@@ -42,8 +42,8 @@ export type EgressPosture = "strict" | "relaxed";
  * would need a network or a hostname to answer is a different seam.
  */
 export interface EgressPolicy {
-  /** The posture's name, for logs and error copy. */
-  readonly name: string;
+  /** The posture it judges under: for logs, and for how much a refusal's sentence may say. */
+  readonly name: EgressPosture;
   /** A human-readable range name when the address is refused, null when allowed. */
   blockedReason(address: string): string | null;
 }
