@@ -32,13 +32,18 @@ env:
   # reach a called workflow, so each lane sets it itself.
   STIGMER_TEST_GATE: "1"
 
+permissions:
+  contents: read
+
 jobs:
   shellcheck:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       # shellcheck is preinstalled on GitHub's ubuntu runners.
       - name: Run shellcheck
@@ -57,7 +62,9 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Assert no Node on PATH
         run: if command -v node; then echo "node unexpectedly present in the test image" && exit 1; fi
@@ -73,7 +80,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Run installer
         run: sh site/public/install.sh

@@ -309,6 +309,11 @@ export const LANES = {
     // turbo-affected.mjs chooses the packages inside the lane.
     always: true,
   },
+  "ci.workflows.yaml": {
+    // zizmor audits everything under .github: the workflows, the composite
+    // actions, dependabot.yml and zizmor.yml, its own configuration.
+    paths: [".github/**"],
+  },
 };
 
 /** A change to any of these could change the gate itself, so every lane runs. */

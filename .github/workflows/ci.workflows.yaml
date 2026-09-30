@@ -1,0 +1,50 @@
+# =============================================================================
+# Workflows CI
+# =============================================================================
+# Audits every workflow, composite action and the Dependabot configuration
+# under .github with zizmor, and fails on any finding: unpinned actions,
+# credentials left in a checkout, expressions expanded inside a shell script,
+# permissions wider than a job needs, restored caches in a release, and the
+# rest of zizmor's regular persona. The exceptions, each with its reason,
+# live in .github/zizmor.yml or as inline `zizmor: ignore[...]` comments.
+#
+# `make lint-workflows` runs the same zizmor version with the same
+# configuration on a workstation.
+# =============================================================================
+
+name: ci.workflows
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping; a
+  # caller's env does not reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The version matches `make lint-workflows`. The online audits (moved
+      # tags, known-vulnerable actions) read public data with the job's token.
+      # Results print as annotations and fail the job; nothing is uploaded.
+      - name: Audit .github
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          advanced-security: false

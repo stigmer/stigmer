@@ -41,45 +41,48 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            VERSION="${{ github.ref_name }}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME}"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="v${{ github.event.inputs.version }}"
+            VERSION="v${GITHUB_EVENT_INPUTS_VERSION}"
           fi
           VERSION_NO_V="${VERSION#v}"
           echo "version=$VERSION_NO_V" >> $GITHUB_OUTPUT
           echo "Publishing stigmer-runner-host at version: $VERSION_NO_V"
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
 
   publish:
     needs: determine-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: "crates/stigmer-runner-host -> target"
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
 
       # Cargo-native version stamping (analogue of maven versions:set / the python
       # regex). Prebuilt binary so it installs in seconds.
       - name: Install cargo-edit
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
           tool: cargo-edit
 
       - name: Stamp crate version from tag
         working-directory: crates/stigmer-runner-host
-        run: cargo set-version "${{ needs.determine-version.outputs.version }}"
+        run: cargo set-version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       # Builds the no-Tauri core and runs the conformance tests (crate vs its
       # vendored IPC fixture). The fixture's freshness against the canonical

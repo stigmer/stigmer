@@ -1,0 +1,37 @@
+# zizmor: the workflow auditor behind the `workflows` lane (ci.workflows.yaml)
+# and `make lint-workflows`. The lane fails on any finding, so this file is
+# where every exception is stated, each with its reason.
+
+rules:
+  # Every action is pinned to the commit its tag peels to, GitHub's own
+  # `actions/*` included: a tag can be moved to other code, a commit cannot.
+  # Dependabot keeps the pins current (.github/dependabot.yml).
+  unpinned-uses:
+    config:
+      policies:
+        "*": hash-pin
+    ignore:
+      - ci.integrity.yaml
+
+  # The `$/` self-repository syntax is not adopted: ci.gate.yaml calls its
+  # lanes as `./.github/workflows/<lane>.yaml`, and scripts/ci-lanes.test.mjs
+  # holds that form. Moving to `$/` is its own change to the gate.
+  self-repository:
+    disable: true
+
+  # Trusted publishing (OIDC instead of long-lived registry tokens) for npm and
+  # crates.io is a change to how releases authenticate, tracked with release
+  # provenance in #1557, not a workflow-hygiene fix.
+  use-trusted-publishing:
+    disable: true
+
+  # ci.integrity.yaml runs the test-integrity check and is being extended by a
+  # separate change; its pins, checkout and parser install land with that
+  # change, so the three audits below skip it until then (and unpinned-uses
+  # above).
+  artipacked:
+    ignore:
+      - ci.integrity.yaml
+  adhoc-packages:
+    ignore:
+      - ci.integrity.yaml

@@ -636,6 +636,20 @@ lint-helm: ## Lint the Helm chart on every CI values profile and validate its re
 			| kubeconform -strict -kubernetes-version $(HELM_KUBE_VERSION) -summary || exit 1; \
 	done
 
+# zizmor, the workflow auditor; the workflows lane (.github/workflows/ci.workflows.yaml)
+# pins the same version, so a local run and the lane judge alike.
+ZIZMOR_VERSION := 1.30.1
+
+.PHONY: lint-workflows
+lint-workflows: ## Audit .github with zizmor, as the workflows lane does (needs uv; the online audits need gh signed in)
+	@command -v uvx >/dev/null 2>&1 || { echo "error: uvx not found — https://docs.astral.sh/uv/"; exit 1; }
+	@if token=$$(gh auth token 2>/dev/null) && [ -n "$$token" ]; then \
+		GH_TOKEN=$$token uvx zizmor==$(ZIZMOR_VERSION) .github; \
+	else \
+		echo "lint-workflows: gh is not signed in, so only the offline audits run (the workflows lane runs them all)"; \
+		uvx zizmor==$(ZIZMOR_VERSION) --offline .github; \
+	fi
+
 .PHONY: test-helm
 test-helm: node_modules ## Run the chart's render, compose-parity and schema tests (needs helm)
 	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs

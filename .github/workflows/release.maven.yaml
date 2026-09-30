@@ -23,30 +23,32 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            VERSION="${{ github.ref_name }}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME}"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="v${{ github.event.inputs.version }}"
+            VERSION="v${GITHUB_EVENT_INPUTS_VERSION}"
           fi
           VERSION_NO_V="${VERSION#v}"
           echo "version=$VERSION_NO_V" >> $GITHUB_OUTPUT
           echo "Publishing Java packages at version: $VERSION_NO_V"
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
 
   publish-protos:
     needs: determine-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
           server-id: central
           server-username: MAVEN_CENTRAL_USERNAME
           server-password: MAVEN_CENTRAL_PASSWORD
@@ -56,9 +58,11 @@ jobs:
       - name: Set version
         working-directory: apis/stubs/java
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           echo "Set stigmer-java-protos version to $VERSION"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       # Central rejects re-publishing an existing version, so a rerun after a
       # partial failure (e.g. protos published, SDK didn't) must skip the
@@ -69,7 +73,7 @@ jobs:
       - name: Check if version is already on Central
         id: central-check
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-java-protos/$VERSION/stigmer-java-protos-$VERSION.pom"
           if curl --silent --fail --output /dev/null "$URL"; then
             echo "stigmer-java-protos:$VERSION is already on Central; skipping publish."
@@ -77,6 +81,8 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       - name: Publish to Maven Central
         if: steps.central-check.outputs.published != 'true'
@@ -104,16 +110,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
           server-id: central
           server-username: MAVEN_CENTRAL_USERNAME
           server-password: MAVEN_CENTRAL_PASSWORD
@@ -124,10 +130,11 @@ jobs:
       # tsx (never bare npx — oss#531), so the root npm install must exist
       # before the codegen step.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -138,23 +145,27 @@ jobs:
       - name: Set version and update protos dependency
         working-directory: sdk/java
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           mvn --batch-mode versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           echo "Set stigmer-java version to $VERSION (protos dependency: $VERSION)"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       - name: Install protos locally
         working-directory: apis/stubs/java
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           mvn --batch-mode install -DskipTests
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       # Same duplicate-version skip as publish-protos; see the comment there.
       - name: Check if version is already on Central
         id: central-check
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-java/$VERSION/stigmer-java-$VERSION.pom"
           if curl --silent --fail --output /dev/null "$URL"; then
             echo "stigmer-java:$VERSION is already on Central; skipping publish."
@@ -162,6 +173,8 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       - name: Publish to Maven Central
         if: steps.central-check.outputs.published != 'true'

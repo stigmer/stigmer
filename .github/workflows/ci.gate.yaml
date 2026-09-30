@@ -77,17 +77,19 @@ jobs:
       runner: ${{ steps.select.outputs.runner }}
       stigmer-server: ${{ steps.select.outputs.stigmer-server }}
       ts-workspace: ${{ steps.select.outputs.ts-workspace }}
+      workflows: ${{ steps.select.outputs.workflows }}
     steps:
       # Full commit graph, no blobs: the selection diffs trees against the
       # range's base (the ci.ts-workspace `changes` job's checkout).
       - name: Checkout (full history, no blobs)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           filter: blob:none
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: ".nvmrc"
 
@@ -185,17 +187,24 @@ jobs:
     if: needs.lanes.outputs.ts-workspace == 'true'
     uses: ./.github/workflows/ci.ts-workspace.yaml
 
+  workflows:
+    needs: lanes
+    if: needs.lanes.outputs.workflows == 'true'
+    uses: ./.github/workflows/ci.workflows.yaml
+
   gate:
     name: Gate
-    needs: [lanes, all-in-one, authorization-model, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace]
+    needs: [lanes, all-in-one, authorization-model, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, workflows]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: ".nvmrc"
 

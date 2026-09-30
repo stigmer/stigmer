@@ -35,6 +35,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # Reliable change detection. Event-level `paths:` filtering is skipped by
   # GitHub on oversized pushes (the v2.0.0 merge changed 1,348 files / ~347K
@@ -46,14 +49,16 @@ jobs:
       should_build: ${{ steps.decide.outputs.should_build }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Detect runner-relevant changes
         id: filter
         # Only meaningful for main-branch pushes; tag pushes and manual
         # dispatch always build (handled in the decision step below).
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
         with:
           filters: |
             runner:
@@ -70,14 +75,16 @@ jobs:
         run: |
           # Always build on tag pushes (releases) and manual dispatch.
           # On main pushes, build only when runner-relevant paths changed.
-          if [ "${{ github.event_name }}" != "push" ] || [ "${{ github.ref_type }}" = "tag" ]; then
+          if [ "${{ github.event_name }}" != "push" ] || [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
-          elif [ "${{ steps.filter.outputs.runner }}" = "true" ]; then
+          elif [ "${STEPS_FILTER_OUTPUTS_RUNNER}" = "true" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_build=false" >> "$GITHUB_OUTPUT"
           fi
           echo "Build decision: $(cat "$GITHUB_OUTPUT" | grep should_build)"
+        env:
+          STEPS_FILTER_OUTPUTS_RUNNER: ${{ steps.filter.outputs.runner }}
 
   build-and-push:
     needs: detect-changes
@@ -89,13 +96,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -140,6 +149,7 @@ jobs:
       - name: Build and push sandbox image
         env:
           CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-amd64
+          STEPS_TAGS_OUTPUTS_SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
         run: |
           docker buildx build \
             --platform linux/amd64 \
@@ -148,7 +158,7 @@ jobs:
             --cache-to "type=registry,ref=$CACHE_REF,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true" \
             --file backend/services/runner/Dockerfile.sandbox \
             --tag ghcr.io/${{ github.repository_owner }}/runner:latest \
-            --tag ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }} \
+            --tag ghcr.io/${{ github.repository_owner }}/runner:main-"${STEPS_TAGS_OUTPUTS_SHORT_SHA}" \
             --push \
             .
 

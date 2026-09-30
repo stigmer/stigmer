@@ -60,8 +60,15 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
   assert.deepEqual(selected([]), ["ts-workspace"], "an empty diff still runs the lane that decides inside");
 });
 
-test("a lane's own workflow file runs that lane only", () => {
-  assert.deepEqual(selected([".github/workflows/ci.crate.yaml"]), ["crate", "ts-workspace"]);
+test("a lane's own workflow file runs that lane, and the workflow audit", () => {
+  // ci.workflows.yaml audits every file under .github, so it runs beside the lane.
+  assert.deepEqual(selected([".github/workflows/ci.crate.yaml"]), ["crate", "ts-workspace", "workflows"]);
+});
+
+test("any file under .github runs the workflow audit, and only it", () => {
+  for (const file of [".github/dependabot.yml", ".github/zizmor.yml", ".github/workflows/ci.codeql.yaml"]) {
+    assert.deepEqual(selected([file]), ["ts-workspace", "workflows"], file);
+  }
 });
 
 test("the gate's own files, a dispatch and a missing base run every lane", () => {
