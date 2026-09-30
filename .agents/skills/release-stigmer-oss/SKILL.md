@@ -102,6 +102,7 @@ make release-pins version=<X.Y.Z>
 git commit -am "chore(release): bump the release pins to <X.Y.Z>"
 git push -u origin chore/release-pins-<X.Y.Z>
 gh pr create --title "chore(release): bump the release pins to <X.Y.Z>" --body "The five release pins for v<X.Y.Z>."
+# review it (.agents/skills/review-pull-request/SKILL.md): Review verdict is required too
 gh pr merge <n> --auto --match-head-commit "$(git rev-parse HEAD)"
 gh pr view <n> --json state,mergeCommit   # repeat until MERGED
 git switch main && git pull --ff-only

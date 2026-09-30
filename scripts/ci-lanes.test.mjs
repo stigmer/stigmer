@@ -159,14 +159,18 @@ test("the lanes run only through the gate, and each sets the gate's test variabl
   }
 });
 
-test("both required checks run on pull requests and in the merge queue, and neither can be skipped", () => {
+test("every required check runs on pull requests and in the merge queue, and none can be skipped", () => {
   for (const event of ["pull_request", "merge_group"]) {
     assert.ok(event in gate.on, `ci.gate.yaml on ${event}`);
   }
-  const integrity = readWorkflow("ci.integrity.yaml");
-  assert.deepEqual(integrity.on.pull_request.types, ["opened", "edited", "synchronize", "reopened"]);
-  assert.ok("merge_group" in integrity.on);
-  const job = Object.values(integrity.jobs).find((j) => j.name === "Test integrity");
-  assert.ok(job, "the ruleset requires a job named `Test integrity`");
-  assert.equal(job.if, undefined, "a skipped required check passes");
+  // Both body-reading checks re-run on `edited`: a declaration added to the
+  // body changes what Test integrity accepts and what a review verdict binds.
+  for (const [file, name] of [["ci.integrity.yaml", "Test integrity"], ["ci.review.yaml", "Review verdict"]]) {
+    const workflow = readWorkflow(file);
+    assert.deepEqual([...workflow.on.pull_request.types].sort(), ["edited", "opened", "reopened", "synchronize"], file);
+    assert.ok("merge_group" in workflow.on, `${file} on merge_group`);
+    const job = Object.values(workflow.jobs).find((j) => j.name === name);
+    assert.ok(job, `the ruleset requires a job named \`${name}\``);
+    assert.equal(job.if, undefined, `${name}: a skipped required check passes`);
+  }
 });

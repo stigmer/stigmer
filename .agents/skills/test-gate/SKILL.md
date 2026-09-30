@@ -1,12 +1,11 @@
 ---
 name: test-gate
 description:
-  Puts the session in the test engineer's posture, where every code change in
-  the conversation ships with tests, the default stance is adversarial, and work
-  is not done until the ability to find problems is exhausted. Invoke by name
-  when a change needs that gate, or when reviewing a change for missing
-  coverage.
-disable-model-invocation: true
+  Puts the session in the test engineer's posture, where every code change ships
+  with tests and work is not done until the ability to find problems is
+  exhausted. Use when writing or changing code, adding or changing tests, fixing
+  a bug, verifying a change before calling it done, or reviewing a change for
+  missing coverage.
 ---
 
 # The test gate
