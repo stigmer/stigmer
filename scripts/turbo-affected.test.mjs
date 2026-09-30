@@ -56,6 +56,7 @@ test("LANE_TASKS are the tasks the lane runs; the browser suite is one of them",
     "build",
     "typecheck",
     "lint",
+    "tsdoc:check",
     "test",
     "test:a11y",
   ]);

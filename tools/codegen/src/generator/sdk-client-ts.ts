@@ -580,7 +580,15 @@ function generateTSInputTypes(
   buf.push("  id?: string;\n");
   buf.push("  name: string;\n");
   buf.push("  slug?: string;\n");
-  buf.push("  org: string;\n");
+  if (cfg.isOrgless) {
+    buf.push("  /**\n");
+    buf.push(`   * Always empty: a ${cfg.protoResType} belongs to the platform, not to an\n`);
+    buf.push("   * organization, so `metadata.org` stays unset. Omit it.\n");
+    buf.push("   */\n");
+    buf.push("  org?: \"\";\n");
+  } else {
+    buf.push("  org: string;\n");
+  }
   buf.push("  labels?: Record<string, string>;\n");
   buf.push("  visibility?: ApiResourceVisibility;\n");
   if (cfg.isVersioned) {
@@ -744,6 +752,14 @@ export function tsAddSchemaImport(ts: TypeSchema, imports: TsImportSet, importBa
   }
 }
 
+// The metadata.org line of buildXxxProto. An org-less kind's input types org
+// as an optional `""`, but an untyped caller can still pass a value: it is
+// sent as given, so the server's refusal names the mistake instead of the SDK
+// dropping it.
+function tsMetadataOrgLine(cfg: SdkResourceConfig): string {
+  return cfg.isOrgless ? '      org: input.org ?? "",\n' : "      org: input.org,\n";
+}
+
 function generateTSBuildProto(
   buf: string[],
   schema: ServiceSchemaFile,
@@ -836,7 +852,7 @@ function generateTSBuildProto(
     buf.push("    metadata: Object.assign(create(ApiResourceMetadataSchema), {\n");
     buf.push("      ...(input.id && { id: input.id }),\n");
     buf.push("      name: input.name,\n");
-    buf.push("      org: input.org,\n");
+    buf.push(tsMetadataOrgLine(cfg));
     buf.push("      ...(input.slug && { slug: input.slug }),\n");
     buf.push("      ...(input.labels && { labels: input.labels }),\n");
     buf.push("      ...(input.visibility && { visibility: input.visibility }),\n");
@@ -854,7 +870,7 @@ function generateTSBuildProto(
     buf.push("    metadata: Object.assign(create(ApiResourceMetadataSchema), {\n");
     buf.push("      ...(input.id && { id: input.id }),\n");
     buf.push("      name: input.name,\n");
-    buf.push("      org: input.org,\n");
+    buf.push(tsMetadataOrgLine(cfg));
     buf.push("      ...(input.slug && { slug: input.slug }),\n");
     buf.push("      ...(input.labels && { labels: input.labels }),\n");
     buf.push("      ...(input.visibility && { visibility: input.visibility }),\n");

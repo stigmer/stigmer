@@ -885,8 +885,7 @@ validate-demos: ## Run static demo scenario validation (token compliance, manife
 	$(MAKE) -C site validate-demos
 
 tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
-	cd sdk/ink && npm run tsdoc:check
-	cd sdk/react && npm run tsdoc:check
+	node scripts/turbo-set.mjs workspace tsdoc:check
 
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
@@ -945,9 +944,9 @@ test-e2e-console-login: ## Run the console sign-in E2E against a server in the O
 #   2. five domain buckets run CONCURRENTLY (`make -j`). Buckets are isolated by
 #      toolchain/directory so they never write to the same files:
 #        check-go    — go vet/test/build + buf lint + go binaries
-#        check-node  — the ci.ts-workspace lane's typecheck/lint/web+desktop
-#                      suites over the whole workspace, then the runner and
-#                      server builds + tsdoc + dep hygiene
+#        check-node  — the ci.ts-workspace lane's typecheck/lint/tsdoc and
+#                      web+desktop suites over the whole workspace, then the
+#                      runner and server builds + dep hygiene
 #        check-site  — vale, prettier --check, site lint/typecheck/build,
 #                      demo validation, link check (all under docs/ + site/)
 #        check-rust  — desktop cargo check + runner-host crate
@@ -1031,9 +1030,10 @@ check-go: ## check bucket: Go build/vet/test over every go.work module + buf lin
 # scripts/check-node-parity.test.mjs fails when the lane gains a call this gate
 # does not make. The lane's browser-mode suite (test:a11y, a real Chromium) is
 # the one call left to CI. The runner and server lines are their own lanes'.
-check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (typecheck, lint, web + desktop suites) + runner + server + tsdoc
+check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (typecheck, lint, tsdoc, web + desktop suites) + runner + server
 	node scripts/turbo-set.mjs workspace typecheck
 	node scripts/turbo-set.mjs workspace lint
+	node scripts/turbo-set.mjs workspace tsdoc:check
 	# The cloud-capability behavior inventory (DD-012 §5): every conformance
 	# row has a test, every test tag names a row. Static — no target boots.
 	$(MAKE) check-conformance-inventory
@@ -1055,8 +1055,6 @@ check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (t
 	cd $(SERVER_DIR) && npm run build
 	# Same #399-class gate for the TS server's compiled entry.
 	cd $(SERVER_DIR) && npm run verify:dist
-	cd sdk/ink && npm run tsdoc:check
-	cd sdk/react && npm run tsdoc:check
 
 check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/build + demo validation
 	@vale sync 2>/dev/null

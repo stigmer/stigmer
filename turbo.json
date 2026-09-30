@@ -65,6 +65,16 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    // TypeDoc with validation warnings as errors: a broken {@link}, an
+    // undocumented export. It resolves the dependencies' compiled .d.ts, so
+    // it needs their dist like typecheck does. Only the packages that define
+    // the script run it (today @stigmer/react and @stigmer/ink). The JSON it
+    // writes on success (typedoc-output.json, git-ignored) is not the point
+    // of the task, so it is not an output.
+    "tsdoc:check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
     // rm -rf dist. Never cached: its whole point is a side effect.
     "clean": {
       "cache": false

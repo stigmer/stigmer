@@ -154,7 +154,6 @@ Builds the signed claims from the spec, signs them, and returns the license with
 ```typescript
 const license = await stigmer.license.create({
   name: "my-license",
-  org: "acme",
   slug: "...",
   labels: {},
   customer: {},
@@ -171,7 +170,6 @@ const license = await stigmer.license.create({
 ```go
 license, err := client.License.Create(ctx, &stigmer.LicenseInput{
   Name:         "my-license",
-  Org:          "acme",
   Slug:         "...",
   Labels:       map[string]string{},
   Customer:     &stigmer.LicenseCustomerInput{},
@@ -188,7 +186,6 @@ license, err := client.License.Create(ctx, &stigmer.LicenseInput{
 ```python
 license = client.licenses.create(LicenseInput(
     name="my-license",
-    org="acme",
     slug="...",
     labels={},
     customer=None,
@@ -205,7 +202,6 @@ license = client.licenses.create(LicenseInput(
 ```java
 License license = client.licenses().create(LicenseInput.builder()
     .name("my-license")
-    .org("acme")
     .slug("...")
     .labels(Map.of())
     .customer(null)
@@ -234,7 +230,6 @@ Input for creating or updating a License.
   type={{
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
-    org: { type: "string", description: "Organization slug.", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     customer: { type: "LicenseCustomerInput", description: "Who the license is issued to.", typeDescriptionLink: "#licensecustomerinput", required: true },
     planId: { type: "string", description: "The id of the Plan the entitlements were copied from." },

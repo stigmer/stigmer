@@ -54,9 +54,10 @@ class PlanInput:
     """Input for creating or updating a Plan."""
 
     name: str
-    org: str
     instrument: int
     entitlements: EntitlementsInput | None
+    # Always empty: a Plan belongs to the platform, not to an organization.
+    org: str = ""
     id: str | None = None
     slug: str | None = None
     labels: dict[str, str] | None = None

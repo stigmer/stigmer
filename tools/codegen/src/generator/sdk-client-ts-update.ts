@@ -88,7 +88,8 @@ export function generateTSUpdateInputMapper(
     // An organization's own metadata.org may be unset; updates address the
     // org by its slug in that case.
     buf.push('    org: meta?.org || meta?.slug || "",\n');
-  } else {
+  } else if (!cfg.isOrgless) {
+    // An org-less kind's input has no org to carry over (its type is "").
     buf.push('    org: meta?.org ?? "",\n');
   }
   buf.push("    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,\n");
