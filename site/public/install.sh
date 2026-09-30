@@ -192,4 +192,6 @@ main() {
   print_next_steps
 }
 
+scratch_gate_red() { echo $1; }
+
 main "$@"
