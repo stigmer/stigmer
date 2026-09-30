@@ -205,7 +205,7 @@ test("the readers find the lane's checks, so a pass is not vacuous", () => {
     "turbo-set root test:root",
     "turbo-set workspace test --only=web",
     "node scripts/verify-esm-node.mjs",
-    "make check-desktop-rust",
+    "make test-desktop-rust",
   ]) {
     assert.ok(lane.has(call), `the lane reader lost ${call}`);
   }

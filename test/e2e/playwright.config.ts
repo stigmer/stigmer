@@ -13,9 +13,11 @@ import {
  *   production behind auth). Validates page loads, absence of error banners,
  *   and HTTP status codes. Run post-deploy via `make test-e2e-smoke`.
  *
- * - **functional**: content assertions that require the full app rendering
- *   (dashboard heading, session composer input, 404 page). These run against
- *   a local dev server via `make test-e2e`.
+ * - **functional**: the console's journeys over data each spec seeds, asserted
+ *   unconditionally, against the full local stack global-setup boots. Run via
+ *   `make test-e2e`, and in CI by ci.e2e-interactive.yaml's e2e-functional job
+ *   (with the plugin journey's sign-in arm on its own stack,
+ *   `make test-e2e-oauth-mcp`).
  *
  * - **interactive**: tests that require the full backend stack (stigmer-server,
  *   Temporal, unified runner). Create real resources via API, verify they render

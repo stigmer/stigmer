@@ -2,7 +2,7 @@
 # Rust crate quality gate: stigmer-runner-host
 # =============================================================================
 # This is the only CI that exercises the Rust crate as a standalone artifact
-# (the desktop shell that links it is checked by ci.ts-workspace's
+# (the desktop shell that links it is tested by ci.ts-workspace's
 # desktop-rust job and built by release.desktop). It guards the crate before it
 # ships to crates.io, so it must stay green on `main`.
 #
@@ -84,7 +84,8 @@ jobs:
 
       # The desktop shell re-exports this crate's Tauri commands; a change to
       # the crate's API has to compile there too, and no other lane runs for a
-      # crate-only change.
+      # crate-only change. A check, not ci.ts-workspace's `cargo test`: the
+      # shell's own tests do not call this crate, whose tests ran above.
       - name: Check the desktop shell against this crate
         working-directory: .
         run: make check-desktop-rust

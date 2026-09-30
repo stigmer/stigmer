@@ -12,6 +12,8 @@
 # The e2e-approval job (below) runs the HITL approval projects the same way —
 # added by stigmer/stigmer#754 after the SAME rot pattern hit them (they were
 # Makefile-only and silently invalidated by the apply-then-review change).
+# The e2e-console-login job runs the OIDC sign-in, and the e2e-functional job
+# the functional tier: the console's journeys over data each spec seeds.
 #
 # Distinct from ci.e2e.yaml, which smoke-tests the DEPLOYED console after
 # releases; this lane tests the code on the PR.
@@ -19,7 +21,8 @@
 # Needs NO secrets: the deterministic specs drive set_vars/wait workflows
 # through the real runner, and the two session specs self-skip without an
 # LLM key (test.skip(!HAS_LLM_KEY)). Bringing those in via the mock-LLM
-# proxy (the interactive-approval pattern) is a tracked follow-up.
+# proxy (the interactive-approval pattern) is a tracked follow-up. The
+# functional job's OAuth MCP fixture is hermetic too (fixtures/oauth-mcp.ts).
 #
 # Which changes need it is its list in scripts/ci-lanes.mjs; ci.gate.yaml
 # calls it for those, and a red job here turns `Gate`, the required check,
@@ -274,5 +277,83 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-console-login-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30
+
+  # The functional tier (test/e2e/tests/functional): the console's journeys
+  # over data each spec seeds through the fixtures, asserted unconditionally,
+  # against the full stack global-setup boots. Before this job it ran nowhere
+  # automatically (`make test-e2e` only), the rot pattern this file's header
+  # records. Its own job, not a project on the interactive step, for the
+  # approval job's reason (the suites fail and re-run independently), and
+  # because it runs WITHOUT the mock LLM: that is the shape the tier was
+  # proven in, and no functional spec calls a model. Two serial invocations,
+  # two stack shapes (one Playwright run boots exactly one stack):
+  #   1. the plain stack — every functional spec;
+  #   2. the OAuth MCP stack (`make test-e2e-oauth-mcp`) — the plugin
+  #      journey's sign-in arm, which skips by name on the plain stack: the
+  #      conformance harness's OAuth MCP and login servers as one process,
+  #      the server's OAuth redirect at the console's callback page.
+  e2e-functional:
+    name: Functional E2E (seeded console journeys, two stack shapes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Install Temporal CLI
+        run: |
+          make install-temporal-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/temporal" --version
+
+      - name: Build stigmer-server
+        run: make build-server
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install Playwright browsers
+        working-directory: test/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run functional suite (plain stack)
+        working-directory: test/e2e
+        run: npx playwright test --project=functional
+
+      - name: Run the plugin journey's sign-in arm (OAuth MCP stack)
+        working-directory: test/e2e
+        env:
+          STIGMER_E2E_OAUTH_MCP: "1"
+        run: npx playwright test --project=functional plugin-install-journey
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-functional-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-functional-playwright-report
           path: test/e2e/playwright-report/
           retention-days: 30
