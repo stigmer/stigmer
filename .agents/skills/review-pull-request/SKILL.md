@@ -102,8 +102,8 @@ stop at the first finding.
 2. The pull request's body (`gh pr view <n> -R <repo> --json body`). Its claims
    are to be checked, not trusted. The test plan quotes each check's summary
    line; `Verify at train` lists what only production can show.
-3. Each declaration in the body (`Test-removal:`, `Quarantine:`, `Skip:`), and
-   the integrity tool's report of the change:
+3. Each declaration in the body (`Test-removal:`, `Quarantine:`, `Skip:`,
+   `RPC-waiver:`), and the integrity tool's report of the change:
    `node scripts/test-integrity.mjs --base origin/<base> --pr-body-file <the body saved to a file>`.
    Its `retitled` lines are cases whose titles changed. A retitle is also how a
    real case gets swapped for a trivial one, so read each pair.

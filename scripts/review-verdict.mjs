@@ -35,10 +35,11 @@
  *     nesting). Every option and setting that shapes the diff's text is
  *     pinned, so the digest a workstation posts is the one CI computes;
  *   - the declarations the body carries (`Test-removal:`, `Quarantine:`,
- *     `Skip:`), read by the test-integrity tool's own parser, since the
+ *     `Skip:`, `RPC-waiver:`), read by the test-integrity tool's own parser, since the
  *     reviewer judges each one.
  * Any edit to the change, or a declaration added, removed or changed in what
- * it names (its case and reason; for a quarantine, its case and issue), makes
+ * it names (every field the integrity tool reads from it, for every kind it
+ * parses: `Test-removal:`, `Quarantine:`, `Skip:`, `RPC-waiver:`), makes
  * the verdict stale, and the pull request needs a new review. The digest is
  * taken before the review and posted only if it has not moved since, so a
  * declaration added while the reviewer reads is never approved unread.
@@ -153,12 +154,13 @@ export function parseReview(body) {
 
 /** The declarations as one canonical text, so a reworded or added one moves the digest. */
 export function declarationText(body) {
-  const { removals, quarantines, skips } = parseDeclarations(body ?? "");
-  return [
-    ...removals.map((d) => `Test-removal: ${d.subject} -- ${d.reason}`),
-    ...quarantines.map((d) => `Quarantine: ${d.subject} -- ${d.repo}#${d.issue ?? ""}`),
-    ...skips.map((d) => `Skip: ${d.subject} -- ${d.reason}`),
-  ].join("\n");
+  // Every kind the integrity tool parses, with every field it reads, so a kind
+  // it gains later is bound here without a change to this file.
+  const parsed = parseDeclarations(body ?? "");
+  return Object.keys(parsed)
+    .sort()
+    .flatMap((kind) => parsed[kind].map((declaration) => `${kind} ${JSON.stringify(declaration)}`))
+    .join("\n");
 }
 
 /** What a verdict is bound to: the change's patch id and the body's declarations. */

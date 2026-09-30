@@ -5,11 +5,11 @@
 # Runs scripts/review-verdict.mjs, which reads the newest `## Review` comment
 # posted on the pull request by an account with write access and passes only
 # when it says `approve` and was bound to the change as it is now: the patch
-# id of the diff from the merge base, and the body's `Test-removal:`,
-# `Quarantine:` and `Skip:` declarations. A push that changes the change, or
-# a declaration added or reworded, turns it red until the review runs again;
-# merging `main` into the branch without touching the change does not. The
-# review itself is `.agents/skills/review-pull-request/SKILL.md`, and the
+# id of the diff from the merge base, and the body's declarations
+# (`Test-removal:`, `Quarantine:`, `Skip:`, `RPC-waiver:`). A push that
+# changes the change, or a declaration added or reworded, turns it red until
+# the review runs again; merging `main` into the branch without touching the
+# change does not. The review itself is `.agents/skills/review-pull-request/SKILL.md`, and the
 # script's header has the rules. `Review verdict` is a required check on
 # `main`, beside `Gate` (ci.gate.yaml) and `Test integrity`
 # (ci.integrity.yaml).

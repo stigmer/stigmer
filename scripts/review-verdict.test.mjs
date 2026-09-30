@@ -117,10 +117,20 @@ test("a declaration added or reworded moves the digest; other body text does not
   assert.notEqual(changeDigest({ changeId: "1234", declarations: declarationText(added) }), base);
 });
 
-test("declarationText reads all three kinds through the integrity tool's parser", () => {
-  const text = declarationText("Test-removal: a -- gone\nQuarantine: b -- stigmer#12\nSkip: c -- not here\n");
-  assert.equal(text, "Test-removal: a -- gone\nQuarantine: b -- stigmer#12\nSkip: c -- not here");
+test("declarationText binds every kind the integrity tool parses, with every field", () => {
+  const text = declarationText("Test-removal: a -- gone\nQuarantine: b -- stigmer#12\nSkip: c -- not here\nRPC-waiver: d -- proven elsewhere\n");
+  assert.equal(
+    text,
+    [
+      'quarantines {"subject":"b","repo":"stigmer","issue":12}',
+      'removals {"subject":"a","reason":"gone"}',
+      'rpcWaivers {"subject":"d","reason":"proven elsewhere"}',
+      'skips {"subject":"c","reason":"not here"}',
+    ].join("\n"),
+  );
   assert.equal(declarationText(undefined), "");
+  const base = changeDigest({ changeId: "1234", declarations: declarationText("") });
+  assert.notEqual(changeDigest({ changeId: "1234", declarations: declarationText("RPC-waiver: d -- proven elsewhere") }), base, "an RPC waiver added after an approve moves the digest");
 });
 
 // ─── reviewState ────────────────────────────────────────────────────────
