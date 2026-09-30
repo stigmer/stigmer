@@ -9,12 +9,16 @@
  * pull request as a comment, by this script and never by hand:
  *
  *   ## Review
+ *   <!-- review-verdict -->
  *
  *   Verdict: approve
  *   Head: <the head commit the reviewer read>
  *   Reviewed: sha256:<digest>
  *   Reviewer: <model>, fresh context, review-pull-request
  *   Findings: none
+ *
+ * The marker line under the heading is what makes a comment a review, so a
+ * person's own "## Review" notes are never read as a verdict.
  *
  * A comment, not a section of the body, because a comment's author never
  * changes: anyone who opens a pull request writes its body, and any later edit
@@ -23,10 +27,13 @@
  * repository.
  *
  * The digest binds the verdict to what the reviewer read, not to a commit:
- *   - the change: `git patch-id --stable` of the diff from the merge base to
- *     the head, which ignores line numbers, so merging `main` into a branch
+ *   - the change: `git patch-id --verbatim` of the diff from the merge base
+ *     to the head. It ignores line numbers, so merging `main` into a branch
  *     keeps it as long as the change's own hunks and their context are
- *     untouched;
+ *     untouched; it keeps whitespace, since a whitespace edit can change
+ *     meaning (`rm -rf /tmp/x` against `rm -rf / tmp/x`, a YAML key's
+ *     nesting). Every option and setting that shapes the diff's text is
+ *     pinned, so the digest a workstation posts is the one CI computes;
  *   - the declarations the body carries (`Test-removal:`, `Quarantine:`,
  *     `Skip:`), read by the test-integrity tool's own parser, since the
  *     reviewer judges each one.
@@ -69,6 +76,7 @@ import { fileURLToPath } from "node:url";
 import { parseDeclarations } from "./test-integrity.mjs";
 
 export const HEADING = "## Review";
+export const MARKER = "<!-- review-verdict -->";
 export const VERDICTS = Object.freeze(["approve", "changes-needed"]);
 export const SEVERITIES = Object.freeze(["blocking", "minor"]);
 export const WRITE_PERMISSIONS = Object.freeze(["admin", "maintain", "write"]);
@@ -92,12 +100,15 @@ export function parseReview(body) {
   let i = 0;
   while (i < lines.length && lines[i].trim() === "") i++;
   if (lines[i]?.trim() !== HEADING) return undefined;
+  let j = i + 1;
+  while (j < lines.length && lines[j].trim() === "") j++;
+  if (lines[j]?.trim() !== MARKER) return undefined;
 
   const fields = new Map();
   const findings = [];
   const problems = [];
   let inFindings = false;
-  for (const raw of lines.slice(i + 1)) {
+  for (const raw of lines.slice(j + 1)) {
     const line = raw.trimEnd();
     if (line.trim() === "") continue;
     const key = KEY_LINE.exec(line);
@@ -207,7 +218,7 @@ export function verdictProblems(output) {
 /** The comment for a verdict. Each finding is one line, so the comment always parses. */
 export function renderReview({ verdict, head, reviewed, reviewer, findings }) {
   const oneLine = (text) => String(text).replace(/\s+/g, " ").trim();
-  const lines = [HEADING, "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, `Reviewer: ${oneLine(reviewer)}, fresh context, review-pull-request`];
+  const lines = [HEADING, MARKER, "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, `Reviewer: ${oneLine(reviewer)}, fresh context, review-pull-request`];
   if (findings.length === 0) lines.push("Findings: none");
   else {
     lines.push("Findings:");
@@ -250,12 +261,38 @@ export function pullRequest(repo, number) {
 }
 
 /**
+ * Settings that shape `git diff` output, each pinned on the command line, where
+ * `-c` outranks every configuration file, including the repository's own.
+ */
+export const PINNED_DIFF_SETTINGS = Object.freeze([
+  "core.quotePath=false",
+  "diff.context=3",
+  "diff.interHunkContext=0",
+  "diff.indentHeuristic=true",
+  "diff.suppressBlankEmpty=false",
+  "diff.noprefix=false",
+  "diff.mnemonicPrefix=false",
+  "diff.relative=false",
+  "diff.renames=false",
+  "diff.algorithm=myers",
+  "diff.submodule=short",
+]);
+
+/** The flags that fix the diff's text whatever the settings say; the settings above back them up. */
+export const PINNED_DIFF_FLAGS = Object.freeze([
+  "--no-color", "--no-ext-diff", "--no-textconv", "--no-renames", "--no-relative", "--binary",
+  "--diff-algorithm=myers", "--unified=3", "--inter-hunk-context=0", "--indent-heuristic",
+  "--submodule=short", "--src-prefix=a/", "--dst-prefix=b/",
+]);
+
+/**
  * The change's patch id: the diff from the merge base to the head, with every
- * option that changes its text pinned, so a user's git configuration cannot
- * move it. Fetches the head by SHA and the base branch first.
+ * option that changes its text pinned (above), hashed with whitespace kept.
+ * Fetches the head by SHA and the base branch first.
  */
 export function changeId(dir, { head, base }) {
-  const git = (args, input) => run("git", ["-c", "core.quotePath=false", ...args], { cwd: dir, input });
+  const pinned = PINNED_DIFF_SETTINGS.flatMap((setting) => ["-c", setting]);
+  const git = (args, input) => run("git", [...pinned, ...args], { cwd: dir, input });
   try {
     git(["cat-file", "-e", `${head}^{commit}`]);
   } catch {
@@ -263,12 +300,9 @@ export function changeId(dir, { head, base }) {
   }
   git(["fetch", "--quiet", "--no-tags", "origin", `+refs/heads/${base}:refs/remotes/origin/${base}`]);
   const mergeBase = git(["merge-base", `refs/remotes/origin/${base}`, head]).trim();
-  const diff = git([
-    "diff", "--no-color", "--no-ext-diff", "--no-textconv", "--no-renames", "--binary",
-    "--diff-algorithm=myers", "--src-prefix=a/", "--dst-prefix=b/", mergeBase, head,
-  ]);
+  const diff = git(["diff", ...PINNED_DIFF_FLAGS, mergeBase, head]);
   if (diff.trim() === "") return "empty";
-  return git(["patch-id", "--stable"], diff).trim().split(/\s+/)[0];
+  return git(["patch-id", "--verbatim"], diff).trim().split(/\s+/)[0];
 }
 
 /** The pull request's comments, oldest first. */
@@ -278,9 +312,9 @@ export function reviewComments(repo, number) {
 }
 
 /** Whether an account may write a review that counts: write access or more. A lookup that fails for any other reason than "no access" throws. */
-export function canWrite(repo, login) {
+export function canWrite(repo, login, api = gh) {
   try {
-    const permission = gh(["api", `repos/${repo}/collaborators/${encodeURIComponent(login)}/permission`, "--jq", ".permission"]).trim();
+    const permission = api(["api", `repos/${repo}/collaborators/${encodeURIComponent(login)}/permission`, "--jq", ".permission"]).trim();
     return WRITE_PERMISSIONS.includes(permission);
   } catch (error) {
     const text = `${error.stderr ?? ""}${error.message ?? ""}`;
@@ -318,10 +352,10 @@ export function readReview({ repo, number, dir, expectHead }, lookups = {}) {
  * rerun once it has finished. A repository without the workflow has nothing
  * to rerun (its merge hook reads the comment at merge time).
  */
-export function rejudge(repo, head) {
+export function rejudge(repo, head, api = gh) {
   let runs;
   try {
-    runs = JSON.parse(gh(["run", "list", "-R", repo, "-w", CHECK_WORKFLOW, "-c", head, "-e", "pull_request", "-L", "1", "--json", "databaseId,status"]));
+    runs = JSON.parse(api(["run", "list", "-R", repo, "-w", CHECK_WORKFLOW, "-c", head, "-e", "pull_request", "-L", "1", "--json", "databaseId,status"]));
   } catch (error) {
     const text = `${error.stderr ?? ""}${error.message ?? ""}`;
     if (/could not find any workflows|workflow .* not found|HTTP 404/i.test(text)) return `${repo} has no ${CHECK_WORKFLOW}; nothing to rerun`;
@@ -333,30 +367,16 @@ export function rejudge(repo, head) {
   const id = String(runs[0].databaseId);
   if (runs[0].status !== "completed") {
     try {
-      run("gh", ["run", "watch", id, "-R", repo, "--interval", "5"]);
+      api(["run", "watch", id, "-R", repo, "--interval", "5"]);
     } catch {
       // A failed run is still a finished run, and rerunning it is the point.
     }
   }
-  gh(["run", "rerun", id, "-R", repo]);
+  api(["run", "rerun", id, "-R", repo]);
   return `reran ${CHECK_WORKFLOW} run ${id} for ${head.slice(0, 10)}`;
 }
 
-function postVerdict({ repo, number, dir, verdictFile, reviewedHead }) {
-  const output = JSON.parse(readFileSync(verdictFile, "utf8"));
-  const problems = verdictProblems(output);
-  if (problems.length > 0) {
-    console.error(`review-verdict: the verdict is refused: ${problems.join("; ")}`);
-    return 1;
-  }
-  const pr = pullRequest(repo, number);
-  if (pr.headRefOid !== reviewedHead) {
-    console.error(`review-verdict: #${number}'s head is ${pr.headRefOid}, not the reviewed ${reviewedHead}: the pull request moved during the review; review it again`);
-    return 1;
-  }
-  const checkout = checkoutFor(repo, dir);
-  const reviewed = changeDigest({ changeId: changeId(checkout, { head: pr.headRefOid, base: pr.baseRefName }), declarations: declarationText(pr.body) });
-  const body = renderReview({ verdict: output.verdict, head: pr.headRefOid, reviewed, reviewer: output.reviewer, findings: output.findings });
+function comment(repo, number, body) {
   const scratch = mkdtempSync(join(tmpdir(), "review-verdict-"));
   try {
     writeFileSync(join(scratch, "review.md"), body);
@@ -364,9 +384,25 @@ function postVerdict({ repo, number, dir, verdictFile, reviewedHead }) {
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
-  console.log(`review-verdict: posted ${output.verdict} on ${repo}#${number} at ${pr.headRefOid.slice(0, 10)}`);
-  console.log(`review-verdict: ${rejudge(repo, pr.headRefOid)}`);
-  return 0;
+}
+
+/**
+ * Posts a reviewer's verdict, refusing one whose shape is wrong or whose head
+ * moved during the review. Returns `{ exit, lines }`; `lookups` replaces the
+ * real effects in tests.
+ */
+export function postVerdict({ repo, number, dir, output, reviewedHead }, lookups = {}) {
+  const look = { pullRequest, checkoutFor, changeId, comment, rejudge, ...lookups };
+  const problems = verdictProblems(output);
+  if (problems.length > 0) return { exit: 1, lines: [`the verdict is refused: ${problems.join("; ")}`] };
+  const pr = look.pullRequest(repo, number);
+  if (pr.headRefOid !== reviewedHead) {
+    return { exit: 1, lines: [`#${number}'s head is ${pr.headRefOid}, not the reviewed ${reviewedHead}: the pull request moved during the review; review it again`] };
+  }
+  const checkout = look.checkoutFor(repo, dir);
+  const reviewed = changeDigest({ changeId: look.changeId(checkout, { head: pr.headRefOid, base: pr.baseRefName }), declarations: declarationText(pr.body) });
+  look.comment(repo, number, renderReview({ verdict: output.verdict, head: pr.headRefOid, reviewed, reviewer: output.reviewer, findings: output.findings }));
+  return { exit: 0, lines: [`posted ${output.verdict} on ${repo}#${number} at ${pr.headRefOid.slice(0, 10)}`, look.rejudge(repo, pr.headRefOid)] };
 }
 
 // ─── The command ────────────────────────────────────────────────────────
@@ -401,7 +437,12 @@ function parseArgs(argv) {
 
 function main(argv) {
   const opts = parseArgs(argv);
-  if (opts.mode === "write") return postVerdict(opts);
+  if (opts.mode === "write") {
+    const output = JSON.parse(readFileSync(opts.verdictFile, "utf8"));
+    const { exit, lines } = postVerdict({ ...opts, output });
+    for (const line of lines) (exit === 0 ? console.log : console.error)(`review-verdict: ${line}`);
+    return exit;
+  }
   const result = readReview(opts);
   if (opts.json) console.log(JSON.stringify(result, null, 2));
   else console.log(`review-verdict: ${opts.repo}#${opts.number} at ${result.head.slice(0, 10)}: ${result.state}: ${result.reason}`);

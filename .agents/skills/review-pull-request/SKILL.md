@@ -118,6 +118,12 @@ stop at the first finding.
   quote checks that cover the changed paths?
 - **The guides.** Does the change keep the laws of the root `AGENTS.md` and of
   each touched package's guide?
+- **The gate itself.** A change to `.github/workflows/ci.review.yaml`,
+  `scripts/review-verdict.mjs`, this brief, or any other required check's
+  workflow judges its own pull request with the edited copy, since GitHub takes
+  a pull request's workflow from its merge commit. Read it as a change to what
+  every later pull request must pass. A weakening the body does not name and
+  justify is a blocking finding.
 - **Nothing private in a public repository.** In stigmer, a diff, a comment or
   the body that names a private planning record, its folder or its task,
   decision, ruling or milestone ids is a blocking finding. A maintainer reads

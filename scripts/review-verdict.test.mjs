@@ -6,9 +6,11 @@
 // that the digest follows the change and the declarations and nothing else;
 // that the newest review by a writer decides, and a review by anyone else is
 // ignored; that a reviewer's output is refused when it could not be posted
-// honestly; that a posted comment parses back to what was posted; and, through
-// throwaway git repositories, that the change id survives a merge of the base
-// and moves with any edit to the change.
+// honestly; that a posted comment parses back to what was posted; how a
+// permission lookup fails, how a posted verdict makes the check judge again;
+// and, through throwaway git repositories, that the change id survives a merge
+// of the base, moves with any edit to the change (whitespace included), and
+// does not move with a user's diff settings.
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -19,11 +21,14 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  canWrite,
   changeDigest,
   changeId,
   declarationText,
   parseReview,
+  postVerdict,
   readReview,
+  rejudge,
   renderReview,
   reviewState,
   verdictProblems,
@@ -35,7 +40,7 @@ const DIGEST = `sha256:${"b".repeat(64)}`;
 const OTHER_DIGEST = `sha256:${"c".repeat(64)}`;
 
 function review({ verdict = "approve", head = HEAD, reviewed = DIGEST, findings = "Findings: none" } = {}) {
-  return ["## Review", "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, "Reviewer: claude-opus-5-5, fresh context, review-pull-request", findings].join("\n");
+  return ["## Review", "<!-- review-verdict -->", "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, "Reviewer: claude-opus-5-5, fresh context, review-pull-request", findings].join("\n");
 }
 
 const writers = new Set(["owner"]);
@@ -43,10 +48,13 @@ const trusted = (login) => writers.has(login);
 
 // ─── parseReview ────────────────────────────────────────────────────────
 
-test("a comment that does not open with the heading is not a review", () => {
+test("a comment that does not open with the heading and the marker is not a review", () => {
   assert.equal(parseReview("Thanks, looks good"), undefined);
-  assert.equal(parseReview("Some text\n## Review\nVerdict: approve"), undefined);
+  assert.equal(parseReview("Some text\n## Review\n<!-- review-verdict -->\nVerdict: approve"), undefined);
   assert.equal(parseReview(""), undefined);
+  // A person's own review notes under the same heading are not a verdict.
+  assert.equal(parseReview("## Review\n\nLooked at the retry path; one question below."), undefined);
+  assert.equal(parseReview(review().replace("<!-- review-verdict -->\n", "")), undefined);
 });
 
 test("a well-formed review parses with no problems", () => {
@@ -242,6 +250,101 @@ test("a failed permission lookup is not a pass", () => {
   assert.throws(() => readReview({ repo: "stigmer/stigmer", number: 7 }, lookups), /cannot read/);
 });
 
+// ─── Posting, the permission lookup, and the rerun ──────────────────────
+
+function postLookups({ head = HEAD } = {}) {
+  const posted = [];
+  return {
+    posted,
+    lookups: {
+      pullRequest: () => ({ number: 7, headRefOid: head, baseRefName: "main", body: "Skip: a -- b" }),
+      checkoutFor: () => "/checkout",
+      changeId: () => "1234",
+      comment: (_repo, _number, body) => posted.push(body),
+      rejudge: () => "reran",
+    },
+  };
+}
+const approve = { verdict: "approve", reviewer: "claude-opus-5-5", findings: [] };
+
+test("a posted verdict carries the digest of the change and declarations it was given for", () => {
+  const { lookups, posted } = postLookups();
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD }, lookups);
+  assert.equal(result.exit, 0, result.lines.join("; "));
+  assert.equal(posted.length, 1);
+  const parsed = parseReview(posted[0]);
+  assert.deepEqual(parsed.problems, []);
+  assert.equal(parsed.reviewed, changeDigest({ changeId: "1234", declarations: declarationText("Skip: a -- b") }));
+  assert.deepEqual(result.lines, ["posted approve on stigmer/stigmer#7 at aaaaaaaaaa", "reran"]);
+});
+
+test("a verdict for a head that moved during the review is not posted", () => {
+  const { lookups, posted } = postLookups({ head: "d".repeat(40) });
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD }, lookups);
+  assert.equal(result.exit, 1);
+  assert.match(result.lines[0], /moved during the review; review it again/);
+  assert.deepEqual(posted, []);
+});
+
+test("a verdict of the wrong shape is not posted", () => {
+  const { lookups, posted } = postLookups();
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: { ...approve, findings: [{ path: "a", severity: "blocking", summary: "x" }] }, reviewedHead: HEAD }, lookups);
+  assert.equal(result.exit, 1);
+  assert.match(result.lines[0], /approve cannot carry a blocking finding/);
+  assert.deepEqual(posted, []);
+});
+
+test("write access is write, maintain or admin; no access is no; any other failure throws", () => {
+  const answers = { admin: true, maintain: true, write: true, triage: false, read: false, none: false };
+  for (const [permission, expected] of Object.entries(answers)) {
+    assert.equal(canWrite("stigmer/stigmer", "x", () => `${permission}\n`), expected, permission);
+  }
+  const failing = (text) => () => {
+    const error = new Error("Command failed");
+    error.stderr = text;
+    throw error;
+  };
+  assert.equal(canWrite("stigmer/stigmer", "x", failing("gh: Not Found (HTTP 404)")), false);
+  assert.equal(canWrite("stigmer/stigmer", "dependabot[bot]", failing("gh: dependabot[bot] is not a user (HTTP 404)")), false);
+  assert.throws(() => canWrite("stigmer/stigmer", "x", failing("gh: Server Error (HTTP 502)")), /cannot read x's permission on stigmer\/stigmer: gh: Server Error/);
+});
+
+function fakeGh(answers) {
+  const calls = [];
+  const api = (args) => {
+    calls.push(args.slice(0, 2).join(" "));
+    const answer = answers[args.slice(0, 2).join(" ")];
+    if (answer instanceof Error) throw answer;
+    return answer ?? "";
+  };
+  return { api, calls };
+}
+
+test("a posted verdict reruns the head's newest check run once it has finished", () => {
+  const done = fakeGh({ "run list": JSON.stringify([{ databaseId: 42, status: "completed" }]) });
+  assert.match(rejudge("stigmer/stigmer", HEAD, done.api), /reran ci\.review\.yaml run 42/);
+  assert.deepEqual(done.calls, ["run list", "run rerun"]);
+  const running = fakeGh({ "run list": JSON.stringify([{ databaseId: 43, status: "in_progress" }]) });
+  rejudge("stigmer/stigmer", HEAD, running.api);
+  assert.deepEqual(running.calls, ["run list", "run watch", "run rerun"]);
+  const failedWatch = fakeGh({ "run list": JSON.stringify([{ databaseId: 44, status: "queued" }]), "run watch": new Error("run failed") });
+  rejudge("stigmer/stigmer", HEAD, failedWatch.api);
+  assert.deepEqual(failedWatch.calls, ["run list", "run watch", "run rerun"], "a failed run is still finished, and is rerun");
+});
+
+test("a head with no check run, or a repository without the workflow, is said so, not rerun", () => {
+  const none = fakeGh({ "run list": "[]" });
+  assert.match(rejudge("stigmer/stigmer", HEAD, none.api), /no ci\.review\.yaml run exists for aaaaaaaaaa.*merge main into the branch and push/);
+  assert.deepEqual(none.calls, ["run list"]);
+  const missing = new Error("Command failed");
+  missing.stderr = "could not find any workflows named ci.review.yaml";
+  const noWorkflow = fakeGh({ "run list": missing });
+  assert.match(rejudge("stigmer/stigmer-cloud", HEAD, noWorkflow.api), /has no ci\.review\.yaml; nothing to rerun/);
+  const other = new Error("Command failed");
+  other.stderr = "HTTP 502";
+  assert.throws(() => rejudge("stigmer/stigmer", HEAD, fakeGh({ "run list": other }).api));
+});
+
 // ─── The change id, through real git ────────────────────────────────────
 
 function git(dir, ...args) {
@@ -319,6 +422,53 @@ test("a base change beside the change's hunk moves the change id, so the reviewe
     git(work, "switch", "--quiet", "topic");
     git(work, "merge", "--quiet", "--no-edit", "main");
     assert.notEqual(changeId(work, { head: git(work, "rev-parse", "HEAD"), base: "main" }), first);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a whitespace-only edit to the change moves the change id", () => {
+  const { root, work, lines } = repositories();
+  try {
+    git(work, "switch", "--quiet", "-c", "topic");
+    const changed = [...lines];
+    changed[30] = "rm -rf /tmp/y";
+    writeFileSync(join(work, "file.txt"), `${changed.join("\n")}\n`);
+    git(work, "commit", "--quiet", "-am", "the change");
+    const first = changeId(work, { head: git(work, "rev-parse", "HEAD"), base: "main" });
+    changed[30] = "rm -rf / tmp/y";
+    writeFileSync(join(work, "file.txt"), `${changed.join("\n")}\n`);
+    git(work, "commit", "--quiet", "-am", "one space, another meaning");
+    assert.notEqual(changeId(work, { head: git(work, "rev-parse", "HEAD"), base: "main" }), first);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a user's diff settings do not move the change id", () => {
+  const { root, work, lines } = repositories();
+  try {
+    git(work, "switch", "--quiet", "-c", "topic");
+    const changed = [...lines];
+    changed[10] = "line 11, changed";
+    changed[25] = "line 26, changed";
+    writeFileSync(join(work, "file.txt"), `${changed.join("\n")}\n`);
+    git(work, "commit", "--quiet", "-am", "two hunks");
+    const head = git(work, "rev-parse", "HEAD");
+    const plain = changeId(work, { head, base: "main" });
+    for (const [key, value] of [
+      ["diff.context", "10"],
+      ["diff.interHunkContext", "20"],
+      ["diff.indentHeuristic", "false"],
+      ["diff.noprefix", "true"],
+      ["diff.mnemonicPrefix", "true"],
+      ["diff.suppressBlankEmpty", "true"],
+      ["diff.algorithm", "histogram"],
+      ["diff.renames", "copies"],
+    ]) {
+      git(work, "config", key, value);
+      assert.equal(changeId(work, { head, base: "main" }), plain, `${key}=${value}`);
+    }
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
