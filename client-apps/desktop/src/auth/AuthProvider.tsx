@@ -19,6 +19,7 @@ import {
   type StoredTokens,
 } from "./pkce";
 import { loadTokens, saveTokens, clearTokens, isExpired } from "./token-store";
+import { API_URL, isAuthDisabled } from "../config";
 
 export interface AuthState {
   /**
@@ -62,25 +63,6 @@ const CALLBACK_URL = "stigmer://auth/callback";
 const CALLBACK_TIMEOUT_MS = 5 * 60_000;
 
 /**
- * Whether auth is disabled (local/OSS mode).
- *
- * When the API URL is localhost and no Auth0 override is set, auth is
- * bypassed entirely — the app behaves as if always authenticated.
- */
-function isAuthDisabled(): boolean {
-  const apiUrl =
-    import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
-  const forceAuth = import.meta.env.VITE_STIGMER_FORCE_AUTH === "true";
-  if (forceAuth) return false;
-  try {
-    const url = new URL(apiUrl);
-    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  } catch {
-    return true;
-  }
-}
-
-/**
  * Desktop auth provider with PKCE support.
  *
  * Supports two modes:
@@ -93,7 +75,11 @@ function isAuthDisabled(): boolean {
  *    exchanges it for tokens, and manages silent refresh.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  if (isAuthDisabled()) {
+  // Auth is off only against a local server (see config.ts), so the app
+  // behaves as if always signed in there.
+  if (
+    isAuthDisabled(API_URL, import.meta.env.VITE_STIGMER_FORCE_AUTH === "true")
+  ) {
     return <DisabledAuthProvider>{children}</DisabledAuthProvider>;
   }
   return <PkceAuthProvider>{children}</PkceAuthProvider>;

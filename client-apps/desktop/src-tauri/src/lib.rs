@@ -1,25 +1,15 @@
 mod auth;
+mod deep_link;
 mod menu;
 mod runner;
 mod tray;
 mod workspace;
 
-use auth::{AuthCallbackPayload, param};
+use deep_link::DeepLinkEvent;
 use runner::RunnerState;
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
-
-/// What `stigmer://billing/return` carries back from Stripe by way of the
-/// web console's desktop bridge (`/desktop/billing`): the outcome only, so
-/// the billing page can reopen the plan a saved card was for. The state
-/// itself is read from the server.
-#[derive(Clone, serde::Serialize)]
-struct BillingReturnPayload {
-    setup: Option<String>,
-    plan: Option<String>,
-    checkout: Option<String>,
-}
 
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -82,54 +72,23 @@ pub fn run() {
                 }
             });
 
+            // Each stigmer:// URL becomes at most one app event (deep_link.rs
+            // decides which); the window comes forward for any it serves.
             let handle = app.handle().clone();
             app.deep_link().on_open_url(move |event| {
                 for raw in event.urls() {
-                    let is_auth = raw.scheme() == "stigmer"
-                        && raw.host_str() == Some("auth")
-                        && raw.path() == "/callback";
-
-                    let is_github = raw.scheme() == "stigmer"
-                        && raw.host_str() == Some("github")
-                        && raw.path() == "/callback";
-
-                    let is_billing = raw.scheme() == "stigmer"
-                        && raw.host_str() == Some("billing")
-                        && raw.path() == "/return";
-
-                    if is_billing {
-                        let payload = BillingReturnPayload {
-                            setup: param(&raw, "setup"),
-                            plan: param(&raw, "plan"),
-                            checkout: param(&raw, "checkout"),
-                        };
-                        let _ = handle.emit("billing-return", payload);
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                    let Some(routed) = deep_link::route(&raw) else {
                         continue;
-                    }
-
-                    if is_auth || is_github {
-                        let payload = AuthCallbackPayload {
-                            code: param(&raw, "code"),
-                            state: param(&raw, "state"),
-                            error: param(&raw, "error"),
-                            error_description: param(&raw, "error_description"),
-                        };
-
-                        let event_name = if is_github {
-                            "github-callback"
-                        } else {
-                            "auth-callback"
-                        };
-                        let _ = handle.emit(event_name, payload);
-
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                    };
+                    let name = routed.name();
+                    let _ = match routed {
+                        DeepLinkEvent::AuthCallback(payload)
+                        | DeepLinkEvent::GitHubCallback(payload) => handle.emit(name, payload),
+                        DeepLinkEvent::BillingReturn(payload) => handle.emit(name, payload),
+                    };
+                    if let Some(window) = handle.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
                     }
                 }
             });
