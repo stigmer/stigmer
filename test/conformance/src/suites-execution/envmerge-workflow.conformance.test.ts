@@ -187,7 +187,7 @@ describe("envmerge conformance — Workflow precedence", () => {
     );
   });
 
-  it("a secret value survives the merge with is_secret preserved and its value redacted on the user-shaped read", async () => {
+  it("[rpc:ExecutionContextQueryController.getByExecutionId] a secret value survives the merge with is_secret preserved and its value redacted on the user-shaped read", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "env-secret-value";
     const { data } = await runWorkflowMerge(org, {

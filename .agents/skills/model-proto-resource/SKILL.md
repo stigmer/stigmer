@@ -189,6 +189,9 @@ cleanup commit.
 - Services only in `command.proto` and `query.proto`; requests in `io.proto`.
 - Every RPC carries `config`, `is_public` or `is_skip_authorization`, each a
   deliberate choice; the coverage document updated.
+- Every new RPC is tagged `[rpc:<Service>.<method>]` on the conformance test
+  that pins it, or waived in `test/conformance/inventory/rpc-waivers.yaml`;
+  `npm run inventory:check -w @stigmer/conformance` names any RPC with neither.
 - System-generated fields in status, user-provided in spec.
 - protovalidate on every constrained field; comments follow the `@internal`
   contract.

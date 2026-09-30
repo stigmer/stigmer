@@ -86,7 +86,7 @@ function laneOrSkip(ctx: { skip: (note?: string) => never }): EnforcingLane {
 }
 
 describe("direct-handler authorization — outsider denials (on the enforcing lane)", () => {
-  it("session updateSubject refuses an outsider with the annotation copy; the subject survives", async (ctx) => {
+  it("[rpc:SessionCommandController.updateSubject] session updateSubject refuses an outsider with the annotation copy; the subject survives", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -126,7 +126,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     expect(after.spec?.subject).toBe("owner's subject");
   });
 
-  it("workflow getVersion refuses an outsider with the annotation copy", async (ctx) => {
+  it("[rpc:WorkflowQueryController.getVersion] workflow getVersion refuses an outsider with the annotation copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -150,7 +150,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     expect(denied.rawMessage).toBe("unauthorized to get workflow version");
   });
 
-  it("the MCP connect lanes refuse an outsider with their annotation copies", async (ctx) => {
+  it("[rpc:McpServerCommandController.connect] [rpc:McpServerCommandController.startConnect] [rpc:McpServerQueryController.getOAuthGrantStatus] [rpc:McpServerCommandController.disconnectOAuth] [rpc:McpServerCommandController.initiateOAuthConnect] the MCP connect lanes refuse an outsider with their annotation copies", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -231,7 +231,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("the channel install pair refuses an outsider with its annotation copy (C2 close-out — the arm both editions declare)", async (ctx) => {
+  it("[rpc:AgentChannelCommandController.initiateInstall] [rpc:AgentChannelCommandController.completeInstall] the channel install pair refuses an outsider with its annotation copy (C2 close-out — the arm both editions declare)", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -279,7 +279,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("the authorize-first read lanes answer an outsider's unknown id with the ruled uniform Q1 NOT_FOUND", async (ctx) => {
+  it("[rpc:AgentExecutionQueryController.getArtifactContent] [rpc:AgentExecutionQueryController.getArtifactDownloadUrl] [rpc:AgentExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.getEventLog] [rpc:WorkflowExecutionQueryController.subscribe] [rpc:WorkflowExecutionQueryController.subscribeEvents] the authorize-first read lanes answer an outsider's unknown id with the ruled uniform Q1 NOT_FOUND", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const outsider = await lane.provisionIdentity();
     const missingWorkflowExecution = "wfe_01conformancemissing";

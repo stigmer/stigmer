@@ -82,7 +82,7 @@ function headersOf(server: McpServer): Record<string, string> {
 }
 
 describe("McpServer conformance — a URL-only server is completed from its endpoint's challenge", () => {
-  it("apply completes exactly the token variable, its declaration, the Bearer header and oauth_only, and stamps the provenance label", async () => {
+  it("[rpc:McpServerCommandController.apply] apply completes exactly the token variable, its declaration, the Bearer header and oauth_only, and stamps the provenance label", async () => {
     challenging();
     const { org } = await target.provisionTenancy();
     const name = uniqueName("urlonly");
@@ -110,7 +110,7 @@ describe("McpServer conformance — a URL-only server is completed from its endp
     expect(stored.metadata?.labels[MCP_AUTH_LABEL]).toBe(MCP_AUTH_ENDPOINT);
   });
 
-  it("re-applying the same document reuses the completion with no second probe and changes nothing", async () => {
+  it("[rpc:McpServerCommandController.apply] re-applying the same document reuses the completion with no second probe and changes nothing", async () => {
     challenging();
     const { org } = await target.provisionTenancy();
     const name = uniqueName("reapply");
@@ -124,7 +124,7 @@ describe("McpServer conformance — a URL-only server is completed from its endp
     expect(endpoint.capturedRequests()).toHaveLength(0);
   });
 
-  it("a full re-send of the completed spec (the console's per-field save) keeps the label and probes nothing", async () => {
+  it("[rpc:McpServerCommandController.update] a full re-send of the completed spec (the console's per-field save) keeps the label and probes nothing", async () => {
     challenging();
     const { org } = await target.provisionTenancy();
     const applied = await applyUrlOnly(org, uniqueName("echo"));
@@ -139,7 +139,7 @@ describe("McpServer conformance — a URL-only server is completed from its endp
     expect(endpoint.capturedRequests()).toHaveLength(0);
   });
 
-  it("an endpoint that answers without a challenge leaves the spec exactly as sent", async () => {
+  it("[rpc:McpServerCommandController.apply] an endpoint that answers without a challenge leaves the spec exactly as sent", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("open");
     const applied = await applyUrlOnly(org, name);
@@ -150,7 +150,7 @@ describe("McpServer conformance — a URL-only server is completed from its endp
     expect(endpoint.capturedRequests().map((request) => request.method)).toEqual(["initialize"]);
   });
 
-  it("an author's own auth is left alone and never probed; only the Bearer header that sends its token is added", async () => {
+  it("[rpc:McpServerCommandController.apply] an author's own auth is left alone and never probed; only the Bearer header that sends its token is added", async () => {
     challenging();
     const { org } = await target.provisionTenancy();
     const name = uniqueName("authored");
@@ -176,7 +176,7 @@ describe("McpServer conformance — a URL-only server is completed from its endp
     expect(endpoint.capturedRequests()).toHaveLength(0);
   });
 
-  it("a plugin whose mcp.json names the endpoint installs a completed child", async () => {
+  it("[rpc:PluginCommandController.push] a plugin whose mcp.json names the endpoint installs a completed child", async () => {
     challenging();
     const { org } = await target.provisionTenancy();
     const name = uniqueName("plg-urlonly");

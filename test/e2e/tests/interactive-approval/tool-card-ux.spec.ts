@@ -44,6 +44,12 @@ import type { Locator } from "@playwright/test";
  * parses every CSS color form the engine can compute — the Tailwind v4 theme
  * emits `oklch(...)`, which a text `rgb(...)` regex (this helper's previous
  * form) silently fails on. A fully transparent background resolves to a=0.
+ *
+ * One read is one moment: callers poll it (`expect.poll`). The gate row is
+ * re-rendered by a refetch just after it first becomes visible, and a read
+ * that lands on the replaced element sees empty computed styles: an empty
+ * `backgroundColor` leaves the canvas at its opaque black default, so a
+ * detached button reads as a=1 (stigmer#1527).
  */
 function resolvedBackgroundRgba(
   locator: Locator,
@@ -154,10 +160,10 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // cannot see a 1px outline (well under 2% of the card's pixels) and the jsdom
   // unit tests assert only the class *string*, never the rendered width. This
   // reads the real computed style in Chromium, so a layer regression fails loudly.
-  // quarantined: stigmer#1527 — on CI this computed-style read sometimes samples
-  // the card before `next dev` has applied its stylesheet (retries hid it until
-  // #1515); it runs again once it waits for the styled card.
-  test.fixme("the approval gate card renders a visible neutral border + accent", async ({
+  // Each read is polled: a read on the row a refetch has just replaced sees
+  // empty widths (NaN) and waits instead of failing, while a real regression
+  // never converges.
+  test("the approval gate card renders a visible neutral border + accent", async ({
     page,
     stigmerClient,
   }) => {
@@ -169,21 +175,28 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
-    const border = await gateRow.evaluate((el) => {
-      const s = getComputedStyle(el);
-      return {
-        top: s.borderTopWidth,
-        left: s.borderLeftWidth,
-        color: s.borderTopColor,
-      };
-    });
+    const border = () =>
+      gateRow.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return {
+          top: parseFloat(s.borderTopWidth),
+          left: parseFloat(s.borderLeftWidth),
+          color: s.borderTopColor,
+        };
+      });
     // The neutral outline is a real ~1px line on every side...
-    expect(parseFloat(border.top)).toBeGreaterThanOrEqual(1);
-    // ...with a visible (non-transparent) color, not the zeroed fallback.
-    expect(border.color).not.toBe("transparent");
-    expect(border.color).not.toMatch(/,\s*0\)\s*$/); // no rgba(...,0)
+    await expect
+      .poll(async () => (await border()).top, { message: "the gate card has a top border" })
+      .toBeGreaterThanOrEqual(1);
+    // ...with a visible (non-transparent) color, not the zeroed fallback
+    // (`transparent`, or any rgba(..., 0)).
+    await expect
+      .poll(async () => (await border()).color, { message: "the gate card's border has a visible color" })
+      .not.toMatch(/^transparent$|,\s*0\)\s*$/);
     // The pending gate carries its "needs you" cue as a 2px left accent.
-    expect(parseFloat(border.left)).toBeGreaterThanOrEqual(2);
+    await expect
+      .poll(async () => (await border()).left, { message: "the pending gate has a 2px left accent" })
+      .toBeGreaterThanOrEqual(2);
   });
 
   // --- Quiet decision buttons: computed-style guard (not a screenshot) ------
@@ -192,10 +205,10 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // is a ghost with NO resting fill. A screenshot's 2% threshold can miss a hue
   // swap on a small button, so assert the real computed colors — the same
   // "rendered, not class-string" philosophy as the border guard above.
-  // quarantined: stigmer#1527 — on CI this computed-style read sometimes samples
-  // the card before `next dev` has applied its stylesheet (retries hid it until
-  // #1515); it runs again once it waits for the styled card.
-  test.fixme("decision buttons are quiet: Approve is a neutral chip, Reject has no resting fill", async ({
+  // Reject is read first: its transparent resting fill is reachable only on the
+  // live, styled button, while a read on a replaced button (opaque black, see
+  // resolvedBackgroundRgba) would pass Approve's checks by accident.
+  test("decision buttons are quiet: Approve is a neutral chip, Reject has no resting fill", async ({
     page,
     stigmerClient,
   }) => {
@@ -207,18 +220,28 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
+    // Reject: a quiet ghost — transparent at rest (no fill).
+    await expect
+      .poll(async () => (await resolvedBackgroundRgba(rejectButton(gateRow))).a, {
+        message: "Reject has no resting background fill",
+      })
+      .toBe(0);
+
     // Approve: opaque fill, but neutral grey (R≈G≈B) — not the success green
     // (whose green channel dominates).
-    const approveBg = await resolvedBackgroundRgba(approveButton(gateRow));
-    expect(approveBg.a, "Approve is a filled chip").toBeGreaterThan(0);
-    const spread =
-      Math.max(approveBg.r, approveBg.g, approveBg.b) -
-      Math.min(approveBg.r, approveBg.g, approveBg.b);
-    expect(spread, "Approve fill is neutral grey, not green").toBeLessThanOrEqual(12);
-
-    // Reject: a quiet ghost — transparent at rest (no fill).
-    const rejectBg = await resolvedBackgroundRgba(rejectButton(gateRow));
-    expect(rejectBg.a, "Reject has no resting background fill").toBe(0);
+    const approveBg = () => resolvedBackgroundRgba(approveButton(gateRow));
+    await expect
+      .poll(async () => (await approveBg()).a, { message: "Approve is a filled chip" })
+      .toBeGreaterThan(0);
+    await expect
+      .poll(
+        async () => {
+          const { r, g, b } = await approveBg();
+          return Math.max(r, g, b) - Math.min(r, g, b);
+        },
+        { message: "Approve fill is neutral grey, not green" },
+      )
+      .toBeLessThanOrEqual(12);
   });
 
   // --- Bounded preview: a large gate's content truncates and reveals in place

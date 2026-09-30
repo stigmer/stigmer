@@ -23,14 +23,16 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            VERSION="${{ github.ref_name }}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME}"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="v${{ github.event.inputs.version }}"
+            VERSION="v${GITHUB_EVENT_INPUTS_VERSION}"
           fi
           VERSION_NO_V="${VERSION#v}"
           echo "version=$VERSION_NO_V" >> $GITHUB_OUTPUT
           echo "Publishing stigmer Python packages at version: $VERSION_NO_V"
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
 
   publish-protos:
     needs: determine-version
@@ -40,22 +42,24 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # Node before stub generation: the stub scrub inside gen-stubs.sh runs
       # from TypeScript source via the repo-pinned tsx.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -64,14 +68,14 @@ jobs:
         run: STUBS_FORCE=1 make -C apis python-stubs
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
 
       - name: Set version
         working-directory: apis/stubs/python/stigmer
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           python -c "
           import re, pathlib
           p = pathlib.Path('pyproject.toml')
@@ -80,6 +84,8 @@ jobs:
           p.write_text(text)
           "
           echo "Set stigmer-protos version to $VERSION"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       - name: Build package
         working-directory: apis/stubs/python/stigmer
@@ -91,7 +97,7 @@ jobs:
       # release via workflow_dispatch re-runs this job, and PyPI rejects
       # duplicate uploads of an already-published version (oss#908).
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: apis/stubs/python/stigmer/dist/
           skip-existing: true
@@ -104,24 +110,26 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # The client generator runs from TypeScript source via the repo-pinned
       # tsx (never bare npx — oss#531), so the root npm install must exist
       # before the codegen step.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
 
@@ -131,7 +139,7 @@ jobs:
       - name: Set version and pin protos dependency
         working-directory: sdk/python
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           python -c "
           import re, pathlib
           p = pathlib.Path('pyproject.toml')
@@ -141,6 +149,8 @@ jobs:
           p.write_text(text)
           "
           echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       - name: Build package
         working-directory: sdk/python
@@ -150,7 +160,7 @@ jobs:
 
       # skip-existing for the same re-run idempotency as publish-protos.
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: sdk/python/dist/
           skip-existing: true

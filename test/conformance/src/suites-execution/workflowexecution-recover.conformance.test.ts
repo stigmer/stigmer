@@ -90,7 +90,7 @@ async function createExecution(org: string, workflowId: string): Promise<string>
 }
 
 describe("WorkflowExecution recover — happy path", () => {
-  it("recovers a FAILED execution back to IN_PROGRESS with the error cleared, then re-runs to terminal", async () => {
+  it("[rpc:WorkflowExecutionCommandController.recover] recovers a FAILED execution back to IN_PROGRESS with the error cleared, then re-runs to terminal", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionRaiseErrorWorkflow(org);
     const executionId = await createExecution(org, workflowId);
@@ -124,7 +124,7 @@ describe("WorkflowExecution recover — happy path", () => {
     ).toBe(ExecutionPhase.EXECUTION_FAILED);
   });
 
-  it("is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
+  it("[rpc:WorkflowExecutionCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWaitWorkflow(org);
     const executionId = await createExecution(org, workflowId);

@@ -88,7 +88,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     return { schedule, agentSlug };
   }
 
-  it("a trigger answers the run's real outcome synchronously, stamps the fire, and never feeds the streak", async () => {
+  it("[rpc:ScheduleCommandController.trigger] a trigger answers the run's real outcome synchronously, stamps the fire, and never feeds the streak", async () => {
     const { org } = await target.provisionTenancy();
     const { schedule, agentSlug } = await createDanglingSchedule(org);
 
@@ -117,7 +117,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     expect(fresh.status?.pausedReason ?? "").toBe("");
   });
 
-  it("every fire leaves a run-history row with the reason verbatim — including fires that created no execution", async () => {
+  it("[rpc:ScheduleCommandController.trigger] [rpc:ScheduleQueryController.listRuns] every fire leaves a run-history row with the reason verbatim — including fires that created no execution", async () => {
     const { org } = await target.provisionTenancy();
     const { schedule, agentSlug } = await createDanglingSchedule(org);
 
@@ -138,7 +138,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     expect(run.completedAt, "a no-run fire is terminal at insert").toBeDefined();
   });
 
-  it("listing runs of a missing schedule is NotFound — an empty history never impersonates 'never fired'", async () => {
+  it("[rpc:ScheduleQueryController.listRuns] listing runs of a missing schedule is NotFound — an empty history never impersonates 'never fired'", async () => {
     await expectGrpcCode(
       () => clients.scheduleQuery.listRuns({ scheduleId: "sch_01conformancemissing" }),
       Code.NotFound,
@@ -166,7 +166,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     await target?.teardown();
   });
 
-  it("a real fire runs the agent to completion — the result carries the execution, and run history resolves it at read time", async () => {
+  it("[rpc:ScheduleCommandController.trigger] [rpc:ScheduleQueryController.listRuns] a real fire runs the agent to completion — the result carries the execution, and run history resolves it at read time", async () => {
     const { org } = await target.provisionTenancy();
 
     const agent = await clients.agentCommand.create(

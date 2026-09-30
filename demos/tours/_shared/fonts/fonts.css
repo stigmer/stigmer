@@ -1,8 +1,8 @@
 /*
  * The console's typeface, self-hosted for packed tour bundles.
  *
- * The real console loads Geist / Geist Mono via `next/font/google`
- * (client-apps/web/src/app/layout.tsx), which defines the
+ * The real console self-hosts Geist / Geist Mono through `next/font/local`
+ * (client-apps/web/src/app/fonts/fonts.ts), which defines the
  * `--font-geist-sans` / `--font-geist-mono` variables that the theme
  * tokens fall back through: `--stgm-font-sans: var(--font-geist-sans,
  * system-ui, sans-serif)` (sdk/theme/src/tokens.css). A packed tour

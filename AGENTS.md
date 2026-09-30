@@ -126,8 +126,8 @@ summary line in the final message. Never report unverified work as done.
 - `docs/**`, `site/**`:
   `make lint-docs format-docs-check check-docs-yaml check-docs-inventory build-site`,
   `make -C site lint typecheck`.
-- `scripts/**`: `npm run test:scripts`. Any `AGENTS.md` or `.agents/**`:
-  `make agents-check`.
+- `scripts/**`: `npm run test:scripts`. `.github/**`: `make lint-workflows`. Any
+  `AGENTS.md` or `.agents/**`: `make agents-check`.
 
 ## Hard laws
 

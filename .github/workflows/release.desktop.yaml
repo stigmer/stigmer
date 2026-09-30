@@ -20,7 +20,7 @@ on:
         default: ''
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   determine-version:
@@ -30,23 +30,25 @@ jobs:
       should_release: ${{ steps.version.outputs.should_release }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Determine version
         id: version
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            VERSION="${{ github.ref_name }}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME}"
             SHOULD_RELEASE="true"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${GITHUB_EVENT_INPUTS_VERSION}" ]; then
             # Recovery path: re-release an existing tag when its tag-push run
             # failed (the tag itself can't be re-pushed).
-            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${GITHUB_EVENT_INPUTS_VERSION}"
             SHOULD_RELEASE="true"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Numeric-only pre-release id; Windows MSI rejects non-numeric identifiers.
             VERSION="0.0.0-${{ github.run_number }}"
-            SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
+            SHOULD_RELEASE="${GITHUB_EVENT_INPUTS_CREATE_RELEASE}"
           else
             VERSION="0.0.0-${{ github.run_number }}"
             SHOULD_RELEASE="false"
@@ -54,6 +56,9 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
           echo "Desktop build: $VERSION (release: $SHOULD_RELEASE) [$(git rev-parse --short HEAD)]"
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
+          GITHUB_EVENT_INPUTS_CREATE_RELEASE: ${{ github.event.inputs.create_release }}
 
   # Independent of determine-version (it never consumes the version output), so
   # the two run concurrently and shave the version step off the critical path.
@@ -61,35 +66,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.25'
-          # Monorepo has no root go.sum; point the module cache at all of them
-          # so setup-go stops warning about a missing dependency file.
-          cache-dependency-path: '**/go.sum'
+          # No module cache: a release builds from nothing a pull request
+          # could have written into a shared cache.
+          cache: false
 
       - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache buf modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/buf
-          key: buf-${{ hashFiles('apis/buf.lock') }}
-          restore-keys: buf-
 
       # The stub scrub inside gen-stubs.sh runs from TypeScript source via
       # the repo-pinned tsx, so the root npm install must precede `make protos`.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -108,7 +109,7 @@ jobs:
             sdk/typescript/src/gen/
 
       - name: Upload proto stubs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: proto-stubs
           path: proto-stubs.tar.gz
@@ -131,7 +132,7 @@ jobs:
     steps:
       - name: Create draft release
         id: create
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         with:
@@ -230,7 +231,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       # ── macOS code signing and notarization ─────────────────────────────
       #
@@ -336,7 +339,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Download proto stubs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: proto-stubs
 
@@ -344,20 +347,16 @@ jobs:
         run: tar -xzf proto-stubs.tar.gz
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: ${{ matrix.rust_target }}
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: 'client-apps/desktop/src-tauri -> target'
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -397,7 +396,7 @@ jobs:
       - name: Set app version from tag
         shell: bash
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           VERSION="${VERSION#v}"
           echo "Setting desktop app version to $VERSION"
           cd client-apps/desktop/src-tauri
@@ -407,6 +406,8 @@ jobs:
             conf.version = '$VERSION';
             fs.writeFileSync('tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
           "
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
       # Upload this platform's signed bundles to the shared draft release.
       # includeUpdaterJson is disabled: latest.json is assembled once in the
@@ -415,7 +416,7 @@ jobs:
       # above), so this env block is the same on every platform.
       - name: Build and upload (release)
         if: needs.determine-version.outputs.should_release == 'true'
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # action-v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -429,7 +430,7 @@ jobs:
 
       - name: Build only (no release)
         if: needs.determine-version.outputs.should_release != 'true'
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # action-v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -461,20 +462,24 @@ jobs:
         if: runner.os == 'macOS' && steps.signing.outputs.available == 'true'
         run: |
           client-apps/desktop/scripts/macos-notarize-dmg.sh \
-            "${{ steps.bundles.outputs.dmg }}" "${{ steps.bundles.outputs.app }}"
+            "${STEPS_BUNDLES_OUTPUTS_DMG}" "${STEPS_BUNDLES_OUTPUTS_APP}"
+        env:
+          STEPS_BUNDLES_OUTPUTS_DMG: ${{ steps.bundles.outputs.dmg }}
+          STEPS_BUNDLES_OUTPUTS_APP: ${{ steps.bundles.outputs.app }}
 
       - name: Replace the release DMG with the stapled one
         if: runner.os == 'macOS' && steps.signing.outputs.available == 'true' && needs.determine-version.outputs.should_release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.determine-version.outputs.version }}
-        run: gh release upload "$TAG" "${{ steps.bundles.outputs.dmg }}" --clobber
+          STEPS_BUNDLES_OUTPUTS_DMG: ${{ steps.bundles.outputs.dmg }}
+        run: gh release upload "$TAG" "${STEPS_BUNDLES_OUTPUTS_DMG}" --clobber
 
       # Build-only runs have no release to upload to; the DMG rides as a
       # workflow artifact so it can be opened on a Mac before a tag is cut.
       - name: Upload macOS DMG artifact
         if: runner.os == 'macOS' && needs.determine-version.outputs.should_release != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: desktop-macos-dmg
           path: ${{ steps.bundles.outputs.dmg }}
@@ -486,7 +491,7 @@ jobs:
       # that the Linux engine runs the Linux runner outside the build host.
       - name: Upload Linux and Windows installers artifact
         if: runner.os != 'macOS' && needs.determine-version.outputs.should_release != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: desktop-${{ runner.os == 'Linux' && 'linux' || 'windows' }}-installers
           path: |
@@ -511,7 +516,7 @@ jobs:
 
       - name: Upload updater fragment
         if: needs.determine-version.outputs.should_release == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: updater-fragment-${{ matrix.platform }}
           path: updater-fragment-${{ matrix.platform }}.json
@@ -528,10 +533,12 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Download updater fragments
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: updater-fragment-*
           path: updater-fragments

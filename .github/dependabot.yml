@@ -1,7 +1,7 @@
 # =============================================================================
-# Dependabot: security updates for every manifest
+# Dependabot: security updates for every manifest, version updates for actions
 # =============================================================================
-# Every entry sets `open-pull-requests-limit: 0`, which turns its version
+# Every package entry sets `open-pull-requests-limit: 0`, which turns its version
 # updates off; security updates are not subject to that limit, so Dependabot
 # still opens a pull request when an advisory affects a dependency. Each entry
 # groups its security updates, so one advisory that touches several
@@ -89,16 +89,22 @@ updates:
         applies-to: security-updates
         patterns: ["*"]
 
+  # GitHub Actions is the one ecosystem with version updates on: every action
+  # is pinned to a commit SHA (zizmor.yml requires it), so the pins move only
+  # through this grouped weekly pull request, never by a tag being moved. The
+  # cooldown keeps a release published in the last seven days out of it.
   - package-ecosystem: github-actions
     directories:
       - "/"
       - "/.github/actions/*"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     groups:
+      actions:
+        applies-to: version-updates
+        patterns: ["*"]
       actions-security:
         applies-to: security-updates
         patterns: ["*"]

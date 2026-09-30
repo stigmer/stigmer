@@ -90,7 +90,7 @@ async function createVendorOAuthApp(org: string, name: string, opts: OAuthAppOpt
 }
 
 describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
-  it("rejects an empty mcp_server_id (InvalidArgument)", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] rejects an empty mcp_server_id (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.mcpServerCommand.initiateOAuthConnect({ mcpServerId: "", org }),
@@ -99,14 +99,14 @@ describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
     );
   });
 
-  it("rejects an empty org (InvalidArgument)", () =>
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] rejects an empty org (InvalidArgument)", () =>
     expectGrpcCode(
       () => clients.mcpServerCommand.initiateOAuthConnect({ mcpServerId: "mcp_x", org: "" }),
       Code.InvalidArgument,
       "initiate empty org",
     ));
 
-  it("reports NotFound for an unknown mcp_server_id", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] reports NotFound for an unknown mcp_server_id", async () => {
     const { org } = await target.provisionTenancy();
     const err = await expectGrpcCode(
       () => clients.mcpServerCommand.initiateOAuthConnect({ mcpServerId: "mcp_doesnotexist", org }),
@@ -116,7 +116,7 @@ describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
     expect(err.rawMessage).toBe("mcp_server not found: mcp_doesnotexist");
   });
 
-  it("refuses a server without an auth block (FailedPrecondition, pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] refuses a server without an auth block (FailedPrecondition, pinned copy)", async () => {
     const { org } = await target.provisionTenancy();
     // No-auth shape written inline: the support builder represents validity
     // for the OAuth facet, and "no auth block" is its deliberate negative.
@@ -141,7 +141,7 @@ describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
     );
   });
 
-  it("refuses DCR with neither http.url nor discovery_url (FailedPrecondition, pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] refuses DCR with neither http.url nor discovery_url (FailedPrecondition, pinned copy)", async () => {
     const { org } = await target.provisionTenancy();
     const server = await createOAuthMcpServer({ org, name: uniqueName("nodisc") });
     const err = await expectGrpcCode(
@@ -155,7 +155,7 @@ describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
     );
   });
 
-  it("surfaces a discovery failure (non-200 metadata) as FailedPrecondition", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] surfaces a discovery failure (non-200 metadata) as FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const server = await createOAuthMcpServer({
       org,
@@ -175,7 +175,7 @@ describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
     );
   });
 
-  it("refuses a provider that advertises no registration_endpoint (FailedPrecondition, pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] refuses a provider that advertises no registration_endpoint (FailedPrecondition, pinned copy)", async () => {
     const { org } = await target.provisionTenancy();
     const server = await createOAuthMcpServer({
       org,
@@ -199,7 +199,7 @@ describe("McpServer OAuth conformance — initiateOAuthConnect guards", () => {
 });
 
 describe("McpServer OAuth conformance — initiate, DCR arm", () => {
-  it("discovers, registers via DCR, and returns a PKCE S256 authorization URL", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] discovers, registers via DCR, and returns a PKCE S256 authorization URL", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("dcr");
     const server = await createOAuthMcpServer({
@@ -246,7 +246,7 @@ describe("McpServer OAuth conformance — initiate, DCR arm", () => {
     expect(mockAs.capturedAuthorizeProbes()[0]!.params.get("state")).toBe(out.state);
   });
 
-  it("falls back to the provider's scopes_supported when the server declares no scope_hints", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] falls back to the provider's scopes_supported when the server declares no scope_hints", async () => {
     const { org } = await target.provisionTenancy();
     mockAs.scopesSupported = ["discovered:a", "discovered:b"];
     const server = await createOAuthMcpServer({
@@ -265,7 +265,7 @@ describe("McpServer OAuth conformance — initiate, DCR arm", () => {
     expect(authUrl.searchParams.get("scope")).toBe("discovered:a discovered:b");
   });
 
-  it("blocks initiate when the authorize pre-flight answers 400, with the pinned rejection copy", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] blocks initiate when the authorize pre-flight answers 400, with the pinned rejection copy", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("dcrblocked");
     const server = await createOAuthMcpServer({ org, name, discoveryUrl: mockAs.origin() });
@@ -285,7 +285,7 @@ describe("McpServer OAuth conformance — initiate, DCR arm", () => {
     );
   });
 
-  it("omits the provider detail when the 400 body is an HTML error page", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] omits the provider detail when the 400 body is an HTML error page", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("dcrhtml");
     const server = await createOAuthMcpServer({ org, name, discoveryUrl: mockAs.origin() });
@@ -304,7 +304,7 @@ describe("McpServer OAuth conformance — initiate, DCR arm", () => {
     );
   });
 
-  it("fails open when the authorize pre-flight answers a non-400 error (bot-wall contract)", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] fails open when the authorize pre-flight answers a non-400 error (bot-wall contract)", async () => {
     const { org } = await target.provisionTenancy();
     const server = await createOAuthMcpServer({
       org,
@@ -332,7 +332,7 @@ describe("McpServer OAuth conformance — initiate, vendor arm", () => {
   // delete refuses while a server references it. The initiate lane's
   // NotFound for a stored row that dangles anyway is pinned server-side over
   // a seeded row (domain/mcpserver/__tests__/oauth-handshake.test.ts).
-  it("refuses a vendor-PENDING app with the manual-token alternative (pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] refuses a vendor-PENDING app with the manual-token alternative (pinned copy)", async () => {
     const { org } = await target.provisionTenancy();
     const app = await createVendorOAuthApp(org, uniqueName("vpending"), {
       vendorApprovalStatus: VendorApprovalStatus.PENDING,
@@ -354,7 +354,7 @@ describe("McpServer OAuth conformance — initiate, vendor arm", () => {
     );
   });
 
-  it("refuses a vendor-REJECTED oauth_only server with the BYOA alternative (pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] refuses a vendor-REJECTED oauth_only server with the BYOA alternative (pinned copy)", async () => {
     const { org } = await target.provisionTenancy();
     const app = await createVendorOAuthApp(org, uniqueName("vrejected"), {
       vendorApprovalStatus: VendorApprovalStatus.REJECTED,
@@ -377,7 +377,7 @@ describe("McpServer OAuth conformance — initiate, vendor arm", () => {
     );
   });
 
-  it("builds the authorization URL from the OAuthApp, honoring a custom scope parameter name", async () => {
+  it("[rpc:McpServerCommandController.initiateOAuthConnect] builds the authorization URL from the OAuthApp, honoring a custom scope parameter name", async () => {
     const { org } = await target.provisionTenancy();
     const app = await createVendorOAuthApp(org, uniqueName("vhappy"), {
       scopeParameterName: "user_scope",
@@ -408,7 +408,7 @@ describe("McpServer OAuth conformance — initiate, vendor arm", () => {
 });
 
 describe("McpServer OAuth conformance — handshake input guards (Layer 1)", () => {
-  it("completeOAuthConnect rejects missing inputs (InvalidArgument each)", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] completeOAuthConnect rejects missing inputs (InvalidArgument each)", async () => {
     await expectGrpcCode(
       () => clients.mcpServerCommand.completeOAuthConnect({ mcpServerId: "", state: "s", authorizationCode: "c" }),
       Code.InvalidArgument,
@@ -426,7 +426,7 @@ describe("McpServer OAuth conformance — handshake input guards (Layer 1)", () 
     );
   });
 
-  it("getOAuthGrantStatus rejects missing resource_id and org (InvalidArgument each)", async () => {
+  it("[rpc:McpServerQueryController.getOAuthGrantStatus] getOAuthGrantStatus rejects missing resource_id and org (InvalidArgument each)", async () => {
     await expectGrpcCode(
       () => clients.mcpServerQuery.getOAuthGrantStatus({ resourceId: "", org: "acme" }),
       Code.InvalidArgument,
@@ -439,7 +439,7 @@ describe("McpServer OAuth conformance — handshake input guards (Layer 1)", () 
     );
   });
 
-  it("disconnectOAuth rejects missing resource_id and org (InvalidArgument each)", async () => {
+  it("[rpc:McpServerCommandController.disconnectOAuth] disconnectOAuth rejects missing resource_id and org (InvalidArgument each)", async () => {
     await expectGrpcCode(
       () => clients.mcpServerCommand.disconnectOAuth({ resourceId: "", org: "acme" }),
       Code.InvalidArgument,
@@ -454,7 +454,7 @@ describe("McpServer OAuth conformance — handshake input guards (Layer 1)", () 
 });
 
 describe("McpServer OAuth conformance — grant-free reads", () => {
-  it("getOAuthGrantStatus answers NO_GRANT for a server that never connected", async () => {
+  it("[rpc:McpServerQueryController.getOAuthGrantStatus] getOAuthGrantStatus answers NO_GRANT for a server that never connected", async () => {
     const { org } = await target.provisionTenancy();
     const server = await createOAuthMcpServer({
       org,
@@ -471,7 +471,7 @@ describe("McpServer OAuth conformance — grant-free reads", () => {
     expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT);
   });
 
-  it("disconnectOAuth is idempotent: no grant answers disconnected=false, not an error", async () => {
+  it("[rpc:McpServerCommandController.disconnectOAuth] disconnectOAuth is idempotent: no grant answers disconnected=false, not an error", async () => {
     // The probe targets a REAL owned server (the wave-2 real-owned-resource
     // convention): on the multi-tenant edition a fabricated id fails closed
     // in authorization (PermissionDenied, no existence leak) before the
@@ -500,7 +500,7 @@ describe("McpServer OAuth conformance — grant-free reads", () => {
 describe.skipIf(orgOAuthAppConfigured)(
   "McpServer OAuth conformance — org OAuth app pins (OSS refusals)",
   () => {
-    it("getOrgOAuthApp answers Unimplemented", async () => {
+    it("[rpc:McpServerQueryController.getOrgOAuthApp] getOrgOAuthApp answers Unimplemented", async () => {
       const { org } = await target.provisionTenancy();
       await expectGrpcCode(
         () => clients.mcpServerQuery.getOrgOAuthApp({ resourceId: "mcp_x", org }),
@@ -509,7 +509,7 @@ describe.skipIf(orgOAuthAppConfigured)(
       );
     });
 
-    it("setOrgOAuthApp answers Unimplemented", async () => {
+    it("[rpc:McpServerCommandController.setOrgOAuthApp] setOrgOAuthApp answers Unimplemented", async () => {
       const { org } = await target.provisionTenancy();
       await expectGrpcCode(
         () =>
@@ -524,7 +524,7 @@ describe.skipIf(orgOAuthAppConfigured)(
       );
     });
 
-    it("deleteOrgOAuthApp answers Unimplemented", async () => {
+    it("[rpc:McpServerCommandController.deleteOrgOAuthApp] deleteOrgOAuthApp answers Unimplemented", async () => {
       const { org } = await target.provisionTenancy();
       await expectGrpcCode(
         () => clients.mcpServerCommand.deleteOrgOAuthApp({ resourceId: "mcp_x", org }),

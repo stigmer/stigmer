@@ -48,13 +48,15 @@ jobs:
     name: Audit, sync and propose
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # The secret is absent on a fork's pull request and on a repository
           # that has not created it; the workflow token then serves the read.
           token: ${{ secrets.CATALOGUE_REFRESH_TOKEN || github.token }}
+          # This job pushes the refresh branch with git, so the checkout keeps its token.
+          persist-credentials: true # zizmor: ignore[artipacked]
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: ".nvmrc"
           cache: npm
@@ -72,7 +74,7 @@ jobs:
         run: make test-plugins-static
 
       - name: Keep the full report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: catalogue-audit
           path: |

@@ -8,16 +8,21 @@
 // per worker, any number of targets into one directory. Each `--served` log
 // (a server's or the cloud composition's, at LOG_LEVEL info or lower) adds the
 // RPCs it shows served, which is how RPCs only the runner or the MCP bridge
-// send are told apart from RPCs nothing exercised. Prints Markdown; `--json`
-// also writes every RPC's tests per target, the input for tagging.
+// send are told apart from RPCs nothing exercised. The suite sources are
+// scanned for `[rpc:...]` tags, and every tag no run proved is listed. Prints
+// Markdown; `--json` also writes every RPC's tests per target, the input for
+// tagging.
 //
 // A measurement, not a gate: it exits 0 whatever it counts, and 1 only when an
 // input is unreadable or malformed.
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { declaredRpcs } from "../src/inventory/rpc-contract";
+import { collectRpcTags, declaredRpcs } from "../src/inventory/rpc-contract";
 import { formatLedgerReport, parseLedger, servedRpcs, summarizeLedger, type RpcLedgerLine } from "../src/inventory/rpc-ledger";
+
+const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
+const SUITE_ROOTS = [resolve(PACKAGE_ROOT, "src/suites"), resolve(PACKAGE_ROOT, "src/suites-execution")];
 
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
@@ -53,6 +58,7 @@ async function main(): Promise<void> {
     (await declaredRpcs()).map((rpc) => rpc.key),
     lines,
     served,
+    (await collectRpcTags(SUITE_ROOTS, PACKAGE_ROOT)).map((tag) => tag.key),
   );
   console.log(formatLedgerReport(summary));
 

@@ -22,7 +22,7 @@ runs:
   steps:
     - name: Restore the Turbo cache written by main
       if: github.event_name == 'pull_request'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: .turbo/cache
         key: turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}

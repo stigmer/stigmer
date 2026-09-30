@@ -162,7 +162,7 @@ describe("apikey domain (composed server)", () => {
     expect(stored.spec?.keyHash).not.toBe("attacker-chosen");
   });
 
-  it("getByKeyHash resolves the stored hash; unknown hash is the pinned NotFound", async () => {
+  it("[rpc:ApiKeyQueryController.getByKeyHash] getByKeyHash resolves the stored hash; unknown hash is the pinned NotFound", async () => {
     const created = await command.create(keyInput());
     const plaintext = created.spec?.keyHash ?? "";
 

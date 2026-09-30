@@ -61,7 +61,7 @@ async function createAgentNamed(org: string, name: string) {
 }
 
 describe("Search conformance — list mode (empty query)", () => {
-  it("returns the org's resources of the kind with the pinned list-mode properties", async () => {
+  it("[rpc:SearchService.search] returns the org's resources of the kind with the pinned list-mode properties", async () => {
     const { org } = await target.provisionTenancy();
     const first = await createAgentNamed(org, uniqueName("list-agent"));
     const second = await createAgentNamed(org, uniqueName("list-agent"));
@@ -90,7 +90,7 @@ describe("Search conformance — list mode (empty query)", () => {
 });
 
 describe("Search conformance — search mode (text query)", () => {
-  it("finds resources by a name token with a positive relevance score", async () => {
+  it("[rpc:SearchService.search] finds resources by a name token with a positive relevance score", async () => {
     const { org } = await target.provisionTenancy();
     const token = uniqueToken();
     const match = await createAgentNamed(org, `needle-${token}`);
@@ -109,7 +109,7 @@ describe("Search conformance — search mode (text query)", () => {
     expect(response.entries[0]?.score).toBeGreaterThan(0);
   });
 
-  it("discover mode (empty kinds) spans searchable kinds — including the default instances", async () => {
+  it("[rpc:SearchService.search] discover mode (empty kinds) spans searchable kinds — including the default instances", async () => {
     const { org } = await target.provisionTenancy();
     const token = uniqueToken();
     await createAgentNamed(org, `disc-${token}-agent`);
@@ -139,7 +139,7 @@ describe("Search conformance — search mode (text query)", () => {
     });
   });
 
-  it("naming ONLY non-searchable kinds returns empty — never a discover fallback (#440)", async () => {
+  it("[rpc:SearchService.search] naming ONLY non-searchable kinds returns empty — never a discover fallback (#440)", async () => {
     const { org } = await target.provisionTenancy();
     const token = uniqueToken();
     await createAgentNamed(org, `nofallback-${token}`);
@@ -159,7 +159,7 @@ describe("Search conformance — search mode (text query)", () => {
 });
 
 describe("Search conformance — org scoping", () => {
-  it("a strict org filter never admits another org's resources, whatever their level", async () => {
+  it("[rpc:SearchService.search] a strict org filter never admits another org's resources, whatever their level", async () => {
     const { org: orgA } = await target.provisionTenancy();
     const { org: orgB } = await target.provisionTenancy();
     const token = uniqueToken();
@@ -186,7 +186,7 @@ describe("Search conformance — org scoping", () => {
 });
 
 describe("Search conformance — pagination clamping", () => {
-  it("pages by size with totals, clamping oversize and zero values instead of erroring", async () => {
+  it("[rpc:SearchService.search] pages by size with totals, clamping oversize and zero values instead of erroring", async () => {
     const { org } = await target.provisionTenancy();
     const token = uniqueToken();
     for (let i = 0; i < 3; i++) {
@@ -228,7 +228,7 @@ describe("Search conformance — pagination clamping", () => {
 });
 
 describe("Search conformance — validation arms (codes only, P2)", () => {
-  it("rejects an over-length query (InvalidArgument)", async () => {
+  it("[rpc:SearchService.search] rejects an over-length query (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.search.search({ query: "x".repeat(501) }),
       Code.InvalidArgument,
@@ -236,7 +236,7 @@ describe("Search conformance — validation arms (codes only, P2)", () => {
     );
   });
 
-  it("rejects a malformed org slug (InvalidArgument — the proto pattern)", async () => {
+  it("[rpc:SearchService.search] rejects a malformed org slug (InvalidArgument — the proto pattern)", async () => {
     await expectGrpcCode(
       () => clients.search.search({ org: "NotASlug" }),
       Code.InvalidArgument,

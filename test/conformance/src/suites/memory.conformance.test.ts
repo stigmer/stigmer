@@ -108,7 +108,7 @@ describe("Memory conformance", () => {
     );
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("create fails closed while the organization has memory disabled", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] create fails closed while the organization has memory disabled", async () => {
     const org = await createOrg(false);
     const err = await expectGrpcCode(
       () => clients.memoryCommand.create(makeMemory(org)),
@@ -118,7 +118,7 @@ describe("Memory conformance", () => {
     expect(err.message).toContain(memoryDisabledMessage(org));
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("create starts proposed and server-writes every owned field", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] create starts proposed and server-writes every owned field", async () => {
     const org = await createOrg(true);
     // Forge the server-owned fields; all of them must come back
     // server-written. (Provenance left the server-owned set in Stage 3 —
@@ -145,7 +145,7 @@ describe("Memory conformance", () => {
     expect(created.status?.stateChangedAt).toBeDefined();
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("create stores capture-path provenance, force-clearing tool_call_id (Stage 3)", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] create stores capture-path provenance, force-clearing tool_call_id (Stage 3)", async () => {
     // The Stage 3 provenance contract (owner-ratified 2026-08-22): the
     // capture path — the remember tool via the runner-synthesized
     // attachment — threads agent/session/execution, and the eligible
@@ -174,13 +174,13 @@ describe("Memory conformance", () => {
     expect(created.spec?.provenance?.toolCallId ?? "").toBe("");
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("create without provenance keeps the field empty — a direct create has no origin", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] create without provenance keeps the field empty — a direct create has no origin", async () => {
     const org = await createOrg(true);
     const created = await createMemory(org, "Prefers table-driven tests.");
     expect(created.spec?.provenance).toBeUndefined();
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("rejects content outside the 1..500 char contract", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] rejects content outside the 1..500 char contract", async () => {
     const org = await createOrg(true);
     await expectGrpcCode(
       () => clients.memoryCommand.create(makeMemory(org, { content: "" })),
@@ -196,7 +196,7 @@ describe("Memory conformance", () => {
     await createMemory(org, "x".repeat(500));
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("confirm decides a proposal, idempotently, and never flips a rejection", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.confirm] [rpc:MemoryCommandController.reject] confirm decides a proposal, idempotently, and never flips a rejection", async () => {
     const org = await createOrg(true);
     const memory = await createMemory(org);
     const id = { value: memory.metadata!.id };
@@ -219,7 +219,7 @@ describe("Memory conformance", () => {
     expect(err.message).toContain(MEMORY_REJECT_CONFIRMED_MESSAGE);
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("reject decides a proposal and never flips into a confirmation", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.reject] [rpc:MemoryCommandController.confirm] reject decides a proposal and never flips into a confirmation", async () => {
     const org = await createOrg(true);
     const memory = await createMemory(org);
     const id = { value: memory.metadata!.id };
@@ -239,7 +239,7 @@ describe("Memory conformance", () => {
     expect(err.message).toContain(MEMORY_CONFIRM_REJECTED_MESSAGE);
   });
 
-  it("commands on a missing memory answer NotFound", async () => {
+  it("[rpc:MemoryQueryController.get] [rpc:MemoryCommandController.confirm] [rpc:MemoryCommandController.reject] [rpc:MemoryCommandController.delete] commands on a missing memory answer NotFound", async () => {
     const ghost = { value: "mem_00000000000000000000000000" };
     await expectGrpcCode(() => clients.memoryQuery.get(ghost), Code.NotFound, "get missing");
     await expectGrpcCode(() => clients.memoryCommand.confirm(ghost), Code.NotFound, "confirm missing");
@@ -247,7 +247,7 @@ describe("Memory conformance", () => {
     await expectGrpcCode(() => clients.memoryCommand.delete(ghost), Code.NotFound, "delete missing");
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("update edits the fact text only — identity locked, lifecycle preserved", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.update] update edits the fact text only — identity locked, lifecycle preserved", async () => {
     const org = await createOrg(true);
     const memory = await createMemory(org);
     const id = memory.metadata!.id;
@@ -304,7 +304,7 @@ describe("Memory conformance", () => {
     expect(provenanceErr.message).toContain(MEMORY_PROVENANCE_IMMUTABLE_MESSAGE);
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("delete works in every lifecycle state — never refused on lifecycle grounds", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.delete] delete works in every lifecycle state — never refused on lifecycle grounds", async () => {
     const org = await createOrg(true);
 
     const proposed = await createMemory(org, "Proposed fact.");
@@ -321,7 +321,7 @@ describe("Memory conformance", () => {
     }
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("list is org-scoped", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryQueryController.list] list is org-scoped", async () => {
     const org = await createOrg(true);
     const other = await createOrg(true);
     const mine = await createMemory(org, "First fact.");
@@ -337,7 +337,7 @@ describe("Memory conformance", () => {
     }
   });
 
-  it.skipIf(!capabilities.firstPartyMemoryCapture)("refuses the record past the per-subject ceiling, visibly", async () => {
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] refuses the record past the per-subject ceiling, visibly", async () => {
     const org = await createOrg(true);
     for (let i = 0; i < MEMORY_CAP; i++) {
       await createMemory(org, `Fact number ${i}.`);

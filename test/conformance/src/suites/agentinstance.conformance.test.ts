@@ -88,7 +88,7 @@ async function createInstance(
 }
 
 describe("AgentInstance conformance — CRUD & identity", () => {
-  it("create assigns an ain_ id, echoes the spec, and records a created audit event", async () => {
+  it("[rpc:AgentInstanceCommandController.create] create assigns an ain_ id, echoes the spec, and records a created audit event", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("agi");
@@ -108,7 +108,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     );
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:AgentInstanceQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createInstance(org, agent.metadata!.id, uniqueName("agi"));
@@ -119,7 +119,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     assertResourceParity(AgentInstanceSchema, created, fetched, "create vs get");
   });
 
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:AgentInstanceCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("agi");
@@ -139,7 +139,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     expect(second.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update replaces mutable spec fields but preserves id, slug, and org", async () => {
+  it("[rpc:AgentInstanceCommandController.update] update replaces mutable spec fields but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createInstance(org, agent.metadata!.id, uniqueName("agi"));
@@ -164,7 +164,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update rejects a repointed agent_id (FailedPrecondition) and leaves the stored parent untouched", async () => {
+  it("[rpc:AgentInstanceCommandController.update] update rejects a repointed agent_id (FailedPrecondition) and leaves the stored parent untouched", async () => {
     // The parent ref is immutable (stigmer#646): repointing would change
     // what the instance's executions run while keeping its identity,
     // history, and references intact. Both editions reject with the same
@@ -191,7 +191,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     expect(stored.spec?.agentId, "rejected repoint must not persist").toBe(agentA.metadata?.id);
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:AgentInstanceCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await clients.agentInstanceCommand.create(
@@ -205,14 +205,14 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.agentInstanceQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:AgentInstanceQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.agentInstanceQuery.get({ value: "ain_doesnotexist" }),
       Code.NotFound,
       "get missing id",
     ));
 
-  it("getByReference resolves by org and slug", async () => {
+  it("[rpc:AgentInstanceQueryController.getByReference] getByReference resolves by org and slug", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createInstance(org, agent.metadata!.id, uniqueName("ref"));
@@ -222,7 +222,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:AgentInstanceQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.agentInstanceQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -231,7 +231,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
     );
   });
 
-  it("getByReference rejects a kind that does not match the service", () =>
+  it("[rpc:AgentInstanceQueryController.getByReference] getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
       () =>
         clients.agentInstanceQuery.getByReference({ org: "acme", slug: "any", kind: ApiResourceKind.workflow }),
@@ -239,7 +239,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
       "getByReference kind mismatch",
     ));
 
-  it("derives a slug from the name and allows the same slug in different orgs", async () => {
+  it("[rpc:AgentInstanceCommandController.create] derives a slug from the name and allows the same slug in different orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
     const agentA = await provisionAgent(a.org);
@@ -256,7 +256,7 @@ describe("AgentInstance conformance — CRUD & identity", () => {
 });
 
 describe("AgentInstance conformance — getByAgent & list", () => {
-  it("getByAgent returns the created instances AND the agent's auto-provisioned default instance", async () => {
+  it("[rpc:AgentInstanceQueryController.getByAgent] getByAgent returns the created instances AND the agent's auto-provisioned default instance", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const a = await createInstance(org, agent.metadata!.id, uniqueName("agi"));
@@ -273,7 +273,7 @@ describe("AgentInstance conformance — getByAgent & list", () => {
     );
   });
 
-  it("getByAgent scopes results to the requested org (a foreign org sees nothing)", async () => {
+  it("[rpc:AgentInstanceQueryController.getByAgent] getByAgent scopes results to the requested org (a foreign org sees nothing)", async () => {
     const { org } = await target.provisionTenancy();
     const other = await target.provisionTenancy();
     const agent = await provisionAgent(org);
@@ -287,14 +287,14 @@ describe("AgentInstance conformance — getByAgent & list", () => {
     expect(foreign.items, "instances all live in the parent's org").toEqual([]);
   });
 
-  it("getByAgent rejects an empty agent_id (InvalidArgument)", () =>
+  it("[rpc:AgentInstanceQueryController.getByAgent] getByAgent rejects an empty agent_id (InvalidArgument)", () =>
     expectGrpcCode(
       () => clients.agentInstanceQuery.getByAgent({ agentId: "" }),
       Code.InvalidArgument,
       "getByAgent empty agent_id",
     ));
 
-  it("list returns the org's instances and filters by labels (AND semantics)", async () => {
+  it("[rpc:AgentInstanceQueryController.list] list returns the org's instances and filters by labels (AND semantics)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const marker = uniqueName("case");
@@ -318,12 +318,12 @@ describe("AgentInstance conformance — getByAgent & list", () => {
     );
   });
 
-  it("list rejects an empty org (InvalidArgument)", () =>
+  it("[rpc:AgentInstanceQueryController.list] list rejects an empty org (InvalidArgument)", () =>
     expectGrpcCode(() => clients.agentInstanceQuery.list({ org: "" }), Code.InvalidArgument, "list empty org"));
 });
 
 describe("AgentInstance conformance — visibility", () => {
-  it("updateVisibility raises a user instance from private to org and persists it", async () => {
+  it("[rpc:AgentInstanceCommandController.updateVisibility] updateVisibility raises a user instance from private to org and persists it", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createInstance(org, agent.metadata!.id, uniqueName("agi"));
@@ -338,7 +338,7 @@ describe("AgentInstance conformance — visibility", () => {
     expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
   });
 
-  it("updateVisibility rejects the unsupported platform level (InvalidArgument) and leaves the stored level untouched", async () => {
+  it("[rpc:AgentInstanceCommandController.updateVisibility] updateVisibility rejects the unsupported platform level (InvalidArgument) and leaves the stored level untouched", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createInstance(org, agent.metadata!.id, uniqueName("agi"));
@@ -362,7 +362,7 @@ describe("AgentInstance conformance — visibility", () => {
 });
 
 describe("AgentInstance conformance — negative paths", () => {
-  it("rejects a wrong api_version (InvalidArgument)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     await expectGrpcCode(
@@ -378,7 +378,7 @@ describe("AgentInstance conformance — negative paths", () => {
     );
   });
 
-  it("rejects a wrong kind (InvalidArgument)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     await expectGrpcCode(
@@ -394,7 +394,7 @@ describe("AgentInstance conformance — negative paths", () => {
     );
   });
 
-  it("rejects a duplicate create (contract: AlreadyExists)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("dup");
@@ -410,7 +410,7 @@ describe("AgentInstance conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with no name (contract: InvalidArgument)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     await expectGrpcCode(
@@ -426,7 +426,7 @@ describe("AgentInstance conformance — negative paths", () => {
     );
   });
 
-  it("rejects an empty agent_id (InvalidArgument, protovalidate min_len)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] rejects an empty agent_id (InvalidArgument, protovalidate min_len)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -441,7 +441,7 @@ describe("AgentInstance conformance — negative paths", () => {
     );
   });
 
-  it("rejects an unknown agent_id (contract: NotFound from parent load)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] rejects an unknown agent_id (contract: NotFound from parent load)", async () => {
     // The parent template must exist: create runs LoadParentAgent before
     // persisting (stigmer#645) — converging on cloud and on the sibling
     // WorkflowInstance pipeline. Cross-org creation stays unpinned: see the
@@ -457,7 +457,7 @@ describe("AgentInstance conformance — negative paths", () => {
     );
   });
 
-  it("rejects environment_refs whose kind is not environment (InvalidArgument, CEL-pinned)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] rejects environment_refs whose kind is not environment (InvalidArgument, CEL-pinned)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
 

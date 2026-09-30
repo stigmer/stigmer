@@ -19,4 +19,209 @@
 #
 # An RPC is waived once, never both waived and tagged, and a waiver names a
 # declared RPC; a `proven_by` file must exist and carry the tag.
-waivers: []
+waivers:
+  - rpc: AgentExecutionCommandController.update
+    kind: gap
+    issue: 1551
+    reason: >-
+      What an update may change on a started or terminal run is undecided; the contract is decided before an arm pins it.
+  - rpc: ApiKeyQueryController.getByKeyHash
+    kind: proven-elsewhere
+    proven_by: backend/services/stigmer-server/src/domain/apikey/__tests__/apikey.test.ts
+    reason: >-
+      The editions gate it differently by design (a platform-admin check on the cloud, open on the single-team default), so no one cross-edition answer exists to pin; the open-source server's suite pins its lookup.
+  - rpc: CursorAccountCommandController.addCursorMemberKey
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: CursorAccountCommandController.deleteCursorAccount
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: CursorAccountCommandController.removeCursorMemberKey
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: CursorAccountCommandController.setCursorMemberKeyEnabled
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: CursorAccountCommandController.syncCursorAccount
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: CursorAccountCommandController.upsertCursorAccount
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: CursorAccountQueryController.getCursorAccountView
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: CursorAccountQueryController.listCursorAccounts
+    kind: gap
+    issue: 1548
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no CursorAccount service and the suite has no client for it.
+  - rpc: IdentityProviderCommandController.apply
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: IdentityProviderCommandController.create
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: IdentityProviderCommandController.delete
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: IdentityProviderCommandController.update
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: IdentityProviderQueryController.get
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: IdentityProviderQueryController.getByReference
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: IdentityProviderQueryController.getSsoProvider
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: IdentityProviderQueryController.listByOrg
+    kind: gap
+    issue: 1545
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
+  - rpc: InvitationCommandController.create
+    kind: gap
+    issue: 1544
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Invitation service and the suite has no client for it.
+  - rpc: InvitationCommandController.redeem
+    kind: gap
+    issue: 1544
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Invitation service and the suite has no client for it.
+  - rpc: InvitationCommandController.revoke
+    kind: gap
+    issue: 1544
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Invitation service and the suite has no client for it.
+  - rpc: InvitationQueryController.get
+    kind: gap
+    issue: 1544
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Invitation service and the suite has no client for it.
+  - rpc: InvitationQueryController.getByToken
+    kind: gap
+    issue: 1544
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Invitation service and the suite has no client for it.
+  - rpc: InvitationQueryController.listByOrg
+    kind: gap
+    issue: 1544
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Invitation service and the suite has no client for it.
+  - rpc: LicenseCommandController.create
+    kind: gap
+    issue: 1546
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no License service and the suite has no client for it.
+  - rpc: LicenseQueryController.get
+    kind: gap
+    issue: 1546
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no License service and the suite has no client for it.
+  - rpc: LicenseQueryController.list
+    kind: gap
+    issue: 1546
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no License service and the suite has no client for it.
+  - rpc: PlatformClientTokenController.mintGuestToken
+    kind: gap
+    issue: 1550
+    reason: >-
+      Open source answers Unimplemented unless a composition mints guest tokens, and no capability flag tells the targets apart yet.
+  - rpc: ProviderKeyCommandController.delete
+    kind: gap
+    issue: 1547
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no ProviderKey service and the suite has no client for it.
+  - rpc: ProviderKeyCommandController.set
+    kind: gap
+    issue: 1547
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no ProviderKey service and the suite has no client for it.
+  - rpc: ProviderKeyQueryController.list
+    kind: gap
+    issue: 1547
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no ProviderKey service and the suite has no client for it.
+  - rpc: ProviderStandingQueryController.getProviderStandingView
+    kind: gap
+    issue: 1549
+    reason: >-
+      Served by the Cloud edition only; the open-source server routes no ProviderStanding service and the suite has no client for it.
+  - rpc: TaskKindRegistryQueryController.getTaskKindRegistry
+    kind: gap
+    issue: 1026
+    reason: >-
+      Declared but routed by no edition (the registry is served over HTTP); routing it is stigmer#1026.
+  - rpc: TeamCommandController.create
+    kind: gap
+    issue: 1543
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
+  - rpc: TeamCommandController.delete
+    kind: gap
+    issue: 1543
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
+  - rpc: TeamCommandController.update
+    kind: gap
+    issue: 1543
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
+  - rpc: TeamQueryController.get
+    kind: gap
+    issue: 1543
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
+  - rpc: TeamQueryController.getByReference
+    kind: gap
+    issue: 1543
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
+  - rpc: TeamQueryController.listByOrg
+    kind: gap
+    issue: 1543
+    reason: >-
+      Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
+  - rpc: WorkflowExecutionCommandController.update
+    kind: gap
+    issue: 1551
+    reason: >-
+      What an update may change on a started or terminal run is undecided; the contract is decided before an arm pins it.
+  - rpc: WorkflowExecutionCommandController.updateStatus
+    kind: proven-elsewhere
+    proven_by: backend/services/stigmer-server/src/domain/workflowexecution/__tests__/workflowexecution.test.ts
+    reason: >-
+      Only the runner sends it, from its own process; the server's suite pins its contract over the wire (status merge, idempotent event batches, NotFound and InvalidArgument).

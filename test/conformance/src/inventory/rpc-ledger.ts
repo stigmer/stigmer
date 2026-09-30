@@ -13,9 +13,14 @@
 //   served: the runner's and the MCP bridge's own calls, which never pass
 //   through the suite's transport;
 // - unexercised: none of the above.
+// Given the tags the static scan found, it also names every tag no run
+// proved: a tag is proven when some test carrying it sent its RPC, on any
+// target. A tag in a comment, on a test skipped everywhere, or in a
+// parameterized row that never runs satisfies the static check and is proven
+// nowhere; this is where that shows.
 // The report is a measurement, not a gate: `scripts/report-rpc-ledger.ts`.
 import { z } from "zod";
-import { rpcKey } from "./rpc-tag";
+import { extractRpcTags, rpcKey } from "./rpc-tag";
 
 // One distinct call site: a target, a suite file, the test that sent the RPC
 // (null for a call made in a suite hook), and the RPC's `<Service>.<method>`.
@@ -92,12 +97,16 @@ export interface LedgerSummary {
   // (gRPC health, an RPC a branch removed).
   readonly outsideContract: readonly string[];
   readonly servedMeasured: boolean;
+  // The scanned tags no ledger line proves, sorted; undefined when no tag
+  // scan was given.
+  readonly unprovenTags: readonly string[] | undefined;
 }
 
 export function summarizeLedger(
   declared: readonly string[],
   lines: readonly RpcLedgerLine[],
   served: ReadonlySet<string> | undefined,
+  tags?: Iterable<string>,
 ): LedgerSummary {
   const declaredSet = new Set(declared);
   const tests = new Map<string, Map<string, Set<string>>>();
@@ -124,6 +133,12 @@ export function summarizeLedger(
   }
   for (const key of served ?? []) if (!declaredSet.has(key)) outside.add(key);
 
+  // A line proves a tag when the test that sent the RPC carries the RPC's tag.
+  const proven = new Set<string>();
+  for (const line of lines) {
+    if (line.test !== null && extractRpcTags(line.test).includes(line.rpc)) proven.add(line.rpc);
+  }
+
   const counts: Record<RpcCoverage, number> = { "in-test": 0, "hook-only": 0, "served-only": 0, unexercised: 0 };
   let neitherTestedNorServed = 0;
   const entries = [...declared].sort().map((key): RpcLedgerEntry => {
@@ -148,6 +163,7 @@ export function summarizeLedger(
     neitherTestedNorServed,
     outsideContract: [...outside].sort(),
     servedMeasured: served !== undefined,
+    unprovenTags: tags === undefined ? undefined : [...new Set(tags)].filter((key) => !proven.has(key)).sort(),
   };
 }
 
@@ -170,6 +186,12 @@ export function formatLedgerReport(summary: LedgerSummary): string {
   }
   out.push(`- sent in no test and served by no log (the stop count): ${summary.neitherTestedNorServed}`);
   if (summary.outsideContract.length > 0) out.push(`- outside the contract: ${summary.outsideContract.join(", ")}`);
+  if (summary.unprovenTags === undefined) {
+    out.push("- tags proven on no target: not measured (no tag scan given)");
+  } else {
+    out.push(`- tags proven on no target: ${summary.unprovenTags.length}`);
+    for (const key of summary.unprovenTags) out.push(`  - [rpc:${key}]`);
+  }
 
   out.push("", "| RPC | class | tests per target | first test |", "|---|---|---|---|");
   for (const entry of summary.entries) {

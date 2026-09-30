@@ -118,3 +118,11 @@ From `test/conformance`: `npm run typecheck` (vitest does not typecheck),
 cloud suite or `test/conformance/inventory/cloud-capabilities.yaml` changes. In
 a fresh worktree, `make build-ts-stubs` first or the package cannot resolve
 `@stigmer/protos`.
+
+`npm run inventory:check` also holds the RPC contract: a new test that pins an
+RPC carries its `[rpc:<Service>.<method>]` tag at the front of its title, and a
+new RPC with no such test is waived in
+`test/conformance/inventory/rpc-waivers.yaml` (a `gap` naming its open issue, or
+`proven-elsewhere` naming a tagged test file). Tag only an RPC the test's own
+clients send: a tagged test that never sends it fails by name. The placement
+rules are in `test/conformance/README.md`, "The RPC contract".

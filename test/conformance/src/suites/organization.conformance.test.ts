@@ -65,7 +65,7 @@ async function countOrganizations(): Promise<number> {
 }
 
 describe("Organization conformance", () => {
-  it("create sets id equal to slug and records a created audit event", async () => {
+  it("[rpc:OrganizationCommandController.create] create sets id equal to slug and records a created audit event", async () => {
     const created = await createOrg(uniqueName("org"));
 
     // Organization is the one resource whose id is its slug (the globally unique
@@ -75,7 +75,7 @@ describe("Organization conformance", () => {
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 
-  it("apply creates on first call and updates on second (same name)", async () => {
+  it("[rpc:OrganizationCommandController.apply] apply creates on first call and updates on second (same name)", async () => {
     const name = uniqueName("org");
 
     const first = await clients.organizationCommand.apply({ apiVersion: API_VERSION, kind: KIND, metadata: { name } });
@@ -94,7 +94,7 @@ describe("Organization conformance", () => {
     expect(second.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update preserves id and slug but allows renaming", async () => {
+  it("[rpc:OrganizationCommandController.update] update preserves id and slug but allows renaming", async () => {
     const created = await createOrg(uniqueName("org"));
     const { id, slug } = created.metadata!;
 
@@ -111,7 +111,7 @@ describe("Organization conformance", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("get returns the created organization and delete makes it NotFound", async () => {
+  it("[rpc:OrganizationQueryController.get] [rpc:OrganizationCommandController.delete] get returns the created organization and delete makes it NotFound", async () => {
     const created = await clients.organizationCommand.create({
       apiVersion: API_VERSION,
       kind: KIND,
@@ -126,7 +126,7 @@ describe("Organization conformance", () => {
     await expectGrpcCode(() => clients.organizationQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("a deleted organization's slug is never taken again", async () => {
+  it("[rpc:OrganizationCommandController.create] a deleted organization's slug is never taken again", async () => {
     const slug = uniqueName("org");
     const created = await clients.organizationCommand.create({
       apiVersion: API_VERSION,
@@ -159,7 +159,7 @@ describe("Organization conformance", () => {
   // find enumerates every organization regardless of caller — a single-tenant
   // (OSS) capability. Cloud does not expose tenant-facing org enumeration; its
   // contract is asserted by the Unimplemented case below.
-  it.skipIf(!capabilities.organizationEnumeration)("find enumerates all organizations with correct pagination when supported", async () => {
+  it.skipIf(!capabilities.organizationEnumeration)("[rpc:OrganizationQueryController.find] find enumerates all organizations with correct pagination when supported", async () => {
 
     const baseline = await countOrganizations();
     const added = 3;
@@ -185,7 +185,7 @@ describe("Organization conformance", () => {
   });
 
   // Membership filtering is asserted on the enforcing lane below.
-  it.skipIf(capabilities.enforcingAuthorizer)("findMyOrganizations returns all organizations on a trusted-local primary", async () => {
+  it.skipIf(capabilities.enforcingAuthorizer)("[rpc:OrganizationQueryController.findMyOrganizations] findMyOrganizations returns all organizations on a trusted-local primary", async () => {
     await createOrg(uniqueName("myorg"));
 
     const all = await clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 });
@@ -200,7 +200,7 @@ describe("Organization conformance", () => {
   // findMyOrganizations and whose built-in Authorizer refuses the outsider's
   // `get` — one contract on the cloud and on both open-source store drivers.
   // Where a target lends no lane the arm skips VISIBLY.
-  it("findMyOrganizations filters by membership and outsiders cannot view the org", async (ctx) => {
+  it("[rpc:OrganizationQueryController.findMyOrganizations] [rpc:OrganizationQueryController.get] findMyOrganizations filters by membership and outsiders cannot view the org", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
@@ -227,7 +227,7 @@ describe("Organization conformance", () => {
     );
   });
 
-  it.skipIf(capabilities.externalOrgLookup)("getByExternalOrgId is unavailable locally (Unimplemented)", async () => {
+  it.skipIf(capabilities.externalOrgLookup)("[rpc:OrganizationQueryController.getByExternalOrgId] getByExternalOrgId is unavailable locally (Unimplemented)", async () => {
     await expectGrpcCode(
       () =>
         clients.organizationQuery.getByExternalOrgId({
@@ -258,7 +258,7 @@ describe("Organization conformance", () => {
     );
   });
 
-  it("rejects an organization with an invalid (uppercase) slug", async () => {
+  it("[rpc:OrganizationCommandController.create] rejects an organization with an invalid (uppercase) slug", async () => {
     await expectGrpcCode(
       () =>
         clients.organizationCommand.create({

@@ -46,7 +46,7 @@ afterAll(async () => {
 });
 
 describe("AgentExecution conformance — one-call session bootstrap validation (session_spec)", () => {
-  it("rejects session_id and session_spec together (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects session_id and session_spec together (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // Validation fires before any resource resolution, so fake ids suffice.
     await expectGrpcCode(
@@ -64,7 +64,7 @@ describe("AgentExecution conformance — one-call session bootstrap validation (
     );
   });
 
-  it("rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
     const { org } = await target.provisionTenancy();
     // harness_state_id is engine-owned conversation continuity state; a
     // caller-supplied value would fake state on a brand-new session and trip
@@ -91,7 +91,7 @@ describe("AgentExecution conformance — service-tier fail-closed validation (#3
   // validateServiceTierStep, cloud Java ValidateServiceTierStep). Both
   // refusals fire before any resource resolution, so fake ids suffice.
 
-  it("rejects fast without a pinned model (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects fast without a pinned model (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -108,7 +108,7 @@ describe("AgentExecution conformance — service-tier fail-closed validation (#3
     );
   });
 
-  it("rejects fast on a model with no registry fast variant (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects fast on a model with no registry fast variant (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // claude-haiku-4-5 is registered but prices no fast variant — selecting
     // a tier billing cannot price would trip the undercharge guard, so
@@ -175,7 +175,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
     }
   }
 
-  it("rejects enabled without a pinned model (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects enabled without a pinned model (InvalidArgument)", async () => {
     await expectRefused(
       "aex-thinking-no-model",
       { thinkingMode: ThinkingMode.ENABLED },
@@ -184,7 +184,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
     );
   });
 
-  it("rejects enabled on a cursor model without the thinking capability (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects enabled on a cursor model without the thinking capability (InvalidArgument)", async () => {
     // composer-2.5's cursor-harness registry entry declares no thinking form —
     // ENABLED there would silently serve the base variant, so it is refused
     // (selection and the served variant stay coupled).
@@ -196,7 +196,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
     );
   });
 
-  it("rejects enabled on a native session for a model with no native registry entry (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects enabled on a native session for a model with no native registry entry (InvalidArgument)", async () => {
     // The harness decides which entry is read: composer-2.5 has no native
     // entry, so a native session cannot ask it to think.
     await expectRefused(
@@ -207,7 +207,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
     );
   });
 
-  it("rejects an explicit disabled on a model that always thinks (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects an explicit disabled on a model that always thinks (InvalidArgument)", async () => {
     // claude-fable-5's native entry declares thinkingRequired: the provider
     // refuses a request to turn its thinking off, so the platform refuses the
     // execution that asks for it rather than fail the turn.
@@ -228,7 +228,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
 // populated arms live in suites-execution/.
 
 describe("AgentExecution conformance — the engine gate (CW-7)", () => {
-  it("create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
+  it("[rpc:AgentExecutionCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets observe this boundary —
     // scheduleFiring doubles as "a Temporal engine backs this target", and
     // the cloud CRUD target serves a live engine (and resolves the agent
@@ -253,7 +253,7 @@ describe("AgentExecution conformance — the engine gate (CW-7)", () => {
 });
 
 describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () => {
-  it("getExecutionSummary answers the pinned zero shape — no cost fields by design", async () => {
+  it("[rpc:AgentExecutionQueryController.getExecutionSummary] getExecutionSummary answers the pinned zero shape — no cost fields by design", async () => {
     const { org } = await target.provisionTenancy();
     const summary = await clients.agentExecutionQuery.getExecutionSummary({ org });
 
@@ -265,7 +265,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     expect(summary.topFailingAgents).toHaveLength(0);
   });
 
-  it("the execution-scoped usage report validates and checks existence (the ONE report that 404s)", async () => {
+  it("[rpc:AgentExecutionQueryController.getExecutionUsageReport] the execution-scoped usage report validates and checks existence (the ONE report that 404s)", async () => {
     await expectGrpcCode(
       () => clients.agentExecutionQuery.getExecutionUsageReport({ executionId: "" }),
       Code.InvalidArgument,
@@ -285,7 +285,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     expect(err.rawMessage).toBe("agent_execution not found: aexec_01conformancemissing");
   });
 
-  it("the session/agent/org usage reports answer zero-valued SHAPES for nothing to aggregate", async (ctx) => {
+  it("[rpc:AgentExecutionQueryController.getSessionUsageReport] [rpc:AgentExecutionQueryController.getAgentUsageReport] [rpc:AgentExecutionQueryController.getOrgUsageReport] the session/agent/org usage reports answer zero-valued SHAPES for nothing to aggregate", async (ctx) => {
     // Single-user posture only: where orgs are real, an unauthorized scope
     // answers PermissionDenied instead of a zero report — the aggregation
     // reads are authorization-gated per scope on the multi-tenant edition.
@@ -334,7 +334,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     expect(orgReport.dailyCosts).toHaveLength(0);
   });
 
-  it("the agent/org usage reports of an Organization that does not exist are NotFound with the load-first copy", async () => {
+  it("[rpc:AgentExecutionQueryController.getAgentUsageReport] [rpc:AgentExecutionQueryController.getOrgUsageReport] the agent/org usage reports of an Organization that does not exist are NotFound with the load-first copy", async () => {
     // Nothing to aggregate is a zero report (above); no Organization at all
     // is NOT_FOUND, the answer every edition gives for a scope it does not
     // hold, with or without sign-in (stigmer#1163).
@@ -355,7 +355,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     }
   });
 
-  it("the agent/org usage reports refuse missing scope fields (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionQueryController.getAgentUsageReport] [rpc:AgentExecutionQueryController.getOrgUsageReport] the agent/org usage reports refuse missing scope fields (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.agentExecutionQuery.getAgentUsageReport({ agentId: "agt_x" }),
       Code.InvalidArgument,
@@ -368,7 +368,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     );
   });
 
-  it("subscribe refuses an empty id (InvalidArgument) and an unknown id (NotFound)", async () => {
+  it("[rpc:AgentExecutionQueryController.subscribe] subscribe refuses an empty id (InvalidArgument) and an unknown id (NotFound)", async () => {
     await expectGrpcCode(
       () =>
         collectStream((signal) => clients.agentExecutionQuery.subscribe({ value: "" }, { signal })),
@@ -396,7 +396,7 @@ describe("AgentExecution conformance — submitFileDecision negatives (CW-7)", (
   // interceptor resolves the execution BEFORE proto validation, so invalid
   // or unknown ids surface as NotFound/PermissionDenied there instead — the
   // ordering divergence disclosed in the wave-2 PR.
-  it("rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>
@@ -424,7 +424,7 @@ describe("AgentExecution conformance — submitFileDecision negatives (CW-7)", (
     );
   });
 
-  it("an unknown execution answers NotFound", async (ctx) => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] an unknown execution answers NotFound", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>

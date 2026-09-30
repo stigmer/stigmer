@@ -101,7 +101,7 @@ function whoAmI(using: ConformanceClients = clients) {
 }
 
 describe("IdentityAccount conformance — the shared RPC contract", () => {
-  it("create over the wire as a user is PERMISSION_DENIED with the byte-pinned copy, and nothing is written", async () => {
+  it("[rpc:IdentityAccountCommandController.create] create over the wire as a user is PERMISSION_DENIED with the byte-pinned copy, and nothing is written", async () => {
     const subject = freshSubject();
     const error = await expectGrpcCode(
       () =>
@@ -126,7 +126,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     );
   });
 
-  it("get / getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy", async () => {
+  it("[rpc:IdentityAccountQueryController.get] [rpc:IdentityAccountQueryController.getByEmail] [rpc:IdentityAccountQueryController.getByIdpId] get / getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy", async () => {
     const byId = await expectGrpcCode(
       () =>
         clients.identityAccountQuery.get({
@@ -156,7 +156,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     expect(byIdpId.rawMessage).toBe(accountNotFoundMessage(subject));
   });
 
-  it("getByIdpId finds the caller's own account", async () => {
+  it("[rpc:IdentityAccountQueryController.getByIdpId] getByIdpId finds the caller's own account", async () => {
     const me = await whoAmI();
     const found = await clients.identityAccountQuery.getByIdpId({
       value: me.spec?.idpId ?? "",
@@ -183,7 +183,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     expect(found.metadata?.id).toBe(me.metadata?.id);
   });
 
-  it("update round-trips preferences on the caller's own account — the console's one write", async () => {
+  it("[rpc:IdentityAccountCommandController.update] update round-trips preferences on the caller's own account — the console's one write", async () => {
     const me = await whoAmI();
     try {
       const updated = await clients.identityAccountCommand.update(
@@ -211,7 +211,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     }
   });
 
-  it("update refuses a changed subject with FAILED_PRECONDITION — the subject IS the identity", async () => {
+  it("[rpc:IdentityAccountCommandController.update] update refuses a changed subject with FAILED_PRECONDITION — the subject IS the identity", async () => {
     const me = await whoAmI();
     const subject = me.spec?.idpId ?? "";
 
@@ -231,7 +231,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     );
   });
 
-  it("getActorInfo names the caller's account as audit stamps do", async () => {
+  it("[rpc:IdentityAccountQueryController.getActorInfo] getActorInfo names the caller's account as audit stamps do", async () => {
     const me = await whoAmI();
     const actor = await clients.identityAccountQuery.getActorInfo({
       value: me.metadata?.id ?? "",
@@ -246,10 +246,13 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
   () => {
     // Inputs that pass the boundary validator (chain position 3, before
     // any handler) so the refusal under test is the HANDLER's: the
-    // capability is consulted before any lookup or authorization.
+    // capability is consulted before any lookup or authorization. Each row
+    // leads with its RPC's contract tag, a title label only: the name after
+    // it is the one the refusal's copy is checked against.
     const ref = { org: "acme", slug: "okta" };
     it.each([
       [
+        "[rpc:IdentityAccountCommandController.createFederatedAccount]",
         "createFederatedAccount",
         () =>
           clients.identityAccountCommand.createFederatedAccount({
@@ -260,6 +263,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
           }),
       ],
       [
+        "[rpc:IdentityAccountCommandController.updateFederatedAccount]",
         "updateFederatedAccount",
         () =>
           clients.identityAccountCommand.updateFederatedAccount({
@@ -270,6 +274,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
           }),
       ],
       [
+        "[rpc:IdentityAccountCommandController.deprovisionFederatedAccount]",
         "deprovisionFederatedAccount",
         () =>
           clients.identityAccountCommand.deprovisionFederatedAccount({
@@ -279,6 +284,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
           }),
       ],
       [
+        "[rpc:IdentityAccountQueryController.getByExternalSub]",
         "getByExternalSub",
         () =>
           clients.identityAccountQuery.getByExternalSub({
@@ -288,8 +294,8 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
           }),
       ],
     ] as const)(
-      "%s is UNIMPLEMENTED with the edition reason, never INTERNAL",
-      async (name, call) => {
+      "%s %s is UNIMPLEMENTED with the edition reason, never INTERNAL",
+      async (_tag, name, call) => {
         const error = await expectGrpcCode(
           call,
           Code.Unimplemented,
@@ -307,7 +313,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
 describe.skipIf(capabilities.requiresAuthentication)(
   "IdentityAccount conformance — the trusted-local posture (A2)",
   () => {
-    it("whoAmI answers the operator's account: a direct person under the local| subject namespace", async () => {
+    it("[rpc:IdentityAccountQueryController.whoAmI] whoAmI answers the operator's account: a direct person under the local| subject namespace", async () => {
       const me = await whoAmI();
       expect(me.metadata?.id).toMatch(/^ida_[0-9a-z]+$/);
       expect(
@@ -320,7 +326,7 @@ describe.skipIf(capabilities.requiresAuthentication)(
       expect(me.spec?.isMachineAccount).toBe(false);
     });
 
-    it("provisionMyAccount is the idempotent early return for the operator", async () => {
+    it("[rpc:IdentityAccountCommandController.provisionMyAccount] provisionMyAccount is the idempotent early return for the operator", async () => {
       const me = await whoAmI();
       const provisioned =
         await clients.identityAccountCommand.provisionMyAccount({});
@@ -370,7 +376,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     return { issuer, sibling };
   }
 
-  it("no operator account exists under the OIDC posture — a fresh subject is idp-shaped: whoAmI is NOT_FOUND with the cloud's copy", async (ctx) => {
+  it("[rpc:IdentityAccountQueryController.whoAmI] no operator account exists under the OIDC posture — a fresh subject is idp-shaped: whoAmI is NOT_FOUND with the cloud's copy", async (ctx) => {
     const { issuer, sibling } = siblingOrSkip(ctx);
     const asUser = sibling.clientsPresenting(
       await issuer.mint({ sub: freshSubject(), email: "fresh@example.com" }),
@@ -383,7 +389,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     expect(error.rawMessage).toBe(ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE);
   });
 
-  it("provisionMyAccount creates the account from the issuer's /userinfo, and the next request resolves to it", async (ctx) => {
+  it("[rpc:IdentityAccountCommandController.provisionMyAccount] provisionMyAccount creates the account from the issuer's /userinfo, and the next request resolves to it", async (ctx) => {
     const { issuer, sibling } = siblingOrSkip(ctx);
     const subject = freshSubject();
     const token = await issuer.mint({
@@ -435,7 +441,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     expect((await whoAmI(overKey)).metadata?.id).toBe(account.metadata?.id);
   });
 
-  it("provisionMyAccount is idempotent for a provisioned subject", async (ctx) => {
+  it("[rpc:IdentityAccountCommandController.provisionMyAccount] provisionMyAccount is idempotent for a provisioned subject", async (ctx) => {
     const { issuer, sibling } = siblingOrSkip(ctx);
     const token = await issuer.mint({
       sub: freshSubject(),
@@ -447,7 +453,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     expect(second.metadata?.id).toBe(first.metadata?.id);
   });
 
-  it("two concurrent first logins for one subject end in exactly one account", async (ctx) => {
+  it("[rpc:IdentityAccountCommandController.provisionMyAccount] two concurrent first logins for one subject end in exactly one account", async (ctx) => {
     const { issuer, sibling } = siblingOrSkip(ctx);
     const subject = freshSubject();
     const asUser = sibling.clientsPresenting(
@@ -465,7 +471,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     expect(bySubject.metadata?.id).toBe(a.metadata?.id);
   });
 
-  it("delete answers the account and frees the subject — the same login provisions the same account again", async (ctx) => {
+  it("[rpc:IdentityAccountCommandController.delete] delete answers the account and frees the subject — the same login provisions the same account again", async (ctx) => {
     const { issuer, sibling } = siblingOrSkip(ctx);
     const subject = freshSubject();
     const asUser = sibling.clientsPresenting(
@@ -497,7 +503,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     ).toBe(created.metadata?.id);
   });
 
-  it("a userinfo failure is UNAVAILABLE with the cloud's copy and creates nothing", async (ctx) => {
+  it("[rpc:IdentityAccountCommandController.provisionMyAccount] a userinfo failure is UNAVAILABLE with the cloud's copy and creates nothing", async (ctx) => {
     const { issuer, sibling } = siblingOrSkip(ctx);
     const subject = freshSubject();
     const token = await issuer.mint({

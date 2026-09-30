@@ -97,7 +97,7 @@ async function applyWorkflow(org: string, name: string, opts: CreateOptions = {}
 }
 
 describe("Workflow conformance — CRUD & identity", () => {
-  it("create assigns a wfl_ id, echoes the spec, records a created audit event, and sets version + default instance", async () => {
+  it("[rpc:WorkflowCommandController.create] create assigns a wfl_ id, echoes the spec, records a created audit event, and sets version + default instance", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -116,7 +116,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     expect(created.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:WorkflowQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
 
@@ -126,7 +126,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     assertResourceParity(WorkflowSchema, created, fetched, "create vs get");
   });
 
-  it("update replaces spec and name but preserves id, slug, and org", async () => {
+  it("[rpc:WorkflowCommandController.update] update replaces spec and name but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"), { taskVar: "before" });
     const { id, slug } = created.metadata!;
@@ -147,7 +147,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:WorkflowCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.workflowCommand.create(makeWorkflow({ org, name: uniqueName("wf") }));
     const { id } = created.metadata!;
@@ -158,13 +158,13 @@ describe("Workflow conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.workflowQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:WorkflowQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.workflowQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:WorkflowQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(() => clients.workflowQuery.get({ value: "wfl_doesnotexist" }), Code.NotFound, "get missing id"));
 
-  it("derives a slug from the name", async () => {
+  it("[rpc:WorkflowCommandController.create] derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     // The document name stays slug-clean; only metadata.name carries the
     // characters whose slug derivation is under test.
@@ -172,7 +172,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     expect(created.metadata?.slug).toBe("my-workflow-1-test");
   });
 
-  it("allows the same slug in different orgs", async () => {
+  it("[rpc:WorkflowCommandController.create] allows the same slug in different orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
     const name = uniqueName("shared");
@@ -184,7 +184,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     expect(inA.metadata?.id).not.toBe(inB.metadata?.id);
   });
 
-  it("rejects a workflow without a spec (contract: InvalidArgument)", async () => {
+  it("[rpc:WorkflowCommandController.create] rejects a workflow without a spec (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -198,7 +198,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     );
   });
 
-  it("rejects a duplicate create (contract: AlreadyExists)", async () => {
+  it("[rpc:WorkflowCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("dup");
     await createWorkflow(org, name);
@@ -210,7 +210,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     );
   });
 
-  it("rejects a create with no name (contract: InvalidArgument)", async () => {
+  it("[rpc:WorkflowCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1/2 pass; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
@@ -229,7 +229,7 @@ describe("Workflow conformance — CRUD & identity", () => {
 });
 
 describe("Workflow instance conformance — default-instance visibility guard", () => {
-  it("updateVisibility on the workflow's default instance rejects entirely (FailedPrecondition)", async () => {
+  it("[rpc:WorkflowInstanceCommandController.updateVisibility] updateVisibility on the workflow's default instance rejects entirely (FailedPrecondition)", async () => {
     // The workflow twin of the agent-side pin: default instances are
     // system-managed, their access always follows the parent workflow, so
     // both editions reject any visibility update on them (cloud:
@@ -259,7 +259,7 @@ describe("Workflow instance conformance — default-instance visibility guard", 
 });
 
 describe("Workflow conformance — delete cascades instances (stigmer#592)", () => {
-  it("delete removes the default and user instances, freeing the workflow slug and the org-wide instance slug", async () => {
+  it("[rpc:WorkflowCommandController.delete] delete removes the default and user instances, freeing the workflow slug and the org-wide instance slug", async () => {
     // The cascade ruling: instances are configuration OF the workflow and go
     // with it (default AND user-created), unlike executions which survive as
     // historical record (the #582 ruling). Without the cascade, the orphaned
@@ -308,7 +308,7 @@ describe("Workflow conformance — delete cascades instances (stigmer#592)", () 
 });
 
 describe("Workflow conformance — version history", () => {
-  it("apply creates on first call and updates on second (same name)", async () => {
+  it("[rpc:WorkflowCommandController.apply] apply creates on first call and updates on second (same name)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -320,7 +320,7 @@ describe("Workflow conformance — version history", () => {
     expect(second.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("an idempotent apply (identical spec) does not archive a new version", async () => {
+  it("[rpc:WorkflowCommandController.apply] an idempotent apply (identical spec) does not archive a new version", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -332,7 +332,7 @@ describe("Workflow conformance — version history", () => {
     expect(history.totalCount).toBe(1);
   });
 
-  it("an idempotent apply is order-agnostic: permuted task-config key order registers no version", async () => {
+  it("[rpc:WorkflowCommandController.apply] an idempotent apply is order-agnostic: permuted task-config key order registers no version", async () => {
     // Protobuf map entry order carries no meaning, and real SDKs vary it (Go
     // randomizes proto map marshal order per apply). protobuf-es serializes
     // Struct fields in object insertion order, so these two applies reproduce
@@ -352,7 +352,7 @@ describe("Workflow conformance — version history", () => {
     expect(history.totalCount).toBe(1);
   });
 
-  it("re-applying a prior version's spec repoints the head without a duplicate row (A→B→A)", async () => {
+  it("[rpc:WorkflowQueryController.listVersions] re-applying a prior version's spec repoints the head without a duplicate row (A→B→A)", async () => {
     // Content-addressed identity: one content, one history entry. A rollback
     // apply reproduces the archived version's hash (canonical rendering), so
     // the head repoints to the existing row instead of appending a duplicate
@@ -381,7 +381,7 @@ describe("Workflow conformance — version history", () => {
     expect(current[0]?.versionHash, "the repointed-to entry is current").toBe(vA.status?.versionHash);
   });
 
-  it("applying a changed spec archives a new version (newest-first, exactly one current)", async () => {
+  it("[rpc:WorkflowQueryController.listVersions] applying a changed spec archives a new version (newest-first, exactly one current)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -402,7 +402,7 @@ describe("Workflow conformance — version history", () => {
     }
   });
 
-  it("getVersion returns the current version by hash and an archived prior version", async () => {
+  it("[rpc:WorkflowQueryController.getVersion] getVersion returns the current version by hash and an archived prior version", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -420,7 +420,7 @@ describe("Workflow conformance — version history", () => {
     expect(prior.validatedYaml).not.toBe("");
   });
 
-  it("getVersion rejects a malformed hash and reports a missing one as NotFound", async () => {
+  it("[rpc:WorkflowQueryController.getVersion] getVersion rejects a malformed hash and reports a missing one as NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
     const id = created.metadata!.id;
@@ -440,7 +440,7 @@ describe("Workflow conformance — version history", () => {
     );
   });
 
-  it("getByReference resolves latest, an exact hash, and an apply-time tag", async () => {
+  it("[rpc:WorkflowQueryController.getByReference] getByReference resolves latest, an exact hash, and an apply-time tag", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -461,7 +461,7 @@ describe("Workflow conformance — version history", () => {
     expect(byTag.status?.versionHash, "a tag resolves to the version it was applied to").toBe(v1.status?.versionHash);
   });
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:WorkflowQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.workflowQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -470,7 +470,7 @@ describe("Workflow conformance — version history", () => {
     );
   });
 
-  it("getByReference rejects a kind that does not match the service", () =>
+  it("[rpc:WorkflowQueryController.getByReference] getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
       () => clients.workflowQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
       Code.InvalidArgument,
@@ -479,7 +479,7 @@ describe("Workflow conformance — version history", () => {
 });
 
 describe("Workflow conformance — validateSpec", () => {
-  it("returns a VALID result with generated YAML and persists nothing", async () => {
+  it("[rpc:WorkflowCommandController.validateSpec] returns a VALID result with generated YAML and persists nothing", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -497,7 +497,7 @@ describe("Workflow conformance — validateSpec", () => {
     );
   });
 
-  it("rejects Layer-1 proto violations with InvalidArgument", async () => {
+  it("[rpc:WorkflowCommandController.validateSpec] rejects Layer-1 proto violations with InvalidArgument", async () => {
     const { org } = await target.provisionTenancy();
     // Missing document (required) and empty tasks (min_items=1) are proto-level
     // constraint failures caught before any structural validation runs.
@@ -519,7 +519,7 @@ describe("Workflow conformance — validateSpec", () => {
   // that is byte-lockstep across editions — the exact-string assertion IS the
   // lockstep verification, so loosening it to a substring would silently allow
   // the editions to drift.
-  it("rejects a task_config violating its proto's CEL rules with a structured INVALID verdict", async () => {
+  it("[rpc:WorkflowCommandController.validateSpec] rejects a task_config violating its proto's CEL rules with a structured INVALID verdict", async () => {
     const { org } = await target.provisionTenancy();
     const workflow = makeWorkflow({ org, name: uniqueName("wf") });
     // A present-but-all-zero duration violates WaitTaskConfig's
@@ -557,7 +557,7 @@ describe("Workflow conformance — run_workflow is refused at write", () => {
     "stigmer/workflow/execute",
     "stigmer/workflow/execute-from-execution",
     "stigmer/mcp-server/connect",
-  ])("refuses a run_workflow naming %s at validateSpec and at create", async (childWorkflow) => {
+  ])("[rpc:WorkflowCommandController.validateSpec] [rpc:WorkflowCommandController.create] refuses a run_workflow naming %s at validateSpec and at create", async (childWorkflow) => {
     const { org } = await target.provisionTenancy();
     const workflow = makeWorkflow({ org, name: uniqueName("wf-run") });
     workflow.spec!.tasks = [
@@ -580,7 +580,7 @@ describe("Workflow conformance — run_workflow is refused at write", () => {
     expect(err.message).toContain(RUN_WORKFLOW_REFUSAL("runChild"));
   });
 
-  it("refuses a run_workflow nested in a for_each", async () => {
+  it("[rpc:WorkflowCommandController.create] refuses a run_workflow nested in a for_each", async () => {
     const { org } = await target.provisionTenancy();
     const workflow = makeWorkflow({ org, name: uniqueName("wf-run") });
     workflow.spec!.tasks = [
@@ -623,7 +623,7 @@ describe("Workflow conformance — tagVersion", () => {
     );
   });
 
-  it.skipIf(!capabilities.versionTagging)("assigns a tag to a version and resolves it through getByReference", async () => {
+  it.skipIf(!capabilities.versionTagging)("[rpc:WorkflowCommandController.tagVersion] assigns a tag to a version and resolves it through getByReference", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -638,7 +638,7 @@ describe("Workflow conformance — tagVersion", () => {
     );
   });
 
-  it.skipIf(!capabilities.versionTagging)("moves a tag to a new version, clearing the prior holder (single-holder)", async () => {
+  it.skipIf(!capabilities.versionTagging)("[rpc:WorkflowCommandController.tagVersion] moves a tag to a new version, clearing the prior holder (single-holder)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -666,7 +666,7 @@ describe("Workflow conformance — tagVersion", () => {
     expect(v1Entry?.tag, "the prior holder must be cleared").toBe("");
   });
 
-  it.skipIf(!capabilities.versionTagging)("reports a well-formed but unknown version hash as NotFound", async () => {
+  it.skipIf(!capabilities.versionTagging)("[rpc:WorkflowCommandController.tagVersion] reports a well-formed but unknown version hash as NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
 
@@ -677,7 +677,7 @@ describe("Workflow conformance — tagVersion", () => {
     );
   });
 
-  it.skipIf(!capabilities.versionTagging)("rejects a malformed hash and an empty tag with InvalidArgument", async () => {
+  it.skipIf(!capabilities.versionTagging)("[rpc:WorkflowCommandController.tagVersion] rejects a malformed hash and an empty tag with InvalidArgument", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
     const id = created.metadata!.id;
@@ -696,7 +696,7 @@ describe("Workflow conformance — tagVersion", () => {
 });
 
 describe("Workflow conformance — updateVisibility", () => {
-  it("narrows an org-default workflow to private and widens it back, without moving the definition's audit slot", async () => {
+  it("[rpc:WorkflowCommandController.updateVisibility] narrows an org-default workflow to private and widens it back, without moving the definition's audit slot", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
     expect(created.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
@@ -726,7 +726,7 @@ describe("Workflow conformance — updateVisibility", () => {
     expect(fetched.status?.audit?.specAudit?.updatedAt).toEqual(createdSpecUpdatedAt);
   });
 
-  it("refuses the retired public level (InvalidArgument, the levels named) and leaves the stored level untouched", async () => {
+  it("[rpc:WorkflowCommandController.updateVisibility] refuses the retired public level (InvalidArgument, the levels named) and leaves the stored level untouched", async () => {
     // The level is gone, not gated: both editions refuse it from the kind's
     // proto config with the same sentence, for every caller.
     const { org } = await target.provisionTenancy();
@@ -752,7 +752,7 @@ describe("Workflow conformance — updateVisibility", () => {
     );
   });
 
-  it("returns NotFound for an unknown workflow", async () => {
+  it("[rpc:WorkflowCommandController.updateVisibility] returns NotFound for an unknown workflow", async () => {
     await expectGrpcCode(
       () =>
         clients.workflowCommand.updateVisibility({
@@ -789,7 +789,7 @@ describe("Workflow conformance — agent_call references at write", () => {
     "a resource may not be more visible than the agents it runs with. " +
     "Widen the referenced resource's visibility or narrow this one.";
 
-  it("another organization's agent is admitted at platform visibility and refused otherwise with one sentence", async () => {
+  it("[rpc:WorkflowCommandController.apply] another organization's agent is admitted at platform visibility and refused otherwise with one sentence", async () => {
     const { org } = await target.provisionTenancy();
     const { org: otherOrg } = await target.provisionTenancy();
     const shared = await createAgent(otherOrg, ApiResourceVisibility.visibility_platform);
@@ -809,7 +809,7 @@ describe("Workflow conformance — agent_call references at write", () => {
     );
   });
 
-  it("a value holding a runtime expression saves untouched with no agent behind it", async () => {
+  it("[rpc:WorkflowCommandController.apply] a value holding a runtime expression saves untouched with no agent behind it", async () => {
     const { org } = await target.provisionTenancy();
     for (const agent of ["${.env_vars.TEAM_ORG}/assistant", '${ "no-such-org/no-such-agent" }']) {
       const saved = await applyCalling(org, uniqueName("wf"), agent);
@@ -818,7 +818,7 @@ describe("Workflow conformance — agent_call references at write", () => {
     }
   });
 
-  it("a bare slug is judged in the workflow's organization with its floor capped at org, at both doors; a literal keeps the full floor", async () => {
+  it("[rpc:WorkflowCommandController.apply] [rpc:WorkflowCommandController.updateVisibility] a bare slug is judged in the workflow's organization with its floor capped at org, at both doors; a literal keeps the full floor", async () => {
     const { org } = await target.provisionTenancy();
     const team = await createAgent(org);
     const slug = team.metadata!.slug;

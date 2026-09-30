@@ -83,7 +83,7 @@ async function ownerAgent(org: string) {
 }
 
 describe("list-read scoping — outsider isolation (on the enforcing lane)", () => {
-  it("session.list: the owner's session is ABSENT from the outsider's list", async (ctx) => {
+  it("[rpc:SessionQueryController.list] session.list: the owner's session is ABSENT from the outsider's list", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -115,7 +115,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(session.metadata!.id);
   });
 
-  it("session.list paged: the owner's walk is whole, the outsider's walk of the owner's org is empty", async (ctx) => {
+  it("[rpc:SessionQueryController.list] session.list paged: the owner's walk is whole, the outsider's walk of the owner's org is empty", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -160,7 +160,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     expect(theirs, "the outsider's walk surfaces none of the owner's sessions").toEqual([]);
   });
 
-  it("apikey.findAll: the owner's key is ABSENT from the outsider's list", async (ctx) => {
+  it("[rpc:ApiKeyQueryController.findAll] apikey.findAll: the owner's key is ABSENT from the outsider's list", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -188,7 +188,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(key.metadata!.id);
   });
 
-  it("environment.list: the owner's environment is ABSENT from the outsider's org-scoped list", async (ctx) => {
+  it("[rpc:EnvironmentQueryController.list] environment.list: the owner's environment is ABSENT from the outsider's org-scoped list", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -217,7 +217,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(environment.metadata!.id);
   });
 
-  it("search: the owner's resource never surfaces for the outsider, even naming the owner's org", async (ctx) => {
+  it("[rpc:SearchService.search] search: the owner's resource never surfaces for the outsider, even naming the owner's org", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -243,7 +243,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(agent.metadata!.id);
   });
 
-  it("recent activity: the owner's session is ABSENT from the outsider's recents", async (ctx) => {
+  it("[rpc:ActivityQueryController.listRecentActivity] recent activity: the owner's session is ABSENT from the outsider's recents", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -280,7 +280,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(session.metadata!.id);
   });
 
-  it("session.listByChannel: the channel gate refuses an outsider with the Java copy (Q8)", async (ctx) => {
+  it("[rpc:SessionQueryController.listByChannel] session.listByChannel: the channel gate refuses an outsider with the Java copy (Q8)", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -308,7 +308,7 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     expect(denied.rawMessage).toBe("unauthorized to list channel conversations");
   });
 
-  it("workflow.listVersions refuses an outsider with the Java copy (Q8)", async (ctx) => {
+  it("[rpc:WorkflowQueryController.listVersions] workflow.listVersions refuses an outsider with the Java copy (Q8)", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();

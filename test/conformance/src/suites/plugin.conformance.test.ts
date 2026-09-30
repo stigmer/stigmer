@@ -146,7 +146,7 @@ async function memberGone(kind: ApiResourceKind, id: string): Promise<void> {
 }
 
 describe("Plugin conformance — install", () => {
-  it("materialises a Cursor plugin as one skill, one MCP server and one agent, each labelled with the plugin id and digest", async () => {
+  it("[rpc:PluginCommandController.push] [rpc:PluginQueryController.listMembers] materialises a Cursor plugin as one skill, one MCP server and one agent, each labelled with the plugin id and digest", async () => {
     const name = uniqueName("plg-thermos");
     const plugin = await install(pluginArchive(thermosLike(name)));
 
@@ -214,7 +214,7 @@ describe("Plugin conformance — install", () => {
     });
   });
 
-  it("materialises an MCP-only package as its server and no agent", async () => {
+  it("[rpc:PluginCommandController.push] [rpc:PluginQueryController.listMembers] materialises an MCP-only package as its server and no agent", async () => {
     const name = uniqueName("plg-mcp");
     const plugin = await install(pluginArchive(mcpOnly(name)));
     expect(plugin.status?.materialized).toMatchObject({
@@ -234,7 +234,7 @@ describe("Plugin conformance — install", () => {
     );
   });
 
-  it("re-pushing the same archive is a no-op: same digest, one version, members untouched", async () => {
+  it("[rpc:PluginCommandController.push] [rpc:PluginQueryController.listVersions] re-pushing the same archive is a no-op: same digest, one version, members untouched", async () => {
     const name = uniqueName("plg-idem");
     const archive = pluginArchive(thermosLike(name));
     const first = await install(archive);
@@ -265,7 +265,7 @@ describe("Plugin conformance — install", () => {
     );
   });
 
-  it("an upgrade that drops a skill removes it, keeps the agent valid, and grows the history", async () => {
+  it("[rpc:PluginCommandController.push] [rpc:PluginQueryController.listVersions] an upgrade that drops a skill removes it, keeps the agent valid, and grows the history", async () => {
     const name = uniqueName("plg-up");
     const first = await install(
       pluginArchive(thermosLike(name, { extraSkill: `${name}-extra` })),
@@ -299,7 +299,7 @@ describe("Plugin conformance — install", () => {
     ).toEqual([second.status?.digest]);
   });
 
-  it("installs at the requested visibility and moves every member with updateVisibility", async () => {
+  it("[rpc:PluginCommandController.push] [rpc:PluginCommandController.updateVisibility] installs at the requested visibility and moves every member with updateVisibility", async () => {
     const name = uniqueName("plg-vis");
     const plugin = await install(pluginArchive(thermosLike(name)), {
       visibility: ApiResourceVisibility.visibility_org,
@@ -336,7 +336,7 @@ describe("Plugin conformance — install", () => {
 });
 
 describe("Plugin conformance — version resolution", () => {
-  it("getByReference resolves latest, the digest and the manifest-version tag to the head", async () => {
+  it("[rpc:PluginQueryController.getByReference] getByReference resolves latest, the digest and the manifest-version tag to the head", async () => {
     const name = uniqueName("plg-ref");
     const plugin = await install(pluginArchive(thermosLike(name)));
     for (const version of ["", "latest", plugin.status!.digest, "1.2.0"]) {
@@ -349,7 +349,7 @@ describe("Plugin conformance — version resolution", () => {
     }
   });
 
-  it("returns NotFound for an unknown version and an unknown slug", async () => {
+  it("[rpc:PluginQueryController.getByReference] returns NotFound for an unknown version and an unknown slug", async () => {
     const name = uniqueName("plg-ref");
     await install(pluginArchive(thermosLike(name)));
     await expectGrpcCode(
@@ -370,7 +370,7 @@ describe("Plugin conformance — version resolution", () => {
     );
   });
 
-  it("get rejects an empty id and answers NotFound for a missing one", async () => {
+  it("[rpc:PluginQueryController.get] get rejects an empty id and answers NotFound for a missing one", async () => {
     await expectGrpcCode(
       () => clients.pluginQuery.get({ value: "" }),
       Code.InvalidArgument,
@@ -385,7 +385,7 @@ describe("Plugin conformance — version resolution", () => {
 });
 
 describe("Plugin conformance — members are the plugin's to redefine", () => {
-  it("refuses a client update, delete and level change of a member, naming the plugin", async () => {
+  it("[rpc:AgentCommandController.update] [rpc:McpServerCommandController.delete] [rpc:AgentCommandController.updateVisibility] refuses a client update, delete and level change of a member, naming the plugin", async () => {
     const name = uniqueName("plg-managed");
     const plugin = await install(pluginArchive(thermosLike(name)));
     const { members } = await clients.pluginQuery.listMembers({
@@ -426,7 +426,7 @@ describe("Plugin conformance — members are the plugin's to redefine", () => {
     expect(server.metadata?.slug).toBe(`${name}-github`);
   });
 
-  it("refuses a client re-push of a managed skill under the same name", async () => {
+  it("[rpc:SkillCommandController.push] refuses a client re-push of a managed skill under the same name", async () => {
     const name = uniqueName("plg-skillpush");
     await install(pluginArchive(thermosLike(name)));
     const rogue = zipFiles({
@@ -442,7 +442,7 @@ describe("Plugin conformance — members are the plugin's to redefine", () => {
     );
   });
 
-  it("refuses to install over a slug an unmanaged resource holds, naming it", async () => {
+  it("[rpc:PluginCommandController.push] refuses to install over a slug an unmanaged resource holds, naming it", async () => {
     const name = uniqueName("plg-collide");
     const skillName = `${name}-review`;
     const mine = await clients.skillCommand.push({
@@ -474,7 +474,7 @@ describe("Plugin conformance — members are the plugin's to redefine", () => {
     );
   });
 
-  it("refuses to install a slug another plugin holds, naming that plugin", async () => {
+  it("[rpc:PluginCommandController.push] refuses to install a slug another plugin holds, naming that plugin", async () => {
     const first = uniqueName("plg-holder");
     const second = uniqueName("plg-claimant");
     const shared = `${first}-shared`;
@@ -494,7 +494,7 @@ describe("Plugin conformance — members are the plugin's to redefine", () => {
   });
 });
 
-describe("Plugin conformance — delete", () => {
+describe("[rpc:PluginCommandController.delete] Plugin conformance — delete", () => {
   it("removes every member and the head; a fresh install of the same archive works afterwards", async () => {
     const name = uniqueName("plg-remove");
     const archive = pluginArchive(thermosLike(name));
@@ -581,7 +581,7 @@ describe("Plugin conformance — delete", () => {
   });
 });
 
-describe("Plugin conformance — refusals before any write", () => {
+describe("[rpc:PluginCommandController.push] Plugin conformance — refusals before any write", () => {
   it("refuses a package the library refuses, with its sentences, and writes nothing", async () => {
     const name = uniqueName("plg-badurl");
     const broken = pluginArchive(
@@ -688,7 +688,7 @@ describe("Plugin conformance — refusals before any write", () => {
   });
 });
 
-describe("Plugin conformance — the other dialects and the overlay", () => {
+describe("[rpc:PluginCommandController.push] Plugin conformance — the other dialects and the overlay", () => {
   it("installs a Claude Code plugin: userConfig becomes a secret variable on an npx stdio server, and the agent carries the skill", async () => {
     const name = uniqueName("plg-claude");
     const plugin = await install(pluginArchive(claudeLike(name)));
@@ -840,7 +840,7 @@ describe("Plugin conformance — the other dialects and the overlay", () => {
 });
 
 describe("Plugin conformance — the transfer lane", () => {
-  it("installs from a staged upload exactly as from inline bytes", async (ctx) => {
+  it("[rpc:PluginCommandController.createArtifactUploadUrl] [rpc:PluginCommandController.push] installs from a staged upload exactly as from inline bytes", async (ctx) => {
     if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const name = uniqueName("plg-staged");
     const archive = pluginArchive(thermosLike(name));
@@ -888,7 +888,7 @@ describe("Plugin conformance — the vendored Cursor plugins", () => {
   // library describes them, `salesforce` is refused with the library's own
   // sentence. Slugs are the plugins' real names, so this block provisions
   // its own tenancy and the fixture cleanup removes every install.
-  it("installs five and refuses the sixth with the library's sentence", async () => {
+  it("[rpc:PluginCommandController.push] installs five and refuses the sixth with the library's sentence", async () => {
     const { org: vendorOrg } = await target.provisionTenancy();
     try {
       for (const name of VENDORED_CURSOR_PLUGINS) {

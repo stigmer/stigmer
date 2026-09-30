@@ -63,9 +63,10 @@ jobs:
       short_sha: ${{ steps.v.outputs.short_sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Derive dev versions
         id: v
@@ -73,7 +74,7 @@ jobs:
           set -euo pipefail
 
           # Normalize the target list. "all" expands to every publishable channel.
-          TARGETS="${{ github.event.inputs.targets }}"
+          TARGETS="${GITHUB_EVENT_INPUTS_TARGETS}"
           [ -z "$TARGETS" ] && TARGETS="all"
           if [ "$TARGETS" = "all" ]; then
             TARGETS="maven,npm,python,mcp"
@@ -89,7 +90,7 @@ jobs:
           # Base semver: explicit input wins; otherwise bump the patch of the
           # latest v* tag. A dev build always targets the NEXT unreleased version
           # so it sorts below the eventual real release.
-          BASE="${{ github.event.inputs.base_version }}"
+          BASE="${GITHUB_EVENT_INPUTS_BASE_VERSION}"
           if [ -z "$BASE" ]; then
             LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
             [ -z "$LATEST_TAG" ] && LATEST_TAG="v0.0.0"
@@ -127,6 +128,9 @@ jobs:
           echo "  npm    : ${BASE}-dev.${STAMP} (tag: dev)"
           echo "  python : ${BASE}.dev${EPOCH} (TestPyPI)"
           echo "  docker : dev-${SHORT_SHA}"
+        env:
+          GITHUB_EVENT_INPUTS_TARGETS: ${{ github.event.inputs.targets }}
+          GITHUB_EVENT_INPUTS_BASE_VERSION: ${{ github.event.inputs.base_version }}
 
   # ---------------------------------------------------------------------------
   # Java: deploy `X.Y.Z-SNAPSHOT` to the Central snapshot repo.
@@ -139,12 +143,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -153,7 +158,7 @@ jobs:
           server-password: MAVEN_CENTRAL_PASSWORD
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.25'
 
@@ -162,8 +167,9 @@ jobs:
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION: ${{ needs.determine-version.outputs.maven_version }}
         run: |
-          VERSION="${{ needs.determine-version.outputs.maven_version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           # `deploy` runs through `install`, so the SNAPSHOT is also placed in the
           # local ~/.m2 for the SDK build below to resolve.
@@ -178,8 +184,9 @@ jobs:
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION: ${{ needs.determine-version.outputs.maven_version }}
         run: |
-          VERSION="${{ needs.determine-version.outputs.maven_version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           mvn --batch-mode versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           mvn --batch-mode deploy -DskipTests
@@ -196,22 +203,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # Node before stub generation: the stub scrub inside gen-stubs.sh runs
       # from TypeScript source via the repo-pinned tsx.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -222,7 +231,8 @@ jobs:
       - name: Publish @stigmer/* to npm (dev tag)
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: node scripts/publish-libs.mjs --version ${{ needs.determine-version.outputs.npm_version }} --tag dev
+          NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
+        run: node scripts/publish-libs.mjs --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" --tag dev
 
   # @stigmer/runner is a non-workspace npm package built via `make build-runner`.
   # It pins @stigmer/protos to the exact dev version, so it must run after the
@@ -233,22 +243,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # Node before stub generation: the stub scrub inside gen-stubs.sh runs
       # from TypeScript source via the repo-pinned tsx.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -271,10 +283,11 @@ jobs:
       - name: Publish runner to npm (dev tag)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: |
           node scripts/publish-standalone.mjs \
             --package backend/services/runner \
-            --version ${{ needs.determine-version.outputs.npm_version }} \
+            --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" \
             --tag dev
 
       # The slim embedding artifact (stigmer/stigmer#170), mirroring the
@@ -286,7 +299,7 @@ jobs:
         run: node scripts/bundle-slim.mjs --emit-packages
 
       - name: Set up Temporal CLI
-        uses: temporalio/setup-temporal@v0
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
 
       - name: Verify slim artifact boots
         working-directory: backend/services/runner
@@ -326,20 +339,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install workspace dependencies
@@ -349,11 +364,12 @@ jobs:
         run: make build-server
 
       - name: Set up Temporal CLI
-        uses: temporalio/setup-temporal@v0
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
 
       - name: Publish server to npm (dev tag)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: |
           temporal server start-dev --headless --log-level error &
           TEMPORAL_PID=$!
@@ -364,7 +380,7 @@ jobs:
           done
           node scripts/publish-standalone.mjs \
             --package backend/services/stigmer-server \
-            --version ${{ needs.determine-version.outputs.npm_version }} \
+            --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" \
             --tag dev
 
   # ---------------------------------------------------------------------------
@@ -381,22 +397,24 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # Node before stub generation: the stub scrub inside gen-stubs.sh runs
       # from TypeScript source via the repo-pinned tsx.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version-file: ".nvmrc"
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -405,14 +423,14 @@ jobs:
         run: STUBS_FORCE=1 make -C apis python-stubs
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
 
       - name: Set version
         working-directory: apis/stubs/python/stigmer
         run: |
-          VERSION="${{ needs.determine-version.outputs.py_version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION}"
           python -c "
           import re, pathlib
           p = pathlib.Path('pyproject.toml')
@@ -421,6 +439,8 @@ jobs:
           p.write_text(text)
           "
           echo "Set stigmer-protos version to $VERSION"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
 
       - name: Build package
         working-directory: apis/stubs/python/stigmer
@@ -429,7 +449,7 @@ jobs:
           python -m build
 
       - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: apis/stubs/python/stigmer/dist/
           repository-url: https://test.pypi.org/legacy/
@@ -443,17 +463,19 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.25'
+          cache: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
 
@@ -463,7 +485,7 @@ jobs:
       - name: Set version and pin protos dependency
         working-directory: sdk/python
         run: |
-          VERSION="${{ needs.determine-version.outputs.py_version }}"
+          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION}"
           python -c "
           import re, pathlib
           p = pathlib.Path('pyproject.toml')
@@ -473,6 +495,8 @@ jobs:
           p.write_text(text)
           "
           echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
 
       - name: Build package
         working-directory: sdk/python
@@ -481,7 +505,7 @@ jobs:
           python -m build
 
       - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: sdk/python/dist/
           repository-url: https://test.pypi.org/legacy/
@@ -502,13 +526,16 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
           node-version: '20'
 
       - name: Wait for @stigmer/mcp-server on npm
@@ -528,10 +555,10 @@ jobs:
           exit 1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

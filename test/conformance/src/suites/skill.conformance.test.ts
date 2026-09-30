@@ -89,7 +89,7 @@ async function pushSkill(
 }
 
 describe("Skill conformance — push & identity", () => {
-  it("push carries the request's labels onto the skill, and a re-push replaces them", async () => {
+  it("[rpc:SkillCommandController.push] push carries the request's labels onto the skill, and a re-push replaces them", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
     const artifact = makeSkillArtifact({
@@ -121,7 +121,7 @@ describe("Skill conformance — push & identity", () => {
     ).toEqual({ team: "runtime" });
   });
 
-  it("push assigns a skl_ id, derives name+slug from the artifact frontmatter, and computes a version hash", async () => {
+  it("[rpc:SkillCommandController.push] push assigns a skl_ id, derives name+slug from the artifact frontmatter, and computes a version hash", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
 
@@ -157,7 +157,7 @@ describe("Skill conformance — push & identity", () => {
     ).toBe(ApiResourceVisibility.visibility_org);
   });
 
-  it("get round-trips the pushed skill (ignoring server-set fields)", async () => {
+  it("[rpc:SkillQueryController.get] get round-trips the pushed skill (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const pushed = await pushSkill(
       org,
@@ -172,7 +172,7 @@ describe("Skill conformance — push & identity", () => {
     assertResourceParity(SkillSchema, pushed, fetched, "push vs get");
   });
 
-  it("getByReference resolves the latest version by org and slug", async () => {
+  it("[rpc:SkillQueryController.getByReference] getByReference resolves the latest version by org and slug", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
     const pushed = await pushSkill(org, makeSkillArtifact({ name }));
@@ -186,7 +186,7 @@ describe("Skill conformance — push & identity", () => {
     expect(fetched.status?.versionHash).toBe(pushed.status?.versionHash);
   });
 
-  it("accepts a ZIP with stored streaming entries — Go stdlib zip's default shape (#336)", async () => {
+  it("[rpc:SkillCommandController.push] accepts a ZIP with stored streaming entries — Go stdlib zip's default shape (#336)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
 
@@ -212,7 +212,7 @@ describe("Skill conformance — push & identity", () => {
     ).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it("resolves the root SKILL.md when a stray nested one also exists (#452)", async () => {
+  it("[rpc:SkillCommandController.push] resolves the root SKILL.md when a stray nested one also exists (#452)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
 
@@ -234,7 +234,7 @@ describe("Skill conformance — push & identity", () => {
     expect(pushed.metadata?.slug).toBe(name);
   });
 
-  it("isolates skills with the same name across orgs", async () => {
+  it("[rpc:SkillCommandController.push] isolates skills with the same name across orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
     const name = uniqueName("shared");
@@ -263,14 +263,14 @@ describe("Skill conformance — push & identity", () => {
     expect(fromB.metadata?.id).toBe(inB.metadata?.id);
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:SkillQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.skillQuery.get({ value: "" }),
       Code.InvalidArgument,
       "get empty id",
     ));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:SkillQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.skillQuery.get({ value: "skl_doesnotexist" }),
       Code.NotFound,
@@ -278,7 +278,7 @@ describe("Skill conformance — push & identity", () => {
     ));
 });
 
-describe("Skill conformance — push validation negatives", () => {
+describe("[rpc:SkillCommandController.push] Skill conformance — push validation negatives", () => {
   it("rejects a push with no org (InvalidArgument)", async () => {
     await expectGrpcCode(
       () =>
@@ -403,7 +403,7 @@ describe("Skill conformance — push validation negatives", () => {
   });
 });
 
-describe("Skill conformance — version history", () => {
+describe("[rpc:SkillCommandController.push] Skill conformance — version history", () => {
   it("re-pushing identical bytes does not archive a new version", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
@@ -456,7 +456,7 @@ describe("Skill conformance — version history", () => {
   });
 });
 
-describe("Skill conformance — getByReference resolution", () => {
+describe("[rpc:SkillQueryController.getByReference] Skill conformance — getByReference resolution", () => {
   it("resolves latest, an exact hash, and a push-time tag", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
@@ -570,7 +570,7 @@ describe("Skill conformance — getByReference resolution", () => {
     ));
 });
 
-describe("Skill conformance — artifact download (getArtifact)", () => {
+describe("[rpc:SkillQueryController.getArtifact] Skill conformance — artifact download (getArtifact)", () => {
   it("returns the exact bytes that were pushed", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
@@ -651,7 +651,7 @@ describe("Skill conformance — artifact download (getArtifact)", () => {
   });
 });
 
-describe("Skill conformance — listVersions", () => {
+describe("[rpc:SkillQueryController.listVersions] Skill conformance — listVersions", () => {
   it("rejects a missing org (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.skillQuery.listVersions({ org: "", slug: "anything" }),
@@ -763,7 +763,7 @@ describe("Skill conformance — listVersions", () => {
 // archived content repoints the head instead of duplicating it, a tag names
 // exactly one version (single-holder, moving on every assignment), and
 // is_current follows the live head rather than row recency.
-describe("Skill conformance — content-addressed versioning (repoint, single-holder tags)", () => {
+describe("[rpc:SkillCommandController.push] Skill conformance — content-addressed versioning (repoint, single-holder tags)", () => {
   it("A→B→A re-push repoints the head without a duplicate row and the tag follows", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
@@ -896,7 +896,7 @@ describe("Skill conformance — content-addressed versioning (repoint, single-ho
   });
 });
 
-describe("Skill conformance — updateVisibility", () => {
+describe("[rpc:SkillCommandController.updateVisibility] Skill conformance — updateVisibility", () => {
   it("narrows an org-default skill to private and widens it back, without moving the definition's audit slot", async () => {
     const { org } = await target.provisionTenancy();
     const pushed = await pushSkill(
@@ -988,7 +988,7 @@ describe("Skill conformance — updateVisibility", () => {
   });
 });
 
-describe("Skill conformance — delete", () => {
+describe("[rpc:SkillCommandController.delete] Skill conformance — delete", () => {
   it("delete returns the skill and removes it from get, getByReference, and listVersions", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
@@ -1039,7 +1039,7 @@ describe("Skill conformance — delete", () => {
     ));
 });
 
-describe("Skill conformance — pushFromExecutionArtifact (input validation)", () => {
+describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conformance — pushFromExecutionArtifact (input validation)", () => {
   // pushFromExecutionArtifact is a DIRECT handler: it does not run through the
   // request pipeline, so protovalidate never executes. It instead performs its
   // own ordered manual checks and — unlike Workflow's getVersion — returns the
@@ -1118,7 +1118,7 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
   // answer Unimplemented — that exact code is what clients key their
   // fallback to the unary lane on, so it is pinned as a contract.
 
-  it("push rejects a request with neither inline bytes nor an upload ref", async () => {
+  it("[rpc:SkillCommandController.push] push rejects a request with neither inline bytes nor an upload ref", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.skillCommand.push({ org }),
@@ -1127,7 +1127,7 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     );
   });
 
-  it("push rejects a request carrying both artifact sources", async () => {
+  it("[rpc:SkillCommandController.push] push rejects a request carrying both artifact sources", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -1141,7 +1141,7 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     );
   });
 
-  it("mint → HTTP PUT → push-by-ref round-trips bytes and identity exactly like an inline push", async (ctx) => {
+  it("[rpc:SkillCommandController.createArtifactUploadUrl] [rpc:SkillCommandController.push] mint → HTTP PUT → push-by-ref round-trips bytes and identity exactly like an inline push", async (ctx) => {
     if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");
@@ -1188,7 +1188,7 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     );
   });
 
-  it("an upload ref is single-use — replaying it after a push is rejected", async (ctx) => {
+  it("[rpc:SkillCommandController.push] an upload ref is single-use — replaying it after a push is rejected", async (ctx) => {
     if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const { org } = await target.provisionTenancy();
     const artifact = makeSkillArtifact({ name: uniqueName("skill") });
@@ -1217,7 +1217,7 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     );
   });
 
-  it("mint refuses an over-limit declaration BEFORE any bytes move, naming the limit", async (ctx) => {
+  it("[rpc:SkillCommandController.createArtifactUploadUrl] mint refuses an over-limit declaration BEFORE any bytes move, naming the limit", async (ctx) => {
     if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
@@ -1231,7 +1231,7 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
     );
   });
 
-  it("getArtifactDownloadUrl serves the exact stored bytes over HTTP", async (ctx) => {
+  it("[rpc:SkillQueryController.getArtifactDownloadUrl] getArtifactDownloadUrl serves the exact stored bytes over HTTP", async (ctx) => {
     if (!target.capabilities.skillArtifactTransferLane) return ctx.skip();
     const { org } = await target.provisionTenancy();
     const artifact = makeSkillArtifact({ name: uniqueName("skill") });

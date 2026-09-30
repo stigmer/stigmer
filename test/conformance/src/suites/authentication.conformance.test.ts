@@ -95,7 +95,7 @@ describe("authentication posture: a request with no credential", () => {
     ).toBe(true);
   });
 
-  it("still reaches an is_public method on every target (getServerInfo, the pre-login read)", async () => {
+  it("[rpc:PlatformQueryController.getServerInfo] still reaches an is_public method on every target (getServerInfo, the pre-login read)", async () => {
     const info = await target.anonymousClients().platformQuery.getServerInfo({});
     expect(info.edition, "getServerInfo answers the edition without a credential").not.toBe(0);
   });

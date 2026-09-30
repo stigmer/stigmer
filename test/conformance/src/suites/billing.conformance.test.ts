@@ -351,7 +351,7 @@ async function debitOnce(op: PrivilegedScope, executionId: string, sequence: num
 }
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balances and the ledger (billingLedger targets)", () => {
-  it("[billing.gate.provision-account.org-create-provisions-zero-balance] [billing.rpc.get-billing-account.owner-reads-zero-balance-account] an organization create provisions an active zero-balance account the owner can read at once", async () => {
+  it("[billing.gate.provision-account.org-create-provisions-zero-balance] [billing.rpc.get-billing-account.owner-reads-zero-balance-account] [rpc:BillingQueryController.getBillingAccount] an organization create provisions an active zero-balance account the owner can read at once", async () => {
     const { org } = await unfundedOrg();
     const account = await clients.billingQuery.getBillingAccount({ orgId: org });
     expect(account.orgId).toBe(org);
@@ -360,7 +360,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(account.balance?.reservedMicros ?? 0n).toBe(0n);
   });
 
-  it("[billing.rpc.get-billing-account.outsider-permission-denied] [billing.rpc.get-credit-balance.outsider-permission-denied] an outsider's reads are refused with the proto's copy", async () => {
+  it("[billing.rpc.get-billing-account.outsider-permission-denied] [billing.rpc.get-credit-balance.outsider-permission-denied] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] an outsider's reads are refused with the proto's copy", async () => {
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
@@ -377,7 +377,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(deniedBalance.rawMessage).toBe(COPY.viewBilling);
   });
 
-  it("[billing.rpc.get-or-create-billing-account.idempotent-for-existing] getOrCreateBillingAccount returns the existing account, never a second one", async () => {
+  it("[billing.rpc.get-or-create-billing-account.idempotent-for-existing] [rpc:BillingCommandController.getOrCreateBillingAccount] getOrCreateBillingAccount returns the existing account, never a second one", async () => {
     const { org } = await unfundedOrg();
     const first = await clients.billingQuery.getBillingAccount({ orgId: org });
     const again = await clients.billingCommand.getOrCreateBillingAccount({ orgId: org });
@@ -385,7 +385,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(again.balance?.availableMicros).toBe(first.balance?.availableMicros);
   });
 
-  it("[billing.rpc.get-or-create-billing-account.member-without-manage-denied] an outsider's getOrCreateBillingAccount is refused", async () => {
+  it("[billing.rpc.get-or-create-billing-account.member-without-manage-denied] [rpc:BillingCommandController.getOrCreateBillingAccount] an outsider's getOrCreateBillingAccount is refused", async () => {
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
@@ -396,7 +396,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(denied.rawMessage).toBe(COPY.manageBilling);
   });
 
-  it("[billing.rpc.adjust-credits.positive-and-negative-move-balance] [billing.rpc.get-credit-balance.reflects-adjustments] [billing.rpc.get-credit-ledger.lists-entries-newest-first-with-shape] adjustments move the balance and land on the ledger with their shape", async () => {
+  it("[billing.rpc.adjust-credits.positive-and-negative-move-balance] [billing.rpc.get-credit-balance.reflects-adjustments] [billing.rpc.get-credit-ledger.lists-entries-newest-first-with-shape] [rpc:BillingCommandController.adjustCredits] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] adjustments move the balance and land on the ledger with their shape", async () => {
     const { org } = await unfundedOrg();
     const up = await issuer().billingCommand.adjustCredits({
       orgId: org,
@@ -428,7 +428,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     }
   });
 
-  it("[billing.rpc.adjust-credits.zero-amount-invalid-argument] a zero adjustment is refused INVALID_ARGUMENT with the handler's copy", async () => {
+  it("[billing.rpc.adjust-credits.zero-amount-invalid-argument] [rpc:BillingCommandController.adjustCredits] a zero adjustment is refused INVALID_ARGUMENT with the handler's copy", async () => {
     const { org } = await unfundedOrg();
     const refused = await expectGrpcCode(
       () => issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 0n, reason: "zero", idempotencyKey: uniqueName("zero") }),
@@ -438,7 +438,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(refused.rawMessage).toBe("amount_micros must be non-zero");
   });
 
-  it("[billing.rpc.adjust-credits.idempotency-key-replays-once] the same idempotency key applies the amount once and returns the original entry", async () => {
+  it("[billing.rpc.adjust-credits.idempotency-key-replays-once] [rpc:BillingCommandController.adjustCredits] the same idempotency key applies the amount once and returns the original entry", async () => {
     const { org } = await unfundedOrg();
     const key = uniqueName("adj-idem");
     const first = await issuer().billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
@@ -447,7 +447,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(await balanceOf(org)).toBe(1_000_000n);
   });
 
-  it("[billing.rpc.adjust-credits.outsider-permission-denied] [billing.rpc.grant-credits.outsider-permission-denied] an outsider's adjust and grant are refused with their own copy", async () => {
+  it("[billing.rpc.adjust-credits.outsider-permission-denied] [billing.rpc.grant-credits.outsider-permission-denied] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] an outsider's adjust and grant are refused with their own copy", async () => {
     const { org } = await unfundedOrg();
     const other = await outsider();
     const adjust = await expectGrpcCode(
@@ -464,7 +464,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(grant.rawMessage).toBe(COPY.grantCredits);
   });
 
-  it("[billing.rpc.adjust-credits.owner-permission-denied] [billing.rpc.grant-credits.owner-permission-denied] the org's own owner cannot adjust or grant its credits, and the balance does not move", async () => {
+  it("[billing.rpc.adjust-credits.owner-permission-denied] [billing.rpc.grant-credits.owner-permission-denied] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] the org's own owner cannot adjust or grant its credits, and the balance does not move", async () => {
     const { org } = await unfundedOrg();
     const adjust = await expectGrpcCode(
       () => clients.billingCommand.adjustCredits({ orgId: org, amountMicros: 1_000_000n, reason: "self-funding", idempotencyKey: uniqueName("own") }),
@@ -481,7 +481,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(await balanceOf(org)).toBe(0n);
   });
 
-  it("[billing.rpc.adjust-credits.no-billing-account-not-found] [billing.rpc.grant-credits.no-billing-account-not-found] a credit issuer's adjust and grant on an org with no billing account are NOT_FOUND", async () => {
+  it("[billing.rpc.adjust-credits.no-billing-account-not-found] [billing.rpc.grant-credits.no-billing-account-not-found] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] a credit issuer's adjust and grant on an org with no billing account are NOT_FOUND", async () => {
     // The platform check names no organization, so the org id is data the
     // handler must answer for; an org that was never created has no account.
     const org = uniqueName("no-such-org");
@@ -499,7 +499,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(grant.rawMessage).toBe(DOMAIN_COPY.noAccountFor(org));
   });
 
-  it("[billing.rpc.grant-credits.grants-with-expiry] a grant raises the balance and records its expiry", async () => {
+  it("[billing.rpc.grant-credits.grants-with-expiry] [rpc:BillingCommandController.grantCredits] a grant raises the balance and records its expiry", async () => {
     const { org } = await unfundedOrg();
     const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
     const grant = await issuer().billingCommand.grantCredits({
@@ -513,7 +513,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(await balanceOf(org)).toBe(4_000_000n);
   });
 
-  it("[billing.rpc.grant-credits.non-positive-invalid-argument] a non-positive grant is refused INVALID_ARGUMENT", async () => {
+  it("[billing.rpc.grant-credits.non-positive-invalid-argument] [rpc:BillingCommandController.grantCredits] a non-positive grant is refused INVALID_ARGUMENT", async () => {
     const { org } = await unfundedOrg();
     // The proto validates gt 0 and the handler re-checks; either way the
     // code is INVALID_ARGUMENT — the copy differs by which fired, so only
@@ -527,7 +527,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     }
   });
 
-  it("[billing.rpc.get-billing-usage-report.shape-and-empty-org] an org with no usage reports zero everything", async () => {
+  it("[billing.rpc.get-billing-usage-report.shape-and-empty-org] [rpc:BillingQueryController.getBillingUsageReport] an org with no usage reports zero everything", async () => {
     const { org } = await unfundedOrg();
     const report = await clients.billingQuery.getBillingUsageReport({
       orgId: org,
@@ -540,7 +540,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(report.totalProviderCostMicros).toBe(0n);
   });
 
-  it("[billing.rpc.get-customer-model-pricing.applies-policy-markup] the customer pricing lists priced models with the *_micros_per_million fields", async () => {
+  it("[billing.rpc.get-customer-model-pricing.applies-policy-markup] [rpc:BillingQueryController.getCustomerModelPricing] the customer pricing lists priced models with the *_micros_per_million fields", async () => {
     const { org } = await unfundedOrg();
     const pricing = await clients.billingQuery.getCustomerModelPricing({ orgId: org });
     expect(pricing.entries.length, "the baseline seeds at least one priced model").toBeGreaterThan(0);
@@ -551,7 +551,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     }
   });
 
-  it("[billing.rpc.set-auto-recharge-config.outsider-permission-denied] an outsider's setAutoRechargeConfig is refused with the proto's copy", async () => {
+  it("[billing.rpc.set-auto-recharge-config.outsider-permission-denied] [rpc:BillingCommandController.setAutoRechargeConfig] an outsider's setAutoRechargeConfig is refused with the proto's copy", async () => {
     const { org } = await unfundedOrg();
     const other = await outsider();
     // Structurally valid and disabled — the refusal must be the authorization's.
@@ -569,7 +569,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     await control.stripe.reset();
   });
 
-  it("[billing.rpc.create-credit-checkout-session.creates-customer-and-session] a checkout creates the Stripe customer and session with the pack's line item and metadata", async () => {
+  it("[billing.rpc.create-credit-checkout-session.creates-customer-and-session] [rpc:BillingCommandController.createCreditCheckoutSession] a checkout creates the Stripe customer and session with the pack's line item and metadata", async () => {
     const { org } = await unfundedOrg();
     const created = await clients.billingCommand.createCreditCheckoutSession({
       orgId: org,
@@ -596,7 +596,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(Number(session?.params["line_items[0][price_data][unit_amount]"])).toBeGreaterThan(0);
   });
 
-  it("[billing.rpc.create-credit-checkout-session.reuses-existing-customer] a second checkout for the same org creates no second Stripe customer", async () => {
+  it("[billing.rpc.create-credit-checkout-session.reuses-existing-customer] [rpc:BillingCommandController.createCreditCheckoutSession] a second checkout for the same org creates no second Stripe customer", async () => {
     const { org } = await unfundedOrg();
     const input = { orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/cancel" };
     await clients.billingCommand.createCreditCheckoutSession(input);
@@ -605,7 +605,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(customers).toHaveLength(1);
   });
 
-  it("[billing.rpc.create-credit-checkout-session.unknown-pack-invalid-argument] an unknown pack is refused INVALID_ARGUMENT before any Stripe call", async () => {
+  it("[billing.rpc.create-credit-checkout-session.unknown-pack-invalid-argument] [rpc:BillingCommandController.createCreditCheckoutSession] an unknown pack is refused INVALID_ARGUMENT before any Stripe call", async () => {
     const { org } = await unfundedOrg();
     await expectGrpcCode(
       () => clients.billingCommand.createCreditCheckoutSession({ orgId: org, packId: "no-such-pack", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
@@ -615,7 +615,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(await control.stripe.requests()).toEqual([]);
   });
 
-  it("[billing.rpc.create-credit-checkout-session.stripe-failure-surfaces] a Stripe refusal surfaces as an error and grants nothing", async () => {
+  it("[billing.rpc.create-credit-checkout-session.stripe-failure-surfaces] [rpc:BillingCommandController.createCreditCheckoutSession] a Stripe refusal surfaces as an error and grants nothing", async () => {
     const { org } = await unfundedOrg();
     await control.stripe.failNext({ pathPrefix: "/v1/checkout/sessions", status: 402, code: "card_declined", message: "declined" });
     let failed = false;
@@ -628,7 +628,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(await balanceOf(org)).toBe(0n);
   });
 
-  it("[billing.rpc.create-credit-checkout-session.outsider-permission-denied] an outsider cannot purchase for the org", async () => {
+  it("[billing.rpc.create-credit-checkout-session.outsider-permission-denied] [rpc:BillingCommandController.createCreditCheckoutSession] an outsider cannot purchase for the org", async () => {
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
@@ -639,7 +639,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(denied.rawMessage).toBe(COPY.purchaseCredits);
   });
 
-  it("[billing.rpc.create-billing-portal-session.returns-portal-url] [billing.rpc.create-billing-portal-session.no-customer-failed-precondition] the portal needs a Stripe customer, then returns the session URL", async () => {
+  it("[billing.rpc.create-billing-portal-session.returns-portal-url] [billing.rpc.create-billing-portal-session.no-customer-failed-precondition] [rpc:BillingCommandController.createBillingPortalSession] the portal needs a Stripe customer, then returns the session URL", async () => {
     const { org } = await unfundedOrg();
     await expectGrpcCode(
       () => clients.billingCommand.createBillingPortalSession({ orgId: org, returnUrl: "https://x.test/back" }),
@@ -655,7 +655,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(request?.params["return_url"]).toBe("https://x.test/back");
   });
 
-  it("[billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session] a setup session saves a card for an org that never purchased, charging nothing", async () => {
+  it("[billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session] [rpc:BillingCommandController.createPaymentMethodSetupSession] a setup session saves a card for an org that never purchased, charging nothing", async () => {
     const { org } = await unfundedOrg();
     const input = { orgId: org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" };
     const first = await clients.billingCommand.createPaymentMethodSetupSession(input);
@@ -675,7 +675,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(await balanceOf(org)).toBe(0n);
   });
 
-  it("[billing.rpc.create-payment-method-setup-session.outsider-permission-denied] an outsider cannot save a card for the org", async () => {
+  it("[billing.rpc.create-payment-method-setup-session.outsider-permission-denied] [rpc:BillingCommandController.createPaymentMethodSetupSession] an outsider cannot save a card for the org", async () => {
     const { org } = await unfundedOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
@@ -687,7 +687,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect((await control.stripe.requests()).filter((r) => r.path.startsWith("/v1/checkout"))).toEqual([]);
   });
 
-  it("[billing.rpc.set-auto-recharge-config.persists-and-validates] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
+  it("[billing.rpc.set-auto-recharge-config.persists-and-validates] [rpc:BillingCommandController.setAutoRechargeConfig] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
     const { org } = await unfundedOrg();
     const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ orgId: org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
 
@@ -898,7 +898,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 });
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pricing-admin lanes (platform operator)", () => {
-  it("[billing.rpc.engine-lanes.ordinary-caller-permission-denied] an org owner who is not a platform operator is refused on every engine RPC with the proto's copy", async () => {
+  it("[billing.rpc.engine-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.authorizeExecution] [rpc:BillingCommandController.finalizeExecution] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getExecutionBillingSignal] an org owner who is not a platform operator is refused on every engine RPC with the proto's copy", async () => {
     const { org } = await fundedOrg();
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
@@ -915,7 +915,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     }
   });
 
-  it("[billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied] an org owner is refused on every pricing-admin RPC with its own copy", async () => {
+  it("[billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingCommandController.decideModelPricingOverride] [rpc:BillingQueryController.getModelPricingGovernance] [rpc:BillingQueryController.listModelPricingBaselines] an org owner is refused on every pricing-admin RPC with its own copy", async () => {
     // Input validation runs before authorization on these handlers, so each
     // call is structurally valid — the refusal must be the authorization's.
     const cases: Array<[string, () => Promise<unknown>, string]> = [
@@ -946,7 +946,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     }
   });
 
-  it("[billing.rpc.preview-authorization.reasons-for-unfunded-and-funded] [billing.rpc.authorize-execution.denied-when-unfunded] the operator's preview and authorize deny an unfunded org with the engine's one denial vocabulary and admit a funded one", async (ctx) => {
+  it("[billing.rpc.preview-authorization.reasons-for-unfunded-and-funded] [billing.rpc.authorize-execution.denied-when-unfunded] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingCommandController.authorizeExecution] the operator's preview and authorize deny an unfunded org with the engine's one denial vocabulary and admit a funded one", async (ctx) => {
     const op = await operator();
     const unfunded = op.context.org;
     const preview = await op.clients.billingQuery.previewAuthorization({ orgId: unfunded });
@@ -962,7 +962,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(admitted.authorized, ctx.task.name).toBe(true);
   });
 
-  it("[billing.rpc.authorize-execution.reserves-and-latches] [billing.rpc.authorize-execution.concurrent-reserves-one-hold] [billing.rpc.finalize-execution.settles-and-is-idempotent] [billing.rpc.get-execution-billing-signal.unspecified-when-no-reservation] a funded execution reserves once under concurrency, settles once, and signals only while reserved", async () => {
+  it("[billing.rpc.authorize-execution.reserves-and-latches] [billing.rpc.authorize-execution.concurrent-reserves-one-hold] [billing.rpc.finalize-execution.settles-and-is-idempotent] [billing.rpc.get-execution-billing-signal.unspecified-when-no-reservation] [rpc:BillingCommandController.authorizeExecution] [rpc:BillingCommandController.finalizeExecution] [rpc:BillingQueryController.getExecutionBillingSignal] a funded execution reserves once under concurrency, settles once, and signals only while reserved", async () => {
     const op = await operator();
     const org = op.context.org;
     await fundAs(op.clients, org);
@@ -995,7 +995,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(afterSecond.reservedMicros).toBe(0n);
   });
 
-  it("[billing.rpc.finalize-execution.unknown-execution-failed-precondition] settling an execution that was never authorized is refused FAILED_PRECONDITION", async () => {
+  it("[billing.rpc.finalize-execution.unknown-execution-failed-precondition] [rpc:BillingCommandController.finalizeExecution] settling an execution that was never authorized is refused FAILED_PRECONDITION", async () => {
     const op = await operator();
     await expectGrpcCode(
       () => op.clients.billingCommand.finalizeExecution({ executionId: uniqueName("never-authorized") }),
@@ -1004,7 +1004,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     );
   });
 
-  it("[billing.rpc.rearm-for-recovery.rotates-reservation-past-settled-latch] re-arming a settled execution mints a new reservation on a funded org", async () => {
+  it("[billing.rpc.rearm-for-recovery.rotates-reservation-past-settled-latch] [rpc:BillingCommandController.rearmForRecovery] re-arming a settled execution mints a new reservation on a funded org", async () => {
     const op = await operator();
     const org = op.context.org;
     await fundAs(op.clients, org);
@@ -1017,7 +1017,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(rearmed.reservationId).not.toBe(first.reservationId);
   });
 
-  it("[billing.rpc.record-llm-call-usage.records-cost-and-marks-price-not-found] recorded usage lands on the org's usage report; an unpriced model records with PRICE_NOT_FOUND rather than failing", async () => {
+  it("[billing.rpc.record-llm-call-usage.records-cost-and-marks-price-not-found] [rpc:BillingCommandController.recordLlmCallUsage] recorded usage lands on the org's usage report; an unpriced model records with PRICE_NOT_FOUND rather than failing", async () => {
     const op = await operator();
     const org = op.context.org;
     await fundAs(op.clients, org);
@@ -1060,7 +1060,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     return revision;
   }
 
-  it("[billing.rpc.upsert-model-pricing-baseline.round-trips-through-list] an operator's upsert is listed ACTIVE with the server's stamps, a second upsert of the same key supersedes the first, and a variant carrying a Cursor rate is refused", async () => {
+  it("[billing.rpc.upsert-model-pricing-baseline.round-trips-through-list] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingQueryController.listModelPricingBaselines] an operator's upsert is listed ACTIVE with the server's stamps, a second upsert of the same key supersedes the first, and a variant carrying a Cursor rate is refused", async () => {
     const op = await operator();
     const modelId = uniqueName("conf-model");
 
@@ -1105,7 +1105,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(refused.rawMessage).toBe(DOMAIN_COPY.variantDeclaresCursorRate("thinking"));
   });
 
-  it("[billing.rpc.retire-model-pricing-baseline.unknown-not-found] retiring an unknown key is NOT_FOUND with the handler's copy; retiring a known one removes it from the ACTIVE list, and retiring it again is NOT_FOUND", async () => {
+  it("[billing.rpc.retire-model-pricing-baseline.unknown-not-found] [rpc:BillingCommandController.retireModelPricingBaseline] retiring an unknown key is NOT_FOUND with the handler's copy; retiring a known one removes it from the ACTIVE list, and retiring it again is NOT_FOUND", async () => {
     const op = await operator();
     const unknown = uniqueName("conf-never-upserted");
     const missing = await expectGrpcCode(
@@ -1133,7 +1133,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(again.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(modelId, "anthropic", "native"));
   });
 
-  it("[billing.rpc.decide-model-pricing-override.unknown-not-found] deciding an override nobody proposed is NOT_FOUND with the handler's copy", async () => {
+  it("[billing.rpc.decide-model-pricing-override.unknown-not-found] [rpc:BillingCommandController.decideModelPricingOverride] deciding an override nobody proposed is NOT_FOUND with the handler's copy", async () => {
     // Only the provider-reconciliation corrector proposes overrides, so the
     // already-decided FAILED_PRECONDITION half of this lane is a `unit` row
     // (billing.rpc.decide-model-pricing-override.already-decided-failed-precondition).
@@ -1149,7 +1149,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     }
   });
 
-  it("[billing.rpc.get-model-pricing-governance.returns-queue] the governance view lists one entry per effective-registry model, sorted, with baseline and effective rates equal while no override is active, and an empty proposal queue on a fresh environment", async () => {
+  it("[billing.rpc.get-model-pricing-governance.returns-queue] [rpc:BillingQueryController.getModelPricingGovernance] the governance view lists one entry per effective-registry model, sorted, with baseline and effective rates equal while no override is active, and an empty proposal queue on a fresh environment", async () => {
     const op = await operator();
     const modelId = uniqueName("conf-model");
     await upsertBaseline(op, modelId, 3_000_000n, 9_000_000n);
@@ -1264,7 +1264,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, th
 });
 
 describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (no billing controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] every billing RPC answers Unimplemented where billingLedger is false", async () => {
+  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] [rpc:BillingCommandController.authorizeExecution] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.finalizeExecution] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.createCreditCheckoutSession] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.setAutoRechargeConfig] [rpc:BillingCommandController.decideModelPricingOverride] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.getCustomerModelPricing] [rpc:BillingQueryController.getModelPricingGovernance] [rpc:BillingQueryController.listModelPricingBaselines] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getExecutionBillingSignal] every billing RPC answers Unimplemented where billingLedger is false", async () => {
     const org = uniqueName("org");
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [

@@ -87,7 +87,7 @@ async function createKey(
 }
 
 describe("ApiKey conformance", () => {
-  it("create assigns a key_ id and returns the plaintext exactly once", async () => {
+  it("[rpc:ApiKeyCommandController.create] create assigns a key_ id and returns the plaintext exactly once", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createKey(org);
 
@@ -105,7 +105,7 @@ describe("ApiKey conformance", () => {
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 
-  it("get returns the stored hash — base64url(sha256(plaintext)), never the plaintext again", async () => {
+  it("[rpc:ApiKeyQueryController.get] get returns the stored hash — base64url(sha256(plaintext)), never the plaintext again", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createKey(org);
     const plaintext = created.spec?.keyHash ?? "";
@@ -123,7 +123,7 @@ describe("ApiKey conformance", () => {
     expect(fetched.spec?.fingerprint).toBe(created.spec?.fingerprint);
   });
 
-  it("findAll lists the caller's key with the stored hash", async () => {
+  it("[rpc:ApiKeyQueryController.findAll] findAll lists the caller's key with the stored hash", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createKey(org);
     const plaintext = created.spec?.keyHash ?? "";
@@ -137,7 +137,7 @@ describe("ApiKey conformance", () => {
     expect(mine?.spec?.keyHash).toBe(storageHash(plaintext));
   });
 
-  it("update round-trips the expiry fields", async () => {
+  it("[rpc:ApiKeyCommandController.update] update round-trips the expiry fields", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createKey(org);
     const expiry = new Date("2030-06-01T00:00:00Z");
@@ -167,7 +167,7 @@ describe("ApiKey conformance", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update ignores altered key material — the stored hash and fingerprint survive (ruling Q9 / stigmer-cloud#544)", async () => {
+  it("[rpc:ApiKeyCommandController.update] update ignores altered key material — the stored hash and fingerprint survive (ruling Q9 / stigmer-cloud#544)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createKey(org);
     const plaintext = created.spec?.keyHash ?? "";
@@ -210,7 +210,7 @@ describe("ApiKey conformance", () => {
     );
   });
 
-  it("delete returns the resource; the id stops resolving", async () => {
+  it("[rpc:ApiKeyCommandController.delete] delete returns the resource; the id stops resolving", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.apiKeyCommand.create({
       apiVersion: API_VERSION,
@@ -231,7 +231,7 @@ describe("ApiKey conformance", () => {
     );
   });
 
-  it("get with an unknown id is NotFound; a blank id is rejected", async () => {
+  it("[rpc:ApiKeyQueryController.get] get with an unknown id is NotFound; a blank id is rejected", async () => {
     await expectGrpcCode(
       () =>
         clients.apiKeyQuery.get({ value: "key_00000000000000000000000000" }),

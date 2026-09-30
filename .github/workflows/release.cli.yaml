@@ -25,7 +25,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 # Force JavaScript actions onto Node 24. GitHub is removing the Node 20 runtime
 # from runners in 2026; this opts in early and silences the deprecation warnings
@@ -42,22 +42,23 @@ jobs:
       should_release: ${{ steps.version.outputs.should_release }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Determine version
         id: version
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             # Tag push: use tag name as version and create release
-            VERSION="${{ github.ref_name }}"
+            VERSION="${GITHUB_REF_NAME}"
             SHOULD_RELEASE="true"
             echo "Triggered by tag: $VERSION"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ -n "${{ github.event.inputs.version }}" ]; then
-              VERSION="v${{ github.event.inputs.version }}"
-              SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
+            if [ -n "${GITHUB_EVENT_INPUTS_VERSION}" ]; then
+              VERSION="v${GITHUB_EVENT_INPUTS_VERSION}"
+              SHOULD_RELEASE="${GITHUB_EVENT_INPUTS_CREATE_RELEASE}"
             else
               # Generate test version from commit hash
               VERSION="test-$(git rev-parse --short HEAD)"
@@ -71,24 +72,32 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION (release: $SHOULD_RELEASE)"
+        env:
+          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
+          GITHUB_EVENT_INPUTS_CREATE_RELEASE: ${{ github.event.inputs.create_release }}
 
   release:
     needs: [determine-version]
     runs-on: ubuntu-latest
+    # Pushes the release tag and creates the GitHub release.
+    permissions:
+      contents: write
     if: needs.determine-version.outputs.should_release == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           fetch-tags: true
+          # This job pushes the release tag with git, so the checkout keeps its token.
+          persist-credentials: true # zizmor: ignore[artipacked]
 
       - name: Verify tag exists
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           # If triggered by tag push, tag already exists
-          if [ "${{ github.ref_type }}" = "tag" ]; then
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             echo "Tag $VERSION already exists (triggered by tag push)"
           else
             # If triggered by workflow_dispatch, create and push tag
@@ -180,8 +189,10 @@ jobs:
 
           echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
 
+      # Kept as an action: replacing it with `gh release create` would change how
+      # the release (its body, its assets) is made, which is not a pinning fix.
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15 # zizmor: ignore[superfluous-actions]
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

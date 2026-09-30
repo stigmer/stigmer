@@ -69,7 +69,7 @@ async function createEnvironment(org: string, name: string, opts: EnvironmentSpe
 }
 
 describe("Environment conformance — CRUD & identity", () => {
-  it("create assigns an env_ id, echoes the spec, and records a created audit event", async () => {
+  it("[rpc:EnvironmentCommandController.create] create assigns an env_ id, echoes the spec, and records a created audit event", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("env");
 
@@ -86,7 +86,7 @@ describe("Environment conformance — CRUD & identity", () => {
     expect(created.metadata?.visibility, "visibility defaults to private (non-blueprint default)").toBe(ApiResourceVisibility.visibility_private);
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:EnvironmentQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"));
 
@@ -96,7 +96,7 @@ describe("Environment conformance — CRUD & identity", () => {
     assertResourceParity(EnvironmentSchema, created, fetched, "create vs get");
   });
 
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:EnvironmentCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("env");
 
@@ -111,7 +111,7 @@ describe("Environment conformance — CRUD & identity", () => {
     expect(second.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update replaces spec and name but preserves id, slug, and org", async () => {
+  it("[rpc:EnvironmentCommandController.update] update replaces spec and name but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"), { description: "before" });
     const { id, slug } = created.metadata!;
@@ -133,7 +133,7 @@ describe("Environment conformance — CRUD & identity", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:EnvironmentCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.environmentCommand.create(makeEnvironment({ org, name: uniqueName("env") }));
     const { id } = created.metadata!;
@@ -144,13 +144,13 @@ describe("Environment conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.environmentQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:EnvironmentQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.environmentQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:EnvironmentQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(() => clients.environmentQuery.get({ value: "env_doesnotexist" }), Code.NotFound, "get missing id"));
 
-  it("getByReference resolves by org and slug", async () => {
+  it("[rpc:EnvironmentQueryController.getByReference] getByReference resolves by org and slug", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("ref"));
 
@@ -159,7 +159,7 @@ describe("Environment conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:EnvironmentQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.environmentQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -168,20 +168,20 @@ describe("Environment conformance — CRUD & identity", () => {
     );
   });
 
-  it("getByReference rejects a kind that does not match the service", () =>
+  it("[rpc:EnvironmentQueryController.getByReference] getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
       () => clients.environmentQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
       Code.InvalidArgument,
       "getByReference kind mismatch",
     ));
 
-  it("derives a slug from the name", async () => {
+  it("[rpc:EnvironmentCommandController.create] derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, "My Staging Env #1 (Test)");
     expect(created.metadata?.slug).toBe("my-staging-env-1-test");
   });
 
-  it("allows the same slug in different orgs", async () => {
+  it("[rpc:EnvironmentCommandController.create] allows the same slug in different orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
     const name = uniqueName("shared");
@@ -201,7 +201,7 @@ describe("Environment conformance — visibility level validation", () => {
   // from the same proto config (cloud: ValidateVisibilityStep /
   // ValidateVisibilityUpdateStep; OSS: the shared Go steps, stigmer#489),
   // emitting the same INVALID_ARGUMENT message.
-  it("create rejects an unsupported visibility level (public, InvalidArgument)", async () => {
+  it("[rpc:EnvironmentCommandController.create] create rejects an unsupported visibility level (public, InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const request = makeEnvironment({ org, name: uniqueName("env") });
     request.metadata!.visibility = ApiResourceVisibility.visibility_public;
@@ -219,7 +219,7 @@ describe("Environment conformance — visibility level validation", () => {
     );
   });
 
-  it("updateVisibility rejects an unsupported level (platform, InvalidArgument) and leaves the stored level untouched", async () => {
+  it("[rpc:EnvironmentCommandController.updateVisibility] updateVisibility rejects an unsupported level (platform, InvalidArgument) and leaves the stored level untouched", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"));
 
@@ -242,7 +242,7 @@ describe("Environment conformance — visibility level validation", () => {
 });
 
 describe("Environment conformance — secrets", () => {
-  it("read RPCs redact the secret value in both editions; is_secret is always preserved", async () => {
+  it("[rpc:EnvironmentQueryController.get] read RPCs redact the secret value in both editions; is_secret is always preserved", async () => {
     // Edition-converged since stigmer#405: OSS encrypts at rest and redacts
     // on read exactly like cloud, so the former secretRedaction capability
     // branch is gone — the plaintext secret never leaks on a plain read
@@ -264,7 +264,7 @@ describe("Environment conformance — secrets", () => {
     expect(secretEntry?.value, "read RPCs must never return the plaintext secret").toBe(REDACTED_MARKER);
   });
 
-  it("getSecretValue reveals the unredacted secret value (both editions)", async () => {
+  it("[rpc:EnvironmentQueryController.getSecretValue] getSecretValue reveals the unredacted secret value (both editions)", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "reveal-me-please";
     const created = await createEnvironment(org, uniqueName("env"), {
@@ -281,7 +281,7 @@ describe("Environment conformance — secrets", () => {
     expect(revealed.isSecret).toBe(true);
   });
 
-  it("getSecretValue returns NotFound for a key that does not exist", async () => {
+  it("[rpc:EnvironmentQueryController.getSecretValue] getSecretValue returns NotFound for a key that does not exist", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"));
 
@@ -292,14 +292,14 @@ describe("Environment conformance — secrets", () => {
     );
   });
 
-  it("getSecretValue rejects an empty environment_id (InvalidArgument)", () =>
+  it("[rpc:EnvironmentQueryController.getSecretValue] getSecretValue rejects an empty environment_id (InvalidArgument)", () =>
     expectGrpcCode(
       () => clients.environmentQuery.getSecretValue({ environmentId: "", key: "ANY" }),
       Code.InvalidArgument,
       "getSecretValue empty environment_id",
     ));
 
-  it("getSecretValue rejects an empty key (InvalidArgument)", async () => {
+  it("[rpc:EnvironmentQueryController.getSecretValue] getSecretValue rejects an empty key (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"));
     await expectGrpcCode(
@@ -314,7 +314,7 @@ describe("Environment conformance — redaction-marker preservation", () => {
   // The full-resource update replaces spec.data wholesale, which would destroy a
   // secret a client cannot read back. The redaction marker is the contract that
   // lets an edit flow preserve secrets it did not intend to change.
-  it("update preserves an existing secret value when the redaction marker is sent back", async () => {
+  it("[rpc:EnvironmentCommandController.update] update preserves an existing secret value when the redaction marker is sent back", async () => {
     const { org } = await target.provisionTenancy();
     const realSecret = "original-secret-value";
     const created = await createEnvironment(org, uniqueName("env"), {
@@ -335,7 +335,7 @@ describe("Environment conformance — redaction-marker preservation", () => {
     expect(revealed.value, "the marker must not overwrite the stored secret").toBe(realSecret);
   });
 
-  it("update rejects the redaction marker for a key with no prior secret (InvalidArgument)", async () => {
+  it("[rpc:EnvironmentCommandController.update] update rejects the redaction marker for a key with no prior secret (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"));
     const { id } = created.metadata!;
@@ -354,7 +354,7 @@ describe("Environment conformance — redaction-marker preservation", () => {
     );
   });
 
-  it("create rejects the redaction marker (nothing to preserve, InvalidArgument)", async () => {
+  it("[rpc:EnvironmentCommandController.create] create rejects the redaction marker (nothing to preserve, InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
 
     await expectGrpcCode(
@@ -381,7 +381,7 @@ describe("Environment conformance — ciphertext-shaped input rejection", () => 
   // sends a prefixed value.
   const CIPHERTEXT_SHAPED = "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";
 
-  it("create rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
+  it("[rpc:EnvironmentCommandController.create] create rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
 
     await expectGrpcCode(
@@ -398,7 +398,7 @@ describe("Environment conformance — ciphertext-shaped input rejection", () => 
     );
   });
 
-  it("update rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
+  it("[rpc:EnvironmentCommandController.update] update rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"), {
       data: { API_KEY: { value: "real-secret", isSecret: true } },
@@ -418,7 +418,7 @@ describe("Environment conformance — ciphertext-shaped input rejection", () => 
     );
   });
 
-  it("updateVariables rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
+  it("[rpc:EnvironmentCommandController.updateVariables] updateVariables rejects a ciphertext-shaped secret value (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"));
     const { id } = created.metadata!;
@@ -434,7 +434,7 @@ describe("Environment conformance — ciphertext-shaped input rejection", () => 
     );
   });
 
-  it("accepts a NON-secret value that merely looks prefixed (deliberate exemption)", async () => {
+  it("[rpc:EnvironmentCommandController.create] accepts a NON-secret value that merely looks prefixed (deliberate exemption)", async () => {
     // Every decrypt path gates on is_secret, so a non-secret prefixed string
     // is inert — and flipping it to secret later re-enters the guard.
     const { org } = await target.provisionTenancy();
@@ -450,7 +450,7 @@ describe("Environment conformance — ciphertext-shaped input rejection", () => 
 });
 
 describe("Environment conformance — incremental variable management", () => {
-  it("updateVariables merges new keys while preserving existing ones", async () => {
+  it("[rpc:EnvironmentCommandController.updateVariables] updateVariables merges new keys while preserving existing ones", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"), {
       data: { KEEP_ME: { value: "keep" } },
@@ -469,7 +469,7 @@ describe("Environment conformance — incremental variable management", () => {
     expect(merged.spec?.data?.KEEP_ME?.value, "existing keys in the request are overwritten").toBe("overwritten");
   });
 
-  it("updateVariables leaves keys absent from the request untouched", async () => {
+  it("[rpc:EnvironmentCommandController.updateVariables] updateVariables leaves keys absent from the request untouched", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"), {
       data: { UNTOUCHED: { value: "stable" }, CHANGED: { value: "before" } },
@@ -485,7 +485,7 @@ describe("Environment conformance — incremental variable management", () => {
     expect(merged.spec?.data?.CHANGED?.value).toBe("after");
   });
 
-  it("removeVariables deletes the named keys and ignores unknown ones", async () => {
+  it("[rpc:EnvironmentCommandController.removeVariables] removeVariables deletes the named keys and ignores unknown ones", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"), {
       data: { DROP_ME: { value: "gone" }, KEEP_ME: { value: "stays" } },
@@ -501,7 +501,7 @@ describe("Environment conformance — incremental variable management", () => {
     expect(after.spec?.data?.KEEP_ME?.value, "other keys remain").toBe("stays");
   });
 
-  it("removeVariables rejects an empty key list (InvalidArgument)", async () => {
+  it("[rpc:EnvironmentCommandController.removeVariables] removeVariables rejects an empty key list (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createEnvironment(org, uniqueName("env"));
     await expectGrpcCode(
@@ -512,7 +512,7 @@ describe("Environment conformance — incremental variable management", () => {
   });
 });
 
-describe("Environment conformance — list", () => {
+describe("[rpc:EnvironmentQueryController.list] Environment conformance — list", () => {
   it("lists environments filtered by org", async () => {
     const { org } = await target.provisionTenancy();
     const a = await createEnvironment(org, uniqueName("env"));
@@ -528,7 +528,7 @@ describe("Environment conformance — list", () => {
     expectGrpcCode(() => clients.environmentQuery.list({ org: "" }), Code.InvalidArgument, "list empty org"));
 });
 
-describe("Environment conformance — negative paths", () => {
+describe("[rpc:EnvironmentCommandController.create] Environment conformance — negative paths", () => {
   it("rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(

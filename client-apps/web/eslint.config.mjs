@@ -35,6 +35,23 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "next/font/google",
+              message:
+                "next/font/google downloads the font from Google during every build, so a failed fetch fails the build (stigmer#1508). Vendor the files into src/app/fonts and load them with next/font/local in src/app/fonts/fonts.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["_libs/**/*.ts", "_libs/**/*.tsx"],
     rules: {
       "no-restricted-imports": [

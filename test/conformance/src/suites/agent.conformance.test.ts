@@ -49,7 +49,7 @@ async function createAgent(org: string, name: string, opts: { description?: stri
 }
 
 describe("Agent conformance — CRUD & identity", () => {
-  it("create assigns an agt_ id, echoes the spec, records a created audit event, and provisions a default instance", async () => {
+  it("[rpc:AgentCommandController.create] create assigns an agt_ id, echoes the spec, records a created audit event, and provisions a default instance", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("agent");
 
@@ -66,7 +66,7 @@ describe("Agent conformance — CRUD & identity", () => {
     expect(created.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
   });
 
-  it("creates an agent without a spec (spec is optional at the proto level)", async () => {
+  it("[rpc:AgentCommandController.create] creates an agent without a spec (spec is optional at the proto level)", async () => {
     const { org } = await target.provisionTenancy();
     // AgentSpec is not `required`; a spec-less agent is a valid (if minimal)
     // blueprint. This documents that part of the contract.
@@ -81,7 +81,7 @@ describe("Agent conformance — CRUD & identity", () => {
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:AgentQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createAgent(org, uniqueName("agent"));
 
@@ -91,7 +91,7 @@ describe("Agent conformance — CRUD & identity", () => {
     assertResourceParity(AgentSchema, created, fetched, "create vs get");
   });
 
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:AgentCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("agent");
 
@@ -106,7 +106,7 @@ describe("Agent conformance — CRUD & identity", () => {
     expect(second.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update replaces spec and name but preserves id, slug, and org", async () => {
+  it("[rpc:AgentCommandController.update] update replaces spec and name but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createAgent(org, uniqueName("agent"), { description: "before" });
     const { id, slug } = created.metadata!;
@@ -128,7 +128,7 @@ describe("Agent conformance — CRUD & identity", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:AgentCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
     const { id } = created.metadata!;
@@ -139,13 +139,13 @@ describe("Agent conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.agentQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:AgentQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.agentQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:AgentQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(() => clients.agentQuery.get({ value: "agt_doesnotexist" }), Code.NotFound, "get missing id"));
 
-  it("getByReference resolves by org and slug", async () => {
+  it("[rpc:AgentQueryController.getByReference] getByReference resolves by org and slug", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createAgent(org, uniqueName("ref"));
 
@@ -154,7 +154,7 @@ describe("Agent conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:AgentQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.agentQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -163,20 +163,20 @@ describe("Agent conformance — CRUD & identity", () => {
     );
   });
 
-  it("getByReference rejects a kind that does not match the service", () =>
+  it("[rpc:AgentQueryController.getByReference] getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
       () => clients.agentQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.skill }),
       Code.InvalidArgument,
       "getByReference kind mismatch",
     ));
 
-  it("derives a slug from the name", async () => {
+  it("[rpc:AgentCommandController.create] derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createAgent(org, "My Agent #1 (Test)");
     expect(created.metadata?.slug).toBe("my-agent-1-test");
   });
 
-  it("allows the same slug in different orgs", async () => {
+  it("[rpc:AgentCommandController.create] allows the same slug in different orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
     const name = uniqueName("shared");
@@ -190,7 +190,7 @@ describe("Agent conformance — CRUD & identity", () => {
 });
 
 describe("Agent conformance — negative paths", () => {
-  it("rejects instructions shorter than the minimum length (InvalidArgument)", async () => {
+  it("[rpc:AgentCommandController.create] rejects instructions shorter than the minimum length (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // AgentSpec.instructions has min_len=10; a present-but-too-short value is a
     // Layer-1 protovalidate violation caught by ValidateProtoStep.
@@ -207,7 +207,7 @@ describe("Agent conformance — negative paths", () => {
     );
   });
 
-  it("rejects a duplicate create (contract: AlreadyExists)", async () => {
+  it("[rpc:AgentCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("dup");
     await createAgent(org, name);
@@ -219,7 +219,7 @@ describe("Agent conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with no name (contract: InvalidArgument)", async () => {
+  it("[rpc:AgentCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1 passes; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
@@ -236,7 +236,7 @@ describe("Agent conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create and an apply into an Organization that does not exist (contract: NotFound, the load-first copy)", async () => {
+  it("[rpc:AgentCommandController.create] [rpc:AgentCommandController.apply] rejects a create and an apply into an Organization that does not exist (contract: NotFound, the load-first copy)", async () => {
     // A slug no Organization holds. Every edition answers this before any
     // permission question and with the same sentence, whether the server
     // signs its callers in or not (stigmer#1163): nothing is stored under
@@ -291,7 +291,7 @@ describe("Agent instance conformance — visibility level validation", () => {
   const AGENT_INSTANCE_API_VERSION = "agentic.stigmer.ai/v1";
   const AGENT_INSTANCE_KIND = "AgentInstance";
 
-  it("create rejects platform visibility (InvalidArgument)", async () => {
+  it("[rpc:AgentInstanceCommandController.create] create rejects platform visibility (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org, uniqueName("agent"));
 
@@ -318,7 +318,7 @@ describe("Agent instance conformance — visibility level validation", () => {
     );
   });
 
-  it("updateVisibility rejects platform (InvalidArgument) and leaves the stored level untouched", async () => {
+  it("[rpc:AgentInstanceCommandController.updateVisibility] updateVisibility rejects platform (InvalidArgument) and leaves the stored level untouched", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org, uniqueName("agent"));
 
@@ -347,7 +347,7 @@ describe("Agent instance conformance — visibility level validation", () => {
     );
   });
 
-  it("updateVisibility on the agent's default instance rejects entirely (FailedPrecondition)", async () => {
+  it("[rpc:AgentInstanceCommandController.updateVisibility] updateVisibility on the agent's default instance rejects entirely (FailedPrecondition)", async () => {
     // Default instances are system-managed: their access always follows the
     // parent agent, so both editions reject any visibility update on them
     // (cloud: label-keyed guard in ValidateVisibilityUpdateStep; OSS:
@@ -376,7 +376,7 @@ describe("Agent instance conformance — visibility level validation", () => {
 });
 
 describe("Agent conformance — delete cascades instances (stigmer#611)", () => {
-  it("delete removes the default and personal instances, freeing the agent slug and the org-wide instance slug", async () => {
+  it("[rpc:AgentCommandController.delete] delete removes the default and personal instances, freeing the agent slug and the org-wide instance slug", async () => {
     // The agent twin of the workflow cascade pin (stigmer#592): instances
     // are configuration OF the agent and go with it (default AND personal),
     // unlike sessions/executions which survive as historical record (the
@@ -436,7 +436,7 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
   // fail the whole update). OSS: preserveImmutableFields; cloud:
   // UpdateOperationPreserveResourceIdentifiersStepV2.
 
-  it("update carrying a different level succeeds but leaves the stored level untouched", async () => {
+  it("[rpc:AgentCommandController.update] update carrying a different level succeeds but leaves the stored level untouched", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createAgent(org, uniqueName("agent"));
     expect(created.metadata?.visibility, "precondition: blueprint default").toBe(ApiResourceVisibility.visibility_org);
@@ -462,7 +462,7 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
     expect(stored.metadata?.visibility, "the stored level is untouched").toBe(ApiResourceVisibility.visibility_org);
   });
 
-  it("update cannot flip a default instance's visibility (the stigmer#556 guard is not bypassable)", async () => {
+  it("[rpc:AgentInstanceCommandController.update] update cannot flip a default instance's visibility (the stigmer#556 guard is not bypassable)", async () => {
     // updateVisibility on a default instance rejects with FailedPrecondition
     // (pinned above). A plain update carrying a level was the remaining way
     // to stamp visibility onto one; with the single-door contract it
