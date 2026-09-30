@@ -62,6 +62,7 @@ describe("normalizeEdit — from args", () => {
         }),
       }),
     );
+    expect(view.type).toBe("diff");
     if (view.type !== "diff") return;
     expect(view.linesAdded).toBe(3);
     expect(view.linesRemoved).toBe(2);
@@ -93,6 +94,7 @@ describe("normalizeWrite — from args", () => {
 
   it("defaults to empty content when the args carry none", () => {
     const view = normalizeToolResult(writeToolCall({ args: { path: "empty.ts" } }));
+    expect(view.type).toBe("file");
     if (view.type !== "file") return;
     expect(view.content).toBe("");
     expect(view.path).toBe("empty.ts");

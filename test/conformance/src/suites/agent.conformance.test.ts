@@ -22,6 +22,9 @@ import { uniqueName, uniqueOrg } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
+// Read at collection time so an edition without a capability reports its cases
+// SKIPPED (the conformance guide's rule), never as passes that returned early.
+const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
@@ -255,14 +258,12 @@ describe("Agent conformance — reserved labels", () => {
   // not introduce; nothing resolves it any more.
   const DEFAULT_AGENT_LABEL = "stigmer.ai/default-agent";
 
-  it("an ordinary caller introducing a reserved stigmer.ai/* label is rejected where the guard holds", async () => {
-    // The write guard is cloud-only (stigmer-cloud#320, platform-wide since
-    // stigmer-cloud#386); the local OSS targets are deliberately unguarded
-    // (single-tenant, the operator owns the store), so this pin is the
-    // false-branch twin of the capability — where ordinary reserved writes
-    // are allowed there is nothing to reject.
-    if (target.capabilities.clientReservedLabelWrites) return;
-
+  // The write guard is cloud-only (stigmer-cloud#320, platform-wide since
+  // stigmer-cloud#386); the local OSS targets are deliberately unguarded
+  // (single-tenant, the operator owns the store), so this pin is the
+  // false-branch twin of the capability — where ordinary reserved writes
+  // are allowed there is nothing to reject.
+  it.skipIf(capabilities.clientReservedLabelWrites)("an ordinary caller introducing a reserved stigmer.ai/* label is rejected where the guard holds", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>

@@ -14,10 +14,19 @@ import { randomBytes } from "node:crypto";
 
 import pg from "pg";
 
-/** Admin URL; undefined disables (visible-skip) the DB-backed suites. */
+/**
+ * Admin URL; undefined disables (visible-skip) the DB-backed suites. Inside a
+ * test gate (`STIGMER_TEST_GATE=1`) the gate provides Postgres, so a missing
+ * URL is the gate's failure, not a skip: this throws, and every DB-backed
+ * file fails by name at collection.
+ */
 export function testDatabaseAdminUrl(): string | undefined {
   const value = process.env.TEST_DATABASE_URL;
-  return value !== undefined && value !== "" ? value : undefined;
+  const url = value !== undefined && value !== "" ? value : undefined;
+  if (url === undefined && process.env.STIGMER_TEST_GATE === "1") {
+    throw new Error("STIGMER_TEST_GATE=1 but TEST_DATABASE_URL is unset: the gate must provide Postgres");
+  }
+  return url;
 }
 
 export interface TestDatabase {

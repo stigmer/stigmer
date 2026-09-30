@@ -605,12 +605,9 @@ describe("Workflow conformance — run_workflow is refused at write", () => {
 });
 
 describe("Workflow conformance — tagVersion", () => {
-  it("is unavailable (Unimplemented) when version tagging is not a capability", async () => {
-    if (target.capabilities.versionTagging) {
-      // Version tagging is implemented on this target; the positive contract is
-      // asserted below. This gate only covers targets that do not implement it.
-      return;
-    }
+  // Version tagging is implemented on some targets; the positive contract is
+  // asserted below. This case only covers targets that do not implement it.
+  it.skipIf(capabilities.versionTagging)("is unavailable (Unimplemented) when version tagging is not a capability", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
 

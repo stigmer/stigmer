@@ -24,6 +24,7 @@ import { randomBytes } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadWorkflowFromYaml } from "../workflow-engine/loader.js";
+import { IN_TEST_GATE } from "../__test-utils__/test-gate.js";
 import { evaluateExpressionBatch } from "../workflow-engine/expression.js";
 import { EncryptionPayloadCodec } from "@stigmer/temporal-codecs";
 import type { EngineActivities, ExecuteServerlessWorkflowInput } from "../workflows/engine-core.js";
@@ -135,6 +136,8 @@ describe("History encryption tripwire — Temporal TestWorkflowEnvironment", () 
     try {
       env = await TWE.createLocal();
     } catch (err: unknown) {
+      // Inside a gate the test server is a provided dependency: not booting is a failure.
+      if (IN_TEST_GATE) throw err;
       bootError = err instanceof Error ? err.message : String(err);
       console.warn(`Temporal dev server cannot boot; the tripwire skips: ${bootError}`);
       return;

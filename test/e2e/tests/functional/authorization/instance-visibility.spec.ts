@@ -43,10 +43,10 @@ test.describe("Instance Visibility", () => {
   test("opens a popover listing private and organization, never public", async ({
     page,
   }) => {
-    if (!(await openFirstWorkflowInstances(page))) return;
+    test.skip(!(await openFirstWorkflowInstances(page)), "no workflow in the library to open");
 
     const trigger = visibilityTrigger(page);
-    if (!(await trigger.isVisible())) return;
+    test.skip(!(await trigger.isVisible()), "no editable visibility control (the user lacks can_edit)");
     await trigger.click();
 
     const listbox = page.getByRole("listbox", { name: "Instance visibility" });
@@ -62,16 +62,16 @@ test.describe("Instance Visibility", () => {
   test("escalating to organization shows the inline confirm", async ({
     page,
   }) => {
-    if (!(await openFirstWorkflowInstances(page))) return;
+    test.skip(!(await openFirstWorkflowInstances(page)), "no workflow in the library to open");
 
     const trigger = visibilityTrigger(page);
-    if (!(await trigger.isVisible())) return;
+    test.skip(!(await trigger.isVisible()), "no editable visibility control (the user lacks can_edit)");
     await trigger.click();
 
     const orgOption = page
       .getByRole("listbox", { name: "Instance visibility" })
       .getByRole("option", { name: /Organization/i });
-    if (!(await orgOption.isVisible())) return;
+    test.skip(!(await orgOption.isVisible()), "no organization option offered");
     await orgOption.click();
 
     // Escalating from private shows the light inline prompt; if the instance

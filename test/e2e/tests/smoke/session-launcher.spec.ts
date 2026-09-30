@@ -19,7 +19,7 @@ test.describe("Session launcher", () => {
 
     // Production redirects the unauthenticated home page to Auth0, where there
     // is no session composer. The composer flow only exists once authenticated.
-    if (await isAuthGate(page)) return;
+    test.skip(await isAuthGate(page), "the unauthenticated home redirects to the identity provider; no composer");
 
     const textarea = page.locator('textarea, [role="textbox"], [contenteditable="true"]');
     await expect(textarea.first()).toBeVisible({ timeout: 10_000 });

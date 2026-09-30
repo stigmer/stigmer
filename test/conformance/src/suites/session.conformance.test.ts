@@ -34,6 +34,10 @@ import { SESSION_API_VERSION, SESSION_KIND, makeSession, makeSessionSpec } from 
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
+// Read at collection time: a deployed endpoint carries no operator credential
+// by design, so the cases seeded through the privileged scope report SKIPPED
+// there, never passes that returned early.
+const hasPrivilegedScope = createTarget().provisionPrivilegedScope !== undefined;
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
@@ -406,7 +410,7 @@ describe("Session conformance — queries", () => {
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("listByChannel returns exactly the sessions stamped with the channel's label", async () => {
+  it.skipIf(!hasPrivilegedScope)("listByChannel returns exactly the sessions stamped with the channel's label", async () => {
     // The positive arm: the filter must key on the stigmer.ai/channel-id
     // label, not on emptiness. The channel is a REAL owned resource (the
     // wave-2 conversation-lane convention — cloud's DD-012 can_view gate
@@ -416,8 +420,8 @@ describe("Session conformance — queries", () => {
     // through the privileged scope (stigmer#547) — the activity suite's
     // runtime-origin seeding pattern. Deployed endpoints carry no operator
     // credential by design and skip.
-    if (target.provisionPrivilegedScope === undefined) return;
-    const scope = await target.provisionPrivilegedScope();
+    // Present: the case skips (hasPrivilegedScope) on a target without it.
+    const scope = await target.provisionPrivilegedScope!();
 
     try {
       const org = scope.context.org;

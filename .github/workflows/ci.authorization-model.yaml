@@ -71,6 +71,12 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
+      # The resource-kind generator reads kind metadata from @stigmer/protos
+      # at runtime, and that package exports only ./dist, which a bare
+      # checkout does not have (stigmer#1498).
+      - name: Build the protos dist the generator reads
+        run: npm run build -w @stigmer/protos
+
       - name: Test the generator
         run: npm run test -w @stigmer/codegen
 

@@ -31,6 +31,7 @@ import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadWorkflowFromYaml } from "../workflow-engine/loader.js";
+import { IN_TEST_GATE } from "../__test-utils__/test-gate.js";
 import { evaluateExpressionBatch } from "../workflow-engine/expression.js";
 import type { EngineActivities, ExecuteServerlessWorkflowInput } from "../workflows/engine-core.js";
 import type { WorkflowModel } from "../workflow-engine/types.js";
@@ -123,6 +124,8 @@ describe("Golden E2E — Temporal TestWorkflowEnvironment", () => {
     try {
       env = await TWE.createTimeSkipping();
     } catch (err: unknown) {
+      // Inside a gate the test server is a provided dependency: not booting is a failure.
+      if (IN_TEST_GATE) throw err;
       bootError = err instanceof Error ? err.message : String(err);
       console.warn(`Temporal test server cannot boot; every golden skips: ${bootError}`);
       return;
