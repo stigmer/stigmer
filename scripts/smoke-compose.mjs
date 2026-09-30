@@ -27,9 +27,7 @@
  *      the guide tells a user to (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL
  *      in the env file), pointed at a fake Anthropic API on this host
  *      (scripts/lib/fake-model.mjs), and the run must complete with the
- *      fake's reply as its last message. A smoke-only override file maps
- *      host.docker.internal into the runner container; nothing test-only
- *      lands in the tree;
+ *      fake's reply as its last message;
  *   6. clean teardown (`docker compose down --volumes`).
  *
  * Usage:
@@ -50,20 +48,16 @@
  *   --fake-model=error   the fake answers every model call with an error,
  *             so step 5 must fail — the red-first check of that step.
  *
- * The stack publishes fixed host ports 7234/7235 (the product contract),
- * so this smoke refuses to start if they are occupied — stop any running
- * `stigmer up` or compose stack first. Keys are generated fresh per run
- * into a temp env file; a developer's real .env is never read.
+ * How the stack is brought up and torn down (the env file, the override,
+ * the source build) is scripts/lib/install-compose.mjs, the one boot the
+ * upgrade rehearsal shares. The stack publishes fixed host ports 7234/7235
+ * (the product contract), so this smoke refuses to start if they are
+ * occupied — stop any running `stigmer up` or compose stack first. Keys are
+ * generated fresh per run; a developer's real .env is never read.
  *
  * Plain node + docker CLI, no dependencies — runnable everywhere CI is.
  */
-import { execFileSync, spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 import {
   assertArtifactLane,
   assertConsoleServed,
@@ -73,13 +67,8 @@ import {
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
+import { COMPOSE_ARTIFACT_PORT, COMPOSE_SERVER_PORT, createComposeStack } from "./lib/install-compose.mjs";
 
-const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
-const runnerCliStage = join(repoRoot, "backend", "services", "runner", "stage", "cli");
-
-const SERVER_PORT = 7234;
-const ARTIFACT_PORT = 7235;
 // First boot pulls/starts four containers, runs Temporal schema setup, and
 // waits for the server's start-period; generous on shared CI hosts.
 const SERVER_HEALTHY_TIMEOUT_MS = 240_000;
@@ -98,7 +87,7 @@ function parseArgs() {
     if (fakeModelMode !== undefined) fakeModel = fakeModelMode;
     else if (arg === "--build") mode = "build";
     else if (arg === "--published") mode = mode === "" ? "published" : mode;
-    else if ((m = arg.match(/^--version=(.+)$/)) !== null) version = m[1];
+    else if ((m = arg.match(/^--version=(.+)$/)) !== null) version = m[1].replace(/^v/, "");
     else if (arg === "--keep") keep = true;
     else fail(`unknown argument: ${arg}`);
   }
@@ -106,7 +95,7 @@ function parseArgs() {
   if (mode === "published" && version === "") {
     fail("--published requires --version=vX.Y.Z (the pushed image tag)");
   }
-  return { mode, version, keep, fakeModel };
+  return { release: mode === "build" ? { kind: "build" } : { kind: "published", version }, keep, fakeModel };
 }
 
 function fail(message) {
@@ -118,112 +107,22 @@ function log(step) {
   console.log(`smoke-compose: ${step}`);
 }
 
-/**
- * The dev server image build COPYs dist-slim-<arch>/; stage it from the
- * dist-slim tree bundle-slim.mjs produced for THIS machine (the
- * smoke-docker-image.mjs staging contract).
- */
-function stageServerTree() {
-  const distSlim = join(serverRoot, "dist-slim");
-  if (!existsSync(join(distSlim, "main.js"))) {
-    fail(
-      "dist-slim/main.js not found — build it first:\n" +
-        "  make build-server build-web && " +
-        "cd backend/services/stigmer-server && node scripts/bundle-slim.mjs",
-    );
-  }
-  const arch = process.arch === "x64" ? "amd64" : process.arch === "arm64" ? "arm64" : "";
-  if (arch === "") fail(`unsupported host arch "${process.arch}"`);
-  const staged = join(serverRoot, `dist-slim-${arch}`);
-  log(`staging dist-slim/ -> dist-slim-${arch}/`);
-  rmSync(staged, { recursive: true, force: true });
-  cpSync(distSlim, staged, { recursive: true });
-}
-
-/**
- * The dev runner image installs the CLI tarballs staged under
- * backend/services/runner/stage/cli (scripts/stage-compose-runner-cli.mjs)
- * and asserts their version against the STIGMER_CLI_VERSION build-arg, which
- * docker-compose.dev.yml requires. Returns that version for the env file.
- */
-function stagedRunnerCliVersion() {
-  const versionFile = join(runnerCliStage, "VERSION");
-  if (!existsSync(versionFile)) {
-    fail(
-      "backend/services/runner/stage/cli is not staged — run `make stage-compose-runner-cli` " +
-        "(or `node scripts/stage-compose-runner-cli.mjs`) first; `make smoke-compose` does",
-    );
-  }
-  return readFileSync(versionFile, "utf8").trim();
-}
-
 async function main() {
-  const { mode, version, keep, fakeModel } = parseArgs();
+  const { release, keep, fakeModel } = parseArgs();
 
-  await assertPortFree(SERVER_PORT);
-  await assertPortFree(ARTIFACT_PORT);
+  await assertPortFree(COMPOSE_SERVER_PORT);
+  await assertPortFree(COMPOSE_ARTIFACT_PORT);
 
   // The model the stack is configured with: the fake on this host, which the
   // runner container reaches through the gateway name the override maps.
   const fake = await startFakeModel({ host: "0.0.0.0", mode: fakeModel });
-  const modelEnv = fakeModelEnv(fake, "host.docker.internal");
+  const model = fakeModelEnv(fake, "host.docker.internal");
 
-  // Fresh keys per run into an isolated env file: the smoke never reads a
-  // developer's real .env, and two runs never share state.
-  const workDir = mkdtempSync(join(tmpdir(), "stigmer-compose-smoke-"));
-  const envFile = join(workDir, "smoke.env");
-  const envLines = [
-    `POSTGRES_PASSWORD=${randomBytes(24).toString("hex")}`,
-    `STIGMER_ENCRYPTION_KEY=${randomBytes(32).toString("base64")}`,
-    `STIGMER_RUNNER_TOKEN_KEY=${randomBytes(32).toString("base64")}`,
-  ];
-  if (version !== "") envLines.push(`STIGMER_VERSION=${version}`);
-  if (mode === "build") envLines.push(`STIGMER_CLI_VERSION=${stagedRunnerCliVersion()}`);
-  envLines.push(`ANTHROPIC_API_KEY=${modelEnv.ANTHROPIC_API_KEY}`, `ANTHROPIC_BASE_URL=${modelEnv.ANTHROPIC_BASE_URL}`);
-  writeFileSync(envFile, envLines.join("\n") + "\n");
-  const hostGatewayFile = join(workDir, "host-gateway.yml");
-  writeFileSync(
-    hostGatewayFile,
-    'services:\n  stigmer-runner:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n',
-  );
-
-  const project = `stigmer-smoke-${Date.now()}`;
-  const composeArgs = [
-    "compose",
-    "-p",
-    project,
-    "--env-file",
-    envFile,
-    "-f",
-    join(repoRoot, "docker-compose.yml"),
-  ];
-  if (mode === "build") {
-    composeArgs.push("-f", join(repoRoot, "docker-compose.dev.yml"));
-  }
-  composeArgs.push("-f", hostGatewayFile);
-
-  const compose = (args, options = {}) =>
-    execFileSync("docker", [...composeArgs, ...args], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      ...options,
-    });
-
+  const stack = createComposeStack({ model, log });
   let failed = false;
   try {
-    if (mode === "build") {
-      stageServerTree();
-      log("docker compose build (server + runner from source)");
-      compose(["build"], { stdio: "inherit" });
-    } else {
-      log(`pulling published images at ${version}`);
-      compose(["pull", "--quiet", "stigmer-server", "stigmer-runner"], { stdio: "inherit" });
-    }
-
-    log("docker compose up -d");
-    compose(["up", "-d"], { stdio: "inherit" });
-
-    const baseUrl = `http://127.0.0.1:${SERVER_PORT}`;
+    await stack.start(release);
+    const { baseUrl } = stack;
 
     // 1. The server healthy — through compose depends_on this also proves
     // Postgres answered pg_isready and the image HEALTHCHECK went green.
@@ -237,12 +136,12 @@ async function main() {
     log("console lane: /config.json contract + / html both answer");
 
     // 3. The artifact file server on its published port.
-    await assertArtifactLane(`http://127.0.0.1:${ARTIFACT_PORT}`);
+    await assertArtifactLane(stack.artifactUrl);
     log("artifact file server: answering on the published port");
 
     // 4. The end-to-end run — the phase gate's line: it only completes if the
     // runner container connected to Temporal and polled the queue.
-    const executionId = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
+    const { executionId } = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
     log(`end-to-end run: execution ${executionId} COMPLETED through the runner`);
 
     // 5. The agent run — the model path a user configures, end to end.
@@ -255,25 +154,9 @@ async function main() {
     console.error(
       `smoke-compose: FAIL — ${error instanceof Error ? error.message : String(error)}`,
     );
-    console.error("--- docker compose ps ---");
-    console.error(spawnSync("docker", [...composeArgs, "ps"], { encoding: "utf8" }).stdout ?? "");
-    console.error("--- docker compose logs (last 120 lines/service) ---");
-    const logs = spawnSync(
-      "docker",
-      [...composeArgs, "logs", "--tail", "120"],
-      { encoding: "utf8" },
-    );
-    console.error(logs.stdout ?? "");
-    console.error(logs.stderr ?? "");
+    console.error(stack.diagnostics());
   } finally {
-    if (keep && !failed) {
-      log(`--keep: stack left running (project ${project}; env file ${envFile})`);
-    } else {
-      spawnSync("docker", [...composeArgs, "down", "--volumes", "--remove-orphans"], {
-        stdio: "inherit",
-      });
-      rmSync(workDir, { recursive: true, force: true });
-    }
+    await stack.stop({ keep: keep && !failed });
     await fake.close();
   }
   process.exit(failed ? 1 : 0);

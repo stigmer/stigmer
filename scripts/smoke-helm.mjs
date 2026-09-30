@@ -57,51 +57,44 @@
  *   --fake-model=error       the fake answers every model call with an error,
  *                            so the agent run must fail (its red-first check)
  *
- * The port-forward uses the product's fixed ports 7234/7235, so this smoke
- * refuses to start if they are occupied. Keys are generated fresh per run;
- * a developer's real Secrets are never read.
+ * How the cluster and each release are brought up, forwarded and torn down
+ * is scripts/lib/install-helm.mjs, the one boot the upgrade rehearsal
+ * shares. The caller's kubeconfig and current context are never changed: a
+ * cluster the smoke creates has a kubeconfig of its own, and --cluster is
+ * addressed by --context. The port-forward uses the product's fixed ports
+ * 7234/7235, so this smoke refuses to start if they are occupied. Keys are
+ * generated fresh per run; a developer's real Secrets are never read.
  *
  * Plain node + the helm, kind, kubectl and docker CLIs, no dependencies.
  */
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { cpSync, existsSync, readFileSync, rmSync } from "node:fs";
-import { connect } from "node:net";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 import {
   assertArtifactLane,
   assertConsoleServed,
   assertPortFree,
   connectJson,
-  pollUntil,
   runAgentToReply,
   runSetVarsWorkflow,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
-import { FAKE_MODEL_API_KEY, fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
+import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
+import {
+  CHECKOUT_CHART,
+  HELM_ARTIFACT_PORT,
+  HELM_SERVER_PORT,
+  RELEASE,
+  chartFor,
+  createKindCluster,
+  createStigmerRelease,
+  profileValues,
+} from "./lib/install-helm.mjs";
 
-const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
-const runnerCliStage = join(repoRoot, "backend", "services", "runner", "stage", "cli");
-const chartRoot = join(repoRoot, "deploy", "helm", "stigmer");
+const chartRoot = CHECKOUT_CHART;
 
-const SERVER_PORT = 7234;
-const ARTIFACT_PORT = 7235;
-const RELEASE = "stigmer";
-/** The chart's two repositories; --build tags the source builds under them. */
-const IMAGE_REGISTRY = "ghcr.io/stigmer";
-const SERVER_REPOSITORY = "stigmer-server";
-const RUNNER_REPOSITORY = "stigmer-runner";
-const DEV_TAG = "compose-dev";
-/** The Secret each profile's namespace carries for runner.llm.existingSecret. */
-const LLM_SECRET = "stigmer-smoke-llm";
-
-// First install pulls or loads two large images, starts Postgres, lets
-// auto-setup create Temporal's schema, and waits through the server's
-// startup probe; generous on shared CI hosts.
-const INSTALL_TIMEOUT = "12m";
 const SERVER_HEALTHY_TIMEOUT_MS = 180_000;
 const RUN_COMPLETED_TIMEOUT_MS = 240_000;
 const ROLLOUT_TIMEOUT = "8m";
@@ -123,7 +116,7 @@ function parseArgs() {
     else if (arg === "--build") args.mode = "build";
     else if (arg === "--published")
       args.mode = args.mode === "" ? "published" : args.mode;
-    else if ((m = arg.match(/^--version=(.+)$/)) !== null) args.version = m[1];
+    else if ((m = arg.match(/^--version=(.+)$/)) !== null) args.version = m[1].replace(/^v/, "");
     else if ((m = arg.match(/^--chart=(.+)$/)) !== null) args.chart = m[1];
     else if ((m = arg.match(/^--profiles=(.+)$/)) !== null)
       args.profiles = m[1].split(",");
@@ -136,10 +129,11 @@ function parseArgs() {
     fail("--published requires --version=vX.Y.Z (the pushed image tag)");
   }
   for (const profile of args.profiles) {
-    if (!existsSync(join(chartRoot, "ci", `values-${profile}.yaml`))) {
+    if (!existsSync(profileValues(profile))) {
       fail(`unknown profile '${profile}' (no ci/values-${profile}.yaml)`);
     }
   }
+  args.release = args.mode === "build" ? { kind: "build" } : { kind: "published", version: args.version };
   return args;
 }
 
@@ -152,20 +146,15 @@ function log(step) {
   console.log(`smoke-helm: ${step}`);
 }
 
-function run(command, args, options = {}) {
-  return execFileSync(command, args, {
-    cwd: repoRoot,
-    encoding: "utf8",
-    ...options,
-  });
-}
+/** The kind cluster this run drives; every kubectl call goes through its --kubeconfig and --context. */
+let cluster;
 
 function kubectl(args, options = {}) {
-  return run("kubectl", args, options);
+  return cluster.kubectl(args, options);
 }
 
 function kubectlJson(args) {
-  return JSON.parse(kubectl([...args, "-o", "json"]));
+  return cluster.kubectlJson(args);
 }
 
 /** Every tool the smoke drives must be on PATH before anything is created. */
@@ -177,156 +166,6 @@ function assertTools() {
     if (probe.error && probe.error.code === "ENOENT")
       fail(`${tool} not found on PATH`);
   }
-}
-
-/** The dev server image COPYs dist-slim-<arch>/ (the smoke-compose.mjs staging contract). */
-function stageServerTree() {
-  const distSlim = join(serverRoot, "dist-slim");
-  if (!existsSync(join(distSlim, "main.js"))) {
-    fail(
-      "dist-slim/main.js not found — build it first:\n" +
-        "  make build-server build-web && " +
-        "cd backend/services/stigmer-server && node scripts/bundle-slim.mjs",
-    );
-  }
-  const arch =
-    process.arch === "x64" ? "amd64" : process.arch === "arm64" ? "arm64" : "";
-  if (arch === "") fail(`unsupported host arch "${process.arch}"`);
-  const staged = join(serverRoot, `dist-slim-${arch}`);
-  log(`staging dist-slim/ -> dist-slim-${arch}/`);
-  rmSync(staged, { recursive: true, force: true });
-  cpSync(distSlim, staged, { recursive: true });
-}
-
-/**
- * The dev runner image installs the CLI tarballs staged under
- * backend/services/runner/stage/cli (the smoke-compose.mjs contract) and
- * asserts their version against the STIGMER_CLI_VERSION build-arg, which
- * docker-compose.dev.yml requires.
- */
-function stagedRunnerCliVersion() {
-  const versionFile = join(runnerCliStage, "VERSION");
-  if (!existsSync(versionFile)) {
-    fail(
-      "backend/services/runner/stage/cli is not staged — run `make stage-compose-runner-cli` " +
-        "(or `node scripts/stage-compose-runner-cli.mjs`) first; `make smoke-helm` does",
-    );
-  }
-  return readFileSync(versionFile, "utf8").trim();
-}
-
-/**
- * Build both images from source exactly as the compose gate does, retag them
- * under the chart's repositories, and load them into the kind node. The
- * chart then installs with pullPolicy Never, so nothing can be pulled from
- * the registry behind the proof's back.
- */
-function buildAndLoadImages(cluster) {
-  stageServerTree();
-  log("docker compose build (server + runner from source)");
-  run(
-    "docker",
-    [
-      "compose",
-      "-f",
-      join(repoRoot, "docker-compose.yml"),
-      "-f",
-      join(repoRoot, "docker-compose.dev.yml"),
-      "build",
-    ],
-    {
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        POSTGRES_PASSWORD: "unused",
-        STIGMER_ENCRYPTION_KEY: "unused",
-        STIGMER_RUNNER_TOKEN_KEY: "unused",
-        STIGMER_CLI_VERSION: stagedRunnerCliVersion(),
-      },
-    },
-  );
-  const images = [
-    [
-      `${SERVER_REPOSITORY}:${DEV_TAG}`,
-      `${IMAGE_REGISTRY}/${SERVER_REPOSITORY}:${DEV_TAG}`,
-    ],
-    [
-      `${RUNNER_REPOSITORY}:${DEV_TAG}`,
-      `${IMAGE_REGISTRY}/${RUNNER_REPOSITORY}:${DEV_TAG}`,
-    ],
-  ];
-  for (const [built, tagged] of images) {
-    run("docker", ["tag", built, tagged]);
-    log(`kind load docker-image ${tagged}`);
-    run("kind", ["load", "docker-image", tagged, "--name", cluster], {
-      stdio: "inherit",
-    });
-  }
-}
-
-function freshSecretLiterals(withPostgresPassword, postgresPassword) {
-  const literals = [
-    `--from-literal=STIGMER_ENCRYPTION_KEY=${randomBytes(32).toString("base64")}`,
-    `--from-literal=STIGMER_RUNNER_TOKEN_KEY=${randomBytes(32).toString("base64")}`,
-  ];
-  if (withPostgresPassword)
-    literals.push(`--from-literal=POSTGRES_PASSWORD=${postgresPassword}`);
-  return literals;
-}
-
-/**
- * The chart's Secret in the profile's namespace, with fresh keys, and the
- * LLM key Secret the release names in runner.llm.existingSecret.
- */
-function createChartSecret(namespace, postgresPassword) {
-  kubectl(["create", "namespace", namespace]);
-  kubectl([
-    "-n",
-    namespace,
-    "create",
-    "secret",
-    "generic",
-    "stigmer-secrets",
-    ...freshSecretLiterals(true, postgresPassword),
-  ]);
-  kubectl([
-    "-n",
-    namespace,
-    "create",
-    "secret",
-    "generic",
-    LLM_SECRET,
-    `--from-literal=ANTHROPIC_API_KEY=${FAKE_MODEL_API_KEY}`,
-  ]);
-}
-
-/**
- * The name a pod on this kind cluster reaches the host by. Docker Desktop
- * resolves host.docker.internal inside the node (and so, through CoreDNS, in
- * every pod) and does not route the kind network's gateway to the host;
- * Linux Docker does the reverse. The node's own resolver decides.
- */
-function hostAddressFromKind(cluster) {
-  const resolved = spawnSync(
-    "docker",
-    ["exec", `${cluster}-control-plane`, "getent", "hosts", "host.docker.internal"],
-    { encoding: "utf8" },
-  );
-  if (resolved.status === 0 && resolved.stdout.trim() !== "") return "host.docker.internal";
-  const gateways = run("docker", [
-    "network",
-    "inspect",
-    "kind",
-    "--format",
-    "{{range .IPAM.Config}}{{.Gateway}} {{end}}",
-  ])
-    .trim()
-    .split(/\s+/)
-    .filter((gateway) => /^\d+\.\d+\.\d+\.\d+$/.test(gateway));
-  if (gateways.length === 0) {
-    throw new Error("no way to reach the host from kind: host.docker.internal does not resolve and the kind network has no IPv4 gateway");
-  }
-  return gateways[0];
 }
 
 /** The BYO stand-ins: their Secret shares the chart's database password. */
@@ -367,47 +206,6 @@ function installByoInfra(postgresPassword) {
     ],
     { stdio: "inherit" },
   );
-}
-
-function helmInstallArgs(verb, namespace, profile, args) {
-  const helmArgs = [
-    verb,
-    RELEASE,
-    args.chart,
-    "-n",
-    namespace,
-    "-f",
-    join(chartRoot, "ci", `values-${profile}.yaml`),
-    "--wait",
-    "--timeout",
-    INSTALL_TIMEOUT,
-    // The model, as a user configures it: the key from a Secret, the address
-    // as an extra runner env var (the chart has no dedicated value for it).
-    "--set",
-    `runner.llm.existingSecret=${LLM_SECRET}`,
-    "--set",
-    "runner.extraEnv[0].name=ANTHROPIC_BASE_URL",
-    "--set",
-    `runner.extraEnv[0].value=${args.modelBaseUrl}`,
-  ];
-  if (args.mode === "build") {
-    helmArgs.push(
-      "--set",
-      `image.server.tag=${DEV_TAG}`,
-      "--set",
-      `image.runner.tag=${DEV_TAG}`,
-      "--set",
-      "image.pullPolicy=Never",
-    );
-  } else {
-    helmArgs.push(
-      "--set",
-      `image.server.tag=${args.version}`,
-      "--set",
-      `image.runner.tag=${args.version}`,
-    );
-  }
-  return helmArgs;
 }
 
 /**
@@ -462,68 +260,19 @@ function stigmerPodUid(namespace) {
   return pods[0].metadata.uid;
 }
 
-/** A port-forward to the release's Service; resolves once the port answers. */
-async function portForward(namespace) {
-  const child = spawn(
-    "kubectl",
-    [
-      "-n",
-      namespace,
-      "port-forward",
-      `svc/${RELEASE}`,
-      `${SERVER_PORT}:7234`,
-      `${ARTIFACT_PORT}:7235`,
-    ],
-    { stdio: ["ignore", "ignore", "pipe"] },
-  );
-  let stderr = "";
-  child.stderr.on("data", (chunk) => {
-    stderr += chunk;
-  });
-  await pollUntil(
-    "port-forward to answer",
-    60_000,
-    () =>
-      new Promise((resolve) => {
-        if (child.exitCode !== null) resolve(false);
-        const socket = connect({
-          host: "127.0.0.1",
-          port: SERVER_PORT,
-          timeout: 1000,
-        });
-        socket.once("connect", () => {
-          socket.destroy();
-          resolve(true);
-        });
-        socket.once("error", () => resolve(false));
-        socket.once("timeout", () => {
-          socket.destroy();
-          resolve(false);
-        });
-      }),
-    { intervalMs: 500 },
-  );
-  return {
-    stop() {
-      if (child.exitCode === null) child.kill("SIGTERM");
-      return stderr;
-    },
-  };
-}
-
 /** The shared probes: SERVING, the console contract, the artifact lane, a workflow run, an agent run. */
-async function probeStack(namespace, fake) {
-  const baseUrl = `http://127.0.0.1:${SERVER_PORT}`;
-  const forward = await portForward(namespace);
+async function probeStack(release, fake) {
+  const forward = await release.portForward();
+  const { baseUrl } = forward;
   try {
     log("waiting for the server health service (SERVING)...");
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
     log("health service: SERVING");
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
-    await assertArtifactLane(`http://127.0.0.1:${ARTIFACT_PORT}`);
+    await assertArtifactLane(forward.artifactUrl);
     log("artifact file server: answering through the port-forward");
-    const executionId = await runSetVarsWorkflow(
+    const { executionId } = await runSetVarsWorkflow(
       baseUrl,
       RUN_COMPLETED_TIMEOUT_MS,
       log,
@@ -545,9 +294,9 @@ async function probeStack(namespace, fake) {
 }
 
 /** The execution created before a disruption must read back COMPLETED after it. */
-async function assertExecutionSurvived(namespace, executionId, what) {
-  const baseUrl = `http://127.0.0.1:${SERVER_PORT}`;
-  const forward = await portForward(namespace);
+async function assertExecutionSurvived(release, executionId, what) {
+  const forward = await release.portForward();
+  const { baseUrl } = forward;
   try {
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
     const current = await connectJson(
@@ -596,8 +345,7 @@ function temporalProbeScript(namespace) {
 async function temporalFenceArm(namespace) {
   log("arm: the bundled Temporal admits the stigmer pod and no other");
   const script = temporalProbeScript(namespace);
-  const inside = run(
-    "kubectl",
+  const inside = kubectl(
     ["-n", namespace, "exec", `deployment/${RELEASE}`, "-c", "server", "--", "node", "-e", script],
   ).trim();
   if (inside !== "CONNECTED") {
@@ -640,7 +388,8 @@ async function temporalFenceArm(namespace) {
 }
 
 /** The bundled profile's adversarial arms (the plan's test plan, Q-HC-16). */
-async function adversarialArms(namespace, profile, args, executionId) {
+async function adversarialArms(release, args, executionId) {
+  const { namespace } = release;
   await temporalFenceArm(namespace);
 
   log("arm: deleting the stigmer pod");
@@ -667,13 +416,11 @@ async function adversarialArms(namespace, profile, args, executionId) {
     ],
     { stdio: "inherit" },
   );
-  await assertExecutionSurvived(namespace, executionId, "pod deletion");
+  await assertExecutionSurvived(release, executionId, "pod deletion");
 
   log("arm: helm upgrade with unchanged values");
   const uidBefore = stigmerPodUid(namespace);
-  run("helm", helmInstallArgs("upgrade", namespace, profile, args), {
-    stdio: "inherit",
-  });
+  await release.upgrade(chartFor(args.release, { chart: args.chart }));
   const uidAfter = stigmerPodUid(namespace);
   if (uidBefore !== uidAfter) {
     throw new Error(
@@ -684,9 +431,7 @@ async function adversarialArms(namespace, profile, args, executionId) {
 
   log("arm: helm uninstall leaves every claim");
   const claimsBefore = claimNames(namespace);
-  run("helm", ["uninstall", RELEASE, "-n", namespace, "--wait"], {
-    stdio: "inherit",
-  });
+  await release.uninstall();
   const claimsAfter = claimNames(namespace);
   if (JSON.stringify(claimsBefore) !== JSON.stringify(claimsAfter)) {
     throw new Error(
@@ -710,86 +455,39 @@ async function adversarialArms(namespace, profile, args, executionId) {
     "--all",
     "--timeout=5m",
   ]);
-  run("helm", helmInstallArgs("install", namespace, profile, args), {
-    stdio: "inherit",
-  });
+  await release.install(chartFor(args.release, { chart: args.chart }));
   assertZeroRestarts(namespace, { tolerate: ["runner", "temporal"] });
   await assertExecutionSurvived(
-    namespace,
+    release,
     executionId,
     "uninstall and reinstall",
   );
 }
 
-function dumpDiagnostics(namespace) {
-  console.error(`--- kubectl get pods -A ---`);
-  console.error(
-    spawnSync("kubectl", ["get", "pods", "-A", "-o", "wide"], {
-      encoding: "utf8",
-    }).stdout ?? "",
-  );
-  console.error(`--- kubectl get events -n ${namespace} ---`);
-  console.error(
-    spawnSync(
-      "kubectl",
-      ["-n", namespace, "get", "events", "--sort-by=.lastTimestamp"],
-      {
-        encoding: "utf8",
-      },
-    ).stdout ?? "",
-  );
-  // Every component's current logs, and the previous container's where one
-  // restarted: a crash that healed before the dump is otherwise invisible.
-  const targets = [
-    ["stigmer", "wait-for-dependencies"],
-    ["stigmer", "server"],
-    ["stigmer", "runner"],
-    ["temporal", "wait-for-postgres"],
-    ["temporal", "temporal"],
-    ["postgres", "postgres"],
-  ];
-  for (const [component, container] of targets) {
-    for (const previous of [false, true]) {
-      const args = [
-        "-n",
-        namespace,
-        "logs",
-        "-l",
-        `app.kubernetes.io/component=${component}`,
-        "-c",
-        container,
-        "--tail=120",
-      ];
-      if (previous) args.push("--previous");
-      const logs = spawnSync("kubectl", args, { encoding: "utf8" });
-      if (previous && logs.status !== 0) continue; // no previous container: nothing restarted
-      console.error(
-        `--- logs ${component}/${container}${previous ? " (previous container)" : ""} ---`,
-      );
-      console.error(logs.stdout ?? "");
-      if (!previous) console.error(logs.stderr ?? "");
-    }
-  }
-}
-
-async function runProfile(profile, args, postgresPassword, fake) {
+async function runProfile(profile, args, postgresPassword, fake, modelBaseUrl) {
   const namespace = `smoke-${profile}`;
   log(`=== profile ${profile} (namespace ${namespace}) ===`);
-  createChartSecret(namespace, postgresPassword);
+  const release = createStigmerRelease(cluster, {
+    namespace,
+    valuesFile: profileValues(profile),
+    modelBaseUrl,
+    postgresPassword,
+    log,
+  });
+  current = release;
+  release.createSecrets();
   if (profile === "byo") installByoInfra(postgresPassword);
 
   log(
     `helm install ${RELEASE} (${args.mode === "build" ? "source-built images" : `published ${args.version}`})`,
   );
-  run("helm", helmInstallArgs("install", namespace, profile, args), {
-    stdio: "inherit",
-  });
+  await release.install(chartFor(args.release, { chart: args.chart }));
   assertZeroRestarts(namespace);
   log("every container reached Ready with zero restarts");
 
-  const executionId = await probeStack(namespace, fake);
+  const executionId = await probeStack(release, fake);
   if (profile === "bundled") {
-    await adversarialArms(namespace, profile, args, executionId);
+    await adversarialArms(release, args, executionId);
   }
   log(`=== profile ${profile}: PASS ===`);
   // A passing profile leaves nothing behind, so a reused cluster (--cluster)
@@ -799,35 +497,27 @@ async function runProfile(profile, args, postgresPassword, fake) {
     kubectl(["delete", "namespace", "byo-infra", "--wait=false"]);
 }
 
+/** The release being exercised, so a failure can print its diagnostics. */
+let current;
+
 async function main() {
   const args = parseArgs();
   assertTools();
-  await assertPortFree(SERVER_PORT);
-  await assertPortFree(ARTIFACT_PORT);
+  await assertPortFree(HELM_SERVER_PORT);
+  await assertPortFree(HELM_ARTIFACT_PORT);
 
-  const ownCluster = args.cluster === "";
-  const cluster = ownCluster
-    ? `stigmer-helm-smoke-${Date.now()}`
-    : args.cluster;
+  cluster = createKindCluster({ existing: args.cluster, log });
   const postgresPassword = randomBytes(24).toString("hex");
   let failed = false;
-  let currentNamespace = "";
   const fake = await startFakeModel({ host: "0.0.0.0", mode: args.fakeModel });
   try {
-    if (ownCluster) {
-      log(`kind create cluster ${cluster}`);
-      run("kind", ["create", "cluster", "--name", cluster, "--wait", "120s"], {
-        stdio: "inherit",
-      });
-    }
-    run("kubectl", ["config", "use-context", `kind-${cluster}`]);
-    if (args.mode === "build") buildAndLoadImages(cluster);
-    args.modelBaseUrl = fakeModelEnv(fake, hostAddressFromKind(cluster)).ANTHROPIC_BASE_URL;
-    log(`the model: the fake at ${args.modelBaseUrl}, mode ${args.fakeModel}`);
+    await cluster.start();
+    if (args.mode === "build") cluster.loadSourceImages();
+    const modelBaseUrl = fakeModelEnv(fake, cluster.hostAddress()).ANTHROPIC_BASE_URL;
+    log(`the model: the fake at ${modelBaseUrl}, mode ${args.fakeModel}`);
 
     for (const profile of args.profiles) {
-      currentNamespace = `smoke-${profile}`;
-      await runProfile(profile, args, postgresPassword, fake);
+      await runProfile(profile, args, postgresPassword, fake, modelBaseUrl);
     }
     log("PASS");
   } catch (error) {
@@ -835,15 +525,9 @@ async function main() {
     console.error(
       `smoke-helm: FAIL — ${error instanceof Error ? error.message : String(error)}`,
     );
-    if (currentNamespace !== "") dumpDiagnostics(currentNamespace);
+    if (current !== undefined) console.error(current.diagnostics());
   } finally {
-    if (ownCluster && !(args.keep && !failed)) {
-      spawnSync("kind", ["delete", "cluster", "--name", cluster], {
-        stdio: "inherit",
-      });
-    } else if (ownCluster) {
-      log(`--keep: cluster ${cluster} left running`);
-    }
+    await cluster.stop({ keep: args.keep && !failed });
     await fake.close();
   }
   process.exit(failed ? 1 : 0);

@@ -52,14 +52,17 @@
  *   --fake-model=error: the fake answers every model call with an error, so
  *   step 5's agent run must fail — the red-first check of that step.
  *
+ * How the container is built, run and read (its flags, its published ports,
+ * its health, its diagnostics) is scripts/lib/install-all-in-one.mjs, the
+ * one boot the upgrade rehearsal shares.
+ *
  * Plain node + docker CLI, no dependencies — runnable everywhere CI is.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 import {
   assertArtifactLane,
   assertConsoleServed,
@@ -74,15 +77,11 @@ import {
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
-
-const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const imageRoot = join(repoRoot, "deploy", "all-in-one");
+import { STOP_GRACE_SECONDS, allInOneImage, createAllInOne } from "./lib/install-all-in-one.mjs";
 
 // Temporal boots, the server gates, the runner polls; generous for shared CI hosts.
 const HEALTHY_TIMEOUT_MS = 180_000;
 const RUN_COMPLETED_TIMEOUT_MS = 180_000;
-// The daemon's graceful teardown budget (runner, server, then Temporal).
-const STOP_GRACE_SECONDS = 30;
 // Three ticks of Temporal's 5s supervisor: a restart loop shows within one.
 const SUPERVISOR_WINDOW_MS = 16_000;
 // deploy/all-in-one/entrypoint.sh's words when no LLM credential is set.
@@ -114,39 +113,6 @@ function docker(args, options = {}) {
   return execFileSync("docker", args, { encoding: "utf8", ...options }).trim();
 }
 
-function buildLocalImage() {
-  const versionFile = join(imageRoot, "stage", "VERSION");
-  if (!existsSync(versionFile)) {
-    fail("deploy/all-in-one/stage is not staged — run `node scripts/stage-all-in-one.mjs` first (or `make smoke-all-in-one`)");
-  }
-  const version = readFileSync(versionFile, "utf8").trim();
-  const tag = "stigmer-all-in-one:smoke-local";
-  log(`docker build ${tag} (STIGMER_VERSION=${version})`);
-  execFileSync("docker", ["build", "--build-arg", `STIGMER_VERSION=${version}`, "--tag", tag, imageRoot], {
-    stdio: "inherit",
-  });
-  return tag;
-}
-
-/** Host port docker published for a container port, bound to loopback. */
-function publishedPort(container, containerPort) {
-  const out = docker(["port", container, String(containerPort)]);
-  const m = out.match(/:(\d+)\s*$/m);
-  if (m === null) throw new Error(`docker port ${container} ${containerPort} -> ${JSON.stringify(out)}`);
-  return Number(m[1]);
-}
-
-async function waitHealthy(container) {
-  await pollUntil(`${container} healthy`, HEALTHY_TIMEOUT_MS, () => {
-    const status = docker(["inspect", "--format", "{{.State.Health.Status}}", container]);
-    if (status === "unhealthy") throw new Error("container reported unhealthy");
-    if (docker(["inspect", "--format", "{{.State.Running}}", container]) !== "true") {
-      throw new Error("container is not running");
-    }
-    return status === "healthy";
-  });
-}
-
 /**
  * Temporal dev-server processes inside the container, by /proc (the image has
  * no ps). Matched on a command line that STARTS with the baked binary's path,
@@ -170,42 +136,24 @@ function temporalPid(container) {
 
 async function main() {
   const { image: givenImage, fakeModel } = parseArgs();
-  const image = givenImage !== "" ? givenImage : buildLocalImage();
 
   const suffix = `${Date.now()}`;
-  const container = `stigmer-aio-smoke-${suffix}`;
-  const volume = `${container}-data`;
   let failed = false;
-  // The container reaches this host by the gateway name Docker maps below.
+  // The container reaches this host by the gateway name Docker maps.
   const fake = await startFakeModel({ host: "0.0.0.0", mode: fakeModel });
   const modelEnv = fakeModelEnv(fake, "host.docker.internal");
+  const aio = createAllInOne({ model: modelEnv, log, suffix });
+  const { container } = aio;
 
   try {
+    const image = givenImage !== "" ? givenImage : allInOneImage({ kind: "build" }, log);
     log(`docker run ${image} (the model: the fake at ${modelEnv.ANTHROPIC_BASE_URL}, mode ${fakeModel})`);
-    docker([
-      "run",
-      "--detach",
-      "--name",
-      container,
-      "--publish",
-      "127.0.0.1::7234",
-      "--publish",
-      "127.0.0.1::7235",
-      "--add-host",
-      "host.docker.internal:host-gateway",
-      "--env",
-      `ANTHROPIC_API_KEY=${modelEnv.ANTHROPIC_API_KEY}`,
-      "--env",
-      `ANTHROPIC_BASE_URL=${modelEnv.ANTHROPIC_BASE_URL}`,
-      "--volume",
-      `${volume}:/data`,
-      image,
-    ]);
-    const baseUrl = `http://127.0.0.1:${publishedPort(container, 7234)}`;
-    const artifactUrl = `http://127.0.0.1:${publishedPort(container, 7235)}`;
+    await aio.start(image);
+    const baseUrl = aio.baseUrl();
+    const artifactUrl = aio.artifactUrl();
 
     // 1. Docker healthy — the HEALTHCHECK line itself.
-    await waitHealthy(container);
+    await aio.waitHealthy();
     log("docker health: healthy");
 
     // 2. The banner, with no no-key warning now that a model is configured;
@@ -236,7 +184,7 @@ async function main() {
     log(`organization 'stigmer' present after first boot (${orgId})`);
 
     // 5. The end-to-end run through Temporal, the server's workers and the runner.
-    const executionId = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
+    const { executionId } = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
     log(`end-to-end run: execution ${executionId} COMPLETED inside the one container`);
     const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
     log(`agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
@@ -248,8 +196,8 @@ async function main() {
     // 7. Clean restart: state survives.
     log(`docker restart --time ${STOP_GRACE_SECONDS}`);
     docker(["restart", "--time", String(STOP_GRACE_SECONDS), container]);
-    await waitHealthy(container);
-    const restartedBase = `http://127.0.0.1:${publishedPort(container, 7234)}`;
+    await aio.waitHealthy();
+    const restartedBase = aio.baseUrl();
     const after = await connectJson(
       restartedBase,
       "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
@@ -268,8 +216,8 @@ async function main() {
     log("docker kill (unclean stop), then docker start");
     docker(["kill", container]);
     docker(["start", container]);
-    await waitHealthy(container);
-    const uncleanBase = `http://127.0.0.1:${publishedPort(container, 7234)}`;
+    await aio.waitHealthy();
+    const uncleanBase = aio.baseUrl();
     await waitForServing(uncleanBase, HEALTHY_TIMEOUT_MS);
     const pidBefore = temporalPid(container);
     const countBefore = temporalProcesses(container);
@@ -300,29 +248,18 @@ async function main() {
     log("docker stop: exit 0");
 
     // 10. An unwritable bind mount is refused with the entrypoint's message.
-    await assertUnwritableBindMountRefused(image, suffix);
+    await assertUnwritableBindMountRefused(aio.image, suffix);
 
     // 11. Without a credential, the banner says agents will not execute.
-    await assertNoKeyWarning(image, suffix);
+    await assertNoKeyWarning(aio.image, suffix);
 
     log("PASS");
   } catch (error) {
     failed = true;
     console.error(`smoke-all-in-one: FAIL — ${error instanceof Error ? error.message : String(error)}`);
-    console.error("--- docker logs (last 150 lines) ---");
-    const logs = spawnSync("docker", ["logs", "--tail", "150", container], { encoding: "utf8" });
-    console.error(logs.stdout ?? "");
-    console.error(logs.stderr ?? "");
-    console.error("--- component logs on the volume ---");
-    const tails = spawnSync(
-      "docker",
-      ["run", "--rm", "--volume", `${volume}:/data`, "--entrypoint", "sh", image, "-c", "tail -n 40 /data/.stigmer/data/logs/*.log /data/.stigmer/data/logs/temporal.log 2>/dev/null"],
-      { encoding: "utf8" },
-    );
-    console.error(tails.stdout ?? "");
+    console.error(aio.diagnostics());
   } finally {
-    spawnSync("docker", ["rm", "--force", container], { stdio: "ignore" });
-    spawnSync("docker", ["volume", "rm", "--force", volume], { stdio: "ignore" });
+    await aio.stop();
     await fake.close();
   }
   process.exit(failed ? 1 : 0);

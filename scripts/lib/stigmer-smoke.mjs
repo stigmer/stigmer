@@ -5,7 +5,10 @@
  * that answers SERVING, a console lane that serves its contract, an artifact
  * file server on its published port, and the end-to-end runs through the
  * runner (a workflow, then an agent answered by the install's model). A smoke
- * that needs a new probe adds it here, never inline.
+ * that needs a new probe adds it here, never inline. The upgrade rehearsal
+ * (scripts/rehearse-upgrade.mjs) adds the state probes: what the runs created
+ * is recorded before an upgrade and read back after it, field by field, and
+ * the server says which release answers (getServerInfo).
  *
  * Plain node + fetch, no dependencies — runnable everywhere CI is. Every
  * probe takes the server's base URL so the same code serves a stack on
@@ -180,11 +183,12 @@ const TERMINAL_FAILURES = new Set(["EXECUTION_FAILED", "EXECUTION_CANCELLED", "E
  * a single `set_vars` workflow (sub-second, hermetic, no LLM, no MCP, no keys —
  * the conformance suite's canonical execution fixture), run it, and wait for
  * EXECUTION_COMPLETED. It completes only if the runner connected to Temporal
- * and polled the queue. Returns the execution id. A terminal failure surfaces
+ * and polled the queue. Returns the organization, workflow and execution ids,
+ * so an upgrade rehearsal can read them back. A terminal failure surfaces
  * immediately with the server's own error.
  */
 export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}) {
-  const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const suffix = uniqueSuffix();
   const org = await connectJson(baseUrl, "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create", {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
@@ -240,7 +244,7 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}) {
     }
     return phase === "EXECUTION_COMPLETED";
   });
-  return executionId;
+  return { orgId, workflowId, executionId };
 }
 
 /**
@@ -255,10 +259,15 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}) {
  * terminal failure surfaces immediately with the execution's own error.
  */
 export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {} }) {
-  if (typeof expectText !== "string" || expectText === "") {
-    throw new Error("runAgentToReply needs the reply text the install's model answers with");
-  }
-  const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  requireExpectText(expectText);
+  const agent = await createSmokeAgent(baseUrl, { log });
+  const run = await runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log });
+  return { ...agent, ...run };
+}
+
+/** An organization and a tool-less agent in it, the fixture the agent line runs. Resolves `{ orgId, agentId }`. */
+export async function createSmokeAgent(baseUrl, { log = () => {} } = {}) {
+  const suffix = uniqueSuffix();
   const org = await connectJson(baseUrl, "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create", {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
@@ -280,14 +289,24 @@ export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = ()
   const agentId = agent.metadata?.id;
   if (!agentId) throw new Error(`agent create returned no id: ${JSON.stringify(agent)}`);
   log(`agent ${agentId} created`);
+  return { orgId, agentId };
+}
 
+/**
+ * One run of an existing agent, to EXECUTION_COMPLETED with the model's reply
+ * as its last message. The upgrade rehearsal runs the agent an older release
+ * stored this way, which is what shows the stored agent still works. Resolves
+ * `{ executionId, reply }`.
+ */
+export async function runAgentExecution(baseUrl, { orgId, agentId }, timeoutMs, { expectText, log = () => {} }) {
+  requireExpectText(expectText);
   const execution = await connectJson(
     baseUrl,
     "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create",
     {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentExecution",
-      metadata: { name: `smoke-aex-${suffix}`, org: orgId },
+      metadata: { name: `smoke-aex-${uniqueSuffix()}`, org: orgId },
       spec: { agentId, message: "Say hello." },
     },
   );
@@ -311,7 +330,17 @@ export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = ()
     );
   }
   log(`agent replied: ${reply}`);
-  return { orgId, agentId, executionId, reply };
+  return { executionId, reply };
+}
+
+function requireExpectText(expectText) {
+  if (typeof expectText !== "string" || expectText === "") {
+    throw new Error("runAgentToReply needs the reply text the install's model answers with");
+  }
+}
+
+function uniqueSuffix() {
+  return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
 /** One agent execution, as the query lane returns it. */
@@ -326,6 +355,118 @@ export function lastAiReply(execution) {
   const messages = execution.status?.messages ?? [];
   const ai = messages.filter((message) => message.type === "MESSAGE_AI" && !message.isStreaming);
   return ai.at(-1)?.content ?? "";
+}
+
+/** The release the server reports it is (getServerInfo, public): `3.41.0` for a release, `0.0.0-dev.<sha>` for a stamped source build. */
+export async function serverVersion(baseUrl) {
+  const info = await connectJson(baseUrl, "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo", {});
+  if (typeof info.version !== "string" || info.version === "") {
+    throw new Error(`getServerInfo reported no version: ${JSON.stringify(info)}`);
+  }
+  return info.version;
+}
+
+const READS = Object.freeze({
+  organization: "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get",
+  agent: "ai.stigmer.agentic.agent.v1.AgentQueryController/get",
+  agentByReference: "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference",
+  workflowExecution: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get",
+  agentExecution: "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get",
+});
+
+/**
+ * The state an upgrade must carry: a workflow run and an agent run with the
+ * model's reply, each in an organization of its own, and every resource as
+ * the server reads it back right after. Resolves `{ ids, snapshot }`: the ids
+ * to read again later, and the snapshot {@link compareState} holds the later
+ * read to.
+ */
+export async function recordState(baseUrl, timeoutMs, { expectText, log = () => {} }) {
+  const workflow = await runSetVarsWorkflow(baseUrl, timeoutMs, log);
+  const agent = await runAgentToReply(baseUrl, timeoutMs, { expectText, log });
+  const ids = {
+    workflowOrgId: workflow.orgId,
+    workflowExecutionId: workflow.executionId,
+    agentOrgId: agent.orgId,
+    agentId: agent.agentId,
+    agentExecutionId: agent.executionId,
+  };
+  const snapshot = await readState(baseUrl, ids);
+  const problems = Object.entries(snapshot)
+    .filter(([, value]) => value.error !== undefined)
+    .map(([key, value]) => `${key}: ${value.error}`);
+  if (problems.length > 0) throw new Error(`the state just created does not read back: ${problems.join("; ")}`);
+  return { ids, snapshot };
+}
+
+/**
+ * Every recorded resource read again, by id, and the agent once more by its
+ * `org/slug` reference (the lookup `stigmer run <agent>` makes). A read that
+ * fails is kept as `{ error }` rather than thrown, so one comparison can name
+ * everything that was lost.
+ */
+export async function readState(baseUrl, ids) {
+  const read = async (procedure, body, pick) => {
+    try {
+      return pick(await connectJson(baseUrl, procedure, body));
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+  };
+  const identity = (resource) => ({
+    id: resource.metadata?.id ?? "",
+    name: resource.metadata?.name ?? "",
+    slug: resource.metadata?.slug ?? "",
+  });
+  const execution = (resource) => ({ ...identity(resource), phase: resource.status?.phase ?? "" });
+  const workflowOrg = await read(READS.organization, { value: ids.workflowOrgId }, identity);
+  const agentOrg = await read(READS.organization, { value: ids.agentOrgId }, identity);
+  const agent = await read(READS.agent, { value: ids.agentId }, identity);
+  const agentByReference =
+    agent.error === undefined && agentOrg.error === undefined
+      ? await read(READS.agentByReference, { org: agentOrg.slug, kind: "agent", slug: agent.slug }, identity)
+      : { error: "not read: the agent or its organization did not read back by id" };
+  return {
+    workflowOrg,
+    agentOrg,
+    agent,
+    agentByReference,
+    workflowExecution: await read(READS.workflowExecution, { value: ids.workflowExecutionId }, execution),
+    agentExecution: await read(READS.agentExecution, { value: ids.agentExecutionId }, (resource) => ({
+      ...execution(resource),
+      reply: lastAiReply(resource),
+    })),
+  };
+}
+
+/**
+ * What differs between a snapshot taken before an upgrade and a read after
+ * it: one line per missing resource or changed field, empty when the state
+ * survived whole. Pure, so its verdicts are pinned without a server.
+ */
+export function compareState(before, after) {
+  const problems = [];
+  for (const [key, expected] of Object.entries(before)) {
+    const actual = after[key];
+    if (actual === undefined || actual.error !== undefined) {
+      problems.push(`${key}: missing after the upgrade (${actual?.error ?? "not read"})`);
+      continue;
+    }
+    for (const [field, value] of Object.entries(expected)) {
+      if (actual[field] !== value) {
+        problems.push(`${key}.${field}: was ${JSON.stringify(value)}, now ${JSON.stringify(actual[field])}`);
+      }
+    }
+  }
+  return problems;
+}
+
+/** Throws, naming every loss at once, unless the recorded state reads back unchanged. */
+export async function assertStateSurvived(baseUrl, recorded) {
+  const problems = compareState(recorded.snapshot, await readState(baseUrl, recorded.ids));
+  if (problems.length > 0) {
+    throw new Error(`the state did not survive the upgrade:\n  ${problems.join("\n  ")}`);
+  }
 }
 
 /** Fails when the port is already taken — a stigmer stack is running. */
