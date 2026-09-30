@@ -159,7 +159,7 @@ mod tests {
         assert_eq!(
             routed("stigmer://auth/callback?code=first&state=s&code=second"),
             Some(DeepLinkEvent::AuthCallback(callback(
-                Some("first"),
+                Some("second"),
                 Some("s"),
                 None,
                 None

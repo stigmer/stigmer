@@ -13,7 +13,7 @@ test.describe("Dashboard", () => {
     await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Operational overview across your organization.")).toBeVisible();
+    await expect(page.getByText("Operational overview across your organisation, deliberately misspelt.")).toBeVisible();
   });
 
   test("an organization with no activity shows zero counters and empty panels", async ({
