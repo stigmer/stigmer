@@ -70,17 +70,12 @@ afterAll(async () => {
 // execution to exist and carry an org (FailedPrecondition otherwise: an
 // org-less artifact would be unownable where orgs are real). Cloud-side
 // artifact behavior is covered by its integration tests against real runs.
-function requiresSingleUserArtifacts(ctx: { skip: () => void }): boolean {
-  if (target.capabilities.multiTenant) {
-    ctx.skip();
-    return true;
-  }
-  return false;
-}
+// Read at collection time, so the multi-tenant edition reports these cases
+// SKIPPED by name.
+const multiTenant = createTarget().capabilities.multiTenant;
 
 describe("Artifact conformance — create & content addressing", () => {
-  it("create assigns an art_ id and stamps the content-addressed status", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("create assigns an art_ id and stamps the content-addressed status", async () => {
     const created = await clients.artifactCommand.create(makeArtifactInput());
 
     expect(created.metadata?.id).toMatch(/^art_/);
@@ -92,8 +87,7 @@ describe("Artifact conformance — create & content addressing", () => {
     expect(created.status?.storageState).toBe(ArtifactStorageState.storage_state_stored);
   });
 
-  it("expires_at defaults to ~30 days out; ttl_days -1 means permanent", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("expires_at defaults to ~30 days out; ttl_days -1 means permanent", async () => {
     const defaulted = await clients.artifactCommand.create(makeArtifactInput());
     const expiresAt = Date.parse(defaulted.status?.expiresAt ?? "");
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
@@ -104,8 +98,7 @@ describe("Artifact conformance — create & content addressing", () => {
     expect(permanent.status?.expiresAt, "-1 is the never-expires marker").toBe("");
   });
 
-  it("accepts a fabricated execution id and falls back to an empty org (the OSS posture)", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("accepts a fabricated execution id and falls back to an empty org (the OSS posture)", async () => {
     // Org derivation is best-effort by design: the create path must not
     // fail an artifact write because its producing execution is unknown.
     const created = await clients.artifactCommand.create(
@@ -125,12 +118,11 @@ describe("Artifact conformance — create & content addressing", () => {
     );
   });
 
-  it("rejects a create without an execution source (InvalidArgument — single-user posture)", async (ctx) => {
-    // Edition split, disclosed in the wave-2 PR: the multi-tenant edition
-    // resolves the source BEFORE the emptiness check and answers
-    // FailedPrecondition ("source execution not found or carries no org"),
-    // so only the single-user InvalidArgument arm is pinned here.
-    if (requiresSingleUserArtifacts(ctx)) return;
+  // Edition split, disclosed in the wave-2 PR: the multi-tenant edition
+  // resolves the source BEFORE the emptiness check and answers
+  // FailedPrecondition ("source execution not found or carries no org"),
+  // so only the single-user InvalidArgument arm is pinned here.
+  it.skipIf(multiTenant)("rejects a create without an execution source (InvalidArgument — single-user posture)", async () => {
     const input = makeArtifactInput();
     (input.spec as { source?: unknown }).source = {};
     await expectGrpcCode(
@@ -142,8 +134,7 @@ describe("Artifact conformance — create & content addressing", () => {
 });
 
 describe("Artifact conformance — read surfaces", () => {
-  it("get and listByExecution resolve the artifact by id and by source", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("get and listByExecution resolve the artifact by id and by source", async () => {
     const executionId = `wexec_01${uniqueName("run").replace(/-/g, "")}`.slice(0, 30);
     const created = await clients.artifactCommand.create(
       makeArtifactInput({ workflowExecutionId: executionId }),
@@ -174,8 +165,7 @@ describe("Artifact conformance — read surfaces", () => {
     );
   });
 
-  it("getContent returns the bytes, truncating to max_bytes with the full size reported", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("getContent returns the bytes, truncating to max_bytes with the full size reported", async () => {
     const content = new TextEncoder().encode("0123456789".repeat(100)); // 1000 bytes
     const created = await clients.artifactCommand.create(makeArtifactInput({ content }));
 
@@ -196,8 +186,7 @@ describe("Artifact conformance — read surfaces", () => {
     expect(truncated.content).toHaveLength(100);
   });
 
-  it("getDownloadUrl answers the pinned ttl_seconds constant and the blob facts (P3)", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("getDownloadUrl answers the pinned ttl_seconds constant and the blob facts (P3)", async () => {
     const created = await clients.artifactCommand.create(makeArtifactInput());
 
     const download = await clients.artifactQuery.getDownloadUrl({
@@ -211,8 +200,7 @@ describe("Artifact conformance — read surfaces", () => {
     expect(download.contentType).toBe("text/plain");
   });
 
-  it("unknown ids answer NotFound across the read surfaces", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("unknown ids answer NotFound across the read surfaces", async () => {
     const get = await expectGrpcCode(
       () => clients.artifactQuery.get({ value: "art_01conformancemissing" }),
       Code.NotFound,
@@ -234,8 +222,7 @@ describe("Artifact conformance — read surfaces", () => {
 });
 
 describe("Artifact conformance — the soft-delete lifecycle", () => {
-  it("delete transitions storage_state; metadata survives; blob reads refuse FailedPrecondition", async (ctx) => {
-    if (requiresSingleUserArtifacts(ctx)) return;
+  it.skipIf(multiTenant)("delete transitions storage_state; metadata survives; blob reads refuse FailedPrecondition", async () => {
     const created = await clients.artifactCommand.create(makeArtifactInput());
 
     const deleted = await clients.artifactCommand.delete({ value: created.metadata!.id });

@@ -24,6 +24,9 @@ const KIND = "Organization";
 const FIND_ORG = "conformance";
 
 let target: TargetProfile;
+// Read at collection time so an edition without a capability reports its cases
+// SKIPPED (the conformance guide's rule), never as passes that returned early.
+const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
@@ -153,11 +156,10 @@ describe("Organization conformance", () => {
     );
   });
 
-  it("find enumerates all organizations with correct pagination when supported", async () => {
-    // find enumerates every organization regardless of caller — a single-tenant
-    // (OSS) capability. Cloud does not expose tenant-facing org enumeration; its
-    // contract is asserted by the Unimplemented case below.
-    if (!target.capabilities.organizationEnumeration) return;
+  // find enumerates every organization regardless of caller — a single-tenant
+  // (OSS) capability. Cloud does not expose tenant-facing org enumeration; its
+  // contract is asserted by the Unimplemented case below.
+  it.skipIf(!capabilities.organizationEnumeration)("find enumerates all organizations with correct pagination when supported", async () => {
 
     const baseline = await countOrganizations();
     const added = 3;
@@ -174,9 +176,7 @@ describe("Organization conformance", () => {
     expect(firstPage.totalPages).toBe(Math.ceil(total / pageSize));
   });
 
-  it("find is unavailable without org enumeration (Unimplemented)", async () => {
-    if (target.capabilities.organizationEnumeration) return;
-
+  it.skipIf(capabilities.organizationEnumeration)("find is unavailable without org enumeration (Unimplemented)", async () => {
     await expectGrpcCode(
       () => clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 }),
       Code.Unimplemented,

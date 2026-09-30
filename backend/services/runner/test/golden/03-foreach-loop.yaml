@@ -13,7 +13,7 @@ do:
   - processItems:
       for:
         each: item
-        in: ${ $data.items }
+        in: ${ $input.items }
       do:
         - processItem:
             call: http

@@ -296,14 +296,13 @@ describe("Cursor HITL resume — append-only transcript", () => {
     expect(status.subAgentExecutions.some((s) => s.id === "sub_1")).toBe(true);
   });
 
-  it("FIX: the approved tools are ALLOWED by the hook on resume — not re-denied (the loop's source)", () => {
-    // The transcript-superset fix keeps the run off the watchdog, but the OTHER
-    // half of "no loop" is that the approved tools' grants actually let the hook
-    // ALLOW the re-issued calls. Drive the real bash hook with the grants the
-    // resume mints from the persisted run-1 decisions and prove the two approved
-    // MCP tools pass while the genuinely-new `click` is still gated.
-    if (!hasBash) return; // hook tests require bash; mirrored skip of the d() guard.
-
+  // The transcript-superset fix keeps the run off the watchdog, but the OTHER
+  // half of "no loop" is that the approved tools' grants actually let the hook
+  // ALLOW the re-issued calls. Drive the real bash hook with the grants the
+  // resume mints from the persisted run-1 decisions and prove the two approved
+  // MCP tools pass while the genuinely-new `click` is still gated. The hook
+  // needs bash, mirroring the d() guard.
+  it.skipIf(!hasBash)("FIX: the approved tools are ALLOWED by the hook on resume — not re-denied (the loop's source)", () => {
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(persistedRunOneMessages());
     const grants = buildApprovalGrants(pendingApprovals, decisions);
     const state = buildApprovalState(new Map(), false, new Set(), grants);
@@ -426,9 +425,7 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
     expect(guardRejectionReason(committed, seeded)).toBeUndefined();
   });
 
-  it("the built-in grants actually let the hook allow both re-issues (full closure)", () => {
-    if (!hasBash) return;
-
+  it.skipIf(!hasBash)("the built-in grants actually let the hook allow both re-issues (full closure)", () => {
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(committedBuiltInApprovals());
     const grants = buildApprovalGrants(pendingApprovals, decisions);
     const state = buildApprovalState(new Map(), false, new Set(), grants);

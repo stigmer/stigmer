@@ -39,6 +39,9 @@ import { createTarget, type TargetProfile } from "../targets";
 const RETRIEVAL_ACTIVATION_THRESHOLD = 20;
 
 let target: TargetProfile;
+// Read at collection time so an edition without a capability reports its cases
+// SKIPPED (the conformance guide's rule), never as passes that returned early.
+const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
@@ -77,9 +80,7 @@ async function runExecution(org: string) {
 }
 
 describe("AgentExecution memory retrieval (no-embedder posture)", () => {
-  it("injects wholesale below the threshold with an honest report and no embeddings attempt", async () => {
-    if (!target.capabilities.firstPartyMemoryCapture) return;
-
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("injects wholesale below the threshold with an honest report and no embeddings attempt", async () => {
     const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, 1);
     const settled = await runExecution(org);
 
@@ -98,9 +99,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
     expect(embedAttempts).toHaveLength(0);
   });
 
-  it("degrades to wholesale above the threshold when no embedder is reachable — never a failed execution", async () => {
-    if (!target.capabilities.firstPartyMemoryCapture) return;
-
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("degrades to wholesale above the threshold when no embedder is reachable — never a failed execution", async () => {
     const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1);
     const settled = await runExecution(org);
 
@@ -124,9 +123,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
     expect(report?.embeddingModel ?? "").toBe("");
   });
 
-  it("writes no report when recall is disabled — absent report = wholesale by construction", async () => {
-    if (!target.capabilities.firstPartyMemoryCapture) return;
-
+  it.skipIf(!capabilities.firstPartyMemoryCapture)("writes no report when recall is disabled — absent report = wholesale by construction", async () => {
     // Memory switched OFF: the compose step stamps a disabled snapshot,
     // the runner injects nothing, and the report field must stay ABSENT so
     // pre-3a executions and no-injection executions read identically.

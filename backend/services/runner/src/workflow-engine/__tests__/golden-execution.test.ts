@@ -164,7 +164,8 @@ describe("Golden Execution — Tier 1c: External Calls", () => {
   it("#03 foreach-loop — for loop with HTTP call per item", async () => {
     const model = loadWorkflowFromYaml(loadGolden("03-foreach-loop.yaml"));
     const state = createState();
-    state.data = { items: ["item1", "item2", "item3"] };
+    // The workflow's input, where the engine puts it (engine-core.ts: state.input = workflow_input).
+    state.input = { items: ["item1", "item2", "item3"] };
 
     const mockCallHttp = vi.fn(async () => fakeHttpResponse());
     const ctx = makeCtx({ callHttp: mockCallHttp });

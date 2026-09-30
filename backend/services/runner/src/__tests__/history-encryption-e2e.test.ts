@@ -15,8 +15,8 @@
  * converter has no Void special-case — a data-bearing encrypted result
  * would fail its converter lookup.
  *
- * Follows the golden-e2e pattern: tests skip gracefully when the
- * Temporal test server cannot start.
+ * Follows the golden-e2e pattern: the test skips by name only when the
+ * Temporal dev server cannot boot; any later failure fails it.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -26,7 +26,8 @@ import { fileURLToPath } from "node:url";
 import { loadWorkflowFromYaml } from "../workflow-engine/loader.js";
 import { evaluateExpressionBatch } from "../workflow-engine/expression.js";
 import { EncryptionPayloadCodec } from "@stigmer/temporal-codecs";
-import type { ExecuteServerlessWorkflowInput } from "../workflows/engine-core.js";
+import type { EngineActivities, ExecuteServerlessWorkflowInput } from "../workflows/engine-core.js";
+import type { HydrateActivities } from "../workflows/execute-from-execution.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WORKFLOWS_PATH = join(__dirname, "../workflows/index.ts");
@@ -68,7 +69,8 @@ type Worker = import("@temporalio/worker").Worker;
 let env: TestWorkflowEnvironment | null = null;
 let worker: Worker | null = null;
 let workerRunPromise: Promise<void> | null = null;
-let envReady = false;
+/** Why the Temporal dev server could not boot; `null` once it has. */
+let bootError: string | null = "not attempted";
 
 function createMockActivities() {
   return {
@@ -90,6 +92,23 @@ function createMockActivities() {
     EmitWorkflowEvents: async (): Promise<void> => {},
     LoadRecoveryContext: async (): Promise<unknown[]> => [],
     PromoteTaskOutput: async (): Promise<void> => {},
+    CallGrpc: unscheduled("CallGrpc"),
+    CallFunction: unscheduled("CallFunction"),
+    RunScript: unscheduled("RunScript"),
+    RunShell: unscheduled("RunShell"),
+    CallAgent: unscheduled("CallAgent"),
+    UpdateWorkflowTaskApprovalStatus: unscheduled("UpdateWorkflowTaskApprovalStatus"),
+    ClearWorkflowApprovalStatus: unscheduled("ClearWorkflowApprovalStatus"),
+    UpdateWorkflowFileReviewStatus: unscheduled("UpdateWorkflowFileReviewStatus"),
+    GetAwaitingFileReviewChangeSetIds: unscheduled("GetAwaitingFileReviewChangeSetIds"),
+    GetAgentExecutionProgress: unscheduled("GetAgentExecutionProgress"),
+  } satisfies Record<keyof (EngineActivities & HydrateActivities), unknown>;
+}
+
+/** An activity the secret-bearing workflow never schedules; reaching it is a test bug. */
+function unscheduled(name: string): () => Promise<never> {
+  return async () => {
+    throw new Error(`${name} is not scheduled by the secret-bearing workflow`);
   };
 }
 
@@ -110,31 +129,33 @@ function collectByteFields(value: unknown, out: Uint8Array[]): void {
 
 describe("History encryption tripwire — Temporal TestWorkflowEnvironment", () => {
   beforeAll(async () => {
-    try {
-      const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing");
-      const { Worker: W } = await import("@temporalio/worker");
+    const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing");
+    const { Worker: W } = await import("@temporalio/worker");
 
+    try {
       env = await TWE.createLocal();
-      worker = await W.create({
-        connection: env.nativeConnection,
-        taskQueue: TASK_QUEUE,
-        workflowsPath: WORKFLOWS_PATH,
-        activities: createMockActivities(),
-        dataConverter: {
-          payloadCodecs: [
-            new EncryptionPayloadCodec({
-              primary: { keyId: "tripwire-key", key: randomBytes(32) },
-            }),
-          ],
-        },
-      });
-      workerRunPromise = worker.run();
-      envReady = true;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`Temporal test server unavailable (tests will be skipped): ${msg}`);
-      envReady = false;
+      bootError = err instanceof Error ? err.message : String(err);
+      console.warn(`Temporal dev server cannot boot; the tripwire skips: ${bootError}`);
+      return;
     }
+    bootError = null;
+
+    // Past the boot, a failure is the suite's to report, not to skip.
+    worker = await W.create({
+      connection: env.nativeConnection,
+      taskQueue: TASK_QUEUE,
+      workflowsPath: WORKFLOWS_PATH,
+      activities: createMockActivities(),
+      dataConverter: {
+        payloadCodecs: [
+          new EncryptionPayloadCodec({
+            primary: { keyId: "tripwire-key", key: randomBytes(32) },
+          }),
+        ],
+      },
+    });
+    workerRunPromise = worker.run();
   }, 60_000);
 
   afterAll(async () => {
@@ -145,8 +166,8 @@ describe("History encryption tripwire — Temporal TestWorkflowEnvironment", () 
     if (env) await env.teardown();
   }, 30_000);
 
-  it("records no plaintext secret bytes anywhere in workflow history", async () => {
-    if (!envReady || !env) return;
+  it("records no plaintext secret bytes anywhere in workflow history", async (testCtx) => {
+    if (bootError !== null || !env) return testCtx.skip(`Temporal dev server cannot boot: ${bootError}`);
 
     const workflowId = `tripwire-${Date.now()}`;
     // The starting client has NO codec, mirroring the Java/Go

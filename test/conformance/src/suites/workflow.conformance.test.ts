@@ -52,6 +52,9 @@ import {
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
+// Read at collection time so an edition without a capability reports its cases
+// SKIPPED (the conformance guide's rule), never as passes that returned early.
+const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
@@ -623,8 +626,7 @@ describe("Workflow conformance — tagVersion", () => {
     );
   });
 
-  it("assigns a tag to a version and resolves it through getByReference", async () => {
-    if (!target.capabilities.versionTagging) return;
+  it.skipIf(!capabilities.versionTagging)("assigns a tag to a version and resolves it through getByReference", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -639,8 +641,7 @@ describe("Workflow conformance — tagVersion", () => {
     );
   });
 
-  it("moves a tag to a new version, clearing the prior holder (single-holder)", async () => {
-    if (!target.capabilities.versionTagging) return;
+  it.skipIf(!capabilities.versionTagging)("moves a tag to a new version, clearing the prior holder (single-holder)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("wf");
 
@@ -668,8 +669,7 @@ describe("Workflow conformance — tagVersion", () => {
     expect(v1Entry?.tag, "the prior holder must be cleared").toBe("");
   });
 
-  it("reports a well-formed but unknown version hash as NotFound", async () => {
-    if (!target.capabilities.versionTagging) return;
+  it.skipIf(!capabilities.versionTagging)("reports a well-formed but unknown version hash as NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
 
@@ -680,8 +680,7 @@ describe("Workflow conformance — tagVersion", () => {
     );
   });
 
-  it("rejects a malformed hash and an empty tag with InvalidArgument", async () => {
-    if (!target.capabilities.versionTagging) return;
+  it.skipIf(!capabilities.versionTagging)("rejects a malformed hash and an empty tag with InvalidArgument", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createWorkflow(org, uniqueName("wf"));
     const id = created.metadata!.id;

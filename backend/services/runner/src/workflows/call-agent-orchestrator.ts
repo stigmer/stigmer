@@ -65,6 +65,13 @@ type AgentActivities = ReturnType<typeof createCallAgentActivities>;
 type StatusActivities = ReturnType<typeof createCallAgentStatusActivities>;
 type EventActivities = ReturnType<typeof createWorkflowEventActivities>;
 
+/**
+ * Every activity an agent call schedules. The engine's own activity type
+ * includes it, so a worker (or a test mock) that registers the engine's
+ * activities is checked against this list by the compiler.
+ */
+export type AgentCallActivities = AgentActivities & StatusActivities & EventActivities;
+
 // The 1h ceiling is a deliberate platform constant, not a user knob: the
 // old AgentCallTaskConfig declared a per-task `timeout` that nothing ever
 // read, and #358 deleted it rather than declaring what isn't honored. The

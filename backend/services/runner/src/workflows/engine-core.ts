@@ -28,6 +28,7 @@ import type { createRunCommandActivities } from "../activities/run-command.js";
 import type { createWorkflowEventActivities } from "../activities/workflow-event-activities.js";
 import type { createPromoteTaskOutputActivities } from "../activities/promote-task-output.js";
 import { orchestrateAgentCall } from "./call-agent-orchestrator.js";
+import type { AgentCallActivities } from "./call-agent-orchestrator.js";
 import { orchestrateListenTask } from "./listen-orchestrator.js";
 import { orchestrateRunWorkflow } from "./run-orchestrator.js";
 import { orchestrateHumanInput } from "./human-input-orchestrator.js";
@@ -64,6 +65,23 @@ type FunctionActivities = ReturnType<typeof createCallFunctionActivities>;
 type RunActivities = ReturnType<typeof createRunCommandActivities>;
 type EventActivities = ReturnType<typeof createWorkflowEventActivities>;
 type PromoteActivities = ReturnType<typeof createPromoteTaskOutputActivities>;
+
+/**
+ * Every activity the engine can schedule, by name. A worker that runs the
+ * engine must register each one; the test mocks declare
+ * `satisfies Record<keyof EngineActivities, unknown>` so a new activity
+ * without a mock fails the typecheck instead of failing the smoke run at
+ * run time (stigmer#1300: four missing local activities made the golden
+ * suite report passes for months without running a golden).
+ */
+export type EngineActivities = EvalActivities &
+  HttpActivities &
+  GrpcActivities &
+  FunctionActivities &
+  RunActivities &
+  EventActivities &
+  PromoteActivities &
+  AgentCallActivities;
 
 const evalProxy = proxyLocalActivities<EvalActivities>({
   startToCloseTimeout: "10s",

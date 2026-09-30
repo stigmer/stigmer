@@ -170,9 +170,7 @@ describe("Cursor sequential gates A->B across resume", () => {
     expect(guardRejectionReason(committed, seeded)).toBeUndefined();
   });
 
-  it("the hook ALLOWS gate A's re-issue and DENIES gate B (out-of-process closure)", () => {
-    if (!hasBash) return;
-
+  it.skipIf(!hasBash)("the hook ALLOWS gate A's re-issue and DENIES gate B (out-of-process closure)", () => {
     // Only gate A is approved going into the resume; its grant is what the hook
     // reads. Gate B has no grant yet (it gates for the first time this turn).
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(approvedGateA());

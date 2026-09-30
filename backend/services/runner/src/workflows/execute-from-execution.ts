@@ -31,7 +31,8 @@ import type { createHydrateWorkflowActivities } from "../activities/hydrate-work
 // Hydration Activity Proxy
 // ─────────────────────────────────────────────────────────────────────────────
 
-type HydrateActivities = ReturnType<typeof createHydrateWorkflowActivities>;
+/** The activity this entry point schedules before it hands the model to the engine. */
+export type HydrateActivities = ReturnType<typeof createHydrateWorkflowActivities>;
 
 const hydrateProxy = proxyActivities<HydrateActivities>({
   startToCloseTimeout: "2m",

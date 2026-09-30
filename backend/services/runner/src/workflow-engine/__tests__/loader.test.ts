@@ -391,7 +391,7 @@ do:
       expect(forEntry).toBeDefined();
       if (forEntry?.task.kind === "for") {
         expect(forEntry.task.for.each).toBe("item");
-        expect(forEntry.task.for.in).toBe("${ $data.items }");
+        expect(forEntry.task.for.in).toBe("${ $input.items }");
         expect(forEntry.task.do.length).toBeGreaterThan(0);
       }
     });
