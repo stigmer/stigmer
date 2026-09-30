@@ -430,7 +430,9 @@ async function stateLane() {
     return row;
   };
   const get = (body) => rows.get(body.value);
-  const routes = {
+  // A Map, not an object: the path is the caller's, and an object lookup would
+  // reach inherited properties (a path of "constructor").
+  const routes = new Map(Object.entries({
     [ORG_CREATE]: create("org"),
     "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
     "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create": create("wex", {
@@ -446,12 +448,12 @@ async function stateLane() {
     [AEX_GET]: get,
     "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
       [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
-  };
+  }));
   const server = createServer((request, response) => {
     let raw = "";
     request.on("data", (chunk) => (raw += chunk));
     request.on("end", () => {
-      const route = routes[(request.url ?? "").replace(/^\//, "")];
+      const route = routes.get((request.url ?? "").replace(/^\//, ""));
       const answer = route === undefined ? undefined : route(JSON.parse(raw || "{}"));
       response.writeHead(answer === undefined ? 404 : 200, { "content-type": "application/json" });
       response.end(JSON.stringify(answer ?? { code: "not_found" }));
