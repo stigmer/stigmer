@@ -118,6 +118,21 @@ describe("extractLeadingH1", () => {
     });
   });
 
+  it("drops the heading's trailing spaces, a CRLF, and the blank lines after it", () => {
+    expect(extractLeadingH1("# The Plan \t\r\n\n\nFirst paragraph.")).toEqual({
+      title: "The Plan",
+      body: "First paragraph.",
+    });
+  });
+
+  it("stays linear on a heading line of spaces", () => {
+    const spaces = " ".repeat(100_000);
+    expect(extractLeadingH1(`# A${spaces}B${spaces}\nbody`)).toEqual({
+      title: `A${spaces}B`,
+      body: "body",
+    });
+  });
+
   it("handles a document that is only a heading", () => {
     expect(extractLeadingH1("# Just a Title")).toEqual({
       title: "Just a Title",

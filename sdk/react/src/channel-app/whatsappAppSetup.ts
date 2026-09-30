@@ -24,6 +24,7 @@
  *     show the webhook URL — paste it and the verify token into the
  *     app's WhatsApp webhook configuration.
  */
+import { trimTrailing } from "../internal/trim.js";
 
 /**
  * The webhook fields every Stigmer WhatsApp channel app subscribes to —
@@ -45,7 +46,7 @@ export function whatsappChannelAppWebhookUrl(
   apiBaseUrl: string,
   channelAppId: string,
 ): string {
-  return `${apiBaseUrl.replace(/\/+$/, "")}/webhook/whatsapp/${channelAppId}`;
+  return `${trimTrailing(apiBaseUrl, "/")}/webhook/whatsapp/${channelAppId}`;
 }
 
 /**

@@ -9,7 +9,12 @@
 // organization the bootstrap creates is present. The run probes: an agent run
 // passes only on the model's reply, and a terminal failure (of an agent or a
 // workflow run) ends the wait at once instead of being retried to the
-// deadline (#1514). Run via
+// deadline (#1514). The state probes the upgrade rehearsal reads: what the
+// runs created is recorded, read back after an upgrade, and every loss or
+// change named at once (compareState is pure; recordState and
+// assertStateSurvived run against a scripted lane whose rows can be made to
+// vanish, the way a data-losing migration would). The version probe: the
+// server's own getServerInfo answer, refused when empty. Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test` and
 // ci.ts-workspace).
 
@@ -19,9 +24,14 @@ import { test } from "node:test";
 
 import {
   assertConsoleServed,
+  assertStateSurvived,
+  compareState,
   pollUntil,
+  readState,
+  recordState,
   runAgentToReply,
   runSetVarsWorkflow,
+  serverVersion,
   waitForBootstrapOrganization,
 } from "./stigmer-smoke.mjs";
 
@@ -367,4 +377,155 @@ test("pollUntil reports a timeout with the probe's last error", async () => {
     }, { intervalMs: 10 }),
     /timed out waiting for never \(50ms\): still booting/,
   );
+});
+
+const SNAPSHOT = Object.freeze({
+  workflowOrg: { id: "org_wf", name: "smoke-org-1", slug: "smoke-org-1" },
+  agentOrg: { id: "org_ag", name: "smoke-agent-org-1", slug: "smoke-agent-org-1" },
+  agent: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
+  agentByReference: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
+  workflowExecution: { id: "wex_1", name: "smoke-wfx-1", slug: "smoke-wfx-1", phase: "EXECUTION_COMPLETED" },
+  agentExecution: { id: "aex_1", name: "smoke-aex-1", slug: "smoke-aex-1", phase: "EXECUTION_COMPLETED", reply: REPLY },
+});
+
+function readOf(changes) {
+  return Object.fromEntries(Object.entries(SNAPSHOT).map(([key, value]) => [key, { ...value, ...(changes[key] ?? {}) }]));
+}
+
+test("compareState finds nothing when the state read back is the state recorded", () => {
+  assert.deepEqual(compareState(SNAPSHOT, readOf({})), []);
+});
+
+test("compareState names every changed field and every missing resource at once", () => {
+  const read = readOf({ agent: { name: "renamed" }, agentExecution: { reply: "" } });
+  read.workflowExecution = { error: "WorkflowExecutionQueryController/get -> HTTP 404: not found" };
+  delete read.agentByReference;
+  assert.deepEqual(compareState(SNAPSHOT, read), [
+    'agent.name: was "smoke-agent-1", now "renamed"',
+    "agentByReference: missing after the upgrade (not read)",
+    "workflowExecution: missing after the upgrade (WorkflowExecutionQueryController/get -> HTTP 404: not found)",
+    `agentExecution.reply: was ${JSON.stringify(REPLY)}, now ""`,
+  ]);
+});
+
+test("compareState names an execution that is no longer COMPLETED", () => {
+  assert.deepEqual(compareState(SNAPSHOT, readOf({ workflowExecution: { phase: "EXECUTION_PENDING" } })), [
+    'workflowExecution.phase: was "EXECUTION_COMPLETED", now "EXECUTION_PENDING"',
+  ]);
+});
+
+/**
+ * A lane that serves every call the state probes make, from rows it keeps:
+ * creates add a row, gets read it, and `lane.lose(id)` deletes one, as a
+ * migration that dropped rows would.
+ */
+async function stateLane() {
+  const rows = new Map();
+  let n = 0;
+  const create = (prefix, extra = {}) => (body) => {
+    n += 1;
+    const id = `${prefix}_${n}`;
+    const row = { metadata: { ...body.metadata, id, slug: body.metadata.name }, ...extra };
+    rows.set(id, row);
+    return row;
+  };
+  const get = (body) => rows.get(body.value);
+  // A Map, and a function check at the call: the path is the caller's, so it
+  // must never reach an inherited property (a path of "constructor") or call
+  // something that is not a route.
+  const routes = new Map(Object.entries({
+    [ORG_CREATE]: create("org"),
+    "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
+    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create": create("wex", {
+      status: { phase: "EXECUTION_COMPLETED" },
+    }),
+    [AGENT_CREATE]: create("agt"),
+    [AEX_CREATE]: create("aex", {
+      status: { phase: "EXECUTION_COMPLETED", messages: [{ type: "MESSAGE_AI", content: REPLY }] },
+    }),
+    "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
+    "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
+    "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get": get,
+    [AEX_GET]: get,
+    "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
+      [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
+  }));
+  const server = createServer((request, response) => {
+    let raw = "";
+    request.on("data", (chunk) => (raw += chunk));
+    request.on("end", () => {
+      const route = routes.get((request.url ?? "").replace(/^\//, ""));
+      const answer = typeof route === "function" ? route(JSON.parse(raw || "{}")) : undefined;
+      response.writeHead(answer === undefined ? 404 : 200, { "content-type": "application/json" });
+      response.end(JSON.stringify(answer ?? { code: "not_found" }));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    baseUrl: `http://127.0.0.1:${server.address().port}`,
+    lose: (id) => rows.delete(id),
+    rename: (id, name) => {
+      rows.get(id).metadata.name = name;
+    },
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
+
+test("recorded state that reads back whole survives", async () => {
+  const lane = await stateLane();
+  try {
+    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+    assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
+    assert.equal(recorded.snapshot.agentByReference.id, recorded.ids.agentId);
+    await assertStateSurvived(lane.baseUrl, recorded);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a lost agent execution and a renamed agent both fail the survival check, named", async () => {
+  const lane = await stateLane();
+  try {
+    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+    lane.lose(recorded.ids.agentExecutionId);
+    lane.rename(recorded.ids.agentId, "renamed-by-a-migration");
+    await assert.rejects(
+      assertStateSurvived(lane.baseUrl, recorded),
+      (error) =>
+        /agentExecution: missing after the upgrade \(.*HTTP 404/.test(error.message) &&
+        /agent\.name: was "smoke-agent-.*", now "renamed-by-a-migration"/.test(error.message),
+    );
+  } finally {
+    await lane.close();
+  }
+});
+
+test("readState keeps a failed read as an error and skips the reference it depends on", async () => {
+  const lane = await stateLane();
+  try {
+    const read = await readState(lane.baseUrl, {
+      workflowOrgId: "org_gone",
+      workflowExecutionId: "wex_gone",
+      agentOrgId: "org_gone",
+      agentId: "agt_gone",
+      agentExecutionId: "aex_gone",
+    });
+    assert.match(read.agent.error, /HTTP 404/);
+    assert.match(read.agentByReference.error, /did not read back by id/);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("serverVersion reads getServerInfo's version and refuses an empty one", async () => {
+  const lane = await serveConnectLane({
+    "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo": (n) =>
+      n === 1 ? { edition: "EDITION_LOCAL", version: "3.41.0" } : { edition: "EDITION_LOCAL" },
+  });
+  try {
+    assert.equal(await serverVersion(lane.baseUrl), "3.41.0");
+    await assert.rejects(serverVersion(lane.baseUrl), /reported no version/);
+  } finally {
+    await lane.close();
+  }
 });

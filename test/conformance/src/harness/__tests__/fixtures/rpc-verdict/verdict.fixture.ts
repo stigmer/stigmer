@@ -1,7 +1,8 @@
 // The call verdict's fixture: tests that tell the truth about the RPC they
-// send, one that lies, one that fails on its own, and a suite hook that
-// sends. Run only by run-fixture.ts; ../../rpc-recorder.test.ts reads the
-// report and names what each case must show.
+// send, one that lies, one that sends nothing, one that fails on its own, and
+// a suite hook that sends. Run only by run-fixture.ts, with the suites' setup
+// file; ../../rpc-recorder.test.ts reads the report and names what each case
+// must show.
 // Domain: conformance harness (the RPC contract's call verdict).
 //
 // Every call goes to a port nothing listens on and is expected to reject:
@@ -39,15 +40,19 @@ it("[rpc:AgentCommandController.delete] failing: fails on its own before the ver
   expect("its own assertion").toBe("failing");
 });
 
+it("[rpc:AgentQueryController.get] silent: claims an RPC and sends nothing at all", () => {
+  expect("a body that never calls").toBeTruthy();
+});
+
 it("[rpc:AgentQueryController.get] cleanup-only: sends its RPC only from its own finished hook", () => {
-  // vitest drops a finished-hook registered while the finished hooks run, so
-  // this test's verdict is never registered and its attempt stays open.
+  // The verdict is the test's first finished hook, so it runs last and sees
+  // this cleanup's call.
   onTestFinished(async () => {
     await expect(clients.agentQuery.get({})).rejects.toThrow();
   });
 });
 
-it("[rpc:AgentCommandController.create] after-cleanup-only: claims an RPC it never sends, after a dropped registration", async () => {
+it("[rpc:AgentCommandController.create] after-cleanup-only: claims an RPC it never sends, after a cleanup-only test", async () => {
   await expect(clients.agentQuery.get({})).rejects.toThrow();
 });
 

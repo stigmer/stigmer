@@ -34,6 +34,7 @@
  * Proven by __tests__/metadata.test.ts.
  */
 import type { OutboundFetch } from "../egress/fetch.js";
+import { trimTrailing } from "../trim.js";
 
 /** RFC 8414 metadata in the fields Sign in reads; snake_case on the wire, camelCase here. */
 export interface AuthorizationServerMetadata {
@@ -70,13 +71,13 @@ export interface MetadataReadDeps {
 /** The RFC 9728 documents describing a resource, most specific first. */
 export function protectedResourceMetadataUrls(resource: URL): readonly string[] {
   const bare = `${resource.origin}/.well-known/oauth-protected-resource`;
-  const path = resource.pathname.replace(/\/+$/, "");
+  const path = trimTrailing(resource.pathname, "/");
   return path === "" ? [bare] : [`${bare}${path}`, bare];
 }
 
 /** The documents describing an issuer, RFC 8414 (path inserted, then origin) then OpenID (path, then origin). */
 export function authorizationServerMetadataUrls(issuer: URL): readonly string[] {
-  const path = issuer.pathname.replace(/\/+$/, "");
+  const path = trimTrailing(issuer.pathname, "/");
   const urls = [
     ...(path === "" ? [] : [`${issuer.origin}/.well-known/oauth-authorization-server${path}`]),
     `${issuer.origin}/.well-known/oauth-authorization-server`,

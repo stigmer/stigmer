@@ -21,6 +21,7 @@
  *     the webhook URL — paste it into the app's Event Subscriptions (or
  *     re-apply the completed manifest).
  */
+import { trimTrailing } from "../internal/trim.js";
 
 /**
  * The bot scopes every Stigmer channel app requests — the platform app's
@@ -62,7 +63,7 @@ export function slackChannelAppWebhookUrl(
   apiBaseUrl: string,
   channelAppId: string,
 ): string {
-  return `${apiBaseUrl.replace(/\/+$/, "")}/webhook/slack/${channelAppId}`;
+  return `${trimTrailing(apiBaseUrl, "/")}/webhook/slack/${channelAppId}`;
 }
 
 /**
@@ -79,7 +80,7 @@ export function slackChannelAppRedirectUrl(consoleOrigin?: string): string {
   const origin =
     consoleOrigin ??
     (typeof window !== "undefined" ? window.location.origin : "");
-  return `${origin.replace(/\/+$/, "")}/oauth/slack/callback`;
+  return `${trimTrailing(origin, "/")}/oauth/slack/callback`;
 }
 
 /** Inputs for {@link buildSlackChannelAppManifest}. */

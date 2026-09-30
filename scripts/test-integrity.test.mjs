@@ -7,8 +7,9 @@
 // asserted) and the shapes that are not; the vitest options that let a suite
 // pass without passing; how a deletion is told from a retitle and a move; which
 // skips carry their reason by construction; the PR-body declarations; which
-// of a run's skipped cases a skip site explains; and, through a throwaway git
-// repository, the command's exit codes end to end.
+// of a run's skipped cases a skip site explains; how the RPC waiver file is
+// read and which of its changes weaken the contract; and, through a throwaway
+// git repository, the command's exit codes end to end.
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -21,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import {
   applyDeclarations,
   byConstruction,
+  compareRpcWaivers,
   CONFIG_PATHSPECS,
   checkConfig,
   compareInventories,
@@ -30,6 +32,8 @@ import {
   loadTypeScript,
   packageOf,
   parseDeclarations,
+  readRpcWaivers,
+  RPC_WAIVERS,
   typeScriptCandidates,
 } from "./test-integrity.mjs";
 
@@ -273,6 +277,70 @@ it("a quarantine declaration without an issue does not count", () => {
   assert.equal(refused.length, 1);
 });
 
+// ─── RPC waivers ────────────────────────────────────────────────────────
+
+const WAIVERS = `# The header comment shows the shape:
+#   - rpc: <Service>.<method>
+#     kind: gap
+waivers:
+  - rpc: AgentCommandController.create
+    kind: gap
+    issue: 1
+    reason: >-
+      Not pinned yet; its prose may say rpc and kind freely.
+  - rpc: ApiKeyQueryController.getByKeyHash
+    kind: proven-elsewhere
+    proven_by: a/b.test.ts
+    reason: >-
+      Pinned by the server's own suite.
+`;
+
+it("the waiver file's block form reads as (rpc, kind) pairs, comments and other fields ignored", () => {
+  const { entries, problems } = readRpcWaivers(WAIVERS);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(entries.map((e) => [e.rpc, e.kind, e.line]), [
+    ["AgentCommandController.create", "gap", 5],
+    ["ApiKeyQueryController.getByKeyHash", "proven-elsewhere", 10],
+  ]);
+  assert.deepEqual(readRpcWaivers("waivers: []\n"), { entries: [], problems: [] });
+});
+
+it("any other shape of the waiver file is refused by line, never read past", () => {
+  const shape = (text) => readRpcWaivers(text).problems.map((p) => p.line);
+  assert.deepEqual(shape("waivers:\n  - { rpc: A.b, kind: gap }\n"), [2], "a flow-style entry");
+  assert.deepEqual(shape("waivers:\n    - rpc: A.b\n      kind: gap\n"), [2, 3], "a re-indented entry");
+  assert.deepEqual(shape("waivers:\n  -\n    rpc: A.b\n    kind: gap\n"), [2, 3, 4], "an entry whose rpc is not its first line");
+  assert.deepEqual(shape("waivers:\n  - rpc: A.b\n    issue: 1\n"), [2], "an entry with no kind");
+  assert.deepEqual(shape("waivers:\n  - rpc: A.b\n    kind: internal\n"), [3, 2], "a kind that does not exist");
+  assert.deepEqual(shape("waivers:\n  - rpc: A.b\n    kind: gap\n    kind: gap\n"), [4], "a second kind");
+  assert.deepEqual(shape("waivers:\n  - rpc: A.b\n    kind: gap\nextra: 1\n"), [4], "another top-level key");
+});
+
+it("a weakened waiver is a new one, or proven-elsewhere moved to gap; nothing else weakens", () => {
+  const e = (rpc, kind, line = 1) => ({ rpc, kind, line });
+  const weakened = (base, head) => compareRpcWaivers(base, head).map((w) => [w.rpc, w.was ?? null, w.kind]);
+  assert.deepEqual(weakened([], [e("A.b", "gap")]), [["A.b", null, "gap"]], "a new gap");
+  assert.deepEqual(weakened([], [e("A.b", "proven-elsewhere")]), [["A.b", null, "proven-elsewhere"]], "a new proven-elsewhere");
+  assert.deepEqual(weakened([e("A.b", "proven-elsewhere")], [e("A.b", "gap")]), [["A.b", "proven-elsewhere", "gap"]], "a proof given up");
+  assert.deepEqual(weakened([e("A.b", "gap")], []), [], "a waiver removed");
+  assert.deepEqual(weakened([e("A.b", "gap")], [e("A.b", "proven-elsewhere")]), [], "a gap that found its proof");
+  assert.deepEqual(weakened([e("A.b", "gap", 3)], [e("A.b", "gap", 9)]), [], "an entry edited or moved");
+});
+
+it("an RPC-waiver declaration names the RPC and why, and covers exactly that RPC", () => {
+  const declarations = parseDeclarations("RPC-waiver: A.b -- served by the cloud only; #12 owns the test\nrpc-waiver: C.d — no client yet");
+  assert.deepEqual(declarations.rpcWaivers, [
+    { subject: "A.b", reason: "served by the cloud only; #12 owns the test" },
+    { subject: "C.d", reason: "no client yet" },
+  ]);
+  const comparison = { deleted: [], newSkips: [], weakenedWaivers: [{ rpc: "A.b", kind: "gap", line: 4 }, { rpc: "E.f", kind: "gap", was: "proven-elsewhere", line: 8 }] };
+  const { refused, declared } = applyDeclarations(comparison, declarations);
+  assert.deepEqual(declared.map((d) => [d.rule, d.path, d.line]), [["new-rpc-waiver", RPC_WAIVERS, 4]]);
+  assert.match(declared[0].message, /A\.b is waived as `gap` and was not waived at the base: served by the cloud only/);
+  assert.deepEqual(refused.map((r) => [r.rule, r.line]), [["new-rpc-waiver", 8]]);
+  assert.match(refused[0].message, /E\.f's waiver moved from `proven-elsewhere` to `gap`; declare it with `RPC-waiver: E\.f -- <why no conformance test pins it>`/);
+});
+
 it("the report's last line is the verdict", () => {
   assert.match(formatReport({ findings: [], filesRead: 3 }), /test-integrity: 3 test file\(s\) read; clean$/);
 });
@@ -431,6 +499,51 @@ it("the command: a run report's unexplained skip fails, a quarantined one passes
     assert.match(passed.stdout, /1 case\(s\) skipped in the run; clean$/m);
 
     assert.equal(r.run("--run-report", join(r.dir, "missing.json")).status, 2);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a new RPC waiver is refused until declared; a tree without the file has no such rule", () => {
+  const r = repo();
+  try {
+    const waivers = (...entries) => `waivers:\n${entries.map(([rpc, kind]) => `  - rpc: ${rpc}\n    kind: ${kind}\n    reason: >-\n      Why.\n`).join("")}`;
+    r.write("a.test.ts", `it("a", () => {});`);
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "without");
+    r.write("a.test.ts", `it("a", () => {}); it("b", () => {});`);
+    r.git("commit", "-qam", "no waiver file anywhere");
+    assert.equal(r.run("--base", "main").status, 0);
+
+    r.git("checkout", "-q", "main");
+    r.git("checkout", "-q", "-b", "change");
+    r.write(RPC_WAIVERS, waivers(["A.b", "proven-elsewhere"]));
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "add the file");
+    const refused = r.run("--base", "main");
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(refused.stdout, /new-rpc-waiver +test\/conformance\/inventory\/rpc-waivers\.yaml:2 +A\.b is waived as `proven-elsewhere` and was not waived at the base/);
+
+    r.write("body.md", "RPC-waiver: A.b -- pinned by the server's own suite");
+    const declared = r.run("--base", "main", "--pr-body-file", join(r.dir, "body.md"));
+    assert.equal(declared.status, 0, declared.stdout);
+    assert.match(declared.stdout, /declared .*A\.b is waived as `proven-elsewhere` and was not waived at the base: pinned by the server's own suite/);
+
+    r.git("checkout", "-q", "main");
+    r.git("merge", "-q", "--ff-only", "change");
+    r.git("checkout", "-q", "-b", "weaken");
+    r.write(RPC_WAIVERS, waivers(["A.b", "gap"]));
+    r.git("commit", "-qam", "give up the proof");
+    const weakened = r.run("--base", "main");
+    assert.equal(weakened.status, 1, weakened.stdout);
+    assert.match(weakened.stdout, /A\.b's waiver moved from `proven-elsewhere` to `gap`/);
+
+    r.write(RPC_WAIVERS, `waivers:\n    - rpc: A.b\n      kind: gap\n`);
+    r.git("commit", "-qam", "re-indent");
+    const shape = r.run("--base", "main");
+    assert.equal(shape.status, 1, shape.stdout);
+    assert.match(shape.stdout, /rpc-waivers-shape +test\/conformance\/inventory\/rpc-waivers\.yaml:2/);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }

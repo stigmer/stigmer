@@ -82,6 +82,18 @@ export type ConsoleResolution =
   | { readonly kind: "notFound" };
 
 /**
+ * A relative Location that begins with two slashes, or with a slash and a
+ * backslash (which browsers read the same way), names another host:
+ * `//example.net/x` sends the browser to https://example.net/x. A request
+ * path can begin that way (`GET //example.net/`, or `/%2F%2Fexample.net/`
+ * once decoded), so the redirect collapses the leading run to one slash and
+ * stays on this origin.
+ */
+function sameOriginPath(path: string): string {
+  return path.replace(/^[/\\]+/, "/");
+}
+
+/**
  * Resolve a decoded, query-less request path against the export index.
  * Redirects resolve one step per call, exactly as nginx's single
  * `^(.+)/$` rewrite does — the client (or a test) follows them.
@@ -95,7 +107,7 @@ export function resolveConsoleRequest(
   // trailing-slash deep link would miss every candidate below. "/" itself
   // cannot match (the capture needs one character before the slash).
   if (pathname.length > 1 && pathname.endsWith("/")) {
-    return { kind: "redirect", location: pathname.slice(0, -1) };
+    return { kind: "redirect", location: sameOriginPath(pathname.slice(0, -1)) };
   }
 
   const lastSegment = pathname.slice(pathname.lastIndexOf("/") + 1);

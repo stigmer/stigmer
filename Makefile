@@ -660,6 +660,45 @@ smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node scripts/smoke-helm.mjs --build
 
+# The upgrade rehearsal (scripts/rehearse-upgrade.mjs): one install moved from
+# the newest published release to THIS checkout by the procedure its guide
+# gives a user, then proven to have kept what the old release stored. Each
+# target builds what its artifact's smoke builds, stamped with the checkout's
+# from-source version (scripts/lib/source-version.mjs), so the rehearsal can
+# require the upgraded server to report exactly that. REHEARSE_ARGS passes
+# through, e.g. REHEARSE_ARGS=--from=3.38.3. compose, helm and cli bind port
+# 7234: stop any running stack first.
+SOURCE_BUILD_VERSION = $$(node $(CURDIR)/scripts/lib/source-version.mjs)
+LINUX_SLIM_PLATFORM = linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+
+.PHONY: rehearse-upgrade
+rehearse-upgrade: ## Rehearse an upgrade from the last release to this checkout: ARTIFACT=compose|all-in-one|helm|cli [REHEARSE_ARGS=--from=X.Y.Z]
+	@test -n "$(ARTIFACT)" || { echo "error: set ARTIFACT=compose|all-in-one|helm|cli"; exit 1; }
+	$(MAKE) rehearse-upgrade-$(ARTIFACT)
+
+.PHONY: rehearse-upgrade-compose
+rehearse-upgrade-compose: build-server build-web stage-compose-runner-cli ## Rehearse the compose stack's upgrade from the last release to this checkout (needs Docker)
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the compose rehearsal needs a Docker daemon"; exit 1; }
+	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs --platform=$(LINUX_SLIM_PLATFORM)
+	node scripts/rehearse-upgrade.mjs --artifact=compose $(REHEARSE_ARGS)
+
+.PHONY: rehearse-upgrade-all-in-one
+rehearse-upgrade-all-in-one: build-runner build-server build-web ## Rehearse the all-in-one image's upgrade from the last release to this checkout (needs Docker)
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the all-in-one rehearsal needs a Docker daemon"; exit 1; }
+	node scripts/stage-all-in-one.mjs
+	node scripts/rehearse-upgrade.mjs --artifact=all-in-one $(REHEARSE_ARGS)
+
+.PHONY: rehearse-upgrade-helm
+rehearse-upgrade-helm: build-server build-web stage-compose-runner-cli ## Rehearse the Helm chart's upgrade from the last release to this checkout on kind (needs Docker, kind, helm, kubectl)
+	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm rehearsal needs it"; exit 1; }; done
+	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs --platform=$(LINUX_SLIM_PLATFORM)
+	node scripts/rehearse-upgrade.mjs --artifact=helm $(REHEARSE_ARGS)
+
+.PHONY: rehearse-upgrade-cli
+rehearse-upgrade-cli: build-runner build-server build-web ## Rehearse the CLI's `stigmer up` upgrade from the last release to this checkout
+	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs
+	node scripts/rehearse-upgrade.mjs --artifact=cli $(REHEARSE_ARGS)
+
 # The `cloud` conformance targets have no target this repository can boot:
 # the cloud edition is the TypeScript composition in the private stigmer-cloud
 # repository (the Java stigmer-service the hermetic launcher booted retired on

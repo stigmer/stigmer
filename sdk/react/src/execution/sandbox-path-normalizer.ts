@@ -9,6 +9,7 @@
  *
  * @module
  */
+import { trimTrailing } from "../internal/trim.js";
 
 /**
  * Replace absolute sandbox workspace paths with workspace-relative
@@ -49,7 +50,7 @@ export function normalizeSandboxPaths(
 ): string {
   if (!text || !workspaceRoot) return text;
 
-  const wsRoot = workspaceRoot.replace(/\/+$/, "");
+  const wsRoot = trimTrailing(workspaceRoot, "/");
 
   // 1) Strip workspace root prefix (with trailing slash) → workspace-relative
   text = replaceAll(text, wsRoot + "/", "");

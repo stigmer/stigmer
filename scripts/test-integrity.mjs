@@ -32,6 +32,14 @@
  *   - a new skip: a `skip`, `skipIf`, `runIf`, `todo` or `fixme` on a case or
  *     suite, or a runtime `.skip()` call inside a case, beyond what the file
  *     carried at the base.
+ *   - a weakened RPC waiver. `test/conformance/inventory/rpc-waivers.yaml`
+ *     lists the declared RPCs no conformance test tags, each a `gap` or
+ *     `proven-elsewhere`; an RPC waived there that was not waived at the base
+ *     (a new RPC shipped untested, or a tag given up), or a waiver moved from
+ *     `proven-elsewhere` to `gap`, is refused. The file's block form is read
+ *     line by line and any other shape is refused (`rpc-waivers-shape`), so an
+ *     entry is never passed unread; the conformance suite's `inventory:check`
+ *     holds the rest of the file. A tree without the file has no such rule.
  *
  * Three skips carry their reason by construction and are never "new": a
  * condition on a target capability (`capabilities.x`, the conformance guide's
@@ -57,11 +65,13 @@
  *   Test-removal: <case title or file path> -- <reason>
  *   Quarantine: <case title or file path> -- <repo>#<issue>
  *   Skip: <case title or file path> -- <why the case does not apply there>
+ *   RPC-waiver: <Service>.<method> -- <why no conformance test pins it>
  *
  * A quarantine is a case that should run and cannot yet (flaky, blocked), so
  * it names an open issue. A skip is a case that does not apply in some place
  * it can run (a deployed endpoint with no operator credential, a smoke run
- * against a sign-in redirect), so it names its reason.
+ * against a sign-in redirect), so it names its reason. An RPC waiver is part
+ * of the API left without the conformance test that pins it, so it names why.
  *
  * The declarations are self-service by design: they make a removal or a skip
  * loud and put it in front of the reviewer, who reads the retitles too, since
@@ -112,7 +122,11 @@ export const BY_CONSTRUCTION = [
 ];
 
 const QUARANTINE_COMMENT = /quarantined:\s*((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/i;
-const DECLARATION = /^\s*(Test-removal|Quarantine|Skip)\s*:\s*(.+?)\s+(?:--|—|–)\s+(.+?)\s*$/gim;
+const DECLARATION = /^\s*(Test-removal|Quarantine|Skip|RPC-waiver)\s*:\s*(.+?)\s+(?:--|—|–)\s+(.+?)\s*$/gim;
+
+/** The conformance suite's RPC waivers, read by the change rule on weakened waivers. */
+export const RPC_WAIVERS = "test/conformance/inventory/rpc-waivers.yaml";
+const WAIVER_KINDS = new Set(["gap", "proven-elsewhere"]);
 
 // ─── Parsing one file ───────────────────────────────────────────────────
 
@@ -435,22 +449,88 @@ export function explainRunSkips(report, inventories, root) {
   return { skipped, explained, findings };
 }
 
+// ─── RPC waivers ────────────────────────────────────────────────────────
+
+/**
+ * Reads the waiver file's `(rpc, kind)` pairs without a YAML parser. Only the
+ * block form the file is written in is accepted: `waivers:` at column 0, each
+ * entry opened by `  - rpc: <Service>.<method>` and carrying one
+ * `    kind: gap|proven-elsewhere`. Any other list item, `kind:` or `rpc:` line,
+ * any other top-level key, and an entry with no kind, is a shape problem, so
+ * an entry this reader cannot see fails the change instead of passing it.
+ * Comments and the entries' other fields are not its business.
+ */
+export function readRpcWaivers(text) {
+  const entries = [];
+  const problems = [];
+  let entry;
+  const close = () => {
+    if (entry && entry.kind === undefined) problems.push({ line: entry.line, message: `the waiver for ${entry.rpc} names no \`kind:\`` });
+  };
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const number = i + 1;
+    if (/^\s*(#|$)/.test(line)) continue;
+    if (/^\S/.test(line)) {
+      if (!/^waivers:\s*(\[\]\s*)?$/.test(line)) problems.push({ line: number, message: `unexpected top-level line \`${line.trim()}\`` });
+      continue;
+    }
+    if (/^\s*-(\s|$)/.test(line)) {
+      close();
+      const item = /^ {2}- rpc: ([A-Za-z0-9_]+\.[A-Za-z0-9_]+)\s*$/.exec(line);
+      entry = item ? { rpc: item[1], kind: undefined, line: number } : undefined;
+      if (item) entries.push(entry);
+      else problems.push({ line: number, message: `an entry must open with \`  - rpc: <Service>.<method>\`, not \`${line.trim()}\`` });
+      continue;
+    }
+    if (/^\s*kind\s*:/.test(line)) {
+      const kind = /^ {4}kind: (\S+)\s*$/.exec(line);
+      if (!kind || !WAIVER_KINDS.has(kind[1]) || !entry || entry.kind !== undefined) problems.push({ line: number, message: `\`${line.trim()}\` is not one \`    kind: gap|proven-elsewhere\` inside an entry` });
+      else entry.kind = kind[1];
+      continue;
+    }
+    if (/^\s*rpc\s*:/.test(line)) problems.push({ line: number, message: `\`${line.trim()}\` is an \`rpc:\` outside an entry's first line` });
+  }
+  close();
+  return { entries: entries.filter((e) => e.kind !== undefined), problems };
+}
+
+/**
+ * The waivers at head that make the contract weaker than it was at the base:
+ * an RPC waived that was not, or a waiver moved from `proven-elsewhere` to
+ * `gap`. A removed waiver, a `gap` that found its proof, and an edit to an
+ * entry's issue, proof or reason weaken nothing.
+ */
+export function compareRpcWaivers(base, head) {
+  const was = new Map((base ?? []).map((e) => [e.rpc, e.kind]));
+  const weakened = [];
+  for (const e of head ?? []) {
+    const before = was.get(e.rpc);
+    if (before === undefined) weakened.push({ ...e, was: undefined });
+    else if (before === "proven-elsewhere" && e.kind === "gap") weakened.push({ ...e, was: before });
+  }
+  return weakened;
+}
+
 // ─── Declarations and quarantines ───────────────────────────────────────
 
 export function parseDeclarations(body) {
   const removals = [];
   const quarantines = [];
   const skips = [];
+  const rpcWaivers = [];
   for (const match of (body ?? "").matchAll(DECLARATION)) {
     const [, kind, subject, rest] = match;
     if (kind.toLowerCase() === "test-removal") removals.push({ subject: subject.trim(), reason: rest.trim() });
     else if (kind.toLowerCase() === "skip") skips.push({ subject: subject.trim(), reason: rest.trim() });
+    else if (kind.toLowerCase() === "rpc-waiver") rpcWaivers.push({ subject: subject.trim(), reason: rest.trim() });
     else {
       const issue = /((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/.exec(rest);
       quarantines.push({ subject: subject.trim(), repo: issue?.[1] ?? "", issue: issue ? Number(issue[2]) : undefined });
     }
   }
-  return { removals, quarantines, skips };
+  return { removals, quarantines, skips, rpcWaivers };
 }
 
 function declares(declarations, item) {
@@ -472,6 +552,12 @@ export function applyDeclarations(comparison, declarations) {
     if (q?.issue) declared.push({ rule: "new-skip", path: s.path, line: s.line, message: `"${s.title}" quarantined on ${q.repo}#${q.issue}`, issue: { repo: q.repo, issue: q.issue } });
     else if (k) declared.push({ rule: "new-skip", path: s.path, line: s.line, message: `"${s.title}" skips${s.condition ? ` when ${s.condition}` : ""}: ${k.reason}` });
     else refused.push({ rule: "new-skip", path: s.path, line: s.line, message: `new ${s.kind}${s.condition ? ` (${s.condition})` : ""} on "${s.title}"; declare \`Skip: ${s.title} -- <why it does not apply>\`, or quarantine it (\`Quarantine: ${s.title} -- <repo>#<issue>\`)` });
+  }
+  for (const w of comparison.weakenedWaivers ?? []) {
+    const d = (declarations.rpcWaivers ?? []).find((x) => x.subject === w.rpc);
+    const what = w.was === undefined ? `${w.rpc} is waived as \`${w.kind}\` and was not waived at the base` : `${w.rpc}'s waiver moved from \`${w.was}\` to \`${w.kind}\``;
+    if (d) declared.push({ rule: "new-rpc-waiver", path: RPC_WAIVERS, line: w.line, message: `${what}: ${d.reason}` });
+    else refused.push({ rule: "new-rpc-waiver", path: RPC_WAIVERS, line: w.line, message: `${what}; declare it with \`RPC-waiver: ${w.rpc} -- <why no conformance test pins it>\`` });
   }
   return { refused, declared };
 }
@@ -578,6 +664,14 @@ function main(argv) {
       ...git(root, ["ls-tree", "-r", "--name-only", mergeBase]).split("\n").filter((p) => posix.basename(p) === "package.json"),
     ].filter(Boolean).map((p) => posix.dirname(p)));
     comparison = compareInventories(lineages, manifests);
+    const hasWaivers = existsSync(join(root, RPC_WAIVERS));
+    const baseHasWaivers = git(root, ["ls-tree", "--name-only", mergeBase, "--", RPC_WAIVERS]).trim() !== "";
+    if (hasWaivers || baseHasWaivers) {
+      const headWaivers = hasWaivers ? readRpcWaivers(readFileSync(join(root, RPC_WAIVERS), "utf8")) : { entries: [], problems: [] };
+      const baseWaivers = baseHasWaivers ? readRpcWaivers(git(root, ["show", `${mergeBase}:${RPC_WAIVERS}`])) : { entries: [], problems: [] };
+      for (const p of headWaivers.problems) findings.push({ rule: "rpc-waivers-shape", path: RPC_WAIVERS, line: p.line, message: p.message });
+      comparison.weakenedWaivers = compareRpcWaivers(baseWaivers.entries, headWaivers.entries);
+    }
     const body = opts.prBodyFile ? readFileSync(opts.prBodyFile, "utf8") : process.env.TEST_INTEGRITY_PR_BODY ?? "";
     const applied = applyDeclarations(comparison, parseDeclarations(body));
     findings.push(...applied.refused);

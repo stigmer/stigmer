@@ -1,4 +1,5 @@
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { trimTrailing } from "../internal/trim.js";
 
 const PLATFORM_PREFIX = ".stigmer/";
 const PLATFORM_DIR_NAME = ".stigmer";
@@ -71,7 +72,7 @@ export interface DisplayPath {
  */
 export function splitDisplayPath(path: string): DisplayPath {
   if (!path) return { dir: "", base: "" };
-  const trimmed = path.replace(/\/+$/, "");
+  const trimmed = trimTrailing(path, "/");
   const idx = trimmed.lastIndexOf("/");
   if (idx < 0) return { dir: "", base: trimmed };
   const base = trimmed.slice(idx + 1);
@@ -239,7 +240,7 @@ function matchWorkspaceEntry(
 
 function joinLocalPath(base: string, rel: string): string {
   if (!rel) return base;
-  const cleanBase = base.replace(/\/+$/, "");
+  const cleanBase = trimTrailing(base, "/");
   const cleanRel = rel.replace(/^\/+/, "");
   return `${cleanBase}/${cleanRel}`;
 }

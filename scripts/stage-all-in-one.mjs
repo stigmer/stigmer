@@ -49,6 +49,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } fro
 import { join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { sourceBuildVersion } from "./lib/source-version.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
@@ -87,16 +88,8 @@ function parseArgs() {
     else if (arg === "--skip-build") opts.skipBuild = true;
     else fail(`unknown argument: ${arg}`);
   }
-  if (opts.version === "") opts.version = devVersion();
+  if (opts.version === "") opts.version = sourceBuildVersion();
   return opts;
-}
-
-// A from-source build's version: npm-valid, unique per commit, and a
-// prerelease the CLI's acquirers would refuse to DOWNLOAD — which is fine,
-// because the image bakes everything and presence beats acquirability.
-function devVersion() {
-  const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
-  return `0.0.0-dev.${sha}`;
 }
 
 /** The bundle-slim platform token for linux on a docker arch. */

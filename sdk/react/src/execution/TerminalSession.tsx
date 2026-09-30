@@ -128,7 +128,7 @@ export function TerminalTail({
   const combined = [stdout, stderr]
     .filter((s): s is string => Boolean(s))
     .join("\n")
-    .replace(/\s+$/, "");
+    .trimEnd();
   const lines = combined ? normalize(combined).split("\n") : [];
   const tail = lines.slice(-TAIL_LINE_LIMIT);
   const hiddenCount = lines.length - tail.length;

@@ -190,9 +190,11 @@ jobs:
           echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
 
       # Kept as an action: replacing it with `gh release create` would change how
-      # the release (its body, its assets) is made, which is not a pinning fix.
-      - name: Create Release
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15 # zizmor: ignore[superfluous-actions]
+      # the release (its body, its assets) is made (#1574). The suppression sits
+      # on the step's name, so the `uses:` line keeps a version comment that
+      # Dependabot and zizmor can read.
+      - name: Create Release # zizmor: ignore[superfluous-actions]
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

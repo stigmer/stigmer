@@ -26,6 +26,13 @@ No prerequisites — the installer bundles its own Node.js runtime under
 curl -fsSL https://stigmer.ai/install.sh | sh
 ```
 
+A running stack keeps the server it started with. After an upgrade, restart it
+so it runs the new version; your data stays where it is:
+
+```bash
+stigmer down && stigmer up
+```
+
 ### npm
 
 Already have Node.js 22.13 or newer? The CLI is published as

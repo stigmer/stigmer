@@ -428,11 +428,16 @@ the same tag). The declared set is read from the committed generated sources of
   tags: `it("[rpc:AgentCommandController.apply] apply creates on first call
   and updates on second (same name + org)", ...)`.
 - **A tag is checked where the call is made.** `createTransport` installs a
-  recorder (`src/harness/rpc-recorder.ts`) on every target's transport; a
-  passing test whose full name (the describe chain and its title) carries a
-  tag for an RPC it never sent fails with `tag-without-call`. So a tag on a
-  `describe` binds every test under it, and goes there only when every one
-  sends the RPC. A call the runner or the MCP bridge makes from its own
+  recorder (`src/harness/rpc-recorder.ts`) on every target's transport, and
+  every suite config loads `src/harness/rpc-verdict-setup.ts`, which judges
+  each test that runs: a passing test whose full name (the describe chain and
+  its title) carries a tag for an RPC it never sent, a test that sent nothing
+  included, fails with `tag-without-call`. The test's calls are those made in
+  its `beforeEach`, its body, its `afterEach` and its own cleanups; a call
+  from `beforeAll` or `afterAll` never satisfies a tag. An edition difference
+  is a `return ctx.skip()` on the capability, which leaves the test unjudged
+  where it does not apply. So a tag on a `describe` binds every test under
+  it, and goes there only when every one sends the RPC. A call the runner or the MCP bridge makes from its own
   process never passes through that transport: tag a test only for RPCs its
   own clients send. A tagged test is never `it.fails` (the runner flips its
   result after the verdict).
@@ -441,6 +446,14 @@ the same tag). The declared set is read from the committed generated sources of
   the title's `%s` and serves only as a label, the tag goes in that cell
   (`"[rpc:IamPolicyCommandController.bootstrapPolicy] bootstrapPolicy"`);
   otherwise on the inner titles.
+- **A new waiver is declared.** A pull request that waives an RPC not waived
+  at its base, or moves a waiver from `proven-elsewhere` to `gap`, carries one
+  line per RPC in its body, `RPC-waiver: <Service>.<method> -- <why no
+  conformance test pins it>`; `Test integrity` refuses it otherwise
+  (`scripts/test-integrity.mjs`). Removing a waiver, finding a gap its proof,
+  or editing an entry's issue or reason needs nothing. The tool reads this
+  file's block form line by line and refuses any other shape, so keep each
+  entry as `  - rpc:` then `    kind:`.
 - **The measurement.** With `CONFORMANCE_RPC_LEDGER=<dir>` set, every suite
   run appends each (target, file, test, RPC) it sends to `<dir>`; then
   `npx tsx scripts/report-rpc-ledger.ts <dir> [--served <server log>]... [--json <out>]`

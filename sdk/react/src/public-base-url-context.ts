@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from "react";
 import { useStigmer } from "./hooks.js";
+import { trimTrailing } from "./internal/trim.js";
 
 /**
  * React context for the server's public base URL: the address the Stigmer
@@ -50,7 +51,7 @@ export function resolvePublicBaseUrl(
 ): string | null {
   for (const candidate of [hostPublicBaseUrl, clientBaseUrl]) {
     if (candidate !== undefined && isAbsoluteUrl(candidate)) {
-      return candidate.replace(/\/+$/, "");
+      return trimTrailing(candidate, "/");
     }
   }
   return null;

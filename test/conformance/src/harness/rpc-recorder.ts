@@ -10,36 +10,31 @@
 // " > ", so a describe-level tag binds every test under it) must be among the
 // RPCs the test sent; otherwise the test fails with `tag-without-call`.
 //
-// How it knows the running test, using vitest's public API only:
-// - `expect.getState()` names the test (`currentTestName`) and its file
-//   (`testPath`). The name is set before each test and never cleared, so in
-//   an `afterAll` it still names the file's last test; it cannot tell alone
-//   whether a test is running.
-// - `onTestFinished` can: it throws when no test is current. The first call
-//   of each test registers the verdict through it, and a registration that
-//   throws means the call came from `beforeAll` or `afterAll`. Such calls
-//   are recorded apart and never satisfy a tag.
-// - The verdict's handler receives the test's own context and judges only a
-//   test that passed: a failed test is not judged again, a skipped one never
-//   ran.
+// The two halves:
+// - rpc-verdict-setup.ts, in every suite config's `setupFiles`, opens each
+//   test's attempt before the test's own hooks run and registers its verdict
+//   as the test's first finished hook. vitest runs finished hooks last
+//   registered first, so the verdict runs after `afterEach` and the test's own
+//   cleanups, and judges every call the test made, a test that sent nothing
+//   included.
+// - The interceptor records each call into the open attempt; a call with none
+//   open was made from a suite hook (`beforeAll`/`afterAll`), is recorded
+//   apart, and never satisfies a tag.
 //
-// Outside a vitest worker (`VITEST_WORKER_ID` unset: the `tsx` benchmark,
-// vitest's main process running a global setup) the interceptor only passes
-// the call on. Importing `vitest` there throws, so it is loaded lazily, and
-// only inside a worker; once loaded it is used synchronously. A failed load
-// inside a worker rejects the call instead of leaving the verdict silently
-// off.
+// This module imports nothing from `vitest`: importing it outside a vitest
+// process throws, and the `tsx` benchmark sends through this transport too.
+// Outside a vitest worker (`VITEST_WORKER_ID` unset: the benchmark, vitest's
+// main process running a global setup) the interceptor only passes the call
+// on. Inside a worker whose config does not load the setup file, a call
+// rejects rather than leaving every tag unjudged.
 //
 // With CONFORMANCE_RPC_LEDGER=<dir> set, every distinct (target, file, test,
 // rpc) is also appended to `<dir>/<pid>.jsonl`, with `test: null` for a call
 // made in a suite hook; `scripts/report-rpc-ledger.ts` reads the directory.
 //
 // Its limits, each closed elsewhere or ruled out by the suite's own shape:
-// - A tagged test that sends nothing registers no verdict, and neither does
-//   one whose first call is made from its own `onTestFinished` cleanup (vitest
-//   never runs a finished-hook registered while the finished hooks run). A
-//   per-test setup file closes both; it is a vitest config change.
-// - A call in `beforeEach` or `afterEach` counts as the test's.
+// - A call in `beforeEach`, `afterEach` or a test's own finished hook counts
+//   as the test's; the reviewer judges what a test asserts.
 // - `it.fails` flips a test's result after its finished hooks, so the verdict
 //   cannot fail one; a tagged test is never `it.fails`.
 // - Calls another process sends (the runner, the MCP bridge) never pass
@@ -51,27 +46,30 @@ import type { Interceptor } from "@connectrpc/connect";
 import type { RpcLedgerLine } from "../inventory/rpc-ledger";
 import { extractRpcTags, rpcKey } from "../inventory/rpc-tag";
 
-type VitestApi = Pick<typeof import("vitest"), "expect" | "onTestFinished">;
-
 const PACKAGE_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
-// Started at load inside a worker, so the first call rarely waits; the
-// derived catch keeps a failed load from surfacing as an unhandled rejection
-// before any call awaits it (the call then rejects with the load's error).
-let vitestApi: VitestApi | undefined;
-const vitestLoad: Promise<VitestApi> | undefined =
-  process.env.VITEST_WORKER_ID === undefined
-    ? undefined
-    : import("vitest").then((loaded) => {
-        vitestApi = loaded;
-        return loaded;
-      });
-vitestLoad?.catch(() => undefined);
+const inWorker = process.env.VITEST_WORKER_ID !== undefined;
+
+// What the setup file hands over: where the running file is, read through
+// vitest's `expect.getState()`, which this module cannot import.
+export interface RpcVerdictHost {
+  readonly currentFile: () => string | undefined;
+}
+
+let host: RpcVerdictHost | undefined;
+
+export function installRpcVerdict(installed: RpcVerdictHost): void {
+  host = installed;
+}
 
 export const rpcRecorder: Interceptor = (next) => async (req) => {
-  if (vitestLoad === undefined) return next(req);
-  const api = vitestApi ?? (await vitestLoad);
-  record(api, rpcKey(req.service.typeName, req.method.name));
+  if (!inWorker) return next(req);
+  if (host === undefined) {
+    throw new Error(
+      "rpc-verdict: this vitest run does not load src/harness/rpc-verdict-setup.ts in setupFiles, so no tag can be judged",
+    );
+  }
+  record(host, rpcKey(req.service.typeName, req.method.name));
   return next(req);
 };
 
@@ -84,47 +82,32 @@ export function judge(testName: string, sent: ReadonlySet<string>): string | und
   return `tag-without-call: "${testName}" claims ${missing.join(", ")} but sent only ${sentList}`;
 }
 
-// One run of one test, from its first call to its verdict.
+// One run of one test, from its first hook to its verdict.
 interface Attempt {
-  readonly key: string;
   readonly name: string;
   readonly sent: Set<string>;
 }
 
 let open: Attempt | undefined;
 
-function record(api: VitestApi, rpc: string): void {
-  const state = api.expect.getState();
-  const attempt = currentAttempt(api, state.testPath ?? "", state.currentTestName);
-  attempt?.sent.add(rpc);
-  writeLedger(state.testPath, attempt?.name ?? null, rpc);
+// Opens the running test's attempt; the setup file calls it from its
+// `beforeEach` and hands the returned verdict to `onTestFinished`. The verdict
+// closes the attempt, then judges only a test that passed: a failed test is
+// not judged again, and a skipped one never ran.
+export function beginTest(name: string): (state: string | undefined) => void {
+  const attempt: Attempt = { name, sent: new Set() };
+  open = attempt;
+  return (state) => {
+    if (open === attempt) open = undefined;
+    if (state !== "pass") return;
+    const failure = judge(attempt.name, attempt.sent);
+    if (failure !== undefined) throw new Error(failure);
+  };
 }
 
-// The running test's attempt, opened (and its verdict registered) on the
-// test's first call; undefined when no test is running. A verdict that ran
-// clears its attempt; one whose registration vitest dropped (a first call made
-// from the test's own finished hook) leaves it open, so an open attempt under
-// another key is replaced, never reused: its test has ended.
-function currentAttempt(api: VitestApi, testPath: string, testName: string | undefined): Attempt | undefined {
-  if (testName === undefined) return undefined;
-  const key = `${testPath}\u0000${testName}`;
-  if (open !== undefined && open.key === key) return open;
-  const attempt: Attempt = { key, name: testName, sent: new Set() };
-  try {
-    api.onTestFinished((context) => {
-      if (open === attempt) open = undefined;
-      if (context.task.result?.state !== "pass") return;
-      const failure = judge(attempt.name, attempt.sent);
-      if (failure !== undefined) throw new Error(failure);
-    });
-  } catch (error) {
-    // vitest's refusal outside a test is the probe's answer. Any other error
-    // is not, and surfaces on the call rather than disabling the verdict.
-    if (error instanceof Error && error.message.includes("can only be called inside a test")) return undefined;
-    throw error;
-  }
-  open = attempt;
-  return attempt;
+function record(installed: RpcVerdictHost, rpc: string): void {
+  open?.sent.add(rpc);
+  writeLedger(installed.currentFile(), open?.name ?? null, rpc);
 }
 
 const ledgerDir = process.env.CONFORMANCE_RPC_LEDGER;

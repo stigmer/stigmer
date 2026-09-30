@@ -91,8 +91,9 @@ updates:
 
   # GitHub Actions is the one ecosystem with version updates on: every action
   # is pinned to a commit SHA (zizmor.yml requires it), so the pins move only
-  # through this grouped weekly pull request, never by a tag being moved. The
-  # cooldown keeps a release published in the last seven days out of it.
+  # through this grouped weekly pull request (minor and patch releases), never
+  # by a tag being moved. The cooldown keeps a release published in the last
+  # seven days out of it.
   - package-ecosystem: github-actions
     directories:
       - "/"
@@ -101,6 +102,12 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    # A new major version of an action changes its inputs or its runtime, so
+    # it is an upgrade to plan and review on its own, not a line in the weekly
+    # pin refresh.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       actions:
         applies-to: version-updates

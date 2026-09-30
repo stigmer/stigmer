@@ -123,6 +123,9 @@ function blockedReasonV6(groups: readonly number[], posture: EgressPosture): str
   return null;
 }
 
+/** A dotted IPv4 address, matched against a whole candidate string. */
+const DOTTED_QUAD = /^\d+\.\d+\.\d+\.\d+$/;
+
 /**
  * Expand an IPv6 address (already validated by isIP) into its 8 groups.
  * Handles `::` compression, a trailing dotted-IPv4 tail, and zone suffixes.
@@ -130,9 +133,11 @@ function blockedReasonV6(groups: readonly number[], posture: EgressPosture): str
 function expandV6(address: string): number[] | null {
   let text = address.toLowerCase().split("%")[0] ?? "";
 
-  // Convert a dotted-IPv4 tail (for example ::ffff:127.0.0.1) into two hex groups.
-  const v4Tail = /(\d+\.\d+\.\d+\.\d+)$/.exec(text);
-  const tail4 = v4Tail?.[1];
+  // Convert a dotted-IPv4 tail (for example ::ffff:127.0.0.1) into two hex
+  // groups. The tail is the text after the last colon, matched whole: an
+  // unanchored search for it would retry at every position of the address.
+  const lastGroup = text.slice(text.lastIndexOf(":") + 1);
+  const tail4 = DOTTED_QUAD.test(lastGroup) ? lastGroup : undefined;
   if (tail4 !== undefined) {
     const octets = tail4.split(".").map(Number);
     if (octets.length !== 4 || octets.some((o) => o > 255)) return null;

@@ -97,7 +97,7 @@ export function unwrapEnclosingMarkdownFence(
  * blank lines only). Group 1 is the heading text; the match spans through the
  * heading's trailing newline(s) so `body` starts at the first content line.
  */
-const LEADING_H1_RE = /^#[ \t]+(.+?)[ \t]*(?:\r?\n+|$)/;
+const LEADING_H1_MARKER = /^#[ \t]+/;
 
 /**
  * Splits a markdown document into its leading `# H1` title and the remaining
@@ -115,10 +115,21 @@ export function extractLeadingH1(markdown: string): {
   readonly title: string | null;
   readonly body: string;
 } {
+  // Read line by line: a single pattern over the heading and the newlines
+  // after it backtracks on a long run of spaces.
   const trimmed = markdown.trim();
-  const match = LEADING_H1_RE.exec(trimmed);
-  if (!match) return { title: null, body: markdown };
-  return { title: match[1], body: trimmed.slice(match[0].length) };
+  const lineEnd = trimmed.indexOf("\n");
+  const firstLine = lineEnd === -1 ? trimmed : trimmed.slice(0, lineEnd);
+  const marker = LEADING_H1_MARKER.exec(firstLine);
+  if (!marker) return { title: null, body: markdown };
+  const rawTitle = firstLine.slice(marker[0].length).replace(/\r$/, "");
+  let titleEnd = rawTitle.length;
+  while (titleEnd > 0 && (rawTitle[titleEnd - 1] === " " || rawTitle[titleEnd - 1] === "\t")) titleEnd -= 1;
+  const title = rawTitle.slice(0, titleEnd);
+  if (title === "") return { title: null, body: markdown };
+  let bodyStart = lineEnd === -1 ? trimmed.length : lineEnd + 1;
+  while (trimmed[bodyStart] === "\n") bodyStart += 1;
+  return { title, body: trimmed.slice(bodyStart) };
 }
 
 /**

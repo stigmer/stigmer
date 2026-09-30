@@ -160,6 +160,14 @@ describe("document serving", () => {
     expect(response.headers.get("location")).toBe("/conversations?tab=all");
   });
 
+  it("never redirects to another host, however the path begins", async () => {
+    const response = await fetch(`${baseUrl}/%2F%2Fevil.example/`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("/evil.example");
+  });
+
   it("marks hashed build assets immutable and the embed loader short-lived", async () => {
     const chunk = await fetch(`${baseUrl}/_next/static/chunks/app-1a2b3c.js`);
     expect(chunk.status).toBe(200);
