@@ -57,8 +57,8 @@
  * posted by a maintainer's account.
  *
  * Callers: the `Review verdict` check (.github/workflows/ci.review.yaml), the
- * review and merge skills, and stigmer-cloud's merge hook, which imports
- * `readReview` from its byte-identical copy of this file.
+ * review and pull-request skills, and any downstream merge guard that imports
+ * `readReview` from a byte-identical copy of this file.
  *
  * Usage:
  *   node scripts/review-verdict.mjs --status -R <owner/repo> <n> [--expect-head <sha>] [--dir <checkout>] [--json]
@@ -246,6 +246,12 @@ function run(command, args, { cwd, input } = {}) {
 
 const gh = (args) => run("gh", args);
 
+/** What a failed command said: the first line of its stderr, else its message. */
+export function errorText(error) {
+  const stderr = String(error?.stderr ?? "").split("\n").map((line) => line.trim()).find(Boolean);
+  return stderr ?? String(error?.message ?? error).split("\n")[0].trim();
+}
+
 /** `owner/repo` of a remote URL (https, ssh or scp form), or undefined. */
 export function repoFromUrl(url) {
   const match = /[:/]([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/.exec((url ?? "").trim());
@@ -339,9 +345,9 @@ export function canWrite(repo, login, api = gh) {
     const permission = api(["api", `repos/${repo}/collaborators/${encodeURIComponent(login)}/permission`, "--jq", ".permission"]).trim();
     return WRITE_PERMISSIONS.includes(permission);
   } catch (error) {
-    const text = `${error.stderr ?? ""}${error.message ?? ""}`;
+    const text = errorText(error);
     if (/HTTP 404|Not Found|is not a user/i.test(text)) return false;
-    throw new Error(`cannot read ${login}'s permission on ${repo}: ${text.trim().split("\n")[0]}`);
+    throw new Error(`cannot read ${login}'s permission on ${repo}: ${text}`);
   }
 }
 
@@ -372,14 +378,14 @@ export function readReview({ repo, number, dir, expectHead }, lookups = {}) {
  * Makes the `Review verdict` check judge again after a verdict is posted: a
  * comment fires no pull-request event, so the newest run for the head is
  * rerun once it has finished. A repository without the workflow has nothing
- * to rerun (its merge hook reads the comment at merge time).
+ * to rerun (whatever guards its merges reads the comment at merge time).
  */
 export function rejudge(repo, head, api = gh) {
   let runs;
   try {
     runs = JSON.parse(api(["run", "list", "-R", repo, "-w", CHECK_WORKFLOW, "-c", head, "-e", "pull_request", "-L", "1", "--json", "databaseId,status"]));
   } catch (error) {
-    const text = `${error.stderr ?? ""}${error.message ?? ""}`;
+    const text = errorText(error);
     if (/could not find any workflows|workflow .* not found|HTTP 404/i.test(text)) return `${repo} has no ${CHECK_WORKFLOW}; nothing to rerun`;
     throw error;
   }
@@ -431,8 +437,8 @@ export function postVerdict({ repo, number, dir, output, reviewedHead, reviewedD
   try {
     return { exit: 0, lines: [posted, look.rejudge(repo, pr.headRefOid)] };
   } catch (error) {
-    const reason = `${error.stderr ?? ""}${error.message ?? error}`.trim().split("\n")[0];
-    return { exit: 1, lines: [posted, `the verdict is posted, but the check was not made to judge it again: ${reason}; rerun ${CHECK_WORKFLOW}'s newest run for the head by hand`] };
+    const reason = errorText(error);
+    return { exit: 1, lines: [posted, `the verdict is posted, but the check was not made to judge it again: ${reason}; push to the branch (merging main will do) or comment \`@dependabot rebase\`, and the new run reads this verdict (GitHub refuses to rerun a run more than 30 days old)`] };
   }
 }
 

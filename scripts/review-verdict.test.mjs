@@ -312,7 +312,7 @@ test("a posted verdict whose rerun fails says it was posted", () => {
   assert.equal(result.exit, 1);
   assert.equal(posted.length, 1);
   assert.match(result.lines[0], /^posted approve/);
-  assert.match(result.lines[1], /the verdict is posted, but the check was not made to judge it again: run 42 cannot be rerun/);
+  assert.match(result.lines[1], /the verdict is posted, but the check was not made to judge it again: run 42 cannot be rerun; its workflow file may be broken; push to the branch/);
 });
 
 test("a verdict of the wrong shape is not posted", () => {
@@ -335,7 +335,7 @@ test("write access is write, maintain or admin; no access is no; any other failu
   };
   assert.equal(canWrite("stigmer/stigmer", "x", failing("gh: Not Found (HTTP 404)")), false);
   assert.equal(canWrite("stigmer/stigmer", "dependabot[bot]", failing("gh: dependabot[bot] is not a user (HTTP 404)")), false);
-  assert.throws(() => canWrite("stigmer/stigmer", "x", failing("gh: Server Error (HTTP 502)")), /cannot read x's permission on stigmer\/stigmer: gh: Server Error/);
+  assert.throws(() => canWrite("stigmer/stigmer", "x", failing("gh: Server Error (HTTP 502)")), /cannot read x's permission on stigmer\/stigmer: gh: Server Error \(HTTP 502\)$/);
 });
 
 function fakeGh(answers) {

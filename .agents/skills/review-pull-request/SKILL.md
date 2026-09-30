@@ -17,12 +17,12 @@ does. Its verdict is a comment on the pull request, and
 `scripts/review-verdict.mjs` is the only thing that writes one: `approve` or
 `changes-needed`, bound to the change and the body's declarations. The script's
 header has the rules. The `Review verdict` check (`ci.review.yaml`) requires a
-current `approve` on stigmer; on stigmer-cloud the merge hook does.
+current `approve`; a repository without that check can hold its merges to the
+same verdict by importing `readReview` from a copy of the script.
 
 The session that owns the pull request runs this at the end of its verification,
-so a `changes-needed` is fixed before anyone is asked to merge. Stigmer's merges
-are armed from stigmer-cloud's merge skill (`merge-stigmer-pull-request`), which
-runs it again only when the verdict is missing or stale.
+so a `changes-needed` is fixed before anyone is asked to merge. Whoever arms the
+merge runs it again only when the verdict is missing or stale.
 
 ## Procedure
 
@@ -38,8 +38,8 @@ runs it again only when the verdict is missing or stale.
 
    `current` needs nothing more. Any other state needs a review: keep the `head`
    and `digest` it printed. They are what the reviewer will read, and step 4
-   posts the verdict only if neither has moved. In stigmer-cloud the script is
-   the cloud's byte-identical copy. To judge a pull request of another
+   posts the verdict only if neither has moved. A repository that carries a copy
+   of the script runs its own copy. To judge a pull request of another
    repository, pass `--dir <a checkout of its base>`.
 
 2. **Give the reviewer a checkout at the head.** This is the pull request's
