@@ -965,7 +965,7 @@ test-e2e-console-login: ## Run the console sign-in E2E against a server in the O
 #                      runner and server builds + dep hygiene
 #        check-site  — vale, prettier --check, site lint/typecheck/build,
 #                      demo validation, link check (all under docs/ + site/)
-#        check-rust  — desktop cargo check + runner-host crate
+#        check-rust  — desktop cargo test + runner-host crate
 #        check-java  — Java proto stubs + SDK (mvn)
 #
 # After `make setup` once, `make check` needs nothing else, in a fresh worktree
@@ -1086,8 +1086,8 @@ check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/b
 	$(MAKE) -C site validate-demos
 	@lychee --config .lychee.toml --root-dir . docs/
 
-check-rust: ## check bucket: desktop cargo check + runner-host crate (mirrors ci.crate: fmt/clippy/build/test)
-	$(MAKE) check-desktop-rust
+check-rust: ## check bucket: desktop cargo test + runner-host crate (mirrors ci.crate: fmt/clippy/build/test)
+	$(MAKE) test-desktop-rust
 	cd crates/stigmer-runner-host && cargo fmt --check
 	cd crates/stigmer-runner-host && cargo clippy --all-targets -- -D warnings
 	cd crates/stigmer-runner-host && cargo build && cargo test

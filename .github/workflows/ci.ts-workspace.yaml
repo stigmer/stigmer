@@ -315,12 +315,15 @@ jobs:
       - name: Run desktop app tests
         run: node scripts/turbo-set.mjs workspace test --only=desktop
 
-  # The Tauri shell's Rust crate, compiled for real: `cargo check` needs the
+  # The Tauri shell's Rust crate, compiled and tested for real: it needs the
   # Rust toolchain and the system libraries Tauri links (the shared
-  # tauri-linux-deps action), which no other job here carries. No npm install:
-  # the check compiles Rust only and reads no frontend build.
+  # tauri-linux-deps action), which no other job here carries. `cargo test`,
+  # not `cargo check`: it compiles everything the check did (the library and
+  # the binary) and runs the shell's own tests, the deep-link router, the
+  # sign-in callback parser and the workspace commands among them. No npm
+  # install: it compiles Rust only and reads no frontend build.
   desktop-rust:
-    name: Desktop Rust Check
+    name: Desktop Rust Tests
     runs-on: ubuntu-latest
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
@@ -339,8 +342,8 @@ jobs:
       - name: Install Tauri's Linux packages
         uses: ./.github/actions/tauri-linux-deps
 
-      - name: Check the desktop Rust crate
-        run: make check-desktop-rust
+      - name: Test the desktop Rust crate
+        run: make test-desktop-rust
 
   # Fresh resolution, deliberately outside turbo: the lockfile is deleted
   # before the install, so the package graph turbo hashes from is the thing
