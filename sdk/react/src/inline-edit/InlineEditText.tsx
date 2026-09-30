@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { InlineEditBaseProps } from "./types.js";
 
@@ -41,13 +41,19 @@ export function InlineEditText({
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isEditing) {
-      setDraft(value);
-      setLocalError(null);
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [isEditing, value]);
+  // The draft is seeded once, when editing opens, so a value that changes
+  // while the editor is open never overwrites what the user has typed.
+  const handleEdit = useCallback(() => {
+    setDraft(value);
+    setLocalError(null);
+    setIsEditing(true);
+  }, [value]);
+
+  // A layout effect, not a frame later: focus lands in the same commit that
+  // shows the field, so the first keystroke after the click reaches it.
+  useLayoutEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
 
   const handleConfirm = useCallback(async () => {
     const trimmed = draft.trim();
@@ -91,7 +97,7 @@ export function InlineEditText({
       <div className={cn("stg:group/inline-edit", className)}>
         <button
           type="button"
-          onClick={() => { if (!disabled) setIsEditing(true); }}
+          onClick={() => { if (!disabled) handleEdit(); }}
           disabled={disabled}
           className={cn(
             "stg:inline-flex stg:w-full stg:items-center stg:gap-1.5 stg:rounded-md stg:px-1.5 stg:py-0.5 stg:text-left stg:transition-colors",

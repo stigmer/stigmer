@@ -23,11 +23,16 @@ async function pinActiveOrg(page: Page): Promise<void> {
   }, BOOTSTRAP_ORG);
 }
 
-/** Seed an agent + a schedule targeting it; returns slugs and a cleanup. */
+/**
+ * Seed an agent + a schedule targeting it; returns slugs and a cleanup.
+ * Seeds the organization too, so a case that calls it never depends on a
+ * sibling case having run first.
+ */
 async function createTestSchedule(
   stigmerClient: Stigmer,
   options?: { enabled?: boolean },
 ) {
+  await ensureBootstrapOrg(stigmerClient);
   const stamp = Date.now();
   const agent = await stigmerClient.agent.create({
     name: `e2e-sched-agent-${stamp}`,
@@ -227,11 +232,12 @@ test.describe("Schedule detail tabs and inline editing", () => {
       await expect(page.getByText("0 9 * * *")).toBeVisible();
 
       // Inline-edit the message: click-to-edit, save, and the view
-      // reflects the new value.
+      // reflects the new value. The editor opens on the stored text, and
+      // the fill replaces it whole (an append here was stigmer/stigmer#1575).
       await page.getByText("Send today's reminders.").click();
-      await page
-        .getByRole("textbox")
-        .fill("Send this week's reminders.");
+      const messageField = page.getByRole("textbox");
+      await expect(messageField).toHaveValue("Send today's reminders.");
+      await messageField.fill("Send this week's reminders.");
       await page.getByRole("button", { name: "Save" }).click();
       await expect(
         page.getByText("Send this week's reminders."),
