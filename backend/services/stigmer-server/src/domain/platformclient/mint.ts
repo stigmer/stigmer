@@ -390,7 +390,11 @@ async function grantAutoRole(
       ? DEFAULT_AUTO_GRANT_ROLE
       : configured;
   try {
-    await deps.grantPath.grant(organizationRole(accountId, role, org), actor);
+    await deps.grantPath.grant(
+      organizationRole(accountId, role, org),
+      actor,
+      "platform_client_grant",
+    );
   } catch (error) {
     deps.logger.error(
       "platform client auto-grant failed; nothing was provisioned",

@@ -185,6 +185,14 @@ export { portContractCases } from "./store/port-contract.js";
 // composition reaches it as in-process RPCs, the doctrine.
 export type { IamPolicyStore } from "./domain/iampolicy/store.js";
 export { DuplicatePolicyError } from "./domain/iampolicy/store.js";
+// What the grant path hands the store beside every access row it writes or
+// deletes (who, through which door, in which organization), so an edition
+// that keeps a permission history writes it atomically with the row.
+export type {
+  PolicyActor,
+  PolicyChangeCause,
+  PolicyChangeRecord,
+} from "./domain/iampolicy/change.js";
 export type {
   IamPolicyStoreContractCase,
   IamPolicyStoreContractFixture,
@@ -342,9 +350,14 @@ export { generateSlug } from "./pipeline/steps/slug.js";
 // composing requests through the in-process transport AS a caller rides
 // the same header the OSS asCaller adapters use. (callerIdentityOf and
 // callerIdentityKey ride the request-idiom export block below.)
+// serverActingFor is the one construction of "the server acting for" a
+// principal: an extension that writes on a person's behalf (an invitation,
+// a deleted team's cleanup) sends it so the write names that person while
+// the server's own admission rules apply.
 export {
   encodeInProcessCaller,
   IN_PROCESS_CALLER_HEADER,
+  serverActingFor,
 } from "./pipeline/interceptors/auth.js";
 
 // The request idiom for extension-REGISTERED services (C4 Stage 4): a

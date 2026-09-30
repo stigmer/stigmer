@@ -172,6 +172,7 @@ import {
   policyNotFoundMessage,
   unknownPermissionMessage,
 } from "./constants.js";
+import type { PolicyChangeCause } from "./change.js";
 import { newAccountDisplayResolver } from "./display-resolver.js";
 import type { AccountsByIds } from "./display-resolver.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
@@ -242,7 +243,14 @@ export function registerIamPolicyServices(
     delete: (spec, ctx) => deletePolicy(deps, spec, ctx),
     bootstrapPolicy: (spec, ctx) => {
       guardSystemRpc(command.bootstrapPolicy, callerIdentityOf(ctx));
-      return grantThroughChain(deps, command.bootstrapPolicy, spec, ctx, false);
+      return grantThroughChain(
+        deps,
+        command.bootstrapPolicy,
+        spec,
+        ctx,
+        false,
+        "structural",
+      );
     },
     cleanupResourcePolicies: (ref, ctx) => {
       guardSystemRpc(command.cleanupResourcePolicies, callerIdentityOf(ctx));
@@ -318,6 +326,7 @@ function createPolicy(
     spec,
     ctx,
     true,
+    "grant",
   );
 }
 
@@ -325,7 +334,8 @@ function createPolicy(
  * The grant chain both `create` and `bootstrapPolicy` run; only the user
  * lane validates the role, asks for an owner's authority when it grants
  * owner, and runs the create gate slot — bootstrap writes structural
- * relations no scope would admit and no edition gates.
+ * relations no scope would admit and no edition gates. `cause` is the
+ * lane's door, recorded with every access row it writes.
  */
 async function grantThroughChain(
   deps: IamPolicyControllerDeps,
@@ -333,6 +343,7 @@ async function grantThroughChain(
   spec: IamPolicySpec,
   ctx: HandlerContext,
   validateRole: boolean,
+  cause: PolicyChangeCause,
 ): Promise<IamPolicy> {
   const reqCtx = new RequestContext(
     IamPolicySpecSchema,
@@ -358,7 +369,10 @@ async function grantThroughChain(
       pipeline.addStep(step);
     }
   }
-  await pipeline.addStep(newGrantStep(deps.grantPath)).build().execute(reqCtx);
+  await pipeline
+    .addStep(newGrantStep(deps.grantPath, cause))
+    .build()
+    .execute(reqCtx);
   return policyResultOf(reqCtx, method);
 }
 

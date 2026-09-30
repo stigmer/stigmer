@@ -52,6 +52,7 @@ const CONTRACT_CASE_NAMES = [
   "countDistinctPrincipalsByResource counts (kind, id) pairs, not rows, optionally by principal kind",
   "findScopeTuple skips identity_account and team principals and owner and creator relations",
   "deleteById removes the row; the triple is free to be granted again",
+  "a change record changes nothing about the row: save and deleteById behave as without one",
   "deleteById of an unknown id resolves",
   "a disconnected store is an infrastructure fault, never 'not found'",
   "two concurrent saves of one triple end in one row and DuplicatePolicyErrors only",

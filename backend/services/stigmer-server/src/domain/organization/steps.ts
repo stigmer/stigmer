@@ -174,6 +174,7 @@ export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
             kind: ApiResourceKind[ApiResourceKind.organization],
             id,
           }),
+          ctx.callerIdentity,
         );
       } catch (error) {
         throw internalError(

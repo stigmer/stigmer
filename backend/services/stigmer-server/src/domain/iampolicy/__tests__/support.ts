@@ -20,6 +20,7 @@ import type {
   PolicyRevokedEvent,
   ResourceAuthorizationLifecycle,
 } from "../../../extensions/resource-authorization.js";
+import type { PolicyChangeRecord } from "../change.js";
 import type { ResourceCreators } from "../grant-path.js";
 import { DuplicatePolicyError } from "../store.js";
 import type { IamPolicyStore } from "../store.js";
@@ -91,8 +92,17 @@ export type RecordedEvent =
       readonly pair: string;
     };
 
+/** A change record the fake store was handed, beside the write it came with. */
+export interface RecordedChange {
+  readonly op: "save" | "delete";
+  readonly id: string;
+  readonly record: PolicyChangeRecord | undefined;
+}
+
 export interface FakeIamPolicyStore extends IamPolicyStore {
   readonly rows: Map<string, IamPolicy>;
+  /** Every save and delete that changed a row, with the record it carried. */
+  readonly changes: RecordedChange[];
 }
 
 /** An in-memory store with the adapter's primary-key semantics; writes are recorded when a log is given. */
@@ -100,6 +110,7 @@ export function fakeIamPolicyStore(
   recorded?: RecordedEvent[],
 ): FakeIamPolicyStore {
   const rows = new Map<string, IamPolicy>();
+  const changes: RecordedChange[] = [];
   const all = (): IamPolicy[] => [...rows.values()];
   const matches = (
     policy: IamPolicy,
@@ -116,16 +127,20 @@ export function fakeIamPolicyStore(
     (resourceId === undefined || policy.spec?.resource?.id === resourceId);
   return {
     rows,
-    async save(policy) {
+    changes,
+    async save(policy, record) {
       const id = policy.metadata?.id ?? "";
       if (rows.has(id)) {
         throw new DuplicatePolicyError(`IAM policy '${id}' already exists`);
       }
       rows.set(id, policy);
+      changes.push({ op: "save", id, record });
       recorded?.push({ kind: "row-save", id });
     },
-    async deleteById(id) {
-      rows.delete(id);
+    async deleteById(id, record) {
+      if (rows.delete(id)) {
+        changes.push({ op: "delete", id, record });
+      }
       recorded?.push({ kind: "row-delete", id });
     },
     async findById(id) {

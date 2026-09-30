@@ -456,9 +456,9 @@ describe("Grant and Revoke leave their result under POLICY_RESULT_KEY", () => {
     const path = pathOverFreshStore();
     const spec = orgRole("ida_bob", "member", "acme");
     const first = contextOf(spec);
-    await newGrantStep(path).execute(first);
+    await newGrantStep(path, "grant").execute(first);
     const second = contextOf(spec);
-    await newGrantStep(path).execute(second);
+    await newGrantStep(path, "grant").execute(second);
     expect((first.get(POLICY_RESULT_KEY) as IamPolicy).metadata?.id).toBe(
       policyIdFor(spec),
     );
@@ -470,7 +470,7 @@ describe("Grant and Revoke leave their result under POLICY_RESULT_KEY", () => {
   it("Revoke leaves the revoked row, or the default instance when there was none (Java's idempotent delete)", async () => {
     const path = pathOverFreshStore();
     const spec = orgRole("ida_bob", "member", "acme");
-    await path.grant(spec, caller);
+    await path.grant(spec, caller, "grant");
     const revoked = contextOf(spec);
     await newRevokeStep(path).execute(revoked);
     expect((revoked.get(POLICY_RESULT_KEY) as IamPolicy).metadata?.id).toBe(
@@ -539,7 +539,7 @@ describe("owner is assigned by owners", () => {
       logger: silent,
     });
     for (const [account, role] of roles) {
-      await path.grant(orgRole(account, role, "acme"), caller);
+      await path.grant(orgRole(account, role, "acme"), caller, "grant");
     }
     let reads = 0;
     const read = store.findByResourceWithRelations.bind(store);

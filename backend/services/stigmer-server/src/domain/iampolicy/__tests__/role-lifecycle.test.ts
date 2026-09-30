@@ -236,17 +236,26 @@ describe("onResourceDeleted: the rows die with the resource", () => {
   it("an organization's deletion removes every row on it, as resource and as principal", async () => {
     const recorded: RecordedEvent[] = [];
     const { lifecycle, grantPath, store } = lifecycleOver(recorded);
-    await grantPath.grant(orgRole(ALICE, "owner", "acme"), caller(ALICE));
-    await grantPath.grant(orgRole(ALICE, "member", "acme"), caller(ALICE));
+    await grantPath.grant(
+      orgRole(ALICE, "owner", "acme"),
+      caller(ALICE),
+      "grant",
+    );
+    await grantPath.grant(
+      orgRole(ALICE, "member", "acme"),
+      caller(ALICE),
+      "grant",
+    );
     await grantPath.grant(
       triple({ kind: "organization", id: "acme" }, "organization", {
         kind: "agent",
         id: AGENT,
       }),
       caller(ALICE),
+      "structural",
     );
     const unrelated = orgRole(ALICE, "member", "globex");
-    await grantPath.grant(unrelated, caller(ALICE));
+    await grantPath.grant(unrelated, caller(ALICE), "grant");
     recorded.length = 0;
 
     await lifecycle.onResourceDeleted(
@@ -269,10 +278,22 @@ describe("onResourceDeleted: the rows die with the resource", () => {
   it("an identity account's deletion removes every row it holds anywhere", async () => {
     const recorded: RecordedEvent[] = [];
     const { lifecycle, grantPath, store } = lifecycleOver(recorded);
-    await grantPath.grant(orgRole(ALICE, "owner", "acme"), caller(ALICE));
-    await grantPath.grant(orgRole(ALICE, "member", "globex"), caller(ALICE));
+    await grantPath.grant(
+      orgRole(ALICE, "owner", "acme"),
+      caller(ALICE),
+      "grant",
+    );
+    await grantPath.grant(
+      orgRole(ALICE, "member", "globex"),
+      caller(ALICE),
+      "grant",
+    );
     const bob = accountIdFor("auth0|bob");
-    await grantPath.grant(orgRole(bob, "member", "acme"), caller(ALICE));
+    await grantPath.grant(
+      orgRole(bob, "member", "acme"),
+      caller(ALICE),
+      "grant",
+    );
     recorded.length = 0;
 
     await lifecycle.onResourceDeleted(
@@ -302,6 +323,7 @@ describe("onResourceDeleted: the rows die with the resource", () => {
           id: AGENT,
         }),
         caller(ALICE),
+        "grant",
       );
       recorded.length = 0;
 
@@ -321,6 +343,7 @@ describe("the rest of the contract", () => {
       kind: ApiResourceKind.agent,
       resourceId: AGENT,
       orgId: "acme",
+      caller: caller(ALICE),
       shapesToCreate: ["org-viewer"],
       shapesToDelete: [],
     });
@@ -355,7 +378,11 @@ describe("the rest of the contract", () => {
       deleteById: () => Promise.reject(new Error("disk full")),
     };
     const { lifecycle, grantPath } = lifecycleOver([], faulty);
-    await grantPath.grant(orgRole(ALICE, "owner", "acme"), caller(ALICE));
+    await grantPath.grant(
+      orgRole(ALICE, "owner", "acme"),
+      caller(ALICE),
+      "grant",
+    );
 
     await expect(
       lifecycle.onResourceDeleted(
