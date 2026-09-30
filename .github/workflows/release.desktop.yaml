@@ -30,7 +30,7 @@ jobs:
       should_release: ${{ steps.version.outputs.should_release }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -66,12 +66,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.25'
           # No module cache: a release builds from nothing a pull request
@@ -86,7 +86,7 @@ jobs:
       # The stub scrub inside gen-stubs.sh runs from TypeScript source via
       # the repo-pinned tsx, so the root npm install must precede `make protos`.
       - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
@@ -109,7 +109,7 @@ jobs:
             sdk/typescript/src/gen/
 
       - name: Upload proto stubs
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: proto-stubs
           path: proto-stubs.tar.gz
@@ -132,7 +132,7 @@ jobs:
     steps:
       - name: Create draft release
         id: create
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         with:
@@ -231,7 +231,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -339,7 +339,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Download proto stubs
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: proto-stubs
 
@@ -347,7 +347,7 @@ jobs:
         run: tar -xzf proto-stubs.tar.gz
 
       - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
@@ -416,7 +416,7 @@ jobs:
       # above), so this env block is the same on every platform.
       - name: Build and upload (release)
         if: needs.determine-version.outputs.should_release == 'true'
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # action-v0.6.2
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -430,7 +430,7 @@ jobs:
 
       - name: Build only (no release)
         if: needs.determine-version.outputs.should_release != 'true'
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # action-v0.6.2
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -479,7 +479,7 @@ jobs:
       # workflow artifact so it can be opened on a Mac before a tag is cut.
       - name: Upload macOS DMG artifact
         if: runner.os == 'macOS' && needs.determine-version.outputs.should_release != 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: desktop-macos-dmg
           path: ${{ steps.bundles.outputs.dmg }}
@@ -491,7 +491,7 @@ jobs:
       # that the Linux engine runs the Linux runner outside the build host.
       - name: Upload Linux and Windows installers artifact
         if: runner.os != 'macOS' && needs.determine-version.outputs.should_release != 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: desktop-${{ runner.os == 'Linux' && 'linux' || 'windows' }}-installers
           path: |
@@ -516,7 +516,7 @@ jobs:
 
       - name: Upload updater fragment
         if: needs.determine-version.outputs.should_release == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: updater-fragment-${{ matrix.platform }}
           path: updater-fragment-${{ matrix.platform }}.json
@@ -533,12 +533,12 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Download updater fragments
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: updater-fragment-*
           path: updater-fragments
