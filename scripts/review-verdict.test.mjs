@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 import {
   canWrite,
   changeDigest,
+  checkoutFor,
   changeId,
   declarationText,
   parseReview,
@@ -30,6 +31,7 @@ import {
   readReview,
   rejudge,
   renderReview,
+  repoFromUrl,
   reviewState,
   verdictProblems,
 } from "./review-verdict.mjs";
@@ -252,12 +254,15 @@ test("a failed permission lookup is not a pass", () => {
 
 // ─── Posting, the permission lookup, and the rerun ──────────────────────
 
-function postLookups({ head = HEAD } = {}) {
+const REVIEWED_BODY = "Skip: a -- b";
+const REVIEWED = changeDigest({ changeId: "1234", declarations: declarationText(REVIEWED_BODY) });
+
+function postLookups({ head = HEAD, body = REVIEWED_BODY } = {}) {
   const posted = [];
   return {
     posted,
     lookups: {
-      pullRequest: () => ({ number: 7, headRefOid: head, baseRefName: "main", body: "Skip: a -- b" }),
+      pullRequest: () => ({ number: 7, headRefOid: head, baseRefName: "main", body }),
       checkoutFor: () => "/checkout",
       changeId: () => "1234",
       comment: (_repo, _number, body) => posted.push(body),
@@ -269,26 +274,48 @@ const approve = { verdict: "approve", reviewer: "claude-opus-5-5", findings: [] 
 
 test("a posted verdict carries the digest of the change and declarations it was given for", () => {
   const { lookups, posted } = postLookups();
-  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD }, lookups);
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD, reviewedDigest: REVIEWED }, lookups);
   assert.equal(result.exit, 0, result.lines.join("; "));
   assert.equal(posted.length, 1);
   const parsed = parseReview(posted[0]);
   assert.deepEqual(parsed.problems, []);
-  assert.equal(parsed.reviewed, changeDigest({ changeId: "1234", declarations: declarationText("Skip: a -- b") }));
+  assert.equal(parsed.reviewed, REVIEWED);
   assert.deepEqual(result.lines, ["posted approve on stigmer/stigmer#7 at aaaaaaaaaa", "reran"]);
 });
 
 test("a verdict for a head that moved during the review is not posted", () => {
   const { lookups, posted } = postLookups({ head: "d".repeat(40) });
-  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD }, lookups);
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD, reviewedDigest: REVIEWED }, lookups);
   assert.equal(result.exit, 1);
   assert.match(result.lines[0], /moved during the review; review it again/);
   assert.deepEqual(posted, []);
 });
 
+test("a declaration added to the body during the review is not approved unread", () => {
+  const { lookups, posted } = postLookups({ body: `${REVIEWED_BODY}\nTest-removal: the old case -- replaced` });
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD, reviewedDigest: REVIEWED }, lookups);
+  assert.equal(result.exit, 1);
+  assert.match(result.lines[0], /change or declarations moved during the review/);
+  assert.deepEqual(posted, []);
+});
+
+test("a posted verdict whose rerun fails says it was posted", () => {
+  const { lookups, posted } = postLookups();
+  lookups.rejudge = () => {
+    const error = new Error("Command failed");
+    error.stderr = "run 42 cannot be rerun; its workflow file may be broken";
+    throw error;
+  };
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: approve, reviewedHead: HEAD, reviewedDigest: REVIEWED }, lookups);
+  assert.equal(result.exit, 1);
+  assert.equal(posted.length, 1);
+  assert.match(result.lines[0], /^posted approve/);
+  assert.match(result.lines[1], /the verdict is posted, but the check was not made to judge it again: run 42 cannot be rerun/);
+});
+
 test("a verdict of the wrong shape is not posted", () => {
   const { lookups, posted } = postLookups();
-  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: { ...approve, findings: [{ path: "a", severity: "blocking", summary: "x" }] }, reviewedHead: HEAD }, lookups);
+  const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: { ...approve, findings: [{ path: "a", severity: "blocking", summary: "x" }] }, reviewedHead: HEAD, reviewedDigest: REVIEWED }, lookups);
   assert.equal(result.exit, 1);
   assert.match(result.lines[0], /approve cannot carry a blocking finding/);
   assert.deepEqual(posted, []);
@@ -343,6 +370,34 @@ test("a head with no check run, or a repository without the workflow, is said so
   const other = new Error("Command failed");
   other.stderr = "HTTP 502";
   assert.throws(() => rejudge("stigmer/stigmer", HEAD, fakeGh({ "run list": other }).api));
+});
+
+test("a remote URL names its repository in every form git writes", () => {
+  for (const url of [
+    "https://github.com/stigmer/stigmer.git",
+    "https://github.com/stigmer/stigmer",
+    "https://x-access-token:abc@github.com/stigmer/stigmer.git",
+    "git@github.com:stigmer/stigmer.git",
+    "ssh://git@github.com/stigmer/stigmer.git",
+    "https://github.com/stigmer/stigmer/\n",
+  ]) {
+    assert.equal(repoFromUrl(url), "stigmer/stigmer", url);
+  }
+  assert.equal(repoFromUrl("git@github.com:stigmer/stigmer-cloud.git"), "stigmer/stigmer-cloud");
+  assert.equal(repoFromUrl("not a url"), undefined);
+  assert.equal(repoFromUrl(undefined), undefined);
+});
+
+test("the diff is computed only in a checkout of the pull request's repository", () => {
+  const { root, work } = repositories();
+  try {
+    git(work, "remote", "set-url", "origin", "git@github.com:stigmer/stigmer.git");
+    assert.equal(checkoutFor("stigmer/stigmer", work), git(work, "rev-parse", "--show-toplevel"));
+    assert.equal(checkoutFor("Stigmer/Stigmer", work), git(work, "rev-parse", "--show-toplevel"), "GitHub names are case-insensitive");
+    assert.throws(() => checkoutFor("stigmer/stigmer-cloud", work), /is a checkout of stigmer\/stigmer, not stigmer\/stigmer-cloud; pass --dir/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 // ─── The change id, through real git ────────────────────────────────────

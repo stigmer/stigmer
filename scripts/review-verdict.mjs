@@ -37,8 +37,11 @@
  *   - the declarations the body carries (`Test-removal:`, `Quarantine:`,
  *     `Skip:`), read by the test-integrity tool's own parser, since the
  *     reviewer judges each one.
- * Any edit to the change, or a declaration added or reworded, makes the
- * verdict stale, and the pull request needs a new review.
+ * Any edit to the change, or a declaration added, removed or changed in what
+ * it names (its case and reason; for a quarantine, its case and issue), makes
+ * the verdict stale, and the pull request needs a new review. The digest is
+ * taken before the review and posted only if it has not moved since, so a
+ * declaration added while the reviewer reads is never approved unread.
  *
  * The state of a pull request is its newest review comment by a writer:
  *   current         approve, and its digest is the digest now
@@ -59,11 +62,13 @@
  *
  * Usage:
  *   node scripts/review-verdict.mjs --status -R <owner/repo> <n> [--expect-head <sha>] [--dir <checkout>] [--json]
- *   node scripts/review-verdict.mjs --write -R <owner/repo> <n> --verdict-file <json> --reviewed-head <sha> [--dir <checkout>]
+ *   node scripts/review-verdict.mjs --write -R <owner/repo> <n> --verdict-file <json> --reviewed-head <sha> --reviewed-digest <sha256:…> [--dir <checkout>]
  *
  * `--dir` is a checkout of the pull request's repository, where the diff is
  * computed; it defaults to the checkout this script lives in when that is the
- * same repository. `--verdict-file` holds the reviewer's JSON output:
+ * same repository. `--reviewed-head` and `--reviewed-digest` are the `head`
+ * and `digest` that `--status --json` printed before the reviewer was
+ * launched. `--verdict-file` holds the reviewer's JSON output:
  *   { "verdict": "approve" | "changes-needed", "reviewer": "<model>",
  *     "findings": [{ "path": "...", "line": 1, "severity": "blocking" | "minor", "summary": "..." }] }
  *
@@ -241,12 +246,16 @@ function run(command, args, { cwd, input } = {}) {
 
 const gh = (args) => run("gh", args);
 
+/** `owner/repo` of a remote URL (https, ssh or scp form), or undefined. */
+export function repoFromUrl(url) {
+  const match = /[:/]([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/.exec((url ?? "").trim());
+  return match ? `${match[1]}/${match[2]}` : undefined;
+}
+
 /** `owner/repo` of a checkout's origin, or undefined. */
 export function originRepo(dir) {
   try {
-    const url = run("git", ["remote", "get-url", "origin"], { cwd: dir }).trim();
-    const match = /[:/]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/.exec(url);
-    return match ? `${match[1]}/${match[2]}` : undefined;
+    return repoFromUrl(run("git", ["remote", "get-url", "origin"], { cwd: dir }));
   } catch {
     return undefined;
   }
@@ -400,11 +409,11 @@ function comment(repo, number, body) {
 }
 
 /**
- * Posts a reviewer's verdict, refusing one whose shape is wrong or whose head
- * moved during the review. Returns `{ exit, lines }`; `lookups` replaces the
- * real effects in tests.
+ * Posts a reviewer's verdict, refusing one whose shape is wrong, or whose
+ * head, change or declarations moved during the review. Returns
+ * `{ exit, lines }`; `lookups` replaces the real effects in tests.
  */
-export function postVerdict({ repo, number, dir, output, reviewedHead }, lookups = {}) {
+export function postVerdict({ repo, number, dir, output, reviewedHead, reviewedDigest }, lookups = {}) {
   const look = { pullRequest, checkoutFor, changeId, comment, rejudge, ...lookups };
   const problems = verdictProblems(output);
   if (problems.length > 0) return { exit: 1, lines: [`the verdict is refused: ${problems.join("; ")}`] };
@@ -414,14 +423,23 @@ export function postVerdict({ repo, number, dir, output, reviewedHead }, lookups
   }
   const checkout = look.checkoutFor(repo, dir);
   const reviewed = changeDigest({ changeId: look.changeId(checkout, { head: pr.headRefOid, base: pr.baseRefName }), declarations: declarationText(pr.body) });
+  if (reviewed !== reviewedDigest) {
+    return { exit: 1, lines: [`#${number}'s change or declarations moved during the review (digest ${reviewed}, reviewed ${reviewedDigest}); review it again`] };
+  }
   look.comment(repo, number, renderReview({ verdict: output.verdict, head: pr.headRefOid, reviewed, reviewer: output.reviewer, findings: output.findings }));
-  return { exit: 0, lines: [`posted ${output.verdict} on ${repo}#${number} at ${pr.headRefOid.slice(0, 10)}`, look.rejudge(repo, pr.headRefOid)] };
+  const posted = `posted ${output.verdict} on ${repo}#${number} at ${pr.headRefOid.slice(0, 10)}`;
+  try {
+    return { exit: 0, lines: [posted, look.rejudge(repo, pr.headRefOid)] };
+  } catch (error) {
+    const reason = `${error.stderr ?? ""}${error.message ?? error}`.trim().split("\n")[0];
+    return { exit: 1, lines: [posted, `the verdict is posted, but the check was not made to judge it again: ${reason}; rerun ${CHECK_WORKFLOW}'s newest run for the head by hand`] };
+  }
 }
 
 // ─── The command ────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const opts = { mode: undefined, repo: undefined, number: undefined, expectHead: undefined, dir: undefined, verdictFile: undefined, reviewedHead: undefined, json: false };
+  const opts = { mode: undefined, repo: undefined, number: undefined, expectHead: undefined, dir: undefined, verdictFile: undefined, reviewedHead: undefined, reviewedDigest: undefined, json: false };
   const value = (i, name) => {
     if (argv[i + 1] === undefined || argv[i + 1].startsWith("--")) throw new Error(`${name} needs a value`);
     return argv[i + 1];
@@ -434,6 +452,7 @@ function parseArgs(argv) {
     else if (arg === "--dir") opts.dir = value(i++, arg);
     else if (arg === "--verdict-file") opts.verdictFile = value(i++, arg);
     else if (arg === "--reviewed-head") opts.reviewedHead = value(i++, arg);
+    else if (arg === "--reviewed-digest") opts.reviewedDigest = value(i++, arg);
     else if (arg === "--json") opts.json = true;
     else if (/^\d+$/.test(arg) && opts.number === undefined) opts.number = Number(arg);
     else throw new Error(`unknown argument ${arg}`);
@@ -442,8 +461,8 @@ function parseArgs(argv) {
   if (!/^[\w.-]+\/[\w.-]+$/.test(opts.repo ?? "")) throw new Error("pass -R <owner/repo>");
   if (opts.number === undefined) throw new Error("pass the pull request number");
   if (opts.expectHead !== undefined && !SHA.test(opts.expectHead)) throw new Error("--expect-head takes a full commit SHA");
-  if (opts.mode === "write" && (!opts.verdictFile || !SHA.test(opts.reviewedHead ?? ""))) {
-    throw new Error("--write needs --verdict-file <json> and --reviewed-head <full SHA>");
+  if (opts.mode === "write" && (!opts.verdictFile || !SHA.test(opts.reviewedHead ?? "") || !DIGEST.test(opts.reviewedDigest ?? ""))) {
+    throw new Error("--write needs --verdict-file <json>, --reviewed-head <full SHA> and --reviewed-digest <sha256:…>, the head and digest `--status --json` printed before the review");
   }
   return opts;
 }

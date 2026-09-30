@@ -32,12 +32,14 @@ runs it again only when the verdict is missing or stale.
    check never matches.
 
    ```bash
-   node scripts/review-verdict.mjs --status -R <owner/repo> <n>
+   node scripts/review-verdict.mjs --status -R <owner/repo> <n> --json
    ```
 
-   `current` needs nothing more. Any other state needs a review. In
-   stigmer-cloud the script is the cloud's byte-identical copy. To judge a pull
-   request of another repository, pass `--dir <a checkout of its base>`.
+   `current` needs nothing more. Any other state needs a review: keep the `head`
+   and `digest` it printed. They are what the reviewer will read, and step 4
+   posts the verdict only if neither has moved. In stigmer-cloud the script is
+   the cloud's byte-identical copy. To judge a pull request of another
+   repository, pass `--dir <a checkout of its base>`.
 
 2. **Give the reviewer a checkout at the head.** This is the pull request's
    worktree when it is clean and its `HEAD` is the head
@@ -69,14 +71,15 @@ runs it again only when the verdict is missing or stale.
    then, from the same checkout of the base as step 1:
 
    ```bash
-   node scripts/review-verdict.mjs --write -R <owner/repo> <n> --verdict-file <file> --reviewed-head <head>
+   node scripts/review-verdict.mjs --write -R <owner/repo> <n> --verdict-file <file> --reviewed-head <head> --reviewed-digest <digest>
    ```
 
-   It refuses a verdict whose head has moved, or whose shape is wrong (an
-   `approve` with a blocking finding, for one). It posts the comment and, on a
-   repository with `ci.review.yaml`, reruns the check so that it reads the
-   comment. Never write a review comment by hand, and never post a verdict the
-   reviewer did not give.
+   It refuses a verdict whose head, change or declarations moved since step 1 (a
+   declaration added during the review would otherwise be approved unread), or
+   whose shape is wrong (an `approve` with a blocking finding, for one). It
+   posts the comment and, on a repository with `ci.review.yaml`, reruns the
+   check so that it reads the comment. Never write a review comment by hand, and
+   never post a verdict the reviewer did not give.
 
 5. **Act on it.** On `approve`, the pull request is ready for its merge. On
    `changes-needed`, fix each blocking finding, verify, push, and run this
