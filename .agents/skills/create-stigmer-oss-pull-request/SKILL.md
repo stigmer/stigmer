@@ -123,9 +123,13 @@ git push -u origin "$(git branch --show-current)"
 gh pr create --title "$TITLE" --body "$BODY" [--draft] [--reviewer ...] [--label ...]
 ```
 
-Open as a draft when the work is a milestone of a longer program that will grow
-on the same branch. Once the pull request is open and its local checks pass, run
+One PR per milestone, opened once the milestone is built and verified locally.
+Before that the branch is pushed with no PR, which runs no CI, and a fix found
+while building rides the milestone's PR unless another change needs it on `main`
+now. A PR per project would hold its work off `main` for days, drift against
+every other merge, and expose more lanes to each flaky test in the queue. Open a
+draft only when the owner asks to see the work early; a draft is reviewed when
+it is marked ready. Once the pull request is open and its local checks pass, run
 `.agents/skills/review-pull-request/SKILL.md`, and fix a `changes-needed` before
-handing back. A draft is reviewed when it is marked ready. Report the PR URL and
-the verdict. Merging is a separate, explicitly requested act, never part of
-opening.
+handing back. Report the PR URL and the verdict. Merging is a separate,
+explicitly requested act, never part of opening.
