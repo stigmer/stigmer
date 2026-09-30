@@ -123,6 +123,8 @@ a fresh worktree, `make build-ts-stubs` first or the package cannot resolve
 RPC carries its `[rpc:<Service>.<method>]` tag at the front of its title, and a
 new RPC with no such test is waived in
 `test/conformance/inventory/rpc-waivers.yaml` (a `gap` naming its open issue, or
-`proven-elsewhere` naming a tagged test file). Tag only an RPC the test's own
-clients send: a tagged test that never sends it fails by name. The placement
-rules are in `test/conformance/README.md`, "The RPC contract".
+`proven-elsewhere` naming a tagged test file), and the pull request that adds
+the waiver declares it (`RPC-waiver: <Service>.<method> -- <reason>` in its
+body). Tag only an RPC the test's own clients send: a tagged test that never
+sends it fails by name, one that sends nothing included. The placement rules are
+in `test/conformance/README.md`, "The RPC contract".

@@ -18,7 +18,11 @@
 #     reason: <one sentence on why the conformance suite is the wrong layer>
 #
 # An RPC is waived once, never both waived and tagged, and a waiver names a
-# declared RPC; a `proven_by` file must exist and carry the tag.
+# declared RPC; a `proven_by` file must exist and carry the tag. A pull request
+# that adds a waiver, or moves one from proven-elsewhere to gap, declares it in
+# its body (`RPC-waiver: <Service>.<method> -- <reason>`, scripts/
+# test-integrity.mjs), which reads this block form line by line: keep each
+# entry as `  - rpc:` then `    kind:`.
 waivers:
   - rpc: AgentExecutionCommandController.update
     kind: gap
