@@ -100,7 +100,9 @@ Paste each value into its line. Two optional lines are worth setting now:
 
 - `ANTHROPIC_API_KEY`, so Agents can answer. Without it the stack still serves
   the console, the API and LLM-free Workflow executions; Agent runs fail at the
-  LLM call.
+  LLM call. If your model traffic goes through an LLM gateway in front of
+  Anthropic, set `ANTHROPIC_BASE_URL` to it too (see
+  [Send Claude calls through an LLM gateway](/docs/guides/runners/model-backends#send-claude-calls-through-an-llm-gateway)).
 - `STIGMER_OPERATOR_EMAIL`, your own email. It's stamped on what you create, and
   when you later turn authentication on, the person who signs in with this email
   becomes an administrator of every Organization.

@@ -6,8 +6,9 @@
  * Layering mirrors `llm-proxy.ts`: this module is pure string/config
  * utilities with no LangChain or SDK dependency. Consumers: the runner
  * factories run `preflightLlmBackends` at startup, and `model-client.ts`
- * resolves the backend and translates model ids at construction time; see
- * `__tests__/vertex-seam.test.ts` for the pinned seam behavior.
+ * resolves the backend, the public API's address and model ids at
+ * construction time; see `__tests__/vertex-seam.test.ts` for the pinned seam
+ * behavior.
  */
 
 import type { LlmProvider } from "./llm-proxy.js";
@@ -122,6 +123,66 @@ export function resolveAnthropicBackend(
   const parsed = parseAnthropicBackend(env);
   if (!parsed.ok) throw new Error(parsed.message);
   return parsed.backend;
+}
+
+// ─── The public API's address ────────────────────────────────────────────────
+
+/**
+ * Env var naming where the `public` Anthropic backend is reached: an LLM
+ * gateway in front of Anthropic, or a local stand-in for it. It is the
+ * Anthropic SDK's own variable, so a value an operator already exports for
+ * other Anthropic tooling means the same thing here; the runner reads it
+ * explicitly so the behaviour is pinned here, not left to a dependency's
+ * default.
+ */
+export const ANTHROPIC_BASE_URL_ENV = "ANTHROPIC_BASE_URL";
+
+/** Result of parsing {@link ANTHROPIC_BASE_URL_ENV}; `undefined` is Anthropic's own address. */
+export type BaseUrlParseResult =
+  | { readonly ok: true; readonly baseUrl: string | undefined }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Parse `ANTHROPIC_BASE_URL` (unset or blank → Anthropic's own address).
+ * The value is the API root the SDK appends `/v1/messages` to, so a trailing
+ * slash is dropped; anything that is not an absolute http(s) URL is refused
+ * rather than sent, because a typo would otherwise surface as a connection
+ * error on every execution.
+ */
+export function parseAnthropicBaseUrl(
+  env: NodeJS.ProcessEnv = process.env,
+): BaseUrlParseResult {
+  const raw = env[ANTHROPIC_BASE_URL_ENV]?.trim() ?? "";
+  if (raw === "") return { ok: true, baseUrl: undefined };
+  let url: URL | undefined;
+  try {
+    url = new URL(raw);
+  } catch {
+    url = undefined;
+  }
+  if (url === undefined || (url.protocol !== "http:" && url.protocol !== "https:")) {
+    return {
+      ok: false,
+      message:
+        `${ANTHROPIC_BASE_URL_ENV}="${raw}" is not an http(s) URL. Set it to the ` +
+        `address that serves Anthropic's API (for example https://llm-gateway.internal), ` +
+        `or unset it to use Anthropic's own. See ${BACKEND_DOC_URL}.`,
+    };
+  }
+  return { ok: true, baseUrl: raw.replace(/\/+$/, "") };
+}
+
+/**
+ * Resolve the public Anthropic backend's address for model construction,
+ * throwing the parser's message on an invalid value (the same defense in
+ * depth as {@link resolveAnthropicBackend}).
+ */
+export function resolveAnthropicBaseUrl(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const parsed = parseAnthropicBaseUrl(env);
+  if (!parsed.ok) throw new Error(parsed.message);
+  return parsed.baseUrl;
 }
 
 /**
@@ -389,7 +450,9 @@ export interface LlmBackendPreflight {
  * provider routing and backend vars are inert, so they downgrade to
  * warnings (never silence, but never fail a proxied fleet over an ignored
  * var either). Without a proxy, invalid values and missing prerequisites
- * are fatal.
+ * are fatal. `ANTHROPIC_BASE_URL` follows the same rule, and is also inert
+ * (a warning) under a non-public Anthropic backend, which has its own
+ * endpoint.
  */
 export function preflightLlmBackends(
   env: NodeJS.ProcessEnv = process.env,
@@ -407,11 +470,27 @@ export function preflightLlmBackends(
         );
       }
     }
+    const baseUrl = env[ANTHROPIC_BASE_URL_ENV]?.trim();
+    if (baseUrl) {
+      warnings.push(
+        `STIGMER_PROXY_ENDPOINT is set; ${ANTHROPIC_BASE_URL_ENV}=${baseUrl} is ignored — ` +
+        `the proxy owns provider routing.`,
+      );
+    }
     return { error: null, warnings };
   }
 
   const errors: string[] = [];
+  const warnings: string[] = [];
   const anthropic = parseAnthropicBackend(env);
+  const baseUrl = parseAnthropicBaseUrl(env);
+  if (!baseUrl.ok) errors.push(baseUrl.message);
+  if (anthropic.ok && anthropic.backend !== "public" && baseUrl.ok && baseUrl.baseUrl !== undefined) {
+    warnings.push(
+      `${ANTHROPIC_BACKEND_ENV}=${anthropic.backend} is set; ${ANTHROPIC_BASE_URL_ENV} is ignored — ` +
+      `the ${anthropic.backend} backend has its own endpoint.`,
+    );
+  }
   if (!anthropic.ok) {
     errors.push(anthropic.message);
   } else if (anthropic.backend === "vertex") {
@@ -427,7 +506,7 @@ export function preflightLlmBackends(
   const openai = parseOpenAiBackend(env);
   if (!openai.ok) errors.push(openai.message);
 
-  return { error: errors.length > 0 ? errors.join("\n") : null, warnings: [] };
+  return { error: errors.length > 0 ? errors.join("\n") : null, warnings };
 }
 
 // ─── Model-id translation ────────────────────────────────────────────────────

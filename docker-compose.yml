@@ -194,8 +194,10 @@ services:
       LOCAL_ARTIFACT_SERVE_URL: *artifact-serve-url
       # LLM provider keys (optional at boot; agent executions need one —
       # see .env.example). Workflow executions without agent tasks run
-      # key-free.
+      # key-free. ANTHROPIC_BASE_URL sends Anthropic calls to a gateway in
+      # front of Anthropic instead; empty means Anthropic's own address.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
       CURSOR_API_KEY: ${CURSOR_API_KEY:-}
       # The runner's own API key (the chart's runner.stigmerToken); an empty
       # value reads as unset, and the authentication guide says when to set

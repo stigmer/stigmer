@@ -23,7 +23,14 @@
  *      keys (the gate ruling Q-C; the ci.conformance-execution precedent).
  *      This is the line the phase gate draws: the runner container
  *      polled the queue and executed real work;
- *   5. clean teardown (`docker compose down --volumes`).
+ *   5. one AGENT RUN answered by a model: the stack is configured the way
+ *      the guide tells a user to (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL
+ *      in the env file), pointed at a fake Anthropic API on this host
+ *      (scripts/lib/fake-model.mjs), and the run must complete with the
+ *      fake's reply as its last message. A smoke-only override file maps
+ *      host.docker.internal into the runner container; nothing test-only
+ *      lands in the tree;
+ *   6. clean teardown (`docker compose down --volumes`).
  *
  * Usage:
  *   node scripts/smoke-compose.mjs --build
@@ -38,7 +45,10 @@
  *       Pulls the published ghcr.io images at that tag (the release
  *       lane's mode; requires the tags to exist).
  *
- *   --keep    leave the stack running (skip teardown) for debugging.
+ *   --keep    leave the stack running (skip teardown) for debugging; the
+ *             fake model stops with this process, so agent runs then fail.
+ *   --fake-model=error   the fake answers every model call with an error,
+ *             so step 5 must fail — the red-first check of that step.
  *
  * The stack publishes fixed host ports 7234/7235 (the product contract),
  * so this smoke refuses to start if they are occupied — stop any running
@@ -58,9 +68,11 @@ import {
   assertArtifactLane,
   assertConsoleServed,
   assertPortFree,
+  runAgentToReply,
   runSetVarsWorkflow,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
+import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
@@ -79,9 +91,12 @@ function parseArgs() {
   let mode = "";
   let version = "";
   let keep = false;
+  let fakeModel = "reply";
   for (const arg of process.argv.slice(2)) {
     let m;
-    if (arg === "--build") mode = "build";
+    const fakeModelMode = parseFakeModelArg(arg);
+    if (fakeModelMode !== undefined) fakeModel = fakeModelMode;
+    else if (arg === "--build") mode = "build";
     else if (arg === "--published") mode = mode === "" ? "published" : mode;
     else if ((m = arg.match(/^--version=(.+)$/)) !== null) version = m[1];
     else if (arg === "--keep") keep = true;
@@ -91,7 +106,7 @@ function parseArgs() {
   if (mode === "published" && version === "") {
     fail("--published requires --version=vX.Y.Z (the pushed image tag)");
   }
-  return { mode, version, keep };
+  return { mode, version, keep, fakeModel };
 }
 
 function fail(message) {
@@ -143,10 +158,15 @@ function stagedRunnerCliVersion() {
 }
 
 async function main() {
-  const { mode, version, keep } = parseArgs();
+  const { mode, version, keep, fakeModel } = parseArgs();
 
   await assertPortFree(SERVER_PORT);
   await assertPortFree(ARTIFACT_PORT);
+
+  // The model the stack is configured with: the fake on this host, which the
+  // runner container reaches through the gateway name the override maps.
+  const fake = await startFakeModel({ host: "0.0.0.0", mode: fakeModel });
+  const modelEnv = fakeModelEnv(fake, "host.docker.internal");
 
   // Fresh keys per run into an isolated env file: the smoke never reads a
   // developer's real .env, and two runs never share state.
@@ -159,7 +179,13 @@ async function main() {
   ];
   if (version !== "") envLines.push(`STIGMER_VERSION=${version}`);
   if (mode === "build") envLines.push(`STIGMER_CLI_VERSION=${stagedRunnerCliVersion()}`);
+  envLines.push(`ANTHROPIC_API_KEY=${modelEnv.ANTHROPIC_API_KEY}`, `ANTHROPIC_BASE_URL=${modelEnv.ANTHROPIC_BASE_URL}`);
   writeFileSync(envFile, envLines.join("\n") + "\n");
+  const hostGatewayFile = join(workDir, "host-gateway.yml");
+  writeFileSync(
+    hostGatewayFile,
+    'services:\n  stigmer-runner:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n',
+  );
 
   const project = `stigmer-smoke-${Date.now()}`;
   const composeArgs = [
@@ -174,6 +200,7 @@ async function main() {
   if (mode === "build") {
     composeArgs.push("-f", join(repoRoot, "docker-compose.dev.yml"));
   }
+  composeArgs.push("-f", hostGatewayFile);
 
   const compose = (args, options = {}) =>
     execFileSync("docker", [...composeArgs, ...args], {
@@ -218,6 +245,10 @@ async function main() {
     const executionId = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
     log(`end-to-end run: execution ${executionId} COMPLETED through the runner`);
 
+    // 5. The agent run — the model path a user configures, end to end.
+    const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
+    log(`agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
+
     log("PASS");
   } catch (error) {
     failed = true;
@@ -243,6 +274,7 @@ async function main() {
       });
       rmSync(workDir, { recursive: true, force: true });
     }
+    await fake.close();
   }
   process.exit(failed ? 1 : 0);
 }

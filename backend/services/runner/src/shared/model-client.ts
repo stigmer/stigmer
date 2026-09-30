@@ -27,6 +27,7 @@ import {
 } from "./llm-proxy.js";
 import {
   resolveAnthropicBackend,
+  resolveAnthropicBaseUrl,
   checkVertexPrerequisites,
   checkBedrockPrerequisites,
   checkFoundryPrerequisites,
@@ -264,9 +265,15 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     wireModelId = toFoundryDeploymentName(apiModelId);
   }
 
+  // The proxy's provider path wins; without one, only the public Anthropic
+  // backend takes an operator-set address (ANTHROPIC_BASE_URL: a gateway in
+  // front of Anthropic, or the install journeys' fake model). The backend
+  // adapters reach their own cloud endpoints and OpenAI keeps its default.
   const baseUrl = opts.proxyEndpoint
     ? resolveProxyBaseUrl(opts.proxyEndpoint, provider)
-    : undefined;
+    : provider === "anthropic" && anthropicBackend === "public"
+      ? resolveAnthropicBaseUrl()
+      : undefined;
   const headers = opts.proxyEndpoint && opts.stigmerToken
     ? buildProxyHeaders(opts.stigmerToken, opts.headerScope ?? {})
     : undefined;
