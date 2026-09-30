@@ -1,73 +1,81 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../../fixtures";
 
+/**
+ * The workflow library list: its heading, search, view switcher and header
+ * actions, the empty state of an organization with no workflow, and a
+ * seeded workflow listed as a card that opens its detail page.
+ *
+ * The empty and seeded states each run in an organization of their own
+ * (the `freshOrg` fixture), so neither depends on what other specs seeded.
+ */
 test.describe("Workflow list page", () => {
-  test.beforeEach(async ({ page }) => {
+  test("renders heading, description, search and the view switcher", async ({ page }) => {
     await page.goto("/library/workflows");
-    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByRole("heading", { name: "Workflows", level: 1 })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(
+      page.getByText("Browse and manage multi-step orchestration workflows."),
+    ).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Search workflows…" })).toBeVisible();
+
+    const views = page.getByRole("radiogroup", { name: "View mode" });
+    await expect(views.getByRole("radio", { name: "Card view" })).toBeChecked();
+    await expect(views.getByRole("radio", { name: "Table view" })).not.toBeChecked();
   });
 
-  test("renders heading and description", async ({ page }) => {
-    const heading = page.locator('h1:has-text("Workflows")');
-    await expect(heading).toBeVisible({ timeout: 10_000 });
+  test("offers Create workflow and Apply YAML in the header", async ({ page }) => {
+    await page.goto("/library/workflows");
 
-    const description = page.locator(
-      'text="Browse and manage multi-step orchestration workflows."',
+    const header = page.getByLabel("Workflow workbench");
+    await expect(header).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Apply YAML" })).toBeEnabled();
+    await expect(page.getByRole("link", { name: "Create workflow" }).first()).toHaveAttribute(
+      "href",
+      "/library/workflows/new",
     );
-    await expect(description).toBeVisible();
   });
 
-  test("renders workbench with search input", async ({ page }) => {
-    const workbench = page.locator('[aria-label="Workflow workbench"]');
-    await expect(workbench).toBeVisible({ timeout: 10_000 });
-
-    const search = page.locator(
-      'input[placeholder="Search workflows…"], input[placeholder*="Search workflow"]',
+  test("an organization with no workflow shows the empty state with its own call to action", async ({
+    page,
+    freshOrg,
+  }) => {
+    await page.goto("/library/workflows");
+    await expect(page.getByRole("button", { name: "Organization menu" })).toContainText(
+      freshOrg.slug,
+      { timeout: 15_000 },
     );
-    await expect(search).toBeVisible();
+
+    const empty = page.getByRole("status").filter({ hasText: "No workflows yet" });
+    await expect(empty).toBeVisible({ timeout: 15_000 });
+    await expect(empty.getByRole("link", { name: "Create workflow" })).toHaveAttribute(
+      "href",
+      "/library/workflows/new",
+    );
+    await expect(page.getByRole("list", { name: "Resource cards" })).toHaveCount(0);
   });
 
-  test("shows card view by default (role=list container)", async ({ page }) => {
-    await page.waitForTimeout(3000);
+  test("a seeded workflow is listed as a card and opens its detail page", async ({
+    page,
+    stigmerClient,
+    freshOrg,
+  }) => {
+    const { createTestWorkflow } = await import("../../fixtures/seed-helpers");
+    const workflow = await createTestWorkflow(stigmerClient, { org: freshOrg.slug });
+    try {
+      await page.goto("/library/workflows");
 
-    // Either cards are visible (if data exists) or empty state is shown
-    const cardGrid = page.locator('[role="list"][aria-label="Resource cards"]');
-    const emptyState = page.locator('text="No workflows yet"');
+      const cards = page.getByRole("list", { name: "Resource cards" });
+      await expect(cards.getByRole("listitem")).toHaveCount(1, { timeout: 15_000 });
+      await cards.getByRole("listitem").filter({ hasText: workflow.slug }).click();
 
-    const hasCards = await cardGrid.isVisible().catch(() => false);
-    const hasEmpty = await emptyState.isVisible().catch(() => false);
-
-    expect(hasCards || hasEmpty).toBeTruthy();
-  });
-
-  test("view mode toggle is present with table and cards options", async ({ page }) => {
-    await page.waitForTimeout(2000);
-
-    // The view switcher should be present in the workbench toolbar
-    const workbench = page.locator('[aria-label="Workflow workbench"]');
-    await expect(workbench).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("Create workflow button is visible in header", async ({ page }) => {
-    const createButton = page.locator('a:has-text("Create workflow")');
-    await expect(createButton).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("Import button is visible in header", async ({ page }) => {
-    const importButton = page.locator('[aria-label="Import from file"]');
-    await expect(importButton).toBeVisible({ timeout: 10_000 });
-  });
-
-  test("empty state shows create CTA when no workflows exist", async ({ page }) => {
-    await page.waitForTimeout(3000);
-
-    const emptyState = page.locator('text="No workflows yet"');
-    const hasEmpty = await emptyState.isVisible().catch(() => false);
-
-    if (hasEmpty) {
-      const emptyCta = page.locator(
-        '[aria-label="Workflow workbench"] >> a:has-text("Create workflow")',
-      );
-      await expect(emptyCta).toBeVisible();
+      await expect(page.getByRole("heading", { name: workflow.slug })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page).toHaveURL(new RegExp(`/library/workflows/${freshOrg.slug}/${workflow.slug}$`));
+    } finally {
+      await workflow.cleanup();
     }
   });
 });

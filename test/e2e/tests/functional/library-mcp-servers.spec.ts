@@ -1,11 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../../fixtures";
 
 /**
  * MCP Servers list page structural tests.
  *
  * Verifies that /library/mcp-servers renders the correct heading, search,
- * workbench (cards or empty state), "Add MCP server" action link,
- * and the icon-only "Import from file" button.
+ * workbench (the empty state in an organization with no MCP server),
+ * the "Add MCP server" action link, and the "Apply YAML" action.
  *
  * Prerequisites:
  * - Local dev server (auto-started by Playwright config)
@@ -34,35 +34,40 @@ test.describe("MCP Servers list page", () => {
     ).toBeVisible({ timeout: 15_000 });
   });
 
-  test("has workbench with cards or empty state", async ({ page }) => {
-    await expect(page.getByLabel("MCP server workbench")).toBeVisible({
-      timeout: 15_000,
-    });
+  test("an organization with no MCP server shows the empty state and its call to action", async ({
+    page,
+    freshOrg,
+  }) => {
+    await page.goto("/library/mcp-servers");
+    await expect(page.getByRole("button", { name: "Organization menu" })).toContainText(
+      freshOrg.slug,
+      { timeout: 15_000 },
+    );
 
-    await expect(
-      page
-        .getByRole("list", { name: "Resource cards" })
-        .or(page.getByText("No MCP servers yet")),
-    ).toBeVisible();
+    const empty = page.getByRole("status").filter({ hasText: "No MCP servers yet" });
+    await expect(empty).toBeVisible({ timeout: 15_000 });
+    await expect(empty.getByRole("link", { name: "Add MCP server" })).toHaveAttribute(
+      "href",
+      "/library/mcp-servers/new",
+    );
+    await expect(page.getByRole("list", { name: "Resource cards" })).toHaveCount(0);
   });
 
-  test("has Add MCP server action", async ({ page }) => {
+  test("has the Add MCP server action", async ({ page }) => {
     await expect(page.getByLabel("MCP server workbench")).toBeVisible({
       timeout: 15_000,
     });
 
     await expect(
-      page.getByRole("link", { name: "Add MCP server" }),
-    ).toBeVisible();
+      page.getByRole("link", { name: "Add MCP server" }).first(),
+    ).toHaveAttribute("href", "/library/mcp-servers/new");
   });
 
-  test("has import button", async ({ page }) => {
+  test("has the Apply YAML action", async ({ page }) => {
     await expect(page.getByLabel("MCP server workbench")).toBeVisible({
       timeout: 15_000,
     });
 
-    await expect(
-      page.getByRole("button", { name: "Import from file" }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Apply YAML" })).toBeEnabled();
   });
 });

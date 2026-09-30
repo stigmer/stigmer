@@ -3,14 +3,11 @@ import { test, expect } from "@playwright/test";
 /**
  * Settings pages structural tests.
  *
- * Verifies that the settings routes render their section heading,
- * do not crash with an error boundary, and show either content or
- * a CloudFeatureNotice (role="status") when running against OSS.
- *
- * Prerequisites:
- * - Local dev server (auto-started by Playwright config)
- * - No backend required for structural checks (cloud-gated sections
- *   show CloudFeatureNotice in OSS mode)
+ * Verifies that the settings routes render their section heading, do not
+ * crash with an error boundary, and, for the sections whose behaviour
+ * depends on the edition, show exactly the open-source posture: either the
+ * section works (its primary control is there), or its notice
+ * (role="status") says where the feature is available.
  */
 
 // Sections are located through the accessibility tree: each settings
@@ -18,78 +15,82 @@ import { test, expect } from "@playwright/test";
 // an accessible name, i.e. role=region. The heading ids themselves are
 // minted per mount with useId() (oss#619) and carry no stable value to
 // anchor on — the accessible name is the contract.
-const SETTINGS_SECTIONS = [
+/** What an edition-dependent section shows on the open-source server. */
+type OssPosture =
+  | { readonly notice: string }
+  | { readonly works: { readonly role: "button" | "list" | "textbox"; readonly name: string } };
+
+const SETTINGS_SECTIONS: readonly {
+  readonly path: string;
+  readonly headingText: string;
+  readonly oss?: OssPosture;
+}[] = [
   {
     path: "/settings/api-keys",
     headingText: "API Keys",
-    cloudGated: true,
+    oss: { works: { role: "button", name: "+ New API key" } },
   },
   {
     path: "/settings/environments",
     headingText: "Personal Environment",
-    cloudGated: false,
   },
   {
     path: "/settings/members",
     headingText: "Members",
-    cloudGated: true,
+    oss: { works: { role: "list", name: "Organization members" } },
   },
   {
     path: "/settings/teams",
     headingText: "Teams",
-    cloudGated: true,
+    oss: { notice: "Teams are available in Stigmer Enterprise and Cloud." },
   },
   {
     path: "/settings/invitations",
     headingText: "Invitations",
-    cloudGated: true,
+    oss: { notice: "Invitations are not available in local mode." },
   },
   {
     path: "/settings/identity-providers",
     headingText: "Identity Providers",
-    cloudGated: true,
+    oss: { notice: "Identity providers are not available in local mode." },
   },
   {
     path: "/settings/platform-clients",
     headingText: "Platform Clients",
-    cloudGated: true,
+    oss: { notice: "This server trusts every request, so nothing would verify a platform client's tokens" },
   },
   {
     path: "/settings/oauth-apps",
     headingText: "OAuth Apps",
-    cloudGated: true,
+    oss: { works: { role: "button", name: "+ New OAuth app" } },
   },
   {
     path: "/settings/org-profile",
     headingText: "Organization Profile",
-    cloudGated: false,
   },
   {
     path: "/settings/org-preferences",
     headingText: "Organization Preferences",
-    cloudGated: false,
   },
   {
     path: "/settings/account-preferences",
     headingText: "Account Preferences",
-    cloudGated: true,
+    oss: { works: { role: "textbox", name: "Standing context" } },
   },
   {
     path: "/settings/memory",
     headingText: "Memory",
-    cloudGated: false,
   },
   {
     path: "/settings/billing",
     headingText: "Billing",
-    cloudGated: true,
+    oss: { notice: "Credit billing and purchases are available on Stigmer Cloud." },
   },
   {
     path: "/settings/usage",
     headingText: "Usage",
-    cloudGated: false,
   },
-] as const;
+];
 
 test.describe("Settings index", () => {
   test("renders sr-only heading and all group sections", async ({ page }) => {
@@ -177,23 +178,22 @@ test.describe("Settings sections", () => {
     await expect(memorySwitch).toHaveAttribute("aria-describedby", /.+/);
   });
 
-  for (const section of SETTINGS_SECTIONS.filter((s) => s.cloudGated)) {
-    test(`${section.headingText} shows content or cloud notice in OSS`, async ({
-      page,
-    }) => {
+  for (const section of SETTINGS_SECTIONS) {
+    const posture = section.oss;
+    if (!posture) continue;
+    test(`${section.headingText} shows its open-source posture`, async ({ page }) => {
       await page.goto(section.path);
 
       const region = page.getByRole("region", { name: section.headingText });
       await expect(region).toBeVisible({ timeout: 15_000 });
 
-      const cloudNotice = region.locator('[role="status"]');
-      const hasCloudNotice = await cloudNotice.isVisible();
-
-      if (hasCloudNotice) {
-        // The notices' wording varies per section ("not available in local
-        // mode", "available on Stigmer Cloud", …) — the durable invariant is
-        // that every gating notice points at Stigmer Cloud.
-        await expect(cloudNotice).toContainText(/Stigmer Cloud|local mode/);
+      if ("notice" in posture) {
+        await expect(region.getByRole("status")).toContainText(posture.notice);
+      } else {
+        await expect(region.getByRole("status")).toHaveCount(0);
+        await expect(
+          region.getByRole(posture.works.role, { name: posture.works.name }),
+        ).toBeVisible();
       }
     });
   }
