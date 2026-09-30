@@ -39,12 +39,14 @@ service InvitationCommandController {
   // already-revoked invitation is a no-op.
   //
   // @internal
-  // Authorization is handled in the handler: loads the invitation,
-  // resolves its organization, and checks can_grant_access on the org.
-  // Proto-level auth is skipped because the input (InvitationId) does
-  // not directly identify the org.
+  // Authorization: Requires can_edit permission on the invitation resource,
+  // asked before the invitation is read, so a caller who may not revoke it
+  // is refused alike whether or not the id exists.
   rpc revoke(InvitationId) returns (Invitation) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = invitation;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke invitations in this organization";
   }
 
   // Redeem an invitation to join an organization.

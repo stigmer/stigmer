@@ -8,6 +8,7 @@ export {
   checkEgress,
   describeRefusal,
   EgressError,
+  refusalWithholdsResolution,
   type EgressCheck,
   type EgressCheckOptions,
   type EgressRefusal,

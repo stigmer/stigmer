@@ -131,7 +131,25 @@ describe("validateFetchUrl", () => {
 
   it("rejects unresolvable hostnames", async () => {
     await expect(
-      validateFetchUrl("http://definitely-not-a-real-host.stigmer.invalid/", "strict"),
+      validateFetchUrl("http://definitely-not-a-real-host.stigmer.invalid/", "relaxed"),
     ).rejects.toThrow(/Could not resolve/);
+  });
+
+  it("on a strict runner, a name that does not resolve and one that resolves to a refused address read alike and name no address", async () => {
+    const refusals = await Promise.all(
+      ["http://localhost:9999/", "http://definitely-not-a-real-host.stigmer.invalid/"].map((url) =>
+        validateFetchUrl(url, "strict").then(
+          () => {
+            throw new Error(`expected ${url} to be refused`);
+          },
+          (error: unknown) => (error instanceof UrlGuardError ? error.message : String(error)),
+        ),
+      ),
+    );
+    expect(refusals).toEqual([
+      "Refusing to fetch localhost: it does not resolve to a public address.",
+      "Refusing to fetch definitely-not-a-real-host.stigmer.invalid: it does not resolve to a public address.",
+    ]);
+    expect(refusals.join(" ")).not.toMatch(/127\.0\.0\.1|::1|loopback/);
   });
 });

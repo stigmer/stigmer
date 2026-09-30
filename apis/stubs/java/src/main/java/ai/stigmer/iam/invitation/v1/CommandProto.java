@@ -41,22 +41,24 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ptions.proto\032+ai/stigmer/commons/rpc/met" +
       "hod_options.proto\032&ai/stigmer/iam/invita" +
       "tion/v1/api.proto\032%ai/stigmer/iam/invita" +
-      "tion/v1/io.proto2\247\003\n\033InvitationCommandCo" +
+      "tion/v1/io.proto2\354\003\n\033InvitationCommandCo" +
       "ntroller\022\254\001\n\006create\022(.ai.stigmer.iam.inv" +
       "itation.v1.Invitation\032(.ai.stigmer.iam.i" +
       "nvitation.v1.Invitation\"N\302\270\030J\010\004\020\036\"\014metad" +
       "ata.org*6unauthorized to create invitati" +
-      "on in this organization\022d\n\006revoke\022*.ai.s" +
-      "tigmer.iam.invitation.v1.InvitationId\032(." +
-      "ai.stigmer.iam.invitation.v1.Invitation\"" +
-      "\004\320\270\030\001\022m\n\006redeem\0223.ai.stigmer.iam.invitat" +
-      "ion.v1.RedeemInvitationInput\032(.ai.stigme" +
-      "r.iam.invitation.v1.Invitation\"\004\320\270\030\001\032\004\240\377" +
-      "+\024B\243\001B\014CommandProtoP\001\242\002\004ASII\252\002\034Ai.Stigme" +
-      "r.Iam.Invitation.V1\312\002\034Ai\\Stigmer\\Iam\\Inv" +
-      "itation\\V1\342\002(Ai\\Stigmer\\Iam\\Invitation\\V" +
-      "1\\GPBMetadata\352\002 Ai::Stigmer::Iam::Invita" +
-      "tion::V1b\006proto3"
+      "on in this organization\022\250\001\n\006revoke\022*.ai." +
+      "stigmer.iam.invitation.v1.InvitationId\032(" +
+      ".ai.stigmer.iam.invitation.v1.Invitation" +
+      "\"H\302\270\030D\010\002\020\024\"\005value*7unauthorized to revok" +
+      "e invitations in this organization\022m\n\006re" +
+      "deem\0223.ai.stigmer.iam.invitation.v1.Rede" +
+      "emInvitationInput\032(.ai.stigmer.iam.invit" +
+      "ation.v1.Invitation\"\004\320\270\030\001\032\004\240\377+\024B\243\001B\014Comm" +
+      "andProtoP\001\242\002\004ASII\252\002\034Ai.Stigmer.Iam.Invit" +
+      "ation.V1\312\002\034Ai\\Stigmer\\Iam\\Invitation\\V1\342" +
+      "\002(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetada" +
+      "ta\352\002 Ai::Stigmer::Iam::Invitation::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

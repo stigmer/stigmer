@@ -28,7 +28,7 @@ from ai.stigmer.iam.invitation.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_i
 from ai.stigmer.iam.invitation.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_invitation_dot_v1_dot_io__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/invitation/v1/command.proto\x12\x1c\x61i.stigmer.iam.invitation.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a%ai/stigmer/iam/invitation/v1/io.proto2\xa7\x03\n\x1bInvitationCommandController\x12\xac\x01\n\x06\x63reate\x12(.ai.stigmer.iam.invitation.v1.Invitation\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"N\xc2\xb8\x18J\x08\x04\x10\x1e\"\x0cmetadata.org*6unauthorized to create invitation in this organization\x12\x64\n\x06revoke\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04\xd0\xb8\x18\x01\x12m\n\x06redeem\x12\x33.ai.stigmer.iam.invitation.v1.RedeemInvitationInput\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x14\x42\xc5\x01\n com.ai.stigmer.iam.invitation.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1c\x41i.Stigmer.Iam.Invitation.V1\xca\x02\x1c\x41i\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/invitation/v1/command.proto\x12\x1c\x61i.stigmer.iam.invitation.v1\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a%ai/stigmer/iam/invitation/v1/io.proto2\xec\x03\n\x1bInvitationCommandController\x12\xac\x01\n\x06\x63reate\x12(.ai.stigmer.iam.invitation.v1.Invitation\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"N\xc2\xb8\x18J\x08\x04\x10\x1e\"\x0cmetadata.org*6unauthorized to create invitation in this organization\x12\xa8\x01\n\x06revoke\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"H\xc2\xb8\x18\x44\x08\x02\x10\x14\"\x05value*7unauthorized to revoke invitations in this organization\x12m\n\x06redeem\x12\x33.ai.stigmer.iam.invitation.v1.RedeemInvitationInput\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+\x14\x42\xc5\x01\n com.ai.stigmer.iam.invitation.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1c\x41i.Stigmer.Iam.Invitation.V1\xca\x02\x1c\x41i\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,9 +41,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_INVITATIONCOMMANDCONTROLLER'].methods_by_name['create']._loaded_options = None
   _globals['_INVITATIONCOMMANDCONTROLLER'].methods_by_name['create']._serialized_options = b'\302\270\030J\010\004\020\036\"\014metadata.org*6unauthorized to create invitation in this organization'
   _globals['_INVITATIONCOMMANDCONTROLLER'].methods_by_name['revoke']._loaded_options = None
-  _globals['_INVITATIONCOMMANDCONTROLLER'].methods_by_name['revoke']._serialized_options = b'\320\270\030\001'
+  _globals['_INVITATIONCOMMANDCONTROLLER'].methods_by_name['revoke']._serialized_options = b'\302\270\030D\010\002\020\024\"\005value*7unauthorized to revoke invitations in this organization'
   _globals['_INVITATIONCOMMANDCONTROLLER'].methods_by_name['redeem']._loaded_options = None
   _globals['_INVITATIONCOMMANDCONTROLLER'].methods_by_name['redeem']._serialized_options = b'\320\270\030\001'
   _globals['_INVITATIONCOMMANDCONTROLLER']._serialized_start=259
-  _globals['_INVITATIONCOMMANDCONTROLLER']._serialized_end=682
+  _globals['_INVITATIONCOMMANDCONTROLLER']._serialized_end=751
 # @@protoc_insertion_point(module_scope)
