@@ -79,7 +79,7 @@ async function createSession(
   return session.metadata!.id;
 }
 
-describe("Activity conformance — listRecentActivity", () => {
+describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance — listRecentActivity", () => {
   it("lists created sessions newest-first as projected sidebar entries", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(clients, org);

@@ -73,7 +73,7 @@ async function createAgent(
 }
 
 describe("Agent conformance — McpServer references", () => {
-  it("accepts an agent referencing an existing McpServer and normalizes the reference org", async () => {
+  it("[rpc:AgentCommandController.create] accepts an agent referencing an existing McpServer and normalizes the reference org", async () => {
     const { org } = await target.provisionTenancy();
     const mcpServer = await clients.mcpServerCommand.create(
       makeMcpServer({ org, name: uniqueName("tools") }),
@@ -100,7 +100,7 @@ describe("Agent conformance — McpServer references", () => {
     ).toBe(org);
   });
 
-  it("rejects an agent referencing a non-existent McpServer (FailedPrecondition)", async () => {
+  it("[rpc:AgentCommandController.create] rejects an agent referencing a non-existent McpServer (FailedPrecondition)", async () => {
     const { org } = await target.provisionTenancy();
     const missingSlug = "ghost-mcp-server";
 
@@ -152,7 +152,7 @@ describe("Agent conformance — the reference rule at write", () => {
     return input;
   }
 
-  it("a same-organization skill reference must name an existing skill (FailedPrecondition, the slug named)", async () => {
+  it("[rpc:AgentCommandController.create] a same-organization skill reference must name an existing skill (FailedPrecondition, the slug named)", async () => {
     const { org } = await target.provisionTenancy();
     const input = makeAgent({ org, name: uniqueName("agent") });
     input.spec = {
@@ -169,7 +169,7 @@ describe("Agent conformance — the reference rule at write", () => {
     );
   });
 
-  it("another organization's MCP server is admitted at platform visibility and refused otherwise with one sentence, whether it exists or not", async () => {
+  it("[rpc:AgentCommandController.create] another organization's MCP server is admitted at platform visibility and refused otherwise with one sentence, whether it exists or not", async () => {
     const { org } = await target.provisionTenancy();
     const { org: otherOrg } = await target.provisionTenancy();
     const shared = await createMcpServer(otherOrg, ApiResourceVisibility.visibility_platform);
@@ -200,7 +200,7 @@ describe("Agent conformance — the reference rule at write", () => {
     expect(missing.rawMessage).toBe(sentenceFor("no-such-server"));
   });
 
-  it("the floor at both doors: an org-visible agent may not run a private MCP server, at create and when raised", async () => {
+  it("[rpc:AgentCommandController.create] [rpc:AgentCommandController.updateVisibility] the floor at both doors: an org-visible agent may not run a private MCP server, at create and when raised", async () => {
     const { org } = await target.provisionTenancy();
     const mine = await createMcpServer(org, ApiResourceVisibility.visibility_private);
     const slug = mine.metadata!.slug;

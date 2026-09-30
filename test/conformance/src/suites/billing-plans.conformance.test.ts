@@ -114,7 +114,7 @@ async function subscriptionPlanId(): Promise<string> {
 }
 
 describe.skipIf(!plansServed)("Billing plans conformance — the catalog (billingPlans targets)", () => {
-  it("[billing.rpc.plan-list.buyable-rows-only] the catalog lists only active plans, each readable by id by any signed-in caller", async () => {
+  it("[billing.rpc.plan-list.buyable-rows-only] [rpc:PlanQueryController.list] [rpc:PlanQueryController.get] the catalog lists only active plans, each readable by id by any signed-in caller", async () => {
     const { entries } = await clients.planQuery.list({});
     expect(entries.length, "the Cloud seeds its launch rows at boot").toBeGreaterThan(0);
     for (const plan of entries) {
@@ -135,7 +135,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — the catalog (billin
     expect(read.spec?.entitlements?.features).toEqual(first.spec?.entitlements?.features);
   });
 
-  it("[billing.rpc.plan-create.operator-only] an organization owner cannot write the catalog", async () => {
+  it("[billing.rpc.plan-create.operator-only] [rpc:PlanCommandController.create] an organization owner cannot write the catalog", async () => {
     const before = await clients.planQuery.list({ includeRetired: true });
     const denied = await expectGrpcCode(
       () =>
@@ -163,7 +163,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     await control.stripe.reset();
   });
 
-  it("[billing.rpc.get-entitlements.free-by-default] an organization that never subscribed is on Free", async () => {
+  it("[billing.rpc.get-entitlements.free-by-default] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getForOrganization] an organization that never subscribed is on Free", async () => {
     const { org } = await unfundedOrg();
     const answer = await clients.subscriptionQuery.getEntitlements({ orgId: org });
     expect(answer.planId).toBe("");
@@ -175,7 +175,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     );
   });
 
-  it("[billing.rpc.get-period-estimate.not-found-on-free] an organization on Free has no period to estimate", async () => {
+  it("[billing.rpc.get-period-estimate.not-found-on-free] [rpc:SubscriptionQueryController.getPeriodEstimate] an organization on Free has no period to estimate", async () => {
     const { org } = await unfundedOrg();
     await expectGrpcCode(
       () => clients.subscriptionQuery.getPeriodEstimate({ orgId: org }),
@@ -184,7 +184,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     );
   });
 
-  it("[billing.rpc.change-plan.requires-payment-method] subscribing without a saved card is refused before anything is written or charged", async () => {
+  it("[billing.rpc.change-plan.requires-payment-method] [rpc:SubscriptionCommandController.changePlan] subscribing without a saved card is refused before anything is written or charged", async () => {
     const { org } = await unfundedOrg();
     const planId = await subscriptionPlanId();
     const refused = await expectGrpcCode(
@@ -207,7 +207,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     expect(await control.stripe.requests(), "nothing reached Stripe").toEqual([]);
   });
 
-  it("[billing.rpc.subscription.outsider-permission-denied] an outsider can neither change an organization's plan nor read its entitlements or period estimate", async () => {
+  it("[billing.rpc.subscription.outsider-permission-denied] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] an outsider can neither change an organization's plan nor read its entitlements or period estimate", async () => {
     const { org } = await unfundedOrg();
     const planId = await subscriptionPlanId();
     const other = await outsider();
@@ -233,7 +233,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
 });
 
 describe.skipIf(plansServed)("Billing plans conformance — the OSS boundary (no plan or subscription controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-plan-rpc-unimplemented] every Plan and Subscription RPC answers Unimplemented where billingPlans is false", async () => {
+  it("[billing.rpc.oss-boundary.every-plan-rpc-unimplemented] [rpc:PlanCommandController.create] [rpc:PlanCommandController.retire] [rpc:PlanQueryController.get] [rpc:PlanQueryController.list] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionCommandController.cancel] [rpc:SubscriptionQueryController.getForOrganization] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] every Plan and Subscription RPC answers Unimplemented where billingPlans is false", async () => {
     const org = "conformance-oss-boundary";
     const lanes: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
       ["Plan.create", () => clients.planCommand.create({})],

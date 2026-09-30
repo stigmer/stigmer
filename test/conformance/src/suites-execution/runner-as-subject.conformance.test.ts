@@ -483,7 +483,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(session.spec?.subject).not.toBe(UNTITLED_SESSION_SUBJECT);
     });
 
-    it("an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
+    it("[rpc:AgentExecutionCommandController.updateStatus] an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const agent = await createAgent(
@@ -520,7 +520,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       await awaitTerminal(people.member, run.metadata!.id);
     });
 
-    it("the exchange is a mint gate: a missing run is NOT_FOUND, another person's run is PERMISSION_DENIED, one's own run mints a credential that IS oneself", async (ctx) => {
+    it("[rpc:PlatformQueryController.getRunnerScopedToken] the exchange is a mint gate: a missing run is NOT_FOUND, another person's run is PERMISSION_DENIED, one's own run mints a credential that IS oneself", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const agent = await createAgent(
@@ -583,7 +583,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       ]);
     });
 
-    it("a run credential is its human, not a wildcard: refused on another person's run, admitted on the same person's other run (the recorded reach)", async (ctx) => {
+    it("[rpc:PlatformQueryController.getRunnerScopedToken] a run credential is its human, not a wildcard: refused on another person's run, admitted on the same person's other run (the recorded reach)", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const agent = await createAgent(
@@ -855,7 +855,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       ).toBe(0);
     });
 
-    it("a member's connect of an admin-authored server with their own credential succeeds: the connect's ExecutionContext is created as the member, and the connect token admits the runner as the member for the secret read", async (ctx) => {
+    it("[rpc:McpServerCommandController.connect] a member's connect of an admin-authored server with their own credential succeeds: the connect's ExecutionContext is created as the member, and the connect token admits the runner as the member for the secret read", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const mcpTools = requireMcpFixture(target);

@@ -102,7 +102,7 @@ async function provisionListenWorkflow(org: string): Promise<string> {
 }
 
 describe("WorkflowExecution sendSignal — happy path", () => {
-  it("delivers a matching signal that unblocks the listen task and completes the workflow", async () => {
+  it("[rpc:WorkflowExecutionCommandController.sendSignal] delivers a matching signal that unblocks the listen task and completes the workflow", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionListenWorkflow(org);
 
@@ -138,7 +138,7 @@ describe("WorkflowExecution sendSignal — happy path", () => {
 });
 
 describe("WorkflowExecution sendSignal — idempotency_key dedupe", () => {
-  it("rejects a duplicate idempotency_key with ALREADY_EXISTS while a distinct key delivers", async () => {
+  it("[rpc:WorkflowExecutionCommandController.sendSignal] rejects a duplicate idempotency_key with ALREADY_EXISTS while a distinct key delivers", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionListenWorkflow(org);
 

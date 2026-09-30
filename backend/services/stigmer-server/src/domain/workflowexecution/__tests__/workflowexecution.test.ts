@@ -772,7 +772,7 @@ describe("listPendingApprovals over the wire", () => {
   });
 });
 
-describe("updateStatus over the wire", () => {
+describe("[rpc:WorkflowExecutionCommandController.updateStatus] updateStatus over the wire", () => {
   it("merges status, persists events, and broadcasts to subscribers", async () => {
     const id = await seed(
       seedInput({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),

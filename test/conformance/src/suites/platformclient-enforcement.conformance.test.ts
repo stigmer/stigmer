@@ -159,7 +159,7 @@ async function platformClient(
 describe.skipIf(!enforcementServed)(
   "platform-client enforcement — the minting client's contract (platformClientTokens targets)",
   () => {
-    it("deleting the platform client revokes its outstanding user tokens on the next request", async () => {
+    it("[rpc:PlatformClientCommandController.delete] deleting the platform client revokes its outstanding user tokens on the next request", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, { keep: true });
       const token = await mintUserToken(
@@ -233,7 +233,7 @@ describe.skipIf(!enforcementServed)(
 describe.skipIf(!enforcementServed)(
   "platform-client enforcement — the mint's contract (platformClientTokens targets)",
   () => {
-    it("one user_id is one account across the organization's clients, and a repeat mint reuses it", async () => {
+    it("[rpc:PlatformClientTokenController.mintUserToken] one user_id is one account across the organization's clients, and a repeat mint reuses it", async () => {
       const context = await tenancy();
       const dashboard = await platformClient(context.org);
       const mobile = await platformClient(context.org);
@@ -300,7 +300,7 @@ describe.skipIf(!enforcementServed)(
       expect(viaMobile?.platformClientId).toBe(mobile.id);
     });
 
-    it("an auto-provisioned user holds the auto-grant role on the owning organization and sees it alone", async () => {
+    it("[rpc:PlatformClientTokenController.mintUserToken] an auto-provisioned user holds the auto-grant role on the owning organization and sees it alone", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, {
         autoGrantRole: IamRole.member,
@@ -319,7 +319,7 @@ describe.skipIf(!enforcementServed)(
       ).toEqual([context.org]);
     });
 
-    it("the owning organization's access list names an auto-provisioned user as provisioned by a PlatformClient", async () => {
+    it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] the owning organization's access list names an auto-provisioned user as provisioned by a PlatformClient", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, {
         autoGrantRole: IamRole.viewer,
@@ -355,7 +355,7 @@ describe.skipIf(!enforcementServed)(
       );
     });
 
-    it("a wrong secret and an org_id other than the owning organization are refused with the pinned copy", async () => {
+    it("[rpc:PlatformClientTokenController.mintUserToken] a wrong secret and an org_id other than the owning organization are refused with the pinned copy", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
 
@@ -407,7 +407,7 @@ describe.skipIf(!enforcementServed)(
       );
     });
 
-    it("a client that does not provision users refuses an unknown user", async () => {
+    it("[rpc:PlatformClientTokenController.mintUserToken] a client that does not provision users refuses an unknown user", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org, {
         autoProvisionAccounts: false,
@@ -422,7 +422,7 @@ describe.skipIf(!enforcementServed)(
       expect(refused.rawMessage).toBe(noAccountMessage(userId, context.org));
     });
 
-    it("rotating the secret stops the old one minting; tokens already minted stay valid", async () => {
+    it("[rpc:PlatformClientCommandController.rotateSecret] [rpc:PlatformClientTokenController.mintUserToken] rotating the secret stops the old one minting; tokens already minted stay valid", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
       const token = await mintUserToken(
@@ -464,7 +464,7 @@ describe.skipIf(!enforcementServed)(
         .organizationQuery.findMyOrganizations({});
     });
 
-    it("a successful mint records the client's last use; a refused mint records nothing", async () => {
+    it("[rpc:PlatformClientQueryController.get] [rpc:PlatformClientTokenController.mintUserToken] a successful mint records the client's last use; a refused mint records nothing", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
       const lastUsed = async () =>
@@ -503,7 +503,7 @@ describe.skipIf(!enforcementServed)(
 describe.skipIf(!enforcementServed)(
   "platform-client enforcement — who reads a client (platformClientTokens targets)",
   () => {
-    it("an outsider can neither read a client by reference nor list the organization's clients", async () => {
+    it("[rpc:PlatformClientQueryController.getByReference] [rpc:PlatformClientQueryController.listByOrg] an outsider can neither read a client by reference nor list the organization's clients", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
       const outsider = await lane.provisionIdentity();
@@ -531,7 +531,7 @@ describe.skipIf(!enforcementServed)(
       );
     });
 
-    it("a member lists none of the organization's clients; the owner lists them without the secret hash", async () => {
+    it("[rpc:PlatformClientQueryController.listByOrg] a member lists none of the organization's clients; the owner lists them without the secret hash", async () => {
       const context = await tenancy();
       const client = await platformClient(context.org);
       const member = await lane.provisionMember(context);

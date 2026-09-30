@@ -261,7 +261,7 @@ describe("AgentExecution structured output — the schema round-trips on the spe
   ];
 
   for (const [name, schema, answer] of schemas) {
-    it(`execution_config.structured_output_schema is persisted with type and properties intact (${name})`, async () => {
+    it(`[rpc:AgentExecutionCommandController.create] execution_config.structured_output_schema is persisted with type and properties intact (${name})`, async () => {
       const final = await runWithSchema(answer, schema);
       const persisted = final.spec?.executionConfig?.structuredOutputSchema;
       expect(persisted, `schema ${name} must survive creation`).toBeDefined();

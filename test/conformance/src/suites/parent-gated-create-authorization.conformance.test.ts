@@ -153,7 +153,7 @@ async function expectDenied(
 }
 
 describe("McpServer.create asks the blueprint bar", () => {
-  it("an admin authors an MCP server; a member and an outsider are refused with the organization's copy", async (ctx) => {
+  it("[rpc:McpServerCommandController.create] an admin authors an MCP server; a member and an outsider are refused with the organization's copy", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     const created = await c.admin.mcpServerCommand.create(
       makeMcpServer({ org: c.org, name: uniqueName("gate-mcp") }),
@@ -178,7 +178,7 @@ describe("McpServer.create asks the blueprint bar", () => {
 });
 
 describe("AgentInstance.create asks the organization's bar, then the parent's", () => {
-  it("a member instantiates an org-visible agent in their organization", async (ctx) => {
+  it("[rpc:AgentInstanceCommandController.create] a member instantiates an org-visible agent in their organization", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     const agent = await seedAgent(c, ORG_VISIBLE);
     const created = await c.member.agentInstanceCommand.create(
@@ -194,7 +194,7 @@ describe("AgentInstance.create asks the organization's bar, then the parent's", 
     expect(created.metadata?.org).toBe(c.org);
   });
 
-  it("a member is refused a PRIVATE agent with the parent's copy; an outsider naming the organization hears the organization's copy first", async (ctx) => {
+  it("[rpc:AgentInstanceCommandController.create] a member is refused a PRIVATE agent with the parent's copy; an outsider naming the organization hears the organization's copy first", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     const privateAgent = await seedAgent(c, PRIVATE);
     const orgAgent = await seedAgent(c, ORG_VISIBLE);
@@ -226,7 +226,7 @@ describe("AgentInstance.create asks the organization's bar, then the parent's", 
 });
 
 describe("WorkflowInstance.create asks can_execute on the parent", () => {
-  it("a member instantiates an org-visible workflow and is refused a private one", async (ctx) => {
+  it("[rpc:WorkflowInstanceCommandController.create] a member instantiates an org-visible workflow and is refused a private one", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     const orgWorkflow = await seedWorkflow(c, ORG_VISIBLE);
     const privateWorkflow = await seedWorkflow(c, PRIVATE);
@@ -256,7 +256,7 @@ describe("WorkflowInstance.create asks can_execute on the parent", () => {
 });
 
 describe("Schedule, AgentShare and AgentChannel ask can_edit on the referenced agent", () => {
-  it("an admin schedules, shares and channel-binds an org-visible agent; a member who may run it may not; an outsider is refused", async (ctx) => {
+  it("[rpc:ScheduleCommandController.create] [rpc:AgentShareCommandController.create] [rpc:AgentChannelCommandController.create] an admin schedules, shares and channel-binds an org-visible agent; a member who may run it may not; an outsider is refused", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     const agent = await seedAgent(c, ORG_VISIBLE);
     const slug = agent.metadata!.slug;
@@ -315,7 +315,7 @@ describe("Schedule, AgentShare and AgentChannel ask can_edit on the referenced a
 });
 
 describe("Memory.create asks can_create_session on the organization", () => {
-  it("a member remembers in their organization; an outsider naming it is refused", async (ctx) => {
+  it("[rpc:MemoryCommandController.create] a member remembers in their organization; an outsider naming it is refused", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     // The lane's tenancy is founded with memory off; the owner turns it on
     // so the member's positive arm reaches the store. The outsider's arm

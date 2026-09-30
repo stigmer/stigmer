@@ -66,7 +66,7 @@ async function createSlackAppFixture(org: string, name = uniqueName("channel-app
 }
 
 describe("ChannelApp conformance — CRUD & identity", () => {
-  it("create assigns a chapp_ id, echoes the public config, and redacts every secret", async () => {
+  it("[rpc:ChannelAppCommandController.create] create assigns a chapp_ id, echoes the public config, and redacts every secret", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createSlackAppFixture(org);
 
@@ -81,7 +81,7 @@ describe("ChannelApp conformance — CRUD & identity", () => {
     expect(slack?.signingSecret).toBe(CHANNELAPP_REDACTED_MARKER);
   });
 
-  it("get, getByReference, and listByOrg resolve the app, all redacted", async () => {
+  it("[rpc:ChannelAppQueryController.get] [rpc:ChannelAppQueryController.getByReference] [rpc:ChannelAppQueryController.listByOrg] get, getByReference, and listByOrg resolve the app, all redacted", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createSlackAppFixture(org);
 
@@ -106,7 +106,7 @@ describe("ChannelApp conformance — CRUD & identity", () => {
     expect(listedSlack?.clientSecret).toBe(CHANNELAPP_REDACTED_MARKER);
   });
 
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:ChannelAppCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("channel-app");
 
@@ -125,7 +125,7 @@ describe("ChannelApp conformance — CRUD & identity", () => {
     expect(slack?.clientId, "apply-as-update replaces the spec").toBe("app-v2");
   });
 
-  it("delete removes an unreferenced app", async () => {
+  it("[rpc:ChannelAppCommandController.delete] delete removes an unreferenced app", async () => {
     const { org } = await target.provisionTenancy();
     // No deferred cleanup: this test deletes the app itself.
     const created = await clients.channelAppCommand.create(
@@ -146,7 +146,7 @@ describe("ChannelApp conformance — CRUD & identity", () => {
 });
 
 describe("ChannelApp conformance — the per-field secret contract", () => {
-  it("update with the marker on one secret rotates the other independently", async () => {
+  it("[rpc:ChannelAppCommandController.update] update with the marker on one secret rotates the other independently", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createSlackAppFixture(org);
 
@@ -168,7 +168,7 @@ describe("ChannelApp conformance — the per-field secret contract", () => {
     expect(slack?.signingSecret).toBe(CHANNELAPP_REDACTED_MARKER);
   });
 
-  it("rejects the redaction marker as a secret on create (InvalidArgument)", async () => {
+  it("[rpc:ChannelAppCommandController.create] rejects the redaction marker as a secret on create (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -182,7 +182,7 @@ describe("ChannelApp conformance — the per-field secret contract", () => {
     );
   });
 
-  it("rejects a ciphertext-shaped secret on create and update (InvalidArgument)", async () => {
+  it("[rpc:ChannelAppCommandController.create] [rpc:ChannelAppCommandController.update] rejects a ciphertext-shaped secret on create and update (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
 
     await expectGrpcCode(
@@ -210,7 +210,7 @@ describe("ChannelApp conformance — the per-field secret contract", () => {
     );
   });
 
-  it("rejects a create with an empty secret field (InvalidArgument)", async () => {
+  it("[rpc:ChannelAppCommandController.create] rejects a create with an empty secret field (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -224,7 +224,7 @@ describe("ChannelApp conformance — the per-field secret contract", () => {
 });
 
 describe("ChannelApp conformance — provider immutability", () => {
-  it("rejects an update that flips the provider arm (InvalidArgument — the pinned as-is code)", async () => {
+  it("[rpc:ChannelAppCommandController.update] rejects an update that flips the provider arm (InvalidArgument — the pinned as-is code)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createSlackAppFixture(org);
 
@@ -244,7 +244,7 @@ describe("ChannelApp conformance — provider immutability", () => {
 });
 
 describe("ChannelApp conformance — referential delete-block", () => {
-  it("refuses to delete an app a channel references, then allows it once unreferenced", async () => {
+  it("[rpc:ChannelAppCommandController.delete] refuses to delete an app a channel references, then allows it once unreferenced", async () => {
     const { org } = await target.provisionTenancy();
     const app = await clients.channelAppCommand.create(
       makeSlackChannelApp(org, uniqueName("channel-app")),
@@ -278,14 +278,14 @@ describe("ChannelApp conformance — referential delete-block", () => {
 });
 
 describe("ChannelApp conformance — negative paths", () => {
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:ChannelAppQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.channelAppQuery.get({ value: "chapp_01conformancemissing" }),
       Code.NotFound,
       "get missing channel app",
     ));
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:ChannelAppQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.channelAppQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -294,7 +294,7 @@ describe("ChannelApp conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with no provider arm (InvalidArgument — required oneof)", async () => {
+  it("[rpc:ChannelAppCommandController.create] rejects a create with no provider arm (InvalidArgument — required oneof)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>

@@ -74,7 +74,7 @@ afterAll(async () => {
 // SKIPPED by name.
 const multiTenant = createTarget().capabilities.multiTenant;
 
-describe("Artifact conformance — create & content addressing", () => {
+describe("[rpc:ArtifactCommandController.create] Artifact conformance — create & content addressing", () => {
   it.skipIf(multiTenant)("create assigns an art_ id and stamps the content-addressed status", async () => {
     const created = await clients.artifactCommand.create(makeArtifactInput());
 
@@ -134,7 +134,7 @@ describe("Artifact conformance — create & content addressing", () => {
 });
 
 describe("Artifact conformance — read surfaces", () => {
-  it.skipIf(multiTenant)("get and listByExecution resolve the artifact by id and by source", async () => {
+  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.get] [rpc:ArtifactQueryController.listByExecution] get and listByExecution resolve the artifact by id and by source", async () => {
     const executionId = `wexec_01${uniqueName("run").replace(/-/g, "")}`.slice(0, 30);
     const created = await clients.artifactCommand.create(
       makeArtifactInput({ workflowExecutionId: executionId }),
@@ -157,7 +157,7 @@ describe("Artifact conformance — read surfaces", () => {
     expect(other.entries).toHaveLength(0);
   });
 
-  it("listByExecution requires an execution filter (InvalidArgument)", async () => {
+  it("[rpc:ArtifactQueryController.listByExecution] listByExecution requires an execution filter (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.artifactQuery.listByExecution({}),
       Code.InvalidArgument,
@@ -165,7 +165,7 @@ describe("Artifact conformance — read surfaces", () => {
     );
   });
 
-  it.skipIf(multiTenant)("getContent returns the bytes, truncating to max_bytes with the full size reported", async () => {
+  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.getContent] getContent returns the bytes, truncating to max_bytes with the full size reported", async () => {
     const content = new TextEncoder().encode("0123456789".repeat(100)); // 1000 bytes
     const created = await clients.artifactCommand.create(makeArtifactInput({ content }));
 
@@ -186,7 +186,7 @@ describe("Artifact conformance — read surfaces", () => {
     expect(truncated.content).toHaveLength(100);
   });
 
-  it.skipIf(multiTenant)("getDownloadUrl answers the pinned ttl_seconds constant and the blob facts (P3)", async () => {
+  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.getDownloadUrl] getDownloadUrl answers the pinned ttl_seconds constant and the blob facts (P3)", async () => {
     const created = await clients.artifactCommand.create(makeArtifactInput());
 
     const download = await clients.artifactQuery.getDownloadUrl({
@@ -200,7 +200,7 @@ describe("Artifact conformance — read surfaces", () => {
     expect(download.contentType).toBe("text/plain");
   });
 
-  it.skipIf(multiTenant)("unknown ids answer NotFound across the read surfaces", async () => {
+  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.get] [rpc:ArtifactQueryController.getDownloadUrl] [rpc:ArtifactQueryController.getContent] unknown ids answer NotFound across the read surfaces", async () => {
     const get = await expectGrpcCode(
       () => clients.artifactQuery.get({ value: "art_01conformancemissing" }),
       Code.NotFound,
@@ -222,7 +222,7 @@ describe("Artifact conformance — read surfaces", () => {
 });
 
 describe("Artifact conformance — the soft-delete lifecycle", () => {
-  it.skipIf(multiTenant)("delete transitions storage_state; metadata survives; blob reads refuse FailedPrecondition", async () => {
+  it.skipIf(multiTenant)("[rpc:ArtifactCommandController.delete] [rpc:ArtifactQueryController.getDownloadUrl] [rpc:ArtifactQueryController.getContent] delete transitions storage_state; metadata survives; blob reads refuse FailedPrecondition", async () => {
     const created = await clients.artifactCommand.create(makeArtifactInput());
 
     const deleted = await clients.artifactCommand.delete({ value: created.metadata!.id });
@@ -251,7 +251,7 @@ describe("Artifact conformance — the soft-delete lifecycle", () => {
 });
 
 describe("Artifact conformance — the local file-server lane", () => {
-  it("serves the blob inline, and ?download=<name> adds the attachment disposition", async (ctx) => {
+  it("[rpc:ArtifactQueryController.getDownloadUrl] serves the blob inline, and ?download=<name> adds the attachment disposition", async (ctx) => {
     // Only local artifact storage has this lane; cloud serves artifact
     // bytes through authenticated presigned routes (a different contract),
     // so the accessor is absent there and this reports SKIPPED.

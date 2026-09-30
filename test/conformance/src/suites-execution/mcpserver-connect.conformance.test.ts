@@ -166,7 +166,7 @@ async function pollConnectPhase(mcpServerId: string, want: ConnectPhase) {
 }
 
 describe("McpServer connect conformance — OAuth handshake completion", () => {
-  it("refuses an unknown state parameter (FailedPrecondition, pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] refuses an unknown state parameter (FailedPrecondition, pinned copy)", async () => {
     const err = await expectGrpcCode(
       () =>
         clients.mcpServerCommand.completeOAuthConnect({
@@ -182,7 +182,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     );
   });
 
-  it("consumes the state atomically: a second complete with the same state refuses", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] consumes the state atomically: a second complete with the same state refuses", async () => {
     const { org } = await target.provisionTenancy();
     const { server, initiated } = await completeDcrHandshake(org, uniqueName("dcrdouble"));
 
@@ -201,7 +201,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     );
   });
 
-  it("refuses a state minted for a different server — and the mismatch consumes the state", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] refuses a state minted for a different server — and the mismatch consumes the state", async () => {
     const { org } = await target.provisionTenancy();
     const serverA = await createOAuthMcpServer({
       org,
@@ -248,7 +248,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     );
   });
 
-  it("maps a token-endpoint failure to Unavailable", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] maps a token-endpoint failure to Unavailable", async () => {
     const { org } = await target.provisionTenancy();
     const server = await createOAuthMcpServer({
       org,
@@ -275,7 +275,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     expect(err.rawMessage).toContain("returned HTTP 502");
   });
 
-  it("DCR happy path: exchanges with the sealed PKCE verifier as a public client and records the grant", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] DCR happy path: exchanges with the sealed PKCE verifier as a public client and records the grant", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("dcrhappy");
     const { server, initiated, completed } = await completeDcrHandshake(org, name);
@@ -317,7 +317,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     expect(managed.items[0]!.metadata?.name).toBe(`OAuth: ${name}`);
   });
 
-  it("vendor happy path: presents the client secret via Basic by default and via the form body on client_secret_post", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] vendor happy path: presents the client secret via Basic by default and via the form body on client_secret_post", async () => {
     const { org } = await target.provisionTenancy();
 
     const basicApp = await createVendorOAuthApp(org, uniqueName("vbasic"));
@@ -372,7 +372,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     expect(status.authMethod).toBe("vendor_oauth");
   });
 
-  it("re-connect reuses the existing managed environment instead of creating a second one", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] re-connect reuses the existing managed environment instead of creating a second one", async () => {
     const { org } = await target.provisionTenancy();
     const { server } = await completeDcrHandshake(org, uniqueName("dcrreuse"));
 
@@ -395,7 +395,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
 });
 
 describe("McpServer connect conformance — grant health boundaries", () => {
-  it("reports HEALTHY for a token without an expiry (expires_in absent means never expires)", async () => {
+  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports HEALTHY for a token without an expiry (expires_in absent means never expires)", async () => {
     const { org } = await target.provisionTenancy();
     mockAs.tokenExpiresIn = undefined;
     const { server } = await completeDcrHandshake(org, uniqueName("noexpiry"));
@@ -410,7 +410,7 @@ describe("McpServer connect conformance — grant health boundaries", () => {
     expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
   });
 
-  it("reports TOKEN_EXPIRED_REFRESHABLE inside the 60s refresh buffer when a refresh token exists", async () => {
+  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports TOKEN_EXPIRED_REFRESHABLE inside the 60s refresh buffer when a refresh token exists", async () => {
     const { org } = await target.provisionTenancy();
     // 30s < the 60s buffer: the grant is born already inside the refresh
     // window — the boundary lever, no clock manipulation needed.
@@ -429,7 +429,7 @@ describe("McpServer connect conformance — grant health boundaries", () => {
     );
   });
 
-  it("reports TOKEN_EXPIRED_REFRESHABLE even without a refresh token (pinned current behavior)", async () => {
+  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports TOKEN_EXPIRED_REFRESHABLE even without a refresh token (pinned current behavior)", async () => {
     const { org } = await target.provisionTenancy();
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = false;
@@ -460,7 +460,7 @@ describe("McpServer connect conformance — grant health boundaries", () => {
 });
 
 describe("McpServer connect conformance — disconnect teardown", () => {
-  it("tears down the grant and its managed environment, then answers false on repeat", async () => {
+  it("[rpc:McpServerCommandController.disconnectOAuth] tears down the grant and its managed environment, then answers false on repeat", async () => {
     const { org } = await target.provisionTenancy();
     const { server } = await completeDcrHandshake(org, uniqueName("teardown"));
 
@@ -492,7 +492,7 @@ describe("McpServer connect conformance — disconnect teardown", () => {
 });
 
 describe("McpServer connect conformance — blocking connect", () => {
-  it("rejects missing inputs and unknown servers (InvalidArgument / NotFound)", async () => {
+  it("[rpc:McpServerCommandController.connect] rejects missing inputs and unknown servers (InvalidArgument / NotFound)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.mcpServerCommand.connect({ mcpServerId: "", org }),
@@ -512,7 +512,7 @@ describe("McpServer connect conformance — blocking connect", () => {
     expect(err.rawMessage).toBe("mcp_server not found: mcp_doesnotexist");
   });
 
-  it("discovers the fixture's tools and persists SUCCEEDED with the classifier's gated verdict", async () => {
+  it("[rpc:McpServerCommandController.connect] discovers the fixture's tools and persists SUCCEEDED with the classifier's gated verdict", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({ org, name: uniqueName("connect"), url: mcpTools.url() }),
@@ -554,7 +554,7 @@ describe("McpServer connect conformance — blocking connect", () => {
     ]);
   });
 
-  it("re-connect keeps capabilities and the gated approval stable", async () => {
+  it("[rpc:McpServerCommandController.connect] re-connect keeps capabilities and the gated approval stable", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({ org, name: uniqueName("reconnect"), url: mcpTools.url() }),
@@ -588,7 +588,7 @@ describe("McpServer connect conformance — blocking connect", () => {
     expect(approvals.map((a) => a.toolName)).toEqual([ECHO_TOOL_NAME]);
   });
 
-  it("classifies an unreachable http server as FailedPrecondition with the reachability guidance", async () => {
+  it("[rpc:McpServerCommandController.connect] classifies an unreachable http server as FailedPrecondition with the reachability guidance", async () => {
     const { org } = await target.provisionTenancy();
     // Port 9 (discard) on loopback: nothing listens there, so the runner's
     // connection attempt fails fast and deterministically.
@@ -612,7 +612,7 @@ describe("McpServer connect conformance — blocking connect", () => {
     );
   });
 
-  it("refuses connect when required credentials have no personal environment (pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.connect] refuses connect when required credentials have no personal environment (pinned copy)", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({
@@ -634,7 +634,7 @@ describe("McpServer connect conformance — blocking connect", () => {
     );
   });
 
-  it("discovers a server that declares a credential once the personal environment holds it — the ephemeral ExecutionContext is created and decrypted for the runner", async () => {
+  it("[rpc:McpServerCommandController.connect] discovers a server that declares a credential once the personal environment holds it — the ephemeral ExecutionContext is created and decrypted for the runner", async () => {
     // The credentialed connect is the connect lane's whole reason to mint a
     // token: the declared key is saved as a secret, the server resolves it
     // into an ephemeral ExecutionContext for this connect, and the runner
@@ -675,7 +675,7 @@ describe("McpServer connect conformance — blocking connect", () => {
 });
 
 describe("McpServer connect conformance — async startConnect", () => {
-  it("returns immediately with CONNECTING, attaches concurrent starts to one discovery run, and settles SUCCEEDED", async () => {
+  it("[rpc:McpServerCommandController.startConnect] returns immediately with CONNECTING, attaches concurrent starts to one discovery run, and settles SUCCEEDED", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({ org, name: uniqueName("async"), url: mcpTools.url() }),
@@ -724,7 +724,7 @@ describe("McpServer connect conformance — async startConnect", () => {
 });
 
 describe("McpServer connect conformance — refresh-on-connect pre-flight", () => {
-  it("refreshes an expired grant through the refresh_token grant before discovering", async () => {
+  it("[rpc:McpServerCommandController.connect] refreshes an expired grant through the refresh_token grant before discovering", async () => {
     const { org } = await target.provisionTenancy();
     // Handshake leaves a grant already inside the 60s refresh window, with a
     // refresh token to redeem.
@@ -760,7 +760,7 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
   });
 
-  it("surfaces a failing refresh as FailedPrecondition with the re-authenticate copy (pinned)", async () => {
+  it("[rpc:McpServerCommandController.connect] surfaces a failing refresh as FailedPrecondition with the re-authenticate copy (pinned)", async () => {
     const { org } = await target.provisionTenancy();
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = true;
@@ -781,7 +781,7 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     );
   });
 
-  it("silently skips the refresh when the grant has no refresh token (pinned current behavior)", async () => {
+  it("[rpc:McpServerCommandController.connect] silently skips the refresh when the grant has no refresh token (pinned current behavior)", async () => {
     const { org } = await target.provisionTenancy();
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = false;

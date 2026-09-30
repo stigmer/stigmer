@@ -75,7 +75,7 @@ async function provisionAgentInstance(org: string): Promise<string> {
   return agentInstanceId;
 }
 
-describe("Session immutability — harness", () => {
+describe("[rpc:SessionCommandController.apply] Session immutability — harness", () => {
   it("is freely mutable while the harness_state_id sentinel is empty", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
@@ -162,7 +162,7 @@ describe("Session immutability — harness", () => {
   });
 });
 
-describe("Session immutability — execution_target", () => {
+describe("[rpc:SessionCommandController.apply] Session immutability — execution_target", () => {
   it("is freely mutable while the harness_state_id sentinel is empty", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);

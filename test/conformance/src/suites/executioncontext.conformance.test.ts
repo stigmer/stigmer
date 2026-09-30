@@ -70,7 +70,7 @@ async function createExecutionContext(org: string, name: string, opts: Execution
 }
 
 describe("ExecutionContext conformance — CRUD & identity", () => {
-  it("create assigns an ectx_ id, echoes the spec, and records a created audit event", async () => {
+  it("[rpc:ExecutionContextCommandController.create] create assigns an ectx_ id, echoes the spec, and records a created audit event", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("ectx");
     const executionId = uniqueName("aex");
@@ -85,7 +85,7 @@ describe("ExecutionContext conformance — CRUD & identity", () => {
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:ExecutionContextQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createExecutionContext(org, uniqueName("ectx"));
 
@@ -95,7 +95,7 @@ describe("ExecutionContext conformance — CRUD & identity", () => {
     assertResourceParity(ExecutionContextSchema, created, fetched, "create vs get");
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:ExecutionContextCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.executionContextCommand.create(makeExecutionContext({ org, name: uniqueName("ectx") }));
     const { id } = created.metadata!;
@@ -106,17 +106,17 @@ describe("ExecutionContext conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.executionContextQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:ExecutionContextQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.executionContextQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:ExecutionContextQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.executionContextQuery.get({ value: "ectx_doesnotexist" }),
       Code.NotFound,
       "get missing id",
     ));
 
-  it("getByReference resolves by org and slug", async () => {
+  it("[rpc:ExecutionContextQueryController.getByReference] getByReference resolves by org and slug", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createExecutionContext(org, uniqueName("ref"));
 
@@ -125,7 +125,7 @@ describe("ExecutionContext conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:ExecutionContextQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.executionContextQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -134,21 +134,21 @@ describe("ExecutionContext conformance — CRUD & identity", () => {
     );
   });
 
-  it("getByReference rejects a kind that does not match the service", () =>
+  it("[rpc:ExecutionContextQueryController.getByReference] getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
       () => clients.executionContextQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
       Code.InvalidArgument,
       "getByReference kind mismatch",
     ));
 
-  it("derives a slug from the name", async () => {
+  it("[rpc:ExecutionContextCommandController.create] derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createExecutionContext(org, "Exec Ctx #1 (Run)");
     expect(created.metadata?.slug).toBe("exec-ctx-1-run");
   });
 });
 
-describe("ExecutionContext conformance — execution lookup", () => {
+describe("[rpc:ExecutionContextQueryController.getByExecutionId] ExecutionContext conformance — execution lookup", () => {
   it("getByExecutionId resolves a context by its parent execution_id", async () => {
     const { org } = await target.provisionTenancy();
     const executionId = uniqueName("aex");
@@ -176,7 +176,7 @@ describe("ExecutionContext conformance — execution lookup", () => {
     ));
 });
 
-describe("ExecutionContext conformance — apply (create-or-fail)", () => {
+describe("[rpc:ExecutionContextCommandController.apply] ExecutionContext conformance — apply (create-or-fail)", () => {
   it("apply creates the context on the first call", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("ectx");
@@ -206,7 +206,7 @@ describe("ExecutionContext conformance — apply (create-or-fail)", () => {
 });
 
 describe("ExecutionContext conformance — secrets", () => {
-  it("read redacts the secret value; is_secret is always preserved", async () => {
+  it("[rpc:ExecutionContextQueryController.get] read redacts the secret value; is_secret is always preserved", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "runtime-secret-value";
     const created = await createExecutionContext(org, uniqueName("ectx"), {
@@ -224,7 +224,7 @@ describe("ExecutionContext conformance — secrets", () => {
     expect(secretEntry?.value, "no user-shaped read returns the plaintext secret (stigmer#535)").not.toBe(secretValue);
   });
 
-  it("getByExecutionId under a user token follows the same secret contract as get", async () => {
+  it("[rpc:ExecutionContextQueryController.getByExecutionId] getByExecutionId under a user token follows the same secret contract as get", async () => {
     // getByExecutionId is the runner's secret-delivery path, but it decrypts
     // only for scope-bound runner credentials (cloud: token_type of sandbox /
     // workflow_sandbox / connect_sandbox, each bound to the EC it reads, with
@@ -257,7 +257,7 @@ describe("ExecutionContext conformance — secrets", () => {
   });
 });
 
-describe("ExecutionContext conformance — negative paths", () => {
+describe("[rpc:ExecutionContextCommandController.create] ExecutionContext conformance — negative paths", () => {
   it("rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
@@ -362,7 +362,7 @@ describe("ExecutionContext conformance — cross-org authorization", () => {
   // posture, where the chain's AuthorizeExecutionContextCreate asks the
   // built-in Authorizer — one contract on the cloud and on both open-source
   // store drivers. Where a target lends no lane the arm skips VISIBLY.
-  it("an outsider cannot create an execution context in a foreign org (PermissionDenied)", async (ctx) => {
+  it("[rpc:ExecutionContextCommandController.create] an outsider cannot create an execution context in a foreign org (PermissionDenied)", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;

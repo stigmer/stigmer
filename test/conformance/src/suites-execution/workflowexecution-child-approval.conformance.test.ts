@@ -117,7 +117,7 @@ afterAll(async () => {
 });
 
 describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives", () => {
-  it("rejects an empty execution_id with InvalidArgument", () =>
+  it("[rpc:WorkflowExecutionCommandController.submitApproval] rejects an empty execution_id with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -129,7 +129,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "empty execution_id",
     ));
 
-  it("rejects an empty tool_call_id with InvalidArgument", () =>
+  it("[rpc:WorkflowExecutionCommandController.submitApproval] rejects an empty tool_call_id with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -141,7 +141,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "empty tool_call_id",
     ));
 
-  it("rejects an UNSPECIFIED action with InvalidArgument", () =>
+  it("[rpc:WorkflowExecutionCommandController.submitApproval] rejects an UNSPECIFIED action with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -153,7 +153,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "UNSPECIFIED action",
     ));
 
-  it("returns NotFound for a missing execution", () =>
+  it("[rpc:WorkflowExecutionCommandController.submitApproval] returns NotFound for a missing execution", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -165,7 +165,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
       "missing execution",
     ));
 
-  it("returns FailedPrecondition for a running execution with no pending approvals", async () => {
+  it("[rpc:WorkflowExecutionCommandController.submitApproval] returns FailedPrecondition for a running execution with no pending approvals", async () => {
     const { org } = await target.provisionTenancy();
     // A running wait execution is genuinely in-flight (IN_PROGRESS) yet has no
     // approval gate — the cleanest way to hit the handler's no-pending guard
@@ -199,7 +199,7 @@ describe("WorkflowExecution submitApproval (child-agent forwarder) — negatives
     await clients.workflowExecutionCommand.cancel({ id: executionId });
   });
 
-  it("returns FailedPrecondition for a submit on a terminal execution", async () => {
+  it("[rpc:WorkflowExecutionCommandController.submitApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
     const { org } = await target.provisionTenancy();
     // A set_vars execution completes sub-second; a terminal execution also has no
     // pending approvals, so it resolves through the same guard — pinned separately
@@ -252,7 +252,7 @@ describe.skipIf(!forwarderEnabled)(
       mock.reset();
     });
 
-    it("forwards a child agent's approval; the child resumes and the workflow completes", async () => {
+    it("[rpc:WorkflowExecutionCommandController.submitApproval] forwards a child agent's approval; the child resumes and the workflow completes", async () => {
       const { org } = await target.provisionTenancy();
 
       // An agent that uses the MCP fixture with `echo` gated for approval — the

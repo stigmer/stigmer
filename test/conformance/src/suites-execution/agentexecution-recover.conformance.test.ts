@@ -70,7 +70,7 @@ async function provisionAgent(org: string): Promise<string> {
 }
 
 describe("AgentExecution recover — happy path", () => {
-  it("recovers a FAILED execution back to IN_PROGRESS with the error cleared, then completes", async () => {
+  it("[rpc:AgentExecutionCommandController.recover] recovers a FAILED execution back to IN_PROGRESS with the error cleared, then completes", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
 
@@ -112,7 +112,7 @@ describe("AgentExecution recover — happy path", () => {
 });
 
 describe("AgentExecution recover — idempotency", () => {
-  it("is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
+  it("[rpc:AgentExecutionCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
 

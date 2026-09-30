@@ -203,7 +203,7 @@ async function storeContains(dir: string, needle: string): Promise<boolean> {
 }
 
 describe("AgentExecution file review — keep and discard", () => {
-  it("approving a tracked ADD lands the bytes, records RECONCILED and leaves HEAD untouched", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] approving a tracked ADD lands the bytes, records RECONCILED and leaves HEAD untouched", async () => {
     const workspace = await freshWorkspace();
     const headBefore = await workspace.headSha();
     const path = "feature.txt";
@@ -244,7 +244,7 @@ describe("AgentExecution file review — keep and discard", () => {
     expect(fileReviewersOf(final, set.id), "the decision names the reviewing caller").toEqual([creator]);
   });
 
-  it("rejecting a MODIFY restores the baseline bytes exactly", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] rejecting a MODIFY restores the baseline bytes exactly", async () => {
     const workspace = await freshWorkspace();
     const path = "notes.md";
     const original = "# Notes\noriginal line\n";
@@ -272,7 +272,7 @@ describe("AgentExecution file review — keep and discard", () => {
     expect(row?.fileChangeSetId).toBe(set.id);
   });
 
-  it("a per-file split decision lands the kept file and drops the rejected one", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a per-file split decision lands the kept file and drops the rejected one", async () => {
     const workspace = await freshWorkspace();
     const { executionId, set } = await runToReview(workspace, [
       writeFileTurn("toolu_w_keep", "keep.txt", "keep me\n"),
@@ -291,7 +291,7 @@ describe("AgentExecution file review — keep and discard", () => {
     expect(await workspace.exists("drop.txt"), "the rejected create never lands").toBe(false);
   });
 
-  it("a change-set APPROVE with the aggregate digest lands every file", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a change-set APPROVE with the aggregate digest lands every file", async () => {
     const workspace = await freshWorkspace();
     const { executionId, set } = await runToReview(workspace, [
       writeFileTurn("toolu_w_a", "alpha.txt", "alpha\n"),
@@ -308,7 +308,7 @@ describe("AgentExecution file review — keep and discard", () => {
     expect(await workspace.readFile("beta.txt")).toBe("beta\n");
   });
 
-  it("a stale expected_digest is InvalidArgument and leaves the set AWAITING_REVIEW", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a stale expected_digest is InvalidArgument and leaves the set AWAITING_REVIEW", async () => {
     const workspace = await freshWorkspace();
     const path = "config.txt";
     const { executionId, set } = await runToReview(workspace, [
@@ -335,7 +335,7 @@ describe("AgentExecution file review — keep and discard", () => {
 });
 
 describe("AgentExecution file review — binary changes", () => {
-  it("a binary change is summary-only: APPROVE is FailedPrecondition, REJECT completes", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a binary change is summary-only: APPROVE is FailedPrecondition, REJECT completes", async () => {
     const workspace = await freshWorkspace();
     const path = "blob.bin";
     const { executionId, set } = await runToReview(workspace, [
@@ -363,7 +363,7 @@ describe("AgentExecution file review — binary changes", () => {
     expect(await workspace.exists(path), "the rejected binary never lands").toBe(false);
   });
 
-  it("acknowledge_unreviewable with the right digest lands binary bytes verbatim", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] acknowledge_unreviewable with the right digest lands binary bytes verbatim", async () => {
     const workspace = await freshWorkspace();
     const headBefore = await workspace.headSha();
     const path = "assets/logo.bin";
@@ -400,7 +400,7 @@ describe("AgentExecution file review — binary changes", () => {
     expect(await workspace.headSha()).toBe(headBefore);
   });
 
-  it("a change-set approve over a binary needs the acknowledgement, then lands both files", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a change-set approve over a binary needs the acknowledgement, then lands both files", async () => {
     const workspace = await freshWorkspace();
     const textPath = "README.md";
     const binPath = "assets/logo.bin";
@@ -428,7 +428,7 @@ describe("AgentExecution file review — binary changes", () => {
     expect(fileReviewStreamHas(final, FileReviewEventType.RECONCILED, set.id)).toBe(true);
   });
 
-  it("a secret in the set blocks change-set approve even when acknowledged; per-file decisions still complete", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a secret in the set blocks change-set approve even when acknowledged; per-file decisions still complete", async () => {
     const workspace = await freshWorkspace();
     const textPath = "notes.md";
     const binPath = "assets/pic.bin";
@@ -463,7 +463,7 @@ describe("AgentExecution file review — binary changes", () => {
 });
 
 describe("AgentExecution file review — secrets never persist", () => {
-  it("a gitignored secret is captured path-only: approve is refused, reject completes, the file never lands", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a gitignored secret is captured path-only: approve is refused, reject completes, the file never lands", async () => {
     const workspace = await freshWorkspace();
     const path = ".env";
     const { executionId, set } = await runToReview(workspace, [
@@ -492,7 +492,7 @@ describe("AgentExecution file review — secrets never persist", () => {
     expect(await workspace.exists(path)).toBe(false);
   });
 
-  it("a tracked file and a secret in one turn: tracked kept, secret discarded", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a tracked file and a secret in one turn: tracked kept, secret discarded", async () => {
     const workspace = await freshWorkspace();
     const trackedPath = "tracked.txt";
     const secretPath = ".env";
@@ -513,7 +513,7 @@ describe("AgentExecution file review — secrets never persist", () => {
     expect(await workspace.exists(secretPath)).toBe(false);
   });
 
-  it("a tracked secret is SECRET_WITHHELD: no bytes in status or the artifact store; approve refused, reject restores", async (ctx) => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a tracked secret is SECRET_WITHHELD: no bytes in status or the artifact store; approve refused, reject restores", async (ctx) => {
     if (target.artifactStoreDir === undefined) return ctx.skip();
     const workspace = await freshWorkspace();
     const path = "config/credentials.json";
@@ -586,7 +586,7 @@ describe("AgentExecution file review — secrets never persist", () => {
 });
 
 describe("AgentExecution file review — gitignored captures and durability", () => {
-  it("gitignored non-secret files are captured, reviewed and reconciled from the artifact store", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] gitignored non-secret files are captured, reviewed and reconciled from the artifact store", async () => {
     const workspace = await freshWorkspace();
     await workspace.seedGitignorePattern("cache/");
     const { executionId, set } = await runToReview(workspace, [
@@ -617,7 +617,7 @@ describe("AgentExecution file review — gitignored captures and durability", ()
     expect(await workspace.exists("cache/drop.txt")).toBe(false);
   });
 
-  it("a change-set approve restores every file byte-exact after the working tree was wiped", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] a change-set approve restores every file byte-exact after the working tree was wiped", async () => {
     const workspace = await freshWorkspace();
     await workspace.seedGitignorePattern("cache/");
     const trackedPath = "tracked.txt";

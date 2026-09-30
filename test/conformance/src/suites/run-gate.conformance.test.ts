@@ -121,7 +121,7 @@ async function createPrivateWorkflow(org: string) {
 }
 
 describe("run gate — a member may run only what they can see (on the enforcing lane)", () => {
-  it("session create on a PRIVATE agent's instance is denied with the instance copy and leaves no row", async (ctx) => {
+  it("[rpc:SessionCommandController.create] session create on a PRIVATE agent's instance is denied with the instance copy and leaves no row", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -157,7 +157,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("execution create by agent_id on a PRIVATE agent is denied with the agent copy", async (ctx) => {
+  it("[rpc:AgentExecutionCommandController.create] execution create by agent_id on a PRIVATE agent is denied with the agent copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -183,7 +183,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     expect(denied.rawMessage).toBe(`unauthorized to run agent '${agentId}'`);
   });
 
-  it("execution create by session_id on a session the member cannot see is denied with the session copy", async (ctx) => {
+  it("[rpc:AgentExecutionCommandController.create] execution create by session_id on a session the member cannot see is denied with the session copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -221,7 +221,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("workflow execution create on a PRIVATE workflow is denied with the workflow copy", async (ctx) => {
+  it("[rpc:WorkflowExecutionCommandController.create] workflow execution create on a PRIVATE workflow is denied with the workflow copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -245,7 +245,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("session create on an ORG-visible agent's instance is allowed (the positive arm)", async (ctx) => {
+  it("[rpc:SessionCommandController.create] session create on an ORG-visible agent's instance is allowed (the positive arm)", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -270,7 +270,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     expect(session.spec?.agentInstanceId).toBe(instanceId);
   });
 
-  it("an unknown instance id answers NOT_FOUND, never a denial (stigmer#224)", async (ctx) => {
+  it("[rpc:SessionCommandController.create] an unknown instance id answers NOT_FOUND, never a denial (stigmer#224)", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);

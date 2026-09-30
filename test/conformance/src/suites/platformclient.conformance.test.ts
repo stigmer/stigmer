@@ -101,7 +101,7 @@ function expectRedacted(
 }
 
 describe("PlatformClient conformance — CRUD on the primary", () => {
-  it("create answers the client and its secret once, and no read returns the secret or its hash", async () => {
+  it("[rpc:PlatformClientCommandController.create] [rpc:PlatformClientQueryController.get] [rpc:PlatformClientQueryController.getByReference] [rpc:PlatformClientQueryController.listByOrg] create answers the client and its secret once, and no read returns the secret or its hash", async () => {
     const org = await organization();
     const client = await platformClient(org);
     const created = client.created.platformClient;
@@ -135,7 +135,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     expectRedacted(entry, "listByOrg");
   });
 
-  it("update replaces the spec but keeps the credentials", async () => {
+  it("[rpc:PlatformClientCommandController.update] update replaces the spec but keeps the credentials", async () => {
     const org = await organization();
     const client = await platformClient(org);
     const stored = client.created.platformClient;
@@ -161,7 +161,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     expectRedacted(updated, "update");
   });
 
-  it("rotateSecret answers a new secret and fingerprint under the same client_id", async () => {
+  it("[rpc:PlatformClientCommandController.rotateSecret] rotateSecret answers a new secret and fingerprint under the same client_id", async () => {
     const org = await organization();
     const client = await platformClient(org);
 
@@ -180,7 +180,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     expectRedacted(rotated.platformClient, "rotateSecret");
   });
 
-  it("the reserved slug and the auto-grant rules are refused on create", async () => {
+  it("[rpc:PlatformClientCommandController.create] the reserved slug and the auto-grant rules are refused on create", async () => {
     const org = await organization();
 
     const reserved = await expectGrpcCode(
@@ -229,7 +229,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     );
   });
 
-  it("an environment reference must name an existing environment of the client's organization", async () => {
+  it("[rpc:PlatformClientCommandController.create] an environment reference must name an existing environment of the client's organization", async () => {
     const org = await organization();
     const err = await expectGrpcCode(
       () =>
@@ -254,7 +254,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     );
   });
 
-  it("delete answers the deleted client without its hash, and the client is gone", async () => {
+  it("[rpc:PlatformClientCommandController.delete] delete answers the deleted client without its hash, and the client is gone", async () => {
     const org = await organization();
     const client = await platformClient(org);
 
@@ -274,7 +274,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
 describe.skipIf(!trustsEveryRequest)(
   "PlatformClient conformance — a server that trusts every request (targets without authentication)",
   () => {
-    it("mintUserToken is refused FAILED_PRECONDITION: nothing would verify the token", async () => {
+    it("[rpc:PlatformClientTokenController.mintUserToken] mintUserToken is refused FAILED_PRECONDITION: nothing would verify the token", async () => {
       const org = await organization();
       const client = await platformClient(org);
 

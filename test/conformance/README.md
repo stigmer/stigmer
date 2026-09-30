@@ -410,6 +410,45 @@ Approval submits have one gesture: `submitApprovalPerContract`
 contract, and the reason a decision the server failed to record is red at the
 submit that made it rather than a timeout later in the arm.
 
+### The RPC contract (`inventory/rpc-waivers.yaml`)
+
+Every RPC the API declares is accounted for, and `npm run inventory:check`
+computes it before any target boots: each one carries an
+`[rpc:<Service>.<method>]` tag on the conformance test that pins its promise,
+or a waiver in `inventory/rpc-waivers.yaml`. A waiver is a `gap` (no test pins
+it yet; it names the open issue that owns the test) or `proven-elsewhere` (its
+promise is pinned in another layer; it names that test file, which must carry
+the same tag). The declared set is read from the committed generated sources of
+`@stigmer/protos`, never from a hand list (`src/inventory/rpc-contract.ts`).
+
+- **Where a tag goes.** On each test whose own subject is that RPC: its title
+  states the RPC's behaviour and its assertions read the RPC's answer or its
+  effect. A test that only arranges with an RPC (the `create` before a `get`)
+  is not tagged for it. Tags lead the title, stacked, after any inventory row
+  tags: `it("[rpc:AgentCommandController.apply] apply creates on first call
+  and updates on second (same name + org)", ...)`.
+- **A tag is checked where the call is made.** `createTransport` installs a
+  recorder (`src/harness/rpc-recorder.ts`) on every target's transport; a
+  passing test whose full name (the describe chain and its title) carries a
+  tag for an RPC it never sent fails with `tag-without-call`. So a tag on a
+  `describe` binds every test under it, and goes there only when every one
+  sends the RPC. A call the runner or the MCP bridge makes from its own
+  process never passes through that transport: tag a test only for RPCs its
+  own clients send. A tagged test is never `it.fails` (the runner flips its
+  result after the verdict).
+- **A tag is literal in the source.** The static check scans the files, so a
+  tag built at runtime is invisible to it. In an `it.each` whose table cell is
+  the title's `%s` and serves only as a label, the tag goes in that cell
+  (`"[rpc:IamPolicyCommandController.bootstrapPolicy] bootstrapPolicy"`);
+  otherwise on the inner titles.
+- **The measurement.** With `CONFORMANCE_RPC_LEDGER=<dir>` set, every suite
+  run appends each (target, file, test, RPC) it sends to `<dir>`; then
+  `npx tsx scripts/report-rpc-ledger.ts <dir> [--served <server log>]... [--json <out>]`
+  prints which RPCs each target sends and from which tests, and every scanned
+  tag no run proved (a tag in a comment, or on a test skipped everywhere,
+  passes the static check and shows here). A server log at `LOG_LEVEL` info
+  adds the RPCs only the runner or the bridge sends.
+
 ### Target profiles and capability flags (`src/targets/`)
 
 A `TargetProfile` hides everything that differs between things under test: how
@@ -732,6 +771,9 @@ fixtures/           working-agent/ (the working agent's Go workspace and skills:
    right; an edition difference is a `CapabilityFlag`, never a fork.
 4. An approval submit goes through `submitApprovalPerContract`, never a bare
    `submitApproval` followed by an `expect` on `pending_approvals`.
+5. Tag each test with the RPC it pins (`[rpc:<Service>.<method>]`), or waive
+   the RPC in `inventory/rpc-waivers.yaml`; `npm run inventory:check` names
+   every declared RPC that has neither (see "The RPC contract").
 
 ## Adding a cloud capability
 

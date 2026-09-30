@@ -804,7 +804,7 @@ describe("role enforcement — leaving the organization: what a person made is t
     },
   );
 
-  it("a removed admin is refused the private agent they created, and edits it again once invited back", async (ctx) => {
+  it("[rpc:AgentQueryController.get] a removed admin is refused the private agent they created, and edits it again once invited back", async (ctx) => {
     const agent = BLUEPRINT_KINDS.find((kind) => kind.name === "agent");
     if (agent === undefined)
       throw new Error("the blueprint roster has no agent kind");
@@ -827,7 +827,7 @@ describe("role enforcement — leaving the organization: what a person made is t
 });
 
 describe("role enforcement — the organization: enumeration, membership, the console's gate", () => {
-  it("find is UNIMPLEMENTED on every enforcing lane — no role enumerates organizations", async (ctx) => {
+  it("[rpc:OrganizationQueryController.find] find is UNIMPLEMENTED on every enforcing lane — no role enumerates organizations", async (ctx) => {
     const lane = laneOrSkip(ctx);
     // `org` is required by protovalidate and ignored by find (organizations
     // are the top-level scope) — the organization suite's placeholder.
@@ -842,7 +842,7 @@ describe("role enforcement — the organization: enumeration, membership, the co
     );
   });
 
-  it("findMyOrganizations is the caller's organizations: a member of one of two sees one", async (ctx) => {
+  it("[rpc:OrganizationQueryController.findMyOrganizations] findMyOrganizations is the caller's organizations: a member of one of two sees one", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const first = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(first).catch(() => undefined));
@@ -866,7 +866,7 @@ describe("role enforcement — the organization: enumeration, membership, the co
     );
   });
 
-  it("checkMyPermission(can_edit, organization) is false for a member and true for an admin", async (ctx) => {
+  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_edit, organization) is false for a member and true for an admin", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy).catch(() => undefined));
@@ -892,7 +892,7 @@ describe("role enforcement — the organization: enumeration, membership, the co
 });
 
 describe("role enforcement — the platform: no organization role holds a platform capability", () => {
-  it("checkMyPermission(can_view_provider_standing, platform:stigmer) is false for an owner", async (ctx) => {
+  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_view_provider_standing, platform:stigmer) is false for an owner", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const result = await lane.clients.iamPolicyQuery.checkMyPermission({
       resource: ref("platform", "stigmer"),
@@ -901,7 +901,7 @@ describe("role enforcement — the platform: no organization role holds a platfo
     expect(result.isAuthorized).toBe(false);
   });
 
-  it("checkMyPermission(can_manage_credits, platform:stigmer) is false for an owner — owning an organization never lets anyone make credit", async (ctx) => {
+  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_manage_credits, platform:stigmer) is false for an owner — owning an organization never lets anyone make credit", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const result = await lane.clients.iamPolicyQuery.checkMyPermission({
       resource: ref("platform", "stigmer"),
@@ -910,7 +910,7 @@ describe("role enforcement — the platform: no organization role holds a platfo
     expect(result.isAuthorized).toBe(false);
   });
 
-  it("the retired public level is refused for an owner as an invalid level — gated for nobody", async (ctx) => {
+  it("[rpc:AgentCommandController.create] the retired public level is refused for an owner as an invalid level — gated for nobody", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy).catch(() => undefined));
@@ -936,7 +936,7 @@ describe("role enforcement — the platform: no organization role holds a platfo
 });
 
 describe("role enforcement — an unprovisioned caller writes nothing", () => {
-  it("an admitted subject with no account may not create a blueprint", async (ctx) => {
+  it("[rpc:AgentCommandController.create] an admitted subject with no account may not create a blueprint", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const mintStranger = lane.unprovisionedCaller;
     if (mintStranger === undefined) {

@@ -47,7 +47,7 @@ async function createMcpServer(org: string, name: string, description = "conform
 }
 
 describe("McpServer conformance — CRUD & identity", () => {
-  it("create assigns an mcp_ id, echoes the spec, and records a created audit event", async () => {
+  it("[rpc:McpServerCommandController.create] create assigns an mcp_ id, echoes the spec, and records a created audit event", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("mcp");
 
@@ -64,7 +64,7 @@ describe("McpServer conformance — CRUD & identity", () => {
     expect(created.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:McpServerQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createMcpServer(org, uniqueName("mcp"));
 
@@ -74,7 +74,7 @@ describe("McpServer conformance — CRUD & identity", () => {
     assertResourceParity(McpServerSchema, created, fetched, "create vs get");
   });
 
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:McpServerCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("mcp");
 
@@ -89,7 +89,7 @@ describe("McpServer conformance — CRUD & identity", () => {
     expect(second.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update replaces spec and name but preserves id, slug, and org", async () => {
+  it("[rpc:McpServerCommandController.update] update replaces spec and name but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createMcpServer(org, uniqueName("mcp"), "before");
     const { id, slug } = created.metadata!;
@@ -111,7 +111,23 @@ describe("McpServer conformance — CRUD & identity", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:McpServerCommandController.updateVisibility] updateVisibility moves the stored level (org to private) and the change reads back", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createMcpServer(org, uniqueName("mcp"));
+    expect(created.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+
+    await clients.mcpServerCommand.updateVisibility({
+      resourceId: created.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_private,
+    });
+
+    const stored = await clients.mcpServerQuery.get({ value: created.metadata!.id });
+    expect(stored.metadata?.visibility, "the update must change the stored level").toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+  });
+
+  it("[rpc:McpServerCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.mcpServerCommand.create(makeMcpServer({ org, name: uniqueName("mcp") }));
     const { id } = created.metadata!;
@@ -122,13 +138,13 @@ describe("McpServer conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.mcpServerQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:McpServerQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.mcpServerQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:McpServerQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(() => clients.mcpServerQuery.get({ value: "mcp_doesnotexist" }), Code.NotFound, "get missing id"));
 
-  it("getByReference resolves by org and slug", async () => {
+  it("[rpc:McpServerQueryController.getByReference] getByReference resolves by org and slug", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createMcpServer(org, uniqueName("ref"));
 
@@ -137,7 +153,7 @@ describe("McpServer conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:McpServerQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.mcpServerQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -146,20 +162,20 @@ describe("McpServer conformance — CRUD & identity", () => {
     );
   });
 
-  it("getByReference rejects a kind that does not match the service", () =>
+  it("[rpc:McpServerQueryController.getByReference] getByReference rejects a kind that does not match the service", () =>
     expectGrpcCode(
       () => clients.mcpServerQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
       Code.InvalidArgument,
       "getByReference kind mismatch",
     ));
 
-  it("derives a slug from the name", async () => {
+  it("[rpc:McpServerCommandController.create] derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createMcpServer(org, "My MCP Server #1 (Test)");
     expect(created.metadata?.slug).toBe("my-mcp-server-1-test");
   });
 
-  it("allows the same slug in different orgs", async () => {
+  it("[rpc:McpServerCommandController.create] allows the same slug in different orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
     const name = uniqueName("shared");
@@ -173,7 +189,7 @@ describe("McpServer conformance — CRUD & identity", () => {
 });
 
 describe("McpServer conformance — negative paths", () => {
-  it("rejects a spec with no server_type (InvalidArgument)", async () => {
+  it("[rpc:McpServerCommandController.create] rejects a spec with no server_type (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // The server_type oneof is required; a spec present but without stdio/http
     // is a Layer-1 protovalidate violation caught by ValidateProtoStep.
@@ -190,7 +206,7 @@ describe("McpServer conformance — negative paths", () => {
     );
   });
 
-  it("rejects a stdio server with an empty command (InvalidArgument)", async () => {
+  it("[rpc:McpServerCommandController.create] rejects a stdio server with an empty command (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // stdio.command is required (min_len=1).
     await expectGrpcCode(
@@ -206,7 +222,7 @@ describe("McpServer conformance — negative paths", () => {
     );
   });
 
-  it("rejects an http server with a non-URI url (InvalidArgument)", async () => {
+  it("[rpc:McpServerCommandController.create] rejects an http server with a non-URI url (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // http.url is required and must be a valid URI.
     await expectGrpcCode(
@@ -222,7 +238,7 @@ describe("McpServer conformance — negative paths", () => {
     );
   });
 
-  it("rejects a duplicate create (contract: AlreadyExists)", async () => {
+  it("[rpc:McpServerCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("dup");
     await createMcpServer(org, name);
@@ -234,7 +250,7 @@ describe("McpServer conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with no name (contract: InvalidArgument)", async () => {
+  it("[rpc:McpServerCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1 passes; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).

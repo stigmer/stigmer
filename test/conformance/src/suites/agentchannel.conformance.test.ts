@@ -82,7 +82,7 @@ async function createChannelFixture(org: string, agentSlug: string, name = uniqu
 }
 
 describe("AgentChannel conformance — CRUD & identity", () => {
-  it("create assigns an ach_ id, echoes the spec, and initializes install_state to pending_install", async () => {
+  it("[rpc:AgentChannelCommandController.create] create assigns an ach_ id, echoes the spec, and initializes install_state to pending_install", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createChannelFixture(org, agent.metadata!.slug);
@@ -99,7 +99,7 @@ describe("AgentChannel conformance — CRUD & identity", () => {
     expect(created.status?.installState).toBe(AgentChannelInstallState.pending_install);
   });
 
-  it("get, getByReference, and list resolve the channel", async () => {
+  it("[rpc:AgentChannelQueryController.get] [rpc:AgentChannelQueryController.getByReference] [rpc:AgentChannelQueryController.list] get, getByReference, and list resolve the channel", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createChannelFixture(org, agent.metadata!.slug);
@@ -117,7 +117,7 @@ describe("AgentChannel conformance — CRUD & identity", () => {
     expect(listed.items.some((c) => c.metadata?.id === created.metadata?.id)).toBe(true);
   });
 
-  it("getByAgent returns the agent's channels; an unknown agent id yields an empty list, not an error", async () => {
+  it("[rpc:AgentChannelQueryController.getByAgent] getByAgent returns the agent's channels; an unknown agent id yields an empty list, not an error", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createChannelFixture(org, agent.metadata!.slug);
@@ -132,7 +132,7 @@ describe("AgentChannel conformance — CRUD & identity", () => {
     expect(none.items).toHaveLength(0);
   });
 
-  it("update flips mutable fields (enabled) and preserves identity", async () => {
+  it("[rpc:AgentChannelCommandController.update] update flips mutable fields (enabled) and preserves identity", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createChannelFixture(org, agent.metadata!.slug);
@@ -150,7 +150,27 @@ describe("AgentChannel conformance — CRUD & identity", () => {
     expect(updated.status?.installState).toBe(AgentChannelInstallState.pending_install);
   });
 
-  it("delete removes the channel", async () => {
+  it("[rpc:AgentChannelCommandController.apply] apply creates on first call and updates in place on second (same name + org)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const name = uniqueName("channel");
+
+    const first = await clients.agentChannelCommand.apply(makeSlackAgentChannel(org, name, agent.metadata!.slug));
+    fixtures.defer(() => clients.agentChannelCommand.delete({ value: first.metadata!.id }));
+    expect(first.metadata?.id).toMatch(/^ach_/);
+    expect(first.spec?.enabled).toBe(true);
+
+    const second = await clients.agentChannelCommand.apply(
+      makeSlackAgentChannel(org, name, agent.metadata!.slug, { enabled: false }),
+    );
+
+    expect(second.metadata?.id, "apply must update the same resource").toBe(first.metadata?.id);
+    expect(second.spec?.enabled).toBe(false);
+    // Status (install lifecycle) is system-managed and survives the re-apply.
+    expect(second.status?.installState).toBe(AgentChannelInstallState.pending_install);
+  });
+
+  it("[rpc:AgentChannelCommandController.delete] delete removes the channel", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     // No deferred cleanup: this test deletes the channel itself.
@@ -169,7 +189,7 @@ describe("AgentChannel conformance — CRUD & identity", () => {
 });
 
 describe("AgentChannel conformance — create validation", () => {
-  it("requires metadata.org (InvalidArgument)", async () => {
+  it("[rpc:AgentChannelCommandController.create] requires metadata.org (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
 
@@ -184,7 +204,7 @@ describe("AgentChannel conformance — create validation", () => {
     expect(err.rawMessage).toBe("metadata.org is required for an agent channel");
   });
 
-  it("rejects a cross-org agent_ref (FailedPrecondition — channels have no cross-org arm)", async () => {
+  it("[rpc:AgentChannelCommandController.create] rejects a cross-org agent_ref (FailedPrecondition — channels have no cross-org arm)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const { org: otherOrg } = await target.provisionTenancy();
@@ -206,7 +226,7 @@ describe("AgentChannel conformance — create validation", () => {
     expect(err.rawMessage).toContain("spec.agent_ref.org must match metadata.org");
   });
 
-  it("rejects an unknown agent with the same NotFound a direct lookup produces", async () => {
+  it("[rpc:AgentChannelCommandController.create] rejects an unknown agent with the same NotFound a direct lookup produces", async () => {
     const { org } = await target.provisionTenancy();
 
     const err = await expectGrpcCode(
@@ -222,7 +242,7 @@ describe("AgentChannel conformance — create validation", () => {
     expect(err.rawMessage).toBe("Agent not found: no-such-agent");
   });
 
-  it("the pin-REQUIRED rule is edition-split: OSS stores an unpinned channel, cloud refuses it (#362)", async () => {
+  it("[rpc:AgentChannelCommandController.create] the pin-REQUIRED rule is edition-split: OSS stores an unpinned channel, cloud refuses it (#362)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const unpinned = makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug, {
@@ -250,7 +270,7 @@ describe("AgentChannel conformance — create validation", () => {
     }
   });
 
-  it("rejects an unknown model pin (InvalidArgument, stable message prefix)", async () => {
+  it("[rpc:AgentChannelCommandController.create] rejects an unknown model pin (InvalidArgument, stable message prefix)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
 
@@ -271,7 +291,7 @@ describe("AgentChannel conformance — create validation", () => {
     );
   });
 
-  it("requires app_ref for WhatsApp channels (InvalidArgument — BYO-only provider)", async () => {
+  it("[rpc:AgentChannelCommandController.create] requires app_ref for WhatsApp channels (InvalidArgument — BYO-only provider)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
 
@@ -288,7 +308,7 @@ describe("AgentChannel conformance — create validation", () => {
     );
   });
 
-  it("rejects a cross-org app_ref (FailedPrecondition — secrets never cross orgs)", async () => {
+  it("[rpc:AgentChannelCommandController.create] rejects a cross-org app_ref (FailedPrecondition — secrets never cross orgs)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const { org: otherOrg } = await target.provisionTenancy();
@@ -307,7 +327,7 @@ describe("AgentChannel conformance — create validation", () => {
     expect(err.rawMessage).toContain("spec.app_ref.org must match metadata.org");
   });
 
-  it("rejects a create with no provider arm (InvalidArgument — required oneof)", async () => {
+  it("[rpc:AgentChannelCommandController.create] rejects a create with no provider arm (InvalidArgument — required oneof)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
 
@@ -323,7 +343,7 @@ describe("AgentChannel conformance — create validation", () => {
 });
 
 describe("AgentChannel conformance — update immutability", () => {
-  it("rejects re-pointing agent_ref (FailedPrecondition — a channel serves ONE agent)", async () => {
+  it("[rpc:AgentChannelCommandController.update] rejects re-pointing agent_ref (FailedPrecondition — a channel serves ONE agent)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const otherAgent = await createAgentFixture(org);
@@ -341,7 +361,7 @@ describe("AgentChannel conformance — update immutability", () => {
     expect(err.rawMessage).toContain("spec.agent_ref is immutable");
   });
 
-  it("rejects flipping the provider arm (FailedPrecondition — install state is provider-shaped)", async () => {
+  it("[rpc:AgentChannelCommandController.update] rejects flipping the provider arm (FailedPrecondition — install state is provider-shaped)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createChannelFixture(org, agent.metadata!.slug);
@@ -360,7 +380,7 @@ describe("AgentChannel conformance — update immutability", () => {
     expect(err.rawMessage).toContain("spec provider is immutable (channel provider is slack)");
   });
 
-  it("allows rebinding app_ref while the channel is pending (the reachable half of the freeze rule)", async () => {
+  it("[rpc:AgentChannelCommandController.update] allows rebinding app_ref while the channel is pending (the reachable half of the freeze rule)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const app = await clients.channelAppCommand.create(
@@ -390,7 +410,7 @@ describe("AgentChannel conformance — update immutability", () => {
 });
 
 describe("AgentChannel conformance — the install lanes", () => {
-  it("initiateInstall on an unknown channel answers the LoadChannel NotFound (both editions)", async () => {
+  it("[rpc:AgentChannelCommandController.initiateInstall] initiateInstall on an unknown channel answers the LoadChannel NotFound (both editions)", async () => {
     const err = await expectGrpcCode(
       () => clients.agentChannelCommand.initiateInstall({ resourceId: "ach_01confmissing" }),
       Code.NotFound,
@@ -402,7 +422,7 @@ describe("AgentChannel conformance — the install lanes", () => {
     expect(err.rawMessage).toBe("AgentChannel not found: ach_01confmissing");
   });
 
-  it("refuses installs where no channel runtime exists (the pinned OSS posture)", async (ctx) => {
+  it("[rpc:AgentChannelCommandController.initiateInstall] [rpc:AgentChannelCommandController.completeInstall] refuses installs where no channel runtime exists (the pinned OSS posture)", async (ctx) => {
     // Cloud serves real installs; their behavior needs a live provider
     // workspace — covered by cloud's integration tests, not pinnable here
     // (the skill transfer-lane skip precedent: no observable opposite arm).
@@ -437,7 +457,7 @@ describe("AgentChannel conformance — conversation lanes", () => {
   // fabricated channel id fails closed in authorization (PermissionDenied,
   // no existence leak) before any handler runs, so only an owned channel
   // reaches the shared truthful-emptiness contract on both editions.
-  it("discovery reads answer truthful emptiness (no conversation traffic exists)", async () => {
+  it("[rpc:ChannelConversationQueryController.listConversations] [rpc:ChannelConversationQueryController.getTimeline] discovery reads answer truthful emptiness (no conversation traffic exists)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const channel = await createChannelFixture(org, agent.metadata!.slug);
@@ -453,7 +473,7 @@ describe("AgentChannel conformance — conversation lanes", () => {
     expect(timeline.items ?? []).toHaveLength(0);
   });
 
-  it("single-row reads answer uniform NotFound (no local probing, no existence leak)", async () => {
+  it("[rpc:ChannelConversationQueryController.getConversation] [rpc:ChannelConversationQueryController.getMediaDownloadUrl] single-row reads answer uniform NotFound (no local probing, no existence leak)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const channel = await createChannelFixture(org, agent.metadata!.slug);
@@ -483,7 +503,7 @@ describe("AgentChannel conformance — conversation lanes", () => {
     expect(media.rawMessage).toBe("no downloadable media at this timeline item");
   });
 
-  it("validation runs before any refusal (InvalidArgument matches cloud)", async () => {
+  it("[rpc:ChannelConversationCommandController.takeOver] [rpc:ChannelConversationCommandController.escalate] validation runs before any refusal (InvalidArgument matches cloud)", async () => {
     // Empty conversation_key fails proto validation on BOTH editions —
     // proving the controllers validate before the edition split.
     await expectGrpcCode(
@@ -498,7 +518,7 @@ describe("AgentChannel conformance — conversation lanes", () => {
     );
   });
 
-  it("refuses participation commands where no runtime exists (the pinned OSS posture)", async (ctx) => {
+  it("[rpc:ChannelConversationCommandController.reply] [rpc:ChannelConversationCommandController.takeOver] [rpc:ChannelConversationCommandController.handBack] [rpc:ChannelConversationCommandController.clearAttention] [rpc:ChannelConversationCommandController.escalate] refuses participation commands where no runtime exists (the pinned OSS posture)", async (ctx) => {
     if (target.capabilities.channelMessaging) return ctx.skip();
     const refusal = "conversation participation requires Stigmer Cloud";
     const control = { agentChannelId: "ach_01confmissing", conversationKey: "conf-conversation" };
@@ -524,7 +544,7 @@ describe("AgentChannel conformance — conversation lanes", () => {
 });
 
 describe("AgentChannel conformance — messaging lanes", () => {
-  it("listMessagingChannels answers truthful emptiness on the storing edition, a refusal on the serving one", async () => {
+  it("[rpc:ChannelMessageQueryController.listMessagingChannels] listMessagingChannels answers truthful emptiness on the storing edition, a refusal on the serving one", async () => {
     if (target.capabilities.channelMessaging) {
       // The serving edition resolves this read from an agent SESSION (the
       // runner's identity), so a bare direct call is refused with guidance
@@ -546,7 +566,7 @@ describe("AgentChannel conformance — messaging lanes", () => {
     expect(channels.entries ?? []).toHaveLength(0);
   });
 
-  it("validation runs before any refusal (InvalidArgument matches cloud)", async () => {
+  it("[rpc:ChannelMessageCommandController.sendMessage] validation runs before any refusal (InvalidArgument matches cloud)", async () => {
     await expectGrpcCode(
       () => clients.channelMessageCommand.sendMessage({ channel: "c", recipient: "" }),
       Code.InvalidArgument,
@@ -554,7 +574,7 @@ describe("AgentChannel conformance — messaging lanes", () => {
     );
   });
 
-  it("refuses proactive messaging where no runtime exists (the pinned OSS posture)", async (ctx) => {
+  it("[rpc:ChannelMessageCommandController.sendMessage] [rpc:ChannelMessageQueryController.listTemplates] refuses proactive messaging where no runtime exists (the pinned OSS posture)", async (ctx) => {
     if (target.capabilities.channelMessaging) return ctx.skip();
     const refusal = "proactive channel messaging requires Stigmer Cloud";
 

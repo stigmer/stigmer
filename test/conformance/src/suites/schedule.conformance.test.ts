@@ -69,7 +69,7 @@ async function createScheduleFixture(
 }
 
 describe("Schedule CRUD contract", () => {
-  it("create round-trips the spec and starts with a clean firing status", async () => {
+  it("[rpc:ScheduleCommandController.create] [rpc:ScheduleQueryController.get] create round-trips the spec and starts with a clean firing status", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
 
@@ -88,7 +88,7 @@ describe("Schedule CRUD contract", () => {
     expect(fetched.spec?.target.case).toBe("agent");
   });
 
-  it("delete removes the schedule", async () => {
+  it("[rpc:ScheduleCommandController.delete] delete removes the schedule", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const created = await createScheduleFixture(org, agentSlug);
@@ -104,7 +104,7 @@ describe("Schedule CRUD contract", () => {
 });
 
 describe("Schedule trigger refusal matrix (DD-014 D-B — unconditional on every edition)", () => {
-  it("triggering a missing schedule is NotFound", async () => {
+  it("[rpc:ScheduleCommandController.trigger] triggering a missing schedule is NotFound", async () => {
     await expectGrpcCode(
       () => clients.scheduleCommand.trigger({ value: "sch_01conformancemissing" }),
       Code.NotFound,
@@ -112,7 +112,7 @@ describe("Schedule trigger refusal matrix (DD-014 D-B — unconditional on every
     );
   });
 
-  it("triggering a disabled schedule refuses with the exact teaching copy", async () => {
+  it("[rpc:ScheduleCommandController.trigger] triggering a disabled schedule refuses with the exact teaching copy", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const disabled = await createScheduleFixture(org, agentSlug, { enabled: false });
@@ -131,7 +131,7 @@ describe("Schedule trigger refusal matrix (DD-014 D-B — unconditional on every
 });
 
 describe("Schedule resume contract (unconditional on every edition)", () => {
-  it("resuming an unpaused schedule succeeds and changes nothing", async () => {
+  it("[rpc:ScheduleCommandController.resume] resuming an unpaused schedule succeeds and changes nothing", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const created = await createScheduleFixture(org, agentSlug);
@@ -142,7 +142,7 @@ describe("Schedule resume contract (unconditional on every edition)", () => {
     expect(resumed.status?.consecutiveFailures ?? 0).toBe(0);
   });
 
-  it("a disabled schedule stays disabled through a resume — the latch and the switch are independent levers", async () => {
+  it("[rpc:ScheduleCommandController.resume] a disabled schedule stays disabled through a resume — the latch and the switch are independent levers", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const disabled = await createScheduleFixture(org, agentSlug, { enabled: false });
@@ -155,7 +155,7 @@ describe("Schedule resume contract (unconditional on every edition)", () => {
     ).toBe(false);
   });
 
-  it("resuming a missing schedule is NotFound", async () => {
+  it("[rpc:ScheduleCommandController.resume] resuming a missing schedule is NotFound", async () => {
     await expectGrpcCode(
       () => clients.scheduleCommand.resume({ value: "sch_01conformancemissing" }),
       Code.NotFound,
@@ -165,7 +165,7 @@ describe("Schedule resume contract (unconditional on every edition)", () => {
 });
 
 describe("Schedule apply contract", () => {
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:ScheduleCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const name = uniqueName("sched-apply");
@@ -184,7 +184,7 @@ describe("Schedule apply contract", () => {
     expect(second.spec?.cron, "apply-as-update replaces the spec").toBe("30 18 * * *");
   });
 
-  it("apply-as-update cannot repoint the agent target (FailedPrecondition)", async () => {
+  it("[rpc:ScheduleCommandController.apply] apply-as-update cannot repoint the agent target (FailedPrecondition)", async () => {
     // The agent_ref is immutable on every update path — the create-time
     // consent bar is edit rights on the REFERENCED agent, and a repoint
     // would bypass it (the AgentChannel rule). Apply routes through update
@@ -206,7 +206,7 @@ describe("Schedule apply contract", () => {
 });
 
 describe("Schedule update contract", () => {
-  it("update replaces the spec but preserves id, slug, and org", async () => {
+  it("[rpc:ScheduleCommandController.update] update replaces the spec but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const created = await createScheduleFixture(org, agentSlug);
@@ -225,7 +225,7 @@ describe("Schedule update contract", () => {
     expect(updated.spec?.timeZone).toBe("UTC");
   });
 
-  it("update cannot change the agent_ref (FailedPrecondition)", async () => {
+  it("[rpc:ScheduleCommandController.update] update cannot change the agent_ref (FailedPrecondition)", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const { slug: otherAgentSlug } = await createAgentFixture(org);
@@ -241,7 +241,7 @@ describe("Schedule update contract", () => {
     );
   });
 
-  it("update of a missing schedule is NotFound", async () => {
+  it("[rpc:ScheduleCommandController.update] update of a missing schedule is NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const name = uniqueName("sched-missing");
@@ -258,7 +258,7 @@ describe("Schedule update contract", () => {
 });
 
 describe("Schedule queries", () => {
-  it("getByReference resolves by org and slug", async () => {
+  it("[rpc:ScheduleQueryController.getByReference] getByReference resolves by org and slug", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const created = await createScheduleFixture(org, agentSlug);
@@ -270,7 +270,7 @@ describe("Schedule queries", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:ScheduleQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.scheduleQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -279,7 +279,7 @@ describe("Schedule queries", () => {
     );
   });
 
-  it("getByAgent returns only the agent's schedules, keyed by agent id", async () => {
+  it("[rpc:ScheduleQueryController.getByAgent] getByAgent returns only the agent's schedules, keyed by agent id", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const otherAgent = await createAgentFixture(org);
@@ -302,7 +302,7 @@ describe("Schedule queries", () => {
     expect(list.totalCount).toBe(list.items.length);
   });
 
-  it("getByAgent of an unknown agent returns an empty list, not an error", async () => {
+  it("[rpc:ScheduleQueryController.getByAgent] getByAgent of an unknown agent returns an empty list, not an error", async () => {
     // "No schedules" is the useful answer for an operational surface
     // whether the agent is unknown or merely schedule-less.
     const list = await clients.scheduleQuery.getByAgent({
@@ -312,14 +312,14 @@ describe("Schedule queries", () => {
     expect(list.totalCount ?? 0).toBe(0);
   });
 
-  it("getByAgent rejects an empty agent_id with InvalidArgument", () =>
+  it("[rpc:ScheduleQueryController.getByAgent] getByAgent rejects an empty agent_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.scheduleQuery.getByAgent({ agentId: "" }),
       Code.InvalidArgument,
       "getByAgent empty agent_id",
     ));
 
-  it("list returns the org's schedules", async () => {
+  it("[rpc:ScheduleQueryController.list] list returns the org's schedules", async () => {
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);
     const created = await createScheduleFixture(org, agentSlug);
@@ -330,7 +330,7 @@ describe("Schedule queries", () => {
     expect(list.totalCount).toBe(list.items.length);
   });
 
-  it("list rejects an empty org with InvalidArgument", () =>
+  it("[rpc:ScheduleQueryController.list] list rejects an empty org with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.scheduleQuery.list({ org: "" }),
       Code.InvalidArgument,

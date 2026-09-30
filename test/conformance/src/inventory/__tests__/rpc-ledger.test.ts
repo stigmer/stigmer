@@ -1,6 +1,7 @@
 // Unit arms for the RPC ledger: its line format, the served set read from a
 // server log in both of its shapes, the four coverage classes and the stop
-// count, and the report. Pure: fixture strings only.
+// count, the scanned tags no run proved, and the report. Pure: fixture
+// strings only.
 // Domain: conformance inventory (the RPC contract).
 import { describe, expect, it } from "vitest";
 import { formatLedgerReport, parseLedger, servedRpcs, summarizeLedger, type RpcLedgerLine } from "../rpc-ledger";
@@ -84,7 +85,52 @@ describe("summarizeLedger", () => {
   });
 });
 
+describe("summarizeLedger — the scanned tags no run proved", () => {
+  it("proves a tag when a test carrying it sent its RPC, on any one target", () => {
+    const summary = summarizeLedger(
+      DECLARED,
+      [line("cloud", "Agent > [rpc:AgentCommandController.create] creates", "AgentCommandController.create")],
+      undefined,
+      ["AgentCommandController.create"],
+    );
+    expect(summary.unprovenTags).toEqual([]);
+  });
+
+  it("names a tag no ledger line carries, as a tag written in a comment or on a test skipped everywhere would be", () => {
+    const summary = summarizeLedger(DECLARED, [line("local", "Agent > creates", "AgentCommandController.create")], undefined, [
+      "AgentCommandController.create",
+      "AgentCommandController.create",
+    ]);
+    expect(summary.unprovenTags).toEqual(["AgentCommandController.create"]);
+  });
+
+  it("does not count a tagged test's send of another RPC, nor a hook's send, as the tag's proof", () => {
+    const summary = summarizeLedger(
+      DECLARED,
+      [
+        line("local", "Agent > [rpc:AgentQueryController.get] reads back", "AgentCommandController.create"),
+        line("local", null, "AgentQueryController.get"),
+      ],
+      undefined,
+      ["AgentQueryController.get"],
+    );
+    expect(summary.unprovenTags).toEqual(["AgentQueryController.get"]);
+  });
+
+  it("measures nothing when no tag scan is given", () => {
+    expect(summarizeLedger(DECLARED, [], undefined).unprovenTags).toBeUndefined();
+  });
+});
+
 describe("formatLedgerReport", () => {
+  it("prints the unproven tags' count and each tag, or that no scan was given", () => {
+    const measured = formatLedgerReport(summarizeLedger(DECLARED, [], undefined, ["AgentQueryController.list"]));
+    expect(measured).toContain("- tags proven on no target: 1\n  - [rpc:AgentQueryController.list]");
+    expect(formatLedgerReport(summarizeLedger(DECLARED, [], undefined))).toContain(
+      "- tags proven on no target: not measured (no tag scan given)",
+    );
+  });
+
   it("prints the counts, a row per RPC and the edition matrix", () => {
     const report = formatLedgerReport(
       summarizeLedger(DECLARED, [line("local", "a | b", "AgentCommandController.create"), line("cloud", null, "AgentQueryController.get")], undefined),

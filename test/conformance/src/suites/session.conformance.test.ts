@@ -81,7 +81,7 @@ async function createSession(
 }
 
 describe("Session conformance — CRUD & identity", () => {
-  it("create assigns a ses_ id, echoes the spec, and records a created audit event", async () => {
+  it("[rpc:SessionCommandController.create] create assigns a ses_ id, echoes the spec, and records a created audit event", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const name = uniqueName("session");
@@ -96,7 +96,7 @@ describe("Session conformance — CRUD & identity", () => {
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:SessionQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const created = await createSession(org, uniqueName("session"), agentInstanceId);
@@ -107,7 +107,7 @@ describe("Session conformance — CRUD & identity", () => {
     assertResourceParity(SessionSchema, created, fetched, "create vs get");
   });
 
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:SessionCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const name = uniqueName("session");
@@ -123,7 +123,7 @@ describe("Session conformance — CRUD & identity", () => {
     expect(second.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("update replaces spec and name but preserves id, slug, and org", async () => {
+  it("[rpc:SessionCommandController.update] update replaces spec and name but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const created = await createSession(org, uniqueName("session"), agentInstanceId, { subject: "before" });
@@ -146,7 +146,7 @@ describe("Session conformance — CRUD & identity", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:SessionCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const created = await clients.sessionCommand.create(
@@ -165,20 +165,20 @@ describe("Session conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.sessionQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:SessionQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.sessionQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:SessionQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(() => clients.sessionQuery.get({ value: "ses_doesnotexist" }), Code.NotFound, "get missing id"));
 
-  it("derives a slug from the name", async () => {
+  it("[rpc:SessionCommandController.create] derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const created = await createSession(org, "My Session #1 (Test)", agentInstanceId);
     expect(created.metadata?.slug).toBe("my-session-1-test");
   });
 
-  it("allows the same slug in different orgs", async () => {
+  it("[rpc:SessionCommandController.create] allows the same slug in different orgs", async () => {
     const a = await target.provisionTenancy();
     const b = await target.provisionTenancy();
     const instanceA = await provisionAgentInstance(a.org);
@@ -194,7 +194,7 @@ describe("Session conformance — CRUD & identity", () => {
 });
 
 describe("Session conformance — configuration fields", () => {
-  it("stores an omitted harness as UNSPECIFIED (resolved to NATIVE only at execution dispatch)", async () => {
+  it("[rpc:SessionCommandController.create] stores an omitted harness as UNSPECIFIED (resolved to NATIVE only at execution dispatch)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
 
@@ -206,7 +206,7 @@ describe("Session conformance — configuration fields", () => {
     expect(created.spec?.harness).toBe(Harness.UNSPECIFIED);
   });
 
-  it("round-trips an explicit harness and execution_target", async () => {
+  it("[rpc:SessionCommandController.create] round-trips an explicit harness and execution_target", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
 
@@ -224,7 +224,7 @@ describe("Session conformance — configuration fields", () => {
   });
 });
 
-describe("Session conformance — subject", () => {
+describe("[rpc:SessionCommandController.updateSubject] Session conformance — subject", () => {
   it("updateSubject changes only the subject and preserves other spec fields", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
@@ -272,7 +272,7 @@ describe("Session conformance — subject", () => {
 });
 
 describe("Session conformance — queries", () => {
-  it("list includes created sessions", async () => {
+  it("[rpc:SessionQueryController.list] list includes created sessions", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const a = await createSession(org, uniqueName("session"), agentInstanceId);
@@ -285,7 +285,7 @@ describe("Session conformance — queries", () => {
     expect(ids).toContain(b.metadata?.id);
   });
 
-  it("list pages one organization newest first, with no gap, no duplicate and a token until the last page", async () => {
+  it("[rpc:SessionQueryController.list] list pages one organization newest first, with no gap, no duplicate and a token until the last page", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const created = new Set<string>();
@@ -316,7 +316,7 @@ describe("Session conformance — queries", () => {
     }
   });
 
-  it("list never places another organization's session on a page, and refuses a token on another request", async () => {
+  it("[rpc:SessionQueryController.list] list never places another organization's session on a page, and refuses a token on another request", async () => {
     const mine = await target.provisionTenancy();
     const theirs = await target.provisionTenancy();
     const myInstance = await provisionAgentInstance(mine.org);
@@ -338,7 +338,7 @@ describe("Session conformance — queries", () => {
     );
   });
 
-  it("listByAgentInstance pages the instance's sessions", async () => {
+  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance pages the instance's sessions", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const created = new Set<string>();
@@ -357,7 +357,7 @@ describe("Session conformance — queries", () => {
     expect(new Set([...first.entries, ...second.entries].map((s) => s.metadata!.id))).toEqual(created);
   });
 
-  it("listByAgentInstance returns only the sessions for the given agent instance", async () => {
+  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance returns only the sessions for the given agent instance", async () => {
     const { org } = await target.provisionTenancy();
     const instanceOne = await provisionAgentInstance(org);
     const instanceTwo = await provisionAgentInstance(org);
@@ -372,19 +372,19 @@ describe("Session conformance — queries", () => {
     expect(ids).toHaveLength(1);
   });
 
-  it("listByAgentInstance returns an empty list for an unknown agent instance", async () => {
+  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance returns an empty list for an unknown agent instance", async () => {
     const listed = await clients.sessionQuery.listByAgentInstance({ agentInstanceId: "ain_doesnotexist" });
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("listByAgentInstance rejects an empty agent_instance_id with InvalidArgument", () =>
+  it("[rpc:SessionQueryController.listByAgentInstance] listByAgentInstance rejects an empty agent_instance_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.sessionQuery.listByAgentInstance({ agentInstanceId: "" }),
       Code.InvalidArgument,
       "listByAgentInstance empty agent_instance_id",
     ));
 
-  it("listByChannel answers an empty list for a channel with no sessions — ordinary sessions never leak into a channel view", async () => {
+  it("[rpc:SessionQueryController.listByChannel] listByChannel answers an empty list for a channel with no sessions — ordinary sessions never leak into a channel view", async () => {
     // The probe targets a REAL owned channel (the conversation-lane
     // convention, wave-2): on cloud a fabricated channel id fails closed in
     // the channel can_view gate (PermissionDenied, no existence leak —
@@ -410,7 +410,7 @@ describe("Session conformance — queries", () => {
     expect(listed.entries).toHaveLength(0);
   });
 
-  it.skipIf(!hasPrivilegedScope)("listByChannel returns exactly the sessions stamped with the channel's label", async () => {
+  it.skipIf(!hasPrivilegedScope)("[rpc:SessionQueryController.listByChannel] listByChannel returns exactly the sessions stamped with the channel's label", async () => {
     // The positive arm: the filter must key on the stigmer.ai/channel-id
     // label, not on emptiness. The channel is a REAL owned resource (the
     // wave-2 conversation-lane convention — cloud's DD-012 can_view gate
@@ -460,7 +460,7 @@ describe("Session conformance — queries", () => {
     }
   });
 
-  it("listByChannel rejects an empty channel_id with InvalidArgument", () =>
+  it("[rpc:SessionQueryController.listByChannel] listByChannel rejects an empty channel_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.sessionQuery.listByChannel({ channelId: "" }),
       Code.InvalidArgument,
@@ -469,7 +469,7 @@ describe("Session conformance — queries", () => {
 });
 
 describe("Session conformance — negative paths", () => {
-  it("rejects a wrong api_version (InvalidArgument)", async () => {
+  it("[rpc:SessionCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     await expectGrpcCode(
@@ -485,7 +485,7 @@ describe("Session conformance — negative paths", () => {
     );
   });
 
-  it("rejects a wrong kind (InvalidArgument)", async () => {
+  it("[rpc:SessionCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     await expectGrpcCode(
@@ -501,7 +501,7 @@ describe("Session conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with no metadata (InvalidArgument)", async () => {
+  it("[rpc:SessionCommandController.create] rejects a create with no metadata (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     // metadata is required=true at the proto level.
@@ -517,7 +517,7 @@ describe("Session conformance — negative paths", () => {
     );
   });
 
-  it("creates a session with no agent (the built-in assistant) and stores the empty instance as given", async () => {
+  it("[rpc:SessionCommandController.create] creates a session with no agent (the built-in assistant) and stores the empty instance as given", async () => {
     const { org } = await target.provisionTenancy();
     // No agent_instance_id: nothing resolves it into an instance. The session
     // runs the built-in assistant and the empty id is what persists.
@@ -532,7 +532,7 @@ describe("Session conformance — negative paths", () => {
     expect(fetched.spec?.agentInstanceId ?? "").toBe("");
   });
 
-  it("lets a session gain an agent and drop back to the built-in assistant on update", async () => {
+  it("[rpc:SessionCommandController.update] lets a session gain an agent and drop back to the built-in assistant on update", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const created = await clients.sessionCommand.create({
@@ -563,7 +563,7 @@ describe("Session conformance — negative paths", () => {
     expect(dropped.spec?.agentInstanceId ?? "").toBe("");
   });
 
-  it("rejects a duplicate create (contract: AlreadyExists)", async () => {
+  it("[rpc:SessionCommandController.create] rejects a duplicate create (contract: AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     const name = uniqueName("dup");
@@ -578,7 +578,7 @@ describe("Session conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with no name (contract: InvalidArgument)", async () => {
+  it("[rpc:SessionCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentInstanceId = await provisionAgentInstance(org);
     // agent_instance_id is set so the spec is an ordinary agent-bound one; the

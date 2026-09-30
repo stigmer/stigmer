@@ -21,6 +21,8 @@ index; `README.md` is the reference.
   error and parity vocabulary.
 - `inventory/cloud-capabilities.yaml`: the cloud capability rows every tagged
   `it` must name.
+- `inventory/rpc-waivers.yaml`: the declared RPCs no test here tags, each with
+  its reason.
 
 ## Laws
 
@@ -50,6 +52,8 @@ index; `README.md` is the reference.
 - A cloud capability suite tags each `it` with its inventory row ids and scripts
   upstreams through the cloud fixtures' control client, never by importing a
   fake into the worker.
+- Every declared RPC is tagged `[rpc:<Service>.<method>]` on the test whose
+  subject it is, or waived; the README's "The RPC contract" has the rules.
 
 ## Skills
 
@@ -62,6 +66,6 @@ index; `README.md` is the reference.
 ## Verify
 
 The root map's rows, plus from the package: `npm run test:unit` for the
-harness's own units, `npm run inventory:check` when a cloud suite or the
-inventory changes, `make test-conformance-execution` when a runner behaviour
-changes (needs the `temporal` and `stigmer` CLIs and git).
+harness's own units, `npm run inventory:check` when a cloud suite, an inventory,
+an RPC or a suite title changes, `make test-conformance-execution` when a runner
+behaviour changes (needs the `temporal` and `stigmer` CLIs and git).

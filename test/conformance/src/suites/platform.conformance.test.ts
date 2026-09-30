@@ -50,7 +50,7 @@ afterAll(async () => {
 });
 
 describe("Platform conformance — getServerInfo", () => {
-  it("names exactly the edition the target's composition declares, and a non-empty version", async () => {
+  it("[rpc:PlatformQueryController.getServerInfo] names exactly the edition the target's composition declares, and a non-empty version", async () => {
     const info = await clients.platformQuery.getServerInfo({});
 
     expect(
@@ -66,7 +66,7 @@ describe("Platform conformance — getServerInfo", () => {
     expect(info.version, "version must identify the build").not.toBe("");
   });
 
-  it("is stable across calls — server identity does not drift within a run", async () => {
+  it("[rpc:PlatformQueryController.getServerInfo] is stable across calls — server identity does not drift within a run", async () => {
     const first = await clients.platformQuery.getServerInfo({});
     const second = await clients.platformQuery.getServerInfo({});
 
@@ -76,7 +76,7 @@ describe("Platform conformance — getServerInfo", () => {
 });
 
 describe("Platform conformance — getLicenseStatus", () => {
-  it("answers absent with no claims, no key and a checked_at — the presence contract of a keyless server", async () => {
+  it("[rpc:PlatformQueryController.getLicenseStatus] answers absent with no claims, no key and a checked_at — the presence contract of a keyless server", async () => {
     const status = await clients.platformQuery.getLicenseStatus({});
 
     expect(
@@ -92,7 +92,7 @@ describe("Platform conformance — getLicenseStatus", () => {
 });
 
 describe("Platform conformance — getRunnerBootstrapConfig", () => {
-  it("carries Temporal coordinates and presence-consistent token fields", async () => {
+  it("[rpc:PlatformQueryController.getRunnerBootstrapConfig] carries Temporal coordinates and presence-consistent token fields", async () => {
     const config = await clients.platformQuery.getRunnerBootstrapConfig({});
 
     expect(config.temporalAddress, "a runner cannot bootstrap without an address").not.toBe("");

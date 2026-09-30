@@ -85,7 +85,7 @@ function makeReferencingMcpServer(
 }
 
 describe("OAuthApp conformance — CRUD & identity", () => {
-  it("create assigns an oapp_ id, echoes the spec, and redacts the secret in the response", async () => {
+  it("[rpc:OAuthAppCommandController.create] create assigns an oapp_ id, echoes the spec, and redacts the secret in the response", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createOAuthAppFixture(org);
 
@@ -100,7 +100,7 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     ).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 
-  it("get and getByReference resolve the app, both redacted", async () => {
+  it("[rpc:OAuthAppQueryController.get] [rpc:OAuthAppQueryController.getByReference] get and getByReference resolve the app, both redacted", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createOAuthAppFixture(org);
 
@@ -116,7 +116,7 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     expect(byRef.spec?.clientSecret).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 
-  it("listByOrg returns the org's apps, redacted", async () => {
+  it("[rpc:OAuthAppQueryController.listByOrg] listByOrg returns the org's apps, redacted", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createOAuthAppFixture(org);
 
@@ -127,7 +127,7 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     expect(match?.spec?.clientSecret).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 
-  it("apply creates on first call and updates on second (same name + org)", async () => {
+  it("[rpc:OAuthAppCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("oauth-app");
 
@@ -145,7 +145,7 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     expect(second.spec?.provider, "apply-as-update replaces the spec").toBe("VendorV2");
   });
 
-  it("update replaces the spec but preserves id, slug, and org", async () => {
+  it("[rpc:OAuthAppCommandController.update] update replaces the spec but preserves id, slug, and org", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createOAuthAppFixture(org);
 
@@ -161,7 +161,7 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     expect(updated.spec?.clientSecret).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 
-  it("delete removes an unreferenced app", async () => {
+  it("[rpc:OAuthAppCommandController.delete] delete removes an unreferenced app", async () => {
     const { org } = await target.provisionTenancy();
     // No deferred cleanup: this test deletes the app itself.
     const created = await clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("oauth-app")));
@@ -177,7 +177,7 @@ describe("OAuthApp conformance — CRUD & identity", () => {
 });
 
 describe("OAuthApp conformance — the client-secret contract", () => {
-  it("applying back a fetched app with the redaction marker preserves the stored secret", async () => {
+  it("[rpc:OAuthAppCommandController.apply] applying back a fetched app with the redaction marker preserves the stored secret", async () => {
     // Reads always redact, so preservation is proven behaviorally: the
     // marker round-trip must succeed and must NOT store the marker itself —
     // a subsequent read still answers the marker because a real secret is
@@ -197,7 +197,7 @@ describe("OAuthApp conformance — the client-secret contract", () => {
     expect(reapplied.spec?.clientSecret).toBe(OAUTHAPP_REDACTED_MARKER);
   });
 
-  it("rejects a ciphertext-shaped client_secret on create (InvalidArgument), across the whole enc:v<N>: family", async () => {
+  it("[rpc:OAuthAppCommandController.create] rejects a ciphertext-shaped client_secret on create (InvalidArgument), across the whole enc:v<N>: family", async () => {
     const { org } = await target.provisionTenancy();
 
     for (const smuggled of ["enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=", "enc:v2:ZnV0dXJlLXZlcnNpb24="]) {
@@ -212,7 +212,7 @@ describe("OAuthApp conformance — the client-secret contract", () => {
     }
   });
 
-  it("rejects a ciphertext-shaped client_secret on update (InvalidArgument)", async () => {
+  it("[rpc:OAuthAppCommandController.update] rejects a ciphertext-shaped client_secret on update (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createOAuthAppFixture(org);
 
@@ -229,7 +229,7 @@ describe("OAuthApp conformance — the client-secret contract", () => {
     );
   });
 
-  it("delete answers the removed app with its secret redacted, like every read", async () => {
+  it("[rpc:OAuthAppCommandController.delete] delete answers the removed app with its secret redacted, like every read", async () => {
     const { org } = await target.provisionTenancy();
     // No deferred cleanup: this test deletes the app itself.
     const created = await clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("oauth-app")));
@@ -242,7 +242,7 @@ describe("OAuthApp conformance — the client-secret contract", () => {
 });
 
 describe("OAuthApp conformance — referential delete-block", () => {
-  it("refuses to delete an app an McpServer references, then allows it once unreferenced", async () => {
+  it("[rpc:OAuthAppCommandController.delete] refuses to delete an app an McpServer references, then allows it once unreferenced", async () => {
     const { org } = await target.provisionTenancy();
     const app = await clients.oauthAppCommand.create(makeOAuthApp(org, uniqueName("oauth-app")));
 
@@ -266,14 +266,14 @@ describe("OAuthApp conformance — referential delete-block", () => {
 });
 
 describe("OAuthApp conformance — negative paths", () => {
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:OAuthAppQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.oauthAppQuery.get({ value: "oapp_01conformancemissing" }),
       Code.NotFound,
       "get missing oauth app",
     ));
 
-  it("getByReference of an unknown slug returns NotFound", async () => {
+  it("[rpc:OAuthAppQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.oauthAppQuery.getByReference({ org, slug: "does-not-exist" }),
@@ -282,7 +282,7 @@ describe("OAuthApp conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with an empty client_id (InvalidArgument)", async () => {
+  it("[rpc:OAuthAppCommandController.create] rejects a create with an empty client_id (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -294,7 +294,7 @@ describe("OAuthApp conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with an empty client_secret (InvalidArgument)", async () => {
+  it("[rpc:OAuthAppCommandController.create] rejects a create with an empty client_secret (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -306,7 +306,7 @@ describe("OAuthApp conformance — negative paths", () => {
     );
   });
 
-  it("rejects a create with a malformed authorization_url (InvalidArgument)", async () => {
+  it("[rpc:OAuthAppCommandController.create] rejects a create with a malformed authorization_url (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>

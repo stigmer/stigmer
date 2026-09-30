@@ -52,14 +52,14 @@ afterAll(async () => {
 const VALID_REDIRECT = "https://app.example.com/oauth/callback";
 
 describe("GitHub broker conformance — request validation (Layer 1, before config or network)", () => {
-  it("getOAuthAuthorizeUrl rejects an empty redirect_uri with InvalidArgument", () =>
+  it("[rpc:GitHubService.getOAuthAuthorizeUrl] getOAuthAuthorizeUrl rejects an empty redirect_uri with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.github.getOAuthAuthorizeUrl({ redirectUri: "" }),
       Code.InvalidArgument,
       "getOAuthAuthorizeUrl empty redirect_uri",
     ));
 
-  it("exchangeOAuthCode rejects each missing required field with InvalidArgument", async () => {
+  it("[rpc:GitHubService.exchangeOAuthCode] exchangeOAuthCode rejects each missing required field with InvalidArgument", async () => {
     await expectGrpcCode(
       () => clients.github.exchangeOAuthCode({ code: "", state: "s", redirectUri: VALID_REDIRECT }),
       Code.InvalidArgument,

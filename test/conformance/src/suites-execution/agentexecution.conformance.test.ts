@@ -134,7 +134,7 @@ async function createHeldExecution(org: string, agentId: string, name = uniqueNa
 }
 
 describe("AgentExecution conformance — CRUD & identity", () => {
-  it("create assigns an aex_ id, echoes the agent ref, and starts PENDING", async () => {
+  it("[rpc:AgentExecutionCommandController.create] create assigns an aex_ id, echoes the agent ref, and starts PENDING", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const name = uniqueName("aex");
@@ -151,7 +151,7 @@ describe("AgentExecution conformance — CRUD & identity", () => {
     await awaitTerminal(clients, created.metadata!.id);
   });
 
-  it("get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:AgentExecutionQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -166,7 +166,7 @@ describe("AgentExecution conformance — CRUD & identity", () => {
     await awaitTerminal(clients, created.metadata!.id);
   });
 
-  it("delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:AgentExecutionCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -179,10 +179,10 @@ describe("AgentExecution conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.agentExecutionQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:AgentExecutionQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.agentExecutionQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("get of a missing id returns NotFound", () =>
+  it("[rpc:AgentExecutionQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.agentExecutionQuery.get({ value: "aex_doesnotexist" }),
       Code.NotFound,
@@ -191,7 +191,7 @@ describe("AgentExecution conformance — CRUD & identity", () => {
 });
 
 describe("AgentExecution conformance — distinctness (no duplicate check)", () => {
-  it("two identical creates yield two distinct executions (no AlreadyExists)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] two identical creates yield two distinct executions (no AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const name = uniqueName("aex-dup");
@@ -227,7 +227,7 @@ describe("AgentExecution conformance — completion", () => {
 });
 
 describe("AgentExecution conformance — queries", () => {
-  it("list includes created executions", async () => {
+  it("[rpc:AgentExecutionQueryController.list] list includes created executions", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const a = await createExecution(org, agentId);
@@ -242,7 +242,7 @@ describe("AgentExecution conformance — queries", () => {
     expect(ids).toContain(b.metadata?.id);
   });
 
-  it("list with a phase filter includes a matching completed execution", async () => {
+  it("[rpc:AgentExecutionQueryController.list] list with a phase filter includes a matching completed execution", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -254,7 +254,7 @@ describe("AgentExecution conformance — queries", () => {
     expect(listed.entries.map((e) => e.metadata?.id)).toContain(created.metadata?.id);
   });
 
-  it("listBySession returns only the executions for the given session", async () => {
+  it("[rpc:AgentExecutionQueryController.listBySession] listBySession returns only the executions for the given session", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
 
@@ -285,12 +285,12 @@ describe("AgentExecution conformance — queries", () => {
     expect(ids).not.toContain(other.metadata?.id);
   });
 
-  it("listBySession returns an empty list for an unknown session", async () => {
+  it("[rpc:AgentExecutionQueryController.listBySession] listBySession returns an empty list for an unknown session", async () => {
     const listed = await clients.agentExecutionQuery.listBySession({ sessionId: "ses_doesnotexist" });
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("listBySession rejects an empty session_id with InvalidArgument", () =>
+  it("[rpc:AgentExecutionQueryController.listBySession] listBySession rejects an empty session_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.agentExecutionQuery.listBySession({ sessionId: "" }),
       Code.InvalidArgument,
@@ -313,7 +313,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     await awaitPhase(clients, created.metadata!.id, ExecutionPhase.EXECUTION_CANCELLED);
   });
 
-  it("cancel transitions a running execution to CANCELLED with completed_at", async () => {
+  it("[rpc:AgentExecutionCommandController.cancel] cancel transitions a running execution to CANCELLED with completed_at", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createHeldExecution(org, agentId);
@@ -326,7 +326,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     expect(cancelled.status?.completedAt, "cancel records completed_at").toBeTruthy();
   });
 
-  it("terminate transitions a running execution to TERMINATED", async () => {
+  it("[rpc:AgentExecutionCommandController.terminate] terminate transitions a running execution to TERMINATED", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createHeldExecution(org, agentId);
@@ -345,7 +345,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
   // asked for. Distinct from a cancel on a COMPLETED run, which the negatives
   // below reject — the precondition is "not terminal by another outcome".
   // (Entry 20260910.02, from the Go offline suite's lifecycle arms; DD-001.)
-  it("a second cancel on a CANCELLED execution is a benign no-op", async () => {
+  it("[rpc:AgentExecutionCommandController.cancel] a second cancel on a CANCELLED execution is a benign no-op", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createHeldExecution(org, agentId);
@@ -360,7 +360,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     );
   });
 
-  it("a second terminate on a TERMINATED execution is a benign no-op", async () => {
+  it("[rpc:AgentExecutionCommandController.terminate] a second terminate on a TERMINATED execution is a benign no-op", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createHeldExecution(org, agentId);
@@ -375,7 +375,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     );
   });
 
-  it("pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
+  it("[rpc:AgentExecutionCommandController.pause] [rpc:AgentExecutionCommandController.resume] pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createHeldExecution(org, agentId);
@@ -472,7 +472,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
 });
 
 describe("AgentExecution conformance — lifecycle preconditions & negatives", () => {
-  it("cancel of a completed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:AgentExecutionCommandController.cancel] cancel of a completed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -485,7 +485,7 @@ describe("AgentExecution conformance — lifecycle preconditions & negatives", (
     );
   });
 
-  it("terminate of a completed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:AgentExecutionCommandController.terminate] terminate of a completed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -498,7 +498,7 @@ describe("AgentExecution conformance — lifecycle preconditions & negatives", (
     );
   });
 
-  it("recover of a non-failed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:AgentExecutionCommandController.recover] recover of a non-failed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -511,7 +511,7 @@ describe("AgentExecution conformance — lifecycle preconditions & negatives", (
     );
   });
 
-  it("resume of a non-paused execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:AgentExecutionCommandController.resume] resume of a non-paused execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -524,17 +524,17 @@ describe("AgentExecution conformance — lifecycle preconditions & negatives", (
     );
   });
 
-  it("cancel rejects an empty id with InvalidArgument", () =>
+  it("[rpc:AgentExecutionCommandController.cancel] cancel rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.agentExecutionCommand.cancel({ id: "" }), Code.InvalidArgument, "cancel empty id"));
 
-  it("cancel of a missing execution returns NotFound", () =>
+  it("[rpc:AgentExecutionCommandController.cancel] cancel of a missing execution returns NotFound", () =>
     expectGrpcCode(
       () => clients.agentExecutionCommand.cancel({ id: "aex_doesnotexist" }),
       Code.NotFound,
       "cancel missing execution",
     ));
 
-  it("pause of a missing execution returns NotFound", () =>
+  it("[rpc:AgentExecutionCommandController.pause] pause of a missing execution returns NotFound", () =>
     expectGrpcCode(
       () => clients.agentExecutionCommand.pause({ id: "aex_doesnotexist" }),
       Code.NotFound,
@@ -543,7 +543,7 @@ describe("AgentExecution conformance — lifecycle preconditions & negatives", (
 });
 
 describe("AgentExecution conformance — create negative paths", () => {
-  it("rejects a wrong api_version (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     await expectGrpcCode(
@@ -559,7 +559,7 @@ describe("AgentExecution conformance — create negative paths", () => {
     );
   });
 
-  it("rejects a wrong kind (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     await expectGrpcCode(
@@ -575,7 +575,7 @@ describe("AgentExecution conformance — create negative paths", () => {
     );
   });
 
-  it("rejects a create with no metadata (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects a create with no metadata (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     await expectGrpcCode(
@@ -590,7 +590,7 @@ describe("AgentExecution conformance — create negative paths", () => {
     );
   });
 
-  it("rejects a create with an empty message (InvalidArgument)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects a create with an empty message (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     // spec.message declares min_len=1, enforced by ValidateProtoStep.
@@ -607,7 +607,7 @@ describe("AgentExecution conformance — create negative paths", () => {
     );
   });
 
-  it("rejects a create against an unknown agent (NotFound)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] rejects a create against an unknown agent (NotFound)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -619,7 +619,7 @@ describe("AgentExecution conformance — create negative paths", () => {
     );
   });
 
-  it("runs the built-in assistant to completion when neither session nor agent is named", async () => {
+  it("[rpc:AgentExecutionCommandController.create] runs the built-in assistant to completion when neither session nor agent is named", async () => {
     const { org } = await target.provisionTenancy();
     // The all-empty target: no session, no agent, no session_spec instance.
     // The server creates a session with NO agent and the runner answers on
@@ -658,7 +658,7 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
     return { agentId: agent.metadata!.id, instanceId };
   }
 
-  it("creates the session from session_spec and dispatches the first message in one call", async () => {
+  it("[rpc:AgentExecutionCommandController.create] creates the session from session_spec and dispatches the first message in one call", async () => {
     const { org } = await target.provisionTenancy();
     const { instanceId } = await provisionAgentWithInstance(org);
 
@@ -716,7 +716,7 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 
-  it("fills the agent's default instance when session_spec names none (agent_id resolution)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] fills the agent's default instance when session_spec names none (agent_id resolution)", async () => {
     const { org } = await target.provisionTenancy();
     const { agentId, instanceId } = await provisionAgentWithInstance(org);
 
@@ -762,7 +762,7 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
 // runs unconditionally on every execution target (the retired
 // sharedRunnerArtifactStore gate — see target.ts).
 describe("AgentExecution conformance — attachments (#285)", () => {
-  it("resolves a storage-key attachment (no local_path) the server wrote to the shared store", async () => {
+  it("[rpc:AgentExecutionCommandController.uploadAttachment] resolves a storage-key attachment (no local_path) the server wrote to the shared store", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org, uniqueName("agent-attach"));
 
@@ -828,7 +828,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
   // Attachment keys carry no execution id, so ownership is the execution's
   // spec.attachments referencing the key verbatim — and ONLY that: a key the
   // spec never referenced is rejected even when syntactically valid.
-  it("presigns a spec-referenced attachment key and rejects a foreign one (#372)", async () => {
+  it("[rpc:AgentExecutionQueryController.getArtifactDownloadUrl] presigns a spec-referenced attachment key and rejects a foreign one (#372)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org, uniqueName("agent-presign"));
 
@@ -972,7 +972,7 @@ describe("AgentExecution conformance — attachments (#285)", () => {
 // the S4 idle-forever quirk (pinned below) from hanging the suite.
 
 describe("AgentExecution conformance — subscribe & populated read surfaces (CW-7)", () => {
-  it("subscribe on a LIVE run streams the snapshot, its updates, and closes on the terminal one", async () => {
+  it("[rpc:AgentExecutionQueryController.subscribe] subscribe on a LIVE run streams the snapshot, its updates, and closes on the terminal one", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -989,7 +989,7 @@ describe("AgentExecution conformance — subscribe & populated read surfaces (CW
     expect(stream.messages.at(-1)?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 
-  it("subscribe sends the snapshot but never closes on an already-terminal run (the pinned S4 quirk)", async () => {
+  it("[rpc:AgentExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned S4 quirk)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -1011,7 +1011,7 @@ describe("AgentExecution conformance — subscribe & populated read surfaces (CW
     expect(stream.messages[0]?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 
-  it("a completed run's usage report answers the zero-valued aggregate (this edition records no usage)", async () => {
+  it("[rpc:AgentExecutionQueryController.getExecutionUsageReport] a completed run's usage report answers the zero-valued aggregate (this edition records no usage)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -1031,7 +1031,7 @@ describe("AgentExecution conformance — subscribe & populated read surfaces (CW
     expect(report.modelBreakdown).toHaveLength(0);
   });
 
-  it("submitFileDecision refuses a run with no actionable file change sets (FailedPrecondition)", async () => {
+  it("[rpc:AgentExecutionCommandController.submitFileDecision] submitFileDecision refuses a run with no actionable file change sets (FailedPrecondition)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);

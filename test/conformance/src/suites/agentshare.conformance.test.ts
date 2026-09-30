@@ -84,7 +84,7 @@ function sharedNotFoundMessage(slug: string): string {
 }
 
 describe("AgentShare conformance — CRUD & identity", () => {
-  it("the canonical share adopts the agent's slug and stamps the rebind pin", async () => {
+  it("[rpc:AgentShareCommandController.create] the canonical share adopts the agent's slug and stamps the rebind pin", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createShareFixture(org, agent.metadata!.slug);
@@ -101,7 +101,7 @@ describe("AgentShare conformance — CRUD & identity", () => {
     expect(created.spec?.agentRef?.org).toBe(org);
   });
 
-  it("a named share gets its own slug beside the canonical one", async () => {
+  it("[rpc:AgentShareCommandController.create] a named share gets its own slug beside the canonical one", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const named = await createShareFixture(org, agent.metadata!.slug, {
@@ -112,7 +112,7 @@ describe("AgentShare conformance — CRUD & identity", () => {
     expect(named.metadata?.slug).toContain("campaign-link");
   });
 
-  it("get, getByReference, getByAgent, and list resolve the share", async () => {
+  it("[rpc:AgentShareQueryController.get] [rpc:AgentShareQueryController.getByReference] [rpc:AgentShareQueryController.getByAgent] [rpc:AgentShareQueryController.list] get, getByReference, getByAgent, and list resolve the share", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await createShareFixture(org, agent.metadata!.slug);
@@ -133,7 +133,7 @@ describe("AgentShare conformance — CRUD & identity", () => {
     expect(listed.items.some((s) => s.metadata?.id === created.metadata?.id)).toBe(true);
   });
 
-  it("update flips mutable fields but refuses re-pointing agent_ref (FailedPrecondition)", async () => {
+  it("[rpc:AgentShareCommandController.update] update flips mutable fields but refuses re-pointing agent_ref (FailedPrecondition)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const otherAgent = await createAgentFixture(org);
@@ -164,7 +164,27 @@ describe("AgentShare conformance — CRUD & identity", () => {
     expect(err.rawMessage).toContain("spec.agent_ref is immutable");
   });
 
-  it("delete removes the share", async () => {
+  it("[rpc:AgentShareCommandController.apply] apply creates on first call and updates in place on second (same name + org)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const name = uniqueName("share");
+
+    const first = await clients.agentShareCommand.apply(makeAgentShare(org, agent.metadata!.slug, { name }));
+    fixtures.defer(() => clients.agentShareCommand.delete({ value: first.metadata!.id }));
+    expect(first.spec?.enabled).toBe(true);
+
+    // The same agent_ref: re-pointing a share is refused, which the update arm pins.
+    const second = await clients.agentShareCommand.apply(
+      makeAgentShare(org, agent.metadata!.slug, { name, enabled: false }),
+    );
+
+    expect(second.metadata?.id, "apply must update the same resource").toBe(first.metadata?.id);
+    expect(second.spec?.enabled).toBe(false);
+    // The rebind pin is status and survives the re-apply.
+    expect(second.status?.agentId).toBe(agent.metadata?.id);
+  });
+
+  it("[rpc:AgentShareCommandController.delete] delete removes the share", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const created = await clients.agentShareCommand.create(
@@ -182,7 +202,7 @@ describe("AgentShare conformance — CRUD & identity", () => {
 });
 
 describe("AgentShare conformance — create validation", () => {
-  it("requires metadata.org (InvalidArgument)", async () => {
+  it("[rpc:AgentShareCommandController.create] requires metadata.org (InvalidArgument)", async () => {
     const err = await expectGrpcCode(
       () => clients.agentShareCommand.create(makeAgentShare("", "some-agent")),
       Code.InvalidArgument,
@@ -191,7 +211,7 @@ describe("AgentShare conformance — create validation", () => {
     expect(err.rawMessage).toBe("metadata.org is required for an agent share");
   });
 
-  it("rejects an unknown agent with the same NotFound a direct lookup produces", async () => {
+  it("[rpc:AgentShareCommandController.create] rejects an unknown agent with the same NotFound a direct lookup produces", async () => {
     const { org } = await target.provisionTenancy();
     const err = await expectGrpcCode(
       () => clients.agentShareCommand.create(makeAgentShare(org, "no-such-agent")),
@@ -201,7 +221,7 @@ describe("AgentShare conformance — create validation", () => {
     expect(err.rawMessage).toBe("Agent not found: no-such-agent");
   });
 
-  it("rejects environment_refs on an org-audience share (InvalidArgument — the CEL rule)", async () => {
+  it("[rpc:AgentShareCommandController.create] rejects environment_refs on an org-audience share (InvalidArgument — the CEL rule)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
 
@@ -221,7 +241,7 @@ describe("AgentShare conformance — create validation", () => {
 });
 
 describe("AgentShare conformance — the anonymous resolution lane", () => {
-  it("resolves an enabled share to the trimmed profile (share identity + agent display)", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] resolves an enabled share to the trimmed profile (share identity + agent display)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     await createShareFixture(org, agent.metadata!.slug);
@@ -239,7 +259,7 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     expect(profile.defaultInstanceId).toBe(agent.status?.defaultInstanceId);
   });
 
-  it("requires org (InvalidArgument — cross-org slug matching would enable enumeration)", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] requires org (InvalidArgument — cross-org slug matching would enable enumeration)", async () => {
     const err = await expectGrpcCode(
       () => clients.agentShareQuery.getSharedProfile({ org: "", slug: "anything" }),
       Code.InvalidArgument,
@@ -248,7 +268,7 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     expect(err.rawMessage).toBe("org is required for shared agent lookup");
   });
 
-  it("answers ONE byte-identical NotFound for absent, disabled, and dangling shares", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] answers ONE byte-identical NotFound for absent, disabled, and dangling shares", async () => {
     const { org } = await target.provisionTenancy();
     const slug = uniqueName("uniform");
 
@@ -283,7 +303,7 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     expect(afterDelete.rawMessage).toBe(sharedNotFoundMessage(dangling.metadata!.slug));
   });
 
-  it("collapses an org-audience share to the SAME NotFound — members-only URLs teach anonymous visitors nothing", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] [rpc:AgentShareQueryController.getSharedProfileForMember] collapses an org-audience share to the SAME NotFound — members-only URLs teach anonymous visitors nothing", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     await createShareFixture(org, agent.metadata!.slug, {
@@ -308,7 +328,7 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
     expect(profile.slug).toBe(agent.metadata?.slug);
   });
 
-  it("a stale token on an UNLOCKED link stays harmless", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfile] a stale token on an UNLOCKED link stays harmless", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     await createShareFixture(org, agent.metadata!.slug);
@@ -325,7 +345,7 @@ describe("AgentShare conformance — the anonymous resolution lane", () => {
 });
 
 describe("AgentShare conformance — the rotatable link token", () => {
-  it("rotation kills the plain URL, admits the tokened one, and refuses the wrong token uniformly", async () => {
+  it("[rpc:AgentShareCommandController.rotateShareLink] [rpc:AgentShareQueryController.getSharedProfile] rotation kills the plain URL, admits the tokened one, and refuses the wrong token uniformly", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const share = await createShareFixture(org, agent.metadata!.slug);
@@ -381,7 +401,7 @@ describe("AgentShare conformance — the rotatable link token", () => {
     );
   });
 
-  it("rotateShareLink on an unknown share returns NotFound", async () => {
+  it("[rpc:AgentShareCommandController.rotateShareLink] rotateShareLink on an unknown share returns NotFound", async () => {
     const err = await expectGrpcCode(
       () => clients.agentShareCommand.rotateShareLink({ resourceId: "ash_01confmissing" }),
       Code.NotFound,
@@ -392,7 +412,7 @@ describe("AgentShare conformance — the rotatable link token", () => {
 });
 
 describe("AgentShare conformance — the member resolution lane", () => {
-  it("resolves enabled shares and requires org, like the anonymous lane", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfileForMember] resolves enabled shares and requires org, like the anonymous lane", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     await createShareFixture(org, agent.metadata!.slug);
@@ -410,7 +430,7 @@ describe("AgentShare conformance — the member resolution lane", () => {
     );
   });
 
-  it("refuses a token-locked PUBLIC share on the tokenless member path, but not an org-audience one", async () => {
+  it("[rpc:AgentShareQueryController.getSharedProfileForMember] refuses a token-locked PUBLIC share on the tokenless member path, but not an org-audience one", async () => {
     const { org } = await target.provisionTenancy();
 
     // Public-audience + rotated: this tokenless path must not reveal a
@@ -445,7 +465,7 @@ describe("AgentShare conformance — the member resolution lane", () => {
 });
 
 describe("AgentShare conformance — the same-organization invariant", () => {
-  it("refuses an agent_ref naming another organization with one sentence, whether the agent exists or not", async () => {
+  it("[rpc:AgentShareCommandController.create] refuses an agent_ref naming another organization with one sentence, whether the agent exists or not", async () => {
     const { org: originOrg } = await target.provisionTenancy();
     const { org: sharingOrg } = await target.provisionTenancy();
     const existing = await createAgentFixture(originOrg);
