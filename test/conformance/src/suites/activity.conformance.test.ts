@@ -26,6 +26,10 @@ import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
+// Read at collection time: a deployed endpoint carries no operator credential
+// by design, so the cases seeded through the privileged scope report SKIPPED
+// there, never passes that returned early.
+const hasPrivilegedScope = createTarget().provisionPrivilegedScope !== undefined;
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
 
@@ -116,7 +120,7 @@ describe("Activity conformance — listRecentActivity", () => {
     expect(entry!.subject, "the pending-subject sentinel must render as the placeholder").toBe("Untitled session");
   });
 
-  it("excludes runtime-origin sessions (personal sessions only)", async () => {
+  it.skipIf(!hasPrivilegedScope)("excludes runtime-origin sessions (personal sessions only)", async () => {
     // The runtime-origin lookalikes carry server-stamped reserved keys, which
     // an ordinary caller can no longer forge on cloud (GuardReservedLabelsStep,
     // platform-wide since stigmer-cloud#386) — that rejection is itself pinned
@@ -125,8 +129,8 @@ describe("Activity conformance — listRecentActivity", () => {
     // caller, and the recents feed is caller-scoped, so listing as the same
     // caller keeps the assertion identical across editions. Deployed endpoints
     // carry no operator credential by design and skip.
-    if (target.provisionPrivilegedScope === undefined) return;
-    const scope = await target.provisionPrivilegedScope();
+    // Present: the case skips (hasPrivilegedScope) on a target without it.
+    const scope = await target.provisionPrivilegedScope!();
 
     try {
       const org = scope.context.org;

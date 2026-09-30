@@ -184,11 +184,8 @@ describe("Organization conformance", () => {
     );
   });
 
-  it("findMyOrganizations returns all organizations on a trusted-local primary", async () => {
-    if (target.capabilities.enforcingAuthorizer) {
-      // Membership filtering is asserted on the enforcing lane below.
-      return;
-    }
+  // Membership filtering is asserted on the enforcing lane below.
+  it.skipIf(capabilities.enforcingAuthorizer)("findMyOrganizations returns all organizations on a trusted-local primary", async () => {
     await createOrg(uniqueName("myorg"));
 
     const all = await clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 });
@@ -230,10 +227,7 @@ describe("Organization conformance", () => {
     );
   });
 
-  it("getByExternalOrgId is unavailable locally (Unimplemented)", async () => {
-    if (target.capabilities.externalOrgLookup) {
-      return;
-    }
+  it.skipIf(capabilities.externalOrgLookup)("getByExternalOrgId is unavailable locally (Unimplemented)", async () => {
     await expectGrpcCode(
       () =>
         clients.organizationQuery.getByExternalOrgId({
@@ -245,10 +239,7 @@ describe("Organization conformance", () => {
     );
   });
 
-  it("getByExternalOrgId answers NotFound for an unknown identity provider when implemented", async () => {
-    if (!target.capabilities.externalOrgLookup) {
-      return;
-    }
+  it.skipIf(!capabilities.externalOrgLookup)("getByExternalOrgId answers NotFound for an unknown identity provider when implemented", async () => {
     const { org } = await target.provisionTenancy();
 
     // Minimum-viable contract for the implemented RPC: the lookup pipeline is
