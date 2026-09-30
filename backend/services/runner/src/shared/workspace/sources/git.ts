@@ -3,11 +3,13 @@
  *
  * Key behaviors ported from Python:
  * - Idempotent: detects existing .git and skips re-clone
- * - GitHub token injection via HTTPS URL (x-access-token)
+ * - GitHub token injection via HTTPS URL (x-access-token), only for a URL whose
+ *   host is github.com itself (isGitHubHttpsUrl)
  * - Token is never logged; sanitized in error messages
  * - GITHUB_TOKEN reported in consumedKeys for env stripping
  * - Multi-entry mode: clones into target_subdir
  * - Credential store configuration for git push/writeback
+ * - Every value interpolated into a git command is shell-quoted (shellQuote)
  */
 
 import { join } from "node:path";
@@ -28,6 +30,7 @@ export interface GitProvisionOptions {
   configureCredentials?: boolean;
 }
 
+/** The one host the executing user's GitHub token is ever sent to. */
 const GITHUB_HOST = "github.com";
 
 export async function provisionGit(options: GitProvisionOptions): Promise<ProvisionResult> {
@@ -49,7 +52,7 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
   const consumedKeys: string[] = [];
   let cloneUrl = url;
 
-  if (githubToken && url.includes(GITHUB_HOST)) {
+  if (githubToken && isGitHubHttpsUrl(url)) {
     cloneUrl = injectToken(url, githubToken);
     consumedKeys.push("GITHUB_TOKEN");
   }
@@ -70,7 +73,7 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
 
   let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
 
-  if (configureCredentials && githubToken && url.includes(GITHUB_HOST)) {
+  if (configureCredentials && githubToken && isGitHubHttpsUrl(url)) {
     const configured = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
     if (configured) {
       metadata = { ...metadata, gitCredentialsConfigured: true };
@@ -112,7 +115,7 @@ async function reuseExistingRepo(
   let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
 
   const githubToken = envVars.GITHUB_TOKEN;
-  if (configureCredentials && githubToken && url.includes(GITHUB_HOST)) {
+  if (configureCredentials && githubToken && isGitHubHttpsUrl(url)) {
     const configured = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
     if (configured) {
       metadata = { ...metadata, gitCredentialsConfigured: true };
@@ -146,10 +149,10 @@ async function cloneInPlace(
   cloneUrl: string,
   branch: string | undefined,
 ): Promise<void> {
-  await backend.execute(`git init -q '${cloneDir}'`);
+  await backend.execute(`git init -q ${shellQuote(cloneDir)}`);
 
   const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
-  await exec(`git remote add origin '${cloneUrl}'`);
+  await exec(`git remote add origin ${shellQuote(cloneUrl)}`);
   await exec("git fetch --quiet origin");
 
   const targetBranch = branch && branch.length > 0
@@ -160,7 +163,7 @@ async function cloneInPlace(
   // Leave the initialized repo as-is, matching `git clone` of an empty repo.
   if (!targetBranch) return;
 
-  await exec(`git checkout '${targetBranch}'`);
+  await exec(`git checkout ${shellQuote(targetBranch)}`);
 }
 
 /**
@@ -257,14 +260,14 @@ async function configureGitCredentialStore(
   const cleanUrl = stripToken(url);
 
   try {
-    await exec(`git remote set-url origin '${cleanUrl}'`);
+    await exec(`git remote set-url origin ${shellQuote(cleanUrl)}`);
   } catch (err) {
     console.warn(`[git] Failed to clean remote URL (non-fatal): ${err}`);
     return false;
   }
 
   try {
-    await exec(`git config credential.helper 'store --file=${credFile}'`);
+    await exec(`git config credential.helper ${shellQuote(`store --file=${credFile}`)}`);
   } catch (err) {
     console.warn(`[git] Failed to configure credential helper (non-fatal): ${err}`);
     return false;
@@ -281,8 +284,37 @@ async function configureGitCredentialStore(
   return true;
 }
 
+/**
+ * Whether `url` is an HTTPS URL whose host is exactly github.com, the only URL
+ * the GitHub token may travel in. The host is read from the parsed URL: a
+ * substring test would hand the token to any URL that merely mentions
+ * github.com, as a longer host (github.com.example.net) or inside a path.
+ */
+function isGitHubHttpsUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  return parsed.protocol === "https:" && parsed.hostname === GITHUB_HOST;
+}
+
+/** Sets the URL's credentials to the token (replacing any it carried). */
 function injectToken(url: string, token: string): string {
-  return url.replace("https://", `https://x-access-token:${token}@`);
+  const parsed = new URL(url);
+  parsed.username = "x-access-token";
+  parsed.password = token;
+  return parsed.toString();
+}
+
+/**
+ * Quotes one value for a POSIX shell, so it reaches git as a single argument
+ * whatever it contains: a quote inside a URL, a branch name or a path cannot
+ * end the argument and start a command of its own.
+ */
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
 function stripToken(url: string): string {

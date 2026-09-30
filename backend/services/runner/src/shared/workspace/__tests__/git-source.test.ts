@@ -175,6 +175,75 @@ describe("provisionGit", () => {
     expect(result.consumedKeys).toEqual([]);
   });
 
+  // A URL that only mentions github.com is not GitHub: the token would travel
+  // to whichever host the URL names.
+  const lookalikes = [
+    ["a longer host", "https://github.com.example.net/org/repo.git"],
+    ["github.com in the path", "https://example.net/github.com/org/repo.git"],
+    ["github.com as the userinfo", "https://github.com@example.net/org/repo.git"],
+    ["plain http", "http://github.com/org/repo.git"],
+  ];
+
+  it.each(lookalikes)("does not inject the token for %s", async (_label, url) => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    const result = await provisionGit(makeOptions({
+      backend,
+      url,
+      envVars: { GITHUB_TOKEN: "ghp_secret123" },
+    }));
+
+    for (const cmd of calls(backend)) expect(cmd).not.toContain("ghp_secret123");
+    expect(result.consumedKeys).toEqual([]);
+  });
+
+  it.each(lookalikes)("does not store credentials for %s", async (_label, url) => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    const result = await provisionGit(makeOptions({
+      backend,
+      url,
+      envVars: { GITHUB_TOKEN: "ghp_secret123" },
+      configureCredentials: true,
+    }));
+
+    expect(result.gitMetadata!.gitCredentialsConfigured).toBe(false);
+    const written = (backend.writeFile as ReturnType<typeof vi.fn>).mock.calls
+      .map((args: unknown[]) => String(args[1]));
+    for (const content of written) expect(content).not.toContain("ghp_secret123");
+  });
+
+  it("replaces credentials a GitHub URL already carries with the token", async () => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    await provisionGit(makeOptions({
+      backend,
+      url: "https://someone@github.com/org/repo.git",
+      envVars: { GITHUB_TOKEN: "ghp_secret123" },
+    }));
+
+    const remoteAdd = calls(backend).find((c) => c.includes("git remote add origin"));
+    expect(remoteAdd).toBe("git remote add origin 'https://x-access-token:ghp_secret123@github.com/org/repo.git'");
+  });
+
+  // ── Shell quoting ─────────────────────────────────────────────────
+
+  it("passes a URL holding a quote to git as one argument", async () => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    await provisionGit(makeOptions({
+      backend,
+      url: "https://gitlab.com/org/repo';touch pwned;'.git",
+    }));
+
+    const remoteAdd = calls(backend).find((c) => c.includes("git remote add origin"));
+    expect(remoteAdd).toBe("git remote add origin 'https://gitlab.com/org/repo'\\'';touch pwned;'\\''.git'");
+  });
+
+  it("passes a branch holding a quote to git as one argument", async () => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    await provisionGit(makeOptions({ backend, branch: "main';touch pwned;'" }));
+
+    const checkout = calls(backend).find((c) => c.startsWith("git checkout"));
+    expect(checkout).toBe("git checkout 'main'\\'';touch pwned;'\\'''");
+  });
+
   // ── Token sanitization in errors ──────────────────────────────────
 
   it("sanitizes token in error messages", async () => {
