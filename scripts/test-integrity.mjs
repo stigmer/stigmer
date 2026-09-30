@@ -42,6 +42,15 @@
  * the line above, `// quarantined: <repo>#<issue>`; with --check-issues the
  * issue must be open.
  *
+ * Rule on a run (with --run-report <vitest JSON>): every case the run reports
+ * as skipped, pending, todo or disabled must be explained by a skip site in its
+ * file, on the case or on a suite around it, that carries its reason by
+ * construction or is quarantined. The static rules judge what a file could
+ * skip; this one judges what a run did skip, so a gate that provides every
+ * dependency can refuse a skip nobody explained. A case whose title the
+ * inventory cannot match (a computed title) is unexplained, so the rule fails
+ * closed.
+ *
  * Anything else is refused unless the pull request declares it, one line each
  * in its body (--pr-body-file, or the TEST_INTEGRITY_PR_BODY variable):
  *
@@ -60,15 +69,15 @@
  *
  * Usage:
  *   node scripts/test-integrity.mjs [--base <ref>] [--pr-body-file <path>]
- *       [--check-issues] [--json]
+ *       [--check-issues] [--run-report <vitest JSON>] [--json]
  * Exit: 0 clean, 1 findings, 2 the script could not judge (a usage or git
  * error, no `typescript` to parse with).
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join, posix, resolve } from "node:path";
+import { join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ─── What counts as a test file, a config and a registration ────────────
@@ -218,7 +227,7 @@ export function inventoryFile(ts, path, text) {
   const skips = [];
   const findings = [];
 
-  function visitCaseBody(fn, caseTitle) {
+  function visitCaseBody(fn, caseTitle, suite) {
     if (!fn.body || !ts.isBlock(fn.body)) return;
     // Whether the body has asserted or skipped anything yet, in source order.
     // A `return;` after that (the type-narrowing `expect(r.ok).toBe(true); if
@@ -241,7 +250,7 @@ export function inventoryFile(ts, path, text) {
         if (chain?.some((c) => ASSERTION.test(c.name)) || last === "skip" || last === "fixme") settled = true;
         if (chain && (last === "skip" || last === "fixme") && !(TEST_ROOTS.has(chain[0].name) && isRegistrationCall(node))) {
           const condition = runtimeCondition(ts, sf, node);
-          skips.push({ kind: `runtime-${last}`, condition, line: lineOf(sf, node), title: caseTitle, quarantine: quarantineOf(ts, sf, node) });
+          skips.push({ kind: `runtime-${last}`, condition, line: lineOf(sf, node), title: caseTitle, suite, quarantine: quarantineOf(ts, sf, node) });
         }
       }
       ts.forEachChild(node, walk);
@@ -269,7 +278,7 @@ export function inventoryFile(ts, path, text) {
         for (const member of chain.slice(1)) {
           if (!SKIP_MEMBERS.has(member.name)) continue;
           const condition = member.args ? squash(member.args.map((a) => a.getText(sf)).join(", ")) : "";
-          skips.push({ kind: member.name, condition, line, title, quarantine: quarantineOf(ts, sf, node) });
+          skips.push({ kind: member.name, condition, line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
         }
         const fn = [...node.arguments].reverse().find((a) => isFunctionLike(ts, a));
         if (isSuite) {
@@ -277,7 +286,7 @@ export function inventoryFile(ts, path, text) {
           return;
         }
         cases.push({ key: [...chainTitles, title].join(" > "), title, line });
-        if (fn) visitCaseBody(fn, title);
+        if (fn) visitCaseBody(fn, title, chainTitles);
         return;
       }
     }
@@ -379,6 +388,53 @@ export function compareInventories(lineages, packageDirs) {
   return { deleted: unplaced, retitled, moved, newSkips };
 }
 
+// ─── A run's skips ──────────────────────────────────────────────────────
+
+/** The statuses vitest's JSON reporter gives a case that did not run. */
+const NOT_RUN = new Set(["skipped", "pending", "todo", "disabled"]);
+
+/** Whether a skip site covers a case: the site is the case itself, or a suite the case sits in. */
+function covers(site, ancestors, title) {
+  const at = [...site.suite, site.title];
+  const chain = [...ancestors, title];
+  return at.length <= chain.length && at.every((part, i) => part === chain[i]);
+}
+
+/**
+ * Judges a vitest JSON report against the inventories of the head tree.
+ *
+ * `report` is the reporter's object (`testResults[].name` is the file's
+ * absolute path, `assertionResults[]` its cases); `inventories` maps a
+ * repository-relative path to its inventory. A case that did not run is
+ * explained by a covering skip site that is by construction or quarantined;
+ * every other one is a finding.
+ */
+export function explainRunSkips(report, inventories, root) {
+  const findings = [];
+  const explained = [];
+  let skipped = 0;
+  for (const file of report?.testResults ?? []) {
+    const path = posix.normalize(relative(root, file.name ?? "").split(sep).join("/"));
+    const inventory = inventories.get(path);
+    for (const result of file.assertionResults ?? []) {
+      if (!NOT_RUN.has(result.status)) continue;
+      skipped += 1;
+      const ancestors = result.ancestorTitles ?? [];
+      const name = [...ancestors, result.title].join(" > ");
+      const sites = (inventory?.skips ?? []).filter((s) => covers(s, ancestors, result.title));
+      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => byConstruction(s.condition));
+      if (site) {
+        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : byConstruction(site.condition) });
+        continue;
+      }
+      const line = sites[0]?.line ?? inventory?.cases.find((c) => c.key === name)?.line ?? 1;
+      const why = inventory === undefined ? "its file is not a tracked test file" : sites.length === 0 ? "no skip site in its file covers it" : "the skip that covers it carries no reason (quarantine it on an issue, or make the case run)";
+      findings.push({ rule: "unexplained-skip", path, line, message: `"${name}" was ${result.status} at run time and ${why}` });
+    }
+  }
+  return { skipped, explained, findings };
+}
+
 // ─── Declarations and quarantines ───────────────────────────────────────
 
 export function parseDeclarations(body) {
@@ -422,16 +478,18 @@ export function applyDeclarations(comparison, declarations) {
 
 // ─── Report ─────────────────────────────────────────────────────────────
 
-export function formatReport({ findings, comparison, declared, filesRead, base }) {
+export function formatReport({ findings, comparison, declared, filesRead, base, runReport }) {
   const lines = [];
   for (const f of findings) lines.push(`✗ ${f.rule}  ${f.path}:${f.line}  ${f.message}`);
+  for (const e of runReport?.explained ?? []) lines.push(`• skipped  ${e.path}:${e.line}  "${e.name}" (${e.reason})`);
   if (comparison) {
     for (const d of declared) lines.push(`• declared  ${d.path}:${d.line}  ${d.message}`);
     for (const r of comparison.retitled) lines.push(`• retitled  ${r.path}:${r.line}  "${r.from}" -> "${r.to}" (the reviewer reads these)`);
     for (const m of comparison.moved) lines.push(`• moved  "${m.key}" out of ${m.from}`);
   }
   const verdict = findings.length === 0 ? "clean" : `${findings.length} finding(s)`;
-  lines.push(`test-integrity: ${filesRead} test file(s) read${base ? `, compared with ${base}` : ""}; ${verdict}`);
+  const run = runReport ? `, ${runReport.skipped} case(s) skipped in the run` : "";
+  lines.push(`test-integrity: ${filesRead} test file(s) read${base ? `, compared with ${base}` : ""}${run}; ${verdict}`);
   return lines.join("\n");
 }
 
@@ -442,12 +500,13 @@ function git(root, args) {
 }
 
 function parseArgs(argv) {
-  const opts = { base: undefined, prBodyFile: undefined, checkIssues: false, json: false, typescriptDirs: [] };
+  const opts = { base: undefined, prBodyFile: undefined, checkIssues: false, runReport: undefined, json: false, typescriptDirs: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--base") opts.base = argv[++i];
     else if (arg === "--pr-body-file") opts.prBodyFile = argv[++i];
     else if (arg === "--check-issues") opts.checkIssues = true;
+    else if (arg === "--run-report") opts.runReport = argv[++i];
     else if (arg === "--json") opts.json = true;
     else if (arg === "--typescript") opts.typescriptDirs.push(argv[++i]);
     else throw new Error(`unknown argument: ${arg}`);
@@ -539,7 +598,17 @@ function main(argv) {
     }
   }
 
-  const result = { findings, comparison, declared, filesRead: head.size, base: baseLabel };
+  let runReport;
+  if (opts.runReport) {
+    // A report that is missing or not JSON throws: the run cannot be judged (exit 2).
+    const report = JSON.parse(readFileSync(resolve(opts.runReport), "utf8"));
+    // The reporter writes the path it ran from; a symlinked checkout or temp dir (macOS /tmp) must still meet `root`.
+    for (const file of report.testResults ?? []) if (file.name && existsSync(file.name)) file.name = realpathSync(file.name);
+    runReport = explainRunSkips(report, head, root);
+    findings.push(...runReport.findings);
+  }
+
+  const result = { findings, comparison, declared, runReport, filesRead: head.size, base: baseLabel };
   console.log(opts.json ? JSON.stringify(result, null, 2) : formatReport(result));
   return findings.length === 0 ? 0 : 1;
 }

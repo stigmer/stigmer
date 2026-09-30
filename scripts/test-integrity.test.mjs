@@ -6,8 +6,9 @@
 // return shape that is a pass without running (valueless, before anything was
 // asserted) and the shapes that are not; the vitest options that let a suite
 // pass without passing; how a deletion is told from a retitle and a move; which
-// skips carry their reason by construction; the PR-body declarations; and,
-// through a throwaway git repository, the command's exit codes end to end.
+// skips carry their reason by construction; the PR-body declarations; which
+// of a run's skipped cases a skip site explains; and, through a throwaway git
+// repository, the command's exit codes end to end.
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -23,6 +24,7 @@ import {
   CONFIG_PATHSPECS,
   checkConfig,
   compareInventories,
+  explainRunSkips,
   formatReport,
   inventoryFile,
   loadTypeScript,
@@ -275,6 +277,82 @@ it("the report's last line is the verdict", () => {
   assert.match(formatReport({ findings: [], filesRead: 3 }), /test-integrity: 3 test file\(s\) read; clean$/);
 });
 
+// ─── A run's skips ──────────────────────────────────────────────────────
+
+/** A vitest JSON report of one file's cases, `[ancestorTitles, title, status]` each. */
+const report = (path, results) => ({
+  testResults: [{ name: `/repo/${path}`, assertionResults: results.map(([ancestorTitles, title, status]) => ({ ancestorTitles, title, status })) }],
+});
+const judge = (text, results, path = "pkg/src/__tests__/a.test.ts") =>
+  explainRunSkips(report(path, results), new Map([[path, inv(text, path)]]), "/repo");
+
+it("a run's skipped case with no reason is unexplained", () => {
+  const { skipped, findings } = judge(`it.skip("a", () => {});`, [[[], "a", "skipped"]]);
+  assert.equal(skipped, 1);
+  assert.deepEqual(findings.map((f) => [f.rule, f.line]), [["unexplained-skip", 1]]);
+  assert.match(findings[0].message, /"a" was skipped at run time and the skip that covers it carries no reason/);
+});
+
+it("a run-time ctx.skip() under a condition nobody explained is unexplained", () => {
+  const { findings } = judge(`it("a", (ctx) => { if (!envReady) return ctx.skip(); expect(1).toBe(1); });`, [[[], "a", "skipped"]]);
+  assert.deepEqual(findings.map((f) => f.rule), ["unexplained-skip"]);
+});
+
+it("a quarantined case, or a case inside a quarantined suite, is explained", () => {
+  const text = `
+    // quarantined: stigmer#1322 -- the dev server times out
+    it.skip("golden 18", () => {});
+    // quarantined: stigmer#1323 -- flaky on the queue
+    describe.skip("sweeps", () => { describe("expiry", () => { it("reclaims", () => {}); }); });
+  `;
+  const { findings, explained } = judge(text, [[[], "golden 18", "skipped"], [["sweeps", "expiry"], "reclaims", "skipped"]]);
+  assert.deepEqual(findings, []);
+  assert.deepEqual(explained.map((e) => [e.name, e.reason]), [
+    ["golden 18", "quarantined on stigmer#1322"],
+    ["sweeps > expiry > reclaims", "quarantined on stigmer#1323"],
+  ]);
+});
+
+it("a skip by construction (a capability, the platform, a gate-provided dependency) is explained", () => {
+  const text = `
+    describe.skipIf(!target.capabilities.memory)("memory", () => { it("recalls", () => {}); });
+    it.skipIf(process.platform === "win32")("links", () => {});
+    describe.skipIf(!TEST_DATABASE_URL)("store", () => { it("writes", () => {}); });
+  `;
+  const { findings, explained } = judge(text, [[["memory"], "recalls", "skipped"], [[], "links", "skipped"], [["store"], "writes", "skipped"]]);
+  assert.deepEqual(findings, []);
+  assert.deepEqual(explained.map((e) => e.reason), ["target capability", "platform", "gate-provided dependency"]);
+});
+
+it("a skip site covers only its own case and the cases under its own suite", () => {
+  const text = `
+    // quarantined: stigmer#1322 -- flaky
+    it.skip("a", () => {});
+    describe("s", () => { it.skip("a", () => {}); });
+  `;
+  const { findings } = judge(text, [[["s"], "a", "skipped"]]);
+  assert.deepEqual(findings.map((f) => [f.rule, f.line]), [["unexplained-skip", 4]]);
+});
+
+it("a computed title the inventory cannot match fails closed; cases that ran are not judged", () => {
+  const text = `for (const n of [1, 2]) { it.skipIf(!TEST_DATABASE_URL)(\`case \${n}\`, () => {}); }`;
+  const { skipped, findings } = judge(text, [[[], "case 1", "skipped"], [[], "case 2", "passed"]]);
+  assert.equal(skipped, 1);
+  assert.match(findings[0].message, /"case 1" was skipped at run time and no skip site in its file covers it/);
+});
+
+it("todo and disabled count as not run; a file outside the inventory is unexplained", () => {
+  assert.equal(judge(`it.todo("t");`, [[[], "t", "todo"]]).findings.length, 1);
+  const { findings } = explainRunSkips(report("elsewhere.test.ts", [[[], "x", "disabled"]]), new Map(), "/repo");
+  assert.match(findings[0].message, /its file is not a tracked test file/);
+});
+
+it("the report counts the run's skips and lists the explained ones", () => {
+  const text = formatReport({ findings: [], filesRead: 2, runReport: { skipped: 1, explained: [{ path: "a.test.ts", line: 2, name: "a", reason: "platform" }] } });
+  assert.match(text, /• skipped {2}a\.test\.ts:2 {2}"a" \(platform\)/);
+  assert.match(text, /test-integrity: 2 test file\(s\) read, 1 case\(s\) skipped in the run; clean$/);
+});
+
 // ─── The command, end to end ────────────────────────────────────────────
 
 function repo() {
@@ -329,6 +407,30 @@ it("the command: a silent return on the tree fails without a base", () => {
     const result = r.run();
     assert.equal(result.status, 1);
     assert.match(result.stdout, /valueless-return +a\.test\.ts:1/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a run report's unexplained skip fails, a quarantined one passes, a missing report cannot be judged", () => {
+  const r = repo();
+  try {
+    r.write("a.test.ts", `it.skip("a", () => {});`);
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    const write = () => r.write("run.json", JSON.stringify({ testResults: [{ name: join(r.dir, "a.test.ts"), assertionResults: [{ ancestorTitles: [], title: "a", status: "skipped" }] }] }));
+    write();
+    const refused = r.run("--run-report", join(r.dir, "run.json"));
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(refused.stdout, /unexplained-skip +a\.test\.ts:1/);
+
+    r.write("a.test.ts", `// quarantined: stigmer#1322 -- flaky\nit.skip("a", () => {});`);
+    r.git("commit", "-qam", "quarantine");
+    const passed = r.run("--run-report", join(r.dir, "run.json"));
+    assert.equal(passed.status, 0, passed.stdout);
+    assert.match(passed.stdout, /1 case\(s\) skipped in the run; clean$/m);
+
+    assert.equal(r.run("--run-report", join(r.dir, "missing.json")).status, 2);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }
