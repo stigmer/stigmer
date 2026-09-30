@@ -34,16 +34,26 @@ export function InlineEditImage({
 }: InlineEditImageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  // The stored value the draft was last seeded from.
+  const [seed, setSeed] = useState(value);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // The draft is seeded once, when editing opens, so a value that changes
-  // while the editor is open never overwrites what the user has typed.
   const handleEdit = useCallback(() => {
     setDraft(value);
+    setSeed(value);
     setLocalError(null);
     setIsEditing(true);
   }, [value]);
+
+  // An untouched draft follows the stored value, so a save never writes a
+  // stale copy over a change made elsewhere; once the user edits, the draft
+  // is theirs until they save or cancel. Adjusted during render (the
+  // ResizableSplit idiom) so the field never shows the stale value.
+  if (value !== seed) {
+    setSeed(value);
+    if (draft === seed) setDraft(value);
+  }
 
   // A layout effect, not a frame later: focus lands in the same commit that
   // shows the field, so the first keystroke after the click reaches it.

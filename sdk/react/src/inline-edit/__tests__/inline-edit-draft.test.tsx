@@ -2,14 +2,16 @@
  * The draft and focus contract of the click-to-edit text editors
  * (`InlineEditText`, `InlineEditTextarea`, `InlineEditImage`).
  *
- * Opening an editor seeds its draft from the stored value once and puts focus
- * (and, for the textarea, the caret at the end) on the field in the same commit
- * that shows it. What these tests pin, each a way the editors once lost text:
+ * Opening an editor seeds its draft from the stored value and puts focus (and,
+ * for the textarea, the caret at the end) on the field without waiting a frame.
+ * What these tests pin, each a way the editors once lost or overwrote text:
  * - focus is on the field as soon as the click returns, with no frame awaited;
  * - a selection made right after opening survives the next animation frame, so
  *   select-all-then-type replaces the value instead of appending to it
  *   (stigmer/stigmer#1575);
- * - a stored value that changes while the editor is open leaves the draft alone;
+ * - a stored value that changes while the editor is open leaves an edited
+ *   draft alone, and an untouched draft follows it, so saving never writes a
+ *   stale copy over the change;
  * - cancel and reopen show the latest stored value, and save sends the draft.
  */
 import type { ComponentType } from "react";
@@ -122,6 +124,17 @@ describe.each(EDITORS)(
       rerender(changed);
 
       expect(field().value).toBe(typed);
+    });
+
+    it("lets an untouched draft follow a changed stored value, so save writes nothing stale", async () => {
+      const { rerender, onSave } = open();
+
+      rerender(changed);
+
+      expect(field().value).toBe(changed);
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await vi.waitFor(() => expect(screen.queryByRole("textbox")).toBeNull());
+      expect(onSave).not.toHaveBeenCalled();
     });
 
     it("reopens on the latest stored value after cancel, and saves the draft", async () => {
