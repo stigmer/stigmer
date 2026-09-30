@@ -621,7 +621,10 @@ describe("FileViewer — reveal (jump-to-line)", () => {
     expect(container.querySelector('[data-line="2"]')?.className).toContain(
       "stg:bg-primary-subtle",
     );
-    expect(scrollIntoView).toHaveBeenCalled();
+    // The scroll is useRevealLine's passive effect, which can run after the
+    // render that paints the highlight (#1540): wait for it rather than
+    // asserting it in the same tick.
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
   });
 
   it("re-forces the File view when a new reveal nonce arrives after a manual toggle", async () => {
