@@ -24,7 +24,8 @@
  * the shell `stigmer up` starts from carries the model settings a user
  * exports (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), pointed at a fake
  * Anthropic API on loopback (scripts/lib/fake-model.mjs), and the streamed
- * run must carry the fake's reply — what a CLI user sees as the answer. Since the console restoration (DD-012) it also proves the
+ * run must carry the fake's reply — what a CLI user sees as the answer.
+ * Since the console restoration (DD-012) it also proves the
  * unified port serves the bundled web console: /config.json synthesis, a
  * dynamic deep link, and the 404 posture — the P3 acceptance's
  * "`stigmer up` serves the console end-to-end" arm.
