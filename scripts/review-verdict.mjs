@@ -321,6 +321,10 @@ export const PINNED_DIFF_FLAGS = Object.freeze([
 export function changeId(dir, { head, base }) {
   const pinned = PINNED_DIFF_SETTINGS.flatMap((setting) => ["-c", setting]);
   const git = (args, input) => run("git", [...pinned, ...args], { cwd: dir, input });
+  // The diff is bytes, not text: decoding it would turn every invalid UTF-8
+  // sequence into U+FFFD, and two different binary or Latin-1 changes would
+  // share a patch id. It goes to patch-id exactly as git wrote it.
+  const gitBytes = (args, input) => execFileSync("git", [...pinned, ...args], { cwd: dir, input, maxBuffer: 256 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] });
   try {
     git(["cat-file", "-e", `${head}^{commit}`]);
   } catch {
@@ -328,9 +332,9 @@ export function changeId(dir, { head, base }) {
   }
   git(["fetch", "--quiet", "--no-tags", "origin", `+refs/heads/${base}:refs/remotes/origin/${base}`]);
   const mergeBase = git(["merge-base", `refs/remotes/origin/${base}`, head]).trim();
-  const diff = git(["diff", ...PINNED_DIFF_FLAGS, mergeBase, head]);
-  if (diff.trim() === "") return "empty";
-  return git(["patch-id", "--verbatim"], diff).trim().split(/\s+/)[0];
+  const diff = gitBytes(["diff", ...PINNED_DIFF_FLAGS, mergeBase, head]);
+  if (diff.length === 0) return "empty";
+  return gitBytes(["patch-id", "--verbatim"], diff).toString("latin1").trim().split(/\s+/)[0];
 }
 
 /** The pull request's comments, oldest first. */

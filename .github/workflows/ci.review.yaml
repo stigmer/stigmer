@@ -33,7 +33,11 @@
 #
 # In the merge queue there is no new review to read: the pull request's own
 # run already judged it, and auto-merge queues a pull request only once its
-# required checks have passed. The job never carries an `if:`: a required
+# required checks have passed. The verdict is judged at the pull request's
+# events (a push, a body edit, a verdict posted); `main` moving underneath an
+# approved pull request does not re-judge it. A later push that brings in a
+# change on `main` inside a hunk's context does, and then the verdict goes
+# stale. The job never carries an `if:`: a required
 # check that is skipped counts as passed.
 # =============================================================================
 

@@ -368,7 +368,7 @@ test("a head with no check run, or a repository without the workflow, is said so
   const missing = new Error("Command failed");
   missing.stderr = "could not find any workflows named ci.review.yaml";
   const noWorkflow = fakeGh({ "run list": missing });
-  assert.match(rejudge("stigmer/stigmer-cloud", HEAD, noWorkflow.api), /has no ci\.review\.yaml; nothing to rerun/);
+  assert.match(rejudge("other-org/other-repo", HEAD, noWorkflow.api), /has no ci\.review\.yaml; nothing to rerun/);
   const other = new Error("Command failed");
   other.stderr = "HTTP 502";
   assert.throws(() => rejudge("stigmer/stigmer", HEAD, fakeGh({ "run list": other }).api));
@@ -385,7 +385,7 @@ test("a remote URL names its repository in every form git writes", () => {
   ]) {
     assert.equal(repoFromUrl(url), "stigmer/stigmer", url);
   }
-  assert.equal(repoFromUrl("git@github.com:stigmer/stigmer-cloud.git"), "stigmer/stigmer-cloud");
+  assert.equal(repoFromUrl("git@github.com:other-org/other-repo.git"), "other-org/other-repo");
   assert.equal(repoFromUrl("not a url"), undefined);
   assert.equal(repoFromUrl(undefined), undefined);
 });
@@ -396,7 +396,7 @@ test("the diff is computed only in a checkout of the pull request's repository",
     git(work, "remote", "set-url", "origin", "git@github.com:stigmer/stigmer.git");
     assert.equal(checkoutFor("stigmer/stigmer", work), git(work, "rev-parse", "--show-toplevel"));
     assert.equal(checkoutFor("Stigmer/Stigmer", work), git(work, "rev-parse", "--show-toplevel"), "GitHub names are case-insensitive");
-    assert.throws(() => checkoutFor("stigmer/stigmer-cloud", work), /is a checkout of stigmer\/stigmer, not stigmer\/stigmer-cloud; pass --dir/);
+    assert.throws(() => checkoutFor("other-org/other-repo", work), /is a checkout of stigmer\/stigmer, not other-org\/other-repo; pass --dir/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -535,6 +535,23 @@ test("a user's diff settings do not move the change id", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("two changes that differ only in bytes that are not UTF-8 have different change ids", () => {
+  const ids = [];
+  for (const bytes of [[0x80, 0x81], [0xfe, 0xff]]) {
+    const { root, work } = repositories();
+    try {
+      git(work, "switch", "--quiet", "-c", "topic");
+      writeFileSync(join(work, "data.bin"), Buffer.from([0x61, ...bytes, 0x0a]));
+      git(work, "add", "data.bin");
+      git(work, "commit", "--quiet", "-m", "bytes");
+      ids.push(changeId(work, { head: git(work, "rev-parse", "HEAD"), base: "main" }));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+  assert.notEqual(ids[0], ids[1]);
 });
 
 test("a branch with no change has the empty change id", () => {
