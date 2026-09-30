@@ -1,91 +1,46 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../../../fixtures";
 
 /**
- * Permission Gate Tests
+ * What the owner of a resource is offered on its detail page, on the
+ * open-source server: the actions that change or remove the resource and
+ * the access controls, on an agent and a workflow the test seeded (so the
+ * signed-in operator owns them).
  *
- * Verifies that UI elements are correctly shown/hidden based on the
- * user's permissions. Edit/delete buttons should be hidden for viewers,
- * and share buttons should only appear for owners.
- *
- * NOTE: These tests require multi-user setup with different roles.
- * In the initial implementation, they validate the happy path
- * (owner sees all controls). Full permission-gating tests require
- * a test harness that can impersonate different users.
- *
- * Prerequisites:
- * - Running against a Cloud-connected backend with FGA enabled
+ * Hiding these actions from someone who is not an owner needs a second
+ * principal with a narrower role, which only an edition with per-person
+ * authorization serves; that journey belongs to the hosted edition's
+ * suite, not this open-source lane.
  */
+test.describe("Permission-gated actions for the owner", () => {
+  test("the owner of an agent can edit, delete, share and manage access, and start a session", async ({
+    page,
+    testAgent,
+  }) => {
+    await page.goto(`/library/agents/${testAgent.org}/${testAgent.slug}`);
 
-test.describe("Permission-Gated UI", () => {
-  test.describe("Owner permissions (happy path)", () => {
-    test("agent detail shows edit button for owner", async ({ page }) => {
-      await page.goto("/library/agents");
-      await page.waitForLoadState("networkidle");
-
-      const firstAgent = page.locator('[role="listitem"]').first();
-      if (await firstAgent.isVisible()) {
-        await firstAgent.click();
-        await page.waitForLoadState("networkidle");
-
-        // Owner should see edit capabilities
-        const editButton = page.getByRole("button", { name: /edit/i });
-        const deleteButton = page.getByRole("button", { name: /delete/i });
-
-        // At least one mutating action should be visible to the owner
-        const hasEditAction =
-          (await editButton.isVisible()) || (await deleteButton.isVisible());
-        expect(hasEditAction).toBe(true);
-      }
+    await expect(page.getByRole("button", { name: "Start session" })).toBeEnabled({
+      timeout: 15_000,
     });
-
-    test("workflow detail shows visibility toggle for owner", async ({
-      page,
-    }) => {
-      await page.goto("/library/workflows");
-      await page.waitForLoadState("networkidle");
-
-      const firstWorkflow = page
-        .locator('[role="listitem"]')
-        .first();
-      if (await firstWorkflow.isVisible()) {
-        await firstWorkflow.click();
-        await page.waitForLoadState("networkidle");
-
-        const radiogroup = page.getByRole("radiogroup", {
-          name: "Resource visibility",
-        });
-        // Owner should see the visibility toggle (not gated away)
-        if (await radiogroup.isVisible()) {
-          await expect(radiogroup).not.toHaveAttribute("aria-disabled", "true");
-        }
-      }
-    });
+    await page.getByRole("button", { name: "More actions" }).first().click();
+    const menu = page.getByRole("menu", { name: "More actions" });
+    for (const name of ["Edit YAML", "Delete", "Share", "Manage access"]) {
+      await expect(menu.getByRole("menuitem", { name })).toBeVisible();
+    }
   });
 
-  test.describe("OSS mode (no permission gating)", () => {
-    test.skip(
-      !!process.env.STIGMER_E2E_CLOUD,
-      "Skip in cloud mode - testing OSS permissive behavior",
-    );
+  test("the owner of a workflow can edit, delete and manage access, and run it", async ({
+    page,
+    testWorkflow,
+  }) => {
+    await page.goto(`/library/workflows/${testWorkflow.org}/${testWorkflow.slug}`);
 
-    test("all actions visible without permission checks in OSS", async ({
-      page,
-    }) => {
-      await page.goto("/library/agents");
-      await page.waitForLoadState("networkidle");
-
-      const firstAgent = page.locator('[role="listitem"]').first();
-      if (await firstAgent.isVisible()) {
-        await firstAgent.click();
-        await page.waitForLoadState("networkidle");
-
-        // In OSS mode, PermissionGate always renders children
-        // Authorization-related UI (share, etc.) should be absent entirely
-        // since the IAM service doesn't exist
-        const shareButton = page.getByRole("button", { name: /share/i });
-        // Share should NOT be visible in OSS (no IAM service)
-        await expect(shareButton).not.toBeVisible();
-      }
+    await expect(page.getByRole("button", { name: "Run", exact: true })).toBeEnabled({
+      timeout: 15_000,
     });
+    await page.getByRole("button", { name: "More actions" }).first().click();
+    const menu = page.getByRole("menu", { name: "More actions" });
+    for (const name of ["Edit YAML", "Delete", "Manage access"]) {
+      await expect(menu.getByRole("menuitem", { name })).toBeVisible();
+    }
   });
 });

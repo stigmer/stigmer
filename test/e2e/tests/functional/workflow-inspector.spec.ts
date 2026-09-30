@@ -25,7 +25,7 @@ function getFirstTaskNode(page: Page) {
 }
 
 test.describe("Workflow inspector panel", () => {
-  test("empty state shows workflow summary when nothing selected", async ({
+  test("with nothing selected, the inspector summarises the workflow and its five tasks", async ({
     page,
     testMultiKindWorkflow,
   }) => {
@@ -36,15 +36,13 @@ test.describe("Workflow inspector panel", () => {
     );
     await assertNoErrorBoundary(page);
 
-    const workflowHeading = page.locator("h3, h4").filter({ hasText: /Workflow/i });
-    const summaryText = page.locator("text=/tasks?$/i");
-    const selectPrompt = page.locator('text="Select a task or connection to inspect"');
-
-    const hasSummary = await workflowHeading.first().isVisible({ timeout: 5000 }).catch(() => false);
-    const hasTaskCount = await summaryText.first().isVisible({ timeout: 2000 }).catch(() => false);
-    const hasSelectPrompt = await selectPrompt.isVisible({ timeout: 2000 }).catch(() => false);
-
-    expect(hasSummary || hasTaskCount || hasSelectPrompt).toBeTruthy();
+    // The editor's empty inspector is the workflow summary
+    // (WorkflowSummaryPanel): the workflow's name and its task count. The
+    // multi-kind fixture seeds five tasks.
+    await expect(
+      page.getByRole("heading", { level: 3, name: testMultiKindWorkflow.slug }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("5 tasks", { exact: true })).toBeVisible();
   });
 
   test("selecting a node shows tabbed inspector", async ({
@@ -90,7 +88,7 @@ test.describe("Workflow inspector panel", () => {
     await expect(advancedTab).toHaveAttribute("aria-selected", "true");
   });
 
-  test("agent_call node shows specialized AgentCallForm fields", async ({
+  test("an agent_call node shows the agent and message fields", async ({
     page,
     testMultiKindWorkflow,
   }) => {
@@ -110,13 +108,11 @@ test.describe("Workflow inspector panel", () => {
     const agentInput = page.locator('[data-testid="agent-call-agent-input"]');
     const messageInput = page.locator('[data-testid="agent-call-message-input"]');
 
-    const hasAgent = await agentInput.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasMessage = await messageInput.isVisible({ timeout: 2000 }).catch(() => false);
-
-    expect(hasAgent || hasMessage).toBeTruthy();
+    await expect(agentInput).toBeVisible({ timeout: 5_000 });
+    await expect(messageInput).toBeVisible();
   });
 
-  test("node actions menu opens from header overflow button", async ({
+  test("the node actions menu offers Duplicate and Delete task", async ({
     page,
     testMultiKindWorkflow,
   }) => {
@@ -138,12 +134,8 @@ test.describe("Workflow inspector panel", () => {
     const menu = page.locator('[role="menu"]');
     await expect(menu).toBeVisible({ timeout: 2_000 });
 
-    const duplicateItem = page.locator('[role="menuitem"]:has-text("Duplicate")');
-    const deleteItem = page.locator('[role="menuitem"]:has-text("Delete task")');
-    expect(
-      (await duplicateItem.isVisible().catch(() => false)) ||
-        (await deleteItem.isVisible().catch(() => false)),
-    ).toBeTruthy();
+    await expect(menu.getByRole("menuitem", { name: "Duplicate" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Delete task" })).toBeVisible();
   });
 
   test("deselecting returns to empty state", async ({

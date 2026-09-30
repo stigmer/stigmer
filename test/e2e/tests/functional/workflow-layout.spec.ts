@@ -122,7 +122,7 @@ test.describe("Workflow canvas layout", () => {
     expect(positions1).toEqual(positions2);
   });
 
-  test("Ctrl+Z after auto-layout undoes the layout", async ({
+  test("Ctrl+Z after auto-layout restores the positions it replaced", async ({
     page,
     testMultiKindWorkflow,
   }) => {
@@ -135,28 +135,32 @@ test.describe("Workflow canvas layout", () => {
     const autoLayoutButton = getAutoLayoutButton(page);
     await expect(autoLayoutButton).toBeVisible({ timeout: 10_000 });
 
-    const getFirstNodePos = async () => {
-      const firstNode = getEditorNodes(page).first();
-      const box = await firstNode.boundingBox();
-      return box ? { x: Math.round(box.x), y: Math.round(box.y) } : null;
+    // The first real task node (sentinels carry no data-task-kind).
+    const taskNode = getEditorCanvas(page).locator("[data-task-kind]").first();
+    await expect(taskNode).toBeVisible();
+    const nodePosition = async () => {
+      const box = await taskNode.boundingBox();
+      expect(box, "the task node has a box on the canvas").not.toBeNull();
+      return { x: Math.round(box!.x), y: Math.round(box!.y) };
     };
 
-    const positionBefore = await getFirstNodePos();
+    // Drag the node off the layout, so auto-layout has a position to
+    // replace and undo has one to restore.
+    const start = await nodePosition();
+    const box = (await taskNode.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 + 60, {
+      steps: 10,
+    });
+    await page.mouse.up();
+    await expect.poll(nodePosition).not.toEqual(start);
+    const dragged = await nodePosition();
 
     await autoLayoutButton.click();
-    await page.waitForTimeout(1000);
-
-    const positionAfterLayout = await getFirstNodePos();
+    await expect.poll(nodePosition).not.toEqual(dragged);
 
     await page.keyboard.press("Control+z");
-    await page.waitForTimeout(500);
-
-    const positionAfterUndo = await getFirstNodePos();
-
-    if (positionBefore && positionAfterLayout && positionAfterUndo) {
-      if (positionBefore.x !== positionAfterLayout.x || positionBefore.y !== positionAfterLayout.y) {
-        expect(positionAfterUndo).toEqual(positionBefore);
-      }
-    }
+    await expect.poll(nodePosition).toEqual(dragged);
   });
 });

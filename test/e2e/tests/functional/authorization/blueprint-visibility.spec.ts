@@ -31,9 +31,7 @@ test.describe("Blueprint visibility", () => {
       await expect(dialog.getByRole("heading", { name: "General access" })).toBeVisible();
     });
 
-    // quarantined: stigmer#1509 (the listbox renders under the native modal
-    // dialog, so it is in the accessibility tree but cannot be seen or used)
-    test.skip("the visibility control offers exactly Private and Organization", async ({
+    test("the visibility control offers exactly Private and Organization", async ({
       page,
       testAgent,
     }) => {
@@ -47,7 +45,7 @@ test.describe("Blueprint visibility", () => {
       const listbox = page.getByRole("listbox", { name: "Resource visibility" });
       await expect(listbox).toBeVisible();
       // toBeVisible checks the box, not what covers it: a trial click checks
-      // that the option really receives the pointer (it did not, #1509).
+      // that the option really receives the pointer (it once did not: #1509).
       await listbox.getByRole("option", { name: /^Private/ }).click({ trial: true });
       const options = listbox.getByRole("option");
       await expect(options).toHaveCount(2);
@@ -56,8 +54,7 @@ test.describe("Blueprint visibility", () => {
       await expect(page.getByRole("option", { name: /^Public/ })).toHaveCount(0);
     });
 
-    // quarantined: stigmer#1509 (no option in the dialog's listbox can be chosen)
-    test.skip("choosing Private writes it to the server and the header follows", async ({
+    test("choosing Private writes it to the server and the header follows", async ({
       page,
       testAgent,
       stigmerClient,
