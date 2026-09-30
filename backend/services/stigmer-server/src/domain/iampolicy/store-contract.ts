@@ -18,7 +18,10 @@
  *
  * The corners A12 taught are cases from the start, not later additions:
  * every relation on a pair; distinct principals, not rows; the scope-tuple
- * exclusions verbatim; unknown-id delete a no-op; a held id refused.
+ * exclusions verbatim; unknown-id delete a no-op; a held id refused. A
+ * change record changes nothing about the row; what a store that keeps a
+ * history writes with it is that store's own test, since the port lets an
+ * implementation keep none.
  *
  * What the kit deliberately does not carry: open source's derived-id
  * refusal and its primary-key read, the cloud's column layout and SQLSTATE
@@ -51,6 +54,7 @@ import type {
   PortContractDeclaration,
   PortContractFixture,
 } from "../../store/port-contract.js";
+import type { PolicyChangeRecord } from "./change.js";
 import {
   IAM_POLICY_API_VERSION,
   IAM_POLICY_KIND,
@@ -375,6 +379,38 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
       await assert.doesNotReject(
         store.save(policy),
         "the triple of a deleted policy must be savable again",
+      );
+    },
+  ],
+  [
+    "a change record changes nothing about the row: save and deleteById behave as without one",
+    async ({ store }) => {
+      const record: PolicyChangeRecord = {
+        actor: { id: BOB, callerClass: "user" },
+        cause: "grant",
+        organizationId: "acme",
+      };
+      const policy = policyRow(orgRole(ALICE, "admin", "acme"));
+      await store.save(policy, record);
+      const found = await store.findById(idOf(policy));
+      assert.ok(
+        found !== undefined && equals(IamPolicySchema, found, policy),
+        "a policy saved with a record must read back exactly as saved",
+      );
+      await assert.rejects(
+        store.save(policyRow(orgRole(ALICE, "admin", "acme"), BOB), record),
+        DuplicatePolicyError,
+        "a held id with a record must still raise DuplicatePolicyError",
+      );
+      await store.deleteById(idOf(policy), { ...record, cause: "revoke" });
+      assert.equal(
+        await store.findById(idOf(policy)),
+        undefined,
+        "a policy deleted with a record must be gone",
+      );
+      await assert.doesNotReject(
+        store.deleteById(idOf(policy), { ...record, cause: "revoke" }),
+        "deleting an id that is not held, with a record, must resolve",
       );
     },
   ],

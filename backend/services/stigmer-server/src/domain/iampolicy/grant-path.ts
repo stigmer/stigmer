@@ -81,6 +81,17 @@
  * rows). `affiliated` itself is refused as a grant on every lane; it is
  * derived, never granted.
  *
+ * Who and why. Every method takes the caller, and the grants take the door
+ * they came through (change.ts `PolicyChangeCause`); the revokes know
+ * theirs. For every access row it writes or deletes, the path hands the
+ * store a change record (the actor, the cause, the row's organization), so
+ * an edition that keeps a permission history writes it in the same atomic
+ * unit as the row (store.ts). The organization is resolved before any row
+ * of the operation is deleted: `cleanupResource` removes a resource's
+ * scope link before its owner rows, and the sweep already knows its
+ * organization. The grant and revoke log lines carry the same facts, open
+ * source's own trail.
+ *
  * The row this path builds: the proto's apiVersion const and kind, the
  * derived id, the spec as given, and the caller's audit stamp through the
  * platform's one stamper (setAuditFieldsForCreate) — the cloud's
@@ -116,6 +127,12 @@ import {
   policyIdFor,
 } from "./constants.js";
 import { resolveHierarchy } from "./access-lists.js";
+import { grantsAccess, policyActorOf } from "./change.js";
+import type {
+  PolicyActor,
+  PolicyChangeCause,
+  PolicyChangeRecord,
+} from "./change.js";
 import { DuplicatePolicyError } from "./store.js";
 import type { IamPolicyStore } from "./store.js";
 import { refsOf, requireWellFormedTriple } from "./wire-refusals.js";
@@ -170,18 +187,26 @@ export interface GrantResult {
 
 export interface IamPolicyGrantPath {
   /**
-   * Grant the triple as `caller`: gate, find by triple, write the row when
-   * absent (the caller's audit stamp), then `onPolicyGranted` — on the
-   * duplicate arm too. A hook throw fails the grant with the row in place.
+   * Grant the triple as `caller`, through the door `cause` names: gate,
+   * find by triple, write the row when absent (the caller's audit stamp),
+   * then `onPolicyGranted` — on the duplicate arm too. A hook throw fails
+   * the grant with the row in place.
    */
-  grant(spec: IamPolicySpec, caller: CallerIdentity): Promise<GrantResult>;
+  grant(
+    spec: IamPolicySpec,
+    caller: CallerIdentity,
+    cause: PolicyChangeCause,
+  ): Promise<GrantResult>;
   /**
-   * Revoke the triple: gate, find by triple, `onPolicyRevoked` (with the
-   * row, or with the spec alone on the absent arm), then delete the row.
-   * A hook throw leaves row and tuple. Answers the revoked row, or
-   * `undefined` when there was none.
+   * Revoke the triple as `caller` (IamPolicy.delete's door): gate, find by
+   * triple, `onPolicyRevoked` (with the row, or with the spec alone on the
+   * absent arm), then delete the row. A hook throw leaves row and tuple.
+   * Answers the revoked row, or `undefined` when there was none.
    */
-  revokeBySpec(spec: IamPolicySpec): Promise<IamPolicy | undefined>;
+  revokeBySpec(
+    spec: IamPolicySpec,
+    caller: CallerIdentity,
+  ): Promise<IamPolicy | undefined>;
   /**
    * Revoke every row naming the ref as its principal, then every row naming
    * it as its resource with the `owner` rows last, each through the revoke
@@ -189,17 +214,18 @@ export interface IamPolicyGrantPath {
    * The order matters where the ref still exists: an organization's delete
    * runs this before its row goes and fails on the first fault, so a
    * cleanup that stops partway has not yet removed the owners who may
-   * retry it.
+   * retry it. `caller` is whoever deleted the resource.
    */
-  cleanupResource(ref: ApiResourceRef): Promise<void>;
+  cleanupResource(ref: ApiResourceRef, caller: CallerIdentity): Promise<void>;
   /**
    * Revoke every relation the account holds directly on the organization,
    * then every row it holds on the organization's resources except its
-   * authorship (the module header's sweep).
+   * authorship (the module header's sweep), as `caller`.
    */
   revokeOrgAccess(
     identityAccountId: string,
     organizationId: string,
+    caller: CallerIdentity,
   ): Promise<void>;
 }
 
@@ -223,10 +249,53 @@ export interface IamPolicyGrantPathDeps {
   readonly logger: Logger;
 }
 
+/** Who made a change and through which door; the organization is resolved per row. */
+interface Change {
+  readonly actor: PolicyActor;
+  readonly cause: PolicyChangeCause;
+}
+
+/** How a row's organization is found: the scope walk, or a value its operation already knows. */
+type OrganizationOf = (resource: ApiResourceRef) => Promise<string>;
+
 export function newIamPolicyGrantPath(
   deps: IamPolicyGrantPathDeps,
 ): IamPolicyGrantPath {
   const { policies, creators, lifecycle, logger } = deps;
+
+  /** The organization a resource belongs to, through its scope links; "" when it names none. */
+  async function organizationByScope(
+    resource: ApiResourceRef,
+  ): Promise<string> {
+    if (resource.kind === ORGANIZATION_KIND) {
+      return resource.id;
+    }
+    const hierarchy = await resolveHierarchy(
+      policies,
+      resource.kind,
+      resource.id,
+      true,
+    );
+    return (
+      hierarchy.find((level) => level.kind === ORGANIZATION_KIND)?.id ?? ""
+    );
+  }
+
+  /** The record the store keeps beside an access row; none for a structural link. */
+  async function recordFor(
+    spec: IamPolicySpec,
+    change: Change,
+    organizationOf: OrganizationOf,
+  ): Promise<PolicyChangeRecord | undefined> {
+    if (spec.resource === undefined || !grantsAccess(spec)) {
+      return undefined;
+    }
+    return {
+      actor: change.actor,
+      cause: change.cause,
+      organizationId: await organizationOf(spec.resource),
+    };
+  }
 
   /** The row holding this exact triple — the pair's rows, filtered by relation. */
   async function findByTriple(
@@ -247,22 +316,27 @@ export function newIamPolicyGrantPath(
     );
   }
 
-  /** The revoke order for one row: the hook, then the delete. */
-  async function revokeRow(policy: IamPolicy): Promise<void> {
+  /** The revoke order for one row: its record resolved, the hook, then the delete. */
+  async function revokeRow(
+    policy: IamPolicy,
+    change: Change,
+    organizationOf: OrganizationOf = organizationByScope,
+  ): Promise<void> {
     const spec = policy.spec;
     if (spec === undefined) {
       throw new Error(
         `policy ${policy.metadata?.id ?? "?"} has no spec — corrupt row`,
       );
     }
+    const record = await recordFor(spec, change, organizationOf);
     const affiliation = affiliationOf(spec);
     if (affiliation !== undefined) {
       await lifecycle?.onOrganizationAffiliationChanging?.(affiliation);
     }
     await lifecycle?.onPolicyRevoked?.({ spec, policy });
     const id = policy.metadata?.id ?? "";
-    await policies.deleteById(id);
-    logger.info("iam policy revoked", fieldsOf(id, spec));
+    await policies.deleteById(id, record);
+    logger.info("iam policy revoked", fieldsOf(id, spec, change, record));
     if (affiliation !== undefined) {
       await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
     }
@@ -304,7 +378,10 @@ export function newIamPolicyGrantPath(
   async function sweepOrganization(
     accountId: string,
     organizationId: string,
+    actor: PolicyActor,
   ): Promise<void> {
+    const change: Change = { actor, cause: "left_organization" };
+    const inThisOrganization: OrganizationOf = async () => organizationId;
     const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
     let revoked = 0;
     for (const policy of held) {
@@ -325,7 +402,7 @@ export function newIamPolicyGrantPath(
       if (!inOrganization || (await isAuthorship(policy, accountId))) {
         continue;
       }
-      await revokeRow(policy);
+      await revokeRow(policy, change, inThisOrganization);
       revoked++;
     }
     if (revoked > 0) {
@@ -338,8 +415,9 @@ export function newIamPolicyGrantPath(
   }
 
   return {
-    async grant(spec, caller): Promise<GrantResult> {
+    async grant(spec, caller, cause): Promise<GrantResult> {
       requireWellFormedTriple(spec);
+      const change: Change = { actor: policyActorOf(caller), cause };
       if (
         spec.relation === AFFILIATED_RELATION &&
         spec.resource?.kind === ORGANIZATION_KIND
@@ -353,10 +431,14 @@ export function newIamPolicyGrantPath(
       let duplicate = policy !== undefined;
       if (policy === undefined) {
         const fresh = buildRow(spec, caller);
+        const record = await recordFor(spec, change, organizationByScope);
         try {
-          await policies.save(fresh);
+          await policies.save(fresh, record);
           policy = fresh;
-          logger.info("iam policy granted", fieldsOf(policyIdFor(spec), spec));
+          logger.info(
+            "iam policy granted",
+            fieldsOf(policyIdFor(spec), spec, change, record),
+          );
         } catch (error) {
           if (!(error instanceof DuplicatePolicyError)) {
             throw error;
@@ -376,7 +458,7 @@ export function newIamPolicyGrantPath(
       if (duplicate) {
         logger.debug(
           "iam policy already held",
-          fieldsOf(policy.metadata?.id ?? "", spec),
+          fieldsOf(policy.metadata?.id ?? "", spec, change, undefined),
         );
       }
       // Deliberately unconditional (cloud#425): a duplicate re-grant is the
@@ -390,8 +472,9 @@ export function newIamPolicyGrantPath(
       return { policy, duplicate };
     },
 
-    async revokeBySpec(spec): Promise<IamPolicy | undefined> {
+    async revokeBySpec(spec, caller): Promise<IamPolicy | undefined> {
       requireWellFormedTriple(spec);
+      const actor = policyActorOf(caller);
       const existing = await findByTriple(spec);
       if (existing === undefined) {
         // No row: a composition still deletes the bare tuple (one written
@@ -404,7 +487,7 @@ export function newIamPolicyGrantPath(
           await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
         }
       } else {
-        await revokeRow(existing);
+        await revokeRow(existing, { actor, cause: "revoke" });
       }
       const { principal, resource } = refsOf(spec);
       if (
@@ -412,14 +495,29 @@ export function newIamPolicyGrantPath(
         resource.kind === ORGANIZATION_KIND &&
         !(await holdsOrganizationRow(principal.id, resource.id))
       ) {
-        await sweepOrganization(principal.id, resource.id);
+        await sweepOrganization(principal.id, resource.id, actor);
       }
       return existing;
     },
 
-    async cleanupResource(ref): Promise<void> {
+    async cleanupResource(ref, caller): Promise<void> {
+      const change: Change = {
+        actor: policyActorOf(caller),
+        cause: "resource_deleted",
+      };
       const asPrincipal = await policies.findByPrincipal(ref.kind, ref.id);
       const asResource = await policies.findByResource(ref.kind, ref.id);
+      // The ref's own scope link is one of its resource-side rows and goes
+      // before its owners, so its organization is read once, up front.
+      const refOrganization = asResource.some(
+        (policy) => policy.spec !== undefined && grantsAccess(policy.spec),
+      )
+        ? await organizationByScope(ref)
+        : "";
+      const organizationOf: OrganizationOf = async (resource) =>
+        resource.kind === ref.kind && resource.id === ref.id
+          ? refOrganization
+          : organizationByScope(resource);
       const isOwner = (policy: IamPolicy): boolean =>
         policy.spec?.relation === OWNER_RELATION;
       for (const policy of distinctById([
@@ -427,11 +525,17 @@ export function newIamPolicyGrantPath(
         ...asResource.filter((policy) => !isOwner(policy)),
         ...asResource.filter(isOwner),
       ])) {
-        await revokeRow(policy);
+        await revokeRow(policy, change, organizationOf);
       }
     },
 
-    async revokeOrgAccess(identityAccountId, organizationId): Promise<void> {
+    async revokeOrgAccess(
+      identityAccountId,
+      organizationId,
+      caller,
+    ): Promise<void> {
+      const actor = policyActorOf(caller);
+      const change: Change = { actor, cause: "organization_access_revoked" };
       const direct = await policies.findByPrincipalAndResource(
         kindEnumName(ApiResourceKind.identity_account),
         identityAccountId,
@@ -439,9 +543,9 @@ export function newIamPolicyGrantPath(
         organizationId,
       );
       for (const policy of direct) {
-        await revokeRow(policy);
+        await revokeRow(policy, change);
       }
-      await sweepOrganization(identityAccountId, organizationId);
+      await sweepOrganization(identityAccountId, organizationId, actor);
     },
   };
 }
@@ -473,8 +577,16 @@ function distinctById(
   });
 }
 
-/** The structured fields every log line carries — ids and kinds, never a token. */
-function fieldsOf(id: string, spec: IamPolicySpec): Record<string, string> {
+/**
+ * The structured fields every log line carries — ids, kinds, who and why,
+ * never a token; the organization when the row is an access row.
+ */
+function fieldsOf(
+  id: string,
+  spec: IamPolicySpec,
+  change: Change,
+  record: PolicyChangeRecord | undefined,
+): Record<string, string> {
   return {
     policyId: id,
     relation: spec.relation,
@@ -482,5 +594,9 @@ function fieldsOf(id: string, spec: IamPolicySpec): Record<string, string> {
     principalId: spec.principal?.id ?? "",
     resourceKind: spec.resource?.kind ?? "",
     resourceId: spec.resource?.id ?? "",
+    actorId: change.actor.id,
+    actorClass: change.actor.callerClass,
+    cause: change.cause,
+    ...(record === undefined ? {} : { organizationId: record.organizationId }),
   };
 }

@@ -336,7 +336,11 @@ describe("membership rules", () => {
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
       // The organization was bootstrapped; its owner is then revoked.
-      await grantPath.revokeOrgAccess(alice.metadata!.id, "acme");
+      await grantPath.revokeOrgAccess(
+        alice.metadata!.id,
+        "acme",
+        userCaller(alice.metadata!.id),
+      );
       expect(policies.rows.size).toBe(0);
       // A second creator stamp keeps the "no other person created anything here" arm from firing on its own.
       await seedAgent("agt_alice", "acme", alice.metadata!.id);
@@ -351,7 +355,11 @@ describe("membership rules", () => {
       await seedOrg("acme", "auth0|alice");
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
-      await grantPath.revokeOrgAccess(alice.metadata!.id, "acme");
+      await grantPath.revokeOrgAccess(
+        alice.metadata!.id,
+        "acme",
+        userCaller(alice.metadata!.id),
+      );
       expect(policies.rows.size).toBe(0);
       // No blueprint at all: only the organization's own creator stamp stands between mallory and admin.
       const mallory = account("auth0|mallory", "mallory@example.com");

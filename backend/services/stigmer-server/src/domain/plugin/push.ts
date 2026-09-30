@@ -956,6 +956,7 @@ export function newPluginPushAuthorizationTuplesStep(
           kind: ctx.apiResourceKind,
           resourceId: plugin.metadata?.id ?? "",
           orgId: plugin.metadata?.org ?? "",
+          caller: ctx.callerIdentity,
           shapesToCreate,
           shapesToDelete,
         });

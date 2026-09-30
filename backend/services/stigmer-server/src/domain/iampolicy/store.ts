@@ -38,9 +38,23 @@
  *     editions' filters read alike);
  *   - a typed not-found reads as `undefined`; any other storage failure
  *     propagates as the infrastructure fault it is (the ratified
- *     store-fault mapping — an outage must never read as "no grant").
+ *     store-fault mapping — an outage must never read as "no grant");
+ *   - a change record (change.ts) never changes what happens to the row:
+ *     `save` and `deleteById` behave identically with and without one.
+ *
+ * The change record. The grant path hands one to `save` and `deleteById`
+ * for every access row it writes or deletes. An implementation that keeps
+ * a permission history writes exactly one entry for it in the SAME atomic
+ * unit as the row change, and none when the row did not change: a held id
+ * raises DuplicatePolicyError before anything is written, and deleting an
+ * id that is not held records nothing. History equals the row changes
+ * exactly, with nothing to filter or heal. An implementation may keep no
+ * history and ignore the record; open source's adapter does. A driver
+ * written against the one-argument methods still satisfies this interface.
  */
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+
+import type { PolicyChangeRecord } from "./change.js";
 
 /**
  * Raised by `save` when the id is already held, so the grant path runs its
@@ -56,10 +70,10 @@ export class DuplicatePolicyError extends Error {
 }
 
 export interface IamPolicyStore {
-  /** Insert; a held id raises DuplicatePolicyError. */
-  save(policy: IamPolicy): Promise<void>;
-  /** Removes the row; no error when it does not exist. */
-  deleteById(id: string): Promise<void>;
+  /** Insert; a held id raises DuplicatePolicyError. `record`: the change to keep, when the row grants access. */
+  save(policy: IamPolicy, record?: PolicyChangeRecord): Promise<void>;
+  /** Removes the row; no error when it does not exist. `record`: as for `save`, kept only when a row was removed. */
+  deleteById(id: string, record?: PolicyChangeRecord): Promise<void>;
   findById(id: string): Promise<IamPolicy | undefined>;
   /** Every row naming the principal — the cleanup's principal-side arm. */
   findByPrincipal(

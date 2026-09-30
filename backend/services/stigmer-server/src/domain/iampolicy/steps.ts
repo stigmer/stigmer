@@ -115,6 +115,7 @@ import {
   teamQualifierMessage,
   teamRoleNotGrantableMessage,
 } from "./constants.js";
+import type { PolicyChangeCause } from "./change.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
 import type { IamPolicyStore } from "./store.js";
 import {
@@ -231,22 +232,27 @@ function requireTeamGrant(
   }
 }
 
-/** Grant the spec as the chain's caller; the row (fresh or held) is the result. */
+/** Grant the spec as the chain's caller, through the chain's door; the row (fresh or held) is the result. */
 export function newGrantStep(
   grantPath: IamPolicyGrantPath,
+  cause: PolicyChangeCause,
 ): PipelineStep<typeof IamPolicySpecSchema> {
   return {
     name: "Grant",
     async execute(
       ctx: RequestContext<typeof IamPolicySpecSchema>,
     ): Promise<void> {
-      const { policy } = await grantPath.grant(ctx.input, ctx.callerIdentity);
+      const { policy } = await grantPath.grant(
+        ctx.input,
+        ctx.callerIdentity,
+        cause,
+      );
       ctx.set(POLICY_RESULT_KEY, policy);
     },
   };
 }
 
-/** Revoke the spec's row; absent, the default instance is the result (Java's idempotent delete). */
+/** Revoke the spec's row as the chain's caller; absent, the default instance is the result (Java's idempotent delete). */
 export function newRevokeStep(
   grantPath: IamPolicyGrantPath,
 ): PipelineStep<typeof IamPolicySpecSchema> {
@@ -255,7 +261,10 @@ export function newRevokeStep(
     async execute(
       ctx: RequestContext<typeof IamPolicySpecSchema>,
     ): Promise<void> {
-      const revoked = await grantPath.revokeBySpec(ctx.input);
+      const revoked = await grantPath.revokeBySpec(
+        ctx.input,
+        ctx.callerIdentity,
+      );
       ctx.set(POLICY_RESULT_KEY, revoked ?? create(IamPolicySchema));
     },
   };
@@ -273,6 +282,7 @@ export function newRevokeOrgAccessStep(
       return grantPath.revokeOrgAccess(
         ctx.input.identityAccountId,
         ctx.input.organizationId,
+        ctx.callerIdentity,
       );
     },
   };
@@ -286,7 +296,7 @@ export function newCleanupResourceStep(
     name: "CleanupResource",
     execute(ctx: RequestContext<typeof ApiResourceRefSchema>): Promise<void> {
       const ref: ApiResourceRef = ctx.input;
-      return grantPath.cleanupResource(ref);
+      return grantPath.cleanupResource(ref, ctx.callerIdentity);
     },
   };
 }

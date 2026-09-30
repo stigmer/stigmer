@@ -32,6 +32,10 @@
  * way). Conditional store writes are a platform-wide follow-up, not this
  * adapter's to invent.
  *
+ * History. Open source keeps no permission history: the change record the
+ * grant path hands `save` and `deleteById` (store.ts) is not read here, and
+ * the same facts ride the grant path's log lines.
+ *
  * Store faults follow the ratified mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
  * propagates — an outage must never read as "no grant".

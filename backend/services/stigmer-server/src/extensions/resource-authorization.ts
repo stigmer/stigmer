@@ -181,6 +181,8 @@ export interface VisibilityChangedEvent {
   readonly kind: ApiResourceKind;
   readonly resourceId: string;
   readonly orgId: string;
+  /** Who changed the visibility — the audience rows a driver writes are theirs to answer for. */
+  readonly caller: CallerIdentity;
   /** Shapes present in the new level but not the old — to be written. */
   readonly shapesToCreate: ReadonlyArray<VisibilityTupleShape>;
   /** Shapes present in the old level but not the new — to be deleted. */

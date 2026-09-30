@@ -132,6 +132,7 @@ import type { Store } from "../../store/interface.js";
 import { rfc3339Seconds } from "../../store/rfc3339.js";
 import { accountAsCaller } from "../identityaccount/actor.js";
 import type { AccountCreatedHook } from "../identityaccount/provisioning.js";
+import type { PolicyChangeCause } from "./change.js";
 import { BLUEPRINT_KINDS, ROLES_RECONCILED_KEY } from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
 import { organizationRole, relationOf } from "./specs.js";
@@ -340,14 +341,15 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
 
   /**
    * The arms for ONE account over a scanned world: a row on every
-   * organization the account holds none on, granted as `caller`. Shared
-   * by the hook (one account, the world scanned for it) and the
-   * reconciliation (the world scanned once for every account).
+   * organization the account holds none on, granted as `caller` through
+   * `cause`'s door. Shared by the hook (one account, the world scanned for
+   * it) and the reconciliation (the world scanned once for every account).
    */
   async function applyRulesTo(
     account: IdentityAccount,
     caller: CallerIdentity,
     world: ScannedWorld,
+    cause: PolicyChangeCause,
   ): Promise<void> {
     const accountId = account.metadata?.id ?? "";
     if (accountId === "") {
@@ -378,6 +380,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       await grantPath.grant(
         organizationRole(accountId, role, organization.id),
         caller,
+        cause,
       );
     }
   }
@@ -411,10 +414,12 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       if (organizations.length === 0) {
         return;
       }
-      await applyRulesTo(account, caller, {
-        organizations,
-        blueprints: await scanBlueprints(),
-      });
+      await applyRulesTo(
+        account,
+        caller,
+        { organizations, blueprints: await scanBlueprints() },
+        "first_sign_in",
+      );
     },
 
     async ensureRolesForExistingAccounts(): Promise<void> {
@@ -428,7 +433,12 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           // As the account itself (actor.ts, the one construction), so the
           // row's audit actor reads exactly as the person's own first
           // sign-in would have stamped it.
-          await applyRulesTo(account, accountAsCaller(account), world);
+          await applyRulesTo(
+            account,
+            accountAsCaller(account),
+            world,
+            "role_reconciliation",
+          );
         }
       }
       // After the last account, never before: a fault above leaves the
@@ -461,6 +471,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         await grantPath.grant(
           organizationRole(accountId, IamRole.owner, organization.id),
           actor,
+          "operator_ownership",
         );
       }
     },

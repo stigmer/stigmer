@@ -356,6 +356,31 @@ describe("the three system RPCs (Q-OR-7, Q-S5-10)", () => {
   });
 });
 
+describe("each lane hands the store its own door and its caller", () => {
+  const member = orgRole(OPERATOR_ID, "member", "acme");
+
+  it("create records a grant and delete a revoke, both as the chain's caller", async () => {
+    const h = await harness({ caller: alice });
+    await h.command.create(member);
+    await h.command.delete(member);
+    const actor = { id: alice.identityId, callerClass: "user" };
+    expect(h.policies.changes.map((change) => [change.op, change.record])).toEqual([
+      ["save", { actor, cause: "grant", organizationId: "acme" }],
+      ["delete", { actor, cause: "revoke", organizationId: "acme" }],
+    ]);
+  });
+
+  it("bootstrapPolicy records a structural change and cleanupResourcePolicies a deleted resource", async () => {
+    const h = await harness({ caller: machine });
+    await h.command.bootstrapPolicy(member);
+    await h.command.cleanupResourcePolicies(ref("organization", "acme"));
+    expect(h.policies.changes.map((change) => change.record?.cause)).toEqual([
+      "structural",
+      "resource_deleted",
+    ]);
+  });
+});
+
 describe("checkMyPermission (Q-OR-8, Q-S5-3)", () => {
   const platform = ref("platform", "stigmer");
   const acme = ref("organization", "acme");
@@ -970,7 +995,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
       logger: silent,
     });
     for (const [account, role] of roles) {
-      await path.grant(orgRole(account, role, "acme"), internal);
+      await path.grant(orgRole(account, role, "acme"), internal, "grant");
     }
   }
 

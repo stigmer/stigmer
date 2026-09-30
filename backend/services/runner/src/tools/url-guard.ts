@@ -12,7 +12,11 @@
  * IPv4-mapped IPv6 is unwrapped, how every resolved address is judged) has
  * one home, `@stigmer/outbound/egress`, shared with the control plane, which
  * dials user-supplied URLs too. This module keeps what is the runner's:
- * deriving the posture from its mode, and the sentence a model reads.
+ * deriving the posture from its mode, and the sentence a model reads. What
+ * that sentence may say is the shared rule too (`refusalWithholdsResolution`):
+ * on a strict runner a name that does not resolve and one that resolves to
+ * a refused address read alike and name no address, because the runner
+ * resolves through a network its caller does not own.
  *
  * Posture is mode-aware because locality differs, not trust:
  *
@@ -41,6 +45,7 @@ import {
   checkEgress,
   egressPolicyForPosture,
   nodeLookup,
+  refusalWithholdsResolution,
   blockedReason as sharedBlockedReason,
   type EgressPosture,
 } from "@stigmer/outbound/egress";
@@ -91,6 +96,9 @@ export async function validateFetchUrl(
   if (check.ok) return check.url;
 
   const refusal = check.refusal;
+  if (refusalWithholdsResolution(refusal) && (refusal.kind === "unresolvable" || refusal.kind === "blocked")) {
+    throw new UrlGuardError(`Refusing to fetch ${refusal.hostname}: it does not resolve to a public address.`);
+  }
   switch (refusal.kind) {
     case "invalid-url":
       throw new UrlGuardError(`Invalid URL: ${refusal.url}`);

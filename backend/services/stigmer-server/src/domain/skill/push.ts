@@ -469,6 +469,7 @@ export function newSkillPushAuthorizationTuplesStep(
           kind: ctx.apiResourceKind,
           resourceId: skill.metadata?.id ?? "",
           orgId: skill.metadata?.org ?? "",
+          caller: ctx.callerIdentity,
           shapesToCreate,
           shapesToDelete,
         });

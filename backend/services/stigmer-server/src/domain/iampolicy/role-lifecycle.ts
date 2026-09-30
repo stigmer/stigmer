@@ -109,6 +109,7 @@ export function newBuiltInRoleLifecycle(
       await grantPath.grant(
         organizationRole(accountId, IamRole.owner, event.resourceId),
         { ...event.caller, identityId: accountId },
+        "organization_created",
       );
     },
 
@@ -121,6 +122,7 @@ export function newBuiltInRoleLifecycle(
           kind: kindEnumName(event.kind),
           id: event.resourceId,
         }),
+        event.caller,
       );
     },
 

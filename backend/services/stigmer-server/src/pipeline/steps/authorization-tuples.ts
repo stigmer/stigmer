@@ -490,6 +490,7 @@ export function newUpdateVisibilityTuplesStep<Desc extends DescMessage>(
           kind: ctx.apiResourceKind,
           resourceId: metadata.id,
           orgId: metadata.org,
+          caller: ctx.callerIdentity,
           shapesToCreate,
           shapesToDelete,
         });
