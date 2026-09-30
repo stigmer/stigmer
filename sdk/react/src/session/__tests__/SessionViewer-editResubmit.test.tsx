@@ -46,6 +46,7 @@ vi.mock("../../composer", async (importOriginal) => {
 });
 
 const stubConv = {
+  org: "acme",
   session: { spec: {} },
   isLoading: false,
   loadError: null,

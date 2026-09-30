@@ -38,3 +38,27 @@ export function runAgentInstanceDeniedMessage(agentInstanceId: string): string {
 export function addExecutionToSessionDeniedMessage(sessionId: string): string {
   return `unauthorized to add an execution to session '${sessionId}'`;
 }
+
+/**
+ * create's same-organization refusal (stigmer/stigmer#1580): a turn in an
+ * existing session belongs to that session's organization. It names both
+ * organizations so the caller can correct the request; the caller has
+ * already passed the run gate on the session, so its organization is no
+ * secret from them. Pinned by the conformance agentexecution suite.
+ */
+export function sessionOrganizationMismatchMessage(
+  sessionId: string,
+  sessionOrg: string,
+  requestOrg: string,
+): string {
+  return `an execution in session '${sessionId}' belongs to the session's organization '${sessionOrg}', not '${requestOrg}'`;
+}
+
+/**
+ * update's session refusal (stigmer/stigmer#1588): an execution stays in the
+ * session it was created in, as a session keeps its harness
+ * (ValidateHarnessImmutability).
+ */
+export function sessionIdImmutableMessage(sessionId: string): string {
+  return `session_id cannot be changed — an execution belongs to the session it was created in ('${sessionId}')`;
+}

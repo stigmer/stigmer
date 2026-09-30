@@ -39,7 +39,8 @@ export function registerAgentExecutionTools(server: McpServer, target: BackendTa
           .optional()
           .describe(
             "Existing session ID to continue a conversation (from a previous execution's " +
-              "spec.session_id). Omit to start a new session.",
+              "spec.session_id). Omit to start a new session. A turn in a session belongs to " +
+              "that session's organization: `org` must be the session's, or the call is refused.",
           ),
         runtime_env: z
           .record(z.string())

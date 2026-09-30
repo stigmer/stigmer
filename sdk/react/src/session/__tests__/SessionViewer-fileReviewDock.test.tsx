@@ -98,6 +98,7 @@ function progressSnapshot() {
 }
 
 const stubConv = {
+  org: "acme",
   session: { spec: {} },
   isLoading: false,
   loadError: null,

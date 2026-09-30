@@ -1,5 +1,6 @@
 export { OrgProvider, useOrg, useActiveOrgSlug, useActiveOrgId } from "./OrgProvider.js";
 export type { OrgContextValue } from "./OrgProvider.js";
+export { useFollowSessionOrganization } from "./useFollowSessionOrganization.js";
 export { useOrgGate } from "./useOrgGate.js";
 export type {
   UseOrgGateOptions,

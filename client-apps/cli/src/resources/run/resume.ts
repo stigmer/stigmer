@@ -32,7 +32,6 @@ const ACTIVE_PHASES: ReadonlySet<ExecutionPhase> = new Set([
 export interface OpenSessionDeps {
   readonly client: BackendClient;
   readonly sessionId: string;
-  readonly org: string;
   /** Explicit --mode override; "" means infer from the latest execution. */
   readonly mode: RunMode;
   readonly outputMode: RunOutputMode;
@@ -41,6 +40,9 @@ export interface OpenSessionDeps {
 export async function openSession(deps: OpenSessionDeps): Promise<void> {
   const stigmer = deps.client.stigmer;
   const session = await getSessionById(stigmer, deps.sessionId);
+  // Every turn in the session is filed under the session's own organization
+  // (stigmer/stigmer#1580), never the CLI's context organization.
+  const org = session.metadata?.org ?? "";
   const entries = await listExecutionsBySession(stigmer, deps.sessionId);
   if (entries.length === 0) {
     process.stderr.write(`Session ${deps.sessionId} has no executions\n`);
@@ -66,7 +68,7 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
       client: stigmer,
       sessionId: deps.sessionId,
       executionId: latest.metadata?.id ?? "",
-      org: deps.org,
+      org,
       mode: effectiveMode,
       defaultAction: ApprovalAction.UNSPECIFIED,
       outputMode: deps.outputMode,
@@ -75,13 +77,14 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
     return;
   }
 
-  await replaySession(deps, entries, header);
+  await replaySession(deps, org, entries, header);
 }
 
 // Completed session: render the stored history. TTY → Ink (history + composer);
 // headless → snapshot events through the matching renderer.
 async function replaySession(
   deps: OpenSessionDeps,
+  org: string,
   entries: readonly AgentExecution[],
   header: SessionHeaderInfo,
 ): Promise<void> {
@@ -90,7 +93,7 @@ async function replaySession(
     await runInkSession({
       client: deps.client.stigmer,
       sessionId: deps.sessionId,
-      org: deps.org,
+      org,
       mode: header.mode === "plan" ? "plan" : "agent",
     });
     return;

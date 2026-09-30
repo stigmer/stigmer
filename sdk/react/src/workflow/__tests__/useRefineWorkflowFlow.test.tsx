@@ -154,6 +154,35 @@ describe("useRefineWorkflowFlow", () => {
     expect(mockCreateExecution).toHaveBeenCalledTimes(2);
   });
 
+  it("continues its session in the organization it was created in, even after org changes (#1580)", async () => {
+    const opts = defaultOptions();
+    const { result, rerender } = renderHook(
+      ({ options }) => useRefineWorkflowFlow(options),
+      { initialProps: { options: opts } },
+    );
+
+    await act(async () => {
+      await result.current.sendInstruction("Refine the error handling step");
+    });
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({ phase: 4, execution: makeExecution(), isStreaming: false }),
+    );
+    rerender({ options: { ...opts, org: "other-org" } });
+    await waitFor(() => {
+      expect(result.current.phase).toBe("ready");
+    });
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(defaultStreamReturn());
+
+    await act(async () => {
+      await result.current.sendInstruction("Add a timeout to the first step");
+    });
+
+    expect(mockCreateSession).toHaveBeenCalledTimes(1);
+    expect(mockCreateExecution).toHaveBeenLastCalledWith(
+      expect.objectContaining({ org: "test-org", sessionId: "sess-123" }),
+    );
+  });
+
   it("transitions from starting to streaming", async () => {
     const opts = defaultOptions();
     const { result } = renderHook(() => useRefineWorkflowFlow(opts));
