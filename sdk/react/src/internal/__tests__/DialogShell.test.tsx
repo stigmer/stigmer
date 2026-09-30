@@ -1,12 +1,21 @@
 /**
  * DialogShell (stigmer#653): the one modal shell — showModal lifecycle,
  * cancel/Escape wiring with state authority, native-close sync, the token
- * backdrop + converged chrome, and the non-modal in-flow mode.
+ * backdrop + converged chrome, the non-modal in-flow mode, and the portal
+ * target a modal shell provides to the popups inside it (stigmer#1509).
+ * happy-dom has no top layer, so this file pins the contract only; the
+ * popups themselves are proven in a real browser by
+ * `dialog-popups.layout.test.tsx`.
  */
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { render, cleanup, fireEvent } from "@testing-library/react";
+import { render, cleanup, fireEvent, act } from "@testing-library/react";
+import { createPortal } from "react-dom";
 import { DialogShell } from "../DialogShell";
+import {
+  PortalContainerContext,
+  useStigmerPortalContainer,
+} from "../../portal-container";
 
 // happy-dom does not implement the native dialog show/close methods.
 beforeAll(() => {
@@ -219,5 +228,112 @@ describe("DialogShell non-modal mode", () => {
       </DialogShell>,
     );
     expect(dialogOf(container).open).toBe(false);
+  });
+});
+
+/** Records the portal container the shell publishes to its children. */
+function PortalProbe({
+  onValue,
+}: {
+  readonly onValue: (value: HTMLElement | null | undefined) => void;
+}) {
+  onValue(useStigmerPortalContainer());
+  return null;
+}
+
+/** Stands in for an open Base UI popup: content portaled into the target. */
+function OpenPopup() {
+  const container = useStigmerPortalContainer();
+  return container ? createPortal(<div role="listbox" />, container) : null;
+}
+
+/** Waits for the task a keydown queues to clear the shell's Escape record. */
+function nextTask(): Promise<void> {
+  return act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+}
+
+describe("DialogShell portal target (stigmer#1509)", () => {
+  it("a modal shell publishes an unmarked element inside the dialog", () => {
+    let published: HTMLElement | null | undefined;
+    const { container } = render(
+      <DialogShell open onOpenChange={() => {}}>
+        <PortalProbe onValue={(value) => (published = value)} />
+      </DialogShell>,
+    );
+
+    expect(published).toBeInstanceOf(HTMLElement);
+    expect(dialogOf(container).contains(published!)).toBe(true);
+    expect(published!.hasAttribute("data-stgm-portal")).toBe(false);
+    // Fixed, so the dialog's scrolling box cannot clip what it holds
+    // (proven in Chromium by dialog-popups.layout.test.tsx).
+    expect(published!.className).toContain("stg:fixed");
+  });
+
+  it("a non-modal shell passes the inherited container through", () => {
+    const inherited = document.createElement("div");
+    let published: HTMLElement | null | undefined;
+    render(
+      <PortalContainerContext.Provider value={inherited}>
+        <DialogShell open modal={false} onOpenChange={() => {}}>
+          <PortalProbe onValue={(value) => (published = value)} />
+        </DialogShell>
+      </PortalContainerContext.Provider>,
+    );
+
+    expect(published).toBe(inherited);
+  });
+
+  it("a popup portaled by a child lands inside the dialog", () => {
+    const { container } = render(
+      <DialogShell open onOpenChange={() => {}}>
+        <OpenPopup />
+      </DialogShell>,
+    );
+
+    const listbox = document.querySelector('[role="listbox"]');
+    expect(listbox).not.toBeNull();
+    expect(dialogOf(container).contains(listbox)).toBe(true);
+  });
+
+  it("Escape while a popup is open keeps the dialog; the next Escape closes it", async () => {
+    const onOpenChange = vi.fn();
+    const { container, rerender } = render(
+      <DialogShell open onOpenChange={onOpenChange}>
+        <OpenPopup />
+      </DialogShell>,
+    );
+    const dialog = dialogOf(container);
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // The popup has closed (Base UI unmounts it); the next Escape is the
+    // dialog's.
+    rerender(
+      <DialogShell open onOpenChange={onOpenChange}>
+        <p>body</p>
+      </DialogShell>,
+    );
+    await nextTask();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("a popup Escape the browser sends no cancel for never swallows a later one", async () => {
+    const onOpenChange = vi.fn();
+    const { container } = render(
+      <DialogShell open onOpenChange={onOpenChange}>
+        <OpenPopup />
+      </DialogShell>,
+    );
+    const dialog = dialogOf(container);
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await nextTask();
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
   });
 });
