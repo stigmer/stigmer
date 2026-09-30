@@ -15,6 +15,9 @@ export default defineConfig({
   test: {
     include: ["src/suites/**/*.conformance.test.ts"],
     globalSetup: ["./src/harness/global-setup.ts"],
+    // Judges every test on the RPCs it sent: a `[rpc:...]` tag it never sent
+    // fails it (src/harness/rpc-recorder.ts).
+    setupFiles: ["./src/harness/rpc-verdict-setup.ts"],
     env: {
       CONFORMANCE_TARGET: process.env.CONFORMANCE_TARGET ?? "local",
     },

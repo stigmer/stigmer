@@ -1,5 +1,5 @@
 // Runs one call-verdict fixture in a vitest of its own and writes its JSON
-// report: `tsx run-fixture.ts <fixture> <report.json>`.
+// report: `tsx run-fixture.ts <fixture> <report.json> [--no-setup]`.
 // Domain: conformance harness (the RPC contract's call verdict).
 //
 // The recorder's unit arms (../../rpc-recorder.test.ts) need a vitest run
@@ -10,12 +10,18 @@
 // with no config file (the CLI has no `include`). It runs in its own process
 // because a vitest started inside a vitest worker would share that worker's
 // runner state, the very state the recorder reads.
+//
+// The run loads rpc-verdict-setup.ts as every suite config does; `--no-setup`
+// leaves it out, to show what a config that forgets it gets.
 import { basename, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { startVitest } from "vitest/node";
 
-const [fixtureArg, reportArg] = process.argv.slice(2);
-if (fixtureArg === undefined || reportArg === undefined) {
-  console.error("usage: tsx run-fixture.ts <fixture> <report.json>");
+const SETUP = fileURLToPath(new URL("../../../rpc-verdict-setup.ts", import.meta.url));
+
+const [fixtureArg, reportArg, flag] = process.argv.slice(2);
+if (fixtureArg === undefined || reportArg === undefined || (flag !== undefined && flag !== "--no-setup")) {
+  console.error("usage: tsx run-fixture.ts <fixture> <report.json> [--no-setup]");
   process.exit(2);
 }
 const fixture = resolve(fixtureArg);
@@ -23,6 +29,7 @@ const vitest = await startVitest("test", [], {
   config: false,
   root: dirname(fixture),
   include: [basename(fixture)],
+  setupFiles: flag === "--no-setup" ? [] : [SETUP],
   watch: false,
   reporters: ["json"],
   outputFile: resolve(reportArg),

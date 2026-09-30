@@ -4,10 +4,12 @@
 // Domain: conformance harness (the RPC contract's call verdict).
 //
 // The mechanism arms run fixtures/rpc-verdict/verdict.fixture.ts in a vitest
-// of its own (run-fixture.ts explains why it is a separate process and why
-// the fixture is not a `*.test.ts`) and read its JSON report and ledger. The
-// last arm sends a call from a plain `tsx` process, the live benchmark's
-// path. No target, no server: every call goes to a port nothing listens on.
+// of its own, with the suites' setup file (run-fixture.ts explains why it is
+// a separate process and why the fixture is not a `*.test.ts`), and read its
+// JSON report and ledger. One arm runs a fixture without the setup file, the
+// config that forgot it; the last sends a call from a plain `tsx` process, the
+// live benchmark's path. No target, no server: every call goes to a port
+// nothing listens on.
 import { execFile } from "node:child_process";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -73,6 +75,14 @@ interface JsonReport {
   readonly testResults: ReadonlyArray<{ readonly message: string; readonly assertionResults: readonly AssertionResult[] }>;
 }
 
+async function runFixture(fixture: string, reportPath: string, env: NodeJS.ProcessEnv, flags: readonly string[] = []) {
+  await runTsx(join(FIXTURES, "run-fixture.ts"), [join(FIXTURES, fixture), reportPath, ...flags], env);
+  const report = JSON.parse(await readFile(reportPath, "utf8")) as JsonReport;
+  const file = report.testResults[0];
+  if (file === undefined) throw new Error(`the fixture run reported no file: ${JSON.stringify(report)}`);
+  return file;
+}
+
 describe("the verdict, run by vitest", () => {
   let dir: string;
   let results: Map<string, AssertionResult>;
@@ -83,10 +93,7 @@ describe("the verdict, run by vitest", () => {
     dir = await mkdtemp(join(tmpdir(), "rpc-verdict-"));
     const reportPath = join(dir, "report.json");
     const ledgerDir = join(dir, "ledger");
-    await runTsx(join(FIXTURES, "run-fixture.ts"), [join(FIXTURES, "verdict.fixture.ts"), reportPath], childEnv({ CONFORMANCE_RPC_LEDGER: ledgerDir }));
-    const report = JSON.parse(await readFile(reportPath, "utf8")) as JsonReport;
-    const file = report.testResults[0];
-    if (file === undefined) throw new Error(`the fixture run reported no file: ${JSON.stringify(report)}`);
+    const file = await runFixture("verdict.fixture.ts", reportPath, childEnv({ CONFORMANCE_RPC_LEDGER: ledgerDir }));
     fileMessage = file.message;
     results = new Map(file.assertionResults.map((result) => [result.fullName, result]));
     ledger = [];
@@ -118,6 +125,14 @@ describe("the verdict, run by vitest", () => {
     );
   });
 
+  it("fails a tagged test that sends nothing at all, by name", () => {
+    const silent = result("[rpc:AgentQueryController.get] silent: claims an RPC and sends nothing at all");
+    expect(silent.status).toBe("failed");
+    expect(silent.failureMessages.join("\n")).toContain(
+      'tag-without-call: "[rpc:AgentQueryController.get] silent: claims an RPC and sends nothing at all" claims AgentQueryController.get but sent only nothing',
+    );
+  });
+
   it("does not judge again a test that failed on its own", () => {
     const failing = result("[rpc:AgentCommandController.delete] failing: fails on its own before the verdict");
     expect(failing.status).toBe("failed");
@@ -125,10 +140,10 @@ describe("the verdict, run by vitest", () => {
     expect(failing.failureMessages[0]).not.toContain("tag-without-call");
   });
 
-  it("gives each test its own verdict, even after a test whose verdict vitest dropped", () => {
+  it("counts a call from the test's own finished hook, and gives the next test its own verdict", () => {
     expect(result("[rpc:AgentQueryController.get] cleanup-only: sends its RPC only from its own finished hook").status).toBe("passed");
     const after = result(
-      "[rpc:AgentCommandController.create] after-cleanup-only: claims an RPC it never sends, after a dropped registration",
+      "[rpc:AgentCommandController.create] after-cleanup-only: claims an RPC it never sends, after a cleanup-only test",
     );
     expect(after.status).toBe("failed");
     expect(after.failureMessages.join("\n")).toContain("tag-without-call");
@@ -142,8 +157,8 @@ describe("the verdict, run by vitest", () => {
   });
 
   it("records suite-hook calls apart, never charged to a test, and never refuses them", () => {
-    // The afterAll's call would reject with vitest's "inside a test" error, and
-    // fail the file, if the recorder charged it to the file's last test.
+    // The afterAll's call would fail the file if the recorder charged it to the
+    // file's last test, whose verdict has already run.
     expect(fileMessage).toBe("");
     expect(result("[rpc:AgentQueryController.get] last: sends the RPC it claims before the suite's afterAll").status).toBe("passed");
     const hookLines = ledger.filter((line) => line.test === null).map((line) => line.rpc).sort();
@@ -157,6 +172,22 @@ describe("the verdict, run by vitest", () => {
     expect(new Set(keys).size).toBe(keys.length);
     expect(new Set(ledger.map((line) => line.file))).toEqual(new Set(["src/harness/__tests__/fixtures/rpc-verdict/verdict.fixture.ts"]));
   });
+});
+
+describe("without the setup file", () => {
+  it("rejects a call by name instead of leaving the tag unjudged", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "rpc-verdict-no-setup-"));
+    try {
+      const file = await runFixture("no-setup.fixture.ts", join(dir, "report.json"), childEnv(), ["--no-setup"]);
+      const unjudged = file.assertionResults[0];
+      expect(unjudged?.status).toBe("failed");
+      expect(unjudged?.failureMessages.join("\n")).toContain(
+        "rpc-verdict: this vitest run does not load src/harness/rpc-verdict-setup.ts in setupFiles",
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 120_000);
 });
 
 describe("outside vitest", () => {

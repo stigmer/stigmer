@@ -4,10 +4,11 @@
 # Runs scripts/test-integrity.mjs, which reads every test file with the
 # TypeScript parser and refuses a focused `.only`, a test body that returns
 # before it asserts, a config that retries or passes with no tests, and, on a
-# pull request, a deleted case or a new skip the pull request does not
-# declare (`Test-removal:`, `Quarantine:` or `Skip:` lines in its body; the
-# script's header has the rules). `Test integrity` is a required check on
-# `main`, beside `Gate` (ci.gate.yaml).
+# pull request, a deleted case, a new skip or a new RPC waiver the pull
+# request does not declare (`Test-removal:`, `Quarantine:`, `Skip:` or
+# `RPC-waiver:` lines in its body; the script's header has the rules).
+# `Test integrity` is a required check on `main`, beside `Gate`
+# (ci.gate.yaml).
 #
 # Its own workflow, not a job in the gate: the declarations live in the pull
 # request's body, and a body edit (`edited`) must re-run this check in seconds
