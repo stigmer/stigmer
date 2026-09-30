@@ -294,8 +294,7 @@ export STIGMER_FOUNDRY_DEPLOYMENT_MAP="claude-sonnet-4-6=my-sonnet-deployment"
 
 If your network routes model traffic through a gateway in front of Anthropic (a
 proxy that logs, filters or meters requests), point the `public` backend at it
-with `ANTHROPIC_BASE_URL`. It is the API root the gateway serves, without
-`/v1`:
+with `ANTHROPIC_BASE_URL`. It is the API root the gateway serves, without `/v1`:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
