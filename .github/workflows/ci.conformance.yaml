@@ -15,28 +15,19 @@
 name: ci.conformance
 
 on:
-  pull_request:
-    paths:
-      - "backend/**"
-      - "test/conformance/**"
-      - "apis/**"
-      - ".github/workflows/ci.conformance.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - "test/conformance/**"
-      - "apis/**"
-      - ".github/workflows/ci.conformance.yaml"
-
-concurrency:
-  group: conformance-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
 
 permissions:
   contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   conformance-local:

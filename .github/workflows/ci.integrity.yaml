@@ -1,0 +1,83 @@
+# =============================================================================
+# Test integrity: refuse the ways a suite goes quiet without going red
+# =============================================================================
+# Runs scripts/test-integrity.mjs, which reads every test file with the
+# TypeScript parser and refuses a focused `.only`, a test body that returns
+# before it asserts, a config that retries or passes with no tests, and, on a
+# pull request, a deleted case or a new skip the pull request does not
+# declare (`Test-removal:`, `Quarantine:` or `Skip:` lines in its body; the
+# script's header has the rules). `Test integrity` is a required check on
+# `main`, beside `Gate` (ci.gate.yaml).
+#
+# Its own workflow, not a job in the gate: the declarations live in the pull
+# request's body, and a body edit (`edited`) must re-run this check in seconds
+# without re-running the lanes. In the merge queue there is no body; the job
+# runs the tree rules on the exact commit the queue will land, since the pull
+# request's own run already judged the change.
+#
+# The job never carries an `if:`: a required check that is skipped counts as
+# passed.
+# =============================================================================
+
+name: ci.integrity
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  merge_group:
+
+concurrency:
+  group: integrity-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  # --check-issues reads the state of each issue a quarantine names.
+  issues: read
+
+jobs:
+  integrity:
+    name: Test integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Full commit graph, no blobs: the change rules read the base tree with
+      # `git show` at the merge base.
+      - name: Checkout (full history, no blobs)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      # Only the parser, at the version the root lockfile pins: the script
+      # imports no module of the repository, so a full `npm ci` would only
+      # cost minutes.
+      - name: Install the TypeScript parser
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/typescript'].version")
+          mkdir -p "$RUNNER_TEMP/ts"
+          echo '{"private":true}' > "$RUNNER_TEMP/ts/package.json"
+          npm install --prefix "$RUNNER_TEMP/ts" --no-audit --no-fund "typescript@$version"
+
+      # The body reaches the script through a file written from `env`, never
+      # through `${{ }}` inside `run`: a pull request's body is untrusted text.
+      - name: Judge the change (pull request)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          node scripts/test-integrity.mjs --base "origin/$BASE_REF" \
+            --pr-body-file "$RUNNER_TEMP/pr-body.md" --check-issues \
+            --typescript "$RUNNER_TEMP/ts"
+
+      - name: Judge the tree (merge queue)
+        if: github.event_name == 'merge_group'
+        run: node scripts/test-integrity.mjs --typescript "$RUNNER_TEMP/ts"

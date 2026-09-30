@@ -37,11 +37,11 @@ verified in minutes and the full gate is left to CI.
   are mandatory. They run in seconds and are historically the gates that break
   CI after a proto change.
 - The TypeDoc-based checks (`gen-react-sdk-docs-check`,
-  `gen-ink-sdk-docs-check`, `gen-theme-docs-check`) are slow and, on pushes to
-  `main`, self-healed by the docs workflow; on a pull request they are a gate,
-  so a change to an exported symbol's TSDoc regenerates the docs before the push
-  (`make gen-react-sdk-docs`; the site's dependencies must be installed first,
-  as `.github/workflows/ci.docs.yaml` shows).
+  `gen-ink-sdk-docs-check`, `gen-theme-docs-check`) are slow, and they are a
+  gate: nothing regenerates behind a merge, so a change to an exported symbol's
+  TSDoc regenerates the docs before the push (`make gen-react-sdk-docs`; the
+  site's dependencies must be installed first, as
+  `.github/workflows/ci.docs.yaml` shows).
 - Slow, rarely affected targets (`check-links`, `validate-demos`, `test-demos`)
   stay out unless asked for. `make build-site` is not among them: it is the only
   MDX compile, and the `docs/**` row asks for it.

@@ -10,17 +10,16 @@
 name: CI / Plugins Static Validation
 
 on:
-  pull_request:
-    paths:
-      - 'plugins/**'
-      - 'backend/libs/ts/plugin-package/**'
-      - '.github/workflows/ci.plugins-static.yaml'
-  push:
-    branches: [main]
-    paths:
-      - 'plugins/**'
-      - 'backend/libs/ts/plugin-package/**'
-      - '.github/workflows/ci.plugins-static.yaml'
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   plugins-static:

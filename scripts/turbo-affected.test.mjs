@@ -85,6 +85,19 @@ test("resolveRange: a push compares with the event's `before`; an all-zero `befo
   assert.match(fresh.source, /without a usable/);
 });
 
+test("resolveRange: a merge-queue entry compares its head with the queue's base commit", () => {
+  const queued = { GITHUB_EVENT_NAME: "merge_group" };
+  assert.deepEqual(
+    resolveRange(queued, {}, () => ({ merge_group: { base_sha: "b1", head_sha: "h1" } })),
+    { base: "b1", head: "h1", source: "merge_group base commit" },
+  );
+  assert.equal(
+    resolveRange(queued, {}, () => ({})).base,
+    null,
+    "an entry without its commits has no base, so everything runs",
+  );
+});
+
 test("resolveRange: a terminal run defaults to origin/main; --base and --head win everywhere", () => {
   assert.deepEqual(resolveRange({}), {
     base: "origin/main",
@@ -202,6 +215,22 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package-lock.json",
     "scripts/",
   ]);
+});
+
+test("everythingBecause: called from the gate, the lane's --lane-file and the gate's own file both run everything", () => {
+  const gated = {
+    GITHUB_EVENT_NAME: "pull_request",
+    GITHUB_BASE_REF: "main",
+    GITHUB_WORKFLOW_REF: "stigmer/stigmer/.github/workflows/ci.gate.yaml@refs/pull/9/merge",
+  };
+  const lane = ".github/workflows/ci.ts-workspace.yaml";
+  assert.match(everythingBecause(gated, [lane], lane), /ci\.ts-workspace\.yaml/);
+  assert.match(everythingBecause(gated, [".github/workflows/ci.gate.yaml"], lane), /ci\.gate\.yaml/);
+  assert.equal(
+    everythingBecause(gated, [lane]),
+    null,
+    "without --lane-file the lane cannot know its file: the caller's ref names ci.gate.yaml",
+  );
 });
 
 test("decide: the graph's answer, in workspace order", () => {

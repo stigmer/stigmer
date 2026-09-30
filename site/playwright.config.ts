@@ -7,7 +7,10 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // No retries anywhere: a spec that passes on its second try has failed, and
+  // a flaky one is quarantined by name on an issue instead
+  // (scripts/test-integrity.mjs refuses a config that retries).
+  retries: 0,
   workers: process.env.CI ? 1 : 4,
   reporter: "html",
   timeout: 150_000,

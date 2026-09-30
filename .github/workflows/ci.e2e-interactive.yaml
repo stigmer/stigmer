@@ -21,42 +21,19 @@
 # LLM key (test.skip(!HAS_LLM_KEY)). Bringing those in via the mock-LLM
 # proxy (the interactive-approval pattern) is a tracked follow-up.
 #
-# Gate shape mirrors ci.docs.yaml (#709): trigger on every PR, decide from
-# the actual changed-file list in a cheap `changes` job, and skip the real
-# job when nothing stack-adjacent changed — a skipped check satisfies branch
-# protection, so this lane can later become a required check with no
-# workflow change.
+# Which changes need it is its list in scripts/ci-lanes.mjs; ci.gate.yaml
+# calls it for those, and a red job here turns `Gate`, the required check,
+# red.
 # =============================================================================
 
 name: ci.e2e-interactive
 
 on:
-  pull_request:
-  push:
-    branches: [main]
-    paths:
-      - "test/e2e/**"
-      # The console-login stack shape runs the conformance harness's OIDC
-      # issuer as a process (20260913.02).
-      - "test/conformance/src/harness/local-oidc-issuer*.ts"
-      - "backend/**"
-      - "client-apps/web/**"
-      - "sdk/**"
-      - "apis/**"
-      # The Temporal CLI the suites run against: its pin, downloader and installer.
-      - "client-apps/cli/src/local/artifact.ts"
-      - "client-apps/cli/src/local/temporal/download.ts"
-      - "client-apps/cli/scripts/install-temporal-cli.ts"
-      - ".nvmrc"
-      - ".github/workflows/ci.e2e-interactive.yaml"
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: e2e-interactive-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725 — this
-  # lane merged minutes after that sweep and adopts its ruling here).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -69,67 +46,15 @@ env:
   npm_config_fetch_retry_factor: "2"
   npm_config_fetch_retry_mintimeout: "20000"
   npm_config_fetch_retry_maxtimeout: "120000"
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
-  # Decides whether the interactive suite applies, from the PR's actual
-  # changed-file list. Push and dispatch events always run it: pushes are
-  # already narrowed by the trigger's `paths` above, and a manual dispatch
-  # is an explicit "run it".
-  changes:
-    name: Detect stack-adjacent changes
-    runs-on: ubuntu-latest
-    # paths-filter reads the PR's file list via the API.
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      stack: ${{ steps.verdict.outputs.stack }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # Keep this list in lockstep with the push trigger's `paths` above —
-      # same list, one file, checked in one review. The workflow file itself
-      # is included so edits to this gate re-run it.
-      # Pinned by commit SHA (v3 / v3.0.2): if this lane becomes a required
-      # check, its verdict depends on this third-party action's output, so a
-      # mutable tag is not an acceptable trust anchor (the ci.docs precedent).
-      - name: Filter changed paths
-        id: filter
-        if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.2
-        with:
-          filters: |
-            stack:
-              - "test/e2e/**"
-              - "test/conformance/src/harness/local-oidc-issuer*.ts"
-              - "backend/**"
-              - "client-apps/web/**"
-              - "sdk/**"
-              - "apis/**"
-              # The Temporal CLI the suites run against: its pin, downloader and installer.
-              - "client-apps/cli/src/local/artifact.ts"
-              - "client-apps/cli/src/local/temporal/download.ts"
-              - "client-apps/cli/scripts/install-temporal-cli.ts"
-              - ".nvmrc"
-              - ".github/workflows/ci.e2e-interactive.yaml"
-
-      - name: Verdict
-        id: verdict
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "stack=${{ steps.filter.outputs.stack }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "stack=true" >> "$GITHUB_OUTPUT"
-          fi
-
   e2e-interactive:
     name: Interactive E2E (full stack)
     runs-on: ubuntu-latest
-    needs: changes
-    # Skipped (not absent) on non-stack PRs: the check run still reports,
-    # with conclusion "skipped", which branch protection accepts.
-    if: needs.changes.outputs.stack == 'true'
     # The Playwright config has no globalTimeout, so this is the only
     # wall-clock cap. Measured: ~2.2 min for the suite once built; the
     # builds (two npm trees + Chromium) dominate.
@@ -222,8 +147,6 @@ jobs:
   e2e-approval:
     name: Approval E2E (mock LLM, two stack shapes)
     runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.stack == 'true'
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -297,8 +220,6 @@ jobs:
   e2e-console-login:
     name: Console login E2E (OIDC posture, hermetic issuer)
     runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.stack == 'true'
     timeout-minutes: 30
     steps:
       - name: Checkout

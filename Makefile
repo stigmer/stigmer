@@ -958,9 +958,9 @@ test-e2e-console-login: ## Run the console sign-in E2E against a server in the O
 # node_modules, site/'s yarn install, the Tauri shell's resource directories).
 # That site install can leave site/yarn.lock modified: yarn records a content
 # hash of each file:-linked @stigmer lib, and the hash follows the lib's built
-# dist, so it moves whenever a lib differs from the build ci.docs last hashed.
-# ci.docs re-commits the file on main; what a branch should do with it is
-# stigmer/stigmer#1193.
+# dist, so it moves whenever a lib differs from the build last committed.
+# Every install of it is non-immutable, so a stale hash fails nothing; what a
+# branch should do with the rewrite is stigmer/stigmer#1193.
 #
 # Wall-clock is now ~max(bucket) instead of the sum of every step.
 JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 5)

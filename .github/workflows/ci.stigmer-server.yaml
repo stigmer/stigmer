@@ -18,14 +18,14 @@
 # scripts/verify-boot.mjs runs the full lifecycle (bind → listening →
 # SIGTERM → exit 0) the way the CLI daemon will.
 #
-# Path filter: the service's own tree, every package it links with `file:`
+# When it runs (its list in scripts/ci-lanes.mjs): the service's own tree, every package it links with `file:`
 # (scripts/lane-triggers.test.mjs fails when one is missing), the tooling that
 # builds them, the Makefile (test-server lives there), and this file.
 # =============================================================================
 
 name: ci.stigmer-server
 
-# client-apps/web/nginx.conf rides the filter because it is a CONTRACT
+# client-apps/web/nginx.conf is in that list because it is a CONTRACT
 # input here since the console lane landed: the server's nginx-equivalence
 # test (src/transport/console/__tests__/) holds the lane's resolver to the
 # parsed nginx model, so a serving-rule change must run this gate in its
@@ -33,66 +33,19 @@ name: ci.stigmer-server
 # the resolver implements the model generically, and unmodelled router
 # constructs already fail verify-web in the web PR itself.
 on:
-  pull_request:
-    paths:
-      - "backend/services/stigmer-server/**"
-      # The packages the server links with `file:` and builds against.
-      - "apis/stubs/ts/**"
-      - "backend/libs/ts/**"
-      # `npm run build:runner-deps` is the turbo wrapper, its task graph and
-      # the set it resolves from. A change to any of them changes what this
-      # lane builds, so it must run here in its own PR.
-      - "package.json"
-      - "package-lock.json"
-      - "turbo.json"
-      - "scripts/turbo-set.mjs"
-      - "scripts/publish-libs.mjs"
-      - "client-apps/web/nginx.conf"
-      # scripts/lib/ is imported by this package's own scripts: bundle-slim.mjs
-      # (source-map-pragma.mjs) and verify-slim-artifact.mjs / smoke-docker-
-      # image.mjs (stigmer-smoke.mjs, the shared console-lane probe). A change
-      # there must run this gate in its own PR (#1087: the probe's contract
-      # moved and this lane went red on main).
-      - "scripts/lib/**"
-      - "scripts/verify-static-export-routes.mjs"
-      - "test/extension-consumer/**"
-      - "Makefile"
-      - ".github/workflows/ci.stigmer-server.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/services/stigmer-server/**"
-      # The packages the server links with `file:` and builds against.
-      - "apis/stubs/ts/**"
-      - "backend/libs/ts/**"
-      # `npm run build:runner-deps` is the turbo wrapper, its task graph and
-      # the set it resolves from. A change to any of them changes what this
-      # lane builds, so it must run here in its own PR.
-      - "package.json"
-      - "package-lock.json"
-      - "turbo.json"
-      - "scripts/turbo-set.mjs"
-      - "scripts/publish-libs.mjs"
-      - "client-apps/web/nginx.conf"
-      # scripts/lib/ is imported by this package's own scripts: bundle-slim.mjs
-      # (source-map-pragma.mjs) and verify-slim-artifact.mjs / smoke-docker-
-      # image.mjs (stigmer-smoke.mjs, the shared console-lane probe). A change
-      # there must run this gate in its own PR (#1087: the probe's contract
-      # moved and this lane went red on main).
-      - "scripts/lib/**"
-      - "scripts/verify-static-export-routes.mjs"
-      - "test/extension-consumer/**"
-      - "Makefile"
-      - ".github/workflows/ci.stigmer-server.yaml"
-
-concurrency:
-  group: stigmer-server-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
 
 permissions:
   contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   server:

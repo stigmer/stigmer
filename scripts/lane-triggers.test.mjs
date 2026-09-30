@@ -1,5 +1,5 @@
-// A path-filtered workflow (a CI lane or a deploy) that builds a package
-// outside the npm workspace runs when anything that package links changes.
+// A CI lane or a path-filtered deploy that builds a package outside the npm
+// workspace runs when anything that package links changes.
 // Run via `node --test scripts/lane-triggers.test.mjs` (wired into root `npm test`).
 //
 // ci.ts-workspace asks turbo which workspace packages a change reaches, so a
@@ -24,8 +24,9 @@
 // (dependencies, optionalDependencies, peerDependencies); a reached package's
 // devDependencies are its own build tools.
 //
-// Trigger lists are `on.pull_request.paths`, `on.push.paths` and every
-// dorny/paths-filter filter of every workflow, matched with the glob dialect
+// Trigger lists are each CI lane's list in scripts/ci-lanes.mjs (the map
+// ci.gate.yaml selects lanes by), and `on.pull_request.paths`, `on.push.paths`
+// and every dorny/paths-filter filter of every workflow, matched with the glob dialect
 // the guidance gate already uses (`matchesGlob` in agents-check.mjs: `**`, `*`,
 // `?`). Syntax outside it is refused, not guessed at: on `?` and `+` (GitHub
 // quantifiers), `!` and the bracket forms, GitHub's filter, paths-filter's
@@ -42,6 +43,7 @@ import { test } from "node:test";
 import { parse } from "yaml";
 
 import { matchesGlob } from "./agents-check.mjs";
+import { LANES } from "./ci-lanes.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -129,13 +131,17 @@ export function standalonePackages(manifests, byName) {
 /**
  * Every trigger list of one parsed workflow, plus the shapes this guard
  * refuses to interpret. A list is `{ kind, list, patterns }`: `kind` is the
- * event (`pull_request`, `push`) or `filter`, `list` a label for messages,
+ * event (`pull_request`, `push`), `filter`, or `gate` (the lane's list in
+ * scripts/ci-lanes.mjs, passed as `gatePaths`), `list` a label for messages,
  * `patterns` its readable string entries (a refused entry is reported and
  * left out, so the other tests never match against it).
  */
-export function triggerLists(workflow) {
+export function triggerLists(workflow, gatePaths) {
   const raw = [];
   const refusals = [];
+  if (gatePaths !== undefined) {
+    raw.push({ kind: "gate", list: "scripts/ci-lanes.mjs LANES", entries: gatePaths });
+  }
   for (const event of ["pull_request", "push"]) {
     const trigger = workflow.on?.[event];
     if (trigger?.["paths-ignore"] !== undefined) {
@@ -189,21 +195,6 @@ export function triggerLists(workflow) {
   return { lists, refusals };
 }
 
-/**
- * A lane's pull-request side: its `on.pull_request.paths`, or else the union
- * of its paths filters (the gate a lane runs when it triggers on every PR).
- */
-export function pullRequestSide(lists) {
-  const direct = lists.find((l) => l.kind === "pull_request");
-  if (direct) return direct;
-  const filters = lists.filter((l) => l.kind === "filter");
-  if (filters.length === 0) return undefined;
-  return {
-    list: filters.map((l) => l.list).join(" + "),
-    patterns: filters.flatMap((l) => l.patterns),
-  };
-}
-
 /** Whether a trigger list fires for a change to the package in `dir`. */
 export function watches(patterns, dir) {
   return patterns.some((pattern) =>
@@ -218,7 +209,7 @@ function readWorkflows(rootDir = root) {
     .sort()
     .map((file) => ({
       file,
-      ...triggerLists(parse(readFileSync(join(dir, file), "utf8"))),
+      ...triggerLists(parse(readFileSync(join(dir, file), "utf8")), LANES[file]?.paths),
     }));
 }
 
@@ -262,27 +253,6 @@ test("a lane that watches a standalone package watches every package it links", 
             `Add "${link}/**" to that list.`,
         );
       }
-    }
-  }
-  assert.deepEqual(problems, []);
-});
-
-test("a lane's pull-request and push triggers name the same paths", () => {
-  // The lanes' own comments state this contract ("same list, one file"); two
-  // copies that drift apart run a lane on a PR and not on its merge, or the
-  // other way round.
-  const problems = [];
-  for (const { file, lists } of workflows) {
-    const pr = pullRequestSide(lists);
-    const push = lists.find((l) => l.kind === "push");
-    if (!pr || !push) continue;
-    const onlyPr = pr.patterns.filter((p) => !push.patterns.includes(p));
-    const onlyPush = push.patterns.filter((p) => !pr.patterns.includes(p));
-    if (onlyPr.length > 0 || onlyPush.length > 0) {
-      problems.push(
-        `${file}: only in ${pr.list}: ${JSON.stringify(onlyPr)}; ` +
-          `only in ${push.list}: ${JSON.stringify(onlyPush)}`,
-      );
     }
   }
   assert.deepEqual(problems, []);
@@ -375,4 +345,7 @@ test("triggerLists refuses the syntax and shapes it cannot read as GitHub does",
     on: { push: { paths: ["backend/libs/ts/**", "Makefile"] } },
   });
   assert.deepEqual(plain.refusals, []);
+  const gate = triggerLists({ jobs: {} }, ["backend/**", "a/{b,c}/**"]);
+  assert.deepEqual(gate.lists[0].patterns, ["backend/**"], "a gate list is read");
+  assert.equal(gate.refusals.length, 1, "and held to the same syntax");
 });

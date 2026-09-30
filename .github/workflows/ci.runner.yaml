@@ -16,19 +16,17 @@
 # loader rejects, so an import-time boot crash (#399) can pass every other
 # gate. See scripts/verify-dist-boot.mjs for the mechanism.
 #
-# This is a SEPARATE job from ci.conformance-execution (its closest sibling)
-# rather than an added step, so it has an independent signal, its own path
-# filter, and its own concurrency group.
+# This is a SEPARATE lane from ci.conformance-execution (its closest sibling)
+# rather than an added step, so it has an independent signal and its own
+# path list (scripts/ci-lanes.mjs: the runner's own tree, the workspace libs
+# it file:-links, and the root tooling that builds them).
 #
-# No Temporal CLI step: the one Temporal-backed suite (golden-e2e) uses
-# @temporalio/testing's TestWorkflowEnvironment.createLocal(), which downloads
-# and manages its OWN test-server binary — it never consults a system `temporal`
-# on PATH — and self-skips if that fails, so it can never hard-fail this job.
-#
-# Path filter is intentionally narrow (the runner's own tree + the workspace
-# libs it file:-links). Root package.json/package-lock.json are deliberately omitted: the
-# runner's deps live in its own lockfile, and a root-dep change that broke the
-# proto build is already caught by ci.conformance-execution.
+# No Temporal CLI step: the Temporal-backed suites (the goldens) use
+# @temporalio/testing's TestWorkflowEnvironment, which downloads and manages
+# its OWN test-server binary and never consults a system `temporal` on PATH.
+# Outside the gate a failed download skips them by name; inside it
+# (STIGMER_TEST_GATE=1, below) it fails this job, since the gate provides
+# every dependency its suites need.
 #
 # Fork concurrency is capped in CI via vitest.config.ts (it keys off the CI env
 # GitHub sets) to avoid oversubscribing the runner with bash/git subprocess
@@ -38,58 +36,19 @@
 name: ci.runner
 
 on:
-  pull_request:
-    paths:
-      - "backend/services/runner/**"
-      - "apis/stubs/ts/**"
-      - "backend/libs/ts/**"
-      # `make build-runner-deps` goes through the root `build:runner-deps`
-      # script: the turbo wrapper, its task graph and the set it resolves
-      # from. A change to any of them must exercise this lane (2026-09-11,
-      # stigmer-cloud project 20260904.04 D-S6c: the Stage B merge reached
-      # main without this lane running).
-      - "package.json"
-      - "package-lock.json"
-      - "turbo.json"
-      - "scripts/turbo-set.mjs"
-      - "scripts/publish-libs.mjs"
-      # scripts/lib/ is imported by this package's bundle-slim.mjs
-      # (source-map-pragma.mjs, the slim packages' source-map rule), so a
-      # change there must run this gate in its own PR (#1087).
-      - "scripts/lib/**"
-      - "Makefile"
-      - ".github/workflows/ci.runner.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/services/runner/**"
-      - "apis/stubs/ts/**"
-      - "backend/libs/ts/**"
-      # `make build-runner-deps` goes through the root `build:runner-deps`
-      # script: the turbo wrapper, its task graph and the set it resolves
-      # from. A change to any of them must exercise this lane (2026-09-11,
-      # stigmer-cloud project 20260904.04 D-S6c: the Stage B merge reached
-      # main without this lane running).
-      - "package.json"
-      - "package-lock.json"
-      - "turbo.json"
-      - "scripts/turbo-set.mjs"
-      - "scripts/publish-libs.mjs"
-      # scripts/lib/ is imported by this package's bundle-slim.mjs
-      # (source-map-pragma.mjs, the slim packages' source-map rule), so a
-      # change there must run this gate in its own PR (#1087).
-      - "scripts/lib/**"
-      - "Makefile"
-      - ".github/workflows/ci.runner.yaml"
-
-concurrency:
-  group: runner-${{ github.head_ref || github.ref }}
-  # PR pushes cancel superseded runs; main pushes queue instead, so every
-  # merge gets a completed, attributable run (stigmer/stigmer#725).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
 
 permissions:
   contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
 
 jobs:
   runner-vitest:
