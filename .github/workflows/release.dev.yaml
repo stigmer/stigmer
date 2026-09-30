@@ -545,6 +545,7 @@ jobs:
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --file mcp-server/Dockerfile \
+            --build-arg NODE_IMAGE=node:22-alpine \
             --build-arg MCP_SERVER_VERSION=$NPM_VERSION \
             --tag ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG \
             --tag ghcr.io/stigmer/mcp-server-stigmer:dev \

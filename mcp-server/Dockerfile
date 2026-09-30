@@ -12,7 +12,14 @@
 #
 #   docker build -f mcp-server/Dockerfile \
 #     --build-arg MCP_SERVER_VERSION=<npm-version-or-dist-tag> -t mcp-server-stigmer .
-FROM public.ecr.aws/docker/library/node:22-alpine
+# The base image. The default is ECR Public's mirror of Docker Hub's node
+# image, for the prod deploy pipeline's builders. The GitHub release lanes
+# pass NODE_IMAGE=node:22-alpine (Docker Hub, which the server, runner and
+# all-in-one release images already pull from those runners): ECR Public
+# rate-limits anonymous pulls per address, and a release tag's fan-out of
+# lanes on shared runner addresses hit its 429 (stigmer#1511).
+ARG NODE_IMAGE=public.ecr.aws/docker/library/node:22-alpine
+FROM ${NODE_IMAGE}
 
 LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer"
 LABEL org.opencontainers.image.vendor="Stigmer"
