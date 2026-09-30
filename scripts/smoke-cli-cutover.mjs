@@ -48,7 +48,7 @@
  *       so the agent run must fail (its red-first check).
  */
 
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -211,16 +211,47 @@ if (args.published) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function cli(args, opts = {}) {
+// Asynchronous on purpose: the fake model is served by this process's own
+// event loop, and the runner calls it while a CLI command is waiting (the
+// agent run, and any background call during the others). A synchronous child
+// would block the loop, and the model call would hang until the run's budget.
+async function cli(args, opts = {}) {
   const label = `stigmer ${args.join(" ")}`;
   console.log(`smoke-cli-cutover: ${label}`);
   const [command, ...prefix] = cliCommand;
-  const result = spawnSync(command, [...prefix, ...args], {
-    env,
-    encoding: "utf8",
-    timeout: opts.timeoutMs ?? 60_000,
+  const timeoutMs = opts.timeoutMs ?? 60_000;
+  const result = await new Promise((resolve) => {
+    // Its own process group, so a timeout kills the whole tree: tsx runs the
+    // CLI in a child node process, and a killed tsx alone leaves that child
+    // holding the output pipes open.
+    const child = spawn(command, [...prefix, ...args], { env, stdio: ["ignore", "pipe", "pipe"], detached: true });
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    child.stdout.setEncoding("utf8").on("data", (chunk) => (stdout += chunk));
+    child.stderr.setEncoding("utf8").on("data", (chunk) => (stderr += chunk));
     // A timed-out child must not outlive the smoke (SIGTERM alone might not do).
-    killSignal: "SIGKILL",
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
+      }
+    }, timeoutMs);
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      resolve({ status: null, stdout, stderr, error });
+    });
+    child.once("close", (status) => {
+      clearTimeout(timer);
+      resolve({
+        status,
+        stdout,
+        stderr,
+        error: timedOut ? new Error(`timed out after ${timeoutMs}ms`) : undefined,
+      });
+    });
   });
   if (result.error && opts.allowFailure !== true)
     fail(`${label} failed: ${result.error}`);
@@ -247,7 +278,7 @@ try {
   // 1. Up — the daemon resolves the staged server, gates on the gRPC port,
   //    and bootstraps the backend (which creates the org).
   upAttempted = true;
-  cli(["up", "--no-web"], { timeoutMs: UP_TIMEOUT_MS });
+  await cli(["up", "--no-web"], { timeoutMs: UP_TIMEOUT_MS });
 
   // 2. Prove WHICH server is running: the server child's command line must
   //    be the node+entry launch. The PID file is the daemon's own record.
@@ -316,11 +347,11 @@ spec:
 `,
   );
   // --org is a root-level global option, so it precedes the subcommand.
-  cli(["--org", ORG, "apply", "-f", workflowPath]);
+  await cli(["--org", ORG, "apply", "-f", workflowPath]);
 
   // 5. Run it and stream to completion (JSON events on stdout) — a clean
   //    exit is required.
-  const run = cli(["--org", ORG, "run", "workflow", "cutover-smoke", "--json"], {
+  const run = await cli(["--org", ORG, "run", "workflow", "cutover-smoke", "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
   if (!/completed/i.test(run.stdout)) {
@@ -344,8 +375,8 @@ spec:
   instructions: Answer the message in one short sentence.
 `,
   );
-  cli(["--org", ORG, "apply", "-f", agentPath]);
-  const agentRun = cli(["--org", ORG, "run", AGENT, "-m", "Say hello.", "--json"], {
+  await cli(["--org", ORG, "apply", "-f", agentPath]);
+  const agentRun = await cli(["--org", ORG, "run", AGENT, "-m", "Say hello.", "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
   if (!agentRun.stdout.includes(fake.replyText)) {
@@ -357,8 +388,8 @@ spec:
   console.log(`smoke-cli-cutover: agent run streamed the model's reply (${fake.requests()} model calls)`);
 
   // 7. Down — clean teardown, port released.
-  cli(["down"]);
-  const status = cli(["status"], { allowFailure: true });
+  await cli(["down"]);
+  const status = await cli(["status"], { allowFailure: true });
   if (
     /running/i.test(status.stdout) &&
     !/not running|stopped/i.test(status.stdout)

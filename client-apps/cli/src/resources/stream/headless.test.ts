@@ -1,8 +1,9 @@
 // Tests for the headless stream driver: terminal result propagation, approval
-// auto-resolution + submission, submit-failure → stream_error, clean abort.
+// auto-resolution + submission, submit-failure → stream_error, clean abort, and
+// the subscription cancelled on every way out (#1522).
 
 import { create } from "@bufbuild/protobuf";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import {
   AgentExecutionSchema,
@@ -18,7 +19,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalNeededEvent, StreamEvent } from "./events.js";
-import { type HeadlessRenderer, runHeadlessStream } from "./headless.js";
+import { type HeadlessRenderer, runHeadlessStream, SUBSCRIPTION_DRAIN_GRACE_MS } from "./headless.js";
 
 function snapshot(phase: ExecutionPhase, opts: { waiting?: boolean } = {}): AgentExecution {
   const toolCalls = opts.waiting
@@ -102,6 +103,107 @@ describe("runHeadlessStream", () => {
     expect(renderer.kinds).toContain("streamError");
     expect(result.error).toContain("Failed to submit approval");
     expect(result.error).toContain("stigmer resume ses_9");
+  });
+
+  // The subscription's signal is what cancels the call, and so what releases
+  // the HTTP/2 stream a terminal snapshot leaves unread (#1522). Recorded for
+  // each way out: a terminal snapshot, a permanent submit failure, a stream
+  // that ends without one.
+  it.each([
+    ["a terminal snapshot", [snapshot(ExecutionPhase.EXECUTION_COMPLETED)], false],
+    [
+      "a permanent submit failure",
+      [snapshot(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, { waiting: true })],
+      true,
+    ],
+    ["a stream that ends first", [snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS)], false],
+  ])("cancels the subscription once the drive ends on %s", async (_label, snapshots, submitFails) => {
+    let given: AbortSignal | undefined;
+    const inner = source(snapshots);
+    await runHeadlessStream({
+      subscribe: (signal) => {
+        given = signal;
+        return inner(signal);
+      },
+      submitApproval: async () => {
+        if (submitFails) throw new ConnectError("nope", Code.InvalidArgument);
+      },
+      renderer: new RecordingRenderer(),
+      sessionId: "ses_1",
+      signal: new AbortController().signal,
+    });
+    expect(given?.aborted).toBe(true);
+  });
+
+  it("reads the stream to its end after the terminal snapshot, rendering nothing more", async () => {
+    const renderer = new RecordingRenderer();
+    let readToEnd = false;
+    const result = await runHeadlessStream({
+      subscribe: async function* () {
+        yield snapshot(ExecutionPhase.EXECUTION_COMPLETED);
+        yield snapshot(ExecutionPhase.EXECUTION_COMPLETED);
+        readToEnd = true;
+      },
+      submitApproval: async () => {},
+      renderer,
+      sessionId: "ses_1",
+      signal: new AbortController().signal,
+    });
+    expect(result).toEqual({ phase: "completed", error: "" });
+    expect(readToEnd).toBe(true);
+    expect(renderer.kinds.filter((kind) => kind === "done")).toHaveLength(1);
+  });
+
+  describe("a server that keeps the stream open after the terminal phase", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("is cancelled after the grace period, and the terminal result stands", async () => {
+      vi.useFakeTimers();
+      let given: AbortSignal | undefined;
+      const running = runHeadlessStream({
+        subscribe: async function* (signal) {
+          given = signal;
+          yield snapshot(ExecutionPhase.EXECUTION_COMPLETED);
+          await new Promise((_resolve, reject) =>
+            signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }),
+          );
+        },
+        submitApproval: async () => {},
+        renderer: new RecordingRenderer(),
+        sessionId: "ses_1",
+        signal: new AbortController().signal,
+      });
+      await vi.advanceTimersByTimeAsync(SUBSCRIPTION_DRAIN_GRACE_MS - 1);
+      expect(given?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await running).toEqual({ phase: "completed", error: "" });
+      expect(given?.aborted).toBe(true);
+    });
+  });
+
+  it("passes the caller's abort through to the subscription", async () => {
+    const controller = new AbortController();
+    let given: AbortSignal | undefined;
+    const running = runHeadlessStream({
+      subscribe: async function* (signal) {
+        given = signal;
+        yield snapshot(ExecutionPhase.EXECUTION_IN_PROGRESS);
+        await new Promise((_resolve, reject) =>
+          signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }),
+        );
+      },
+      submitApproval: async () => {},
+      renderer: new RecordingRenderer(),
+      sessionId: "ses_1",
+      signal: controller.signal,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(given?.aborted).toBe(false);
+    controller.abort();
+    expect(await running).toEqual({ phase: "", error: "" });
+    expect(given?.aborted).toBe(true);
   });
 
   it("exits cleanly when aborted", async () => {

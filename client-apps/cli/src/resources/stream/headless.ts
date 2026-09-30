@@ -31,6 +31,12 @@ export interface HeadlessRenderer {
   resolveApproval(event: ApprovalNeededEvent): ApprovalAction;
 }
 
+/**
+ * How long the driver keeps reading after the terminal snapshot, for the
+ * server to end the subscription, before it cancels the call itself.
+ */
+export const SUBSCRIPTION_DRAIN_GRACE_MS = 2_000;
+
 /** The terminal outcome of a headless stream. */
 export interface HeadlessResult {
   readonly phase: string;
@@ -52,20 +58,41 @@ export interface HeadlessStreamDeps {
  * Drive the stream to a terminal phase and return the outcome. Aborting (Ctrl-C)
  * resolves cleanly with an empty result; a dropped stream renders a stream_error
  * and returns its message.
+ *
+ * The subscription never outlives the drive (#1522). After the terminal
+ * snapshot the driver keeps reading, ignoring what follows, until the server
+ * ends the subscription, which it does on a terminal phase: an HTTP/2 stream
+ * whose unread frames are left in its buffer is never destroyed, and an open
+ * stream holds the session, and with it the process, alive after the run has
+ * finished. Leaving the loop early, or aborting the call once the server has
+ * already closed its side, does not release it. A server that does not end the
+ * stream within SUBSCRIPTION_DRAIN_GRACE_MS is cancelled, and the subscription
+ * is subscribed with a signal of the driver's own (joined to the caller's),
+ * aborted on every way out.
  */
 export async function runHeadlessStream(deps: HeadlessStreamDeps): Promise<HeadlessResult> {
   const differ = new SnapshotDiffer();
+  const subscription = new AbortController();
+  let outcome: HeadlessResult | undefined;
+  let grace: ReturnType<typeof setTimeout> | undefined;
   try {
-    for await (const snapshot of deps.subscribe(deps.signal)) {
-      const terminal = await drainSnapshot(differ.next(snapshot), deps);
-      if (terminal !== undefined) return terminal;
+    for await (const snapshot of deps.subscribe(AbortSignal.any([deps.signal, subscription.signal]))) {
+      if (outcome !== undefined) continue;
+      outcome = await drainSnapshot(differ.next(snapshot), deps);
+      if (outcome !== undefined) {
+        grace = setTimeout(() => subscription.abort(), SUBSCRIPTION_DRAIN_GRACE_MS);
+      }
     }
-    return { phase: "", error: "" };
+    return outcome ?? { phase: "", error: "" };
   } catch (err) {
+    if (outcome !== undefined) return outcome;
     if (deps.signal.aborted) return { phase: "", error: "" };
     const message = classifyStreamError(err, deps.sessionId);
     deps.renderer.render({ kind: "streamError", error: message });
     return { phase: "", error: message };
+  } finally {
+    clearTimeout(grace);
+    subscription.abort();
   }
 }
 
