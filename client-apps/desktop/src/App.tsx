@@ -13,22 +13,10 @@ import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
 import { EmbeddedRunnerProvider, useRunner } from "./hooks/EmbeddedRunnerContext";
 import { useTauriRunnerAdapter } from "./hooks/useTauriRunnerAdapter";
 import { useColorModePreference } from "./hooks/useColorModePreference";
-
-const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
-
-function fallbackDeploymentMode(): DeploymentMode {
-  try {
-    const url = new URL(BASE_URL);
-    return url.hostname === "localhost" || url.hostname === "127.0.0.1"
-      ? "local"
-      : "cloud";
-  } catch {
-    return "local";
-  }
-}
+import { API_URL, fallbackDeploymentMode } from "./config";
 
 function useServerDeploymentMode(client: Stigmer): DeploymentMode {
-  const [mode, setMode] = useState<DeploymentMode>(fallbackDeploymentMode);
+  const [mode, setMode] = useState<DeploymentMode>(() => fallbackDeploymentMode(API_URL));
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +50,7 @@ function AuthenticatedApp() {
   const client = useMemo(
     () =>
       new Stigmer({
-        baseUrl: BASE_URL,
+        baseUrl: API_URL,
         getAccessToken,
         fetch: tauriFetch,
       }),

@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useAuth } from "./AuthProvider";
+import { API_URL, isValidApiUrl } from "../config";
 
 type ScreenState =
   | { kind: "idle" }
@@ -51,6 +52,14 @@ export function LoginScreen() {
           alt="Stigmer"
           className="size-14 rounded-2xl"
         />
+
+        {!isValidApiUrl(API_URL) && (
+          <p role="alert" className="max-w-xs text-center text-sm text-destructive">
+            This build&rsquo;s API address is not a valid URL ({API_URL}).
+            Sign-in works, but the app cannot reach Stigmer until the build sets
+            VITE_STIGMER_API_URL correctly.
+          </p>
+        )}
 
         {state.kind === "idle" && (
           <button
