@@ -27,6 +27,9 @@ fixes it.
   falling back to `main`.
 - One pull request per branch. If `gh pr list --head <branch>` finds one, push
   and stop; never open a second.
+- The change was written and verified under `.agents/skills/test-gate/SKILL.md`;
+  load it now if it is not already loaded, and answer its questions before
+  "done" before writing the test plan.
 
 ## Read the branch before writing
 
@@ -104,8 +107,11 @@ with the read that proves it. The release train is the batched release
 PR's section is read against the released build and the hosted service, so a
 clause left out is a clause nobody checks.
 
-Nothing merges into `main` but through the merge queue: `Gate` and
-`Test integrity` must pass on the pull request and again on the queue's commit.
+Nothing merges into `main` but through the merge queue: `Gate`, `Test integrity`
+and `Review verdict` must pass on the pull request, and `Gate` and
+`Test integrity` again on the queue's commit. `Review verdict` needs a current
+`approve` from a reviewer that did not write the change, posted as a comment by
+`.agents/skills/review-pull-request/SKILL.md`, never as a section of this body.
 The merge arms `gh pr merge <n> --auto` and hands back; nobody waits. The local
 checks the test plan quotes still come first, because a red `Gate` costs a round
 trip.
@@ -122,5 +128,8 @@ Before that the branch is pushed with no PR, which runs no CI, and a fix found
 while building rides the milestone's PR unless another change needs it on `main`
 now. A PR per project would hold its work off `main` for days, drift against
 every other merge, and expose more lanes to each flaky test in the queue. Open a
-draft only when the owner asks to see the work early. Report the PR URL. Merging
-is a separate, explicitly requested act, never part of opening.
+draft only when the owner asks to see the work early; a draft is reviewed when
+it is marked ready. Once the pull request is open and its local checks pass, run
+`.agents/skills/review-pull-request/SKILL.md`, and fix a `changes-needed` before
+handing back. Report the PR URL and the verdict. Merging is a separate,
+explicitly requested act, never part of opening.

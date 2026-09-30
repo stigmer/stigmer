@@ -15,6 +15,9 @@ verified in minutes and the full gate is left to CI.
 
 ## Procedure
 
+Load `.agents/skills/test-gate/SKILL.md` first. The checks prove the tests pass;
+the gate asks whether the tests that should exist do.
+
 1. **Find the changed files.** `git diff --name-only` for uncommitted work,
    `git diff --name-only origin/main...HEAD` for the branch's commits; combine
    both when the session did both. Work happens in a worktree, so the paths are
