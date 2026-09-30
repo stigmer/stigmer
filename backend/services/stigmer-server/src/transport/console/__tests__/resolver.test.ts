@@ -115,6 +115,19 @@ describe("page contract (the nginx chain)", () => {
     expect(resolve("/").kind).toBe("file");
   });
 
+  it("keeps a trailing-slash redirect on this origin when the path starts with two slashes", () => {
+    // A relative Location of //host names another host; a backslash after
+    // the first slash reads the same way in browsers.
+    for (const [path, location] of [
+      ["//evil.example/", "/evil.example"],
+      ["//evil.example//", "/evil.example/"],
+      ["///evil.example/x/", "/evil.example/x"],
+      ["/\\evil.example/", "/evil.example"],
+    ]) {
+      expect(resolve(path)).toEqual({ kind: "redirect", location });
+    }
+  });
+
   it("answers notFound for unknown URLs at every depth", () => {
     expect(resolve("/zz-no-such-route").kind).toBe("notFound");
     expect(resolve("/zz-no/zz-such/zz-route/zz-deep").kind).toBe("notFound");
