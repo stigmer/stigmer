@@ -33,16 +33,23 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(ROOT, "scripts", "test-integrity.mjs");
 const ts = loadTypeScript(ROOT);
 
+// A checkout whose dependencies are not installed yet (the cloud repository
+// runs these tests in its lint, before its build installs the composition)
+// has no parser: every case skips by name. Inside a test gate they run and
+// fail instead, because the gate installs everything first.
+const NEEDS_TS = ts || process.env.STIGMER_TEST_GATE === "1" ? {} : { skip: "no `typescript` installed to parse with (run the build first)" };
+const it = (name, fn) => test(name, NEEDS_TS, fn);
+
 const inv = (text, path = "pkg/src/__tests__/a.test.ts") => inventoryFile(ts, path, text);
 const rules = (text) => inv(text).findings.map((f) => f.rule);
 
-test("the compiler loads from the repository", () => {
+it("the compiler loads from the repository", () => {
   assert.ok(ts?.createSourceFile, "typescript must be installed at the repository root");
 });
 
 // ─── Registration ───────────────────────────────────────────────────────
 
-test("cases are keyed by their describe chain and title; suites are not cases", () => {
+it("cases are keyed by their describe chain and title; suites are not cases", () => {
   const { cases } = inv(`
     describe("outer", () => {
       describe("inner", () => {
@@ -57,7 +64,7 @@ test("cases are keyed by their describe chain and title; suites are not cases", 
   assert.deepEqual(cases.map((c) => c.key), ["outer > inner > one", "outer > inner > two", "outer > each %s", "outer > later", "top"]);
 });
 
-test("Playwright's test.describe nests; test.extend, test.step and hooks register nothing", () => {
+it("Playwright's test.describe nests; test.extend, test.step and hooks register nothing", () => {
   const { cases } = inv(`
     const t = test.extend({});
     test.describe("suite", () => {
@@ -68,7 +75,7 @@ test("Playwright's test.describe nests; test.extend, test.step and hooks registe
   assert.deepEqual(cases.map((c) => c.key), ["suite > case"]);
 });
 
-test("skip sites carry their kind and condition, registration and runtime alike", () => {
+it("skip sites carry their kind and condition, registration and runtime alike", () => {
   const { skips } = inv(`
     it.skipIf(!ready)("a", () => {});
     describe.runIf(process.platform === "linux")("b", () => {});
@@ -85,7 +92,7 @@ test("skip sites carry their kind and condition, registration and runtime alike"
   ]);
 });
 
-test("a quarantine comment on the line above names its issue", () => {
+it("a quarantine comment on the line above names its issue", () => {
   const { skips } = inv(`
     // quarantined: stigmer#1322 -- run.workflow has no target
     it.skip("golden 18", () => {});
@@ -95,18 +102,18 @@ test("a quarantine comment on the line above names its issue", () => {
 
 // ─── Rules on the tree ──────────────────────────────────────────────────
 
-test(".only on a case or a suite is refused", () => {
+it(".only on a case or a suite is refused", () => {
   assert.deepEqual(rules(`it.only("a", () => {});`), ["only"]);
   assert.deepEqual(rules(`describe.only("s", () => { it("a", () => {}); });`), ["only"]);
   assert.deepEqual(rules(`test.describe.only("s", () => {});`), ["only"]);
 });
 
-test("a valueless return before anything was asserted is a pass that never ran", () => {
+it("a valueless return before anything was asserted is a pass that never ran", () => {
   assert.deepEqual(rules(`it("a", () => { if (!ready) return; expect(x).toBe(1); });`), ["valueless-return"]);
   assert.deepEqual(rules(`it("a", () => { for (const x of xs) { if (x) { return; } } });`), ["valueless-return"]);
 });
 
-test("the returns that are not silent passes are left alone", () => {
+it("the returns that are not silent passes are left alone", () => {
   // Type narrowing after the assertion that already failed the test.
   assert.deepEqual(rules(`it("a", () => { expect(r.ok).toBe(true); if (!r.ok) return; expect(r.v).toBe(1); });`), []);
   // An assertion helper counts as asserting.
@@ -119,7 +126,7 @@ test("the returns that are not silent passes are left alone", () => {
   assert.deepEqual(rules(`it("a", () => { return promise.then(() => expect(1).toBe(1)); });`), []);
 });
 
-test("vitest options that pass a suite without passing are refused; their off values are not", () => {
+it("vitest options that pass a suite without passing are refused; their off values are not", () => {
   const on = checkConfig(ts, "vitest.config.ts", `export default { test: { passWithNoTests: true, retry: 2, allowOnly: true } };`);
   assert.deepEqual(on.map((f) => f.message.split("`")[1]), ["passWithNoTests: true", "retry: 2", "allowOnly: true"]);
   const off = checkConfig(ts, "vitest.config.ts", `export default { test: { passWithNoTests: false, retry: 0, allowOnly: false } };`);
@@ -131,7 +138,7 @@ test("vitest options that pass a suite without passing are refused; their off va
 const PKGS = new Set(["pkg", "other"]);
 const file = (path, body) => inv(body, path);
 
-test("a vanished case paired with a gained one in the same file is a retitle, not a deletion", () => {
+it("a vanished case paired with a gained one in the same file is a retitle, not a deletion", () => {
   const result = compareInventories(
     [{ base: file("pkg/a.test.ts", `it("old name", () => {});`), head: file("pkg/a.test.ts", `it("new name", () => {});`) }],
     PKGS,
@@ -140,7 +147,7 @@ test("a vanished case paired with a gained one in the same file is a retitle, no
   assert.deepEqual(result.retitled.map((r) => [r.from, r.to]), [["old name", "new name"]]);
 });
 
-test("a case that left one file for another in the same package is a move", () => {
+it("a case that left one file for another in the same package is a move", () => {
   const result = compareInventories(
     [
       { base: file("pkg/a.test.ts", `it("kept", () => {}); it("moves", () => {});`), head: file("pkg/a.test.ts", `it("kept", () => {});`) },
@@ -152,7 +159,7 @@ test("a case that left one file for another in the same package is a move", () =
   assert.deepEqual(result.moved.map((m) => m.key), ["moves"]);
 });
 
-test("a deleted case, a deleted file and a case moved to another package are deletions", () => {
+it("a deleted case, a deleted file and a case moved to another package are deletions", () => {
   const result = compareInventories(
     [
       { base: file("pkg/a.test.ts", `it("gone", () => {}); it("stays", () => {});`), head: file("pkg/a.test.ts", `it("stays", () => {});`) },
@@ -165,7 +172,7 @@ test("a deleted case, a deleted file and a case moved to another package are del
   assert.deepEqual(result.deleted.map((c) => c.key).sort(), ["crosses", "gone", "whole file"]);
 });
 
-test("a delete plus an unrelated add in another file of the package is still a deletion", () => {
+it("a delete plus an unrelated add in another file of the package is still a deletion", () => {
   const result = compareInventories(
     [
       { base: file("pkg/a.test.ts", `it("real", () => {});`), head: file("pkg/a.test.ts", ``) },
@@ -176,7 +183,7 @@ test("a delete plus an unrelated add in another file of the package is still a d
   assert.deepEqual(result.deleted.map((c) => c.key), ["real"]);
 });
 
-test("a renamed file keeps its cases", () => {
+it("a renamed file keeps its cases", () => {
   const result = compareInventories(
     [{ base: file("pkg/old.test.ts", `it("a", () => {});`), head: file("pkg/new.test.ts", `it("a", () => {});`) }],
     PKGS,
@@ -184,7 +191,7 @@ test("a renamed file keeps its cases", () => {
   assert.deepEqual(result, { deleted: [], retitled: [], moved: [], newSkips: [] });
 });
 
-test("a new skip is one beyond what the file carried; by-construction and quarantined skips are never new", () => {
+it("a new skip is one beyond what the file carried; by-construction and quarantined skips are never new", () => {
   const base = file("pkg/a.test.ts", `it.skipIf(!x)("a", () => {});`);
   const head = file("pkg/a.test.ts", `
     it.skipIf(!x)("a", () => {});
@@ -200,7 +207,7 @@ test("a new skip is one beyond what the file carried; by-construction and quaran
   assert.deepEqual(newSkips.map((s) => s.title), ["b", "g"]);
 });
 
-test("the by-construction classes are capability, platform and a gate-provided dependency", () => {
+it("the by-construction classes are capability, platform and a gate-provided dependency", () => {
   assert.equal(byConstruction("!capabilities.versionTagging"), "target capability");
   assert.equal(byConstruction('process.platform === "win32"'), "platform");
   assert.equal(byConstruction("!TEST_FGA_API_URL"), "gate-provided dependency");
@@ -208,14 +215,14 @@ test("the by-construction classes are capability, platform and a gate-provided d
   assert.equal(byConstruction("!hasBash"), undefined);
 });
 
-test("packageOf finds the nearest manifest directory", () => {
+it("packageOf finds the nearest manifest directory", () => {
   assert.equal(packageOf("pkg/src/__tests__/a.test.ts", PKGS), "pkg");
   assert.equal(packageOf("loose/a.test.ts", PKGS), ".");
 });
 
 // ─── Declarations ───────────────────────────────────────────────────────
 
-test("declarations parse with either dash, and cover a case by title, key or file", () => {
+it("declarations parse with either dash, and cover a case by title, key or file", () => {
   const declarations = parseDeclarations([
     "Some prose.",
     "Test-removal: gone -- the feature was deleted in this PR",
@@ -236,7 +243,7 @@ test("declarations parse with either dash, and cover a case by title, key or fil
   assert.deepEqual(declared.map((d) => d.rule), ["deleted-case", "new-skip"]);
 });
 
-test("a skip declaration names why the case does not apply, and covers a new skip", () => {
+it("a skip declaration names why the case does not apply, and covers a new skip", () => {
   const declarations = parseDeclarations("Skip: s -- deployed endpoints carry no operator credential");
   assert.deepEqual(declarations.skips, [{ subject: "s", reason: "deployed endpoints carry no operator credential" }]);
   const { refused, declared } = applyDeclarations(
@@ -247,7 +254,7 @@ test("a skip declaration names why the case does not apply, and covers a new ski
   assert.match(declared[0].message, /"s" skips when !scope: deployed endpoints/);
 });
 
-test("a quarantine declaration without an issue does not count", () => {
+it("a quarantine declaration without an issue does not count", () => {
   const { refused } = applyDeclarations(
     { deleted: [], retitled: [], moved: [], newSkips: [{ kind: "skip", condition: "", title: "s", path: "p", line: 1 }] },
     parseDeclarations("Quarantine: s -- flaky, will look later"),
@@ -255,7 +262,7 @@ test("a quarantine declaration without an issue does not count", () => {
   assert.equal(refused.length, 1);
 });
 
-test("the report's last line is the verdict", () => {
+it("the report's last line is the verdict", () => {
   assert.match(formatReport({ findings: [], filesRead: 3 }), /test-integrity: 3 test file\(s\) read; clean$/);
 });
 
@@ -276,7 +283,7 @@ function repo() {
   return { dir, git, write, run };
 }
 
-test("the command: clean, a deleted case refused, then declared", () => {
+it("the command: clean, a deleted case refused, then declared", () => {
   const r = repo();
   try {
     r.write("pkg/package.json", "{}");
@@ -302,7 +309,7 @@ test("the command: clean, a deleted case refused, then declared", () => {
   }
 });
 
-test("the command: a silent return on the tree fails without a base", () => {
+it("the command: a silent return on the tree fails without a base", () => {
   const r = repo();
   try {
     r.write("a.test.ts", `it("a", () => { if (!ready) return; });`);
@@ -316,7 +323,7 @@ test("the command: a silent return on the tree fails without a base", () => {
   }
 });
 
-test("the command: an unknown argument is a usage error, exit 2", () => {
+it("the command: an unknown argument is a usage error, exit 2", () => {
   const r = repo();
   try {
     assert.equal(r.run("--nope").status, 2);
