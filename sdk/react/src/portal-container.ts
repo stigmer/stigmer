@@ -29,6 +29,14 @@ import { createContext, useContext } from "react";
  * - an `HTMLElement` (the mounted themed container): portaled content
  *   renders inside it and inherits the `--stgm-*` token scope.
  *
+ * One more source sets the value: an SDK modal dialog (`DialogShell`)
+ * re-provides it with an element inside the `<dialog>`, `null` until that
+ * element mounts. A modal dialog is in the browser's top layer and makes
+ * the rest of the document inert, so a popup portaled to `document.body`
+ * from inside it would paint beneath it and take no input (stigmer#1509).
+ * The element inherits the theme from the provider's in-tree scope, and
+ * carries no `data-stgm-portal` marker.
+ *
  * The default MUST stay `undefined`, never `null`: an explicit `null`
  * makes Base UI portals render NOWHERE, which breaks every popup for
  * consumers embedding components outside a provider (stigmer-cloud#271).

@@ -1,8 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import type { MouseEvent, ReactNode, SyntheticEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
+  KeyboardEvent,
+  MouseEvent,
+  ReactNode,
+  SyntheticEvent,
+} from "react";
 import { cn } from "@stigmer/theme";
+import {
+  PortalContainerContext,
+  useStigmerPortalContainer,
+} from "../portal-container.js";
 
 /**
  * Width presets for {@link DialogShell}, mapping to Tailwind `max-w-*`
@@ -79,6 +88,25 @@ export interface DialogShellProps {
  * escaped the #652 fence, and animation classes present on some dialogs and
  * missing from others.
  *
+ * Popups opened inside a modal shell render inside it (stigmer#1509). A
+ * modal `<dialog>` sits in the browser's top layer and makes the rest of
+ * the document inert, so a popover, menu or tooltip portaled into the
+ * provider's `document.body` container would paint beneath the dialog and
+ * refuse every click. The shell therefore owns an empty portal target as
+ * its last child and re-provides it through {@link PortalContainerContext}:
+ * every SDK popup below it lands in the top layer with the dialog, themed
+ * by ordinary inheritance from the provider's in-tree scope. The target
+ * carries no `data-stgm-portal` marker; that selector keeps meaning the one
+ * body container. A non-modal shell is in-flow, so it keeps the provider's
+ * container.
+ *
+ * Because those popups now receive keys, Escape pressed while one is open
+ * belongs to the popup: Base UI closes it but does not prevent the
+ * keydown's default, which is the dialog's own close request. The shell
+ * notes, before any popup handler runs, whether its target held a popup,
+ * and keeps the dialog open for that one close request; the next Escape
+ * closes the dialog.
+ *
  * Internal on purpose — not exported from the package until a host needs it.
  * The `stigmer/no-handrolled-dialog` lint rule fences new `<dialog>`
  * elements onto this shell.
@@ -102,6 +130,19 @@ export function DialogShell({
   "aria-labelledby": ariaLabelledby,
 }: DialogShellProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const inheritedPortalContainer = useStigmerPortalContainer();
+  // State, not a ref: children must re-render with the element once it
+  // mounts. Until then the value is `null`, which Base UI reads as "wait
+  // for a container" — no popup flashes into the body first.
+  const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(
+    null,
+  );
+  // Set while one Escape keydown is in flight and a popup was open when it
+  // started; see the doc comment. Cleared by the cancel it guards, or by a
+  // task queued at keydown time when the browser sends no cancel (it may
+  // skip one for a repeated Escape without user activation), so it can
+  // never swallow a later Escape meant for the dialog.
+  const escapeClosesPopupRef = useRef(false);
 
   // Sync the native top-layer state to the controlled prop. Runs on mount
   // too, so a shell mounted with `open` already true shows immediately.
@@ -121,9 +162,26 @@ export function DialogShell({
   const handleCancel = useCallback(
     (e: SyntheticEvent<HTMLDialogElement>) => {
       e.preventDefault();
+      if (escapeClosesPopupRef.current) {
+        escapeClosesPopupRef.current = false;
+        return;
+      }
       onOpenChange(false);
     },
     [onOpenChange],
+  );
+
+  // Capture phase: runs before the popup's own key handlers, which stop
+  // propagation, while the popup is certainly still mounted.
+  const handleKeyDownCapture = useCallback(
+    (e: KeyboardEvent<HTMLDialogElement>) => {
+      if (e.key !== "Escape" || !portalTarget?.hasChildNodes()) return;
+      escapeClosesPopupRef.current = true;
+      setTimeout(() => {
+        escapeClosesPopupRef.current = false;
+      }, 0);
+    },
+    [portalTarget],
   );
 
   // A native close the effect did not perform (e.g. a `method="dialog"`
@@ -146,6 +204,7 @@ export function DialogShell({
       ref={dialogRef}
       open={modal ? undefined : open || undefined}
       onCancel={modal ? handleCancel : undefined}
+      onKeyDownCapture={modal ? handleKeyDownCapture : undefined}
       onClose={modal ? handleClose : undefined}
       onClick={modal && dismissOnBackdrop ? handleClick : undefined}
       aria-label={ariaLabel}
@@ -163,7 +222,12 @@ export function DialogShell({
         className,
       )}
     >
-      {children}
+      <PortalContainerContext.Provider
+        value={modal ? portalTarget : inheritedPortalContainer}
+      >
+        {children}
+      </PortalContainerContext.Provider>
+      {modal && <div ref={setPortalTarget} />}
     </dialog>
   );
 }
