@@ -848,7 +848,16 @@ check-desktop-rust: ## Type-check the Tauri shell's Rust crate
 		{ test -e resources/runtime || mkdir -p resources/runtime; } && \
 		cargo check --quiet
 
-verify-desktop: lint-desktop typecheck-desktop check-desktop-rust ## Lint + typecheck desktop (TS + Rust)
+# The Tauri shell's own Rust tests (deep links, the auth callback parser, the
+# workspace commands), with the same resource-directory preamble as the check
+# above. The runner host crate's tests are `make test-runner-host`.
+test-desktop-rust: ## Run the Tauri shell's Rust tests
+	cd client-apps/desktop/src-tauri && \
+		{ test -e resources/runner || mkdir -p resources/runner; } && \
+		{ test -e resources/runtime || mkdir -p resources/runtime; } && \
+		cargo test --quiet
+
+verify-desktop: lint-desktop typecheck-desktop check-desktop-rust test-desktop test-desktop-rust ## Lint, typecheck and test desktop (TS + Rust)
 
 test-desktop: ## Run desktop app component tests (Vitest)
 	npm run test -w desktop
