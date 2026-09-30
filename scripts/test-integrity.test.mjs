@@ -27,6 +27,7 @@ import {
   loadTypeScript,
   packageOf,
   parseDeclarations,
+  typeScriptCandidates,
 } from "./test-integrity.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -279,7 +280,9 @@ function repo() {
     mkdirSync(join(dir, dirname(path)), { recursive: true });
     writeFileSync(join(dir, path), text);
   };
-  const run = (...args) => spawnSync(process.execPath, [SCRIPT, "--typescript", ROOT, ...args], { cwd: dir, encoding: "utf8" });
+  // The throwaway repository has no compiler of its own: point it at every place this one looks.
+  const typescript = typeScriptCandidates(ROOT).flatMap((d) => ["--typescript", d]);
+  const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...typescript, ...args], { cwd: dir, encoding: "utf8" });
   return { dir, git, write, run };
 }
 

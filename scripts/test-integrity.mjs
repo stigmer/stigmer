@@ -102,14 +102,18 @@ const DECLARATION = /^\s*(Test-removal|Quarantine|Skip)\s*:\s*(.+?)\s+(?:--|—|
 
 // ─── Parsing one file ───────────────────────────────────────────────────
 
+/** Where the compiler is looked for, in order: the root, --typescript dirs, then the two services with their own lockfiles. */
+export function typeScriptCandidates(root, extraDirs = []) {
+  return [root, ...extraDirs, join(root, "backend/services/stigmer-server"), join(root, "backend/services/runner")];
+}
+
 /**
  * Loads the TypeScript compiler from the first place it is installed. A
  * repository whose root has no `typescript` (a service with its own lockfile)
  * names more candidate directories with --typescript.
  */
 export function loadTypeScript(root, extraDirs = []) {
-  const dirs = [root, ...extraDirs, join(root, "backend/services/stigmer-server"), join(root, "backend/services/runner")];
-  for (const dir of dirs) {
+  for (const dir of typeScriptCandidates(root, extraDirs)) {
     const manifest = join(dir, "package.json");
     if (!existsSync(manifest)) continue;
     try {
