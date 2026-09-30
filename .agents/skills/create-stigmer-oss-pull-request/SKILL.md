@@ -104,8 +104,11 @@ with the read that proves it. The release train is the batched release
 PR's section is read against the released build and the hosted service, so a
 clause left out is a clause nobody checks.
 
-The PR's own GitHub checks are not awaited before a merge: the local checks the
-test plan quotes are the gate, and the push-to-`main` runs are the backstop.
+Nothing merges into `main` but through the merge queue: `Gate` and
+`Test integrity` must pass on the pull request and again on the queue's commit.
+The merge arms `gh pr merge <n> --auto` and hands back; nobody waits. The local
+checks the test plan quotes still come first, because a red `Gate` costs a round
+trip.
 
 ## Opening it
 
