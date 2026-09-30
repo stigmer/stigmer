@@ -25,7 +25,11 @@ runs it again only when the verdict is missing or stale.
 
 ## Procedure
 
-1. **Is a review needed?** From a checkout of the pull request's repository:
+1. **Is a review needed?** From a checkout of the pull request's base branch at
+   its tip (the primary checkout, pulled), never the pull request's own
+   worktree: the check computes the digest with the base's copy of the script,
+   and a pull request that changes the script would otherwise post a digest the
+   check never matches.
 
    ```bash
    node scripts/review-verdict.mjs --status -R <owner/repo> <n>
@@ -33,7 +37,7 @@ runs it again only when the verdict is missing or stale.
 
    `current` needs nothing more. Any other state needs a review. In
    stigmer-cloud the script is the cloud's byte-identical copy. To judge a pull
-   request of another repository, pass `--dir <a checkout of it>`.
+   request of another repository, pass `--dir <a checkout of its base>`.
 
 2. **Give the reviewer a checkout at the head.** This is the pull request's
    worktree when it is clean and its `HEAD` is the head
@@ -62,7 +66,7 @@ runs it again only when the verdict is missing or stale.
    `.agents/skills/review-pull-request/SKILL.md` in a local checkout of stigmer.
 
 4. **Post the verdict.** Save the reviewer's JSON to a file outside the tree,
-   then:
+   then, from the same checkout of the base as step 1:
 
    ```bash
    node scripts/review-verdict.mjs --write -R <owner/repo> <n> --verdict-file <file> --reviewed-head <head>

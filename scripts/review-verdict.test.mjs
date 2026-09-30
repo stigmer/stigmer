@@ -465,9 +465,15 @@ test("a user's diff settings do not move the change id", () => {
       ["diff.suppressBlankEmpty", "true"],
       ["diff.algorithm", "histogram"],
       ["diff.renames", "copies"],
+      ["diff.x.algorithm", "histogram"],
     ]) {
       git(work, "config", key, value);
       assert.equal(changeId(work, { head, base: "main" }), plain, `${key}=${value}`);
+    }
+    // Attributes live in files no -c reaches; --text sets them aside.
+    for (const attributes of ["*.txt -diff", "*.txt binary", "*.txt diff=x"]) {
+      writeFileSync(join(work, ".git", "info", "attributes"), `${attributes}\n`);
+      assert.equal(changeId(work, { head, base: "main" }), plain, attributes);
     }
   } finally {
     rmSync(root, { recursive: true, force: true });

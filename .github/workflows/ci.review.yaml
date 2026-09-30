@@ -27,7 +27,8 @@
 # This file itself is not covered: GitHub takes a pull request's workflow from
 # its merge commit, so a pull request that edits this file runs its edit. That
 # is why the review brief reads a change to this file, the script or the brief
-# as a change to the gate.
+# as a change to the gate. The check proves that a writer posted a current
+# approve; that the reviewer did not write the change rests on the procedure.
 #
 # In the merge queue there is no new review to read: the pull request's own
 # run already judged it, and auto-merge queues a pull request only once its
@@ -42,8 +43,9 @@ on:
     types: [opened, edited, synchronize, reopened]
   merge_group:
 
+# Keyed on the pull request's number: two forks' branches can share a name.
 concurrency:
-  group: review-${{ github.head_ref || github.ref }}
+  group: review-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions: {}

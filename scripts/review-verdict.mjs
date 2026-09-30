@@ -47,6 +47,12 @@
  *   invalid         the comment does not parse as a review
  *   missing         no review comment by a writer
  *
+ * What the check proves is that an account with write access posted a current
+ * approve. That the reviewer did not write the change rests on the procedure
+ * (a fresh reviewer, launched with a fixed prompt, whose output this script
+ * posts); no check can see who wrote the judgment, since every verdict is
+ * posted by a maintainer's account.
+ *
  * Callers: the `Review verdict` check (.github/workflows/ci.review.yaml), the
  * review and merge skills, and stigmer-cloud's merge hook, which imports
  * `readReview` from its byte-identical copy of this file.
@@ -278,9 +284,16 @@ export const PINNED_DIFF_SETTINGS = Object.freeze([
   "diff.submodule=short",
 ]);
 
-/** The flags that fix the diff's text whatever the settings say; the settings above back them up. */
+/**
+ * The flags that fix the diff's text whatever the settings say; the settings
+ * above back them up. `--text` also sets aside git attributes (`-diff`,
+ * `binary`), which live in files no `-c` reaches: `.git/info/attributes`,
+ * `core.attributesFile` and a `.gitattributes`. A diff driver's own algorithm
+ * yields to `--diff-algorithm`, and a hunk header's function context is not
+ * part of a patch id.
+ */
 export const PINNED_DIFF_FLAGS = Object.freeze([
-  "--no-color", "--no-ext-diff", "--no-textconv", "--no-renames", "--no-relative", "--binary",
+  "--no-color", "--no-ext-diff", "--no-textconv", "--no-renames", "--no-relative", "--binary", "--text",
   "--diff-algorithm=myers", "--unified=3", "--inter-hunk-context=0", "--indent-heuristic",
   "--submodule=short", "--src-prefix=a/", "--dst-prefix=b/",
 ]);
