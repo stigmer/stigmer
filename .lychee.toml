@@ -25,3 +25,5 @@ no_progress = true
 # scheme) in addition to http(s). Restricting to ["https","http"] silently skips
 # every internal /docs/ and relative link, which let dangling links ship.
 accept = ["100..=199", "200..=299", "403", "415"]
+
+# scratch: a docs-only change for the gate proof
