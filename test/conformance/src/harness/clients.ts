@@ -75,6 +75,7 @@ import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/i
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { rpcRecorder } from "./rpc-recorder";
 
 export interface ConformanceClients {
   activityQuery: Client<typeof ActivityQueryController>;
@@ -182,7 +183,9 @@ export function createTransport(
   // Plain gRPC over h2c: createGrpcTransport always speaks HTTP/2, matching
   // both backends — the OSS server and the hermetic cloud service each serve
   // native gRPC on a single insecure local port.
-  const interceptors: Interceptor[] = [];
+  // Every call is attributed to the test that sent it, so a test tagged
+  // `[rpc:...]` fails if it never sends that RPC (rpc-recorder.ts).
+  const interceptors: Interceptor[] = [rpcRecorder];
   if (options.bearerToken !== undefined) {
     const authorization = `Bearer ${options.bearerToken}`;
     interceptors.push((next) => (req) => {
