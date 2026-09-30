@@ -154,7 +154,10 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // cannot see a 1px outline (well under 2% of the card's pixels) and the jsdom
   // unit tests assert only the class *string*, never the rendered width. This
   // reads the real computed style in Chromium, so a layer regression fails loudly.
-  test("the approval gate card renders a visible neutral border + accent", async ({
+  // quarantined: stigmer#1527 — on CI this computed-style read sometimes samples
+  // the card before `next dev` has applied its stylesheet (retries hid it until
+  // #1515); it runs again once it waits for the styled card.
+  test.fixme("the approval gate card renders a visible neutral border + accent", async ({
     page,
     stigmerClient,
   }) => {
@@ -189,7 +192,10 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // is a ghost with NO resting fill. A screenshot's 2% threshold can miss a hue
   // swap on a small button, so assert the real computed colors — the same
   // "rendered, not class-string" philosophy as the border guard above.
-  test("decision buttons are quiet: Approve is a neutral chip, Reject has no resting fill", async ({
+  // quarantined: stigmer#1527 — on CI this computed-style read sometimes samples
+  // the card before `next dev` has applied its stylesheet (retries hid it until
+  // #1515); it runs again once it waits for the styled card.
+  test.fixme("decision buttons are quiet: Approve is a neutral chip, Reject has no resting fill", async ({
     page,
     stigmerClient,
   }) => {
