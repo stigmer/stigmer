@@ -1,0 +1,659 @@
+#!/usr/bin/env node
+
+/**
+ * Finds the tests that run the important code but would not notice it
+ * breaking, and keeps one GitHub issue per area listing them.
+ *
+ * A green run says the tests passed, and coverage says they ran a line; neither
+ * says a test checked what the line does. A test can call the code that
+ * decides whether an organization has credits left, assert only that nothing
+ * threw, and pass for ever, including after someone turns `<` into `<=`. This
+ * script drives StrykerJS, which plants one small change at a time in a
+ * sandbox copy of a package (a flipped comparison, `&&` for `||`, an emptied
+ * function body, a blanked string) and runs the tests that cover it. A change
+ * no test notices is a finding: the line is run, and nothing checks it.
+ *
+ * The areas swept are a committed targets file:
+ *   {
+ *     "targets": {
+ *       "<name>": {
+ *         "title": "the server's authorization decisions",
+ *         "package": "backend/services/stigmer-server",
+ *         "mutate": ["src/authorization/**\/*.ts", "!src/authorization/**\/__tests__/**"],
+ *         "concurrency": 2
+ *       }
+ *     }
+ *   }
+ * `mutate` is relative to the package, as Stryker reads it. The engines a
+ * target's tests need (Postgres, OpenFGA) are the caller's to provide, with
+ * `STIGMER_TEST_GATE=1` so a missing one fails instead of skipping: a sweep
+ * whose database suites skipped would report every line only they check as
+ * run by nothing.
+ *
+ * Three modes:
+ *   - `--run <target>` writes the target's Stryker config into `--out`, runs
+ *     Stryker in the package, and leaves `mutation.json` (Stryker's report)
+ *     and `target.json` (which target, package and commit) in
+ *     `<out>/<target>/`. Nothing is written into the tree but Stryker's own
+ *     sandbox, which it removes. `--only <file>` sweeps one file, which is how
+ *     a fix is checked locally in minutes.
+ *     Then the confirm step applies each not-noticed change to the real file,
+ *     runs every test that imports it with the package's own config, and
+ *     restores the file: Stryker switches its changes on at run time, so code
+ *     that runs while a module loads is never really changed, and about one
+ *     finding in ten read as not noticed although a test would fail (the
+ *     server's authorization code, 2026-10-01). Its verdicts are written to
+ *     `confirmed.json` and cached between runs, keyed by the finding and its
+ *     file's content.
+ *   - `--report` reads every `target.json` under the `--input` directories
+ *     and prints, per target: the changes no test noticed (Stryker's
+ *     `Survived`, less the ones the confirm step refuted), the blanked strings
+ *     and emptied objects apart as probably harmless, the lines no test runs
+ *     at all (`NoCoverage`, coverage's question rather than this one's, listed
+ *     apart), and every `// Stryker disable` comment that gives no reason.
+ *   - `--report --publish` keeps one issue per target, labelled
+ *     `mutation-sweep`: created when a target first has findings, its body
+ *     rewritten every run, a comment added when the list changed, closed when
+ *     the list is empty, reopened when a finding returns. The previous run's
+ *     list is read back from the issue body, so the script keeps no state.
+ *     `--failed` files or comments on one `mutation-sweep-failure` issue
+ *     instead, for a run that could not sweep.
+ *
+ * A finding is named by its file, Stryker's rule, the original text and the
+ * replacement, not by Stryker's mutant id (renumbered every run) or its line
+ * (moved by every edit above it), so a week-to-week change is honest. Two
+ * identical changes in one file are told apart by their order.
+ *
+ * Usage:
+ *   node scripts/mutation-sweep.mjs --targets <file> --run <target> --out <dir> [--only <file>]
+ *   node scripts/mutation-sweep.mjs --targets <file> --report --input <dir> [--input <dir> ...] [--json]
+ *   node scripts/mutation-sweep.mjs --targets <file> --report --input <dir> ... --publish --repo <owner/name> [--run-url <url>]
+ *   node scripts/mutation-sweep.mjs --failed --repo <owner/name> --run-url <url>
+ * Exit: 0 done (findings are reported, never refused), Stryker's own code for
+ * a failed `--run`, 2 the script could not do what was asked (a usage error,
+ * an unreadable input, a report for no known target).
+ */
+
+import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, posix, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// ─── The targets file ───────────────────────────────────────────────────
+
+/** The label every target issue carries; the publish step finds its issues by it. */
+export const LABEL = "mutation-sweep";
+
+/** The label of the one issue a run that could not sweep files or comments on. */
+export const FAILURE_LABEL = "mutation-sweep-failure";
+
+const TARGET_NAME = /^[a-z0-9][a-z0-9-]*$/;
+
+/** Reads the targets file; returns the targets and every problem with its shape. */
+export function readTargets(text) {
+  const problems = [];
+  let doc;
+  try {
+    doc = JSON.parse(text);
+  } catch (error) {
+    return { targets: {}, problems: [`not JSON: ${error instanceof Error ? error.message : String(error)}`] };
+  }
+  const targets = doc?.targets;
+  if (targets === null || typeof targets !== "object" || Array.isArray(targets)) {
+    return { targets: {}, problems: ['needs a "targets" object'] };
+  }
+  for (const [name, target] of Object.entries(targets)) {
+    if (!TARGET_NAME.test(name)) problems.push(`target "${name}": a name is lowercase words joined by "-"`);
+    if (typeof target?.title !== "string" || target.title === "") problems.push(`target "${name}": needs a "title"`);
+    if (typeof target?.package !== "string" || target.package === "" || target.package.startsWith("/") || target.package.includes("..")) {
+      problems.push(`target "${name}": "package" is a directory relative to the repository root`);
+    }
+    if (!Array.isArray(target?.mutate) || !target.mutate.some((glob) => typeof glob === "string" && !glob.startsWith("!"))) {
+      problems.push(`target "${name}": "mutate" lists at least one glob of files to change`);
+    }
+    if (target?.concurrency !== undefined && !(Number.isInteger(target.concurrency) && target.concurrency >= 1)) {
+      problems.push(`target "${name}": "concurrency" is a whole number of test workers, at least 1`);
+    }
+  }
+  return { targets, problems };
+}
+
+/**
+ * The Stryker config for one target. Every setting but the files and the
+ * worker count is the same for every target:
+ *   - static mutants are skipped: a change that only runs while a module loads
+ *     costs a full restart per mutant and rarely means anything;
+ *   - a change counts as caught when any test that imports the file fails
+ *     (Stryker's related scope), never only the target's own tests: on the
+ *     server's authorization code the narrower scope listed a third of its
+ *     findings wrongly (2026-10-01);
+ *   - TypeScript's checker drops a change the compiler refuses (a removed `?.`
+ *     on an optional field), which is not code anyone could write;
+ *   - the first, unchanged run of every related test is allowed an hour, not
+ *     Stryker's five minutes: on the server it took ten (2026-10-01);
+ *   - only the JSON report is written, never the dashboard reporter, which
+ *     uploads the report (and the source in it) to a third party;
+ *   - Stryker changes the package's files in place and restores them when it
+ *     ends, rather than in a copy one directory deeper: a test that reads a
+ *     shared fixture by a relative path climbing out of its package (the
+ *     runner's wire-contract test reads `test/fixtures/` that way) breaks in a
+ *     copy. The caller refuses a package with uncommitted changes, so a killed
+ *     run is undone with `git checkout`;
+ *   - every output is pointed into `outDir`, outside the tree, and Stryker's
+ *     own directory of originals is removed whatever the outcome, so a sweep
+ *     never leaves a file a test run would collect or a clean-tree check would
+ *     refuse.
+ */
+export function strykerConfig(target, outDir, { only } = {}) {
+  return {
+    testRunner: "vitest",
+    plugins: ["@stryker-mutator/vitest-runner", "@stryker-mutator/typescript-checker"],
+    checkers: ["typescript"],
+    mutate: only ? [only] : target.mutate,
+    ignoreStatic: true,
+    dryRunTimeoutMinutes: 60,
+    concurrency: target.concurrency ?? 2,
+    timeoutMS: 10_000,
+    reporters: ["json", "progress"],
+    jsonReporter: { fileName: join(outDir, "mutation.json") },
+    incremental: !only,
+    incrementalFile: join(outDir, "stryker-incremental.json"),
+    inPlace: true,
+    tempDirName: ".stryker-tmp",
+    cleanTempDir: "always",
+  };
+}
+
+// ─── Reading Stryker's report ───────────────────────────────────────────
+
+/** The statuses that are findings, each with the heading it is listed under. */
+export const FINDING_STATUSES = { Survived: "not noticed", NoCoverage: "never run" };
+
+/**
+ * Stryker's rules whose not-noticed changes are mostly harmless: a blanked
+ * error message, an emptied log or event payload. They are listed apart, not
+ * dropped, because a few matter (an error name a caller compares).
+ */
+export const PROBABLY_HARMLESS = new Set(["StringLiteral", "ObjectLiteral"]);
+
+/** The text a location spans in `source` (lines and columns start at 1; the end is exclusive). */
+export function sliceSource(source, location) {
+  const lines = source.split("\n");
+  const { start, end } = location;
+  if (start.line === end.line) return (lines[start.line - 1] ?? "").slice(start.column - 1, end.column - 1);
+  const parts = [(lines[start.line - 1] ?? "").slice(start.column - 1)];
+  for (let line = start.line; line < end.line - 1; line++) parts.push(lines[line] ?? "");
+  parts.push((lines[end.line - 1] ?? "").slice(0, end.column - 1));
+  return parts.join("\n");
+}
+
+/** One line of text, at most `max` characters, for a list a person reads. */
+export function oneLine(text, max = 80) {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+/** A short, stable name for a finding: what changed where, not when or on which line. */
+export function findingKey(file, mutator, original, replacement, occurrence) {
+  const digest = createHash("sha256").update([file, mutator, original, replacement, String(occurrence)].join("\u0000")).digest("hex");
+  return digest.slice(0, 12);
+}
+
+/** A `// Stryker disable` comment; group 1 is what it disables, group 2 the reason after a colon. */
+const DISABLE = /\/\/\s*Stryker\s+disable\b(?:\s+next-line)?\s*([^:\n]*?)\s*(?::\s*(.*?))?\s*$/;
+
+/** Every `// Stryker disable` comment in `source` that gives no reason, by line. */
+export function reasonlessDisables(source) {
+  const found = [];
+  source.split("\n").forEach((text, index) => {
+    const match = DISABLE.exec(text);
+    if (match && !(match[2] ?? "").trim()) found.push({ line: index + 1, text: text.trim() });
+  });
+  return found;
+}
+
+/** A short hash of a file's content, so a cached confirmation is dropped when the file changes. */
+export function contentHash(source) {
+  return createHash("sha256").update(source).digest("hex").slice(0, 12);
+}
+
+/**
+ * Turns one target's Stryker report into what a person acts on. `packageDir`
+ * makes every path repository-relative (Stryker's are relative to the package).
+ * `confirmed` maps a finding's confirm key to the confirm step's verdict: true
+ * when the change, applied for real, left every related test green; false when
+ * a test went red, so Stryker's "not noticed" was wrong and the finding is
+ * dropped (counted as `refuted`).
+ */
+export function summarize(report, packageDir, { confirmed = {} } = {}) {
+  const counts = { total: 0, killed: 0, survived: 0, refuted: 0, timeout: 0, noCoverage: 0, ignored: 0, errors: 0 };
+  const findings = [];
+  const reasonless = [];
+  const survivedKeys = [];
+  const testNames = new Map();
+  for (const file of Object.values(report.testFiles ?? {})) {
+    for (const t of file.tests ?? []) testNames.set(t.id, t.name);
+  }
+  for (const [reportPath, file] of Object.entries(report.files ?? {})) {
+    const relativePath = reportPath.split("\\").join("/");
+    const path = posix.join(packageDir, relativePath);
+    const source = file.source ?? "";
+    const hash = contentHash(source);
+    for (const disable of reasonlessDisables(source)) reasonless.push({ path, ...disable });
+    const seen = new Map();
+    const mutants = [...(file.mutants ?? [])].sort((a, b) => a.location.start.line - b.location.start.line || a.location.start.column - b.location.start.column);
+    for (const mutant of mutants) {
+      counts.total += 1;
+      if (mutant.status === "Timeout") counts.timeout += 1;
+      else if (mutant.status === "Killed") counts.killed += 1;
+      else if (mutant.status === "NoCoverage") counts.noCoverage += 1;
+      else if (mutant.status === "Ignored") counts.ignored += 1;
+      else if (mutant.status !== "Survived") counts.errors += 1;
+      if (!(mutant.status in FINDING_STATUSES)) continue;
+      const original = sliceSource(source, mutant.location);
+      const replacement = mutant.replacement ?? "";
+      const identity = [mutant.mutatorName, original, replacement].join("\u0000");
+      const occurrence = seen.get(identity) ?? 0;
+      seen.set(identity, occurrence + 1);
+      const key = findingKey(path, mutant.mutatorName, original, replacement, occurrence);
+      const confirmKey = `${key}@${hash}`;
+      if (mutant.status === "Survived") {
+        survivedKeys.push(confirmKey);
+        if (confirmed[confirmKey] === false) {
+          counts.refuted += 1;
+          continue;
+        }
+        counts.survived += 1;
+      }
+      findings.push({
+        key,
+        confirmKey,
+        status: mutant.status,
+        path,
+        relativePath,
+        line: mutant.location.start.line,
+        location: mutant.location,
+        mutator: mutant.mutatorName,
+        harmless: PROBABLY_HARMLESS.has(mutant.mutatorName),
+        confirmed: confirmed[confirmKey] === true,
+        original,
+        replacement,
+        tests: (mutant.coveredBy ?? []).map((id) => testNames.get(id) ?? id),
+      });
+    }
+  }
+  const caught = counts.killed + counts.timeout + counts.refuted;
+  const judged = caught + counts.survived + counts.noCoverage;
+  return { counts, score: judged === 0 ? undefined : Math.floor((caught / judged) * 1000) / 10, findings, reasonless, survivedKeys };
+}
+
+// ─── The confirm step ───────────────────────────────────────────────────
+
+/**
+ * The findings the confirm step must still check: the not-noticed ones in
+ * the main list whose verdict is not cached. Stryker compiles every change
+ * in at once and switches one on per test run, so code that runs while a
+ * module loads (a registry filled at import) is never really changed, and its
+ * changes read as not noticed although a test would fail on them: about one
+ * finding in ten on the server's authorization code (2026-10-01). The
+ * probably-harmless ones are not checked; their section says so.
+ */
+export function toConfirm(summary) {
+  return summary.findings.filter((f) => f.status === "Survived" && !f.harmless && !f.confirmed);
+}
+
+/** `source` with the text at `location` replaced (lines and columns start at 1; the end is exclusive). */
+export function applyChange(source, location, replacement) {
+  const lines = source.split("\n");
+  const offset = (p) => lines.slice(0, p.line - 1).reduce((sum, l) => sum + l.length + 1, 0) + p.column - 1;
+  return source.slice(0, offset(location.start)) + replacement + source.slice(offset(location.end));
+}
+
+/**
+ * Applies each finding's change to the real file, runs every test that
+ * imports it with the package's own config (`runRelated` returns true when
+ * they all pass), and restores the file byte for byte, also when the run is
+ * interrupted. A file with uncommitted changes is refused, so `git checkout`
+ * undoes whatever a killed process left. Returns the verdicts by confirm key.
+ */
+export function confirmFindings(findings, packageDir, { runRelated, isClean, log = () => {} }) {
+  const verdicts = {};
+  let interrupted = false;
+  const stop = () => {
+    interrupted = true;
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  try {
+    for (const f of findings) {
+      if (interrupted) break;
+      const file = join(packageDir, f.relativePath);
+      if (!isClean(file)) throw new Error(`${f.path} has uncommitted changes; the confirm step edits it and must be able to restore it from git`);
+      const original = readFileSync(file, "utf8");
+      try {
+        writeFileSync(file, applyChange(original, f.location, f.replacement));
+        verdicts[f.confirmKey] = runRelated(f.relativePath);
+      } finally {
+        writeFileSync(file, original);
+      }
+      log(`${verdicts[f.confirmKey] ? "confirmed" : "refuted  "}  ${f.path}:${f.line} ${f.mutator}`);
+    }
+  } finally {
+    process.off("SIGINT", stop);
+    process.off("SIGTERM", stop);
+  }
+  return { verdicts, interrupted };
+}
+
+/** What changed since the previous run's list: keys new this run, and keys gone from it. */
+export function compareRuns(previousKeys, currentKeys) {
+  const before = new Set(previousKeys);
+  const now = new Set(currentKeys);
+  return { added: [...now].filter((k) => !before.has(k)), gone: [...before].filter((k) => !now.has(k)) };
+}
+
+// ─── The issue ──────────────────────────────────────────────────────────
+
+/** GitHub refuses an issue body over 65,536 characters; the list stops well short of it. */
+const MAX_LISTED = 200;
+
+const MARKER = "mutation-sweep";
+
+/** The hidden line that names an issue's target. */
+export function targetMarker(name) {
+  return `<!-- ${MARKER}:target=${name} -->`;
+}
+
+/** The finding keys a previous body recorded, or none. */
+export function keysFromBody(body) {
+  const match = new RegExp(`<!-- ${MARKER}:keys=([0-9a-f,]*) -->`).exec(body ?? "");
+  return match && match[1] ? match[1].split(",") : [];
+}
+
+function findingLine(f) {
+  const ran = f.tests.length === 0 ? "" : ` -- ran by: "${oneLine(f.tests[0], 70)}"${f.tests.length > 1 ? ` and ${f.tests.length - 1} more` : ""}`;
+  const unchecked = f.status === "Survived" && !f.harmless && !f.confirmed ? " (not re-checked)" : "";
+  return `- L${f.line} \`${oneLine(f.original, 60)}\` -> \`${oneLine(f.replacement, 60)}\` (${f.mutator})${ran}${unchecked}`;
+}
+
+function listByFile(findings, budget) {
+  const lines = [];
+  let listed = 0;
+  let file;
+  for (const f of findings) {
+    if (listed === budget) break;
+    if (f.path !== file) {
+      file = f.path;
+      lines.push("", `**\`${file}\`**`);
+    }
+    lines.push(findingLine(f));
+    listed += 1;
+  }
+  return { lines, listed };
+}
+
+/**
+ * The issue for one target: its title, and a body a person can act on that
+ * also carries, hidden, the target's name and this run's finding keys.
+ */
+export function renderIssue({ name, target, summary, change, commit, runUrl }) {
+  const notNoticed = summary.findings.filter((f) => f.status === "Survived" && !f.harmless);
+  const harmless = summary.findings.filter((f) => f.status === "Survived" && f.harmless);
+  const neverRun = summary.findings.filter((f) => f.status === "NoCoverage");
+  const title = `Mutation sweep: ${target.title} -- ${notNoticed.length} change${notNoticed.length === 1 ? "" : "s"} no test notices`;
+  const c = summary.counts;
+  const facts = [
+    runUrl ? `[run](${runUrl})` : undefined,
+    commit ? `at \`${commit.slice(0, 9)}\`` : undefined,
+    `${c.killed + c.timeout + c.refuted} of ${c.total} changes caught${summary.score === undefined ? "" : ` (${summary.score}%)`}`,
+    c.refuted > 0 ? `${c.refuted} that Stryker missed were caught on re-check` : undefined,
+    change ? `${change.added.length} new and ${change.gone.length} gone since the last run` : undefined,
+  ].filter(Boolean);
+  const body = [
+    targetMarker(name),
+    `The weekly mutation sweep planted ${c.total} small changes, one at a time, in ${target.title} (\`${target.package}\`: ${target.mutate.map((g) => `\`${g}\``).join(", ")}), and ran every test that imports the file. The changes below were **not noticed**: each was applied for real and every one of those tests still passed.`,
+    "",
+    "A finding is closed by a test that fails when the code is changed that way. When the change truly makes no difference (two ways of writing the same thing), the line above it carries `// Stryker disable next-line <rule>: <why it makes no difference>`, and the reviewer judges the reason. To check a fix locally:",
+    "",
+    "```",
+    `node scripts/mutation-sweep.mjs --targets <targets file> --run ${name} --out <dir> --only <file>`,
+    "```",
+    "",
+    facts.join(" · "),
+  ];
+  let budget = MAX_LISTED;
+  for (const [heading, group, note] of [
+    [`Not noticed (${notNoticed.length})`, notNoticed, undefined],
+    [`Never run by any test (${neverRun.length})`, neverRun, undefined],
+    [`Probably harmless: messages and payloads (${harmless.length})`, harmless, "A blanked string or an emptied object that no test noticed: mostly error messages and log or event payloads, listed so the few that matter (an error name a caller compares) are seen. Not re-checked."],
+  ]) {
+    if (group.length === 0) continue;
+    const { lines, listed } = listByFile(group, budget);
+    budget -= listed;
+    body.push("", `### ${heading}`, ...(note ? ["", note] : []), ...lines);
+    if (listed < group.length) body.push("", `…and ${group.length - listed} more in the run's \`mutation.json\`.`);
+  }
+  if (summary.reasonless.length > 0) {
+    body.push("", `### Disable comments without a reason (${summary.reasonless.length})`, "");
+    for (const r of summary.reasonless) body.push(`- \`${r.path}:${r.line}\` \`${oneLine(r.text, 100)}\``);
+  }
+  if (summary.findings.length === 0 && summary.reasonless.length === 0) body.push("", "Every change was caught. This issue closes itself, and reopens if a finding returns.");
+  body.push("", `<!-- ${MARKER}:keys=${summary.findings.map((f) => f.key).join(",")} -->`);
+  return { title, body: `${body.join("\n")}\n` };
+}
+
+/** Whether a target's run left anything for a person to do. */
+export function hasWork(summary) {
+  return summary.findings.length > 0 || summary.reasonless.length > 0;
+}
+
+/**
+ * What to do with a target's issue: `existing` is the open or closed issue
+ * that carries its marker, if any. Returns the gh calls to make, in order, as
+ * argument lists (the body is passed as a file, `{body}` in an argument).
+ */
+export function publishPlan({ repo, existing, rendered, work, change }) {
+  if (!existing) {
+    if (!work) return [];
+    return [["issue", "create", "--repo", repo, "--label", LABEL, "--title", rendered.title, "--body-file", "{body}"]];
+  }
+  const number = String(existing.number);
+  const calls = [];
+  const open = existing.state === "OPEN";
+  if (work && !open) calls.push(["issue", "reopen", number, "--repo", repo]);
+  calls.push(["issue", "edit", number, "--repo", repo, "--title", rendered.title, "--body-file", "{body}"]);
+  const moved = change.added.length + change.gone.length > 0;
+  if (moved && (work || open)) {
+    calls.push(["issue", "comment", number, "--repo", repo, "--body", `${change.added.length} new and ${change.gone.length} gone since the last run.`]);
+  }
+  if (!work && open) calls.push(["issue", "close", number, "--repo", repo, "--comment", "Every change was caught this run."]);
+  return calls;
+}
+
+// ─── The command ────────────────────────────────────────────────────────
+
+function gh(args, input) {
+  return execFileSync("gh", args, { encoding: "utf8", input, maxBuffer: 64 * 1024 * 1024 });
+}
+
+/** The confirm step's verdicts, beside the report; cached between weekly runs with the incremental file. */
+export const CONFIRMED_FILE = "confirmed.json";
+
+/** Every `target.json` under the inputs, at any depth, with the report beside it. */
+export function readRuns(dirs) {
+  const runs = [];
+  const visit = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) visit(path);
+      else if (entry === "target.json") {
+        const meta = JSON.parse(readFileSync(path, "utf8"));
+        const reportPath = join(dir, "mutation.json");
+        const confirmedPath = join(dir, CONFIRMED_FILE);
+        const confirmed = existsSync(confirmedPath) ? JSON.parse(readFileSync(confirmedPath, "utf8")) : {};
+        runs.push({ ...meta, report: JSON.parse(readFileSync(reportPath, "utf8")), confirmed });
+      }
+    }
+  };
+  for (const dir of dirs) visit(dir);
+  return runs;
+}
+
+function parseArgs(argv) {
+  const opts = { targets: undefined, run: undefined, out: undefined, only: undefined, report: false, inputs: [], json: false, publish: false, failed: false, repo: undefined, runUrl: undefined };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--targets") opts.targets = argv[++i];
+    else if (arg === "--run") opts.run = argv[++i];
+    else if (arg === "--out") opts.out = argv[++i];
+    else if (arg === "--only") opts.only = argv[++i];
+    else if (arg === "--report") opts.report = true;
+    else if (arg === "--input") opts.inputs.push(argv[++i]);
+    else if (arg === "--json") opts.json = true;
+    else if (arg === "--publish") opts.publish = true;
+    else if (arg === "--failed") opts.failed = true;
+    else if (arg === "--repo") opts.repo = argv[++i];
+    else if (arg === "--run-url") opts.runUrl = argv[++i];
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  const modes = [opts.run !== undefined, opts.report, opts.failed].filter(Boolean).length;
+  if (modes !== 1) throw new Error("give exactly one of --run <target>, --report or --failed");
+  if (opts.failed && !(opts.repo && opts.runUrl)) throw new Error("--failed needs --repo and --run-url");
+  if (!opts.failed && !opts.targets) throw new Error("--targets <file> is required");
+  if (opts.run !== undefined && !opts.out) throw new Error("--run needs --out <dir>");
+  if (opts.only && opts.run === undefined) throw new Error("--only is for --run");
+  if (opts.report && opts.inputs.length === 0) throw new Error("--report needs at least one --input <dir>");
+  if (opts.publish && !(opts.report && opts.repo)) throw new Error("--publish is for --report, with --repo");
+  return opts;
+}
+
+function root() {
+  return execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+}
+
+function loadTargets(path) {
+  const { targets, problems } = readTargets(readFileSync(resolve(path), "utf8"));
+  if (problems.length > 0) throw new Error(`${path}: ${problems.join("; ")}`);
+  return targets;
+}
+
+function runTarget(opts) {
+  const targets = loadTargets(opts.targets);
+  const target = targets[opts.run];
+  if (!target) throw new Error(`no target "${opts.run}" in ${opts.targets} (known: ${Object.keys(targets).join(", ")})`);
+  const repo = root();
+  const packageDir = join(repo, target.package);
+  const outDir = resolve(opts.out, opts.run);
+  mkdirSync(outDir, { recursive: true });
+  const only = opts.only ? relative(packageDir, resolve(opts.only)).split("\\").join("/") : undefined;
+  if (only && only.startsWith("..")) throw new Error(`--only ${opts.only} is not inside ${target.package}`);
+  const dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=no", "--", target.package], { cwd: repo, encoding: "utf8" }).trim();
+  if (dirty) throw new Error(`${target.package} has uncommitted changes; the sweep changes its files in place and must be able to restore them from git:\n${dirty}`);
+  const configPath = join(outDir, "stryker.config.json");
+  writeFileSync(configPath, `${JSON.stringify(strykerConfig(target, outDir, { only }), null, 2)}\n`);
+  const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
+  writeFileSync(join(outDir, "target.json"), `${JSON.stringify({ target: opts.run, package: target.package, commit, only: only ?? null }, null, 2)}\n`);
+  const result = spawnSync("npx", ["--no-install", "stryker", "run", configPath], { cwd: packageDir, stdio: "inherit" });
+  if (result.error) throw result.error;
+  if (result.status !== 0) return result.status ?? 2;
+
+  // The confirm step: the cache holds last week's verdicts (restored beside the
+  // incremental file); a verdict whose file changed has another key and is
+  // checked again, and verdicts no finding uses any more are dropped.
+  const confirmedPath = join(outDir, CONFIRMED_FILE);
+  const cached = existsSync(confirmedPath) ? JSON.parse(readFileSync(confirmedPath, "utf8")) : {};
+  const report = JSON.parse(readFileSync(join(outDir, "mutation.json"), "utf8"));
+  const summary = summarize(report, target.package, { confirmed: cached });
+  const pending = toConfirm(summary);
+  console.log(`mutation-sweep: confirming ${pending.length} not-noticed change(s) against every test that imports each file`);
+  const { verdicts, interrupted } = confirmFindings(pending, packageDir, {
+    runRelated: (file) => spawnSync("npx", ["--no-install", "vitest", "related", "--run", file, "--reporter=dot"], { cwd: packageDir, stdio: "ignore" }).status === 0,
+    isClean: (file) => execFileSync("git", ["status", "--porcelain", "--", file], { cwd: repo, encoding: "utf8" }).trim() === "",
+    log: (line) => console.log(`mutation-sweep: ${line}`),
+  });
+  const live = new Set(summary.survivedKeys);
+  for (const [key, verdict] of Object.entries(cached)) {
+    if (live.has(key)) verdicts[key] ??= verdict;
+  }
+  writeFileSync(confirmedPath, `${JSON.stringify(verdicts, null, 2)}\n`);
+  return interrupted ? 130 : 0;
+}
+
+function previousIssues(repo) {
+  const listed = JSON.parse(gh(["issue", "list", "--repo", repo, "--label", LABEL, "--state", "all", "--limit", "200", "--json", "number,state,body"]));
+  return listed;
+}
+
+function report(opts) {
+  const targets = loadTargets(opts.targets);
+  const runs = readRuns(opts.inputs.map((d) => resolve(d)));
+  if (runs.length === 0) {
+    console.error("mutation-sweep: no target.json under the inputs; nothing ran, so nothing can be reported");
+    return 2;
+  }
+  const unknown = runs.filter((r) => !targets[r.target]);
+  if (unknown.length > 0) {
+    console.error(`mutation-sweep: reports for targets the file does not name: ${unknown.map((r) => r.target).join(", ")}`);
+    return 2;
+  }
+  const issues = opts.publish ? previousIssues(opts.repo) : [];
+  const out = [];
+  for (const run of runs) {
+    const target = targets[run.target];
+    const summary = summarize(run.report, target.package, { confirmed: run.confirmed });
+    const existing = issues.find((i) => (i.body ?? "").includes(targetMarker(run.target)));
+    const change = compareRuns(keysFromBody(existing?.body), summary.findings.map((f) => f.key));
+    const rendered = renderIssue({ name: run.target, target, summary, change: existing ? change : undefined, commit: run.commit, runUrl: opts.runUrl });
+    out.push({ target: run.target, summary, rendered });
+    if (opts.publish && !run.only) {
+      const bodyDir = mkdtempSync(join(tmpdir(), "mutation-sweep-"));
+      try {
+        const bodyFile = join(bodyDir, "body.md");
+        writeFileSync(bodyFile, rendered.body);
+        for (const call of publishPlan({ repo: opts.repo, existing, rendered, work: hasWork(summary), change })) {
+          gh(call.map((a) => (a === "{body}" ? bodyFile : a)));
+        }
+      } finally {
+        rmSync(bodyDir, { recursive: true, force: true });
+      }
+    }
+  }
+  if (opts.json) {
+    console.log(JSON.stringify(out.map(({ target, summary }) => ({ target, ...summary })), null, 2));
+  } else {
+    for (const { target, summary, rendered } of out) {
+      const c = summary.counts;
+      console.log(`• ${target}: ${c.total} changes, ${c.killed + c.timeout + c.refuted} caught (${c.refuted} on re-check), ${c.survived} not noticed, ${c.noCoverage} never run, ${summary.reasonless.length} reasonless disable(s)${summary.score === undefined ? "" : ` (${summary.score}%)`}`);
+      if (!opts.publish) console.log(`\n${rendered.title}\n\n${rendered.body}`);
+    }
+  }
+  return 0;
+}
+
+function failed(opts) {
+  const open = JSON.parse(gh(["issue", "list", "--repo", opts.repo, "--label", FAILURE_LABEL, "--state", "open", "--json", "number"]));
+  if (open.length > 0) {
+    gh(["issue", "comment", String(open[0].number), "--repo", opts.repo, "--body", `The mutation sweep failed again: ${opts.runUrl}`]);
+  } else {
+    gh(["issue", "create", "--repo", opts.repo, "--label", FAILURE_LABEL, "--title", "Mutation sweep: the weekly run could not sweep", "--body", `The weekly mutation sweep failed: ${opts.runUrl}\n\nA failure here is the sweep's own (a target's tests red before any change was planted, Stryker crashing, a timeout), not a finding about the tests. The target issues are left as the last good run wrote them. Later failures comment here; close this once a run is green.`]);
+  }
+  return 0;
+}
+
+function main(argv) {
+  const opts = parseArgs(argv);
+  if (opts.run !== undefined) return runTarget(opts);
+  if (opts.failed) return failed(opts);
+  return report(opts);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    process.exitCode = main(process.argv.slice(2));
+  } catch (error) {
+    console.error(`mutation-sweep: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 2;
+  }
+}
