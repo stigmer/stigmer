@@ -456,7 +456,11 @@ it("reaching a service is a value use of its entry point; types, strings and an 
   assert.deepEqual(services(`import { TestWorkflowEnvironment as Env } from "@temporalio/testing"; await Env.createLocal();`), ["temporal"]);
   assert.deepEqual(services(`const store = open(); await store.createLocal(); await createLocal();`), []);
   assert.deepEqual(services(`import * as testing from "@temporalio/testing"; await testing.TestWorkflowEnvironment.createLocal();`), ["temporal"]);
-  assert.deepEqual(services(`const env = await (await import("@temporalio/testing")).TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
+  // A module, as every test file is: in a script a top-level `await (...)` parses as a call.
+  assert.deepEqual(services(`import { it } from "vitest";\nconst env = await (await import("@temporalio/testing")).TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
+  assert.deepEqual(services(`const testing = await import("@temporalio/testing"); await testing.TestWorkflowEnvironment.createLocal();`), ["temporal"]);
+  // A member of anything else is not the package's: an in-file fake reaches nothing.
+  assert.deepEqual(services(`const fake = makeFake(); await fake.TestWorkflowEnvironment.createLocal();`), []);
   assert.deepEqual(services(`import { MockActivityEnvironment } from "@temporalio/testing"; new MockActivityEnvironment();`), []);
   assert.deepEqual(services(`import type { TestWorkflowEnvironment } from "@temporalio/testing"; type E = import("@temporalio/testing").TestWorkflowEnvironment;`), []);
   assert.deepEqual(services(`const why = "needs TEST_DATABASE_URL and createTestDatabase()"; gateDependency(name, "x");`), []);
@@ -559,6 +563,9 @@ it("a layer word goes only where its layer lives", () => {
   // An include given as a module-level const array is read.
   const named = { "pkg/vitest.a11y.config.ts": `const GLOBS = ["src/**/*.browser.test.tsx"];\nexport default { test: { include: GLOBS } };` };
   assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }, { configs: named }), []);
+  // A test at the repository root needs a config at the root: a package's config collects only for that package.
+  const inPackage = { "pkg/vitest.a11y.config.ts": `export default { test: { include: ["**/*.browser.test.tsx"] } };` };
+  assert.deepEqual(layout({ "src/__tests__/panel.browser.test.tsx": ok }, { packages: ["pkg"], configs: inPackage }), ["layout-word-place src/__tests__/panel.browser.test.tsx browser"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts load"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }, { configs: { "pkg/vitest.load.config.ts": "" } }), []);
   assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts conformance"]);
@@ -585,6 +592,7 @@ it("test/support imports only node:* and its own files by their .ts path; its ow
 it("the baseline is read line by line: comments skipped, any other shape and a repeated line refused", () => {
   const { entries, problems } = readLayoutBaseline("# why\n\nlayout-placement a/b.test.ts\nnot a line\nlayout-placement a/b.test.ts\n");
   assert.deepEqual(entries.map((e) => [e.key, e.line]), [["layout-placement a/b.test.ts", 3], ["layout-placement a/b.test.ts", 5]]);
+  assert.deepEqual(readLayoutBaseline("layout-service-unnamed a.test.ts postgres\n").entries.map((e) => e.detail), ["postgres"]);
   assert.deepEqual(problems.map((p) => p.line), [4, 5]);
 });
 
@@ -619,6 +627,10 @@ it("a detailed line follows its rename only with the same detail", () => {
   const other = { ...unnamed, detail: "temporal" };
   const changed = readLayoutBaseline("layout-service-unnamed pkg/src/__tests__/new.test.ts temporal\n").entries;
   assert.deepEqual(applyLayoutBaseline([other], changed, base, renamed).refused.map((f) => f.rule), ["layout-baseline-grown"]);
+  // Nor with a different rule: a renamed file's line keeps the rule its base line had.
+  const placement = { rule: "layout-placement", path: "pkg/src/__tests__/new.test.ts", line: 1, message: "m" };
+  const otherRule = readLayoutBaseline("layout-placement pkg/src/__tests__/new.test.ts\n").entries;
+  assert.deepEqual(applyLayoutBaseline([placement], otherRule, base, renamed).refused.map((f) => f.rule), ["layout-baseline-grown"]);
 });
 
 it("a listed finding covers only itself: a second service on a listed file is refused", () => {

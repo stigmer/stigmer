@@ -205,6 +205,7 @@ const POSTGRES_CALLS = new Set(["testDatabaseAdminUrl", "createTestDatabase"]);
  */
 const TEMPORAL_CALLS = new Set(["createLocal", "createTimeSkipping"]);
 const TEMPORAL_ENVIRONMENT = "TestWorkflowEnvironment";
+const TEMPORAL_TESTING = "@temporalio/testing";
 
 // ─── Parsing one file ───────────────────────────────────────────────────
 
@@ -458,7 +459,21 @@ export function scanModule(ts, path, text) {
   // Local names bound to an entry point: `import { createTestDatabase as make }`,
   // `const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing")`.
   const local = new Map([...POSTGRES_CALLS, "gateDependency", TEMPORAL_ENVIRONMENT].map((name) => [name, name]));
+  // Names bound to the package itself: `import * as testing from "@temporalio/testing"`,
+  // `const testing = await import("@temporalio/testing")`.
+  const temporalPackage = new Set();
+  const isTemporalImport = (expr) => {
+    let e = expr;
+    while (e && (ts.isParenthesizedExpression(e) || ts.isAwaitExpression(e))) e = e.expression;
+    const arg = e && ts.isCallExpression(e) && e.expression.kind === ts.SyntaxKind.ImportKeyword ? e.arguments[0] : undefined;
+    return Boolean(arg && ts.isStringLiteral(arg) && arg.text === TEMPORAL_TESTING);
+  };
   const bindAliases = (node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === TEMPORAL_TESTING) {
+      const bindings = node.importClause?.namedBindings;
+      if (bindings && ts.isNamespaceImport(bindings)) temporalPackage.add(bindings.name.text);
+    }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && isTemporalImport(node.initializer)) temporalPackage.add(node.name.text);
     if (ts.isImportSpecifier(node) && node.propertyName && local.has(node.propertyName.text)) local.set(node.name.text, node.propertyName.text);
     if (ts.isBindingElement(node) && node.propertyName && ts.isIdentifier(node.propertyName) && ts.isIdentifier(node.name) && local.has(node.propertyName.text)) {
       local.set(node.name.text, node.propertyName.text);
@@ -486,8 +501,11 @@ export function scanModule(ts, path, text) {
         if (callee && POSTGRES_CALLS.has(callee)) services.add("postgres");
         // The receiver is a name bound to TestWorkflowEnvironment, or a member of
         // that name (`testing.TestWorkflowEnvironment`, `(await import(...)).TestWorkflowEnvironment`).
+        // A member counts only on the package itself: a namespace bound to it, or an inline import of it.
         const object = ts.isPropertyAccessExpression(node.expression) ? node.expression.expression : undefined;
-        const receiver = object && ts.isIdentifier(object) ? local.get(object.text) : object && ts.isPropertyAccessExpression(object) ? object.name.text : undefined;
+        const member = object && ts.isPropertyAccessExpression(object) && object.name.text === TEMPORAL_ENVIRONMENT
+          && ((ts.isIdentifier(object.expression) && temporalPackage.has(object.expression.text)) || isTemporalImport(object.expression));
+        const receiver = object && ts.isIdentifier(object) ? local.get(object.text) : member ? TEMPORAL_ENVIRONMENT : undefined;
         if (callee && TEMPORAL_CALLS.has(callee) && receiver === TEMPORAL_ENVIRONMENT) services.add("temporal");
         if (callee === "gateDependency" && literal !== undefined && GATE_VARIABLES.has(literal)) services.add(GATE_VARIABLES.get(literal));
       }
@@ -578,6 +596,7 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
   const findings = [];
   const { reach, scan } = makeReach(ts, files, read);
   // A config collects for its own package: the nearest package.json above it, not a parent's.
+  // So a test at the repository root needs a config at the root.
   const configsIn = (pkg) => configs.filter((c) => packageOf(c.path, packageDirs) === pkg);
   // `detail` (the word, the service, the specifier) keys a baseline line with the rule and the path,
   // so one listed finding never covers a second of the same rule in the same file.
@@ -654,7 +673,7 @@ export function readLayoutBaseline(text) {
     const key = layoutKey({ rule: match[1], path: match[2], detail: match[3] });
     if (seen.has(key)) problems.push({ line: i + 1, message: `\`${key}\` is listed twice` });
     seen.add(key);
-    entries.push({ rule: match[1], path: match[2], line: i + 1, key });
+    entries.push({ rule: match[1], path: match[2], detail: match[3], line: i + 1, key });
   });
   return { entries, problems };
 }
@@ -677,7 +696,7 @@ export function applyLayoutBaseline(findings, head, base, renamed = new Map()) {
   for (const e of head ?? []) {
     if (!found.has(e.key)) {
       refused.push({ rule: "layout-baseline-stale", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` no longer applies; remove the line` });
-    } else if (was && !was.has(e.key) && !(renamed.has(e.path) && was.has(layoutKey({ rule: e.rule, path: renamed.get(e.path), detail: e.key.split(" ")[2] })))) {
+    } else if (was && !was.has(e.key) && !(renamed.has(e.path) && was.has(layoutKey({ rule: e.rule, path: renamed.get(e.path), detail: e.detail })))) {
       refused.push({ rule: "layout-baseline-grown", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` was added; the list only shrinks, so make the file follow the standard instead` });
     }
   }
