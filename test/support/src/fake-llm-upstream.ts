@@ -123,7 +123,8 @@ export class FakeLlmUpstream {
         // the process the fake lives in (a suite, an install smoke) keeps
         // running, and so do the other requests. Anything else is a defect
         // in the fake, said aloud before its socket is reset.
-        if (!req.destroyed) console.error(`FakeLlmUpstream: answering ${req.method} ${req.url} failed:`, error);
+        // The format string is constant: the request's own values are arguments, never directives.
+        if (!req.destroyed) console.error("FakeLlmUpstream: answering %s %s failed:", req.method, req.url, error);
         if (!res.writableEnded) res.destroy();
       });
     });
