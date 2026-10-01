@@ -124,7 +124,7 @@ export async function fetchTarballBinary(src: TarballBinarySource): Promise<Tarb
     if (cached === null) {
       miss = "absent";
     } else if (compareDigest(cached.archive, cached.checksums, archiveName).matches) {
-      installEntry(cached.archive, src);
+      installEntry(cached.archive, src, cache.archive);
       return { source: "cache" };
     } else {
       miss = "mismatch";
@@ -146,7 +146,7 @@ export async function fetchTarballBinary(src: TarballBinarySource): Promise<Tarb
     }
   }
 
-  installEntry(archive, src);
+  installEntry(archive, src, src.url);
   if (cache !== undefined && checksums !== undefined) writeCachedPair(cache, archive, checksums, src.label);
   return { source: "network", cache: miss };
 }
@@ -165,12 +165,14 @@ function compareDigest(
 }
 
 // Extract the entry from verified archive bytes and write it executable.
-function installEntry(archive: Uint8Array, src: TarballBinarySource): void {
+// `origin` is where the bytes came from (the URL, or the cached file), so an
+// archive without the entry is reported against the copy that lacked it.
+function installEntry(archive: Uint8Array, src: TarballBinarySource, origin: string): void {
   const tarBytes = gunzipSync(archive);
   const binary = extractTarEntry(tarBytes, src.entryName);
   if (binary === null) {
-    throw new CliExitError(`${src.entryName} not found in the downloaded ${src.label} archive`, ExitCode.General, [
-      `archive: ${src.url}`,
+    throw new CliExitError(`${src.entryName} not found in the ${src.label} archive`, ExitCode.General, [
+      `archive: ${origin}`,
     ]);
   }
 

@@ -333,6 +333,66 @@ describe("downloadTemporalCli with a cache directory", () => {
     expect(readFileSync(join(cacheDir, `${linuxArm}.${TEMPORAL_CHECKSUMS_FILE}`), "utf8")).toBe(checksums);
   });
 
+  it("counts an archive cached without its checksums.txt as absent", async () => {
+    const { binPath, cacheDir } = dirs();
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(join(cacheDir, linuxArm), arm);
+
+    const result = await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", cacheDir, fetchImpl: good });
+
+    expect(result).toEqual({ source: "network", cache: "absent" });
+    expect(readFileSync(join(cacheDir, `${linuxArm}.${TEMPORAL_CHECKSUMS_FILE}`), "utf8")).toBe(checksums);
+  });
+
+  it("fails, naming the directory, when a cached pair cannot be read, and sends no request", async () => {
+    const { binPath, cacheDir } = dirs();
+    mkdirSync(join(cacheDir, linuxArm), { recursive: true });
+    writeFileSync(join(cacheDir, `${linuxArm}.${TEMPORAL_CHECKSUMS_FILE}`), checksums);
+    const host = hostDown();
+
+    const err: unknown = await downloadTemporalCli({
+      version: "1.5.1",
+      binPath,
+      platform: "linux",
+      arch: "arm64",
+      cacheDir,
+      fetchImpl: host.fetchImpl,
+    }).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+
+    expect(err).toBeInstanceOf(CliExitError);
+    const exit = err as CliExitError;
+    expect(exit.message).toBe("could not read the cached Temporal CLI");
+    expect(exit.hints?.[0]).toBe(`path:  ${cacheDir}`);
+    expect(host.calls()).toBe(0);
+  });
+
+  it("reports a cached archive without the binary against the cached file", async () => {
+    const { binPath, cacheDir } = dirs();
+    const wrong = Buffer.from(gzipSync(new Uint8Array(makeTar("not-temporal", Buffer.from("x")))));
+    seed(cacheDir, linuxArm, wrong, `${sha256(wrong)}  ${linuxArm}\n`);
+    const host = hostDown();
+
+    const err: unknown = await downloadTemporalCli({
+      version: "1.5.1",
+      binPath,
+      platform: "linux",
+      arch: "arm64",
+      cacheDir,
+      fetchImpl: host.fetchImpl,
+    }).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+
+    expect(err).toBeInstanceOf(CliExitError);
+    const exit = err as CliExitError;
+    expect(exit.message).toBe("temporal not found in the Temporal CLI archive");
+    expect(exit.hints).toEqual([`archive: ${join(cacheDir, linuxArm)}`]);
+  });
+
   it("does not take another version's cached pair for this one", async () => {
     const { binPath, cacheDir } = dirs();
     const older = temporalArchiveName("1.5.0", "linux", "arm64");
