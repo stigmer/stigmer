@@ -19,7 +19,10 @@
  *   8. OTel spans (always, no-op when OTel not configured)
  *
  * Every middleware here either shapes the graph's tool surface or ADVISES
- * the model; none of them stops the run, except the execution budget, which
+ * the model. Advising has one channel, `advisory-message.ts`: a user-role
+ * message after the latest tool results of the next model request, never a
+ * system message and never written to the graph's state (stigmer/stigmer#1354).
+ * None of them stops the run, except the execution budget, which
  * is `max_tool_rounds`' own enforcement: it ends the turn as the adapter's
  * `tool_call_limit` outcome, the job LangGraph's recursion limit held until
  * #1113, so the runtime sees it as an outcome and never as a completion.

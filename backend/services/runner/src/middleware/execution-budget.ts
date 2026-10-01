@@ -17,23 +17,27 @@
  * Two advisory modes:
  *
  * Threshold mode (default, warningInterval=null):
- *   Fires a single SystemMessage at a percentage of the round budget
+ *   Fires a single advisory at a percentage of the round budget
  *   (`maxToolRounds`, or the unbounded advisory figure when unset).
  *
  * Periodic mode (warningInterval set):
- *   Fires a SystemMessage every N model calls with escalating urgency,
+ *   Fires an advisory every N model calls with escalating urgency,
  *   up to maxWarnings times. Sub-agent stacks use it, with no stop.
  *
- * Uses wrapModelCall (not afterModel) to safely prepend advisory
- * messages to the model's input, avoiding the AIMessage/ToolMessage
- * ordering violation that would occur if we injected between a
- * tool_use AIMessage and its corresponding ToolMessage, and so that the
- * count and the stop add no graph node of their own: a node per round is
- * exactly the cost that made the old super-step budget drift.
+ * Uses wrapModelCall (not afterModel) so the advisory rides the next model
+ * request alone, as a user-role message after the latest tool results
+ * (`advisory-message.ts` says why that is the one shape every provider
+ * accepts), and never enters the graph's state; and so that the count and
+ * the stop add no graph node of their own: a node per round is exactly the
+ * cost that made the old super-step budget drift. Until stigmer/stigmer#1354
+ * the advisory was a SystemMessage appended to the request, which Anthropic
+ * refuses anywhere but first: every Anthropic run that reached 80% of its
+ * budget failed instead of running to the limit.
  */
 
-import { AIMessage, SystemMessage } from "@langchain/core/messages";
+import { AIMessage } from "@langchain/core/messages";
 import type { StigmerMiddleware, ExecutionBudgetConfig } from "./types.js";
+import { withAdvisories } from "./advisory-message.js";
 import { ToolRoundLimitError, UNBOUNDED_ADVISORY_TOOL_ROUNDS } from "../shared/tool-rounds.js";
 
 const DEFAULT_WARNING_PCT = 80;
@@ -98,25 +102,22 @@ export function createExecutionBudgetMiddleware(
   let nextWarningRound = isPeriodic
     ? warningInterval!
     : computeWarningRound(roundBudget, warningPct);
-  let pendingAdvisory: SystemMessage | null = null;
+  let pendingAdvisory: string | null = null;
 
-  function createThresholdWarning(): SystemMessage {
+  function createThresholdWarning(): string {
     const remaining = Math.max(roundBudget - toolRoundCount, 0);
-    return new SystemMessage({
-      content:
-        `You are approaching the tool-round limit for this message ` +
-        `(${toolRoundCount} of ${roundBudget} tool rounds used, ${remaining} remaining). ` +
-        `Prioritize completing your current task. Summarize results ` +
-        `and any remaining work so the user can continue in the next message.`,
-    });
+    return (
+      `You are approaching the tool-round limit for this message ` +
+      `(${toolRoundCount} of ${roundBudget} tool rounds used, ${remaining} remaining). ` +
+      `Prioritize completing your current task. Summarize results ` +
+      `and any remaining work so the user can continue in the next message.`
+    );
   }
 
-  function createPeriodicWarning(): SystemMessage {
+  function createPeriodicWarning(): string {
     const idx = Math.min(warningCount, PERIODIC_MESSAGES.length) - 1;
     const template = PERIODIC_MESSAGES[Math.max(idx, 0)];
-    return new SystemMessage({
-      content: template.replace("{rounds}", String(modelRoundCount)),
-    });
+    return template.replace("{rounds}", String(modelRoundCount));
   }
 
   function evaluateBudget(): void {
@@ -166,16 +167,10 @@ export function createExecutionBudgetMiddleware(
         throw new ToolRoundLimitError(maxToolRounds);
       }
 
-      let effectiveRequest = request;
+      const advisories = pendingAdvisory !== null ? [pendingAdvisory] : [];
+      pendingAdvisory = null;
 
-      if (pendingAdvisory !== null) {
-        const advisory = pendingAdvisory;
-        pendingAdvisory = null;
-        const messages = [...(request.messages as unknown[]), advisory];
-        effectiveRequest = { ...request, messages };
-      }
-
-      const response = await handler(effectiveRequest);
+      const response = await handler(withAdvisories(request, advisories));
 
       modelRoundCount++;
       if (isToolRound(response)) toolRoundCount++;
