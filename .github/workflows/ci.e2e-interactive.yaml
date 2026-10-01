@@ -12,7 +12,7 @@
 # The e2e-approval job (below) runs the HITL approval projects the same way —
 # added by stigmer/stigmer#754 after the SAME rot pattern hit them (they were
 # Makefile-only and silently invalidated by the apply-then-review change).
-# The e2e-console-login job runs the OIDC sign-in, and the e2e-functional job
+# The e2e-console-login job runs the OIDC sign-in, and the e2e-functional jobs
 # the functional tier: the console's journeys over data each spec seeds.
 #
 # Distinct from ci.e2e.yaml, which smoke-tests the DEPLOYED console after
@@ -55,13 +55,23 @@ env:
   STIGMER_TEST_GATE: "1"
 
 jobs:
+  # Two shards (`--shard=<index>/2`): each boots its own stack, mock proxy
+  # included, on its own runner, and every spec enqueues the canned turns it
+  # needs before it acts, so no spec depends on another's. The whole suite
+  # runs for about 5.5 minutes after about 3 minutes of builds.
+  # scripts/ci-shards.test.mjs holds the shard matrix to the indices 1 and 2.
   e2e-interactive:
-    name: Interactive E2E (full stack)
+    name: Interactive E2E (full stack, ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     # The Playwright config has no globalTimeout, so this is the only
-    # wall-clock cap. Measured: ~2.2 min for the suite once built; the
-    # builds (two npm trees + Chromium) dominate.
+    # wall-clock cap. Measured on hosted runners: 5.5 to 5.7 min for the
+    # whole suite once built, after about 3 min of builds (two npm trees +
+    # Chromium).
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -118,13 +128,14 @@ jobs:
         working-directory: test/e2e
         env:
           STIGMER_E2E_MOCK_LLM: "1"
-        run: npx playwright test --project=interactive
+        run: |
+          npx playwright test --project=interactive --shard=${{ matrix.shard }}/2
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e-interactive-test-results
+          name: e2e-interactive-${{ matrix.shard }}-test-results
           path: test/e2e/test-results/
           retention-days: 30
 
@@ -132,7 +143,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e-interactive-playwright-report
+          name: e2e-interactive-${{ matrix.shard }}-playwright-report
           path: test/e2e/playwright-report/
           retention-days: 30
 
@@ -290,20 +301,29 @@ jobs:
   # over data each spec seeds through the fixtures, asserted unconditionally,
   # against the full stack global-setup boots. Before this job it ran nowhere
   # automatically (`make test-e2e` only), the rot pattern this file's header
-  # records. Its own job, not a project on the interactive step, for the
+  # records. Its own jobs, not a project on the interactive step, for the
   # approval job's reason (the suites fail and re-run independently), and
-  # because it runs WITHOUT the mock LLM: that is the shape the tier was
-  # proven in, and no functional spec calls a model. Two serial invocations,
-  # two stack shapes (one Playwright run boots exactly one stack):
-  #   1. the plain stack — every functional spec;
-  #   2. the OAuth MCP stack (`make test-e2e-oauth-mcp`) — the plugin
+  # because they run WITHOUT the mock LLM: that is the shape the tier was
+  # proven in, and no functional spec calls a model. Two stack shapes, each
+  # its own job (one Playwright run boots exactly one stack):
+  #   1. the plain stack, every functional spec, as two shards
+  #      (`--shard=<index>/2`): the specs are independent (the config's
+  #      fullyParallel), a serial describe stays whole within one shard, and
+  #      each shard boots its own stack on its own runner;
+  #   2. the OAuth MCP stack (`make test-e2e-oauth-mcp`), the plugin
   #      journey's sign-in arm, which skips by name on the plain stack: the
   #      conformance harness's OAuth MCP and login servers as one process,
   #      the server's OAuth redirect at the console's callback page.
+  # Both stacks in one job, one after the other, would run 9 to 11 minutes.
+  # scripts/ci-shards.test.mjs holds the shard matrix to the indices 1 and 2.
   e2e-functional:
-    name: Functional E2E (seeded console journeys, two stack shapes)
+    name: Functional E2E (plain stack, ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -342,7 +362,64 @@ jobs:
 
       - name: Run functional suite (plain stack)
         working-directory: test/e2e
-        run: npx playwright test --project=functional
+        run: |
+          npx playwright test --project=functional --shard=${{ matrix.shard }}/2
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-functional-${{ matrix.shard }}-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-functional-${{ matrix.shard }}-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30
+
+  e2e-functional-oauth:
+    name: Functional E2E (OAuth MCP stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Install Temporal CLI
+        run: |
+          make install-temporal-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/temporal" --version
+
+      - name: Build stigmer-server
+        run: make build-server
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install Playwright browsers
+        working-directory: test/e2e
+        run: npx playwright install --with-deps chromium
 
       - name: Run the plugin journey's sign-in arm (OAuth MCP stack)
         working-directory: test/e2e
@@ -354,7 +431,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e-functional-test-results
+          name: e2e-functional-oauth-test-results
           path: test/e2e/test-results/
           retention-days: 30
 
@@ -362,6 +439,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e-functional-playwright-report
+          name: e2e-functional-oauth-playwright-report
           path: test/e2e/playwright-report/
           retention-days: 30

@@ -18,6 +18,14 @@
 # scripts/verify-boot.mjs runs the full lifecycle (bind → listening →
 # SIGTERM → exit 0) the way the CLI daemon will.
 #
+# Two jobs carry it, in parallel, so neither waits on the other. `Server Gate`
+# builds and proves the artifacts (the console export, dist, the slim bundle,
+# the consumer install, the Docker image), which the vitest suite never reads;
+# `Server Tests` runs that suite as two shards (`--shard=<index>/2`) against
+# its own Postgres. One job doing both, one after the other, would run 9 to
+# 12 minutes. scripts/ci-shards.test.mjs holds the shard matrix to
+# the indices 1 and 2, so no shard can be dropped without the suite failing.
+#
 # When it runs (its list in scripts/ci-lanes.mjs): the service's own tree, every package it links with `file:`
 # (scripts/lane-triggers.test.mjs fails when one is missing), the tooling that
 # builds them, the Makefile (test-server lives there), and this file.
@@ -51,10 +59,12 @@ jobs:
   server:
     name: Server Gate
     runs-on: ubuntu-latest
-    # The Postgres driver's unit/contract tests are gated on
-    # TEST_DATABASE_URL (visible skips without it) — this container makes
-    # CI the place they ALWAYS run for real (Phase-2 P2; the pinned major
-    # is the one the compose stack ships, DD-011/DD-013).
+    # About 3x the job's time: without it a hung step would hold a runner for
+    # GitHub's six-hour default.
+    timeout-minutes: 20
+    # The slim artifact's Postgres boot check and the image's Postgres smoke
+    # run against this container; the pinned major is the one the compose
+    # stack ships.
     services:
       postgres:
         image: postgres:16
@@ -204,10 +214,66 @@ jobs:
             --image=stigmer-server:smoke-local \
             --database-url=postgres://postgres:postgres@host.docker.internal:5432/postgres
 
+  # The vitest suite, in two shards. It needs only the installed trees and the
+  # linked libraries' dists: no suite file reads the console export, dist or
+  # the slim bundle (the console tests use fixture exports), so it does not
+  # wait for the artifact chain above.
+  server-tests:
+    name: Server Tests (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    # The Postgres driver's unit/contract tests are gated on
+    # TEST_DATABASE_URL (visible skips without it) — this container makes
+    # CI the place they ALWAYS run for real; the pinned major is the one the
+    # compose stack ships. Each test makes its own throwaway database, so the
+    # shards share nothing.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build the libraries the server links
+        run: npm run build:runner-deps
+
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      # `make test-server` is these same prerequisites and then `npm test`;
+      # it is called directly here so the shard reaches vitest.
       - name: Run the vitest suite
+        working-directory: backend/services/stigmer-server
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
-        run: make test-server
+        run: npm test -- --shard=${{ matrix.shard }}/2
 
   # linux-arm64 boot smoke (owner ruling at go-server-retirement, D4 #25):
   # when the Go server retired, arm64 Linux lost its only fallback, so this

@@ -8,6 +8,15 @@
 # This is intentionally a SEPARATE job from ci.conformance.yaml so the
 # dependency-light CRUD signal stays fast (DD-002). It needs the `temporal`
 # CLI and a runner build that the CRUD job does not.
+#
+# Each target runs as three shards (`--shard=<index>/3`). The suite's files
+# run one at a time, because each boots its own Temporal, server and runner
+# (vitest.execution.config.ts), so a single job runs for 9 to 13 minutes and
+# holds the whole gate to that. vitest splits the files by a hash of their path, in
+# equal counts; three is where the split stops paying, since the file that
+# exercises provider errors (about two minutes alone) lands in one shard
+# whatever the count. scripts/ci-shards.test.mjs holds every shard matrix to
+# the indices 1 to 3, so no shard can be dropped without the suite failing.
 # =============================================================================
 
 name: ci.conformance-execution
@@ -29,8 +38,15 @@ env:
 
 jobs:
   conformance-execution-local:
-    name: Conformance Execution (local-execution)
+    name: Conformance Execution (local-execution, ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
+    # About 3x a shard's time: without it a hung shard would hold a runner for
+    # GitHub's six-hour default.
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -83,15 +99,16 @@ jobs:
       # Typecheck the runner's tests too (the production build above excludes
       # them via tsconfig.build.json). Cheap (~5s), pure, and the only pre-merge
       # gate that keeps the runner's test types from drifting out of sync with
-      # the contracts they guard.
+      # the contracts they guard. It judges no suite file, so one shard runs it.
       - name: Typecheck runner (incl. tests)
+        if: matrix.shard == 1
         working-directory: backend/services/runner
         run: npm run typecheck
 
       - name: Run execution conformance suite (local-execution)
         env:
           CONFORMANCE_TARGET: local-execution
-        run: npm run test:execution -w @stigmer/conformance
+        run: npm run test:execution -w @stigmer/conformance -- --shard=${{ matrix.shard }}/3
 
   # The same execution roster on the Postgres Store driver (Phase-2 P2,
   # DD-011): the execution suites hammer exactly the surfaces where a
@@ -100,8 +117,13 @@ jobs:
   # dedupe under real concurrency. A Postgres gate that skipped them would
   # certify the driver everywhere except where it is most at risk.
   conformance-execution-local-postgres:
-    name: Conformance Execution (local-postgres-execution)
+    name: Conformance Execution (local-postgres-execution, ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:16
@@ -153,4 +175,4 @@ jobs:
         env:
           CONFORMANCE_TARGET: local-postgres-execution
           CONFORMANCE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
-        run: npm run test:execution -w @stigmer/conformance
+        run: npm run test:execution -w @stigmer/conformance -- --shard=${{ matrix.shard }}/3
