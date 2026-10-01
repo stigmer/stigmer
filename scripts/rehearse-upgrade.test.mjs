@@ -1,8 +1,10 @@
 // Pins the upgrade rehearsal's pure decisions: which release an upgrade
 // starts from (the newest stable release below the target, never a
 // prerelease, never npm's `latest` tag, and a loud refusal when there is
-// none); what the command line accepts (only forward upgrades, only X.Y.Z
-// releases, one of the four artifacts); which server version the upgraded
+// none; a prerelease target starts below its X.Y.Z); what the command line
+// accepts (only forward upgrades, a release or a prerelease as the target,
+// only a stable base, one of the four artifacts, a packaged chart only for a
+// published Helm target); which server version the upgraded
 // install must report (the release's own, or this checkout's from-source
 // version); and when the running images are not the release's. The installs
 // themselves are exercised by running the rehearsal (`make rehearse-upgrade
@@ -17,6 +19,7 @@ import {
   imageMismatches,
   parseRehearsalArgs,
   pickFromVersion,
+  versionCore,
 } from "./rehearse-upgrade.mjs";
 import { sourceBuildVersion } from "./lib/source-version.mjs";
 
@@ -41,6 +44,13 @@ test("no release below the target is refused loudly", () => {
   assert.throws(() => pickFromVersion(PUBLISHED, { kind: "published", version: "3.9.9" }), /no published release below 3\.9\.9/);
 });
 
+test("a prerelease target upgrades from the newest stable release below its X.Y.Z", () => {
+  assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.42.0-rc.1" }), "3.41.0");
+  assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.41.0-rc.2" }), "3.40.1");
+  assert.equal(versionCore("3.42.0-rc.1"), "3.42.0");
+  assert.equal(versionCore("3.42.0"), "3.42.0");
+});
+
 test("compareVersions orders numerically", () => {
   assert.ok(compareVersions("3.10.0", "3.9.9") > 0);
   assert.equal(compareVersions("3.41.0", "3.41.0"), 0);
@@ -51,14 +61,37 @@ test("the command line: the artifact, an optional base, the target, and a leadin
     artifact: "compose",
     from: "",
     to: { kind: "build" },
+    chart: undefined,
     keep: false,
   });
   assert.deepEqual(parseRehearsalArgs(["--artifact=helm", "--from=v3.40.1", "--to=v3.41.0", "--keep"]), {
     artifact: "helm",
     from: "3.40.1",
     to: { kind: "published", version: "3.41.0" },
+    chart: undefined,
     keep: true,
   });
+});
+
+test("the command line: a prerelease target, and the release's packaged chart for a published Helm target", () => {
+  assert.deepEqual(parseRehearsalArgs(["--artifact=compose", "--to=v3.42.0-rc.1"]).to, { kind: "published", version: "3.42.0-rc.1" });
+  assert.equal(
+    parseRehearsalArgs(["--artifact=helm", "--to=3.42.0", "--chart=dist-chart/stigmer-3.42.0.tgz"]).chart,
+    "dist-chart/stigmer-3.42.0.tgz",
+  );
+});
+
+test("the command line refuses a prerelease base, a base at the target's X.Y.Z, a malformed prerelease and a misplaced chart", () => {
+  assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--from=3.41.0-rc.1"]), /--from must be a release X\.Y\.Z/);
+  assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--from=3.42.0", "--to=3.42.0-rc.1"]), /an upgrade only moves forward/);
+  assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--to=3.42.0-"]), /--to must be build or a release/);
+  assert.throws(() => parseRehearsalArgs(["--artifact=cli", "--to=3.42.0-rc.1!"]), /--to must be build or a release/);
+  for (const argv of [
+    ["--artifact=compose", "--to=3.42.0", "--chart=c.tgz"],
+    ["--artifact=helm", "--chart=c.tgz"],
+  ]) {
+    assert.throws(() => parseRehearsalArgs(argv), /--chart applies only to --artifact=helm with a published --to/, argv.join(" "));
+  }
 });
 
 test("the command line refuses an unknown artifact, a non-release version, a backward move and a stray flag", () => {

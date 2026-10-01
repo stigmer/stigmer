@@ -567,7 +567,7 @@ jobs:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
   promote-server-image-latest:
-    needs: [determine-version, smoke-server-image-amd64, smoke-server-image-arm64]
+    needs: [determine-version, smoke-server-image-amd64, smoke-server-image-arm64, rehearse-compose]
     # Stable only: a prerelease (any '-') never becomes `latest` — the npm
     # `next`-tag logic applied to the image channel (DD-014: latest on
     # stable). imagetools create re-points the manifest list without
@@ -783,8 +783,47 @@ jobs:
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
+  rehearse-compose:
+    # The upgrade a compose user makes (scripts/rehearse-upgrade.mjs): the
+    # newest stable release below this one, its state recorded, then the
+    # guide's upgrade to the pushed tags and every record read back. Both
+    # images' `latest` wait for it. amd64 only: the per-arch smokes prove
+    # each image runs; what survives an upgrade does not depend on the arch.
+    needs: [determine-version, publish-server-image, publish-runner-image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rehearse the upgrade from the last release to the pushed version
+        run: |
+          node scripts/rehearse-upgrade.mjs --artifact=compose \
+            --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
   promote-runner-image-latest:
-    needs: [determine-version, smoke-compose-amd64, smoke-compose-arm64]
+    needs: [determine-version, smoke-compose-amd64, smoke-compose-arm64, rehearse-compose]
     # Stable only — same channel policy as the server image, with a
     # stronger proof: `latest` moves only after the full compose stack ran
     # end-to-end on both arches from the pushed tags.
@@ -1049,8 +1088,44 @@ jobs:
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
+  rehearse-all-in-one:
+    # The all-in-one user's upgrade (a new tag on the same volume), from the
+    # newest stable release; `latest` waits for it.
+    needs: [determine-version, publish-all-in-one-image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rehearse the upgrade from the last release to the pushed version
+        run: |
+          node scripts/rehearse-upgrade.mjs --artifact=all-in-one \
+            --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
   promote-all-in-one-latest:
-    needs: [determine-version, smoke-all-in-one-amd64, smoke-all-in-one-arm64]
+    needs: [determine-version, smoke-all-in-one-amd64, smoke-all-in-one-arm64, rehearse-all-in-one]
     # Stable only — the server and runner images' channel policy: `latest`
     # moves only after the pushed tag ran the full smoke on both arches.
     if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
@@ -1240,8 +1315,60 @@ jobs:
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
+  rehearse-helm:
+    # `helm upgrade` from the newest stable release's published chart to the
+    # packaged chart, before it is pushed: the push waits for it, prereleases
+    # included, since the chart publishes on every release.
+    needs: [determine-version, package-helm-chart]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download the packaged chart
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: helm-chart
+          path: dist-chart
+
+      - name: Install helm and kind (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-v3.16.2-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+
+      - name: Rehearse the upgrade from the last release to the pushed version
+        run: |
+          node scripts/rehearse-upgrade.mjs --artifact=helm \
+            --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}" \
+            --chart="$(ls dist-chart/stigmer-*.tgz)"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
   publish-helm-chart:
-    needs: [determine-version, smoke-helm-amd64, smoke-helm-arm64]
+    needs: [determine-version, smoke-helm-amd64, smoke-helm-arm64, rehearse-helm]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -1272,5 +1399,63 @@ jobs:
           helm push "$(ls dist-chart/stigmer-*.tgz)" "oci://ghcr.io/${{ github.repository_owner }}/charts"
           helm show chart "oci://ghcr.io/${{ github.repository_owner }}/charts/stigmer" \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
+  smoke-cli-published:
+    # The CLI after npm has published it. npm's dist-tag moved with the
+    # publish, so these gate nothing: a red one fails the release run, and
+    # the next release train reads it. The install waits until npm serves
+    # the version (scripts/lib/install-cli.mjs).
+    needs: [determine-version, publish, publish-runner, publish-server-slim]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
+      - name: stigmer up from the published CLI, end to end
+        run: |
+          node scripts/smoke-cli-cutover.mjs --published --version="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
+  rehearse-cli:
+    # The CLI after npm has published it. npm's dist-tag moved with the
+    # publish, so these gate nothing: a red one fails the release run, and
+    # the next release train reads it. The install waits until npm serves
+    # the version (scripts/lib/install-cli.mjs).
+    needs: [determine-version, publish, publish-runner, publish-server-slim]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
+      - name: Rehearse the CLI's upgrade from the last release to the pushed version
+        run: |
+          node scripts/rehearse-upgrade.mjs --artifact=cli --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}

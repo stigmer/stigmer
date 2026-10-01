@@ -1,0 +1,86 @@
+# =============================================================================
+# Upgrade Rehearsal — every install moved from the last release to this change
+# =============================================================================
+# For each packaged install, scripts/rehearse-upgrade.mjs installs the newest
+# stable release the way its guide says, records state (a workflow run and an
+# agent run answered by the fake model), upgrades to this change built from
+# source by the guide's own procedure, then proves every recorded resource
+# reads back unchanged and that the old agent and a fresh one still reach
+# the model's reply. A change that loses what the last release stored, or
+# breaks the documented upgrade, turns this lane red before it merges.
+#
+# One job per install, each on its own machine: compose, Helm and the CLI
+# serve the product's port 7234, so two of them cannot share a host.
+#
+# The release rehearses the pushed version the same way
+# (release.npm-libs.yaml) before `:latest` moves.
+#
+# When it runs (its list in scripts/ci-lanes.mjs): the store, deploy/, the
+# compose file, the CLI's runtime acquisition, the rehearsal and its lib.
+# =============================================================================
+
+name: ci.upgrade-rehearsal
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Pinned tool versions, the helm-chart lane's: a floating tool is a flaky gate.
+  HELM_VERSION: v3.16.2
+  KIND_VERSION: v0.24.0
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  rehearse:
+    name: Rehearse ${{ matrix.artifact }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # Each install's verdict is its own: one red rehearsal must not cancel
+      # the others' evidence.
+      fail-fast: false
+      matrix:
+        artifact: [compose, all-in-one, cli, helm]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Install helm and kind (pinned)
+        if: matrix.artifact == 'helm'
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
+          helm version --short && kind version && kubectl version --client
+
+      # make rehearse-upgrade-<artifact> builds and stamps this checkout, then
+      # runs the rehearsal from the newest stable release.
+      - name: Rehearse the upgrade from the last release
+        env:
+          ARTIFACT: ${{ matrix.artifact }}
+        run: make rehearse-upgrade ARTIFACT="${ARTIFACT}"

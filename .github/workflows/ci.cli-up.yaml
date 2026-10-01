@@ -1,0 +1,66 @@
+# =============================================================================
+# CLI Up — `stigmer up` end to end, from source
+# =============================================================================
+# Proves the CLI's local edition the way a user meets it
+# (scripts/smoke-cli-cutover.mjs): `stigmer up` in an isolated home launches
+# the packaged slim server, then apply, run and stream a workflow, an agent
+# run to the fake model's reply (scripts/lib/fake-model.mjs, configured the
+# way a user exports ANTHROPIC_BASE_URL), two approval gates decided from the
+# CLI, the bundled console, and `stigmer down`. It is the only run of the CLI
+# binary's own commands against a server it started.
+#
+# No Temporal install step: `up` downloads the Temporal CLI as a user's first
+# `up` does, so the lane proves that download too.
+#
+# The published path (`--published --version`) is re-proven by the release
+# (release.npm-libs.yaml), against the CLI it just published.
+#
+# When it runs (its list in scripts/ci-lanes.mjs): the CLI's source, the
+# smoke and its lib, the slim bundlers and the runner's model address.
+# =============================================================================
+
+name: ci.cli-up
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  smoke:
+    name: stigmer up (from source)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # make smoke-cli-cutover = build-runner + build-server + build-web +
+      # the slim bundle, then the smoke. One entry point, identical to what a
+      # contributor runs locally.
+      - name: Build from source and run the CLI smoke
+        run: make smoke-cli-cutover

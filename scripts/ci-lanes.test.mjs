@@ -60,6 +60,24 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
   assert.deepEqual(selected([]), ["ts-workspace"], "an empty diff still runs the lane that decides inside");
 });
 
+test("the runner's model address runs every install journey beside the runner's own lanes", () => {
+  const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-execution", "e2e-interactive", "helm-chart", "runner", "ts-workspace"];
+  assert.deepEqual(selected(["backend/services/runner/src/shared/model-client.ts"]), installs);
+  assert.deepEqual(selected(["backend/services/runner/src/shared/llm-backend.ts"]), installs);
+});
+
+test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer up`", () => {
+  assert.deepEqual(selected(["backend/services/stigmer-server/src/store/sqlite/migrations.ts"]), [
+    "conformance",
+    "conformance-execution",
+    "e2e-interactive",
+    "stigmer-server",
+    "ts-workspace",
+    "upgrade-rehearsal",
+  ]);
+  assert.deepEqual(selected(["client-apps/cli/src/commands/run.ts"]), ["cli-up", "docs", "ts-workspace"]);
+});
+
 test("a lane's own workflow file runs that lane, and the workflow audit", () => {
   // ci.workflows.yaml audits every file under .github, so it runs beside the lane.
   assert.deepEqual(selected([".github/workflows/ci.crate.yaml"]), ["crate", "ts-workspace", "workflows"]);

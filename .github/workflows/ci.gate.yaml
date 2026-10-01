@@ -61,6 +61,7 @@ jobs:
     outputs:
       all-in-one: ${{ steps.select.outputs.all-in-one }}
       authorization-model: ${{ steps.select.outputs.authorization-model }}
+      cli-up: ${{ steps.select.outputs.cli-up }}
       codegen: ${{ steps.select.outputs.codegen }}
       compose-stack: ${{ steps.select.outputs.compose-stack }}
       conformance: ${{ steps.select.outputs.conformance }}
@@ -77,6 +78,7 @@ jobs:
       runner: ${{ steps.select.outputs.runner }}
       stigmer-server: ${{ steps.select.outputs.stigmer-server }}
       ts-workspace: ${{ steps.select.outputs.ts-workspace }}
+      upgrade-rehearsal: ${{ steps.select.outputs.upgrade-rehearsal }}
       workflows: ${{ steps.select.outputs.workflows }}
     steps:
       # Full commit graph, no blobs: the selection diffs trees against the
@@ -106,6 +108,11 @@ jobs:
     needs: lanes
     if: needs.lanes.outputs.authorization-model == 'true'
     uses: ./.github/workflows/ci.authorization-model.yaml
+
+  cli-up:
+    needs: lanes
+    if: needs.lanes.outputs.cli-up == 'true'
+    uses: ./.github/workflows/ci.cli-up.yaml
 
   codegen:
     needs: lanes
@@ -187,6 +194,11 @@ jobs:
     if: needs.lanes.outputs.ts-workspace == 'true'
     uses: ./.github/workflows/ci.ts-workspace.yaml
 
+  upgrade-rehearsal:
+    needs: lanes
+    if: needs.lanes.outputs.upgrade-rehearsal == 'true'
+    uses: ./.github/workflows/ci.upgrade-rehearsal.yaml
+
   workflows:
     needs: lanes
     if: needs.lanes.outputs.workflows == 'true'
@@ -194,7 +206,7 @@ jobs:
 
   gate:
     name: Gate
-    needs: [lanes, all-in-one, authorization-model, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, workflows]
+    needs: [lanes, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows]
     if: always()
     runs-on: ubuntu-latest
     steps:

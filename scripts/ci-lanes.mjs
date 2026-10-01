@@ -72,6 +72,11 @@ export const LANES = {
       "client-apps/cli/src/commands/up.ts",
       "backend/services/runner/scripts/bundle-slim.mjs",
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
+      // The model address a self-hoster's runner reads (ANTHROPIC_BASE_URL):
+      // the install journeys are its only end-to-end proof. These two files,
+      // not the runner package, which would pull in the package's links.
+      "backend/services/runner/src/shared/model-client.ts",
+      "backend/services/runner/src/shared/llm-backend.ts",
       "Makefile",
       ".github/workflows/ci.all-in-one.yaml",
     ],
@@ -84,6 +89,26 @@ export const LANES = {
       "tools/codegen/package.json",
       "package-lock.json",
       ".github/workflows/ci.authorization-model.yaml",
+    ],
+  },
+  "ci.cli-up.yaml": {
+    // `stigmer up` end to end (scripts/smoke-cli-cutover.mjs): the only run
+    // of the CLI binary's own commands against a server it started, so the
+    // whole CLI source is in it, not only its runtime acquisition.
+    paths: [
+      "client-apps/cli/src/**",
+      "client-apps/cli/package.json",
+      "scripts/smoke-cli-cutover.mjs",
+      "scripts/lib/**",
+      // The published install's registry wait (scripts/lib/install-cli.mjs).
+      "scripts/publish-standalone.mjs",
+      "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/stigmer-server/scripts/bundle-slim.mjs",
+      // The runner's model address (ci.all-in-one says why these two).
+      "backend/services/runner/src/shared/model-client.ts",
+      "backend/services/runner/src/shared/llm-backend.ts",
+      "Makefile",
+      ".github/workflows/ci.cli-up.yaml",
     ],
   },
   "ci.codegen.yaml": {
@@ -117,6 +142,9 @@ export const LANES = {
       "scripts/publish-libs.mjs",
       "backend/services/runner/Dockerfile.sandbox",
       "backend/services/stigmer-server/Dockerfile",
+      // The runner's model address (ci.all-in-one says why these two).
+      "backend/services/runner/src/shared/model-client.ts",
+      "backend/services/runner/src/shared/llm-backend.ts",
       "Makefile",
       ".github/workflows/ci.compose-stack.yaml",
     ],
@@ -230,6 +258,9 @@ export const LANES = {
       // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
+      // The runner's model address (ci.all-in-one says why these two).
+      "backend/services/runner/src/shared/model-client.ts",
+      "backend/services/runner/src/shared/llm-backend.ts",
       "Makefile",
       ".github/workflows/ci.helm-chart.yaml",
     ],
@@ -308,6 +339,30 @@ export const LANES = {
   "ci.ts-workspace.yaml": {
     // turbo-affected.mjs chooses the packages inside the lane.
     always: true,
+  },
+  "ci.upgrade-rehearsal.yaml": {
+    // Each install moved from the newest release to this change by its
+    // guide's procedure (scripts/rehearse-upgrade.mjs): the changes that can
+    // break what the last release stored, or the way a user upgrades.
+    paths: [
+      // Both engines' migrations and the row code that reads what they hold:
+      // a changed read can lose the last release's rows as surely as a
+      // migration can.
+      "backend/services/stigmer-server/src/store/**",
+      "deploy/**",
+      "docker-compose.yml",
+      ".env.example",
+      // The CLI's runtime acquisition and `up`: how its upgrade happens.
+      "client-apps/cli/src/local/**",
+      "client-apps/cli/src/commands/up.ts",
+      "scripts/rehearse-upgrade.mjs",
+      "scripts/lib/**",
+      "scripts/publish-standalone.mjs",
+      "scripts/stage-all-in-one.mjs",
+      "scripts/stage-compose-runner-cli.mjs",
+      "Makefile",
+      ".github/workflows/ci.upgrade-rehearsal.yaml",
+    ],
   },
   "ci.workflows.yaml": {
     // zizmor audits everything under .github: the workflows, the composite

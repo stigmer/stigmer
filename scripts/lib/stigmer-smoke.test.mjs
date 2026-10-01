@@ -631,6 +631,17 @@ test("a refusal whose body is not a Connect error keeps its text as the message"
   assert.deepEqual(connectRefusal(502, "<html>bad gateway</html>"), { status: 502, code: "", message: "<html>bad gateway</html>" });
 });
 
+test("a JSON refusal with no string message keeps its code and takes its text as the message", () => {
+  const cases = [
+    ['{"code":"not_found"}', { status: 404, code: "not_found", message: '{"code":"not_found"}' }],
+    ['{"code":"internal","message":5}', { status: 404, code: "internal", message: '{"code":"internal","message":5}' }],
+    ["null", { status: 404, code: "", message: "null" }],
+    ['["not_found","gone"]', { status: 404, code: "", message: '["not_found","gone"]' }],
+    ['"Organization not found"', { status: 404, code: "", message: '"Organization not found"' }],
+  ];
+  for (const [body, want] of cases) assert.deepEqual(connectRefusal(404, body), want, body);
+});
+
 test("the missing-organization probe creates an agent in `stigmer` and wants that organization named", async () => {
   const lane = await serveAnswer(404, { code: "not_found", message: "Organization not found: stigmer" });
   try {
@@ -778,13 +789,17 @@ test("a workflow execution's creator is read from its audit, and its absence ref
   }
 });
 
+// The CLI's own line form, `[HH:MM:SS] <glyph> <text>`
+// (client-apps/cli/src/resources/stream/workflow-render-plaintext.ts): an
+// event with no glyph of its own prints two spaces in the glyph's place.
 const TIMED_OUT_LOGS = [
-  "10:00:00 ▶ execution started",
-  "10:00:00 → task started: review",
-  "10:00:00 ⏳ approval requested: review — Approve?",
-  "10:00:20 ⏱ approval resolved: review — timed out, no decision",
-  "10:00:20 ✗ task failed: review — human_input timed out",
-  "10:00:20 ✗ execution failed: human_input timed out",
+  "[10:00:00] ▶ execution started",
+  "[10:00:00] → task started: review",
+  "[10:00:00] ⏳ approval requested: review — Approve?",
+  "[10:00:01]    event: WORKFLOW_EVENT_TYPE_SIGNAL_RECEIVED",
+  "[10:00:20] ⏱ approval resolved: review — timed out, no decision",
+  "[10:00:20] ✗ task failed: review — human_input timed out",
+  "[10:00:20] ✗ execution failed: human_input timed out",
 ].join("\n");
 
 test("a timed-out gate's logs pass when it decided nothing before its task failed", () => {
@@ -797,22 +812,22 @@ test("a timed-out gate's logs fail without the no-decision line, or with the fai
     /no line reads "approval resolved: review — timed out, no decision"/,
   );
   const reordered = TIMED_OUT_LOGS.split("\n");
-  [reordered[3], reordered[4]] = [reordered[4], reordered[3]];
+  [reordered[4], reordered[5]] = [reordered[5], reordered[4]];
   assert.match(gateLogProblem(reordered.join("\n"), "review", "timed out"), /printed before its gate resolved/);
 });
 
 test("an approved gate's logs must name its outcome and its reviewer", () => {
-  const logs = "10:00:05 ✓ approval resolved: review — approve by acc_local";
+  const logs = "[10:00:05] ✓ approval resolved: review — approve by acc_local";
   assert.equal(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_local" }), undefined);
   assert.match(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_someone_else" }), /no line reads/);
-  assert.match(gateLogProblem("10:00:05 ✓ approval resolved: review — approve", "review", { outcome: "approve", by: "acc_local" }), /no line reads/);
+  assert.match(gateLogProblem("[10:00:05] ✓ approval resolved: review — approve", "review", { outcome: "approve", by: "acc_local" }), /no line reads/);
   // A longer line is another resolution: an auto-resolved gate, or another reviewer whose id starts the same.
   assert.match(
-    gateLogProblem("10:00:05 ✓ approval resolved: review — approve by acc_local (timeout)", "review", { outcome: "approve", by: "acc_local" }),
+    gateLogProblem("[10:00:05] ✓ approval resolved: review — approve by acc_local (timeout)", "review", { outcome: "approve", by: "acc_local" }),
     /no line reads/,
   );
   assert.match(
-    gateLogProblem("10:00:05 ✓ approval resolved: review — approve by acc_local_other", "review", { outcome: "approve", by: "acc_local" }),
+    gateLogProblem("[10:00:05] ✓ approval resolved: review — approve by acc_local_other", "review", { outcome: "approve", by: "acc_local" }),
     /no line reads/,
   );
 });

@@ -24,9 +24,16 @@
  * running daemon keeps the server it started, and `up` refuses while one
  * runs, so the installer alone does not move a running stack (#1562).
  *
+ * A published install first waits until npm serves the release's CLI and
+ * the two runtimes its `up` acquires: in the release, this runs minutes
+ * after the publish, and a version npm does not serve yet is lag, not a
+ * broken release.
+ *
  * Plain node, no dependencies, like its neighbours. Commands run
  * asynchronously on purpose: a model the caller serves from its own event
- * loop must keep answering while a CLI command waits on it.
+ * loop must keep answering while a CLI command waits on it. A command the
+ * caller does not await at once (`cliChild`) comes back with a `kill`, so a
+ * caller that fails while it runs can end it rather than leave it running.
  */
 
 import { execFileSync, spawn, spawnSync } from "node:child_process";
@@ -35,6 +42,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { configuredRegistry, installGap, waitForRegistry } from "../publish-standalone.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const cliEntry = join(repoRoot, "client-apps", "cli", "src", "cli", "stigmer.ts");
@@ -50,6 +58,8 @@ export const CLI_SERVER_PORT = 7234;
 const UP_TIMEOUT_MS = 300_000; // first `up` may download the Temporal CLI and the runtimes
 // The published install downloads Node and the CLI from npm.
 const INSTALL_TIMEOUT_MS = 300_000;
+/** What a published `stigmer up` installs at its version: the CLI, then the runtimes it acquires. */
+const PUBLISHED_PACKAGES = ["@stigmer/cli", "@stigmer/server-slim", "@stigmer/runner-slim"];
 
 /** Why this checkout cannot run as a `stigmer` yet, or "" when it can. */
 export function sourceCliMissing() {
@@ -79,8 +89,13 @@ export function createCliInstall({ model, log }) {
   /** The command a user runs as `stigmer`: the source CLI, or the installed launcher. */
   let command = [];
 
-  const install = (release) => {
+  const install = async (release) => {
     if (release.kind === "published") {
+      const registry = configuredRegistry();
+      await waitForRegistry(PUBLISHED_PACKAGES, release.version, {
+        gapOf: (name, version) => installGap(name, version, { registry }),
+        log,
+      });
       const binDir = join(home, "bin");
       log(`install.sh STIGMER_VERSION=${release.version}`);
       const result = spawnSync("sh", [installScript], {
@@ -123,7 +138,7 @@ export function createCliInstall({ model, log }) {
     async cli(args, { timeoutMs = 60_000, allowFailure = false } = {}) {
       const label = `stigmer ${args.join(" ")}`;
       log(label);
-      const result = await runAsync(command, args, env, timeoutMs);
+      const result = await spawnCommand(command, args, env, timeoutMs).done;
       if (allowFailure) return result;
       if (result.error) throw new Error(`${label} failed: ${result.error.message}`);
       if (result.status !== 0) {
@@ -131,15 +146,24 @@ export function createCliInstall({ model, log }) {
       }
       return result;
     },
+    /**
+     * Start `stigmer <args>` and return at once with `{ done, kill }`: `done`
+     * resolves `{ status, stdout, stderr, error }` at its exit and never
+     * rejects; `kill()` ends its whole process group.
+     */
+    cliChild(args, { timeoutMs = 60_000 } = {}) {
+      log(`stigmer ${args.join(" ")} (running)`);
+      return spawnCommand(command, args, env, timeoutMs);
+    },
     /** Install `release`, then `stigmer up`. */
     async start(release) {
-      install(release);
+      await install(release);
       await stack.cli(["up", "--no-web"], { timeoutMs: UP_TIMEOUT_MS });
     },
     /** `stigmer down`, the new CLI, `stigmer up` on the same home: the whole of a CLI upgrade. */
     async upgrade(release) {
       await stack.cli(["down"]);
-      install(release);
+      await install(release);
       await stack.cli(["up", "--no-web"], { timeoutMs: UP_TIMEOUT_MS });
     },
     /** The running server's command line, from the daemon's own PID file. */
@@ -194,33 +218,40 @@ function seedTemporal(home) {
 }
 
 /**
- * One command to its exit, in its own process group so a timeout kills the
- * whole tree: tsx runs the CLI in a child node process, and a killed tsx
- * alone leaves that child holding the output pipes open.
+ * One command as `{ done, kill }`, in its own process group so a timeout or
+ * a `kill()` ends the whole tree: tsx runs the CLI in a child node process,
+ * and a killed tsx alone leaves that child holding the output pipes open.
+ * `done` resolves at the exit and never rejects.
  */
-function runAsync([bin, ...prefix], args, env, timeoutMs) {
-  return new Promise((resolve) => {
-    const child = spawn(bin, [...prefix, ...args], { env, stdio: ["ignore", "pipe", "pipe"], detached: true });
+function spawnCommand([bin, ...prefix], args, env, timeoutMs) {
+  const child = spawn(bin, [...prefix, ...args], { env, stdio: ["ignore", "pipe", "pipe"], detached: true });
+  let ended = false;
+  let endedBy;
+  const killGroup = (reason) => {
+    if (ended || endedBy !== undefined) return;
+    endedBy = reason;
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      child.kill("SIGKILL");
+    }
+  };
+  const done = new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
-    let timedOut = false;
     child.stdout.setEncoding("utf8").on("data", (chunk) => (stdout += chunk));
     child.stderr.setEncoding("utf8").on("data", (chunk) => (stderr += chunk));
-    const timer = setTimeout(() => {
-      timedOut = true;
-      try {
-        process.kill(-child.pid, "SIGKILL");
-      } catch {
-        child.kill("SIGKILL");
-      }
-    }, timeoutMs);
+    const timer = setTimeout(() => killGroup(`timed out after ${timeoutMs}ms`), timeoutMs);
     child.once("error", (error) => {
+      ended = true;
       clearTimeout(timer);
       resolve({ status: null, stdout, stderr, error });
     });
     child.once("close", (status) => {
+      ended = true;
       clearTimeout(timer);
-      resolve({ status, stdout, stderr, error: timedOut ? new Error(`timed out after ${timeoutMs}ms`) : undefined });
+      resolve({ status, stdout, stderr, error: endedBy === undefined ? undefined : new Error(endedBy) });
     });
   });
+  return { done, kill: () => killGroup("killed by the caller") };
 }

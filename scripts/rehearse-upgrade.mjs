@@ -34,7 +34,12 @@
  * its from-source version (scripts/lib/source-version.mjs), so step 3's
  * version check is an equality; `make rehearse-upgrade ARTIFACT=<a>` builds
  * and stamps it. --to=<X.Y.Z> is a published release, which is how the
- * release lane rehearses the version it is about to promote.
+ * release rehearses the version it just pushed before `:latest` moves; a
+ * prerelease (X.Y.Z-rc.1) is one too, rehearsed from the newest stable
+ * release below its X.Y.Z, since the release publishes its chart as well.
+ * --chart=<dir|.tgz> (helm, a published --to only) upgrades to that chart
+ * with the release's images: the release's packaged chart, before it is
+ * pushed. The base is always installed from the published chart.
  *
  * Each install is brought up by the same driver its smoke uses
  * (scripts/lib/install-*.mjs), so the rehearsal and the smoke can never boot
@@ -42,7 +47,7 @@
  *
  * Usage:
  *   node scripts/rehearse-upgrade.mjs --artifact=<compose|all-in-one|helm|cli>
- *       [--from=X.Y.Z] [--to=build|X.Y.Z] [--keep]
+ *       [--from=X.Y.Z] [--to=build|X.Y.Z[-pre]] [--chart=<dir|.tgz>] [--keep]
  *
  *   --keep   leave the upgraded install running for debugging (the fake
  *            model stops with this process, so agent runs then fail).
@@ -92,38 +97,50 @@ const ARTIFACTS = ["compose", "all-in-one", "helm", "cli"];
 const SERVING_TIMEOUT_MS = 300_000;
 const RUN_TIMEOUT_MS = 240_000;
 const STABLE = /^(\d+)\.(\d+)\.(\d+)$/;
+/** A release a rehearsal can move to: a stable version or a prerelease of one. */
+const RELEASE = /^(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z][0-9A-Za-z.-]*)?$/;
 
 function log(step) {
   console.log(`rehearse-upgrade: ${step}`);
 }
 
 /**
- * The command line as `{ artifact, from, to, keep }`: `to` is { kind:
+ * The command line as `{ artifact, from, to, chart, keep }`: `to` is { kind:
  * "build" } or { kind: "published", version }, `from` a version or "" (pick
- * the newest release below `to`). Throws on anything else.
+ * the newest release below `to`), `chart` the target chart or undefined.
+ * Throws on anything else.
  */
 export function parseRehearsalArgs(argv) {
-  const parsed = { artifact: "", from: "", to: { kind: "build" }, keep: false };
+  const parsed = { artifact: "", from: "", to: { kind: "build" }, chart: undefined, keep: false };
   for (const arg of argv) {
     let m;
     if ((m = arg.match(/^--artifact=(.+)$/)) !== null) parsed.artifact = m[1];
     else if ((m = arg.match(/^--from=v?(.+)$/)) !== null) parsed.from = m[1];
     else if ((m = arg.match(/^--to=v?(.+)$/)) !== null) {
       parsed.to = m[1] === "build" ? { kind: "build" } : { kind: "published", version: m[1] };
-    } else if (arg === "--keep") parsed.keep = true;
+    } else if ((m = arg.match(/^--chart=(.+)$/)) !== null) parsed.chart = m[1];
+    else if (arg === "--keep") parsed.keep = true;
     else throw new Error(`unknown argument: ${arg}`);
   }
   if (!ARTIFACTS.includes(parsed.artifact)) {
     throw new Error(`--artifact must be one of: ${ARTIFACTS.join(", ")} (got ${JSON.stringify(parsed.artifact)})`);
   }
   if (parsed.from !== "" && !STABLE.test(parsed.from)) throw new Error(`--from must be a release X.Y.Z (got ${parsed.from})`);
-  if (parsed.to.kind === "published" && !STABLE.test(parsed.to.version)) {
-    throw new Error(`--to must be build or a release X.Y.Z (got ${parsed.to.version})`);
+  if (parsed.to.kind === "published" && !RELEASE.test(parsed.to.version)) {
+    throw new Error(`--to must be build or a release X.Y.Z or X.Y.Z-<pre> (got ${parsed.to.version})`);
   }
-  if (parsed.from !== "" && parsed.to.kind === "published" && compareVersions(parsed.from, parsed.to.version) >= 0) {
+  if (parsed.from !== "" && parsed.to.kind === "published" && compareVersions(parsed.from, versionCore(parsed.to.version)) >= 0) {
     throw new Error(`--from ${parsed.from} is not below --to ${parsed.to.version}: an upgrade only moves forward`);
   }
+  if (parsed.chart !== undefined && (parsed.artifact !== "helm" || parsed.to.kind !== "published")) {
+    throw new Error("--chart applies only to --artifact=helm with a published --to (the release's packaged chart)");
+  }
   return parsed;
+}
+
+/** A release's X.Y.Z: a prerelease's version without its `-<pre>` part. */
+export function versionCore(version) {
+  return version.replace(/-.*$/, "");
 }
 
 /** Numeric order of two X.Y.Z versions. */
@@ -136,7 +153,8 @@ export function compareVersions(a, b) {
 
 /**
  * The release an upgrade to `to` starts from: the greatest stable version in
- * `versions` below it (every stable version when `to` is a build).
+ * `versions` below it (every stable version when `to` is a build; below its
+ * X.Y.Z when `to` is a prerelease, so 3.42.0-rc.1 starts from 3.41.x).
  * Prereleases (a `-dev.` build published for testing) are never a base. It is
  * not npm's `latest` tag: in the release lane `latest` may already be the
  * version being rehearsed.
@@ -144,7 +162,7 @@ export function compareVersions(a, b) {
 export function pickFromVersion(versions, to) {
   const below = versions
     .filter((version) => STABLE.test(version))
-    .filter((version) => to.kind === "build" || compareVersions(version, to.version) < 0)
+    .filter((version) => to.kind === "build" || compareVersions(version, versionCore(to.version)) < 0)
     .sort(compareVersions);
   if (below.length === 0) {
     throw new Error(`no published release below ${to.kind === "build" ? "this build" : to.version} to upgrade from`);
@@ -229,16 +247,18 @@ const INSTALLS = {
   },
   helm: {
     ports: [HELM_SERVER_PORT, HELM_ARTIFACT_PORT],
-    create(fake) {
+    create(fake, { chart }) {
       const cluster = createKindCluster({ log });
       let release;
       let forward;
       const connectForward = async () => {
         forward = await release.portForward();
       };
-      const chartSpec = (target) => {
+      // The base always comes from the published chart; only the target may
+      // be the release's packaged chart.
+      const chartSpec = (target, options = {}) => {
         if (target.kind === "build") cluster.loadSourceImages();
-        return chartFor(target);
+        return chartFor(target, options);
       };
       return {
         baseUrl: () => forward.baseUrl,
@@ -262,7 +282,7 @@ const INSTALLS = {
         async upgrade(target) {
           forward.stop();
           log(`helm upgrade stigmer (${describe(target)}), same values, --wait`);
-          await release.upgrade(chartSpec(target));
+          await release.upgrade(chartSpec(target, { chart }));
           await connectForward();
         },
         async images(target) {
@@ -335,11 +355,19 @@ async function main() {
     console.error(`rehearse-upgrade: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
-  const from = { kind: "published", version: args.from !== "" ? args.from : pickFromVersion(publishedCliVersions(), args.to) };
   const to = args.to;
   const spec = INSTALLS[args.artifact];
-  for (const port of spec.ports) await assertPortFree(port);
-  log(`${args.artifact}: ${describe(from)} -> ${describe(to)}`);
+  // Before anything starts, so a refusal is this script's FAIL line and
+  // there is nothing to tear down.
+  let from;
+  try {
+    from = { kind: "published", version: args.from !== "" ? args.from : pickFromVersion(publishedCliVersions(), to) };
+    for (const port of spec.ports) await assertPortFree(port);
+  } catch (error) {
+    console.error(`rehearse-upgrade: FAIL — ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
+  log(`${args.artifact}: ${describe(from)} -> ${describe(to)}${args.chart === undefined ? "" : ` (chart ${args.chart})`}`);
 
   const started = Date.now();
   const lap = (() => {
@@ -353,7 +381,7 @@ async function main() {
   })();
 
   const fake = await startFakeModel({ host: args.artifact === "cli" ? "127.0.0.1" : "0.0.0.0" });
-  const install = spec.create(fake);
+  const install = spec.create(fake, { chart: args.chart });
   let failed = false;
   try {
     await install.start(from);

@@ -256,7 +256,7 @@ function faultOf(error) {
 }
 
 /** The registry the job's npm is configured for (setup-node writes it). */
-function configuredRegistry() {
+export function configuredRegistry() {
   return execFileSync("npm", ["config", "get", "registry"], {
     encoding: "utf8",
   }).trim();

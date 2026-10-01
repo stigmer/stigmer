@@ -89,17 +89,23 @@ export async function expectRefusal(baseUrl, procedure, body, { text }) {
   return refusal;
 }
 
-/** A Connect answer as `{ status, code, message }`; a body that is not a Connect error keeps its text as the message. */
+/**
+ * A Connect answer as `{ status, code, message }`. A JSON object keeps its
+ * string `code` even without a string `message`, whose place the raw text
+ * takes; any other body (not JSON, or JSON that is not an object) is text,
+ * with no code.
+ */
 export function connectRefusal(status, body) {
+  let parsed;
   try {
-    const parsed = JSON.parse(body);
-    if (parsed !== null && typeof parsed === "object" && typeof parsed.message === "string") {
-      return { status, code: typeof parsed.code === "string" ? parsed.code : "", message: parsed.message };
-    }
+    parsed = JSON.parse(body);
   } catch {
     // not JSON: the raw text is the message
   }
-  return { status, code: "", message: body.slice(0, 300) };
+  const isObject = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+  const code = isObject && typeof parsed.code === "string" ? parsed.code : "";
+  const message = isObject && typeof parsed.message === "string" ? parsed.message : body.slice(0, 300);
+  return { status, code, message };
 }
 
 /** Why `refusal` is not the refusal expected, or undefined when it is. Pure. */

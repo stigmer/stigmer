@@ -30,7 +30,10 @@
  * `stigmer execution logs` must say it decided nothing before its task
  * failed; the other is approved with `stigmer execution approve --comment`,
  * and the logs must name who approved it (the run's creator) while its
- * approval_resolved event carries the comment. No model is called.
+ * approval_resolved event carries the comment. No model is called. A gate's
+ * run is still streaming while the smoke decides it, so a step that fails
+ * meanwhile ends that run before the smoke reports, rather than leaving it
+ * to its own timeout.
  * Since the console restoration (DD-012) it also proves the
  * unified port serves the bundled web console: /config.json synthesis, a
  * dynamic deep link, and the 404 posture — the P3 acceptance's
@@ -43,6 +46,8 @@
  *
  * How the CLI is installed, started and stopped in its isolated home is
  * scripts/lib/install-cli.mjs, the one boot the upgrade rehearsal shares.
+ * `stigmer up` serves on port 7234, so the smoke refuses before anything
+ * starts when that port is taken: another stack is running.
  *
  * Prereqs (the gate's build steps): backend/services/runner built (dist/)
  * and the server's dist-slim/ (make smoke-cli-cutover builds both).
@@ -66,6 +71,7 @@ import { CLI_SERVER_PORT, createCliInstall } from "./lib/install-cli.mjs";
 import {
   approvalResolutions,
   assertConsoleServed,
+  assertPortFree,
   connectJson,
   gateLogProblem,
   pollUntil,
@@ -117,6 +123,14 @@ function usage(message) {
 
 const args = parseArgs();
 const release = args.published ? { kind: "published", version: args.version } : { kind: "build" };
+
+// Before anything starts, so a refusal leaves nothing to tear down.
+try {
+  await assertPortFree(CLI_SERVER_PORT);
+} catch (error) {
+  console.error(`smoke-cli-cutover: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
 
 // The model the stack is started with: the fake on loopback, configured the
 // way a user exports a gateway for `stigmer up`.
@@ -236,17 +250,18 @@ spec:
   // 7. The approval gates, as a reviewer meets them from the CLI.
   const orgId = await waitForBootstrapOrganization(stack.baseUrl, RUN_TIMEOUT_MS, { slug: ORG });
   await applyGateWorkflow(TIMEOUT_GATE_WORKFLOW, { timeoutSeconds: GATE_TIMEOUT_SECONDS });
-  const timedOutRun = cli(["--org", ORG, "run", "workflow", TIMEOUT_GATE_WORKFLOW, "--json"], {
-    timeoutMs: RUN_TIMEOUT_MS,
-    allowFailure: true,
-  });
-  const timedOut = await waitForPendingApproval(stack.baseUrl, {
-    orgId,
-    workflowId: await workflowIdByReference(stack.baseUrl, { org: ORG, slug: TIMEOUT_GATE_WORKFLOW }),
+  const timedOutRun = stack.cliChild(["--org", ORG, "run", "workflow", TIMEOUT_GATE_WORKFLOW, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
+  const timedOut = await whileRunning(timedOutRun, async () =>
+    waitForPendingApproval(stack.baseUrl, {
+      orgId,
+      workflowId: await workflowIdByReference(stack.baseUrl, { org: ORG, slug: TIMEOUT_GATE_WORKFLOW }),
+      timeoutMs: RUN_TIMEOUT_MS,
+    }),
+  );
   log(`gate ${timedOut.taskName} of ${timedOut.executionId} waits; leaving it to time out`);
-  const timedOutResult = await timedOutRun;
+  const timedOutResult = await timedOutRun.done;
   const timedOutPhase = await pollUntil("the timed-out gate's run to end", RUN_TIMEOUT_MS, async () => {
     const phase = (
       await connectJson(stack.baseUrl, "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get", {
@@ -268,29 +283,31 @@ spec:
   log("execution logs: the timed-out gate decided nothing, then its task failed");
 
   await applyGateWorkflow(APPROVED_GATE_WORKFLOW);
-  const approvedRun = cli(["--org", ORG, "run", "workflow", APPROVED_GATE_WORKFLOW, "--json"], {
-    timeoutMs: RUN_TIMEOUT_MS,
-    allowFailure: true,
-  });
-  const approved = await waitForPendingApproval(stack.baseUrl, {
-    orgId,
-    workflowId: await workflowIdByReference(stack.baseUrl, { org: ORG, slug: APPROVED_GATE_WORKFLOW }),
+  const approvedRun = stack.cliChild(["--org", ORG, "run", "workflow", APPROVED_GATE_WORKFLOW, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
-  await cli([
-    "--org",
-    ORG,
-    "execution",
-    "approve",
-    approved.executionId,
-    "--task",
-    approved.taskName,
-    "--outcome",
-    "approve",
-    "--comment",
-    REVIEW_COMMENT,
-  ]);
-  const approvedResult = await approvedRun;
+  const approved = await whileRunning(approvedRun, async () => {
+    const pending = await waitForPendingApproval(stack.baseUrl, {
+      orgId,
+      workflowId: await workflowIdByReference(stack.baseUrl, { org: ORG, slug: APPROVED_GATE_WORKFLOW }),
+      timeoutMs: RUN_TIMEOUT_MS,
+    });
+    await cli([
+      "--org",
+      ORG,
+      "execution",
+      "approve",
+      pending.executionId,
+      "--task",
+      pending.taskName,
+      "--outcome",
+      "approve",
+      "--comment",
+      REVIEW_COMMENT,
+    ]);
+    return pending;
+  });
+  const approvedResult = await approvedRun.done;
   if (approvedResult.status !== 0 || !/completed/i.test(approvedResult.stdout)) {
     throw new Error(
       `the approved gate's run did not complete (exit ${approvedResult.status})\n` +
@@ -334,6 +351,21 @@ spec:
   await fake.close();
 }
 process.exit(failed ? 1 : 0);
+
+/**
+ * Runs `body` while `child` (a `stack.cliChild` run) streams. When `body`
+ * throws, the child is killed and awaited before the error goes on, so the
+ * smoke reports its own failure with no run left behind.
+ */
+async function whileRunning(child, body) {
+  try {
+    return await body();
+  } catch (error) {
+    child.kill();
+    await child.done;
+    throw error;
+  }
+}
 
 /**
  * Apply a workflow whose one gate is a human_input task offering approve or
