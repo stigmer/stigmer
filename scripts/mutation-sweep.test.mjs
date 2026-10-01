@@ -540,7 +540,7 @@ test("--report --publish files a new issue for a target with findings", () => {
     assert.match(calls[1], /^issue create --repo o\/r --label mutation-sweep --title Mutation sweep: the credit gate -- 1 change no test notices --body-file /);
     const body = readFileSync(join(gh.dir, "bodies.log"), "utf8");
     assert.ok(body.includes(targetMarker("credit-gate")));
-    assert.ok(body.includes("https://example.test/run/2"));
+    assert.ok(body.includes("[run](https://example.test/run/2)"));
   } finally {
     rmSync(gh.dir, { recursive: true, force: true });
   }
