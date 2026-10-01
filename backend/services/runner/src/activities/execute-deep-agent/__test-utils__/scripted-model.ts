@@ -23,6 +23,15 @@
  * next call sees one more completed round. A call-counted script would emit
  * the wrong turn on replay.
  *
+ * The double also refuses what a real provider refuses
+ * ({@link assertProviderTranscript}): a system message anywhere but first,
+ * or a tool call not answered directly by its tool message. Every transcript
+ * it is handed is checked before a turn is chosen, so a middleware that
+ * builds a request no provider would accept fails here, in every hermetic
+ * and graph-level test, instead of at Anthropic. Without it a double that
+ * never converts its input passed a mid-conversation advisory that every
+ * Anthropic run then failed on (stigmer/stigmer#1354).
+ *
  * A script may also be a {@link TurnPlayer}: a function of the whole
  * transcript that returns the one turn to play now. The same rule, with the
  * indexing left to the caller — for a consumer whose plan is not "turn k on
@@ -65,7 +74,10 @@ import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseChatModelCallOptions } from "@langchain/core/language_models/chat_models";
 import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
 import {
+  AIMessage,
   AIMessageChunk,
+  SystemMessage,
+  ToolMessage,
   isAIMessage,
   isSystemMessage,
   type BaseMessage,
@@ -246,6 +258,7 @@ export class ScriptedModel extends BaseChatModel {
 
   /** The turn for this transcript, after the driver hook has run. */
   private async turnFor(messages: BaseMessage[]): Promise<ScriptedTurn> {
+    assertProviderTranscript(messages);
     const round = completedToolRounds(messages);
     await this.options.onTurn?.({
       boundToolNames: this.toolNames,
@@ -317,6 +330,47 @@ function abortErrorOf(signal: AbortSignal): Error {
   const err = new Error(`ScriptedModel: the hang was aborted (${String(signal.reason)})`);
   err.name = "AbortError";
   return err;
+}
+
+// ---------------------------------------------------------------------------
+// The provider's transcript rules
+// ---------------------------------------------------------------------------
+
+/**
+ * The two rules both providers the runner builds a model for enforce on the
+ * messages a request carries, so the double enforces them too:
+ *  - only the first message may be a system message: `@langchain/anthropic`
+ *    throws on any other ("System messages are only permitted as the first
+ *    passed message"), since the system prompt is the request's own field;
+ *  - an AI message that proposes tool calls is followed directly by one tool
+ *    message per call id, in any order, before any other message: Anthropic
+ *    requires every `tool_use` answered in the next user turn, and OpenAI a
+ *    `tool` message per `tool_call_id` right after the assistant message.
+ * Throws a diagnosing error naming the offending index; returns otherwise.
+ */
+export function assertProviderTranscript(messages: readonly BaseMessage[]): void {
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+    if (i > 0 && SystemMessage.isInstance(message)) {
+      throw new Error(
+        `ScriptedModel: message ${i} is a system message; a provider accepts one only as the first message`,
+      );
+    }
+    if (!AIMessage.isInstance(message)) continue;
+    const unanswered = new Set((message.tool_calls ?? []).flatMap((call) => (call.id ? [call.id] : [])));
+    let next = i + 1;
+    while (unanswered.size > 0) {
+      const candidate = messages[next];
+      if (!candidate || !ToolMessage.isInstance(candidate) || !unanswered.delete(candidate.tool_call_id)) {
+        const found = candidate ? `a ${candidate.type} message` : "the end of the transcript";
+        throw new Error(
+          `ScriptedModel: the AI message at ${i} proposed tool calls [${[...unanswered].join(", ")}] ` +
+            `and message ${next} is ${found}; a provider requires each call answered by its tool message directly after it`,
+        );
+      }
+      next += 1;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
