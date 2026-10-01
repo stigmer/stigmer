@@ -15,8 +15,10 @@
  * token exchange on global `fetch`, on paths this arm never exercises; the
  * fetch interceptor exists for those.
  *
- * Skipped without `CURSOR_API_KEY`; the suite never runs it. Run it by hand:
- *   CURSOR_API_KEY=<key> npx vitest run src/activities/execute-cursor/__tests__/cursor-fetch-interceptor-bypass.test.ts
+ * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
+ * hand or in the live lane; skips without `CURSOR_API_KEY` outside the lane
+ * (`src/__test-utils__/live-gate.ts`). The arm creates an agent and sends no
+ * message, so it spends nothing beyond the key exchange.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -24,19 +26,17 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
+import { liveSecret } from "../../../__test-utils__/live-gate.js";
 
-// Live smoke test: requires a real Cursor API key. Skipped when none is set
-// (e.g. local `make check` / CI without provider credentials).
-const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
 
-describeWithCursorKey("Fetch Interceptor vs Connect-Node Transport", () => {
+describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Fetch Interceptor vs Connect-Node Transport", () => {
   let interceptCalled = false;
   const originalFetch = globalThis.fetch;
 
   beforeAll(() => {
     interceptCalled = false;
-    globalThis.fetch = (async (input: any, init?: any) => {
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       if (url.includes("cursor.sh") || url.includes("cursor.com")) {
         interceptCalled = true;

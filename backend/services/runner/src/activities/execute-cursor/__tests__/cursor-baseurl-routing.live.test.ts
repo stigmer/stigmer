@@ -15,6 +15,14 @@
  * the native SDK binary reads it at process startup, not at import time.
  * That routing is validated by the production code in main.ts which sets
  * the env var BEFORE any SDK import.
+ *
+ * The model is `composer-2.5`, the one the other live instruments and the
+ * hermetic fixture pin: the arms prove routing, which no model choice changes.
+ *
+ * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
+ * hand or in the live lane; skips without `CURSOR_API_KEY` outside the lane
+ * (`src/__test-utils__/live-gate.ts`). Each arm is one short turn with no
+ * product cost cap (the SDK is driven directly, not through an execution).
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -22,13 +30,11 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
+import { liveSecret } from "../../../__test-utils__/live-gate.js";
 
-// Live smoke test: requires a real Cursor API key. Skipped when none is set
-// (e.g. local `make check` / CI without provider credentials).
-const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
 
-describeWithCursorKey("SDK routing with CURSOR_BACKEND_URL unset", () => {
+describe.skipIf(!liveSecret("CURSOR_API_KEY"))("SDK routing with CURSOR_BACKEND_URL unset", () => {
   beforeAll(() => {
     // Ensure CURSOR_BACKEND_URL is unset — the SDK should use its built-in
     // defaults for REST calls (model validation → api.cursor.com, token
@@ -45,7 +51,7 @@ describeWithCursorKey("SDK routing with CURSOR_BACKEND_URL unset", () => {
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
-      model: { id: "claude-sonnet-4" },
+      model: { id: "composer-2.5" },
       local: {
         cwd: stateRoot,
         // 1.0.31: the store is caller-owned (`session-store.ts` in production).
@@ -67,7 +73,7 @@ describeWithCursorKey("SDK routing with CURSOR_BACKEND_URL unset", () => {
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
-      model: { id: "claude-sonnet-4" },
+      model: { id: "composer-2.5" },
       local: {
         cwd: stateRoot,
         // 1.0.31: the store is caller-owned (`session-store.ts` in production).

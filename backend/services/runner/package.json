@@ -33,6 +33,7 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:live": "vitest run -c vitest.live.config.ts",
     "test:watch": "vitest",
     "check-deps": "bash scripts/check-langchain-deps.sh",
     "clean": "rm -rf dist dist-slim"
