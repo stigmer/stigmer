@@ -296,7 +296,9 @@ describe("AgentExecution conformance — queries", () => {
       Code.InvalidArgument,
       "listBySession empty session_id",
     ));
+});
 
+describe("AgentExecution conformance — a turn belongs to its session and its session's organization (#1580, #1588)", () => {
   it("[rpc:AgentExecutionCommandController.create] a turn naming no organization in an existing session is filed under the session's organization (#1580)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
