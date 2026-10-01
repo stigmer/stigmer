@@ -20,13 +20,13 @@ export const OAUTH_MCP_STACK =
   process.env.STIGMER_E2E_OAUTH_MCP === "1" ||
   process.env.STIGMER_E2E_OAUTH_MCP === "true";
 
-const REPO_ROOT = path.resolve(__dirname, "../../..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const FIXTURE_MAIN = path.join(
   REPO_ROOT,
   "test/conformance/src/harness/oauth-mcp-fixture-main.ts",
 );
 const TSX = path.join(REPO_ROOT, "node_modules/.bin/tsx");
-const STATE_FILE = path.join(__dirname, "..", ".e2e-server-state.json");
+const STATE_FILE = path.join(import.meta.dirname, "..", ".e2e-server-state.json");
 
 /** What the fixture process prints once both servers listen. */
 export interface OAuthMcpReady {

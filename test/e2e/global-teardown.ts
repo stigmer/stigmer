@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { stopBackendStack, type ServerState } from "./fixtures/server-manager";
 import { stopMockLlmProxy } from "./fixtures/mock-llm";
 
-const STATE_FILE = path.join(__dirname, ".e2e-server-state.json");
+const STATE_FILE = path.join(import.meta.dirname, ".e2e-server-state.json");
 
 async function globalTeardown() {
   // Close the mock LLM proxy if this run started one. It lives in this (main)

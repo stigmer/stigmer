@@ -28,7 +28,7 @@ export const OIDC_AUDIENCE = "https://e2e.stigmer.test/api";
 /** The console's public PKCE client, as an operator would register it. */
 export const OIDC_CONSOLE_CLIENT_ID = "stigmer-console";
 
-const REPO_ROOT = path.resolve(__dirname, "../../..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const ISSUER_MAIN = path.join(
   REPO_ROOT,
   "test/support/src/local-oidc-issuer-main.ts",

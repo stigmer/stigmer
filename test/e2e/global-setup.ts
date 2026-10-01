@@ -18,7 +18,7 @@ import {
 } from "./fixtures/oidc";
 import { OAUTH_MCP_STACK, startOAuthMcpFixture } from "./fixtures/oauth-mcp";
 
-const STATE_FILE = path.join(__dirname, ".e2e-server-state.json");
+const STATE_FILE = path.join(import.meta.dirname, ".e2e-server-state.json");
 const API_PORT = Number(process.env.STIGMER_E2E_API_PORT ?? "7234");
 
 // Opt-in deterministic LLM mode for the interactive-approval project. When set,

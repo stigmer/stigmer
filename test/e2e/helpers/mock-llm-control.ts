@@ -5,7 +5,7 @@ import type { AnthropicMessageBody } from "../fixtures/mock-llm";
 
 // The e2e state file global-setup writes; carries the mock LLM control URL when
 // the stack was booted with STIGMER_E2E_MOCK_LLM.
-const STATE_FILE = path.join(__dirname, "..", ".e2e-server-state.json");
+const STATE_FILE = path.join(import.meta.dirname, "..", ".e2e-server-state.json");
 
 /**
  * Reads the deterministic mock LLM proxy's control URL from the e2e state file.
