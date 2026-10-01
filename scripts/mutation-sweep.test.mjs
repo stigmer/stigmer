@@ -3,7 +3,8 @@
 // Run via `node --test scripts/mutation-sweep.test.mjs` (wired into root `npm test`).
 //
 // What these guard: a targets file of the wrong shape is refused before a
-// sweep starts; every target's config skips static mutants, writes only the
+// sweep starts, and the committed one names packages that exist and globs
+// that match tracked files; every target's config skips static mutants, writes only the
 // JSON report, points every output outside the tree and removes its sandbox;
 // a finding is named by what changed and where, not by Stryker's id or its
 // line, so a line moved by an edit above it keeps its name and two identical
@@ -18,12 +19,15 @@
 // closes and reopens exactly when it should. Through a fake `gh` on PATH, the
 // command's `--report --publish` and `--failed` end to end; through a fake
 // `npx` in a throwaway repository, `--run` end to end: its record, the
-// confirm step's verdicts and their cache, an interrupted run, and the
-// refusals of a dirty package and of a file outside it.
+// confirm step's verdicts and their cache, an interrupted run, a signal sent
+// to the sweep alone, a run cut short by its budget, a dry run, a related run
+// that hangs, `--list`, and the refusals of a dirty package, an untracked
+// file and a file outside it. The confirm step's budget is also driven by a
+// fake clock: no check starts that its limit could carry past the deadline.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -46,6 +50,7 @@ import {
   reasonlessDisables,
   relatedOutcome,
   renderIssue,
+  runRelatedTests,
   sliceSource,
   strykerConfig,
   summarize,
@@ -100,6 +105,21 @@ test("a targets file of the wrong shape names every problem", () => {
   assert.ok(problems.some((p) => p.includes('"concurrency"')));
 });
 
+test("the committed targets file names real code: every package exists, and every glob matches a tracked file", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const { targets, problems } = readTargets(readFileSync(join(root, "test/mutation-targets.json"), "utf8"));
+  assert.deepEqual(problems, []);
+  assert.ok(Object.keys(targets).length > 0);
+  for (const [name, target] of Object.entries(targets)) {
+    assert.ok(existsSync(join(root, target.package, "package.json")), `${name}: ${target.package} is a package`);
+    for (const glob of target.mutate.filter((g) => !g.startsWith("!"))) {
+      assert.ok(!/[{}]/.test(glob), `${name}: "${glob}" uses a brace set, which git's glob pathspec (how this test reads it) does not have; write one glob per file`);
+      const files = spawnSync("git", ["ls-files", "--", `:(glob)${target.package}/${glob}`], { cwd: root, encoding: "utf8" }).stdout.trim();
+      assert.notEqual(files, "", `${name}: "${glob}" matches no tracked file under ${target.package}; after a rename the target would sweep nothing and close its issue as clean`);
+    }
+  }
+});
+
 test("every target's config skips static mutants, writes only JSON, keeps outputs outside the tree, removes its sandbox", () => {
   const config = strykerConfig(TARGET, "/out/credit-gate");
   assert.equal(config.testRunner, "vitest");
@@ -117,6 +137,14 @@ test("every target's config skips static mutants, writes only JSON, keeps output
   assert.equal(config.incremental, true);
   assert.deepEqual(config.mutate, TARGET.mutate);
   assert.equal(config.concurrency, 2);
+});
+
+test("a dry run asks Stryker for its first run only, and keeps no incremental file", () => {
+  const config = strykerConfig(TARGET, "/out/credit-gate", { dryRun: true });
+  assert.equal(config.dryRunOnly, true);
+  assert.equal(config.incremental, false);
+  assert.deepEqual(config.mutate, TARGET.mutate);
+  assert.equal(strykerConfig(TARGET, "/out/credit-gate").dryRunOnly, undefined);
 });
 
 test("--only sweeps one file and does not read or write the incremental file", () => {
@@ -181,6 +209,14 @@ test("two identical changes in one file are two findings", () => {
   assert.notEqual(findingKey("f", "m", "o", "r", 0), findingKey("f", "m", "o", "r", 1));
 });
 
+test("a finding keeps its name when an identical change before it starts being caught", () => {
+  const source = "const a = x < y;\nconst b = x < y;\n";
+  const both = summarize(report([mutant("1", "Survived", "EqualityOperator", 1, 11, 16, "x <= y"), mutant("2", "Survived", "EqualityOperator", 2, 11, 16, "x <= y")], source), "pkg");
+  const firstCaught = summarize(report([mutant("1", "Killed", "EqualityOperator", 1, 11, 16, "x <= y"), mutant("2", "Survived", "EqualityOperator", 2, 11, 16, "x <= y")], source), "pkg");
+  assert.equal(firstCaught.findings.length, 1);
+  assert.equal(firstCaught.findings[0].key, both.findings[1].key, "the second change is still the second, so it keeps its own name and cached verdict");
+});
+
 test("a disable comment without a reason is listed; one with a reason, and a restore, are not", () => {
   const source = [
     "// Stryker disable next-line EqualityOperator: the count never equals the cap; the cap is checked first",
@@ -240,7 +276,7 @@ test("a change is applied by its exact location", () => {
 });
 
 test("a related run is red only when a test failed, green only when tests ran and passed, and interrupted when killed", () => {
-  const report = (total, failed, failedSuites = 0) => ({ numTotalTests: total, numFailedTests: failed, numFailedTestSuites: failedSuites, testResults: [] });
+  const report = (total, failed, failedSuites = 0, passed = total - failed) => ({ numTotalTests: total, numPassedTests: passed, numFailedTests: failed, numFailedTestSuites: failedSuites, testResults: [] });
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 2)), "red");
   assert.equal(relatedOutcome({ status: 0, signal: null }, report(5, 0)), "green");
   assert.equal(relatedOutcome({ status: null, signal: "SIGINT" }, report(5, 2)), "interrupted");
@@ -252,6 +288,7 @@ test("a related run is red only when a test failed, green only when tests ran an
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0, 2)), "inconclusive", "the same with no green run just before proves nothing");
   assert.equal(relatedOutcome({ status: 1, signal: null }, undefined), "inconclusive", "no report: a crash proves nothing");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0)), "inconclusive", "no test ran");
+  assert.equal(relatedOutcome({ status: 0, signal: null }, report(5, 0, 0, 0)), "inconclusive", "every test skipped: vitest counts them in its total, but none ran");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0, 1)), "inconclusive", "a file that failed to load, as when an engine is down");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0)), "inconclusive", "red exit with no failed test");
 });
@@ -341,6 +378,42 @@ test("a change that makes the tests hang is caught, and a changed run is limited
     assert.ok(seen[1].timeoutMs >= 120_000);
     assert.equal(confirmTimeout(60_000), 180_000);
     assert.equal(confirmTimeout(1_000), 120_000);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the confirm step starts no check its time limit could carry past the budget, and says how many it left", () => {
+  const { dir, findings } = confirmFixture();
+  try {
+    let clock = 0;
+    const seen = [];
+    const logged = [];
+    const runRelated = (p, options) => {
+      seen.push(options);
+      clock += 1_000;
+      return { outcome: "green", tests: [] };
+    };
+    // The unchanged run takes 1 s, so a changed run may take 120 s: the first fits before 121.5 s, the second would not.
+    const { verdicts } = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated, log: (l) => logged.push(l), deadline: 121_500, now: () => clock });
+    assert.equal(Object.keys(verdicts).length, 1);
+    assert.equal(seen[0].timeoutMs, 121_500, "the unchanged run is limited to the time that is left");
+    assert.equal(seen.length, 2);
+    assert.deepEqual(logged.filter((l) => l.startsWith("budget")), ["budget reached; 1 finding(s) left not re-checked"]);
+
+    clock = 200_000;
+    logged.length = 0;
+    seen.length = 0;
+    const spent = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated, log: (l) => logged.push(l), deadline: 200_000, now: () => clock });
+    assert.deepEqual(spent.verdicts, {});
+    assert.equal(seen.length, 0, "no run starts with no time left");
+    assert.deepEqual(logged, ["budget reached; 2 finding(s) left not re-checked"], "at the deadline exactly nothing starts: a zero limit would be none");
+
+    clock = 0;
+    logged.length = 0;
+    const cutShort = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated: () => ({ outcome: "timeout", tests: [] }), log: (l) => logged.push(l), deadline: 60_000, now: () => clock });
+    assert.deepEqual(cutShort, { verdicts: {}, interrupted: false });
+    assert.deepEqual(logged, ["budget reached; 2 finding(s) left not re-checked"], "an unchanged run cut short by the budget is the budget, not a red file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -637,11 +710,14 @@ test("a usage error exits 2 and names the problem", () => {
 
 /**
  * A git repository holding one package with SOURCE in it, and a fake `npx`
- * on PATH that plays Stryker (it writes `FAKE_REPORT` where the config asks)
+ * on PATH that plays Stryker (it writes `FAKE_REPORT` where the config asks,
+ * and nothing on a dry run)
  * and vitest (red when the file under test contains `FAKE_RED_TEXT`; on a
  * changed file, interrupted as vitest is, exiting 130 with no report, when
  * `FAKE_VITEST=signal`, or killed by SIGINT when `FAKE_VITEST=killed`; on
- * the unchanged run too when `FAKE_VITEST=signal-first`; a failed Stryker
+ * the unchanged run too when `FAKE_VITEST=signal-first`; for ever when
+ * `FAKE_VITEST=hang`; sending SIGTERM to the sweep alone on a changed file
+ * when `FAKE_VITEST=term-parent`; a failed Stryker
  * when `FAKE_STRYKER_STATUS` is set, or one that leaves the source file
  * changed when `FAKE_STRYKER_DIRTY` is; no
  * tests run when `FAKE_VITEST=none`; red on the unchanged file when
@@ -673,8 +749,11 @@ const { appendFileSync, copyFileSync, readFileSync, writeFileSync } = require("n
 const { join, resolve } = require("node:path");
 const args = process.argv.slice(2);
 if (args[1] === "stryker") {
+  // Stryker's vitest runner leaves its per-worker setup file in the package, as the real one can.
+  writeFileSync("stryker-setup-1.js", "// a worker's setup\\n");
   if (process.env.FAKE_STRYKER_STATUS) process.exit(Number(process.env.FAKE_STRYKER_STATUS));
   const config = JSON.parse(readFileSync(args[3], "utf8"));
+  if (config.dryRunOnly) process.exit(0);
   copyFileSync(process.env.FAKE_REPORT, config.jsonReporter.fileName);
   if (process.env.FAKE_STRYKER_DIRTY) appendFileSync("src/gate/allowed.ts", "// left behind\\n");
   process.exit(0);
@@ -685,12 +764,17 @@ const text = readFileSync(file, "utf8");
 const changed = !text.includes("used < cap && cap > 0");
 appendFileSync(process.env.FAKE_LOG, (changed ? "changed " : "unchanged ") + file + "\\n");
 const mode = process.env.FAKE_VITEST ?? "";
+if (mode === "hang") {
+  setInterval(() => {}, 1000);
+  return;
+}
+if (mode === "term-parent" && changed) process.kill(process.ppid, "SIGTERM");
 if (mode === "signal" && changed) process.exit(130);
 if (mode === "signal-first") process.exit(130);
 if (mode === "killed" && changed) process.kill(process.pid, "SIGINT");
 const red = (mode === "red" && !changed) || (process.env.FAKE_RED_TEXT && changed && text.includes(process.env.FAKE_RED_TEXT));
 const tests = mode === "none" ? [] : [resolve("src/gate/__tests__/allowed.test.ts")];
-writeFileSync(out, JSON.stringify({ numTotalTests: tests.length, numFailedTests: red ? 1 : 0, numFailedTestSuites: 0, testResults: tests.map((name) => ({ name })) }));
+writeFileSync(out, JSON.stringify({ numTotalTests: tests.length, numPassedTests: red ? 0 : tests.length, numFailedTests: red ? 1 : 0, numFailedTestSuites: 0, testResults: tests.map((name) => ({ name })) }));
 process.exit(red ? 1 : 0);
 `,
   );
@@ -859,5 +943,133 @@ test("--run refuses a package with uncommitted changes, and an --only file outsi
     assert.deepEqual(f.calls(), []);
   } finally {
     rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("a related run that hangs is stopped at its limit and reads as a timeout; a passing one names the tests that ran", () => {
+  const f = runFixture();
+  const saved = { PATH: process.env.PATH, FAKE_LOG: process.env.FAKE_LOG, FAKE_VITEST: process.env.FAKE_VITEST };
+  try {
+    process.env.PATH = `${join(f.dir, "bin")}:${saved.PATH}`;
+    process.env.FAKE_LOG = join(f.dir, "vitest.log");
+    process.env.FAKE_VITEST = "hang";
+    const started = Date.now();
+    // git names the package by its real path (macOS's /var is /private/var), and so does the caller.
+    const pkg = realpathSync(f.pkg);
+    const hung = runRelatedTests(pkg, "src/gate/allowed.ts", join(f.dir, "related.json"), { timeoutMs: 500, afterGreen: true });
+    assert.equal(hung.outcome, "timeout");
+    assert.ok(Date.now() - started < 10_000, "the limit reached the child");
+    process.env.FAKE_VITEST = "";
+    assert.deepEqual(runRelatedTests(pkg, "src/gate/allowed.ts", join(f.dir, "related.json"), { timeoutMs: undefined, afterGreen: false }), { outcome: "green", tests: ["src/gate/__tests__/allowed.test.ts"] });
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("a refused run leaves no earlier record behind to publish", () => {
+  const f = runFixture();
+  try {
+    assert.equal(f.run().status, 0);
+    assert.ok(existsSync(join(f.dir, "out/credit-gate/target.json")));
+    writeFileSync(join(f.pkg, "src/gate/allowed.ts"), `${SOURCE}// an edit\n`);
+    const refused = f.run();
+    assert.equal(refused.status, 2);
+    assert.equal(existsSync(join(f.dir, "out/credit-gate/target.json")), false, "last week's record would publish under this run");
+    assert.equal(existsSync(join(f.dir, "out/credit-gate/mutation.json")), false);
+    assert.ok(existsSync(join(f.dir, "out/credit-gate/confirmed.json")), "the verdict cache stays for the next run");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run refuses a package with an untracked file, which git could not restore after a killed run", () => {
+  const f = runFixture();
+  try {
+    writeFileSync(join(f.pkg, "src/gate/scratch.ts"), "export {};\n");
+    const out = f.run();
+    assert.equal(out.status, 2);
+    assert.match(out.stderr, /has uncommitted changes or untracked files/);
+    assert.match(out.stderr, /scratch\.ts/);
+    assert.deepEqual(f.calls(), []);
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run --dry-run runs Stryker's first run only, beside the weekly run, and leaves no record", () => {
+  const f = runFixture();
+  try {
+    const out = f.run({}, ["--dry-run"]);
+    assert.equal(out.status, 0, out.stderr);
+    assert.match(out.stdout, /credit-gate's tests pass under Stryker/);
+    const config = JSON.parse(readFileSync(join(f.dir, "out/credit-gate.dry-run/stryker.config.json"), "utf8"));
+    assert.equal(config.dryRunOnly, true);
+    assert.equal(existsSync(join(f.dir, "out/credit-gate.dry-run/target.json")), false, "--report never publishes a dry run");
+    assert.equal(existsSync(join(f.dir, "out/credit-gate")), false, "the weekly run's directory is untouched");
+    assert.deepEqual(f.calls(), [], "no confirm step");
+    assert.equal(f.run({ FAKE_STRYKER_STATUS: "1" }, ["--dry-run"]).status, 1, "a red first run is Stryker's failure");
+    assert.equal(spawnSync("git", ["status", "--porcelain"], { cwd: f.repo, encoding: "utf8" }).stdout, "", "Stryker's setup file is removed on success and on failure");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run --budget stops the confirm step when the time is spent, keeps the run's record, and exits 0", () => {
+  const f = runFixture();
+  try {
+    const out = f.run({}, ["--budget", "0.00001"]);
+    assert.equal(out.status, 0, out.stderr);
+    assert.match(out.stdout, /budget reached; 2 finding\(s\) left not re-checked/);
+    assert.deepEqual(f.calls(), []);
+    assert.deepEqual(f.confirmed(), {});
+    assert.ok(existsSync(join(f.dir, "out/credit-gate/target.json")), "the findings are published, marked not re-checked");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run told to stop by a signal sent to it alone finishes the step it is in, and exits 130", () => {
+  const f = runFixture();
+  try {
+    const out = f.run({ FAKE_VITEST: "term-parent" });
+    assert.equal(out.status, 130, out.stderr);
+    assert.match(out.stderr, /interrupted/);
+    assert.equal(Object.keys(f.confirmed()).length, 2, "the runs that finished keep their verdicts");
+    assert.equal(readFileSync(join(f.pkg, "src/gate/allowed.ts"), "utf8"), SOURCE);
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--list prints the targets file's targets for a workflow's matrix, and refuses a malformed file", () => {
+  const dir = mkdtempSync(join(tmpdir(), "mutation-sweep-list-"));
+  try {
+    writeFileSync(join(dir, "targets.json"), JSON.stringify({ targets: { "credit-gate": TARGET } }));
+    const out = spawnSync(process.execPath, [SCRIPT, "--targets", join(dir, "targets.json"), "--list"], { encoding: "utf8" });
+    assert.equal(out.status, 0, out.stderr);
+    assert.deepEqual(JSON.parse(out.stdout), [{ name: "credit-gate", package: "backend/services/example" }]);
+    writeFileSync(join(dir, "targets.json"), JSON.stringify({ targets: { Bad: TARGET } }));
+    const bad = spawnSync(process.execPath, [SCRIPT, "--targets", join(dir, "targets.json"), "--list"], { encoding: "utf8" });
+    assert.equal(bad.status, 2);
+    assert.match(bad.stderr, /lowercase words/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("--dry-run, --only and --budget are refused where they mean nothing", () => {
+  for (const [args, message] of [
+    [["--report", "--input", "x", "--budget", "5"], /are for --run/],
+    [["--run", "t", "--out", "o", "--dry-run", "--only", "f"], /takes no --only or --budget/],
+    [["--run", "t", "--out", "o", "--budget", "0"], /more than 0/],
+    [["--run", "t", "--out", "o", "--budget", "soon"], /more than 0/],
+  ]) {
+    const out = spawnSync(process.execPath, [SCRIPT, "--targets", "x", ...args], { encoding: "utf8" });
+    assert.equal(out.status, 2, args.join(" "));
+    assert.match(out.stderr, message, args.join(" "));
   }
 });

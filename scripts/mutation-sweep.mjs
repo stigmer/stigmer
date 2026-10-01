@@ -31,14 +31,17 @@
  * whose database suites skipped would report every line only they check as
  * run by nothing.
  *
- * Three modes:
+ * Four modes:
  *   - `--run <target>` writes the target's Stryker config into `--out`, runs
  *     Stryker in the package, and leaves `mutation.json` (Stryker's report)
  *     and `target.json` (which target, package and commit) in
  *     `<out>/<target>/`. Stryker edits the package's own files while it runs
  *     and restores them when it ends, keeping its copies of the originals in
  *     the package's `.stryker-tmp`, which it removes; so `--run` refuses a
- *     package with uncommitted changes. `--only <file>` sweeps one file, which
+ *     package with uncommitted or untracked files. `--dry-run` runs only
+ *     Stryker's first, unchanged run of the target's tests, which proves it
+ *     can run them; it writes to `<out>/<target>.dry-run/` and leaves no
+ *     record. `--only <file>` sweeps one file, which
  *     is how a fix is checked locally in minutes; it writes to
  *     `<out>/<target>.only/`, so it never replaces the weekly run's report or
  *     its cache of verdicts, and `--publish` skips it.
@@ -52,6 +55,11 @@
  *     verdicts are written to `confirmed.json` and cached between runs: each
  *     is keyed by the finding and its file's content, and records the content
  *     of the tests that judged it, so it is judged again when they change.
+ *     `--budget <minutes>` bounds the whole run, counted from the script's
+ *     start: the confirm step starts no check that could end past it, and the
+ *     findings it does not reach stay "not re-checked" for the next run.
+ *   - `--list` prints the targets file's targets, validated, as JSON
+ *     (`[{ "name", "package" }]`), for a workflow's matrix.
  *   - `--report` reads every `target.json` under the `--input` directories
  *     and prints, per target: the changes no test noticed (Stryker's
  *     `Survived`, less the ones the confirm step refuted), the blanked strings
@@ -72,13 +80,20 @@
  * identical changes in one file are told apart by their order.
  *
  * Usage:
- *   node scripts/mutation-sweep.mjs --targets <file> --run <target> --out <dir> [--only <file>]
+ *   node scripts/mutation-sweep.mjs --targets <file> --run <target> --out <dir> [--only <file>] [--budget <minutes>]
+ *   node scripts/mutation-sweep.mjs --targets <file> --run <target> --out <dir> --dry-run
+ *   node scripts/mutation-sweep.mjs --targets <file> --list
  *   node scripts/mutation-sweep.mjs --targets <file> --report --input <dir> [--input <dir> ...] [--json]
  *   node scripts/mutation-sweep.mjs --targets <file> --report --input <dir> ... --publish --repo <owner/name> [--run-url <url>]
  *   node scripts/mutation-sweep.mjs --failed --repo <owner/name> --run-url <url>
- * Exit: 0 done (findings are reported, never refused), Stryker's own code for
- * a failed `--run`, 2 the script could not do what was asked (a usage error,
- * an unreadable input, a report for no known target).
+ * Exit: 0 done (findings are reported, never refused, and a spent budget is
+ * not a failure), Stryker's own code for a failed `--run`, 130 a confirm step
+ * that was interrupted (its verdicts so far are saved, and its record is
+ * written, so its findings publish with the unreached ones "not re-checked"),
+ * 2 the script could not do what was asked (a usage error, an unreadable
+ * input, a report for no known target). A Ctrl-C stops the confirm step at
+ * once, since it reaches the test run too; a signal sent to this process
+ * alone is seen only when the step ends, which then exits 130.
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
@@ -152,8 +167,11 @@ export function readTargets(text) {
  *     own directory of originals is removed whatever the outcome, so a sweep
  *     never leaves a file a test run would collect or a clean-tree check would
  *     refuse.
+ * `only` narrows the sweep to one file; `dryRun` runs only the first,
+ * unchanged run, which proves Stryker can run the target's tests at all.
+ * Neither reads or writes the incremental file.
  */
-export function strykerConfig(target, outDir, { only } = {}) {
+export function strykerConfig(target, outDir, { only, dryRun = false } = {}) {
   return {
     testRunner: "vitest",
     plugins: ["@stryker-mutator/vitest-runner", "@stryker-mutator/typescript-checker"],
@@ -165,8 +183,9 @@ export function strykerConfig(target, outDir, { only } = {}) {
     timeoutMS: 10_000,
     reporters: ["json", "progress"],
     jsonReporter: { fileName: join(outDir, "mutation.json") },
-    incremental: !only,
+    incremental: !only && !dryRun,
     incrementalFile: join(outDir, "stryker-incremental.json"),
+    ...(dryRun ? { dryRunOnly: true } : {}),
     inPlace: true,
     tempDirName: ".stryker-tmp",
     cleanTempDir: "always",
@@ -258,12 +277,15 @@ export function summarize(report, packageDir, { confirmed = {} } = {}) {
       else if (mutant.status === "NoCoverage") counts.noCoverage += 1;
       else if (mutant.status === "Ignored") counts.ignored += 1;
       else if (mutant.status !== "Survived") counts.errors += 1;
-      if (!(mutant.status in FINDING_STATUSES)) continue;
+      // Identical changes are numbered across every mutant, whatever its
+      // status: counting only the findings would hand the first one's name,
+      // and its cached verdict, to the second once a test catches the first.
       const original = sliceSource(source, mutant.location);
       const replacement = mutant.replacement ?? "";
       const identity = [mutant.mutatorName, original, replacement].join("\u0000");
       const occurrence = seen.get(identity) ?? 0;
       seen.set(identity, occurrence + 1);
+      if (!(mutant.status in FINDING_STATUSES)) continue;
       const key = findingKey(path, mutant.mutatorName, original, replacement, occurrence);
       const confirmKey = `${key}@${hash}`;
       if (mutant.status === "Survived") {
@@ -326,9 +348,10 @@ export function applyChange(source, location, replacement) {
  *     by it or, as vitest does, caught it and exited 130 (SIGINT) or 143
  *     (SIGTERM) with no report;
  *   - "red": at least one test ran and failed;
- *   - "green": tests ran, none failed, and vitest exited 0;
- *   - "inconclusive": anything else (no report, no test ran, a file that
- *     failed to load, a crash), which proves nothing either way.
+ *   - "green": at least one test passed, none failed, and vitest exited 0;
+ *   - "inconclusive": anything else (no report, no test ran or every one
+ *     skipped, a file that failed to load, a crash), which proves nothing
+ *     either way.
  *   - "timeout": the run outlived its time limit and was stopped; a change
  *     that makes the tests hang is noticed, as Stryker counts a timeout.
  * Only "green", "red" and "timeout" become verdicts. A test file that failed
@@ -345,7 +368,8 @@ export function relatedOutcome(result, report, { afterGreen = false } = {}) {
   if (!report) return "inconclusive";
   if (report.numFailedTests > 0) return "red";
   if (report.numFailedTestSuites > 0) return afterGreen ? "red" : "inconclusive";
-  if (!(report.numTotalTests > 0)) return "inconclusive";
+  // vitest counts skipped and todo tests in its total, so only a passed test proves one ran.
+  if (!(report.numPassedTests > 0)) return "inconclusive";
   if (result.status === 0) return "green";
   return "inconclusive";
 }
@@ -371,62 +395,83 @@ export function confirmTimeout(baselineMs) {
  * (`hashFile`), so it is dropped when one of them changes or goes away: a
  * catch that a later edit to the tests undid must be judged again.
  *
- * The loop is synchronous, so a signal cannot be handled between steps. The
- * listeners only keep Node from dying mid-change, which would leave the
- * change in the file; an interrupted run is seen in the child's result,
- * restores the file, and stops with no verdict for that finding. A file with
- * uncommitted changes is refused, so `git checkout` undoes whatever a killed
- * process left.
+ * `deadline` (a time from `now`, in milliseconds) is the run's time budget: no
+ * run starts whose limit could carry it past the deadline, and a file's
+ * unchanged run is limited to the time that is left. When the budget is
+ * spent the step stops, with the verdicts so far; the findings it did not
+ * reach stay "not re-checked", and the next run's cache starts where this one
+ * stopped. The first week of a large target has more findings to confirm
+ * than a hosted job's six hours hold (the server's authorization code, about
+ * two hours of them alone, 2026-10-01).
+ *
+ * The loop is synchronous, so a signal cannot be handled between steps; the
+ * caller keeps one from killing the process mid-change, which would leave the
+ * change in the file (`runTarget` does). An interrupted run is seen in the
+ * child's result, restores the file, and stops with no verdict for that
+ * finding. So a Ctrl-C is seen only while a child runs: one that lands
+ * between two runs, or after vitest has already set a failing exit code, lets
+ * the step go on to the next finding, and a second Ctrl-C stops it. Neither
+ * records a wrong verdict. A file with uncommitted changes is refused, so
+ * `git checkout` undoes whatever a killed process left.
  */
-export function confirmFindings(findings, packageDir, { runRelated, isClean, hashFile, log = () => {} }) {
+export function confirmFindings(findings, packageDir, { runRelated, isClean, hashFile, log = () => {}, deadline, now = Date.now }) {
   const verdicts = {};
   let interrupted = false;
-  const ignore = () => {};
-  process.on("SIGINT", ignore);
-  process.on("SIGTERM", ignore);
+  let handled = 0;
+  // At the deadline exactly, a limit of zero would be no limit at all to spawnSync.
+  const outOfTime = (limitMs) => deadline !== undefined && now() + limitMs >= deadline;
+  const stopForBudget = () => log(`budget reached; ${findings.length - handled} finding(s) left not re-checked`);
   const byFile = new Map();
   for (const f of findings) byFile.set(f.relativePath, [...(byFile.get(f.relativePath) ?? []), f]);
-  try {
-    for (const [relativePath, group] of byFile) {
-      const file = join(packageDir, relativePath);
-      if (!isClean(file)) throw new Error(`${group[0].path} has uncommitted changes; the confirm step edits it and must be able to restore it from git`);
-      const started = Date.now();
-      const baseline = runRelated(relativePath, { timeoutMs: undefined, afterGreen: false });
-      const timeoutMs = confirmTimeout(Date.now() - started);
-      if (baseline.outcome === "interrupted") {
-        interrupted = true;
-        break;
+  files: for (const [relativePath, group] of byFile) {
+    const file = join(packageDir, relativePath);
+    if (!isClean(file)) throw new Error(`${group[0].path} has uncommitted changes; the confirm step edits it and must be able to restore it from git`);
+    if (outOfTime(0)) {
+      stopForBudget();
+      break;
+    }
+    const started = now();
+    const baseline = runRelated(relativePath, { timeoutMs: deadline === undefined ? undefined : deadline - started, afterGreen: false });
+    const timeoutMs = confirmTimeout(now() - started);
+    if (baseline.outcome === "interrupted") {
+      interrupted = true;
+      break;
+    }
+    if (baseline.outcome === "timeout") {
+      stopForBudget();
+      break;
+    }
+    if (baseline.outcome !== "green") {
+      log(`skipped    ${group[0].path}: its related tests are ${baseline.outcome} before any change, so ${group.length} finding(s) stay not re-checked`);
+      handled += group.length;
+      continue;
+    }
+    const original = readFileSync(file, "utf8");
+    for (const f of group) {
+      if (outOfTime(timeoutMs)) {
+        stopForBudget();
+        break files;
       }
-      if (baseline.outcome !== "green") {
-        log(`skipped    ${group[0].path}: its related tests are ${baseline.outcome} before any change, so ${group.length} finding(s) stay not re-checked`);
+      let run;
+      try {
+        writeFileSync(file, applyChange(original, f.location, f.replacement));
+        run = runRelated(relativePath, { timeoutMs, afterGreen: true });
+      } finally {
+        writeFileSync(file, original);
+      }
+      if (run.outcome === "interrupted") {
+        interrupted = true;
+        break files;
+      }
+      handled += 1;
+      if (run.outcome === "inconclusive") {
+        log(`unclear    ${f.path}:${f.line} ${f.mutator} (no test failed, but the run did not pass)`);
         continue;
       }
-      const original = readFileSync(file, "utf8");
-      for (const f of group) {
-        let run;
-        try {
-          writeFileSync(file, applyChange(original, f.location, f.replacement));
-          run = runRelated(relativePath, { timeoutMs, afterGreen: true });
-        } finally {
-          writeFileSync(file, original);
-        }
-        if (run.outcome === "interrupted") {
-          interrupted = true;
-          break;
-        }
-        if (run.outcome === "inconclusive") {
-          log(`unclear    ${f.path}:${f.line} ${f.mutator} (no test failed, but the run did not pass)`);
-          continue;
-        }
-        const tests = [...new Set([...baseline.tests, ...run.tests])].sort();
-        verdicts[f.confirmKey] = { verdict: run.outcome === "green", tests: Object.fromEntries(tests.map((t) => [t, hashFile(t)])) };
-        log(`${run.outcome === "green" ? "confirmed" : "refuted  "}  ${f.path}:${f.line} ${f.mutator}${run.outcome === "timeout" ? " (the tests hung)" : ""}`);
-      }
-      if (interrupted) break;
+      const tests = [...new Set([...baseline.tests, ...run.tests])].sort();
+      verdicts[f.confirmKey] = { verdict: run.outcome === "green", tests: Object.fromEntries(tests.map((t) => [t, hashFile(t)])) };
+      log(`${run.outcome === "green" ? "confirmed" : "refuted  "}  ${f.path}:${f.line} ${f.mutator}${run.outcome === "timeout" ? " (the tests hung)" : ""}`);
     }
-  } finally {
-    process.off("SIGINT", ignore);
-    process.off("SIGTERM", ignore);
   }
   return { verdicts, interrupted };
 }
@@ -436,6 +481,13 @@ export function confirmFindings(findings, packageDir, { runRelated, isClean, has
  * (its key, which carries the file's content, is in `liveKeys`), and every
  * test file that ran for it has the same content now (`hashFile` returns
  * undefined for a file that is gone).
+ *
+ * What a verdict does not see: a change to a file the tests import but do not
+ * name (a shared helper, a fixture, another source module) or to the vitest
+ * config. An edit there that undoes a catch keeps the cached refutation, and
+ * the finding stays hidden until the changed file, or a test that ran, is
+ * touched. Stryker's own incremental mode has the same limit. Removing the
+ * target's `confirmed.json` judges every finding again.
  */
 export function keepVerdicts(cached, liveKeys, hashFile) {
   const kept = {};
@@ -649,13 +701,16 @@ export function readRuns(dirs) {
 }
 
 function parseArgs(argv) {
-  const opts = { targets: undefined, run: undefined, out: undefined, only: undefined, report: false, inputs: [], json: false, publish: false, failed: false, repo: undefined, runUrl: undefined };
+  const opts = { targets: undefined, run: undefined, out: undefined, only: undefined, dryRun: false, budget: undefined, list: false, report: false, inputs: [], json: false, publish: false, failed: false, repo: undefined, runUrl: undefined };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--targets") opts.targets = argv[++i];
     else if (arg === "--run") opts.run = argv[++i];
     else if (arg === "--out") opts.out = argv[++i];
     else if (arg === "--only") opts.only = argv[++i];
+    else if (arg === "--dry-run") opts.dryRun = true;
+    else if (arg === "--budget") opts.budget = Number(argv[++i]);
+    else if (arg === "--list") opts.list = true;
     else if (arg === "--report") opts.report = true;
     else if (arg === "--input") opts.inputs.push(argv[++i]);
     else if (arg === "--json") opts.json = true;
@@ -665,12 +720,14 @@ function parseArgs(argv) {
     else if (arg === "--run-url") opts.runUrl = argv[++i];
     else throw new Error(`unknown argument: ${arg}`);
   }
-  const modes = [opts.run !== undefined, opts.report, opts.failed].filter(Boolean).length;
-  if (modes !== 1) throw new Error("give exactly one of --run <target>, --report or --failed");
+  const modes = [opts.run !== undefined, opts.list, opts.report, opts.failed].filter(Boolean).length;
+  if (modes !== 1) throw new Error("give exactly one of --run <target>, --list, --report or --failed");
   if (opts.failed && !(opts.repo && opts.runUrl)) throw new Error("--failed needs --repo and --run-url");
   if (!opts.failed && !opts.targets) throw new Error("--targets <file> is required");
   if (opts.run !== undefined && !opts.out) throw new Error("--run needs --out <dir>");
-  if (opts.only && opts.run === undefined) throw new Error("--only is for --run");
+  if ((opts.only || opts.dryRun || opts.budget !== undefined) && opts.run === undefined) throw new Error("--only, --dry-run and --budget are for --run");
+  if (opts.dryRun && (opts.only || opts.budget !== undefined)) throw new Error("--dry-run runs the whole target's first run and confirms nothing, so it takes no --only or --budget");
+  if (opts.budget !== undefined && !(opts.budget > 0)) throw new Error("--budget is a number of minutes, more than 0");
   if (opts.report && opts.inputs.length === 0) throw new Error("--report needs at least one --input <dir>");
   if (opts.publish && !(opts.report && opts.repo)) throw new Error("--publish is for --report, with --repo");
   return opts;
@@ -686,33 +743,80 @@ function loadTargets(path) {
   return targets;
 }
 
-function runTarget(opts) {
+/**
+ * Runs every test that imports `file` (package-relative) with the package's
+ * own config, writing vitest's JSON report to `reportPath`, and reads the
+ * outcome (`relatedOutcome`) and the test files that ran. A run that outlives
+ * `timeoutMs` is stopped and reads "timeout"; any other failure to start it
+ * is thrown, since it proves nothing about the change. The limit sends
+ * SIGTERM to `npx`, which passes it on to vitest and waits for it: vitest
+ * exits on it (143), so a change that hangs a test cannot hold the step, but
+ * a test runner that ignored SIGTERM would.
+ */
+export function runRelatedTests(packageDir, file, reportPath, { timeoutMs, afterGreen }) {
+  rmSync(reportPath, { force: true });
+  const run = spawnSync("npx", ["--no-install", "vitest", "related", "--run", file, "--reporter=json", `--outputFile=${reportPath}`], { cwd: packageDir, stdio: "ignore", timeout: timeoutMs });
+  if (run.error && run.error.code !== "ETIMEDOUT") throw run.error;
+  let json;
+  try {
+    json = JSON.parse(readFileSync(reportPath, "utf8"));
+  } catch {
+    json = undefined;
+  }
+  const tests = (json?.testResults ?? []).map((t) => relative(packageDir, t.name).split("\\").join("/"));
+  return { outcome: relatedOutcome(run, json, { afterGreen }), tests };
+}
+
+/**
+ * Removes the setup files Stryker's vitest runner writes into the package,
+ * `stryker-setup-<worker>.js`, one per test-runner worker. Run in place, it
+ * deletes each only when that worker's vitest closes, and the runner a freed
+ * checker becomes is not always closed first: a one-file sweep of the
+ * runner's pricing code left `stryker-setup-1.js` behind (Stryker 10.0.0,
+ * 2026-10-02), which the next run refuses as an untracked file.
+ */
+function removeStrykerSetupFiles(packageDir) {
+  for (const entry of readdirSync(packageDir)) {
+    if (/^stryker-setup-\d+\.js$/.test(entry)) rmSync(join(packageDir, entry), { force: true });
+  }
+}
+
+async function runTarget(opts) {
   const targets = loadTargets(opts.targets);
   const target = targets[opts.run];
   if (!target) throw new Error(`no target "${opts.run}" in ${opts.targets} (known: ${Object.keys(targets).join(", ")})`);
   const repo = root();
   const packageDir = join(repo, target.package);
-  // A one-file check writes beside the weekly run's directory, never into it,
-  // so it cannot replace that run's report or its cache of verdicts.
-  const outDir = resolve(opts.out, opts.only ? `${opts.run}.only` : opts.run);
+  // A one-file check and a dry run write beside the weekly run's directory,
+  // never into it, so neither can replace that run's report or its cache.
+  const outDir = resolve(opts.out, opts.only ? `${opts.run}.only` : opts.dryRun ? `${opts.run}.dry-run` : opts.run);
   mkdirSync(outDir, { recursive: true });
+  // The record names this run's commit only once this run's report exists.
+  // The directory may hold an earlier run's record and report (a workflow
+  // restores last week's state into it), so both go before anything can
+  // refuse the run: a refused run must leave nothing to publish.
+  rmSync(join(outDir, "target.json"), { force: true });
+  rmSync(join(outDir, "mutation.json"), { force: true });
   // Both sides through realpath: git names the repository by its real path, and a
   // path given through a symlink (macOS's /var is /private/var) would read as outside it.
   if (opts.only && !existsSync(opts.only)) throw new Error(`--only ${opts.only}: no such file`);
   const only = opts.only ? relative(realpathSync(packageDir), realpathSync(resolve(opts.only))).split("\\").join("/") : undefined;
   if (only && only.startsWith("..")) throw new Error(`--only ${opts.only} is not inside ${target.package}`);
-  const dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=no", "--", target.package], { cwd: repo, encoding: "utf8" }).trim();
-  if (dirty) throw new Error(`${target.package} has uncommitted changes; the sweep changes its files in place and must be able to restore them from git:\n${dirty}`);
+  // Untracked files count: Stryker changes a file a glob matches whether git
+  // tracks it or not, and git cannot restore an untracked one after a killed run.
+  const dirty = execFileSync("git", ["status", "--porcelain", "--", target.package], { cwd: repo, encoding: "utf8" }).trim();
+  if (dirty) throw new Error(`${target.package} has uncommitted changes or untracked files; the sweep changes its files in place and must be able to restore them from git:\n${dirty}`);
   const configPath = join(outDir, "stryker.config.json");
-  writeFileSync(configPath, `${JSON.stringify(strykerConfig(target, outDir, { only }), null, 2)}\n`);
+  writeFileSync(configPath, `${JSON.stringify(strykerConfig(target, outDir, { only, dryRun: opts.dryRun }), null, 2)}\n`);
   const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
-  // The record names this run's commit only once this run's report exists: a
-  // failed run must not leave an earlier report under the new commit.
-  rmSync(join(outDir, "target.json"), { force: true });
-  rmSync(join(outDir, "mutation.json"), { force: true });
   const result = spawnSync("npx", ["--no-install", "stryker", "run", configPath], { cwd: packageDir, stdio: "inherit" });
+  removeStrykerSetupFiles(packageDir);
   if (result.error) throw result.error;
   if (result.status !== 0) return result.status ?? 2;
+  if (opts.dryRun) {
+    console.log(`mutation-sweep: ${opts.run}'s tests pass under Stryker; nothing was swept`);
+    return 0;
+  }
 
   // The confirm step. The cache holds the earlier runs' verdicts (restored
   // beside the incremental file); one is kept only while its finding is still
@@ -731,31 +835,47 @@ function runTarget(opts) {
   const pending = toConfirm(summarize(report, target.package, { confirmed: verdictsOf(cached) }));
   console.log(`mutation-sweep: confirming ${pending.length} not-noticed change(s) against every test that imports each file`);
   const vitestReport = join(outDir, "related.json");
-  const { verdicts, interrupted } = confirmFindings(pending, packageDir, {
-    runRelated: (file, { timeoutMs, afterGreen }) => {
-      rmSync(vitestReport, { force: true });
-      const run = spawnSync("npx", ["--no-install", "vitest", "related", "--run", file, "--reporter=json", `--outputFile=${vitestReport}`], { cwd: packageDir, stdio: "ignore", timeout: timeoutMs });
-      if (run.error && run.error.code !== "ETIMEDOUT") throw run.error;
-      let json;
-      try {
-        json = JSON.parse(readFileSync(vitestReport, "utf8"));
-      } catch {
-        json = undefined;
-      }
-      const tests = (json?.testResults ?? []).map((t) => relative(packageDir, t.name).split("\\").join("/"));
-      return { outcome: relatedOutcome(run, json, { afterGreen }), tests };
-    },
-    isClean: (file) => execFileSync("git", ["status", "--porcelain", "--", file], { cwd: repo, encoding: "utf8" }).trim() === "",
-    hashFile,
-    log: (line) => console.log(`mutation-sweep: ${line}`),
-  });
+  // The confirm step changes a real file while each child runs, so a signal
+  // must not kill this process mid-change. The loop is synchronous, so Node
+  // runs these listeners only once it returns: a Ctrl-C reaches the child too
+  // and is seen at once, while a signal sent to this process alone is seen
+  // when the step ends, which then exits 130 instead of 0.
+  const received = [];
+  const note = (signal) => received.push(signal);
+  process.on("SIGINT", note);
+  process.on("SIGTERM", note);
+  let outcome;
+  try {
+    outcome = confirmFindings(pending, packageDir, {
+      runRelated: (file, options) => runRelatedTests(packageDir, file, vitestReport, options),
+      isClean: (file) => execFileSync("git", ["status", "--porcelain", "--", file], { cwd: repo, encoding: "utf8" }).trim() === "",
+      hashFile,
+      log: (line) => console.log(`mutation-sweep: ${line}`),
+      deadline: opts.budget === undefined ? undefined : opts.startedAt + opts.budget * 60_000,
+    });
+    // A signal that arrived while a child ran waits for the event loop to
+    // deliver it. One turn is enough on Node 22 but not on 23, which delivers
+    // it only after a timer has run; a short timer covers both.
+    await new Promise((settle) => setTimeout(settle, 100));
+  } finally {
+    process.off("SIGINT", note);
+    process.off("SIGTERM", note);
+  }
+  const interrupted = outcome.interrupted || received.length > 0;
   rmSync(vitestReport, { force: true });
-  writeFileSync(confirmedPath, `${JSON.stringify({ ...cached, ...verdicts }, null, 2)}\n`);
+  writeFileSync(confirmedPath, `${JSON.stringify({ ...cached, ...outcome.verdicts }, null, 2)}\n`);
   // The record comes last, so a run whose confirm step threw leaves none for
   // `--report` to publish.
   writeFileSync(join(outDir, "target.json"), `${JSON.stringify({ target: opts.run, package: target.package, commit, only: only ?? null }, null, 2)}\n`);
   if (interrupted) console.error("mutation-sweep: interrupted; the file being checked was restored, and the verdicts so far are saved");
   return interrupted ? 130 : 0;
+}
+
+/** The targets file's targets, validated, as `[{ name, package }]`: what a workflow builds its matrix from. */
+function listTargets(opts) {
+  const targets = loadTargets(opts.targets);
+  console.log(JSON.stringify(Object.entries(targets).map(([name, target]) => ({ name, package: target.package }))));
+  return 0;
 }
 
 function previousIssues(repo) {
@@ -820,16 +940,18 @@ function failed(opts) {
   return 0;
 }
 
-function main(argv) {
-  const opts = parseArgs(argv);
+async function main(argv) {
+  const startedAt = Date.now();
+  const opts = { ...parseArgs(argv), startedAt };
   if (opts.run !== undefined) return runTarget(opts);
+  if (opts.list) return listTargets(opts);
   if (opts.failed) return failed(opts);
   return report(opts);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    process.exitCode = main(process.argv.slice(2));
+    process.exitCode = await main(process.argv.slice(2));
   } catch (error) {
     console.error(`mutation-sweep: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 2;

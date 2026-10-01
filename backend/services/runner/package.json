@@ -133,6 +133,9 @@
     "zod-to-json-schema": "^3.24.0"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/typescript-checker": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
     "@temporalio/testing": "1.16.2",
     "@types/js-yaml": "^4.0.9",
     "@types/proper-lockfile": "^4.1.4",

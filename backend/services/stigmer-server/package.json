@@ -84,6 +84,9 @@
   "devDependencies": {
     "@connectrpc/connect-web": "^2.0.0",
     "@opentelemetry/sdk-metrics": "^2.0.0",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/typescript-checker": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
     "@temporalio/testing": "1.16.2",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "22.20.1",
