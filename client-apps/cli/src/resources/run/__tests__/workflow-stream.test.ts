@@ -4,7 +4,11 @@
 // (the canonical event stream) plus get + submitApproval, points an SDK node
 // client at it, and drives streamWorkflowExecution end to end: NDJSON vs inline
 // rendering (D-WF-1), policy-driven approval submission on approval_requested,
-// terminal-event stop, and the final-Get epilogue summary.
+// terminal-event stop, and the final-Get epilogue summary. Then, against a
+// scripted event source, that the subscription never outlives the stream: it
+// is read to its end after the terminal event, cancelled when a server keeps
+// it open past the grace period, and its signal aborted on every way out
+// (#1625, the agent path's #1522).
 
 import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -24,7 +28,8 @@ import type { Stigmer } from "@stigmer/sdk";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
 import type { AddressInfo } from "node:net";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { SUBSCRIPTION_DRAIN_GRACE_MS } from "../../stream/headless.js";
 import { streamWorkflowExecution, type WorkflowStreamStreams } from "../workflow-stream.js";
 
 let backend: Http2Server;
@@ -153,5 +158,86 @@ describe("live run workflow streaming", () => {
 
     expect(approvals).toHaveLength(0);
     expect(cap.status()).toContain("stigmer execution approve wex_1 --tool-call tc_99 --action approve");
+  });
+});
+
+/** A client whose event stream is `events(signal)`, with the final Get the epilogue reads. */
+function scriptedClient(events: (signal: AbortSignal) => AsyncIterable<WorkflowExecutionEvent>): Stigmer {
+  const workflowExecution = {
+    subscribeEvents: (_request: unknown, signal: AbortSignal) => events(signal),
+    get: async () => finalExec,
+    submitApproval: async () => finalExec,
+  };
+  return { workflowExecution } as unknown as Stigmer;
+}
+
+const started = () => event(WorkflowEventType.execution_started, { case: "executionStarted", value: {} as never });
+const completed = () => event(WorkflowEventType.execution_completed, { case: "executionCompleted", value: {} as never });
+
+describe("the subscription never outlives the stream", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("reads the stream to its end after the terminal event, rendering nothing more", async () => {
+    const cap = capture();
+    let readToEnd = false;
+    const client = scriptedClient(async function* () {
+      yield started();
+      yield completed();
+      yield event(WorkflowEventType.task_started, { case: "taskStarted", value: {} as never }, "late");
+      readToEnd = true;
+    });
+    await streamWorkflowExecution({ client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, cap.streams);
+    expect(readToEnd).toBe(true);
+    expect(cap.data().trim().split("\n").map((line) => JSON.parse(line).type)).toEqual(["execution_started", "execution_completed"]);
+    expect(cap.status()).toContain("Workflow completed");
+  });
+
+  it("is cancelled when the server keeps it open past the grace period, and the run's summary stands", async () => {
+    vi.useFakeTimers();
+    const cap = capture();
+    let given: AbortSignal | undefined;
+    const client = scriptedClient(async function* (signal) {
+      given = signal;
+      yield completed();
+      await new Promise((_resolve, reject) =>
+        signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true }),
+      );
+    });
+    const running = streamWorkflowExecution(
+      { client, executionId: "wex_1", outputMode: "inline", defaultAction: ApprovalAction.UNSPECIFIED },
+      cap.streams,
+    );
+    await vi.advanceTimersByTimeAsync(SUBSCRIPTION_DRAIN_GRACE_MS - 1);
+    expect(given?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    const result = await running;
+    expect(given?.aborted).toBe(true);
+    expect(result.metadata?.id).toBe("wex_1");
+    expect(cap.status()).toContain("Workflow completed");
+  });
+
+  it.each([
+    ["a terminal event", () => [started(), completed()]],
+    ["a stream that ends first", () => [started()]],
+  ])("aborts its signal once the stream ends on %s", async (_label, script) => {
+    let given: AbortSignal | undefined;
+    const client = scriptedClient(async function* (signal) {
+      given = signal;
+      yield* script();
+    });
+    await streamWorkflowExecution({ client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, capture().streams);
+    expect(given?.aborted).toBe(true);
+  });
+
+  it("still fails on a stream error before the terminal event", async () => {
+    const client = scriptedClient(async function* () {
+      yield started();
+      throw new Error("the stream dropped");
+    });
+    await expect(
+      streamWorkflowExecution({ client, executionId: "wex_1", outputMode: "json", defaultAction: ApprovalAction.UNSPECIFIED }, capture().streams),
+    ).rejects.toThrow("the stream dropped");
   });
 });

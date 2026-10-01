@@ -29,6 +29,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import { shouldColorize, type Styler, styler } from "../../output/style.js";
 import { calculateDuration } from "../execution-format.js";
 import { formatWorkflowPhase } from "../execution.js";
+import { SUBSCRIPTION_DRAIN_GRACE_MS } from "../stream/headless.js";
 import { APPROVAL_RETRY_BASE_DELAY_MS, APPROVAL_RETRY_MAX_ATTEMPTS, retryWithBackoff } from "../stream/submit.js";
 import { toWorkflowEventView } from "../stream/workflow-event-view.js";
 import { renderWorkflowEventPlaintext } from "../stream/workflow-render-plaintext.js";
@@ -56,6 +57,15 @@ export interface WorkflowStreamStreams {
  * Stream a workflow execution to a terminal state, then print a summary. Returns
  * the authoritative final execution (a final Get), mirroring the agent path's
  * return for symmetry. Ctrl-C aborts the subscription cleanly.
+ *
+ * The subscription never outlives the stream, as on the agent path
+ * (resources/stream/headless.ts, #1522): after the terminal event the loop
+ * keeps reading, rendering nothing more, until the server ends the
+ * subscription, which it does on a terminal phase. Leaving the loop early
+ * leaves the HTTP/2 stream's remaining frames unread, so the stream is never
+ * destroyed and holds the process alive after the run has finished (#1625).
+ * A server that does not end it within SUBSCRIPTION_DRAIN_GRACE_MS is
+ * cancelled, and the subscription's own signal is aborted on every way out.
  */
 export async function streamWorkflowExecution(
   deps: WorkflowStreamDeps,
@@ -66,20 +76,30 @@ export async function streamWorkflowExecution(
   process.once("SIGINT", onSignal);
   process.once("SIGTERM", onSignal);
 
+  const subscription = new AbortController();
   const resolved = new Set<string>();
+  let ended = false;
+  let grace: ReturnType<typeof setTimeout> | undefined;
   try {
     const stream = deps.client.workflowExecution.subscribeEvents(
       create(SubscribeEventsRequestSchema, { executionId: deps.executionId }),
-      controller.signal,
+      AbortSignal.any([controller.signal, subscription.signal]),
     );
     for await (const event of stream) {
+      if (ended) continue;
       renderEvent(event, deps.outputMode, streams);
       await maybeResolveApproval(event, deps, streams, resolved, controller.signal);
-      if (toWorkflowEventView(event).terminal) break;
+      if (toWorkflowEventView(event).terminal) {
+        ended = true;
+        grace = setTimeout(() => subscription.abort(), SUBSCRIPTION_DRAIN_GRACE_MS);
+      }
     }
   } catch (error) {
-    if (!controller.signal.aborted) throw error;
+    // After the terminal event the only error is the grace period's own cancel.
+    if (!ended && !controller.signal.aborted) throw error;
   } finally {
+    clearTimeout(grace);
+    subscription.abort();
     process.removeListener("SIGINT", onSignal);
     process.removeListener("SIGTERM", onSignal);
   }
