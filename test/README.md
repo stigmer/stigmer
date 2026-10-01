@@ -10,20 +10,20 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 
 ## The rules every test keeps
 
-A green run must mean the tests ran. These five rules bind every test in this repository and in stigmer-cloud, whoever writes it:
+A green run must mean the tests ran. Every test in this repository keeps five rules:
 
 1. A test that cannot run fails, or skips with its reason printed. It never passes.
 2. A missing dependency may skip a test only outside the gate. The gate provides every dependency, and inside it (`STIGMER_TEST_GATE=1`) the helper behind such a skip throws instead.
 3. A test is never retried into green. A flaky test is quarantined by name, against an open issue, until it is fixed.
-4. A change that adds or changes code changes the tests that pin it.
-5. The gate's own files (its workflows, the test configs, thresholds and baselines, the hooks, and these rules) change only with a maintainer's explicit approval.
+4. A change that adds or changes behaviour changes the tests that pin it. A refactor that changes no behaviour keeps them passing as they are.
+5. The gate's own files change only with a maintainer's explicit approval: the workflows under `.github/workflows/`, the vitest and Playwright configs, `scripts/ci-lanes.mjs`, `scripts/test-integrity.mjs`, `scripts/review-verdict.mjs`, the review brief in `.agents/skills/review-pull-request/SKILL.md`, and this section.
 
-How they are enforced:
+What holds them:
 
-- `scripts/test-integrity.mjs` refuses the ways a suite goes quiet without going red: a focused `.only`, a valueless `return` in a test body, a config that retries or passes with no tests, a deleted case, a new skip, and a skip in a run that nothing explains. Its header has the full rules.
+- `scripts/test-integrity.mjs`, as the required `Test integrity` check, refuses the ways a suite goes quiet without going red. On every tree: a focused `.only`, a valueless `return` in a test body, a config that retries or passes with no tests. On a pull request, against its base: a deleted case and a new skip. Its header has the full rules. Its run-report rule, which refuses a run-time skip nothing explains, is not yet run by this repository's gate (#1610).
 - An exception is declared in the pull request's body, one line each: `Test-removal: <case or file> -- <reason>`, `Quarantine: <case or file> -- <repo>#<issue>`, `Skip: <case or file> -- <why it does not apply there>`, `RPC-waiver: <Service>.<method> -- <why no conformance test pins it>`. A declaration makes the exception loud; it does not make it right.
-- `Gate` (every lane the change needs), `Test integrity` and `Review verdict` are required checks on `main`, through the merge queue, with no bypass.
-- A reviewer that did not write the pull request reads the change and every declaration, and the merge waits for its current approve (`.agents/skills/review-pull-request/SKILL.md`).
+- `Gate` (every lane the change needs, with `STIGMER_TEST_GATE=1`), `Test integrity` and `Review verdict` are required checks on `main`, through the merge queue, with no bypass.
+- A reviewer that did not write the pull request reads the change and every declaration, and `Review verdict` waits for its current approve (`.agents/skills/review-pull-request/SKILL.md`). Rules 4 and 5 are held by that review alone: the brief judges the tests a change carries, and reads a change to a required check's workflow, the verdict script or the brief itself as a change to what every later pull request must pass, where an unjustified weakening is a blocking finding.
 
 There is no Go test harness any more. The five Go suites under `test/integration*` booted the retired Java service and retired with it on 2026-09-10: the four Java-only suites in stigmer#1024, their coverage accounted for row by row in the conformance suite; the offline runner suite in stigmer#1022, ported arm for arm into the conformance execution class; and the shared harness deleted with it in stigmer#1031. The follow-ups that retirement left open are tracked on stigmer#988.
 
