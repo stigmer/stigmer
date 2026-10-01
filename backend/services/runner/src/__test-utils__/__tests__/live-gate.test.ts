@@ -1,7 +1,10 @@
 /**
  * Pins the live layer's gate (`live-gate.ts`): a missing key skips outside
  * the live lane and fails inside it, a key's value never reaches a message,
- * and a case's spend lands in the step summary when one is named.
+ * a case's spend lands in the step summary when one is named (a missing or
+ * zero estimate reads as none, never as free), and `useProviderDirectly`
+ * clears every provider redirect for a run and restores the environment
+ * exactly.
  *
  * These run in the ordinary suite because the rule they pin decides whether
  * the live lane can go quietly green; the live suites themselves run only

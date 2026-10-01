@@ -1,7 +1,9 @@
 /**
  * Pins the live tests' one cross-package read (`real-model-registry.ts`):
  * the server's committed registry is where the helper looks, it parses to
- * the shape the live tests read, and the two rows they rely on are there.
+ * the shape the live tests read, the native live model is there with a
+ * provider id of its own, the Cursor Auto pool is left out of the catalog
+ * rows, and `parseRealRegistry` refuses each malformed shape, naming the file.
  *
  * Runs in the ordinary suite, so the day the server moves or reshapes the
  * file this goes red on that pull request, not in the live lane after a
