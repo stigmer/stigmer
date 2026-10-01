@@ -46,14 +46,16 @@ names what makes it checkable. A question the code cannot answer is a finding.
 6. **The web surface says who can now reach what.** A change to a redirect, a
    CORS header or a cookie names, in its pull request, who gains access. A
    redirect target taken from input stays on its own origin (#1586). Credentials
-   are never allowed for any origin (#1582).
+   are never allowed for any origin; the server still allows them, and #1582
+   tracks that until it closes, so a change neither copies nor widens it.
 7. **A new dependency or action is pinned and justified.** The pull request says
    why it is needed. An action is pinned by its full commit SHA, and a workflow
    change keeps `make lint-workflows` at zero findings.
 8. **No pattern can be turned against the process.** A regular expression run on
    untrusted text cannot backtrack: no unanchored repetition before `$`, no
    nested or overlapping quantifiers (#1586). An object write keyed by input
-   refuses `__proto__`, `constructor` and `prototype` (#1583).
+   refuses `__proto__`, `constructor` and `prototype`; #1583 tracks the one
+   utility that does not yet.
 
 ## How a reviewer reports
 
