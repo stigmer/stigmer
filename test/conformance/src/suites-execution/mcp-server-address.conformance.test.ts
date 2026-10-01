@@ -25,9 +25,9 @@
 // its backend endpoint, so the arm proves the fill reaches the server end to
 // end, not which of the two it read: that a remote server is filled from the
 // public endpoint alone is pinned beside the code
-// (runner shared/__tests__/platform-server-address.test.ts). Deliberately out of scope: WHICH endpoint each production
-// launcher passes (`stigmer up`, the chart, the desktop), pinned per launcher
-// beside its code. An unresolved `${STIGMER_SERVER_ADDRESS}` makes the runner
+// (runner shared/__tests__/platform-server-address.test.ts). Deliberately
+// out of scope: WHICH endpoint each production launcher passes (`stigmer up`,
+// the chart, the desktop), pinned per launcher beside its code. An unresolved `${STIGMER_SERVER_ADDRESS}` makes the runner
 // skip the server, so a fixture that receives the call has already shown no
 // placeholder failed.
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
