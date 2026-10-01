@@ -48,10 +48,12 @@
  * hides, misleads the reader and the run alike, and a test outside the place
  * its layer lives is one no reader finds.
  *   - a retired word (`integration`, `e2e`, `contract`, `smoke`, `measure`,
- *     `a11y`, `layout`) as the last word of a test file's name;
+ *     `a11y`, `layout`) as the last word of a test file's name, or right
+ *     before its service and layer words (`a11y` or `layout` before `browser`
+ *     is an audit's topic);
  *   - a layer word where its layer does not live: `conformance` outside
  *     test/conformance/src/suites*, `browser` in a package no vitest config
- *     collects `*.browser.test.*` in, `load` in a package with no
+ *     names `*.browser.test.*` in an `include`, `load` in a package with no
  *     vitest.load.config;
  *   - a service the file reaches that its name does not carry, and a service
  *     word on a file that never reaches it. Reaching is a value use of the
@@ -404,17 +406,23 @@ export function checkConfig(ts, path, text) {
 
 /**
  * A test file's name words: the last dotted segment before `.test` or `.spec`,
- * and the service and layer words before it. The first segment is the
- * topic and is never a word (`postgres-kinds.postgres.test.ts` carries one).
+ * and the service and layer words before it, with the segment just before
+ * those words (`before`). The first segment is the topic and is never a word
+ * (`postgres-kinds.postgres.test.ts` carries one).
  */
 export function nameWords(path) {
   const match = /^(.*)\.(?:test|spec)\.[cm]?[jt]sx?$/.exec(posix.basename(path));
-  if (!match) return { words: [], last: undefined };
+  if (!match) return { words: [], last: undefined, before: undefined };
   const segments = match[1].split(".");
   const reserved = new Set([...SERVICE_WORDS, ...LAYER_WORDS]);
   const words = [];
-  for (let i = segments.length - 1; i >= 1 && reserved.has(segments[i]); i--) words.unshift(segments[i]);
-  return { words, last: segments.length > 1 ? segments[segments.length - 1] : undefined };
+  let i = segments.length - 1;
+  for (; i >= 1 && reserved.has(segments[i]); i--) words.unshift(segments[i]);
+  return {
+    words,
+    last: segments.length > 1 ? segments[segments.length - 1] : undefined,
+    before: words.length > 0 && i >= 1 ? segments[i] : undefined,
+  };
 }
 
 /** Whether an import declaration brings in a value, not only types. */
@@ -508,6 +516,20 @@ export function makeReach(ts, files, read) {
   return { reach, scan };
 }
 
+/** The globs a config's `include` arrays name; an `exclude` or a comment collects nothing. */
+export function configIncludes(ts, path, text) {
+  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const globs = [];
+  const walk = (node) => {
+    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === "include" && ts.isArrayLiteralExpression(node.initializer)) {
+      for (const e of node.initializer.elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) globs.push(e.text);
+    }
+    ts.forEachChild(node, walk);
+  };
+  walk(sf);
+  return globs;
+}
+
 /**
  * The layout rules over the tree (see the header). `tests` are the tracked
  * test files, `files` every tracked TypeScript module, `read` a module's text,
@@ -523,16 +545,20 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
   const find = (rule, path, line, message, detail) => findings.push({ rule, path, line, message, ...(detail ? { detail } : {}) });
 
   for (const path of tests) {
-    const { words, last } = nameWords(path);
+    const { words, last, before } = nameWords(path);
     const spec = /\.spec\.[cm]?[jt]sx?$/.test(path);
-    if (last && RETIRED_WORDS.includes(last)) {
-      find("layout-retired-word", path, 1, `"${last}" is a retired name word: name the file for its layer or its service (test/README.md, "Names")`);
+    // A retired word is refused as the last word, and right before the words
+    // (`x.integration.postgres`), except an audit's topic before `browser`.
+    const topicBeforeBrowser = words[0] === "browser" && (before === "a11y" || before === "layout");
+    const retired = [last, before].find((w) => w && RETIRED_WORDS.includes(w) && !(w === before && topicBeforeBrowser));
+    if (retired) {
+      find("layout-retired-word", path, 1, `"${retired}" is a retired name word: name the file for its layer or its service (test/README.md, "Names")`, retired);
     }
     if (words.includes("conformance") && !path.startsWith("test/conformance/src/suites")) {
       find("layout-word-place", path, 1, "a `conformance` file lives in test/conformance/src/suites*", "conformance");
     }
     const pkg = packageOf(path, packageDirs);
-    if (words.includes("browser") && !configsIn(pkg).some((c) => c.text.includes(".browser.test"))) {
+    if (words.includes("browser") && !configsIn(pkg).some((c) => configIncludes(ts, c.path, c.text).some((g) => g.includes(".browser.test")))) {
       find("layout-word-place", path, 1, `no vitest config in ${pkg} collects \`*.browser.test.*\`, so nothing runs this file in a browser`, "browser");
     }
     if (words.includes("load") && !configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) {

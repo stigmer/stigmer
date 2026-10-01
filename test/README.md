@@ -21,7 +21,7 @@ Every test in this repository and in stigmer-cloud belongs to one layer. The lay
 | contract | every assembled edition keeps the API's promises | `test/conformance/src/suites*/` | `*.conformance.test.ts` | `make test-conformance`, `make test-conformance-execution` |
 | e2e | a person's journey through an app in a browser | `test/e2e/tests/` (the console), `site/e2e/` (the site) | `*.spec.ts` | `make test-e2e*`, `make test-demos` |
 | install | a shipped artifact installs, runs an agent, upgrades | `test/install/` (today `scripts/smoke-*.mjs` and `scripts/rehearse-upgrade.mjs`) | one script per artifact | `make smoke-<artifact>`, `make rehearse-upgrade ARTIFACT=<artifact>` |
-| load | behaviour under volume, on its own cadence | beside the code | `*.load.test.ts`, collected only by the package's `vitest.load.config.ts` | `npm run test:load`, by hand |
+| load | behaviour under volume, on its own cadence | beside the code | `*.load.test.ts`, collected only by the package's `vitest.load.config.ts` (none in this repository yet; stigmer-cloud's composition has one) | `npm run test:load`, by hand |
 | live | real providers and models, budget-capped | beside the code | `*.live.test.ts` | by hand or at release |
 | synthetic | production works now | stigmer-cloud `_ops/probes/*-smoke` | one probe per journey | on a schedule |
 | tooling | a plain-Node repository script (`*.mjs`) | beside the script | `*.test.mjs` | `node --test`: `npm run test:scripts`, or the package's `test:scripts` |
@@ -34,7 +34,7 @@ The name of a test file is read at its last dotted segments before `.test` or `.
 
 - **Services**, the ones a gate provides: `postgres`, `openfga`, `vault` (OpenBAO), `temporal`. A file that reaches one carries its word, and a file that carries one reaches it. Reaching is a value use of the service's entry point, in the file or in a test helper it imports: a call of `testDatabaseAdminUrl` or `createTestDatabase`, a `gateDependency` call for the service's variable, or a `TestWorkflowEnvironment.createLocal()` or `createTimeSkipping()` that starts a Temporal test server (`MockActivityEnvironment` starts none). A type-only import or a mention in a string reaches nothing.
 - **Layers**: `composed`, `conformance`, `browser`, `load`, `live`. A layer word goes only where its layer lives. A `composed`, `conformance`, `load` or `live` file may use any service without naming it.
-- **Retired**, and refused: `integration`, `e2e`, `contract`, `smoke`, `measure`, `a11y`, `layout`. Each meant something different in different places. A test that used to say `integration` is unit, integration or composed by the table; an accessibility audit is `<topic>.a11y.browser.test.tsx`.
+- **Retired**, and refused as the last word or right before the service and layer words: `integration`, `e2e`, `contract`, `smoke`, `measure`, `a11y`, `layout`. The one exception is `a11y` or `layout` before `browser`, which names what a browser test audits. Each meant something different in different places. A test that used to say `integration` is unit, integration or composed by the table; an accessibility audit is `<topic>.a11y.browser.test.tsx`.
 
 `git`, `process` and `docker` are not words: every machine that runs the tests has the first two, and no gate provides the third, so the word could promise a run that never happens.
 

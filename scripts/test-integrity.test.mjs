@@ -435,13 +435,13 @@ it("the report counts the run's skips and lists the explained ones", () => {
 // ─── Layout: names and places ───────────────────────────────────────────
 
 it("a name's words are its last segment and the service and layer words before it; the topic is never a word", () => {
-  assert.deepEqual(nameWords("x/__tests__/team.openfga.postgres.test.ts"), { words: ["openfga", "postgres"], last: "postgres" });
-  assert.deepEqual(nameWords("x/__tests__/panel.a11y.browser.test.tsx"), { words: ["browser"], last: "browser" });
-  assert.deepEqual(nameWords("x/__tests__/postgres-kinds.postgres.test.ts"), { words: ["postgres"], last: "postgres" });
-  assert.deepEqual(nameWords("x/__tests__/postgres.test.ts"), { words: [], last: undefined });
-  assert.deepEqual(nameWords("x/__tests__/scope.load-tenancy.test.ts"), { words: [], last: "load-tenancy" });
-  assert.deepEqual(nameWords("x/__tests__/lane.e2e.test.ts"), { words: [], last: "e2e" });
-  assert.deepEqual(nameWords("test/e2e/tests/login.spec.ts"), { words: [], last: undefined });
+  assert.deepEqual(nameWords("x/__tests__/team.openfga.postgres.test.ts"), { words: ["openfga", "postgres"], last: "postgres", before: undefined });
+  assert.deepEqual(nameWords("x/__tests__/panel.a11y.browser.test.tsx"), { words: ["browser"], last: "browser", before: "a11y" });
+  assert.deepEqual(nameWords("x/__tests__/postgres-kinds.postgres.test.ts"), { words: ["postgres"], last: "postgres", before: undefined });
+  assert.deepEqual(nameWords("x/__tests__/postgres.test.ts"), { words: [], last: undefined, before: undefined });
+  assert.deepEqual(nameWords("x/__tests__/scope.load-tenancy.test.ts"), { words: [], last: "load-tenancy", before: undefined });
+  assert.deepEqual(nameWords("x/__tests__/lane.e2e.test.ts"), { words: [], last: "e2e", before: undefined });
+  assert.deepEqual(nameWords("test/e2e/tests/login.spec.ts"), { words: [], last: undefined, before: undefined });
 });
 
 it("reaching a service is a value use of its entry point; types, strings and an in-process mock reach nothing", () => {
@@ -529,15 +529,22 @@ it("reaching is followed through test helpers only, never into the module under 
   assert.deepEqual(layout(tree), []);
 });
 
-it("a retired word as a name's last word is refused; before a layer word it is a topic", () => {
+it("a retired word is refused as the last word or right before the words; a11y or layout before browser is a topic", () => {
   const configs = { "pkg/vitest.a11y.config.ts": `export default { test: { include: ["src/**/*.browser.test.tsx"] } };` };
-  assert.deepEqual(layout({ "pkg/src/__tests__/lane.integration.test.ts": `it("a", () => {});` }), ["layout-retired-word pkg/src/__tests__/lane.integration.test.ts"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/lane.integration.test.ts": `it("a", () => {});` }), ["layout-retired-word pkg/src/__tests__/lane.integration.test.ts integration"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/panel.a11y.browser.test.tsx": `it("a", () => {});` }, { configs }), []);
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.layout.browser.test.tsx": `it("a", () => {});` }, { configs }), []);
+  const db = `const db = await createTestDatabase(); it("a", () => {});`;
+  assert.deepEqual(layout({ "pkg/src/__tests__/lane.integration.postgres.test.ts": db }), ["layout-retired-word pkg/src/__tests__/lane.integration.postgres.test.ts integration"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/scope.measure.browser.test.tsx": `it("a", () => {});` }, { configs }), ["layout-retired-word pkg/src/__tests__/scope.measure.browser.test.tsx measure"]);
 });
 
 it("a layer word goes only where its layer lives", () => {
   const ok = `it("a", () => {});`;
   assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx browser"]);
+  // A config that only excludes the browser files, or names them in a comment, collects none of them.
+  const excluding = { "pkg/vitest.config.ts": `// *.browser.test.tsx run elsewhere\nexport default { test: { exclude: ["**/*.browser.test.tsx"] } };` };
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }, { configs: excluding }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx browser"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts load"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }, { configs: { "pkg/vitest.load.config.ts": "" } }), []);
   assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts conformance"]);
