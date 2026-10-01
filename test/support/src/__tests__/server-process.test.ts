@@ -1,8 +1,9 @@
 // Unit arms for how spawnServer learns its server's ports (stigmer#1469): the
 // child is handed port 0 for both listeners and asked for its ready line, so
 // no harness ever hands it a port another listener could take; a fixed gRPC
-// port passes through and a report contradicting it is refused; the report is
-// found among other stdout lines and across split writes; and a child that
+// port passes through and a report contradicting it, or naming no bound port,
+// is refused; the report is found among other stdout lines and across split
+// writes; and a child that
 // exits first, or never reports, fails with its log tail (the silent one with
 // the rebuild hint a stale build needs).
 // A fixture child (fixtures/ready-line-server.ts) stands in for the server;
@@ -58,6 +59,14 @@ describe("spawnServer", () => {
     await expect(spawnFixture("wrong-port", { port: 7299 })).rejects.toThrow(
       "stigmer-server was asked for gRPC port 7299 but reported 7300 on its ready line",
     );
+  });
+
+  it("refuses a ready line that names no bound port, with the line and the field", async () => {
+    // The harness runs local artifact storage, so a report without the
+    // artifact lane's port cannot be turned into the runner's serve URL.
+    const failure = spawnFixture("unbound");
+    await expect(failure).rejects.toThrow("stigmer-server printed a ready line naming no bound port (artifactHttpPort)");
+    await expect(failure).rejects.toThrow('"artifactHttpPort":null');
   });
 
   it("skips stdout lines that are not the report, and reads a report written in two parts", async () => {

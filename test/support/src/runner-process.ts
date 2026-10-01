@@ -8,7 +8,7 @@
 // is built from compiled JS, which sidesteps the raw-.ts proto-stub bundler
 // failure. Readiness is the runner's own stdout marker (printed once the
 // Temporal connection is up and the worker is about to poll) — the execution
-// analogue of server-process.ts waiting for a TCP listener.
+// analogue of server-process.ts waiting for the server's ready line.
 //
 // The runner runs in its PRODUCTION OSS POSTURE, not a test-only one. Two
 // things follow:

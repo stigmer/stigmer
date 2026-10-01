@@ -272,9 +272,9 @@ function waitForReadyLine(child: ChildProcess, timeoutMs: number, getLog: () => 
     };
 
     // Silence has two causes, and the error names both: a server still booting
-    // on a saturated machine (the budget is the one the TCP gate before it
-    // had), and a build from before the ready line existed, which both entry
-    // helpers reuse (ts-build.ts, the e2e server manager) and which prints none.
+    // on a saturated machine, and a build from before the ready line existed,
+    // which both entry helpers reuse (ts-build.ts, the e2e server manager) and
+    // which prints none.
     const deadline = setTimeout(() => {
       settle(() =>
         rejectReady(

@@ -114,7 +114,7 @@ export class LocalTarget implements TargetProfile {
     const entry = await ensureTsServerEntry();
     this.storage = await this.provisionStorage();
     // The TS server is a node entry, not a binary — same env contract,
-    // same TCP-readiness gate (server-process.ts).
+    // same ready-line gate (server-process.ts).
     this.server = await spawnServer(process.execPath, {
       args: [entry],
       env: this.storage.serverEnv,

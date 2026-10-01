@@ -1,8 +1,9 @@
 // Waits until a booted server's gRPC stack and store are actually serving.
 // Domain: conformance harness (server lifecycle).
 //
-// TCP-readiness only proves the listener is up; this probe proves the gRPC
-// pipeline and backing store answer real requests before any test runs.
+// The server's ready line only proves the listeners are up; this probe proves
+// the gRPC pipeline and backing store answer real requests before any test
+// runs.
 // findMyOrganizations takes Empty and runs no validation, so it is a pure store
 // probe with no request to construct. Shared by every managed target (local
 // CRUD, local-execution) so they gate on one identical readiness definition.

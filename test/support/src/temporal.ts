@@ -168,8 +168,9 @@ export async function spawnTemporal(): Promise<RunningTemporal> {
 // The frontend port for one attempt: probed and released, the one place in
 // the harness that does so (ports.ts), because the CLI takes `--port` as
 // given and cannot be told 0. A loss of this port is what the attempt loop
-// survives.
-function probeFrontendPort(): Promise<number> {
+// survives. Exported only for the check that runs that loop for real
+// (test/conformance's temporal-port-loss harness suite).
+export function probeFrontendPort(): Promise<number> {
   return new Promise((resolvePort, reject) => {
     const server = createServer();
     server.once("error", reject);
@@ -192,7 +193,8 @@ interface StreamHeads {
 }
 
 // One real boot on a given frontend port: what spawnTemporal loops over, and
-// what a check that hands the loop a taken port first runs it with.
+// what test/conformance's temporal-port-loss harness suite runs the loop with
+// after handing it a taken port first.
 export async function bootTemporalAttempt(port: number): Promise<TemporalBootAttempt> {
   const hostPort = `127.0.0.1:${port}`;
 

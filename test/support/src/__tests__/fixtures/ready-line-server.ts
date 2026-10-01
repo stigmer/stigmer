@@ -7,8 +7,9 @@
 //
 // Modes: "report" (the server's behaviour), "split" (the ready line in two
 // writes, apart in time), "wrong-port" (reports a gRPC port other than the
-// fixed one it was handed), "exit" (a line on stderr, then exit code 3), and
-// "silent" (binds and never reports).
+// fixed one it was handed), "unbound" (reports no artifact lane port),
+// "exit" (a line on stderr, then exit code 3), and "silent" (binds and never
+// reports).
 import { createServer, type AddressInfo } from "node:net";
 
 const mode = process.env.FIXTURE_MODE ?? "report";
@@ -36,7 +37,10 @@ async function serve(): Promise<void> {
   const grpcPort = await bind(Number(process.env.GRPC_PORT ?? "0"));
   const artifactHttpPort = await bind(Number(process.env.ARTIFACT_HTTP_PORT ?? "0"));
   const line = `${JSON.stringify({
-    stigmerServerReady: { grpcPort: mode === "wrong-port" ? grpcPort + 1 : grpcPort, artifactHttpPort },
+    stigmerServerReady: {
+      grpcPort: mode === "wrong-port" ? grpcPort + 1 : grpcPort,
+      artifactHttpPort: mode === "unbound" ? null : artifactHttpPort,
+    },
   })}\n`;
 
   if (mode === "split") {

@@ -751,7 +751,8 @@ export interface TargetProfile {
   // deliberately lives on its own port beside the unified one (D1: plain
   // FileServer over the artifact base path, served only when artifact
   // storage is local). Present only on the local managed targets, whose
-  // spawned server pins the port (ARTIFACT_HTTP_PORT); absent on cloud,
+  // spawned server binds it ephemeral (ARTIFACT_HTTP_PORT=0) and reports the
+  // port on its ready line (server-process.ts); absent on cloud,
   // where artifact bytes travel through the service's own authenticated,
   // presigned routes (a different contract) — the artifact suite's
   // file-server block then reports SKIPPED at collection time, the
