@@ -72,14 +72,11 @@ jobs:
         run: npm ci
 
       # Install the Temporal CLI; the dev server backs the execution harness.
-      # `make install-temporal-cli` fetches the version `stigmer up` pins,
-      # verified against the release's checksums.txt and retried on a dropped
-      # connection, so the suites run the Temporal users run.
+      # The action installs the version `stigmer up` pins, verified against the
+      # release's checksums.txt, from the archive main caches when it has it,
+      # so a release-host outage cannot fail the lane before a test runs.
       - name: Install Temporal CLI
-        run: |
-          make install-temporal-cli
-          echo "$HOME/bin" >> "$GITHUB_PATH"
-          "$HOME/bin/temporal" --version
+        uses: ./.github/actions/temporal-cli
 
       # Build the runner explicitly so a runner build break is an isolated,
       # legible failure rather than a confusing globalSetup error.
@@ -158,10 +155,7 @@ jobs:
         run: npm ci
 
       - name: Install Temporal CLI
-        run: |
-          make install-temporal-cli
-          echo "$HOME/bin" >> "$GITHUB_PATH"
-          "$HOME/bin/temporal" --version
+        uses: ./.github/actions/temporal-cli
 
       - name: Build unified runner
         run: make build-runner

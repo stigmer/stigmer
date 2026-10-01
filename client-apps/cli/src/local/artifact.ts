@@ -14,10 +14,19 @@
 // so a network blip does not fail a first `stigmer up`, a CI lane or an image
 // build. Any other HTTP status and a checksum mismatch are answers: they fail at
 // once.
+//
+// A caller may also name a cache directory, where a verified archive is kept
+// beside the checksum file it was verified against. The cache is read before the
+// network and must pass the same digest comparison a download does; a pair that
+// is absent or does not match is downloaded again, as if there were no cache. A
+// retry covers seconds, and a release host can be down for minutes: the cache is
+// what lets a CI lane install through such an outage. It is an option, not a
+// default: a user's machine already keeps the binary it installed, so
+// `stigmer up` and the image staging pass none.
 
 import { createHash } from "node:crypto";
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { gunzipSync } from "fflate";
 import { CliExitError } from "../errors/cli-exit-error.js";
@@ -64,11 +73,28 @@ export interface TarballBinarySource {
   binPath: string;
   /** Human label used in error messages (e.g. "Temporal CLI", "stigmer-server"). */
   label: string;
+  /**
+   * A directory that keeps the verified archive and its checksum file between
+   * installs (see the module header). Used only with {@link checksumUrl}: an
+   * archive nothing verified is never cached. Created when missing; a failure to
+   * write it fails the install.
+   */
+  cacheDir?: string;
   /** Override the fetch implementation (tests). */
   fetchImpl?: typeof fetch;
   /** Override the wait between download attempts (tests). */
   sleep?: (ms: number) => Promise<void>;
 }
+
+/**
+ * Why the cache did not serve an install that went to the network: no cache
+ * directory was in use, it held no copy of this archive, or its copy did not
+ * match its checksum line.
+ */
+export type CacheMiss = "unused" | "absent" | "mismatch";
+
+/** Where the installed binary came from. */
+export type TarballInstall = { source: "cache" } | { source: "network"; cache: CacheMiss };
 
 /** Attempts per download before a transient failure is reported. */
 export const DOWNLOAD_ATTEMPTS = 4;
@@ -77,21 +103,41 @@ export const DOWNLOAD_ATTEMPTS = 4;
 export const DOWNLOAD_RETRY_BASE_DELAY_MS = 1_000;
 
 /**
- * Download a `.tar.gz`, optionally verify its sha256, extract the named entry,
- * and write it to `binPath` with executable permissions. Transient network
- * failures are retried (see the module header). Throws a {@link CliExitError}
- * with the URL on a persistent network failure, a non-transient HTTP status, a
- * checksum mismatch, or an extraction failure.
+ * Install the named entry of a `.tar.gz` at `binPath` with executable
+ * permissions: from the cache directory when it holds a copy that matches its
+ * checksum line, otherwise downloaded, verified when a checksum URL is given,
+ * and then written to the cache. Transient network failures are retried (see
+ * the module header). Throws a {@link CliExitError} with the URL on a persistent
+ * network failure, a non-transient HTTP status, a checksum mismatch or an
+ * extraction failure, and with the path when the cache cannot be read or written.
  */
-export async function fetchTarballBinary(src: TarballBinarySource): Promise<void> {
+export async function fetchTarballBinary(src: TarballBinarySource): Promise<TarballInstall> {
+  const archiveName = archiveBasename(src.url);
+  const cache =
+    src.checksumUrl === undefined || src.cacheDir === undefined
+      ? undefined
+      : cachePaths(src.cacheDir, archiveName, archiveBasename(src.checksumUrl));
+
+  let miss: CacheMiss = "unused";
+  if (cache !== undefined) {
+    const cached = readCachedPair(cache, src.label);
+    if (cached === null) {
+      miss = "absent";
+    } else if (compareDigest(cached.archive, cached.checksums, archiveName).matches) {
+      installEntry(cached.archive, src, cache.archive);
+      return { source: "cache" };
+    } else {
+      miss = "mismatch";
+    }
+  }
+
   const net: Download = { doFetch: src.fetchImpl ?? fetch, sleep: src.sleep ?? delay };
   const archive = await fetchBytes(net, src.url, src.label);
-
+  let checksums: string | undefined;
   if (src.checksumUrl !== undefined) {
-    const archiveName = archiveBasename(src.url);
-    const expected = parseShasum(await fetchText(net, src.checksumUrl, `${src.label} checksum`), archiveName);
-    const actual = sha256Hex(archive);
-    if (expected === "" || expected !== actual) {
+    checksums = await fetchText(net, src.checksumUrl, `${src.label} checksum`);
+    const { matches, expected, actual } = compareDigest(archive, checksums, archiveName);
+    if (!matches) {
       throw new CliExitError(`${src.label} checksum mismatch — refusing to use the download`, ExitCode.General, [
         `expected: ${expected || `(no entry for ${archiveName} in ${src.checksumUrl})`}`,
         `actual:   ${actual}`,
@@ -100,17 +146,76 @@ export async function fetchTarballBinary(src: TarballBinarySource): Promise<void
     }
   }
 
+  installEntry(archive, src, src.url);
+  if (cache !== undefined && checksums !== undefined) writeCachedPair(cache, archive, checksums, src.label);
+  return { source: "network", cache: miss };
+}
+
+// The one comparison a downloaded archive and a cached one both pass: the
+// archive's sha256 against the line its checksum file keeps for its name. A file
+// with no line for the archive never matches.
+function compareDigest(
+  archive: Uint8Array,
+  checksums: string,
+  archiveName: string,
+): { matches: boolean; expected: string; actual: string } {
+  const expected = parseShasum(checksums, archiveName);
+  const actual = sha256Hex(archive);
+  return { matches: expected !== "" && expected === actual, expected, actual };
+}
+
+// Extract the entry from verified archive bytes and write it executable.
+// `origin` is where the bytes came from (the URL, or the cached file), so an
+// archive without the entry is reported against the copy that lacked it.
+function installEntry(archive: Uint8Array, src: TarballBinarySource, origin: string): void {
   const tarBytes = gunzipSync(archive);
   const binary = extractTarEntry(tarBytes, src.entryName);
   if (binary === null) {
-    throw new CliExitError(`${src.entryName} not found in the downloaded ${src.label} archive`, ExitCode.General, [
-      `archive: ${src.url}`,
+    throw new CliExitError(`${src.entryName} not found in the ${src.label} archive`, ExitCode.General, [
+      `archive: ${origin}`,
     ]);
   }
 
   mkdirSync(dirname(src.binPath), { recursive: true });
   writeFileSync(src.binPath, binary, { mode: 0o755 });
   chmodSync(src.binPath, 0o755);
+}
+
+// A cached pair is named by the archive, which carries the version, so an entry
+// left by another version is simply absent: `<archive>` and
+// `<archive>.<checksum file>` (for Temporal, `…tar.gz.checksums.txt`).
+interface CachePaths {
+  archive: string;
+  checksums: string;
+}
+
+function cachePaths(dir: string, archiveName: string, checksumName: string): CachePaths {
+  return { archive: join(dir, archiveName), checksums: join(dir, `${archiveName}.${checksumName}`) };
+}
+
+function readCachedPair(paths: CachePaths, label: string): { archive: Uint8Array; checksums: string } | null {
+  if (!existsSync(paths.archive) || !existsSync(paths.checksums)) return null;
+  try {
+    return { archive: new Uint8Array(readFileSync(paths.archive)), checksums: readFileSync(paths.checksums, "utf8") };
+  } catch (err) {
+    throw new CliExitError(`could not read the cached ${label}`, ExitCode.General, [
+      `path:  ${dirname(paths.archive)}`,
+      `cause: ${describeFailure(err)}`,
+    ]);
+  }
+}
+
+function writeCachedPair(paths: CachePaths, archive: Uint8Array, checksums: string, label: string): void {
+  try {
+    mkdirSync(dirname(paths.archive), { recursive: true });
+    writeFileSync(paths.archive, archive);
+    writeFileSync(paths.checksums, checksums);
+  } catch (err) {
+    throw new CliExitError(`could not write the ${label} cache`, ExitCode.General, [
+      `path:  ${dirname(paths.archive)}`,
+      `cause: ${describeFailure(err)}`,
+    ]);
+  }
 }
 
 /** Lowercase hex sha256 of `bytes`. */

@@ -1,0 +1,90 @@
+# The one installer of the Temporal CLI in CI: the execution-conformance and
+# interactive E2E lanes boot a Temporal dev server, and every job that does
+# calls this action, so how a lane gets `temporal` lives in one place.
+#
+# It runs the product's own installer (client-apps/cli/scripts/install-temporal-cli.ts,
+# the script `make install-temporal-cli` runs on a laptop): the version pinned
+# in client-apps/cli/src/local/temporal/download.ts, verified against the
+# release's checksums.txt. The archive comes from the cache
+# ci.temporal-cli-cache.yaml writes on main, when it has it. Every gate run made
+# 13 jobs download it from GitHub's release host, and an outage there longer
+# than the downloader's retry (about 7 seconds) failed those jobs before a test
+# ran and ejected merge-queue entries for changes that broke nothing (#1650).
+# A miss, or a cached archive that does not match its checksum line, is
+# downloaded as it always was.
+#
+# The trust model, in three lines:
+#   - main writes. Only the writer saves. Of the events that run on main, only
+#     push, schedule and dispatch (and a few that are not used here) may write
+#     the default branch's cache scope; every other, pull_request_target and
+#     workflow_run included, restores read-only (GitHub's dependency-caching
+#     reference, "cache poisoning"), and a pull request's entries stay in its
+#     merge ref.
+#   - every lane reads, on every event, the merge queue included: that is where
+#     an outage costs the most. Unlike turbo-cache, a replay cannot differ from
+#     a fresh install, because the cached archive is checked against its
+#     checksums.txt line by the same code a download passes, or not used.
+#   - the key is the release asset this runner installs, as the installer names
+#     it (`--print-archive`), so an entry holds exactly what the key says and a
+#     pin bump starts a new one.
+#
+# A caller runs it after checkout and the root `npm ci`: the installer runs
+# from source through the workspace's tsx (node_modules/.bin/tsx).
+#
+# This is a reader. There is no save here and must never be: a reader that
+# saved would turn every lane into a writer (turbo-cache's header).
+name: Install the Temporal CLI
+description: >-
+  Install the pinned, checksum-verified Temporal CLI at ~/bin/temporal and put
+  it on PATH, from the archive main caches when it matches its checksum.
+outputs:
+  key:
+    description: The cache key, named by the release asset this runner installs.
+    value: ${{ steps.resolve.outputs.key }}
+  cache-hit:
+    description: "'true' when the exact key was restored."
+    value: ${{ steps.restore.outputs.cache-hit }}
+  from-cache:
+    description: "'true' when the restored archive matched its checksum line and served the install."
+    value: ${{ steps.install.outputs.from-cache }}
+runs:
+  using: composite
+  steps:
+    - name: Resolve the release asset this runner installs
+      id: resolve
+      shell: bash
+      run: |
+        archive=$("$GITHUB_WORKSPACE/node_modules/.bin/tsx" "$GITHUB_WORKSPACE/client-apps/cli/scripts/install-temporal-cli.ts" --print-archive)
+        if [ -z "$archive" ]; then
+          echo "temporal-cli: the installer named no release asset" >&2
+          exit 1
+        fi
+        echo "key=temporal-cli-${archive}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the archive main cached
+      id: restore
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.cache/stigmer/temporal-cli
+        key: ${{ steps.resolve.outputs.key }}
+
+    # zizmor cannot see a composite action's callers, so it flags any
+    # GITHUB_PATH write here. The line adds the constant $HOME/bin, nothing a
+    # pull request controls, and the callers are the gate's lanes and the
+    # main-only writer, none on pull_request_target or workflow_run.
+    # The installer's last line names its source (describeInstall in the
+    # script, pinned by its test); the writer reads `from-cache` to catch an
+    # entry that restores but no longer matches, which no save can replace.
+    - name: Install the Temporal CLI
+      id: install
+      shell: bash
+      run: | # zizmor: ignore[github-env]
+        line=$("$GITHUB_WORKSPACE/node_modules/.bin/tsx" "$GITHUB_WORKSPACE/client-apps/cli/scripts/install-temporal-cli.ts" \
+          --bin-dir "$HOME/bin" --cache-dir "$HOME/.cache/stigmer/temporal-cli")
+        echo "$line"
+        case "$line" in
+          *"from the cache)") echo "from-cache=true" >> "$GITHUB_OUTPUT" ;;
+          *) echo "from-cache=false" >> "$GITHUB_OUTPUT" ;;
+        esac
+        echo "$HOME/bin" >> "$GITHUB_PATH"
+        "$HOME/bin/temporal" --version

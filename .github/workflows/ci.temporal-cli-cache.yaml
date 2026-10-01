@@ -1,0 +1,127 @@
+# =============================================================================
+# Temporal CLI cache writer (main only)
+# =============================================================================
+# The execution-conformance and interactive E2E lanes install the Temporal CLI
+# in 13 jobs per gate run. Downloaded from GitHub's release host each time, an
+# outage there failed those jobs before a test ran and ejected merge-queue
+# entries for changes that broke nothing (#1650). This lane is the one writer
+# of the cache that serves them; .github/actions/temporal-cli is the one
+# reader, and its header carries the trust model: every cached archive is
+# checked against its checksums.txt line before it is used.
+#
+# When it runs:
+#   - on a push to main that changes the action, this file, or the pin, the
+#     downloader or the installer, so a pin bump has an entry before the next
+#     lane asks for it;
+#   - daily, because an entry nobody reads is evicted while the repository's
+#     cache sits above its 10 GB quota (ci.tauri-linux-deps-cache.yaml says
+#     how fast); the lanes read it on every gate run, so this covers quiet days;
+#   - on dispatch, as the "warm it now" button.
+#
+# On an exact hit the job installs from the cache and saves nothing; a hit
+# whose archive no longer matches fails the job, because nothing can replace
+# that entry but its deletion. On a miss the installer downloads the pinned
+# archive and its checksums.txt, verifies them, and leaves the pair in the
+# cache directory, which is saved under the key the action resolved.
+#
+# This lane blocks no PR. Red here means the lanes download from the release
+# host again: slower, and exposed to its outages, never wrong. A red push or
+# scheduled run files one issue per breakage window.
+# =============================================================================
+
+name: ci.temporal-cli-cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/actions/temporal-cli/**"
+      - ".github/workflows/ci.temporal-cli-cache.yaml"
+      - "client-apps/cli/src/local/artifact.ts"
+      - "client-apps/cli/src/local/temporal/download.ts"
+      - "client-apps/cli/scripts/install-temporal-cli.ts"
+  schedule:
+    - cron: "47 5 * * *"
+  # A dispatch is watched, so it does not notify.
+  workflow_dispatch:
+
+concurrency:
+  group: temporal-cli-cache-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# npm ci resilience to transient registry drops, as in every other lane.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
+jobs:
+  write:
+    name: Write the Temporal CLI cache
+    # The only runner the reading lanes use; the key names its asset
+    # (temporal-cli-temporal_cli_<version>_linux_amd64.tar.gz).
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      # The installer runs from source through the workspace's tsx.
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Install the Temporal CLI
+        id: temporal
+        uses: ./.github/actions/temporal-cli
+
+      # An entry under the exact key cannot be overwritten, and the daily read
+      # keeps it from expiring, so one that restores but no longer matches would
+      # leave every lane downloading again while this lane stayed green.
+      - name: Refuse an entry that restores but does not match
+        if: steps.temporal.outputs.cache-hit == 'true' && steps.temporal.outputs.from-cache != 'true'
+        env:
+          KEY: ${{ steps.temporal.outputs.key }}
+        run: |
+          echo "the cached entry $KEY restored but did not match its checksums.txt line, and a save cannot replace it." >&2
+          echo "delete it (gh cache delete \"$KEY\" -R \"$GITHUB_REPOSITORY\"), then dispatch this workflow to write it again." >&2
+          exit 1
+
+      - name: Save the Temporal CLI cache
+        if: steps.temporal.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/stigmer/temporal-cli
+          key: ${{ steps.temporal.outputs.key }}
+
+  # Push and scheduled runs are unattended; dispatches are watched (#477).
+  # Shared file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Temporal CLI Cache Writer Failure Issue
+    needs: [write]
+    if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-temporal-cli-cache-failure
+      title: "ci.temporal-cli-cache: the Temporal CLI cache writer is failing on main"
+      body-context: >-
+        This lane installs the pinned Temporal CLI and saves its archive and
+        checksums.txt for the execution-conformance and interactive E2E lanes
+        to restore. While it is red, those lanes download from GitHub's release
+        host again: slower, and failed by its outages, never wrong. A failure
+        here is usually a release-host outage on a cache miss, or a change to
+        the installer or .github/actions/temporal-cli that this lane did not
+        follow.
