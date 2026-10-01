@@ -1,7 +1,8 @@
 // Unit arms for the RPC contract: the tag grammar, the waiver schema, each of
 // the contract's problem kinds, and the declared set (as keys and as method
-// descriptors) read from the committed stub sources. Pure but for the last group, which reads the real sources and
-// the real waiver file (no target, no network).
+// descriptors) read from the committed stub sources. Pure but for the last
+// group, which reads the real sources and the real waiver file (no target,
+// no network).
 // Domain: conformance inventory (the RPC contract).
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";

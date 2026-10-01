@@ -75,7 +75,7 @@ import {
   requireLlmProxy,
 } from "../support/agentexecutions";
 import { pollUntil } from "../support/execution-poll";
-import { uniqueName } from "../support/naming";
+import { foreignId, uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -154,6 +154,30 @@ describe("AgentExecution conformance — CRUD & identity", () => {
     expect(created.status?.phase).toBe(ExecutionPhase.EXECUTION_PENDING);
 
     await awaitTerminal(clients, created.metadata!.id);
+  });
+
+  // The engine-backed half of the create-id rule (stigmer/stigmer#1489): the
+  // Class A row for this create runs only where an engine backs Class A.
+  it("[rpc:AgentExecutionCommandController.create] create never keeps a metadata.id the caller sent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const name = uniqueName("aex");
+    const chosenId = foreignId("aex");
+
+    mock.enqueue(anthropicText("Done."));
+    const created = await clients.agentExecutionCommand.create({
+      ...makeAgentExecution({ org, name, agentId }),
+      metadata: { id: chosenId, name, org },
+    });
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
+
+    const id = created.metadata?.id ?? "";
+    expect(id, `create kept the caller's id ${chosenId}; the server must assign its own`).not.toBe(chosenId);
+    expect(id, `create answered ${id}, not an id the server minted`).toMatch(/^aex_[0-9a-hjkmnp-tv-z]{26}$/);
+    const read = await clients.agentExecutionQuery.get({ value: id });
+    expect(read.metadata?.id, `a read of ${id} answers the execution it names`).toBe(id);
+
+    await awaitTerminal(clients, id);
   });
 
   it("[rpc:AgentExecutionQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {

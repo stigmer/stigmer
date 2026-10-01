@@ -30,7 +30,9 @@
 // behind the server: the plain local targets refuse it Unavailable before any
 // id is minted (pinned by the agentexecution and workflowexecution suites), so
 // those rows run where `scheduleFiring` (the engine-backed flag those suites
-// gate the same boundary on) holds. Memory create is refused for the cloud's
+// gate the same boundary on) holds. On the open-source server the execution
+// class pins the same rule for both creates, with an engine behind it
+// ("create never keeps a metadata.id the caller sent" in each suite). Memory create is refused for the cloud's
 // platform-client-minted caller (`firstPartyMemoryCapture`).
 //
 // Deliberately out of scope: an update's id (an update addresses an existing

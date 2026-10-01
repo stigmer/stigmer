@@ -19,19 +19,15 @@ export function uniqueName(prefix: string): string {
   return `${prefix}-${shortId()}`;
 }
 
-// Crockford base-32, lowercased: the alphabet of every id the server mints.
-const CROCKFORD_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
-const ID_BODY_CHARS = 26;
+// The 26 characters after the prefix in every id the server mints (a
+// lowercased ULID): 13 random bytes as hex give exactly 26, and every hex
+// digit is in the lowercase Crockford alphabet those ids use.
+const ID_BODY_BYTES = 13;
 
 // An id a caller might choose for a resource of the kind whose prefix is
 // given: the kind's own shape (`{prefix}_` + 26 lowercase Crockford
 // characters), unique per call. A test that sends it proves a plausible id
 // is refused, not only a malformed one.
 export function foreignId(prefix: string): string {
-  // 256 is a multiple of 32, so the modulo keeps every character equally likely.
-  const bytes = randomBytes(ID_BODY_CHARS);
-  let body = "";
-  for (const byte of bytes)
-    body += CROCKFORD_ALPHABET.charAt(byte % CROCKFORD_ALPHABET.length);
-  return `${prefix}_${body}`;
+  return `${prefix}_${randomBytes(ID_BODY_BYTES).toString("hex")}`;
 }
