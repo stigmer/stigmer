@@ -214,7 +214,7 @@ export function createAgentExecutionActivities(
       return session.spec?.harnessStateId ?? "";
     },
 
-    /** The server's own delete of the run's context, a local activity (shared with #21). */
+    /** The server's own delete of the run's context, a local activity (shared with the workflow-execution worker). */
     [DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (
       executionId: string,
     ): Promise<void> => {
