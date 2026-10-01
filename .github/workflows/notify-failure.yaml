@@ -14,7 +14,7 @@
 #   - Each lane owns a distinct label so breakage windows stay per-lane even
 #     when one root cause reds several lanes at once.
 #
-# Caller contract (see ci.integration-canary.yaml for the canonical example):
+# Caller contract (ci.e2e.yaml and ci.live.yaml are callers to copy):
 #   notify-failure:
 #     needs: [<every job in the workflow>]
 #     if: failure() && github.event_name == 'schedule'   # unattended only —

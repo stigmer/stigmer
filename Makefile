@@ -421,7 +421,8 @@ test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (
 # The live class calls real providers with the keys in your shell (each
 # suite names the one it reads, through liveSecret) and spends real money; a
 # suite whose key is missing skips by name. With STIGMER_LIVE=1 a missing key
-# fails.
+# fails. The live workflow (ci.live.yaml) runs the same suites after each
+# release.
 .PHONY: test-live
 test-live: $(RUNNER_DIR)/node_modules ## Run the runner's live suites against real providers (needs the provider keys the suites read, e.g. CURSOR_API_KEY; spends money)
 	@echo "testing  $(RUNNER_DIR) (live)"
