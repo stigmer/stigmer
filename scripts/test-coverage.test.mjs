@@ -377,6 +377,18 @@ test("the command: a drop below a floor is refused without a base; no coverage, 
     assert.match(partial.stderr, /--from-run is for --raise only/);
 
     assert.equal(r.run("--input", "in").status, 2);
+
+    const json = r.run("--floors", "floors.json", "--input", "in", "--json");
+    assert.equal(json.status, 1);
+    const parsed = JSON.parse(json.stdout);
+    assert.equal(parsed.findings[0].rule, "floor");
+    assert.equal(parsed.measured.pkg.lines, 50);
+
+    r.write("two-floors.json", JSON.stringify({ margin: { lines: 0, branches: 0, cases: 0 }, packages: { pkg: { lines: 0, branches: 0, cases: 0 }, other: { lines: 1, branches: 1, cases: 1 } } }));
+    const partialRaise = r.run("--floors", "two-floors.json", "--input", "in", "--raise");
+    assert.equal(partialRaise.status, 2);
+    assert.match(partialRaise.stderr, /not a full run; these packages have floors and were not measured: other/);
+    assert.equal(JSON.parse(readFileSync(join(r.dir, "two-floors.json"), "utf8")).packages.other.lines, 1);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }
