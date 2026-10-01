@@ -196,6 +196,6 @@ test("a pull request is judged by the base branch's copy of each body-reading ch
   const integritySteps = readWorkflow("ci.integrity.yaml").jobs.integrity.steps;
   const pullRequestStep = integritySteps.find((s) => s.if === "github.event_name == 'pull_request'");
   assert.match(pullRequestStep.run, /git show "origin\/\$BASE_REF:scripts\/test-integrity\.mjs" > "\$RUNNER_TEMP\/test-integrity\.mjs"/);
-  assert.match(pullRequestStep.run, /node "\$RUNNER_TEMP\/test-integrity\.mjs" /);
-  assert.doesNotMatch(pullRequestStep.run, /node scripts\/test-integrity\.mjs/, "Test integrity judges a pull request with the base's copy");
+  const invoked = [...pullRequestStep.run.matchAll(/\bnode\s+(\S+)/g)].map((m) => m[1]);
+  assert.deepEqual(invoked, ['"$RUNNER_TEMP/test-integrity.mjs"'], "Test integrity judges a pull request with the base's copy, and runs nothing else");
 });

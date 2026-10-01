@@ -105,6 +105,10 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_REF: ${{ github.base_ref }}
         run: |
+          if ! git cat-file -e "origin/$BASE_REF:scripts/test-integrity.mjs" 2>/dev/null; then
+            echo "$BASE_REF has no scripts/test-integrity.mjs, so nothing can judge this pull request's tests; target a branch that carries it."
+            exit 1
+          fi
           printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
           git show "origin/$BASE_REF:scripts/test-integrity.mjs" > "$RUNNER_TEMP/test-integrity.mjs"
           node "$RUNNER_TEMP/test-integrity.mjs" --base "origin/$BASE_REF" \
