@@ -34,7 +34,7 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { collectStream } from "../support/collect-stream";
-import { uniqueName } from "../support/naming";
+import { foreignId, uniqueName } from "../support/naming";
 import {
   WORKFLOW_EXECUTION_API_VERSION,
   WORKFLOW_EXECUTION_KIND,
@@ -99,6 +99,27 @@ describe("WorkflowExecution conformance — CRUD & identity", () => {
     expect(created.spec?.workflowId).toBe(workflowId);
     // create persists before starting Temporal, so the returned phase is PENDING.
     expect(created.status?.phase).toBe(ExecutionPhase.EXECUTION_PENDING);
+  });
+
+  // The engine-backed half of the create-id rule (stigmer/stigmer#1489): the
+  // Class A row for this create runs only where an engine backs Class A.
+  it("[rpc:WorkflowExecutionCommandController.create] create never keeps a metadata.id the caller sent", async () => {
+    const { org } = await target.provisionTenancy();
+    const workflowId = await provisionWorkflow(org);
+    const name = uniqueName("wfx");
+    const chosenId = foreignId("wex");
+
+    const created = await clients.workflowExecutionCommand.create({
+      ...makeWorkflowExecution({ org, name, workflowId }),
+      metadata: { id: chosenId, name, org },
+    });
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: created.metadata!.id }));
+
+    const id = created.metadata?.id ?? "";
+    expect(id, `create kept the caller's id ${chosenId}; the server must assign its own`).not.toBe(chosenId);
+    expect(id, `create answered ${id}, not an id the server minted`).toMatch(/^wex_[0-9a-hjkmnp-tv-z]{26}$/);
+    const read = await clients.workflowExecutionQuery.get({ value: id });
+    expect(read.metadata?.id, `a read of ${id} answers the execution it names`).toBe(id);
   });
 
   it("[rpc:WorkflowExecutionQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {

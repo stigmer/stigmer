@@ -8,7 +8,9 @@
 //   and never from the built `dist`: `tsc` never prunes its outputs, so a
 //   checkout that once built another branch's protos keeps their modules in
 //   `dist`, and a count over it includes RPCs this checkout does not declare.
-//   The sources are what the codegen lane holds equal to the protos.
+//   The sources are what the codegen lane holds equal to the protos. They
+//   are read in one place (loadApiServices), for the contract and for any
+//   suite that judges the declared methods themselves (declaredMethods).
 // - The tags, scanned from the suite sources with the one grammar the call
 //   verdict also reads (rpc-tag.ts). A tag must appear literally in the
 //   source; a title built at runtime is judged by the verdict alone.
@@ -19,7 +21,7 @@
 // Every problem is its own kind, so a failure names its fix. Static like the
 // cloud-capability inventory beside it (inventory.ts): it reads files and
 // never boots a target.
-import type { DescService } from "@bufbuild/protobuf";
+import type { DescMethod, DescService } from "@bufbuild/protobuf";
 import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, relative } from "node:path";
@@ -62,24 +64,50 @@ function stubsRoot(): string {
   return resolved.slice(0, resolved.length - distAnchor.length);
 }
 
-// Every RPC of every API service the committed sources declare, sorted by key.
-export async function declaredRpcs(): Promise<DeclaredRpc[]> {
+// Every API service the committed sources declare, in source order.
+async function loadApiServices(): Promise<DescService[]> {
   const root = stubsRoot();
   const sources = (await readdir(join(root, "ai"), { recursive: true, encoding: "utf8" }))
     .filter((file) => file.endsWith("_pb.ts"))
     .sort();
-  const rpcs: DeclaredRpc[] = [];
+  const services: DescService[] = [];
   for (const source of sources) {
     const loaded: Record<string, unknown> = await import(pathToFileURL(join(root, "ai", source)).href);
     for (const value of Object.values(loaded)) {
-      if (!isService(value) || !value.typeName.startsWith(API_TYPE_NAME_PREFIX)) continue;
-      for (const method of value.methods) {
-        const key = rpcKey(value.typeName, method.name);
-        rpcs.push({ key, service: key.slice(0, key.indexOf(".")), method: method.name, typeName: value.typeName });
-      }
+      if (isService(value) && value.typeName.startsWith(API_TYPE_NAME_PREFIX)) services.push(value);
+    }
+  }
+  return services;
+}
+
+// Every RPC of every API service the committed sources declare, sorted by key.
+export async function declaredRpcs(): Promise<DeclaredRpc[]> {
+  const rpcs: DeclaredRpc[] = [];
+  for (const service of await loadApiServices()) {
+    for (const method of service.methods) {
+      const key = rpcKey(service.typeName, method.name);
+      rpcs.push({ key, service: key.slice(0, key.indexOf(".")), method: method.name, typeName: service.typeName });
     }
   }
   return rpcs.sort((a, b) => a.key.localeCompare(b.key));
+}
+
+export interface DeclaredMethod {
+  // `<Service>.<method>`, the same key declaredRpcs answers.
+  readonly key: string;
+  // The method's descriptor: its input and output messages, for a suite that
+  // judges what each declared method carries.
+  readonly method: DescMethod;
+}
+
+// Every method of every API service the committed sources declare, with its
+// descriptor, sorted by key: the same set declaredRpcs answers.
+export async function declaredMethods(): Promise<DeclaredMethod[]> {
+  const methods: DeclaredMethod[] = [];
+  for (const service of await loadApiServices()) {
+    for (const method of service.methods) methods.push({ key: rpcKey(service.typeName, method.name), method });
+  }
+  return methods.sort((a, b) => a.key.localeCompare(b.key));
 }
 
 function isService(value: unknown): value is DescService {

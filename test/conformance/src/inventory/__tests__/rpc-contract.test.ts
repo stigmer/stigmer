@@ -1,7 +1,8 @@
 // Unit arms for the RPC contract: the tag grammar, the waiver schema, each of
-// the contract's problem kinds, and the declared set read from the committed
-// stub sources. Pure but for the last group, which reads the real sources and
-// the real waiver file (no target, no network).
+// the contract's problem kinds, and the declared set (as keys and as method
+// descriptors) read from the committed stub sources. Pure but for the last
+// group, which reads the real sources and the real waiver file (no target,
+// no network).
 // Domain: conformance inventory (the RPC contract).
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -10,6 +11,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   collectRpcTags,
   computeRpcContract,
+  declaredMethods,
   declaredRpcs,
   formatRpcSummary,
   parseRpcWaivers,
@@ -201,6 +203,14 @@ describe("the declared set and the waiver file, as committed", () => {
       (problem) => problem.kind === "service-name-collision",
     );
     expect(collisions).toEqual([]);
+  });
+
+  it("answers each declared method with its descriptor, keyed exactly as the declared RPCs are", async () => {
+    const [methods, rpcs] = await Promise.all([declaredMethods(), declaredRpcs()]);
+    expect(methods.map((entry) => entry.key)).toEqual(rpcs.map((entry) => entry.key));
+    const create = methods.find((entry) => entry.key === "AgentCommandController.create");
+    expect(create, "AgentCommandController.create is declared").toBeDefined();
+    expect(create?.method.input.typeName).toBe("ai.stigmer.agentic.agent.v1.Agent");
   });
 
   it("parses the committed waiver file with no problem", async () => {

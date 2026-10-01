@@ -36,7 +36,7 @@ const secretService = SecretService.create(Buffer.alloc(32, 7));
 const store: BoundExecutionStore = {
   getResource: () =>
     Promise.reject(new Error("the capability arm must not read the store")),
-  findByField: () =>
+  findAllByField: () =>
     Promise.reject(new Error("the capability arm must not read the store")),
 };
 

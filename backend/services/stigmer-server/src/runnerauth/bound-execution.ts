@@ -65,10 +65,13 @@ import type { Message } from "@bufbuild/protobuf";
 
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { isTerminalExecutionPhase } from "../domain/agentexecution/phases.js";
+import { findExecutionContextsForExecution } from "../domain/executioncontext/contexts-for-execution.js";
+import type { ExecutionContextLookupStore } from "../domain/executioncontext/contexts-for-execution.js";
 import { isConnectExecutionId } from "../domain/mcpserver/connect-execution-id.js";
 import { isTerminalWorkflowExecutionPhase } from "../domain/workflowexecution/phases.js";
 import { kindByIdPrefix } from "../pipeline/apiresource-meta.js";
@@ -97,7 +100,8 @@ export interface BoundExecution {
   readonly live: boolean;
 }
 
-export type BoundExecutionStore = Pick<Store, "getResource" | "findByField">;
+export type BoundExecutionStore = Pick<Store, "getResource"> &
+  ExecutionContextLookupStore;
 
 export function boundExecutionKindOf(
   executionId: string,
@@ -250,21 +254,16 @@ async function getRow<
   }
 }
 
+/**
+ * The connect's ExecutionContext, the one the connect lane created for it.
+ * None, or more than one, binds nothing: a lookup by run id never chooses
+ * between two rows (contexts-for-execution.ts), so an ambiguous binding
+ * fails closed as an invalid credential.
+ */
 async function getExecutionContextRow(
   store: BoundExecutionStore,
   executionId: string,
-) {
-  try {
-    return await store.findByField(
-      ApiResourceKind.execution_context,
-      "spec.executionId",
-      executionId,
-      ExecutionContextSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      return undefined;
-    }
-    throw error;
-  }
+): Promise<ExecutionContext | undefined> {
+  const contexts = await findExecutionContextsForExecution(store, executionId);
+  return contexts.length === 1 ? contexts[0] : undefined;
 }

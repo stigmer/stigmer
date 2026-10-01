@@ -216,6 +216,13 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     const creator = final.status?.audit?.specAudit?.createdBy?.id ?? "";
     expect(creator, "the execution records its creator").not.toBe("");
     expect(decidedByOf(final, toolCallId), "the decision names the approving caller").toBe(creator);
+    // The tool call itself carries the same principal (#1417): approved_by is
+    // what a transcript reader sees without replaying the event stream.
+    const approvedTc = allToolCalls(final).find((tc) => tc.id === toolCallId);
+    expect(approvedTc, `execution ${executionId}: the approved tool call ${toolCallId} is in the transcript`).toBeDefined();
+    expect(approvedTc!.approvedBy, `execution ${executionId}: the approved tool call names the approving caller`).toBe(
+      creator,
+    );
   });
 
   it("[rpc:AgentExecutionCommandController.submitApproval] SKIP resolves the gate and completes the execution", async () => {

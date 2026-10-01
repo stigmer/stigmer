@@ -23,7 +23,10 @@
  *     volume, while a plaintext install carries none of those names;
  *   - with the issuer set and no runner key named, the pod is the server
  *     alone, and the runner's claim is still created (stigmer/stigmer#1169:
- *     only someone signed in can create the key, so sign-in comes first).
+ *     only someone signed in can create the key, so sign-in comes first);
+ *   - the notes `helm install` prints tell that operator the runner is
+ *     waiting for its key and how to give it one, and say nothing of it once
+ *     the key is named or when there is no sign-in (stigmer/stigmer#1468).
  *
  * Goldens live in `golden/<profile>.yaml` with the chart version replaced by
  * a placeholder so a release-pin bump does not churn them. Regenerate with
@@ -48,6 +51,7 @@ import {
   readChart,
   readValues,
   RELEASE,
+  renderNotes,
   renderProfile,
 } from "./helpers.mjs";
 
@@ -265,6 +269,53 @@ test("with the issuer set and no runner key, the pod is the server alone until t
     "runner",
     "server",
   ]);
+});
+
+test("the notes tell a sign-in install that the runner waits for its key, and only then (stigmer/stigmer#1468)", () => {
+  const RUNNER_WAITS = "The runner is not running yet.";
+  const signInFirst = renderNotes("ingress-oidc", {
+    sets: ["runner.stigmerToken.existingSecret="],
+  });
+  assert.ok(
+    signInFirst.includes("Authentication is on (issuer https://issuer.example.com)."),
+    `the notes name the issuer:\n${signInFirst}`,
+  );
+  assert.ok(
+    signInFirst.includes(RUNNER_WAITS),
+    `the notes say the runner waits for its key:\n${signInFirst}`,
+  );
+  assert.ok(
+    signInFirst.includes(
+      "kubectl -n default create secret generic stigmer-runner-token --from-literal=STIGMER_TOKEN=stk_...",
+    ),
+    `the notes show how to store the key:\n${signInFirst}`,
+  );
+  assert.ok(
+    signInFirst.includes(
+      `helm upgrade ${RELEASE} oci://ghcr.io/stigmer/charts/stigmer -n default --reuse-values --set runner.stigmerToken.existingSecret=stigmer-runner-token`,
+    ),
+    `the notes show the upgrade that names the key:\n${signInFirst}`,
+  );
+
+  const named = renderNotes("ingress-oidc");
+  assert.ok(
+    named.includes("Authentication is on"),
+    `a named key keeps the sign-in notes:\n${named}`,
+  );
+  assert.ok(
+    !named.includes(RUNNER_WAITS),
+    `a named key leaves the runner nothing to wait for:\n${named}`,
+  );
+
+  const open = renderNotes("bundled");
+  assert.ok(
+    open.includes("There is no authentication"),
+    `no issuer says so:\n${open}`,
+  );
+  assert.ok(
+    !open.includes(RUNNER_WAITS),
+    `no issuer means the runner runs at once:\n${open}`,
+  );
 });
 
 test("the byo profile renders no bundled Postgres or Temporal", () => {

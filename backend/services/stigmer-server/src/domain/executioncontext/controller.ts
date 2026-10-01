@@ -25,6 +25,13 @@
  * (the decrypt-lane matrix conformance deliberately never exercises —
  * its harness authenticates as a user).
  *
+ * A context bound to a run is the server's: the run builders and the MCP
+ * connect lane create a run's or a connect's context in-process, and a wire
+ * create or apply naming a run's or a connect's id is refused
+ * (GuardExecutionBinding). So a run has one context, and every lookup by
+ * run id refuses rather than chooses when it meets more than one
+ * (contexts-for-execution.ts).
+ *
  * Every chain opens with Authorize; create asks can_create_execution_in on
  * the organization (AuthorizeCreate), and create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle; getByReference
@@ -105,6 +112,7 @@ import { executionContextSearchExtractor } from "./search-extractor.js";
 import {
   newEncryptSecretValuesStep,
   newAuthorizeExecutionContextCreateStep,
+  newGuardExecutionBindingStep,
   newLoadByExecutionIdStep,
   newRejectCiphertextShapedStep,
 } from "./steps.js";
@@ -185,6 +193,9 @@ async function createExecutionContext(
     // The Java AuthorizeCreate order (#297): before the duplicate check,
     // so an unauthorized caller learns nothing about existing ids.
     .addStep(newAuthorizeExecutionContextCreateStep(deps.authorizer))
+    // A wire caller may not bind a context to a run; the same ordering
+    // rule, so the refusal precedes any read of existing rows.
+    .addStep(newGuardExecutionBindingStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newRejectCiphertextShapedStep())
     .addStep(newResolveSlugStep())
@@ -418,7 +429,7 @@ async function getByExecutionId(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadByExecutionIdStep(deps.store))
+    .addStep(newLoadByExecutionIdStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
 

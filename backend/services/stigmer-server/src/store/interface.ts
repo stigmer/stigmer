@@ -618,18 +618,19 @@ export interface Store {
   ): Promise<MessageShape<Desc>>;
 
   /**
-   * Go-parity quirk, preserved deliberately (sub-project DD-001): despite
-   * the name, this returns ALL rows of the kind, UNFILTERED — Go's driver
-   * cannot unmarshal without the concrete type, so every Go caller filters
-   * client-side and the TS ports of those callers translate mechanically
-   * only if this driver behaves identically (verified Go behavior,
-   * sqlite/store.go:896-899). A both-editions fix is filed for after
-   * cutover, when Go stops being the translation reference.
+   * All resources whose field at `fieldPath` (the `findByField` notation)
+   * equals `value`, as their stored bytes; empty when none match. The scan
+   * has no ordering, so a caller that needs one row owns what two mean
+   * (the `findAllByLabel` rule, stigmer/stigmer#356). It returned the whole
+   * kind unfiltered while the Go server was the translation reference (Go's
+   * driver could not decode without the concrete type); `schema` is that
+   * type.
    */
-  findAllByField(
+  findAllByField<Desc extends DescMessage>(
     kind: ApiResourceKind,
     fieldPath: string,
     value: string,
+    schema: Desc,
   ): Promise<Uint8Array[]>;
 
   /**

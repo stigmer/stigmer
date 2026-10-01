@@ -10,8 +10,8 @@
  * updateResource atomic RMW incl. the DD-010 no-lost-update guarantee
  * (per-resource atomicity — the parallel-updates assertion is
  * deliberately order-agnostic: sqlite serializes globally, Postgres
- * per-row), the preserved findAllByField quirk (sqlite sub-project
- * DD-001), audit ordering + the #341 single-holder tag move,
+ * per-row), findAllByField's filter (the rows whose field equals the
+ * value, as stored bytes), audit ordering + the #341 single-holder tag move,
  * first-writer-wins events (oss#308), the terminal-immutable schedule-run
  * ledger (DD-017 D-7), the engine-neutral search read semantics (DD-009:
  * token match / single-term prefix / AND; wire-ready 0–1 scores;
@@ -410,7 +410,7 @@ export function describeStoreContract(
       );
     });
 
-    it("findAllByField preserves the Go quirk: ALL rows of the kind, unfiltered (DD-001)", async () => {
+    it("findAllByField returns exactly the rows whose field equals the value, as their stored bytes", async () => {
       await fx.store.saveResource(
         KIND,
         "acme",
@@ -428,10 +428,20 @@ export function describeStoreContract(
         KIND,
         "spec.description",
         "only-this-one",
+        OrganizationSchema,
       );
-      // Two rows despite the predicate matching one — the caller filters,
-      // exactly as every Go call site did.
-      expect(rows).toHaveLength(2);
+      expect(
+        rows.map((row) => fromBinary(OrganizationSchema, row).metadata?.id),
+      ).toEqual(["beta"]);
+      expect(
+        await fx.store.findAllByField(
+          KIND,
+          "spec.description",
+          "nobody-carries-this",
+          OrganizationSchema,
+        ),
+        "a value no row carries matches nothing",
+      ).toEqual([]);
     });
 
     it("findAllByLabel matches metadata.labels entries", async () => {

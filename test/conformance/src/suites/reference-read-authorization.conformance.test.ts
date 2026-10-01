@@ -215,7 +215,7 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
         makeExecutionContext({
           org,
           name: uniqueName("ref-ectx"),
-          executionId: uniqueName("aex_ref"),
+          executionId: uniqueName("exec-ref"),
         }),
       );
       return { id: created.metadata!.id, slug: created.metadata!.slug };
