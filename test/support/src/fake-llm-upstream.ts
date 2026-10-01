@@ -118,10 +118,12 @@ export class FakeLlmUpstream {
 
   async start(): Promise<void> {
     const server = createServer((req, res) => {
-      this.handle(req, res).catch(() => {
+      this.handle(req, res).catch((error: unknown) => {
         // A request that fails mid-read (the client aborted) fails alone:
         // the process the fake lives in (a suite, an install smoke) keeps
-        // running, and so do the other requests.
+        // running, and so do the other requests. Anything else is a defect
+        // in the fake, said aloud before its socket is reset.
+        if (!req.destroyed) console.error(`FakeLlmUpstream: answering ${req.method} ${req.url} failed:`, error);
         if (!res.writableEnded) res.destroy();
       });
     });

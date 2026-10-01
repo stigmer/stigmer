@@ -45,6 +45,14 @@ test("starts test/support's fake under bare node, answering with its reply and c
   });
 });
 
+test("counts only model calls: a request off every provider path is refused and not counted", async () => {
+  await withFake({}, async (fake) => {
+    const response = await fetch(`${fake.url}/v1/embeddings`, { method: "POST", body: "{}" });
+    assert.equal(response.status, 404);
+    assert.equal(fake.requests(), 0);
+  });
+});
+
 test("error mode answers with the install journey's message", async () => {
   await withFake({ mode: "error" }, async (fake) => {
     const response = await postMessages(fake.url, { model: "claude-sonnet-4-6", messages: [] });

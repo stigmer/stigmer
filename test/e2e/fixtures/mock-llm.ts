@@ -92,6 +92,7 @@ class MockLlmControl {
     }
     if (req.method === "POST" && path === "/__mock/reset") {
       this.proxy.reset();
+      if (diagEnabled()) appendDiagLine(`${new Date().toISOString()} --- reset: the next test's script starts here\n`);
       writeJson(res, 200, { ok: true });
       return;
     }
@@ -110,15 +111,20 @@ class MockLlmControl {
   // arrives, stamped with its arrival time, so the log lines up with the
   // runner's and the server's and survives a run killed before teardown.
   private logRequest(request: CapturedLlmRequest): void {
-    try {
-      const streaming = typeof request.body === "object" && request.body !== null && (request.body as { stream?: unknown }).stream === true;
-      appendFileSync(
-        diagLogPath("mock"),
-        `${new Date(request.receivedAt).toISOString()} LLM path=${request.path} streaming=${streaming} served=${request.disposition} remaining=${this.proxy.remaining()}\n`,
-      );
-    } catch {
-      // Diagnostics never fail the stack they observe.
-    }
+    const streaming = typeof request.body === "object" && request.body !== null && (request.body as { stream?: unknown }).stream === true;
+    appendDiagLine(
+      `${new Date(request.receivedAt).toISOString()} LLM path=${request.path} streaming=${streaming} served=${request.disposition} remaining=${this.proxy.remaining()}\n`,
+    );
+  }
+}
+
+// Appends one line to the STIGMER_E2E_DIAG mock log; diagnostics never fail
+// the stack they observe.
+function appendDiagLine(line: string): void {
+  try {
+    appendFileSync(diagLogPath("mock"), line);
+  } catch {
+    // Unwritable log: the run goes on without it.
   }
 }
 
