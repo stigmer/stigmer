@@ -9,6 +9,11 @@
 const grpcPort = 40001;
 const mode = process.env.FAKE_MODE ?? "ok";
 
+// Before the ready line: verify-boot sends SIGTERM as soon as it reads it, and
+// a signal that arrives before the handler takes Node's default action, a
+// death by signal instead of the clean exit (seen in CI, 2026-10-01).
+process.on("SIGTERM", () => process.exit(0));
+
 process.stderr.write(
   `${JSON.stringify({ level: "info", message: "stigmer-server listening", port: grpcPort })}\n`,
 );
@@ -18,5 +23,4 @@ const report = {
 };
 process.stdout.write(`${JSON.stringify({ stigmerServerReady: report })}\n`);
 
-process.on("SIGTERM", () => process.exit(0));
 setInterval(() => {}, 1_000);
