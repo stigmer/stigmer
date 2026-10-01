@@ -11,7 +11,13 @@
  *
  *   - every `--shard` argument is `${{ matrix.shard }}/<count>`, and one job
  *     splits by one count;
- *   - the job's `strategy.matrix.shard` is exactly [1, ..., <count>];
+ *   - the job's `strategy.matrix.shard` is exactly [1, ..., <count>], and no
+ *     `exclude` or `include` entry names a shard, since either changes which
+ *     shards run after the list says all of them do;
+ *   - neither the job nor a step that passes `--shard` is conditional on the
+ *     shard: an `if:` over `matrix.shard` there skips that shard, green (a
+ *     step that runs no part of the suite, a one-off check, may run in one
+ *     shard only);
  *   - `strategy.fail-fast` is false, so one red shard does not cancel its
  *     siblings before they report what they found;
  *   - every artifact the job uploads names the shard, so the shards' uploads
@@ -27,6 +33,7 @@
 // An expression (`${{ matrix.shard }}/3`) holds spaces, so it is read whole.
 const SHARD_ARG = /--shard(?:=|\s+)(["']?\$\{\{[^}]*\}\}\S*|\S+)/g;
 const MATRIX_SHARD = /^\$\{\{\s*matrix\.shard\s*\}\}\/(\d+)$/;
+const MENTIONS_SHARD = /\bmatrix\.shard\b/;
 
 /** The `--shard` arguments of a step's command, quotes stripped. */
 function shardArgs(run) {
@@ -66,6 +73,20 @@ export function shardFindings(workflows) {
       const want = Array.from({ length: count }, (_, i) => i + 1);
       if (JSON.stringify(matrix) !== JSON.stringify(want)) {
         findings.push(`${at}: the matrix's shard list is ${JSON.stringify(matrix ?? null)}, but the commands split the suite /${count}, which needs ${JSON.stringify(want)}`);
+      }
+    }
+    for (const key of ["exclude", "include"]) {
+      const entries = def?.strategy?.matrix?.[key] ?? [];
+      if (entries.some((entry) => entry !== null && typeof entry === "object" && "shard" in entry)) {
+        findings.push(`${at}: \`strategy.matrix.${key}\` names a shard, so the shards that run are no longer the list's`);
+      }
+    }
+    if (MENTIONS_SHARD.test(String(def?.if ?? ""))) {
+      findings.push(`${at}: the job is conditional on the shard (\`if: ${def.if}\`), so a listed shard can be skipped green`);
+    }
+    for (const step of steps) {
+      if (shardArgs(step.run).length > 0 && MENTIONS_SHARD.test(String(step.if ?? ""))) {
+        findings.push(`${at}: the step running \`--shard\` is conditional on the shard (\`if: ${step.if}\`), so a listed shard can be skipped green`);
       }
     }
     if (def?.strategy?.["fail-fast"] !== false) {

@@ -7,7 +7,8 @@
 // of the suite and every job is green, so the third that never ran is a
 // quiet pass. The real workflows are read as they are, and fixtures pin each
 // way the shape can drift: a gap, a fixed index, two counts in one job, a
-// shard matrix with no shard in its commands, fail-fast cancelling a shard's
+// shard matrix with no shard in its commands, an exclude, include or `if:`
+// that drops a listed shard after all, fail-fast cancelling a shard's
 // siblings before they report, and artifact names that collide across shards.
 
 import assert from "node:assert/strict";
@@ -94,4 +95,28 @@ test("an artifact name without the shard is refused: the shards' uploads would c
   colliding.steps[1] = { uses: "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", with: { name: "report" } };
   const [finding] = shardFindings(fixture(colliding));
   assert.match(finding, /uploads the artifact `report`, which does not name the shard/);
+});
+
+test("a matrix exclude or include that names a shard is refused: the listed shard need not run", () => {
+  const excluded = sharded(3);
+  excluded.strategy.matrix.exclude = [{ shard: 3 }];
+  assert.match(shardFindings(fixture(excluded)).join("\n"), /`strategy\.matrix\.exclude` names a shard/);
+  const included = sharded(3);
+  included.strategy.matrix.include = [{ shard: 4 }];
+  assert.match(shardFindings(fixture(included)).join("\n"), /`strategy\.matrix\.include` names a shard/);
+  const other = sharded(2);
+  other.strategy.matrix.target = ["a", "b"];
+  other.strategy.matrix.include = [{ target: "a", extra: true }];
+  assert.deepEqual(shardFindings(fixture(other)), [], "an include that leaves the shard alone is fine");
+});
+
+test("a condition on the shard that runs a suite step or the job is refused: it skips that shard green", () => {
+  const skipped = sharded(3);
+  skipped.steps[0] = { ...skipped.steps[0], if: "matrix.shard != 3" };
+  assert.match(shardFindings(fixture(skipped)).join("\n"), /the step running `--shard` is conditional on the shard/);
+  const job = sharded(3, { if: "${{ matrix.shard < 3 }}" });
+  assert.match(shardFindings(fixture(job)).join("\n"), /the job is conditional on the shard/);
+  const once = sharded(3);
+  once.steps.unshift({ run: "npm run typecheck", if: "matrix.shard == 1" });
+  assert.deepEqual(shardFindings(fixture(once)), [], "a step that runs no shard may run in one shard only");
 });
