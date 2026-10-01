@@ -1,5 +1,6 @@
 // The CLI's suite keeps vitest's own collection (every *.test.ts outside
-// node_modules); this file exists only to carry the gate's coverage block.
+// node_modules); this file carries the gate's coverage block and the timeout
+// a coverage run needs.
 import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -16,5 +17,11 @@ export default defineConfig({
       reportOnFailure: true,
       experimentalAstAwareRemapping: true,
     },
+    // The marketplace tests read the whole plugin catalogue: about 1 s each on
+    // their own, about four times that with coverage on, and slower again on
+    // the 4-vCPU CI runner, where three of them passed vitest's 5 s default
+    // (6.4, 9.5 and 5.0 s, 2026-10-01). The same headroom sdk/react's config
+    // gives its suite for CI load.
+    testTimeout: 15_000,
   },
 });
