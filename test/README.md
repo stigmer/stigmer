@@ -15,8 +15,8 @@ There is no Go test harness any more. The five Go suites under `test/integration
 A green run must mean the tests ran. Every test in this repository keeps five rules:
 
 1. A test that cannot run fails, or skips with its reason printed. It never passes.
-2. A missing dependency may skip a test only outside the gate. The gate provides every dependency, and inside it (`STIGMER_TEST_GATE=1`) the helper behind such a skip throws instead.
-3. A test is never retried into green. A flaky test is quarantined by name, against an open issue, until it is fixed.
+2. A missing dependency may skip a test only outside the gate. The gate provides every dependency. Inside it (`STIGMER_TEST_GATE=1`), the helpers for the services it provisions throw instead of skipping: Postgres (`testDatabaseAdminUrl()`) and the runner's Temporal paths (`IN_TEST_GATE`).
+3. A test is never retried into green. A flaky test is quarantined by name, against an open issue, until it is fixed: its skip carries `// quarantined: <repo>#<issue>` on the line above, and the pull request that adds it declares `Quarantine:` in its body. Every later pull request re-checks that the issue the marker names is still open.
 4. A change that adds or changes behaviour changes the tests that pin it. A refactor that changes no behaviour keeps them passing as they are.
 5. The gate's own files change only with a maintainer's explicit approval: the workflows under `.github/workflows/`, the vitest and Playwright configs, `scripts/ci-lanes.mjs`, `scripts/test-integrity.mjs`, `scripts/review-verdict.mjs`, the review brief in `.agents/skills/review-pull-request/SKILL.md`, and this section.
 
