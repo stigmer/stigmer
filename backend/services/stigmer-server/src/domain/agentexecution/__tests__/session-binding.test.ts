@@ -3,7 +3,8 @@
  * session's organization.
  *
  * - create (stigmer/stigmer#1580): a turn under another organization is
- *   refused with FailedPrecondition naming both; an empty organization is
+ *   refused with FailedPrecondition naming neither organization, for any
+ *   caller, an upstream-admitted lane included; an empty organization is
  *   taken from the session; no session id, or a dangling one, is left to
  *   the steps that own those shapes; a store fault is Internal.
  * - update (stigmer/stigmer#1588): a changed session id is refused; an
@@ -53,11 +54,12 @@ type ExecutionInit = MessageInitShape<typeof AgentExecutionSchema>;
 
 function contextFor(
   init: ExecutionInit,
+  caller = testCallerIdentity(),
 ): RequestContext<typeof AgentExecutionSchema> {
   return new RequestContext(
     AgentExecutionSchema,
     create(AgentExecutionSchema, init),
-    testCallerIdentity(),
+    caller,
     ApiResourceKind.agent_execution,
   );
 }
@@ -108,7 +110,7 @@ describe("ValidateSessionOrganization (create)", () => {
     expect(ctx.newState.metadata?.org).toBe("acme");
   });
 
-  it("a turn under another organization is refused with FailedPrecondition naming both", async () => {
+  it("a turn under another organization is refused with FailedPrecondition, naming neither", async () => {
     await storeSession("ses_acme", "acme");
     const ctx = contextFor({
       metadata: { org: "personal" },
@@ -121,7 +123,32 @@ describe("ValidateSessionOrganization (create)", () => {
 
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
-      "an execution in session 'ses_acme' belongs to the session's organization 'acme', not 'personal'",
+      "an execution in session 'ses_acme' must belong to the session's organization",
+    );
+  });
+
+  it("an upstream-admitted lane caller learns no organization from the refusal", async () => {
+    // An edition lane (here a guest) passes the run gate unchecked and is
+    // admitted later, in the gate slot, so it may not be able to read the
+    // session it named: the refusal must not tell it the session's org.
+    await storeSession("ses_lane", "acme");
+    const guest = testCallerIdentity({
+      identityId: "ida_guest",
+      callerClass: "guest",
+    });
+    const ctx = contextFor(
+      { metadata: { org: "guest-org" }, spec: { sessionId: "ses_lane" } },
+      guest,
+    );
+
+    const err = await refusalOf(() =>
+      newValidateSessionOrganizationStep(store).execute(ctx),
+    );
+
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).not.toContain("acme");
+    expect(err.rawMessage).toBe(
+      "an execution in session 'ses_lane' must belong to the session's organization",
     );
   });
 

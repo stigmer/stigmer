@@ -17,12 +17,16 @@
  *     from a token in the pre-side-effect gate slot (a channel, a guest)
  *     then compare their token's org with the session's.
  *   - `metadata.org` equal to the session's: passes.
- *   - differing: FailedPrecondition naming both organizations, the
- *     platform's same-organization refusal (a schedule and its agent, a
- *     channel and its agent).
+ *   - differing: FailedPrecondition, the platform's same-organization
+ *     refusal (a schedule and its agent, a channel and its agent), naming
+ *     neither organization. The edition lanes (a guest, a channel, a
+ *     schedule fire) pass the run gate unchecked and are admitted later, in
+ *     the gate slot, so the caller refused here may be one who may not read
+ *     the session at all; the answer tells it nothing the session id it
+ *     sent did not.
  *
- * Position: right after the run gate, so a caller who may not add a turn to
- * the session learns nothing about it (ValidateThinkingMode's rule for
+ * Position: right after the run gate, so a caller the gate checked and
+ * refused learns nothing about the session (ValidateThinkingMode's rule for
  * reading a stored session), and before the gate slot, so no edition gate,
  * the credit reservation included, ever sees a turn filed under another
  * organization. A dangling session id passes: the loading steps own that
@@ -91,7 +95,7 @@ export function newValidateSessionOrganizationStep(
       }
       if (requestOrg !== sessionOrg) {
         throw failedPreconditionError(
-          sessionOrganizationMismatchMessage(sessionId, sessionOrg, requestOrg),
+          sessionOrganizationMismatchMessage(sessionId),
         );
       }
     },

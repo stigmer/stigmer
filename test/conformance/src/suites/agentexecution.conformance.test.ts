@@ -229,7 +229,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
 // populated arms live in suites-execution/.
 
 describe("AgentExecution conformance — a turn belongs to its session's organization (#1580)", () => {
-  it("[rpc:AgentExecutionCommandController.create] refuses a turn in a session under another organization (FailedPrecondition, naming both)", async () => {
+  it("[rpc:AgentExecutionCommandController.create] refuses a turn in a session under another organization (FailedPrecondition, naming neither)", async () => {
     // One caller, two organizations: the session lives in the first, and the
     // turn names the second. The refusal comes right after the run gate,
     // before the engine gate, so no engine is needed.
@@ -249,7 +249,7 @@ describe("AgentExecution conformance — a turn belongs to its session's organiz
         "create under another organization than the session's",
       );
       expect(refused.rawMessage).toBe(
-        `an execution in session '${sessionId}' belongs to the session's organization '${home.org}', not '${other.org}'`,
+        `an execution in session '${sessionId}' must belong to the session's organization`,
       );
     } finally {
       await clients.sessionCommand.delete({ value: sessionId });

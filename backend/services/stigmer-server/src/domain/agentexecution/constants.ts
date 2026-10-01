@@ -41,17 +41,16 @@ export function addExecutionToSessionDeniedMessage(sessionId: string): string {
 
 /**
  * create's same-organization refusal (stigmer/stigmer#1580): a turn in an
- * existing session belongs to that session's organization. It names both
- * organizations so the caller can correct the request; the caller has
- * already passed the run gate on the session, so its organization is no
- * secret from them. Pinned by the conformance agentexecution suite.
+ * existing session belongs to that session's organization. It names no
+ * organization: the edition lanes (a guest, a channel, a schedule fire)
+ * pass the run gate unchecked and are admitted later, in the gate slot, so
+ * a caller refused here may not be one who may read the session. The
+ * session id is the caller's own input, and a caller who may read the
+ * session finds its organization there. Pinned by the conformance
+ * agentexecution suite.
  */
-export function sessionOrganizationMismatchMessage(
-  sessionId: string,
-  sessionOrg: string,
-  requestOrg: string,
-): string {
-  return `an execution in session '${sessionId}' belongs to the session's organization '${sessionOrg}', not '${requestOrg}'`;
+export function sessionOrganizationMismatchMessage(sessionId: string): string {
+  return `an execution in session '${sessionId}' must belong to the session's organization`;
 }
 
 /**
