@@ -89,6 +89,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@vitest/coverage-v8": "3.2.6",
     "edge-tts-universal": "^1.4.0",
     "eslint": "^9.17.0",
     "eslint-config-next": "15.3.9",

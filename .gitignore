@@ -31,6 +31,9 @@ client-apps/desktop/src-tauri/resources/runtime
 coverage.txt
 coverage.html
 
+# A vitest run's v8 coverage (`--coverage.enabled`), in each package
+coverage/
+
 # Go workspace sum file (auto-generated, can be ignored)
 go.work.sum
 
