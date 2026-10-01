@@ -333,17 +333,19 @@ export function applyChange(source, location, replacement) {
  *     that makes the tests hang is noticed, as Stryker counts a timeout.
  * Only "green", "red" and "timeout" become verdicts. A test file that failed
  * to load, or a `beforeAll` that failed, is red only right after a green run
- * of the same tests with no change (`afterGreen`): that is how a change to
- * code that runs while a module loads shows, and an engine that went down
- * would have failed the unchanged run too.
+ * of the same tests with no change (`afterGreen`), even when it was the only
+ * file and so no test ran at all: that is how a change to code that runs
+ * while a module loads shows, and an engine that went down would have failed
+ * the unchanged run too.
  */
 export function relatedOutcome(result, report, { afterGreen = false } = {}) {
   if (result.error?.code === "ETIMEDOUT") return "timeout";
   // vitest catches SIGINT and SIGTERM itself and exits 128 plus the signal's number.
   if (result.signal || result.status === 130 || result.status === 143) return "interrupted";
-  if (!report || !(report.numTotalTests > 0)) return "inconclusive";
+  if (!report) return "inconclusive";
   if (report.numFailedTests > 0) return "red";
   if (report.numFailedTestSuites > 0) return afterGreen ? "red" : "inconclusive";
+  if (!(report.numTotalTests > 0)) return "inconclusive";
   if (result.status === 0) return "green";
   return "inconclusive";
 }
@@ -711,7 +713,6 @@ function runTarget(opts) {
   const result = spawnSync("npx", ["--no-install", "stryker", "run", configPath], { cwd: packageDir, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) return result.status ?? 2;
-  writeFileSync(join(outDir, "target.json"), `${JSON.stringify({ target: opts.run, package: target.package, commit, only: only ?? null }, null, 2)}\n`);
 
   // The confirm step. The cache holds the earlier runs' verdicts (restored
   // beside the incremental file); one is kept only while its finding is still
@@ -724,6 +725,9 @@ function runTarget(opts) {
   const report = JSON.parse(readFileSync(join(outDir, "mutation.json"), "utf8"));
   const unjudged = summarize(report, target.package);
   const cached = keepVerdicts(existsSync(confirmedPath) ? JSON.parse(readFileSync(confirmedPath, "utf8")) : {}, new Set(unjudged.survivedKeys), hashFile);
+  // Only the verdicts still worth keeping stay beside the report, before the
+  // confirm step can fail: a stale one must never outlive a run that threw.
+  writeFileSync(confirmedPath, `${JSON.stringify(cached, null, 2)}\n`);
   const pending = toConfirm(summarize(report, target.package, { confirmed: verdictsOf(cached) }));
   console.log(`mutation-sweep: confirming ${pending.length} not-noticed change(s) against every test that imports each file`);
   const vitestReport = join(outDir, "related.json");
@@ -747,6 +751,9 @@ function runTarget(opts) {
   });
   rmSync(vitestReport, { force: true });
   writeFileSync(confirmedPath, `${JSON.stringify({ ...cached, ...verdicts }, null, 2)}\n`);
+  // The record comes last, so a run whose confirm step threw leaves none for
+  // `--report` to publish.
+  writeFileSync(join(outDir, "target.json"), `${JSON.stringify({ target: opts.run, package: target.package, commit, only: only ?? null }, null, 2)}\n`);
   if (interrupted) console.error("mutation-sweep: interrupted; the file being checked was restored, and the verdicts so far are saved");
   return interrupted ? 130 : 0;
 }

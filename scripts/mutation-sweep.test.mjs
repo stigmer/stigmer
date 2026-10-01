@@ -248,6 +248,8 @@ test("a related run is red only when a test failed, green only when tests ran an
   assert.equal(relatedOutcome({ status: 143, signal: null }, undefined), "interrupted", "and SIGTERM, 143");
   assert.equal(relatedOutcome({ status: null, signal: "SIGTERM", error: Object.assign(new Error("spawnSync npx ETIMEDOUT"), { code: "ETIMEDOUT" }) }, undefined), "timeout");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0, 1), { afterGreen: true }), "red", "a test file that fails to load right after a green run: the change broke it");
+  assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0, 2), { afterGreen: true }), "red", "every related file failed to load, so no test ran: still the change's doing");
+  assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0, 2)), "inconclusive", "the same with no green run just before proves nothing");
   assert.equal(relatedOutcome({ status: 1, signal: null }, undefined), "inconclusive", "no report: a crash proves nothing");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0)), "inconclusive", "no test ran");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0, 1)), "inconclusive", "a file that failed to load, as when an engine is down");
@@ -640,7 +642,8 @@ test("a usage error exits 2 and names the problem", () => {
  * changed file, interrupted as vitest is, exiting 130 with no report, when
  * `FAKE_VITEST=signal`, or killed by SIGINT when `FAKE_VITEST=killed`; on
  * the unchanged run too when `FAKE_VITEST=signal-first`; a failed Stryker
- * when `FAKE_STRYKER_STATUS` is set; no
+ * when `FAKE_STRYKER_STATUS` is set, or one that leaves the source file
+ * changed when `FAKE_STRYKER_DIRTY` is; no
  * tests run when `FAKE_VITEST=none`; red on the unchanged file when
  * `FAKE_VITEST=red`). Every vitest call is logged, one line each.
  */
@@ -673,6 +676,7 @@ if (args[1] === "stryker") {
   if (process.env.FAKE_STRYKER_STATUS) process.exit(Number(process.env.FAKE_STRYKER_STATUS));
   const config = JSON.parse(readFileSync(args[3], "utf8"));
   copyFileSync(process.env.FAKE_REPORT, config.jsonReporter.fileName);
+  if (process.env.FAKE_STRYKER_DIRTY) appendFileSync("src/gate/allowed.ts", "// left behind\\n");
   process.exit(0);
 }
 const file = args[4];
@@ -786,6 +790,23 @@ test("a failed Stryker run leaves no record that names its commit beside an earl
     assert.equal(existsSync(join(f.dir, "out/credit-gate/target.json")), false);
     assert.equal(existsSync(join(f.dir, "out/credit-gate/mutation.json")), false);
     assert.ok(existsSync(join(f.dir, "out/credit-gate/confirmed.json")), "the verdict cache stays for the next run");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("a confirm step that throws leaves no record to publish, and no verdict whose tests changed", () => {
+  const f = runFixture();
+  try {
+    assert.equal(f.run().status, 0);
+    assert.equal(Object.keys(f.confirmed()).length, 2);
+    writeFileSync(join(f.pkg, "src/gate/__tests__/allowed.test.ts"), "// the gate's tests, weakened\n");
+    spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.test", "commit", "-q", "-am", "edit the test"], { cwd: f.repo });
+    const out = f.run({ FAKE_STRYKER_DIRTY: "1" });
+    assert.equal(out.status, 2);
+    assert.match(out.stderr, /uncommitted changes/);
+    assert.equal(existsSync(join(f.dir, "out/credit-gate/target.json")), false, "--report reads only a run with a record");
+    assert.deepEqual(f.confirmed(), {}, "both cached verdicts were judged by the test that changed");
   } finally {
     rmSync(f.dir, { recursive: true, force: true });
   }
