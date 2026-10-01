@@ -462,10 +462,13 @@ it("a module's value imports are followed; a type-only import is not", () => {
     import { type U } from "./type-specifiers";
     import { type V, w } from "./mixed";
     import "./side-effect";
+    import fallback from "./default";
+    import * as all from "./namespace";
+    export type { X } from "./type-re-export";
     export * from "./re-export";
     const m = await import("./dynamic.js");
   `);
-  assert.deepEqual(valueImports, ["./value", "./mixed", "./side-effect", "./re-export", "./dynamic.js"]);
+  assert.deepEqual(valueImports, ["./value", "./mixed", "./side-effect", "./default", "./namespace", "./re-export", "./dynamic.js"]);
   const files = new Set(["p/__tests__/support.ts", "p/src/index.ts"]);
   assert.equal(resolveRelative("p/__tests__/a.test.ts", "./support.js", files), "p/__tests__/support.ts");
   assert.equal(resolveRelative("p/__tests__/a.test.ts", "../src", files), "p/src/index.ts");
@@ -498,6 +501,23 @@ it("composed, conformance, load and live files, and the suites' own trees, may u
   assert.deepEqual(layout({ "pkg/src/__tests__/lane.composed.test.ts": body }), []);
   assert.deepEqual(layout({ "test/e2e/tests/flow/login.spec.ts": body }, { packages: ["test/e2e"] }), []);
   assert.deepEqual(layout({ "test/conformance/src/suites/agent.conformance.test.ts": body }, { packages: ["test/conformance"] }), []);
+});
+
+it("helpers that import each other are walked once, and a cycle ends the walk", () => {
+  const tree = {
+    "pkg/src/__tests__/a-support.ts": `import { b } from "./b-support.js"; export const a = () => b;`,
+    "pkg/src/__tests__/b-support.ts": `import { a } from "./a-support.js"; export const b = () => createTestDatabase();`,
+    "pkg/src/__tests__/repo.test.ts": `import { a } from "./a-support.js"; it("x", () => { a; });`,
+  };
+  assert.deepEqual(layout(tree), ["layout-service-unnamed pkg/src/__tests__/repo.test.ts"]);
+  // Either way into the cycle, the service at its far end is found.
+  const both = {
+    "pkg/src/__tests__/a-support.ts": `import { b } from "./b-support.js"; export const a = () => createTestDatabase();`,
+    "pkg/src/__tests__/b-support.ts": `import { a } from "./a-support.js"; export const b = () => a;`,
+    "pkg/src/__tests__/first.test.ts": `import { a } from "./a-support.js"; it("x", () => { a; });`,
+    "pkg/src/__tests__/second.test.ts": `import { b } from "./b-support.js"; it("x", () => { b; });`,
+  };
+  assert.deepEqual(layout(both).sort(), ["layout-service-unnamed pkg/src/__tests__/first.test.ts", "layout-service-unnamed pkg/src/__tests__/second.test.ts"]);
 });
 
 it("reaching is followed through test helpers only, never into the module under test", () => {

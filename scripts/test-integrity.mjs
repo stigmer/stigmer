@@ -481,23 +481,27 @@ export function resolveRelative(from, spec, files) {
  */
 export function makeReach(ts, files, read) {
   const scans = new Map();
-  const reached = new Map();
   const scan = (path) => {
     if (!scans.has(path)) scans.set(path, scanModule(ts, path, read(path)));
     return scans.get(path);
   };
-  const reach = (path, visiting = new Set()) => {
-    if (reached.has(path)) return reached.get(path);
-    if (visiting.has(path)) return new Set();
-    visiting.add(path);
-    const { services, valueImports } = scan(path);
-    const out = new Set(services);
-    for (const spec of valueImports) {
-      const target = resolveRelative(path, spec, files);
-      if (target && HELPER.test(target)) for (const s of reach(target, visiting)) out.add(s);
+  // A walk over the helper graph from each file, not a memo per module: a
+  // module first met inside a cycle would otherwise keep a partial answer.
+  const reach = (path) => {
+    const out = new Set();
+    const seen = new Set();
+    const pending = [path];
+    while (pending.length > 0) {
+      const current = pending.pop();
+      if (seen.has(current)) continue;
+      seen.add(current);
+      const { services, valueImports } = scan(current);
+      for (const service of services) out.add(service);
+      for (const spec of valueImports) {
+        const target = resolveRelative(current, spec, files);
+        if (target && HELPER.test(target) && !seen.has(target)) pending.push(target);
+      }
     }
-    visiting.delete(path);
-    reached.set(path, out);
     return out;
   };
   return { reach, scan };
