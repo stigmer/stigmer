@@ -21,6 +21,7 @@
     "tools/codegen",
     "tools/eslint-plugin-stigmer",
     "marketing",
+    "test/support",
     "test/conformance",
     "test/e2e"
   ],

@@ -37,11 +37,11 @@ import { awaitGrpcReady } from "../harness/grpc-ready";
 import { createTransport, makeClients } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
-import { ensureRunnerBuilt } from "../harness/runner-build";
-import { spawnRunner, type RunningRunner } from "../harness/runner-process";
-import { spawnServer, type RunningServer } from "../harness/server-process";
-import { spawnTemporal, type RunningTemporal } from "../harness/temporal";
-import { ensureTsServerEntry } from "../harness/ts-build";
+import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
+import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
+import { spawnServer, type RunningServer } from "@stigmer/test-support/server-process";
+import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
+import { ensureTsServerEntry } from "@stigmer/test-support/ts-build";
 import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {

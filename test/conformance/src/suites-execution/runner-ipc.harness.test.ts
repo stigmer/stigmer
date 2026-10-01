@@ -19,7 +19,7 @@
 // SKIPPED there.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { IPC_PROTOCOL_VERSION } from "../../../../backend/services/runner/src/ipc-protocol";
-import { ensureRunnerBuilt } from "../harness/runner-build";
+import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
 import { spawnManagerRunner, type ManagerRunner } from "../harness/runner-manager-process";
 import { createTarget, type TargetProfile } from "../targets";
 

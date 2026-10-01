@@ -6,7 +6,7 @@
 // deliberately.
 // Domain: agentic / agentexecution — the runner's outbound contract with the
 // model, read at the one place it is observable offline: the mock proxy's
-// captured request bodies (harness/mock-llm.ts), which are "everything the
+// captured request bodies (test/support/src/mock-llm.ts), which are "everything the
 // model received over the wire".
 //
 // Why this facet exists: the native harness's latency and output quality are
@@ -89,10 +89,10 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { readAnthropicRequest, readLastUserText, type AnthropicMessageBody, type AnthropicRequestBody } from "../harness/llm-wire";
+import { readAnthropicRequest, readLastUserText, type AnthropicMessageBody, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
 import { requireNativeRow, wireModelIdOf, type ModelRegistryDocument } from "../harness/model-registry";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";

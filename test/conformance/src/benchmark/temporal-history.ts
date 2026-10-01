@@ -6,7 +6,7 @@
 // Domain: conformance benchmark (the Temporal-clock axes).
 //
 // The history is read through the `temporal` CLI, which the execution lane
-// already requires (harness/global-setup-execution.ts) and harness/temporal.ts
+// already requires (harness/global-setup-execution.ts) and test/support/src/temporal.ts
 // already shells out to; a Temporal client dependency for one read would be a
 // second way of doing what the kit does. The workflow id format and the
 // activity names are imported from the server's own `names.ts` — pinned wire

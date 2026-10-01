@@ -1,0 +1,19 @@
+{
+  "name": "@stigmer/test-support",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The test machinery two or more suites share: the stack spawns, the model fakes, the identity fixtures. Node-only TypeScript that bare node loads with no build.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
+  }
+}

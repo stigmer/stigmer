@@ -6,7 +6,7 @@
 // turns it off. Driven over loopback; no target.
 // Domain: conformance harness.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { MockOAuthAuthorizationServer } from "../oauth-authorization-server";
+import { MockOAuthAuthorizationServer } from "../oauth-authorization-server.ts";
 
 const mock = new MockOAuthAuthorizationServer();
 

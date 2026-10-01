@@ -27,9 +27,9 @@ import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workf
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicToolUse } from "../harness/mock-llm";
-import { readAnthropicRequest } from "../harness/llm-wire";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicToolUse } from "@stigmer/test-support/mock-llm";
+import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import { requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeWorkflowExecution, taskByName } from "../support/workflowexecutions";

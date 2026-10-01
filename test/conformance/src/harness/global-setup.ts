@@ -3,7 +3,7 @@
 // budget and out of the parallel critical path — workers reuse the stable
 // dist entry path.
 // Domain: conformance harness (server lifecycle).
-import { buildTsServer } from "./ts-build";
+import { buildTsServer } from "@stigmer/test-support/ts-build";
 
 export default async function setup(): Promise<void> {
   await buildTsServer();

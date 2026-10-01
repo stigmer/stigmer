@@ -7,14 +7,14 @@
 // this package's. So the e2e global setup spawns this script the way it
 // spawns `temporal` and the server, and reads the issuer URL from stdout.
 //
-//   npx tsx test/conformance/src/harness/local-oidc-issuer-main.ts \
+//   npx tsx test/support/src/local-oidc-issuer-main.ts \
 //     --port 7299 --audience https://e2e.stigmer.test/api --end-session
 //
 // Prints one JSON line — `{ issuer, audience, person }` — once listening,
 // then serves until SIGTERM/SIGINT.
 import { parseArgs } from "node:util";
 
-import { startLocalOidcIssuer } from "./local-oidc-issuer";
+import { startLocalOidcIssuer } from "./local-oidc-issuer.ts";
 
 async function main(): Promise<void> {
   const { values } = parseArgs({

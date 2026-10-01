@@ -20,8 +20,8 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText, anthropicToolUse } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { makeMcpServer } from "../support/mcpservers";

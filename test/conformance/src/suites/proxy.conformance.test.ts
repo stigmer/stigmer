@@ -17,7 +17,7 @@
 //                  no caller, stigmer#992; rows kept in the inventory as `debris`)
 //   model-registry, health
 //
-// The upstream is the run's fake LLM provider (harness/fake-llm-upstream.ts):
+// The upstream is the run's fake LLM provider (test/support/src/fake-llm-upstream.ts):
 // the server was booted with both provider base URLs pointed at it, so what
 // it captures IS what the proxy forwarded, and what it is scripted to answer
 // IS what the proxy relays or classifies.
@@ -32,7 +32,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
 import { FixtureTracker } from "../harness/fixtures";
-import { anthropicText, openAiText } from "../harness/llm-wire";
+import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentexecutions";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";

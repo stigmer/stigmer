@@ -17,7 +17,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 // Repo root is four levels up from test/conformance/src/harness/.
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const RUNNER_DIR = join(REPO_ROOT, "backend", "services", "runner");
 

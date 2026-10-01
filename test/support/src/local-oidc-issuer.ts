@@ -63,7 +63,7 @@ import { once } from "node:events";
 import { createServer } from "node:http";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 
-import { signRs256Jwt } from "./jwt";
+import { signRs256Jwt } from "./jwt.ts";
 
 // What a console session lives for; the suite's tokens are short by construction.
 const TOKEN_TTL_SECONDS = 5 * 60;

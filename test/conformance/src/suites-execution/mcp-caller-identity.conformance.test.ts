@@ -31,8 +31,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import type { CapturedMcpRequest, McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText, anthropicToolUse } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
   awaitTerminal,

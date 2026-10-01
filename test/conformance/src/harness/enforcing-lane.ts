@@ -61,7 +61,7 @@ import type { ConformanceClients, PresentingOptions } from "./clients";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
-} from "./local-oidc-issuer";
+} from "@stigmer/test-support/local-oidc-issuer";
 
 const ORGANIZATION_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORGANIZATION_KIND = "Organization";

@@ -4,7 +4,7 @@
 // A single short-lived connection attempt tells us whether something is
 // listening; waitForTcp loops that probe until a deadline, failing fast (with a
 // log tail) if the process under watch exits first. This mirrors
-// `test/conformance/src/harness/temporal.ts` so the CLI and the harnesses share
+// `test/support/src/temporal.ts` so the CLI and the harnesses share
 // one readiness model.
 
 import { connect } from "node:net";

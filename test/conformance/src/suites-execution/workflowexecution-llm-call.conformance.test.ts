@@ -23,8 +23,8 @@ import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workf
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { requireRegistryRow } from "../harness/model-registry";
 import { requireLlmProxy } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";

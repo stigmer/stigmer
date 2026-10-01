@@ -90,7 +90,7 @@ test("refuses an unknown mode instead of starting", async () => {
 
 test("carries the conformance harness's reply text, so the two fakes answer alike", () => {
   const harness = readFileSync(
-    new URL("../../test/conformance/src/harness/fake-llm-upstream.ts", import.meta.url),
+    new URL("../../test/support/src/fake-llm-upstream.ts", import.meta.url),
     "utf8",
   );
   const declared = /export const DEFAULT_REPLY_TEXT = "([^"]+)";/.exec(harness);

@@ -8,7 +8,7 @@
 import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type { ConformanceClients, PresentingOptions } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
-import type { MockLlmProxy } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { ModelRegistryDocument } from "../harness/model-registry";
 
 // Where a locally booted engine lives — see TargetProfile.engineCoordinates.

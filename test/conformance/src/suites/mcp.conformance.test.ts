@@ -23,8 +23,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CLOUD_ENV } from "../harness/cloud-env";
 import { createTransport } from "../harness/clients";
-import { spawnServer } from "../harness/server-process";
-import { ensureTsServerEntry } from "../harness/ts-build";
+import { spawnServer } from "@stigmer/test-support/server-process";
+import { ensureTsServerEntry } from "@stigmer/test-support/ts-build";
 import { uniqueName } from "../support/naming";
 
 // What the bridge and the suite need from either edition: gRPC coordinates,

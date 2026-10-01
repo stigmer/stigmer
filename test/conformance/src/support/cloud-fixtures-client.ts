@@ -12,7 +12,7 @@
 // MockLlmProxy rule — and never assumes an empty queue it did not create.
 import { CLOUD_ENV } from "../harness/cloud-env";
 import type { CapturedDiscordPost } from "../harness/fake-discord-webhook";
-import type { CapturedUpstreamRequest, UpstreamScript } from "../harness/fake-llm-upstream";
+import type { CapturedUpstreamRequest, UpstreamScript } from "@stigmer/test-support/fake-llm-upstream";
 import type { CapturedStripeRequest, StripeFailure } from "../harness/fake-stripe";
 
 export class CloudFixturesClient {

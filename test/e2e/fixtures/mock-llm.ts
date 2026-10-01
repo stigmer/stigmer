@@ -8,7 +8,7 @@
 // override, NOT a "mock" model name) and it replays canned Anthropic responses
 // as Server-Sent Events that the runner's @langchain/anthropic streaming parser
 // accepts. No API keys, no network. This mirrors the proven conformance proxy
-// (test/conformance/src/harness/mock-llm.ts).
+// (test/support/src/mock-llm.ts).
 //
 // What is NEW here vs. conformance: a small HTTP CONTROL API. The conformance
 // proxy is programmed by direct method calls because the proxy and the test run
@@ -321,7 +321,7 @@ function writeJson(res: ServerResponse, status: number, body: unknown): void {
 
 // Expands an Anthropic message body into the SSE event sequence the
 // @langchain/anthropic streaming parser expects, flushing each event. Mirrors
-// the conformance encoder (test/conformance/src/harness/mock-llm.ts).
+// the conformance encoder (test/support/src/mock-llm.ts).
 function writeAnthropicSse(res: ServerResponse, body: AnthropicMessageBody): void {
   res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
 

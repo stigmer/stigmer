@@ -5,7 +5,7 @@
 // guards of the other handshake RPCs, the grant-free reads (NO_GRANT,
 // idempotent disconnect), and the three org-OAuth-app UNIMPLEMENTED refusals —
 // against a suite-owned mock OAuth authorization server
-// (harness/oauth-authorization-server.ts).
+// (test/support/src/oauth-authorization-server.ts).
 //
 // Why exactly this slice is Class A: the Go server injects the OAuth stores
 // and redirect URI unconditionally, so initiate works with no Temporal behind
@@ -27,8 +27,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { MockOAuthAuthorizationServer } from "../harness/oauth-authorization-server";
-import { CONFORMANCE_OAUTH_REDIRECT_URI } from "../harness/server-process";
+import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
+import { HERMETIC_OAUTH_REDIRECT_URI } from "@stigmer/test-support/server-process";
 import { uniqueName } from "../support/naming";
 import {
   MCPSERVER_API_VERSION,
@@ -71,7 +71,7 @@ const TARGET_ENV_VAR = "CONF_OAUTH_TOKEN";
 
 // The host segment of the harness redirect URI, as the DCR pre-flight
 // rejection copy renders it (url.Parse(...).Host in Go).
-const REDIRECT_CALLBACK_HOST = new URL(CONFORMANCE_OAUTH_REDIRECT_URI).host;
+const REDIRECT_CALLBACK_HOST = new URL(HERMETIC_OAUTH_REDIRECT_URI).host;
 
 async function createOAuthMcpServer(opts: Omit<OAuthMcpServerOptions, "targetEnvVar">) {
   const created = await clients.mcpServerCommand.create(
@@ -228,14 +228,14 @@ describe("McpServer OAuth conformance — initiate, DCR arm", () => {
     expect(dcr.token_endpoint_auth_method).toBe("none");
     expect(dcr.grant_types).toEqual(["authorization_code"]);
     expect(dcr.response_types).toEqual(["code"]);
-    expect(dcr.redirect_uris).toEqual([CONFORMANCE_OAUTH_REDIRECT_URI]);
+    expect(dcr.redirect_uris).toEqual([HERMETIC_OAUTH_REDIRECT_URI]);
 
     // The authorization URL carries the full pinned parameter set.
     const authUrl = new URL(out.authorizationUrl);
     expect(`${authUrl.origin}${authUrl.pathname}`).toBe(mockAs.authorizationEndpoint());
     expect(authUrl.searchParams.get("response_type")).toBe("code");
     expect(authUrl.searchParams.get("client_id")).toBe("mock-dcr-client-1");
-    expect(authUrl.searchParams.get("redirect_uri")).toBe(CONFORMANCE_OAUTH_REDIRECT_URI);
+    expect(authUrl.searchParams.get("redirect_uri")).toBe(HERMETIC_OAUTH_REDIRECT_URI);
     expect(authUrl.searchParams.get("code_challenge_method")).toBe("S256");
     expect(authUrl.searchParams.get("code_challenge")).not.toBeNull();
     expect(authUrl.searchParams.get("state")).toBe(out.state);

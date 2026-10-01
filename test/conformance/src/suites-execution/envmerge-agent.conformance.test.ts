@@ -18,8 +18,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import { makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import { makeAgentInstance } from "../support/agentinstances";

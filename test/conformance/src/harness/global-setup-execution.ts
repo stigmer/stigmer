@@ -8,8 +8,8 @@
 // so the dependency-light Class A signal stays fast (DD-002).
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { buildRunner } from "./runner-build";
-import { buildTsServer } from "./ts-build";
+import { buildRunner } from "@stigmer/test-support/runner-build";
+import { buildTsServer } from "@stigmer/test-support/ts-build";
 
 const execFileAsync = promisify(execFile);
 

@@ -21,9 +21,9 @@ import { randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { FakeDiscordWebhook } from "./fake-discord-webhook";
-import { FakeLlmUpstream, readBody, type UpstreamScript } from "./fake-llm-upstream";
+import { FakeLlmUpstream, readBody, type UpstreamScript } from "@stigmer/test-support/fake-llm-upstream";
 import { FakeStripeApi, type StripeFailure } from "./fake-stripe";
-import { writeJson } from "./llm-wire";
+import { writeJson } from "@stigmer/test-support/llm-wire";
 
 // What the fixtures publish: where the server under test must be pointed, the
 // secret it must be booted with, and where workers script them.

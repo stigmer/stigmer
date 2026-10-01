@@ -11,7 +11,7 @@
 // Pure: a string (or a number) in, a string out. No target, no spawn.
 // Domain: conformance harness (execution engine).
 import { describe, expect, it } from "vitest";
-import { describeRunnerForceKill, describeRunnerSlowExit, runnerHomeEnv } from "../runner-process";
+import { describeRunnerForceKill, describeRunnerSlowExit, runnerHomeEnv } from "../runner-process.ts";
 
 // The Temporal SDK prints each worker state change as a five-line object.
 function workerStateChanged(state: string): string[] {

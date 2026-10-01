@@ -32,7 +32,9 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
 - A cloud capability is a cloud-class test, connect-only against a
   pre-provisioned composition, tagged with its inventory rows.
 - A server or runner unit belongs beside its module in a `__tests__` folder, not
-  here. A harness unit belongs in `test/conformance/src/harness/__tests__/`.
+  here. A unit of a conformance-only harness component belongs in
+  `test/conformance/src/harness/__tests__/`; one of the shared machinery in
+  `test/support/src/__tests__/`.
 
 Extend the existing `<domain>-<facet>.conformance.test.ts` when the facet
 exists; the execution class has one file per facet (`agentexecution-approval`,
@@ -58,8 +60,8 @@ expect(mock.consumed(), "exactly the scripted turns").toBe(2);
 ```
 
 `anthropicText`, `anthropicToolUse` and the other turn builders live in
-`test/conformance/src/harness/llm-wire.ts`; `makeAgentExecution` and
-`awaitTerminal` in `test/conformance/src/support/agentexecutions.ts`.
+`test/support/src/llm-wire.ts`; `makeAgentExecution` and `awaitTerminal` in
+`test/conformance/src/support/agentexecutions.ts`.
 
 **An approval gate.** Every submit goes through `submitApprovalPerContract`
 (`test/conformance/src/support/agentexecutions.ts`), which asserts the
@@ -80,14 +82,16 @@ For workflows: `makeLlmCallWorkflow`, `makeEvalWorkflow`,
 
 ## Reuse the harness
 
-One file per component under `test/conformance/src/harness/`: the server build
-and process, the Temporal dev server, the runner build and the two runner
-process modes, the mock LLM (`mock-llm.ts` with the wire builders in
-`llm-wire.ts`), the MCP tool fixture (`mcp-server.ts`), the git workspace, the
-model registry reader, the raw Connect clients, and the cloud fixtures with
-their fakes. Read a component's header before using it. When a new pattern is
-needed, add the utility to the harness so the next suite reuses it; a suite that
-boots its own infrastructure is a second harness that will drift.
+One file per component. The machinery other suites share lives in
+`test/support/src/` (`@stigmer/test-support`): the server build and process, the
+Temporal dev server, the runner build and process, the mock LLM (`mock-llm.ts`
+with the wire builders in `llm-wire.ts`), the fake upstream and the identity
+fixtures. The suite's own components stay under `test/conformance/src/harness/`:
+the manager-mode runner, the MCP tool fixture (`mcp-server.ts`), the git
+workspace, the model registry reader, the raw Connect clients, and the cloud
+fixtures with their fakes. Read a component's header before using it. When a new
+pattern is needed, add the utility to the harness so the next suite reuses it; a
+suite that boots its own infrastructure is a second harness that will drift.
 
 Edition differences are `CapabilityFlags` on the target
 (`test/conformance/src/targets/target.ts`), each with a rationale, gated with

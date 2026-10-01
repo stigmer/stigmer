@@ -27,8 +27,8 @@ import { execFile, spawn } from "node:child_process";
 import { connect } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
-import { stopChild, teeChildOutput } from "./child-process";
-import { getFreePort } from "./ports";
+import { stopChild, teeChildOutput } from "./child-process.ts";
+import { getFreePort } from "./ports.ts";
 
 const execFileAsync = promisify(execFile);
 

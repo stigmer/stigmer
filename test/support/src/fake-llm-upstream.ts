@@ -42,7 +42,7 @@ import {
   openAiText,
   type AnthropicMessageBody,
   type OpenAiChatCompletionBody,
-} from "./llm-wire";
+} from "./llm-wire.ts";
 
 /** The text every default reply carries: plainly not a real model's answer. */
 export const DEFAULT_REPLY_TEXT = "This is the Stigmer fake model's default reply; no real model was called.";

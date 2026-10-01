@@ -14,9 +14,11 @@ index; `README.md` is the reference.
 - `src/targets/target.ts`: the `TargetProfile` interface and every
   `CapabilityFlags` member with its rationale; `src/targets/` for the six
   profiles.
-- `src/harness/`: one file per component (server, Temporal, runner, mock LLM,
-  MCP fixture, git workspace, cloud fixtures); read a file's header before using
-  it, and extend the harness rather than reinventing a piece in a suite.
+- `src/harness/`: the suite's own components (clients, cloud env and fixtures,
+  the enforcing lanes, the RPC recorder, MCP fixture, git workspace, model
+  registry). The ones other suites share (server, Temporal, runner, mock LLM,
+  identity fixtures) are `test/support` (`@stigmer/test-support`). Read a file's
+  header before using it, and extend these rather than reinvent a piece.
 - `src/support/`: the per-domain helpers a suite calls; `src/contract/` for the
   error and parity vocabulary.
 - `inventory/cloud-capabilities.yaml`: the cloud capability rows every tagged

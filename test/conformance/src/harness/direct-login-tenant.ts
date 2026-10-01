@@ -23,7 +23,7 @@ import { randomUUID } from "node:crypto";
 import type { DirectLoginTenant } from "../targets/target";
 
 import { CLOUD_ENV } from "./cloud-env";
-import { signRs256Jwt } from "./jwt";
+import { signRs256Jwt } from "@stigmer/test-support/jwt";
 
 // What a console session lives for; the suite's tokens are short by construction.
 const DEFAULT_TTL_SECONDS = 5 * 60;

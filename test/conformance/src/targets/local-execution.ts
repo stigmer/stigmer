@@ -19,18 +19,18 @@ import {
 import type { SiblingEnforcingLane } from "../harness/enforcing-lane";
 import { newSiblingEnforcingExecutionLane } from "../harness/enforcing-execution-lane";
 import { McpToolFixture } from "../harness/mcp-server";
-import { MockLlmProxy } from "../harness/mock-llm";
+import { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
-import { ensureRunnerBuilt } from "../harness/runner-build";
-import { spawnRunner, type RunningRunner } from "../harness/runner-process";
+import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
+import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
 import {
   ephemeralSqliteStorage,
   spawnServer,
   type ProvisionedStorage,
   type RunningServer,
-} from "../harness/server-process";
-import { spawnTemporal, type RunningTemporal } from "../harness/temporal";
-import { ensureTsServerEntry } from "../harness/ts-build";
+} from "@stigmer/test-support/server-process";
+import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
+import { ensureTsServerEntry } from "@stigmer/test-support/ts-build";
 import { createUniqueOrganization } from "../support/organizations";
 import type {
   CapabilityFlags,

@@ -1,4 +1,4 @@
-// Unit arms for the hermetic local OIDC issuer (harness/local-oidc-issuer.ts;
+// Unit arms for the hermetic local OIDC issuer (test/support/src/local-oidc-issuer.ts;
 // 20260911.11 Q-IA-10) — lifted from the server's oidc-verifier unit test so
 // one suite file can boot an OSS server in the OIDC posture against it.
 // Domain: conformance harness.
@@ -32,7 +32,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
-} from "../local-oidc-issuer";
+} from "../local-oidc-issuer.ts";
 
 let issuer: LocalOidcIssuer;
 

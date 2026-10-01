@@ -155,7 +155,7 @@ a capture after the tool's write instead of before it). Make the race lose on
 demand rather than waiting for a loaded machine: put a `git` shim first on
 `PATH` that sleeps a random 0–400 ms and then `exec`s the real binary by
 absolute path, and run the one file. The harness spreads `process.env` into the
-runner process (`src/harness/runner-process.ts`), so the shim reaches the
+runner process (`test/support/src/runner-process.ts`), so the shim reaches the
 capture and nothing else. A constant delay shifts every capture the same way
 and can hide the flake; jitter is what reproduces it. The progress waits in
 `src/support/file-review.ts` put the sequence of snapshots they observed into
@@ -524,7 +524,14 @@ operator-keyed runner completes and is attributed to the member. It gates on
 `CapabilityFlags.runnerActsAsRunCreator`, false on the cloud targets whose
 conformance runner is an embedded runner acting as the primary user.
 
-### Harness (`src/harness/`)
+### Harness (`src/harness/` and `test/support`)
+
+The machinery this suite shares with the e2e and install suites lives once in
+`test/support` (`@stigmer/test-support`, imported as
+`@stigmer/test-support/<module>`): `ts-build`, `server-process`, `ports`,
+`temporal`, `child-process`, `runner-build`, `runner-process`, `mock-llm` and
+its `llm-wire`, `fake-llm-upstream`, `jwt`, `local-oidc-issuer` and
+`oauth-authorization-server`. `src/harness/` holds the rest, the suite's own.
 
 `ts-build` compiles the server once per run (vitest `globalSetup`); each suite
 file boots its own instance (`server-process` + `ports`) against a private temp
@@ -608,7 +615,7 @@ multiple Temporal+runner stacks at once.
 
 `agentexecution.conformance.test.ts` is the second whole execution domain. An
 agent run always hits an LLM, so the `local-execution` target also boots a
-**TS-pure mock-LLM proxy** (`harness/mock-llm.ts`): a long-lived HTTP server with
+**TS-pure mock-LLM proxy** (`test/support/src/mock-llm.ts`): a long-lived HTTP server with
 a programmable response queue that replays canned Anthropic SSE to the runner via
 a base-URL override (`STIGMER_PROXY_ENDPOINT`) — no API key, no network. A single
 text turn reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
@@ -737,7 +744,7 @@ engine's blocks with the prompt-cache breakpoint — and the tool surface with
 every description and schema in wire order), plus value arms for the thinking
 posture and byte-stability across two turns of one session. It reads the
 mock's `scriptedRequests()` (the agent loop's calls, the background titling
-call left out) through `harness/llm-wire.ts`'s request reader and
+call left out) through `test/support/src/llm-wire.ts`'s request reader and
 `support/request-shape.ts`'s renderers. A golden moves only under a ruling
 the PR quotes, every hunk explained — never a quiet `vitest -u`; in CI a
 missing golden fails rather than being written. The cloud execution config

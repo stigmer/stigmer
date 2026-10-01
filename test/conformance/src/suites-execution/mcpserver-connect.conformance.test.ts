@@ -43,9 +43,9 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { economyRowFor, wireModelIdOf } from "../harness/model-registry";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
-import { connectClassifierVerdict, type MockLlmProxy } from "../harness/mock-llm";
-import { MockOAuthAuthorizationServer } from "../harness/oauth-authorization-server";
-import { CONFORMANCE_OAUTH_REDIRECT_URI } from "../harness/server-process";
+import { connectClassifierVerdict, type MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
+import { HERMETIC_OAUTH_REDIRECT_URI } from "@stigmer/test-support/server-process";
 import { requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
 import { makePersonalEnvironment } from "../support/environments";
 import {
@@ -292,7 +292,7 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     expect(exchange.grantType).toBe("authorization_code");
     expect(exchange.code).toBe("conformance-auth-code");
     expect(exchange.clientId).toBe("mock-dcr-client-1");
-    expect(exchange.redirectUri).toBe(CONFORMANCE_OAUTH_REDIRECT_URI);
+    expect(exchange.redirectUri).toBe(HERMETIC_OAUTH_REDIRECT_URI);
     expect(exchange.secretChannel).toBe("none");
     const challenge = new URL(initiated.authorizationUrl).searchParams.get("code_challenge");
     expect(exchange.codeVerifier).toBeDefined();

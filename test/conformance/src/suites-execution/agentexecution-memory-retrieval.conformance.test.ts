@@ -21,8 +21,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
   awaitTerminal,

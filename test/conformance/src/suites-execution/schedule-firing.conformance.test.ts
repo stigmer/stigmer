@@ -35,7 +35,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { anthropicText } from "../harness/mock-llm";
+import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSchedule, targetMissingReason } from "../support/schedules";

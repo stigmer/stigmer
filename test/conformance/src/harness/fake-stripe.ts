@@ -33,8 +33,8 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { readBody } from "./fake-llm-upstream";
-import { writeJson } from "./llm-wire";
+import { readBody } from "@stigmer/test-support/fake-llm-upstream";
+import { writeJson } from "@stigmer/test-support/llm-wire";
 
 // The API version the retired Java service's stripe-java 32.1.0 pinned in
 // com.stripe.Stripe.API_VERSION — read from the published jar's class

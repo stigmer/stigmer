@@ -34,7 +34,7 @@
 //     provisionMyAccount is the idempotent early return.
 //   - the OIDC lane (Q-IA-2, Q-IA-10): on a target that can spawn a
 //     sibling server (spawnSibling), one server boots in the OIDC posture
-//     against the harness's local issuer (harness/local-oidc-issuer.ts):
+//     against the harness's local issuer (test/support/src/local-oidc-issuer.ts):
 //     an unprovisioned subject is idp-shaped (whoAmI NOT_FOUND with the
 //     cloud's copy), provisionMyAccount creates the account from the
 //     issuer's /userinfo, the next request resolves to it, an API key
@@ -61,7 +61,7 @@ import type { ConformanceClients } from "../harness/clients";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
-} from "../harness/local-oidc-issuer";
+} from "@stigmer/test-support/local-oidc-issuer";
 import {
   ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
   CREATE_IS_INTERNAL_MESSAGE,

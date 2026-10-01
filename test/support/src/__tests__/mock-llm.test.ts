@@ -17,7 +17,7 @@ import {
   anthropicText,
   deterministicEmbeddings,
   type EmbeddingsResponseBody,
-} from "../mock-llm";
+} from "../mock-llm.ts";
 
 const mock = new MockLlmProxy();
 

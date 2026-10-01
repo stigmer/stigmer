@@ -29,9 +29,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import type { IpcCommand, IpcResponse } from "../../../../backend/services/runner/src/ipc-protocol";
-import { stopChild } from "./child-process";
-import { runnerDir } from "./runner-build";
-import { runnerHomeEnv } from "./runner-process";
+import { stopChild } from "@stigmer/test-support/child-process";
+import { runnerDir } from "@stigmer/test-support/runner-build";
+import { runnerHomeEnv } from "@stigmer/test-support/runner-process";
 
 // The manager connects to Temporal and bundles workflows before `ready`; the
 // static runner's first-poll budget is the right order of magnitude.

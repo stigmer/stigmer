@@ -52,8 +52,8 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { GitWorkspace, requireGit } from "../harness/git-workspace";
-import type { AnthropicMessageBody, MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText, anthropicToolUse } from "../harness/mock-llm";
+import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import { allToolCalls, awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
 import {

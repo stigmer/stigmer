@@ -19,7 +19,7 @@
 // reaches the fixture's `echo` surface, so a session on an agent that lists
 // the server can call one tool once the sign-in has landed.
 import { McpToolFixture } from "./mcp-server";
-import { MockOAuthAuthorizationServer } from "./oauth-authorization-server";
+import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
 
 async function main(): Promise<void> {
   const authorizationServer = new MockOAuthAuthorizationServer();

@@ -63,6 +63,11 @@ jobs:
       - name: Run the harness unit arms
         run: npm run test:unit -w @stigmer/conformance
 
+      # The shared test machinery's own cases (test/support: the stack spawns,
+      # the model fakes, the identity fixtures the suites import).
+      - name: Run the shared test machinery's cases
+        run: npm test -w @stigmer/test-support
+
       # The server is standalone (own lockfile, file-linked protos); its
       # global-setup compiles it, but the install must happen here where
       # network access is expected.

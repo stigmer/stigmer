@@ -24,7 +24,7 @@
  *   `process.getActiveResourcesInfo()`, so the line never names the
  *   backstop itself.
  * - The bound sits above the conformance harness's slow-exit threshold
- *   (2 s, `test/conformance/src/harness/runner-process.ts`), so a leak is
+ *   (2 s, `test/support/src/runner-process.ts`), so a leak is
  *   still reported there as a slow exit instead of being hidden under it,
  *   and far below the harness's 30 s and the hosted 10-minute graces.
  * - A forced exit exits 0. By the time the backstop is armed the drain and

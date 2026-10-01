@@ -11,7 +11,7 @@
 // through the same Discord client; C5 may reuse this fixture for it.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { readBody } from "./fake-llm-upstream";
+import { readBody } from "@stigmer/test-support/fake-llm-upstream";
 
 export interface CapturedDiscordPost {
   readonly path: string;

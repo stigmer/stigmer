@@ -18,7 +18,7 @@
 // request or what a "right" prompt looks like. The golden a renderer feeds
 // moves only under a ruling quoted in the facet's header, never a quiet
 // vitest `-u`.
-import type { AnthropicRequestBody, AnthropicSystemBlock } from "../harness/llm-wire";
+import type { AnthropicRequestBody, AnthropicSystemBlock } from "@stigmer/test-support/llm-wire";
 
 // The system prompt as the provider received it. A request that sent
 // `system` as one string renders as a single block marked as such, so the

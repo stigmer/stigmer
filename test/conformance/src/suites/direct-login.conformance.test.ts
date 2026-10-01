@@ -40,7 +40,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
 import { directLoginClaims } from "../harness/direct-login-tenant";
-import { signRs256Jwt } from "../harness/jwt";
+import { signRs256Jwt } from "@stigmer/test-support/jwt";
 import {
   ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
   freshSubject,

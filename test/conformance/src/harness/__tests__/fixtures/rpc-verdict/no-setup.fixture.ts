@@ -4,7 +4,7 @@
 // Domain: conformance harness (the RPC contract's call verdict).
 import { it } from "vitest";
 import { createTransport, makeClients } from "../../../clients";
-import { getFreePort } from "../../../ports";
+import { getFreePort } from "@stigmer/test-support/ports";
 
 it("[rpc:AgentQueryController.get] unjudged: sends its RPC under a config without the setup file", async () => {
   const clients = makeClients(createTransport(`http://127.0.0.1:${await getFreePort()}`));

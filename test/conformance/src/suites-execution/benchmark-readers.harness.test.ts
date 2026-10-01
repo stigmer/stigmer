@@ -53,11 +53,11 @@ import { executeActivityNameFor, historyAxes, invokeWorkflowIdFor, showWorkflow 
 import { awaitTimingLines, axesFromTiming } from "../benchmark/timing-lines";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import type { MockLlmProxy } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { LOOKUP_ORDER_TOOL_NAME } from "../harness/mcp-server";
-import { anthropicText, anthropicToolUse } from "../harness/mock-llm";
-import { readAnthropicRequest, type AnthropicRequestBody } from "../harness/llm-wire";
-import { TEMPORAL_DEV_NAMESPACE } from "../harness/temporal";
+import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
+import { readAnthropicRequest, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
+import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
 import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
 import { makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";

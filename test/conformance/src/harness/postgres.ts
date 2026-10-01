@@ -12,7 +12,7 @@ import { randomBytes } from "node:crypto";
 
 import pg from "pg";
 
-import type { ProvisionedStorage } from "./server-process";
+import type { ProvisionedStorage } from "@stigmer/test-support/server-process";
 
 export interface ProvisionedPostgresDatabase {
   /** DATABASE_URL for the spawned server (selects the Postgres driver). */

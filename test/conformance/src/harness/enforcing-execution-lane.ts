@@ -50,9 +50,9 @@ import {
   newSiblingEnforcingLane,
   type SiblingEnforcingLane,
 } from "./enforcing-lane";
-import { MockLlmProxy } from "./mock-llm";
-import { ensureRunnerBuilt } from "./runner-build";
-import { spawnRunner, type RunningRunner } from "./runner-process";
+import { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
+import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
 
 export interface SiblingEnforcingExecutionLaneDeps {
   // The target's own sibling spawn: an OIDC-posture server WITH its own

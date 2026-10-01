@@ -31,10 +31,10 @@ import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/serve
 import { CLOUD_ENV } from "../harness/cloud-env";
 import type { ConformanceClients, PresentingOptions } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
-import { MockLlmProxy } from "../harness/mock-llm";
+import { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
-import { ensureRunnerBuilt } from "../harness/runner-build";
-import { spawnRunner, type RunningRunner } from "../harness/runner-process";
+import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
+import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
 import { CloudTarget } from "./cloud";
 import type {
   CapabilityFlags,

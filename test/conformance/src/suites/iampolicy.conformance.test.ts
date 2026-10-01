@@ -147,7 +147,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
-} from "../harness/local-oidc-issuer";
+} from "@stigmer/test-support/local-oidc-issuer";
 import { makeAgent } from "../support/agents";
 import { freshSubject } from "../support/identityaccounts";
 import {

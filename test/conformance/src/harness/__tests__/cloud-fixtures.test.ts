@@ -6,8 +6,8 @@ import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startCloudFixtures, type CloudFixtures } from "../cloud-fixtures";
 import { FAKE_CARD, signStripePayload, stripeEvent, STRIPE_JAVA_API_VERSION } from "../fake-stripe";
-import { DEFAULT_REPLY_CAPTURE_LIMIT, DEFAULT_REPLY_TEXT } from "../fake-llm-upstream";
-import { anthropicText, openAiText } from "../llm-wire";
+import { DEFAULT_REPLY_CAPTURE_LIMIT, DEFAULT_REPLY_TEXT } from "@stigmer/test-support/fake-llm-upstream";
+import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { CloudFixturesClient } from "../../support/cloud-fixtures-client";
 
 let fixtures: CloudFixtures;

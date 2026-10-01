@@ -7,7 +7,7 @@
 // never read when a later one exists; and a body with no user message, or no
 // `messages` at all, is refused by name rather than read as empty.
 import { describe, expect, it } from "vitest";
-import { readLastUserText } from "../llm-wire";
+import { readLastUserText } from "../llm-wire.ts";
 
 describe("readLastUserText", () => {
   it("reads a string content as it is", () => {

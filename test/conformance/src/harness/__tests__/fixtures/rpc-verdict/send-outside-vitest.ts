@@ -7,7 +7,7 @@
 // Domain: conformance harness (the RPC contract's call verdict).
 import { ConnectError } from "@connectrpc/connect";
 import { createTransport, makeClients } from "../../../clients";
-import { getFreePort } from "../../../ports";
+import { getFreePort } from "@stigmer/test-support/ports";
 
 const clients = makeClients(createTransport(`http://127.0.0.1:${await getFreePort()}`));
 try {

@@ -9,7 +9,7 @@
 // the CRUD domains), so tenancy provisioning is one fresh Organization per
 // scope, created by the one implicit caller (support/organizations.ts).
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { ensureTsServerEntry } from "../harness/ts-build";
+import { ensureTsServerEntry } from "@stigmer/test-support/ts-build";
 import {
   createTransport,
   makeClients,
@@ -23,7 +23,7 @@ import {
   spawnServer,
   type ProvisionedStorage,
   type RunningServer,
-} from "../harness/server-process";
+} from "@stigmer/test-support/server-process";
 import { createUniqueOrganization } from "../support/organizations";
 import type {
   CapabilityFlags,

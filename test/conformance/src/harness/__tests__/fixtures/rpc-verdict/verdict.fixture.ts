@@ -9,7 +9,7 @@
 // the recorder attributes a call when it is issued, so no server is needed.
 import { afterAll, beforeAll, describe, expect, it, onTestFinished } from "vitest";
 import { createTransport, makeClients, type ConformanceClients } from "../../../clients";
-import { getFreePort } from "../../../ports";
+import { getFreePort } from "@stigmer/test-support/ports";
 
 let clients: ConformanceClients;
 

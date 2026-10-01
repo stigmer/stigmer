@@ -11,8 +11,8 @@ import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { stopChild, teeChildOutput } from "./child-process";
-import { getFreePort } from "./ports";
+import { stopChild, teeChildOutput } from "./child-process.ts";
+import { getFreePort } from "./ports.ts";
 
 const TCP_READY_TIMEOUT_MS = 20_000;
 const TCP_READY_POLL_MS = 100;
@@ -28,11 +28,12 @@ const LOG_TAIL_BYTES = 8_000;
 // there is refused at once. The composed server tests use the same address.
 const ENGINELESS_TEMPORAL_HOST_PORT = "127.0.0.1:1";
 
-// The OAuth callback URL every conformance server boots with (see the env
-// block below). Exported so the OAuth suite can assert the redirect_uri the
-// server presents to an authorization server against the value the harness
-// configured — one source of truth, no copy drift.
-export const CONFORMANCE_OAUTH_REDIRECT_URI = "http://127.0.0.1:8234/auth/oauth/callback";
+// The OAuth callback URL every hermetic server boots with (see the env block
+// below): a fixed dummy the server only forwards as the redirect_uri, never
+// fetches. Exported so a suite can assert the redirect_uri the server presents
+// to an authorization server against the value the server was given — one
+// source of truth, no copy drift.
+export const HERMETIC_OAUTH_REDIRECT_URI = "http://127.0.0.1:8234/auth/oauth/callback";
 
 // The storage ONE spawned server writes to, as the env that selects it plus
 // the obligation to release it — the managed targets' storage-driver seam
@@ -135,7 +136,7 @@ export async function spawnServer(
       // server never fetches this URL — it only forwards it to the
       // authorization server as the redirect_uri parameter, and the OAuth
       // conformance suite's mock authorization server never redirects.
-      STIGMER_OAUTH_REDIRECT_URI: CONFORMANCE_OAUTH_REDIRECT_URI,
+      STIGMER_OAUTH_REDIRECT_URI: HERMETIC_OAUTH_REDIRECT_URI,
       ...(opts.env ?? {}),
     },
   });

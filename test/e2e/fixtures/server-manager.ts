@@ -37,7 +37,7 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Allocates an ephemeral TCP port by binding to :0 and reading the assignment.
- * Mirrors the conformance harness (test/conformance/src/harness/ports.ts): the
+ * Mirrors the conformance harness (test/support/src/ports.ts): the
  * Temporal frontend uses a free port rather than the fixed 7233 so a hermetic
  * e2e stack never collides with — or is poached by — a developer's live dev
  * stack on the default port (a reused dev runner is not wired to our mock LLM).

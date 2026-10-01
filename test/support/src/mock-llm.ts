@@ -67,7 +67,7 @@ import {
   writeAnthropicSse,
   writeJson,
   type AnthropicMessageBody,
-} from "./llm-wire";
+} from "./llm-wire.ts";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AddressInfo } from "node:net";
 
@@ -82,7 +82,7 @@ export {
   type AnthropicContentBlock,
   type AnthropicMessageBody,
   type ToolUseBlock,
-} from "./llm-wire";
+} from "./llm-wire.ts";
 
 // One classifier verdict for a FIRST connect of an MCP server exposing
 // `toolName`: the connect workflow's tool classifier calls the LLM through the

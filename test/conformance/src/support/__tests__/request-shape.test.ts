@@ -5,7 +5,7 @@
 // hand-built bodies, no mock, no target.
 // Domain: conformance support (execution engine).
 import { describe, expect, it } from "vitest";
-import { readAnthropicRequest } from "../../harness/llm-wire";
+import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import { renderSystemPrompt, renderToolSurface } from "../request-shape";
 
 const LS_SCHEMA = { type: "object", properties: { path: { type: "string" } }, required: ["path"] };

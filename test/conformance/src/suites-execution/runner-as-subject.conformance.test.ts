@@ -109,12 +109,12 @@ import {
   anthropicText,
   anthropicToolUse,
   type AnthropicMessageBody,
-} from "../harness/llm-wire";
+} from "@stigmer/test-support/llm-wire";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import {
   connectClassifierVerdict,
   type MockLlmProxy,
-} from "../harness/mock-llm";
+} from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
   awaitTerminal,

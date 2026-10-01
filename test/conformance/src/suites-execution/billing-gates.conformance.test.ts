@@ -27,7 +27,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
-import { anthropicText, anthropicToolUses, type MockLlmProxy } from "../harness/mock-llm";
+import { anthropicText, anthropicToolUses, type MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture, submitApprovalPerContract } from "../support/agentexecutions";
 import { makeHttpMcpServer } from "../support/mcpservers";

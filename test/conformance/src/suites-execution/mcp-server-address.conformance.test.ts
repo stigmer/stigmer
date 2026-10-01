@@ -13,7 +13,7 @@
 // the McpToolFixture records the headers of the `tools/call` that dispatched
 // the tool.
 //
-// The harness runner is given a public endpoint (harness/runner-process.ts),
+// The harness runner is given a public endpoint (test/support/src/runner-process.ts),
 // so the fill is live for this remote server and a saved value that lost to
 // it would show as the harness server's own address. Deliberately out of
 // scope: WHICH address the runner fills when nothing is saved. That depends
@@ -25,8 +25,8 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText, anthropicToolUse } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
 import { makeAgentInstance } from "../support/agentinstances";

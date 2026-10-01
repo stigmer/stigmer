@@ -49,8 +49,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { stopChild, teeChildOutput } from "./child-process";
-import { runnerDir } from "./runner-build";
+import { stopChild, teeChildOutput } from "./child-process.ts";
+import { runnerDir } from "./runner-build.ts";
 
 // The runner bundles its Temporal workflows on boot, so first-poll readiness is
 // slower than a plain listener; give it generous headroom.

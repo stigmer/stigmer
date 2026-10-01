@@ -11,7 +11,7 @@
 // the local engine) keeps it off the per-file hook budget and satisfies the
 // runner's stale-build guard for the from-dist launch.
 import cloudSetup from "./global-setup-cloud";
-import { buildRunner } from "./runner-build";
+import { buildRunner } from "@stigmer/test-support/runner-build";
 
 export default async function setup(): Promise<() => Promise<void>> {
   const teardown = await cloudSetup();

@@ -66,8 +66,8 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
-import type { MockLlmProxy } from "../harness/mock-llm";
-import { anthropicText, anthropicToolUses } from "../harness/mock-llm";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
 import {
   decidedByOf,

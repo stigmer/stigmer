@@ -14,7 +14,7 @@
 // targets get from temp DB_PATH files. The env var being unset fails setup
 // loudly (never a silent sqlite pass).
 import { provisionPostgresStorage } from "../harness/postgres";
-import type { ProvisionedStorage } from "../harness/server-process";
+import type { ProvisionedStorage } from "@stigmer/test-support/server-process";
 import { LocalTarget } from "./local";
 import { LocalExecutionTarget } from "./local-execution";
 

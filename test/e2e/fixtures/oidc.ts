@@ -31,7 +31,7 @@ export const OIDC_CONSOLE_CLIENT_ID = "stigmer-console";
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const ISSUER_MAIN = path.join(
   REPO_ROOT,
-  "test/conformance/src/harness/local-oidc-issuer-main.ts",
+  "test/support/src/local-oidc-issuer-main.ts",
 );
 const TSX = path.join(REPO_ROOT, "node_modules/.bin/tsx");
 

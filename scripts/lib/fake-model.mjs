@@ -9,7 +9,7 @@
  * release runs the smokes straight after a checkout, with no install, so
  * nothing here may import a package or TypeScript. That is why this is a copy
  * and not an import of the conformance harness's FakeLlmUpstream
- * (test/conformance/src/harness/fake-llm-upstream.ts). The copy is bounded on
+ * (test/support/src/fake-llm-upstream.ts). The copy is bounded on
  * purpose: one provider, one canned reply, one error. The reply text is the
  * harness's own DEFAULT_REPLY_TEXT, and fake-model.test.mjs fails when the two
  * drift. The shared test machinery's one home, test/support, is to fold both

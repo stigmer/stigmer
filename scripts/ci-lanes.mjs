@@ -125,6 +125,8 @@ export const LANES = {
     paths: [
       "backend/**",
       "test/conformance/**",
+      // The shared test machinery the suites import (@stigmer/test-support).
+      "test/support/**",
       "apis/**",
       ".github/workflows/ci.conformance.yaml",
     ],
@@ -133,6 +135,7 @@ export const LANES = {
     paths: [
       "backend/**",
       "test/conformance/**",
+      "test/support/**",
       "apis/**",
       // The Temporal CLI the suites run against: its pin, downloader and installer.
       "client-apps/cli/src/local/artifact.ts",
@@ -192,9 +195,9 @@ export const LANES = {
   "ci.e2e-interactive.yaml": {
     paths: [
       "test/e2e/**",
-      // The console-login stack shape runs the conformance harness's OIDC
-      // issuer as a process.
-      "test/conformance/src/harness/local-oidc-issuer*.ts",
+      // The console-login stack shape runs the shared OIDC issuer
+      // (test/support's local-oidc-issuer-main) as a process.
+      "test/support/**",
       "backend/**",
       "client-apps/web/**",
       "sdk/**",

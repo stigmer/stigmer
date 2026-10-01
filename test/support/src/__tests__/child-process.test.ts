@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { stopChild, teeChildOutput, type ChildHandle } from "../child-process";
+import { stopChild, teeChildOutput, type ChildHandle } from "../child-process.ts";
 
 // The narrowest thing that satisfies ChildHandle. `kill` records signals and
 // leaves exiting to the test, which is what lets each arm choose its ordering.
