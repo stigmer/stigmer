@@ -47,6 +47,8 @@ test("no release below the target is refused loudly", () => {
 test("a prerelease target upgrades from the newest stable release below its X.Y.Z", () => {
   assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.42.0-rc.1" }), "3.41.0");
   assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.41.0-rc.2" }), "3.40.1");
+  // A patch prerelease: its own X.Y is the base's, so only its core orders them.
+  assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.41.1-rc.1" }), "3.41.0");
   assert.equal(versionCore("3.42.0-rc.1"), "3.42.0");
   assert.equal(versionCore("3.42.0"), "3.42.0");
 });

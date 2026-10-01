@@ -102,7 +102,8 @@ export function connectRefusal(status, body) {
   } catch {
     // not JSON: the raw text is the message
   }
-  const isObject = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+  // An array is an object too, but JSON gives it no named fields: it lands as text.
+  const isObject = parsed !== null && typeof parsed === "object";
   const code = isObject && typeof parsed.code === "string" ? parsed.code : "";
   const message = isObject && typeof parsed.message === "string" ? parsed.message : body.slice(0, 300);
   return { status, code, message };
