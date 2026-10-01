@@ -11,8 +11,8 @@
 #
 # Each target runs as three shards (`--shard=<index>/3`). The suite's files
 # run one at a time, because each boots its own Temporal, server and runner
-# (vitest.execution.config.ts), so one job took 9 to 13 minutes and held the
-# whole gate to that. vitest splits the files by a hash of their path, in
+# (vitest.execution.config.ts), so a single job runs for 9 to 13 minutes and
+# holds the whole gate to that. vitest splits the files by a hash of their path, in
 # equal counts; three is where the split stops paying, since the file that
 # exercises provider errors (about two minutes alone) lands in one shard
 # whatever the count. scripts/ci-shards.test.mjs holds every shard matrix to

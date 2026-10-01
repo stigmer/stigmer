@@ -15,9 +15,11 @@
  *     `exclude` or `include` entry names a shard, since either changes which
  *     shards run after the list says all of them do;
  *   - neither the job nor a step that passes `--shard` is conditional on the
- *     shard: an `if:` over `matrix.shard` there skips that shard, green (a
- *     step that runs no part of the suite, a one-off check, may run in one
- *     shard only);
+ *     shard: an `if:` over `matrix.shard` or `strategy.job-index` there skips
+ *     that shard, green (a step that runs no part of the suite, a one-off
+ *     check, may run in one shard only);
+ *   - neither carries `continue-on-error`, which turns a red shard green
+ *     whether it is `true` or an expression over the shard;
  *   - `strategy.fail-fast` is false, so one red shard does not cancel its
  *     siblings before they report what they found;
  *   - every artifact the job uploads names the shard, so the shards' uploads
@@ -33,7 +35,11 @@
 // An expression (`${{ matrix.shard }}/3`) holds spaces, so it is read whole.
 const SHARD_ARG = /--shard(?:=|\s+)(["']?\$\{\{[^}]*\}\}\S*|\S+)/g;
 const MATRIX_SHARD = /^\$\{\{\s*matrix\.shard\s*\}\}\/(\d+)$/;
-const MENTIONS_SHARD = /\bmatrix\.shard\b/;
+// Both name the instance of the matrix a job is: a condition over either can single out a shard.
+const MENTIONS_SHARD = /\bmatrix\.shard\b|\bstrategy\.job-index\b/;
+
+/** Whether a `continue-on-error` value is set at all: `true`, or any expression. */
+const forgives = (value) => value !== undefined && value !== false && value !== "false";
 
 /** The `--shard` arguments of a step's command, quotes stripped. */
 function shardArgs(run) {
@@ -84,9 +90,16 @@ export function shardFindings(workflows) {
     if (MENTIONS_SHARD.test(String(def?.if ?? ""))) {
       findings.push(`${at}: the job is conditional on the shard (\`if: ${def.if}\`), so a listed shard can be skipped green`);
     }
+    if (forgives(def?.["continue-on-error"])) {
+      findings.push(`${at}: \`continue-on-error\` on the job (\`${def["continue-on-error"]}\`) lets a red shard pass`);
+    }
     for (const step of steps) {
-      if (shardArgs(step.run).length > 0 && MENTIONS_SHARD.test(String(step.if ?? ""))) {
+      if (shardArgs(step.run).length === 0) continue;
+      if (MENTIONS_SHARD.test(String(step.if ?? ""))) {
         findings.push(`${at}: the step running \`--shard\` is conditional on the shard (\`if: ${step.if}\`), so a listed shard can be skipped green`);
+      }
+      if (forgives(step["continue-on-error"])) {
+        findings.push(`${at}: \`continue-on-error\` on the step running \`--shard\` (\`${step["continue-on-error"]}\`) lets a red shard pass`);
       }
     }
     if (def?.strategy?.["fail-fast"] !== false) {

@@ -22,8 +22,8 @@
 # builds and proves the artifacts (the console export, dist, the slim bundle,
 # the consumer install, the Docker image), which the vitest suite never reads;
 # `Server Tests` runs that suite as two shards (`--shard=<index>/2`) against
-# its own Postgres. Before the split one job ran both, one after the other,
-# for 9 to 12 minutes. scripts/ci-shards.test.mjs holds the shard matrix to
+# its own Postgres. One job doing both, one after the other, would run 9 to
+# 12 minutes. scripts/ci-shards.test.mjs holds the shard matrix to
 # the indices 1 and 2, so no shard can be dropped without the suite failing.
 #
 # When it runs (its list in scripts/ci-lanes.mjs): the service's own tree, every package it links with `file:`

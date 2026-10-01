@@ -120,3 +120,16 @@ test("a condition on the shard that runs a suite step or the job is refused: it 
   once.steps.unshift({ run: "npm run typecheck", if: "matrix.shard == 1" });
   assert.deepEqual(shardFindings(fixture(once)), [], "a step that runs no shard may run in one shard only");
 });
+
+test("continue-on-error over the shard, or a condition over the job index, is refused: both hide a shard", () => {
+  const forgiving = sharded(3);
+  forgiving.steps[0] = { ...forgiving.steps[0], "continue-on-error": "${{ matrix.shard == 3 }}" };
+  assert.match(shardFindings(fixture(forgiving)).join("\n"), /`continue-on-error` on the step running `--shard`/);
+  const job = sharded(3, { "continue-on-error": true });
+  assert.match(shardFindings(fixture(job)).join("\n"), /`continue-on-error` on the job/);
+  const indexed = sharded(3);
+  indexed.steps[0] = { ...indexed.steps[0], if: "strategy.job-index != 2" };
+  assert.match(shardFindings(fixture(indexed)).join("\n"), /the step running `--shard` is conditional on the shard/);
+  const indexedJob = sharded(3, { if: "${{ strategy.job-index < 2 }}" });
+  assert.match(shardFindings(fixture(indexedJob)).join("\n"), /the job is conditional on the shard/);
+});

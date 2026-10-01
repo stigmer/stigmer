@@ -57,8 +57,8 @@ env:
 jobs:
   # Two shards (`--shard=<index>/2`): each boots its own stack, mock proxy
   # included, on its own runner, and every spec enqueues the canned turns it
-  # needs before it acts, so no spec depends on another's. One job ran the
-  # suite for 5.5 minutes after about 3 minutes of builds.
+  # needs before it acts, so no spec depends on another's. The whole suite
+  # runs for about 5.5 minutes after about 3 minutes of builds.
   # scripts/ci-shards.test.mjs holds the shard matrix to the indices 1 and 2.
   e2e-interactive:
     name: Interactive E2E (full stack, ${{ matrix.shard }}/2)
@@ -314,7 +314,7 @@ jobs:
   #      journey's sign-in arm, which skips by name on the plain stack: the
   #      conformance harness's OAuth MCP and login servers as one process,
   #      the server's OAuth redirect at the console's callback page.
-  # One job ran both, one after the other, for 9 to 11 minutes.
+  # Both stacks in one job, one after the other, would run 9 to 11 minutes.
   # scripts/ci-shards.test.mjs holds the shard matrix to the indices 1 and 2.
   e2e-functional:
     name: Functional E2E (plain stack, ${{ matrix.shard }}/2)
