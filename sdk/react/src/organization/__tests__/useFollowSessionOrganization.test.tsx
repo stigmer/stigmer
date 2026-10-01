@@ -94,7 +94,9 @@ describe("useFollowSessionOrganization", () => {
     const { result } = renderFollowing(sessionIn("ses_1", "acme"));
 
     await waitFor(() => expect(result.current.activeOrg).not.toBeNull());
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // act flushes every pending effect and the state updates they make, so
+    // a switch the hook would make has landed before the assertion.
+    await act(async () => {});
     expect(result.current.activeOrg?.metadata?.slug).toBe("acme");
   });
 
@@ -102,7 +104,9 @@ describe("useFollowSessionOrganization", () => {
     const { result } = renderFollowing(sessionIn("ses_guest", "initech"));
 
     await waitFor(() => expect(result.current.activeOrg).not.toBeNull());
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // act flushes every pending effect and the state updates they make, so
+    // a switch the hook would make has landed before the assertion.
+    await act(async () => {});
     expect(result.current.activeOrg?.metadata?.slug).toBe("acme");
   });
 
@@ -115,7 +119,9 @@ describe("useFollowSessionOrganization", () => {
 
     act(() => result.current.setActiveOrg(acme));
     rerender({ current: session });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // act flushes every pending effect and the state updates they make, so
+    // a switch the hook would make has landed before the assertion.
+    await act(async () => {});
     expect(result.current.activeOrg?.metadata?.slug).toBe("acme");
 
     rerender({ current: sessionIn("ses_2", "globex") });

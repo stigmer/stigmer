@@ -46,8 +46,9 @@ export function addExecutionToSessionDeniedMessage(sessionId: string): string {
  * pass the run gate unchecked and are admitted later, in the gate slot, so
  * a caller refused here may not be one who may read the session. A caller
  * who may read the session finds its organization there. The refusal
- * itself still tells a lane caller holding the id that the organization it
- * sent is not the session's (session-binding.ts says why that stays).
+ * itself still tells a lane caller holding the id that the id names a
+ * session and that the organization it sent is not the session's
+ * (session-binding.ts says why that stays).
  * Pinned by the conformance agentexecution suite.
  */
 export function sessionOrganizationMismatchMessage(sessionId: string): string {

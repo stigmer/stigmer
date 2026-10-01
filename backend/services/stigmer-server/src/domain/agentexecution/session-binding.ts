@@ -17,6 +17,9 @@
  *     from a token in the pre-side-effect gate slot (a channel, a guest)
  *     then compare their token's org with the session's.
  *   - `metadata.org` equal to the session's: passes.
+ *   - a session with no organization: not judged. There is no organization
+ *     for the turn to belong to, and refusing would leave such a session
+ *     unreplyable; the session create chain gives every session one.
  *   - differing: FailedPrecondition, the platform's same-organization
  *     refusal (a schedule and its agent, a channel and its agent), naming
  *     neither organization. The edition lanes (a guest, a channel, a
@@ -25,10 +28,10 @@
  *     the session at all. One signal remains for such a caller: holding a
  *     session's id, it can tell this refusal (a differing organization)
  *     from its lane gate's later answer (a matching one, or no session), so
- *     it can confirm a guessed organization for a session id it already
- *     has. Closing that would mean skipping the check for caller classes
- *     the server does not know, which trusts every future lane by default,
- *     so the check stays for every caller.
+ *     it can tell whether that id names a session, and confirm a guessed
+ *     organization for it. Closing that would mean skipping the check for
+ *     caller classes the server does not know, which trusts every future
+ *     lane by default, so the check stays for every caller.
  *
  * Position: right after the run gate, so a caller the gate checked and
  * refused learns nothing about the session (ValidateThinkingMode's rule for
@@ -91,6 +94,9 @@ export function newValidateSessionOrganizationStep(
         return;
       }
       const sessionOrg = session.metadata?.org ?? "";
+      if (sessionOrg === "") {
+        return;
+      }
       const requestOrg = execution.metadata?.org ?? "";
 
       if (requestOrg === "") {

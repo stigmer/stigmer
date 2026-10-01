@@ -167,6 +167,19 @@ describe("ValidateSessionOrganization (create)", () => {
     expect(withoutMetadata.newState.metadata?.org).toBe("acme");
   });
 
+  it("a session with no organization is not judged", async () => {
+    await storeSession("ses_orgless", "");
+    const ctx = contextFor({
+      metadata: { org: "acme" },
+      spec: { sessionId: "ses_orgless" },
+    });
+
+    await expect(
+      newValidateSessionOrganizationStep(store).execute(ctx),
+    ).resolves.toBeUndefined();
+    expect(ctx.newState.metadata?.org).toBe("acme");
+  });
+
   it("a turn with no session id is not judged and never reads the store", async () => {
     const ctx = contextFor({
       metadata: { org: "personal" },
