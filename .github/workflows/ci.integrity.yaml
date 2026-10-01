@@ -17,13 +17,15 @@
 # commit's own copy of the script, since the pull request's own run already
 # judged the change.
 #
-# On a pull request the script is the base branch's copy, run against the
-# pull request's tree: a pull request that edits scripts/test-integrity.mjs
-# cannot loosen its rules for itself, the rule ci.review.yaml keeps for its
-# own script. A change to the script's command line and to this file together
-# therefore lands in two pull requests. This file itself is the pull
-# request's, since GitHub takes a pull request's workflow from its merge
-# commit (#1584).
+# On a pull request the script, and the parser version it is handed, are the
+# base branch's, run against the pull request's tree: a pull request that
+# edits scripts/test-integrity.mjs or the lockfile's parser entry cannot
+# loosen the rules for itself, the rule ci.review.yaml keeps for its own
+# script. The script still prefers a parser installed in the tree it judges
+# over the one it is handed (#1601). A change to the script's command line
+# and to this file together therefore lands in two pull requests. This file
+# itself is the pull request's, since GitHub takes a pull request's workflow
+# from its merge commit (#1584).
 #
 # The job never carries an `if:`: a required check that is skipped counts as
 # passed.
@@ -71,14 +73,23 @@ jobs:
       # pins: the script imports no module of the repository, so a full
       # `npm ci` would only cost minutes. The manifest and lockfile are written
       # from the root lockfile's own entry, so the version has one definition
-      # and `npm ci` refuses a tarball whose hash differs.
+      # and `npm ci` refuses a tarball whose hash differs. On a pull request
+      # the entry is the base branch's, like the script, so the pull request
+      # cannot choose the parser that judges it; the queue reads its commit's.
       - name: Install the TypeScript parser
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           mkdir -p "$RUNNER_TEMP/ts"
-          node - "$RUNNER_TEMP/ts" <<'JS'
+          if [ -n "$BASE_REF" ]; then
+            git show "origin/$BASE_REF:package-lock.json" > "$RUNNER_TEMP/root-lock.json"
+          else
+            cp package-lock.json "$RUNNER_TEMP/root-lock.json"
+          fi
+          node - "$RUNNER_TEMP/ts" "$RUNNER_TEMP/root-lock.json" <<'JS'
           const { readFileSync, writeFileSync } = require("node:fs");
-          const dir = process.argv[2];
-          const entry = JSON.parse(readFileSync("package-lock.json", "utf8")).packages["node_modules/typescript"];
+          const [dir, lock] = process.argv.slice(2);
+          const entry = JSON.parse(readFileSync(lock, "utf8")).packages["node_modules/typescript"];
           const { version, resolved, integrity } = entry ?? {};
           if (!version || !resolved || !integrity) throw new Error("package-lock.json has no pinned typescript entry");
           const dependencies = { typescript: version };

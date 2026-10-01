@@ -107,6 +107,7 @@ AGENTS.md                         the always-on root guide (a real file, not a s
   README.md                       this file
   ARCHITECTURE_PRINCIPLES.md      what the codebase optimises for; the reasons behind the laws
   skills/<name>/SKILL.md          repo skills, with optional references/ beside each
+.claude/skills                    a symlink to .agents/skills: how Claude Code finds the same skills (below)
 .cursor/rules/agents-<slug>.mdc   generated shim per nested guide; the ONLY files allowed in .cursor/rules
 .cursor/hooks.json                generated; registers the worktree guidance hook
 scripts/agents-check.mjs          the gate: shims and hooks.json in sync, cited paths resolve, no private ids,
