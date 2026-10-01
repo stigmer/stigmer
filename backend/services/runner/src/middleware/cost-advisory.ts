@@ -36,8 +36,10 @@
  *
  * forSubAgent — a view that shares the running total, so a sub-agent's calls
  *   advance the same figure the parent's warning reads. The view keeps its
- *   own pending advisory, so the call that crosses the threshold warns the
- *   graph that made it.
+ *   own pending advisory, delivered on that sub-agent's next model call. The
+ *   warning is given once per run, so when the crossing call is a sub-agent's
+ *   last, nobody is warned: the sub-agent makes no further call and the
+ *   parent's flag is already spent.
  *
  * Only built when `max_cost_usd > 0` is explicitly configured.
  */
@@ -145,7 +147,8 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
   /**
    * One graph's model-call wrapper: delivers that graph's pending advisory,
    * then prices the response. Each graph (the parent, each sub-agent view)
-   * holds its own pending slot over the one shared running total.
+   * holds its own pending slot over the one shared running total; a slot
+   * still pending when its graph stops calling the model is never delivered.
    */
   function advisingWrapper(): { wrapModelCall: WrapModelCall; clear(): void } {
     let pending: string | null = null;
