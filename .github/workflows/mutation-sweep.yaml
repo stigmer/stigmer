@@ -73,7 +73,10 @@ jobs:
 
       - name: List the targets file's targets (validated)
         id: list
-        run: echo "targets=$(node scripts/mutation-sweep.mjs --targets "$TARGETS" --list)" >> "$GITHUB_OUTPUT"
+        # Captured first, so a targets file the script refuses fails this step with its message.
+        run: |
+          targets=$(node scripts/mutation-sweep.mjs --targets "$TARGETS" --list)
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
 
   sweep:
     name: Sweep ${{ matrix.target.name }}

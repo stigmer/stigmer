@@ -970,6 +970,22 @@ test("a related run that hangs is stopped at its limit and reads as a timeout; a
   }
 });
 
+test("a refused run leaves no earlier record behind to publish", () => {
+  const f = runFixture();
+  try {
+    assert.equal(f.run().status, 0);
+    assert.ok(existsSync(join(f.dir, "out/credit-gate/target.json")));
+    writeFileSync(join(f.pkg, "src/gate/allowed.ts"), `${SOURCE}// an edit\n`);
+    const refused = f.run();
+    assert.equal(refused.status, 2);
+    assert.equal(existsSync(join(f.dir, "out/credit-gate/target.json")), false, "last week's record would publish under this run");
+    assert.equal(existsSync(join(f.dir, "out/credit-gate/mutation.json")), false);
+    assert.ok(existsSync(join(f.dir, "out/credit-gate/confirmed.json")), "the verdict cache stays for the next run");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
 test("--run refuses a package with an untracked file, which git could not restore after a killed run", () => {
   const f = runFixture();
   try {

@@ -791,6 +791,12 @@ async function runTarget(opts) {
   // never into it, so neither can replace that run's report or its cache.
   const outDir = resolve(opts.out, opts.only ? `${opts.run}.only` : opts.dryRun ? `${opts.run}.dry-run` : opts.run);
   mkdirSync(outDir, { recursive: true });
+  // The record names this run's commit only once this run's report exists.
+  // The directory may hold an earlier run's record and report (a workflow
+  // restores last week's state into it), so both go before anything can
+  // refuse the run: a refused run must leave nothing to publish.
+  rmSync(join(outDir, "target.json"), { force: true });
+  rmSync(join(outDir, "mutation.json"), { force: true });
   // Both sides through realpath: git names the repository by its real path, and a
   // path given through a symlink (macOS's /var is /private/var) would read as outside it.
   if (opts.only && !existsSync(opts.only)) throw new Error(`--only ${opts.only}: no such file`);
@@ -803,10 +809,6 @@ async function runTarget(opts) {
   const configPath = join(outDir, "stryker.config.json");
   writeFileSync(configPath, `${JSON.stringify(strykerConfig(target, outDir, { only, dryRun: opts.dryRun }), null, 2)}\n`);
   const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
-  // The record names this run's commit only once this run's report exists: a
-  // failed run must not leave an earlier report under the new commit.
-  rmSync(join(outDir, "target.json"), { force: true });
-  rmSync(join(outDir, "mutation.json"), { force: true });
   const result = spawnSync("npx", ["--no-install", "stryker", "run", configPath], { cwd: packageDir, stdio: "inherit" });
   removeStrykerSetupFiles(packageDir);
   if (result.error) throw result.error;
@@ -851,8 +853,10 @@ async function runTarget(opts) {
       log: (line) => console.log(`mutation-sweep: ${line}`),
       deadline: opts.budget === undefined ? undefined : opts.startedAt + opts.budget * 60_000,
     });
-    // A signal that arrived while a child ran waits for the event loop; one turn delivers it.
-    await new Promise((settle) => setImmediate(settle));
+    // A signal that arrived while a child ran waits for the event loop to
+    // deliver it. One turn is enough on Node 22 but not on 23, which delivers
+    // it only after a timer has run; a short timer covers both.
+    await new Promise((settle) => setTimeout(settle, 100));
   } finally {
     process.off("SIGINT", note);
     process.off("SIGTERM", note);
