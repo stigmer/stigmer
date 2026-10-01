@@ -58,6 +58,36 @@ export function liveSecret(name: LiveSecretName, env: NodeJS.ProcessEnv = proces
 }
 
 /**
+ * The variables that would send a live run somewhere other than the provider's
+ * own API: a gateway address, a cloud backend (Vertex, Bedrock, Foundry), the
+ * platform proxy. A live case proves the provider it names, so none of these
+ * may ride in from the shell.
+ */
+const PROVIDER_REDIRECTS = [
+  "ANTHROPIC_BASE_URL",
+  "STIGMER_ANTHROPIC_BACKEND",
+  "STIGMER_OPENAI_BACKEND",
+  "STIGMER_PROXY_ENDPOINT",
+  "STIGMER_TOKEN",
+] as const;
+
+/**
+ * Clear every provider redirect from `env` for a live run, and return the
+ * function that puts back what was there. A suite calls it in `beforeAll` and
+ * the returned restore in `afterAll`.
+ */
+export function useProviderDirectly(env: NodeJS.ProcessEnv = process.env): () => void {
+  const saved = PROVIDER_REDIRECTS.map((name) => [name, env[name]] as const);
+  for (const name of PROVIDER_REDIRECTS) delete env[name];
+  return () => {
+    for (const [name, value] of saved) {
+      if (value === undefined) delete env[name];
+      else env[name] = value;
+    }
+  };
+}
+
+/**
  * Report one live case's estimated spend, in US dollars, or that its run
  * reported none. Zero counts as none: a real provider call always costs
  * something, and a usage summary's `estimated_cost_usd` is a proto3 double

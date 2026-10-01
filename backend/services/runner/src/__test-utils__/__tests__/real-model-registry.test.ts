@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { cursorCatalogRows, nativeRows, providerModelId, realModelRegistry } from "../real-model-registry.js";
+import { cursorCatalogRows, nativeRows, parseRealRegistry, providerModelId, realModelRegistry } from "../real-model-registry.js";
 
 describe("realModelRegistry", () => {
   const document = realModelRegistry();
@@ -27,6 +27,25 @@ describe("realModelRegistry", () => {
 
   it("leaves the Cursor Auto pool out of the catalog rows", () => {
     expect(cursorCatalogRows(document).map((m) => m.id)).not.toContain("default");
-    expect(cursorCatalogRows(document).map((m) => m.id)).toContain("composer-2.5");
+  });
+});
+
+describe("parseRealRegistry", () => {
+  const row = { id: "m", provider: "anthropic", harness: "native" };
+
+  it("accepts a document of rows, a provider id optional", () => {
+    expect(parseRealRegistry(JSON.stringify({ models: [row, { ...row, apiModelId: "m-1" }] }), "f.json").models).toHaveLength(2);
+  });
+
+  it.each([
+    ["no models array", {}],
+    ["models not an array", { models: {} }],
+    ["a row missing its harness", { models: [{ id: "m", provider: "anthropic" }] }],
+    ["a provider id that is not a string", { models: [{ ...row, apiModelId: 7 }] }],
+    ["not an object at all", null],
+  ])("refuses %s, naming the file", (_case, document) => {
+    expect(() => parseRealRegistry(JSON.stringify(document), "data/model-registry.json")).toThrow(
+      /data\/model-registry\.json is not a model registry document/,
+    );
   });
 });

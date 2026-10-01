@@ -24,7 +24,7 @@ vi.mock("../../../client/stigmer-client.js", async () =>
 );
 
 import { createHermeticEnvironment, type HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
-import { liveSecret, recordLiveSpend } from "../../../__test-utils__/live-gate.js";
+import { liveSecret, recordLiveSpend, useProviderDirectly } from "../../../__test-utils__/live-gate.js";
 import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { realModelRegistry } from "../../../__test-utils__/real-model-registry.js";
 import { beginLiveDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../__test-utils__/hermetic-deep-agent.js";
@@ -36,8 +36,11 @@ const TOOL = "write_todos";
 describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a built-in tool call on Claude Haiku", () => {
   let env: HermeticEnvironment;
   let registry: ReturnType<typeof stubRegistryFetch>;
+  let restoreEnv: () => void;
 
   beforeAll(() => {
+    // Anthropic itself: no gateway, cloud backend or proxy from the shell.
+    restoreEnv = useProviderDirectly();
     env = createHermeticEnvironment();
     registry = stubRegistryFetch({ live: true, document: realModelRegistry() });
   });
@@ -45,6 +48,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a b
   afterAll(() => {
     registry.restore();
     env.dispose();
+    restoreEnv();
   });
 
   it("calls write_todos once, the row completes, and the turn completes under the cap", async () => {

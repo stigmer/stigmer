@@ -18,7 +18,7 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { liveSecret, recordLiveSpend } from "../../__test-utils__/live-gate.js";
+import { liveSecret, recordLiveSpend, useProviderDirectly } from "../../__test-utils__/live-gate.js";
 import { stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
 import { realModelRegistry } from "../../__test-utils__/real-model-registry.js";
 import { _resetPricingCache } from "../../shared/model-pricing-data.js";
@@ -41,12 +41,11 @@ function estimatedCostUsd(result: object): number {
 
 describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("callLlmAction live — Claude Haiku, direct mode", () => {
   let registry: ReturnType<typeof stubRegistryFetch>;
-  const proxy = { endpoint: process.env.STIGMER_PROXY_ENDPOINT, token: process.env.STIGMER_TOKEN };
+  let restoreEnv: () => void;
 
   beforeAll(() => {
-    // Direct mode is the self-hosted path: no proxy, the provider's own key.
-    delete process.env.STIGMER_PROXY_ENDPOINT;
-    delete process.env.STIGMER_TOKEN;
+    // Direct mode is the self-hosted path: no proxy, no gateway, no cloud backend, the provider's own key.
+    restoreEnv = useProviderDirectly();
     registry = stubRegistryFetch({ live: true, document: realModelRegistry() });
   });
 
@@ -57,8 +56,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("callLlmAction live — Claude
 
   afterAll(() => {
     registry.restore();
-    if (proxy.endpoint !== undefined) process.env.STIGMER_PROXY_ENDPOINT = proxy.endpoint;
-    if (proxy.token !== undefined) process.env.STIGMER_TOKEN = proxy.token;
+    restoreEnv();
   });
 
   it("returns text with its token counts", async () => {

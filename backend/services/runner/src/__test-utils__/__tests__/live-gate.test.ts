@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { liveSecret, recordLiveSpend } from "../live-gate.js";
+import { liveSecret, recordLiveSpend, useProviderDirectly } from "../live-gate.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -67,5 +67,25 @@ describe("recordLiveSpend", () => {
     expect(log.mock.calls.flat().join(" ")).toMatch(/cursor transcript: no estimate reported/);
     expect(log.mock.calls.flat().join(" ")).toMatch(/native turn: no estimate reported/);
     expect(log.mock.calls.flat().join(" ")).not.toMatch(/\$0\.0000/);
+  });
+});
+
+describe("useProviderDirectly", () => {
+  it("clears every provider redirect for the run and restores exactly what was there", () => {
+    const env: NodeJS.ProcessEnv = {
+      ANTHROPIC_BASE_URL: "http://gateway.internal",
+      STIGMER_ANTHROPIC_BACKEND: "vertex",
+      STIGMER_PROXY_ENDPOINT: "http://proxy",
+      ANTHROPIC_API_KEY: "k-1",
+    };
+    const restore = useProviderDirectly(env);
+    expect(env).toEqual({ ANTHROPIC_API_KEY: "k-1" });
+    restore();
+    expect(env).toEqual({
+      ANTHROPIC_BASE_URL: "http://gateway.internal",
+      STIGMER_ANTHROPIC_BACKEND: "vertex",
+      STIGMER_PROXY_ENDPOINT: "http://proxy",
+      ANTHROPIC_API_KEY: "k-1",
+    });
   });
 });

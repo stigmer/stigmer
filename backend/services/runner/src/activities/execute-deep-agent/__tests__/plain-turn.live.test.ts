@@ -26,7 +26,7 @@ vi.mock("../../../client/stigmer-client.js", async () =>
 );
 
 import { createHermeticEnvironment, type HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
-import { liveSecret, recordLiveSpend } from "../../../__test-utils__/live-gate.js";
+import { liveSecret, recordLiveSpend, useProviderDirectly } from "../../../__test-utils__/live-gate.js";
 import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { realModelRegistry } from "../../../__test-utils__/real-model-registry.js";
 import { COST_LIMIT_ERROR_PREFIX } from "../../../shared/cost-guard.js";
@@ -42,8 +42,11 @@ const UNREACHABLE_COST_USD = 0.0001;
 describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a plain turn on Claude Haiku", () => {
   let env: HermeticEnvironment;
   let registry: ReturnType<typeof stubRegistryFetch>;
+  let restoreEnv: () => void;
 
   beforeAll(() => {
+    // Anthropic itself: no gateway, cloud backend or proxy from the shell.
+    restoreEnv = useProviderDirectly();
     env = createHermeticEnvironment();
     registry = stubRegistryFetch({ live: true, document: realModelRegistry() });
   });
@@ -51,6 +54,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
   afterAll(() => {
     registry.restore();
     env.dispose();
+    restoreEnv();
   });
 
   it("completes with a reply, its usage and an estimated cost under the cap", async () => {

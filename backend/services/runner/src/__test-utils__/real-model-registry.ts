@@ -52,10 +52,19 @@ function isRow(value: unknown): value is RealRegistryRow {
 
 /** Read and shape-check the committed registry. Throws, naming the file, when it is not the expected shape. */
 export function realModelRegistry(): RealRegistryDocument {
-  const parsed: unknown = JSON.parse(readFileSync(REAL_REGISTRY_PATH, "utf-8"));
-  const models = (parsed as { models?: unknown }).models;
+  return parseRealRegistry(readFileSync(REAL_REGISTRY_PATH, "utf-8"), REAL_REGISTRY_PATH.pathname);
+}
+
+/**
+ * Shape-check a registry document's text. Throws, naming `source`, when it is
+ * not `{ models: [{ id, provider, harness, apiModelId? }] }`: a reshaped file
+ * fails here, in the ordinary suite, rather than as a puzzling live run.
+ */
+export function parseRealRegistry(text: string, source: string): RealRegistryDocument {
+  const parsed: unknown = JSON.parse(text);
+  const models = typeof parsed === "object" && parsed !== null ? (parsed as { models?: unknown }).models : undefined;
   if (!Array.isArray(models) || !models.every(isRow)) {
-    throw new Error(`${REAL_REGISTRY_PATH.pathname} is not a model registry document ({ models: [{ id, provider, harness }] })`);
+    throw new Error(`${source} is not a model registry document ({ models: [{ id, provider, harness }] })`);
   }
   return { models };
 }
