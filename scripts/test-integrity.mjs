@@ -66,7 +66,8 @@
  *     per imported name: importing anything from a helper that reaches a
  *     service reaches it, so a helper that mixes the two is split, not named
  *     around. A `composed`, `conformance`, `load`
- *     or `live` file, and the suites' own trees, may use any service;
+ *     or `live` file, and the suites' own trees, may use any service without
+ *     naming it, but not name one it never reaches;
  *   - a TypeScript test outside a `__tests__` directory (the suites' own trees
  *     excepted), a `*.spec.ts` outside test/e2e/tests and site/e2e, and an
  *     import in test/support of anything but `node:*` or its own `.ts` files.
@@ -171,7 +172,7 @@ export const SERVICE_WORDS = ["openfga", "postgres", "temporal", "vault"];
 export const LAYER_WORDS = ["browser", "composed", "conformance", "live", "load"];
 /** Words that meant different things in different places, refused as a name's last word. */
 export const RETIRED_WORDS = ["a11y", "contract", "e2e", "integration", "layout", "measure", "smoke"];
-/** Layers whose files may use any service without naming it. */
+/** Layers whose files may use any service without naming it (but name none they never reach). */
 const ANY_SERVICE = new Set(["composed", "conformance", "live", "load"]);
 /** The suites' own trees, placed by their suite rather than by `__tests__`. */
 const SUITE_TREES = ["test/conformance/src/suites", "test/e2e/tests/"];
@@ -195,11 +196,13 @@ const GATE_VARIABLES = new Map([
 /** The calls that reach the Postgres a gate provides (backend/services/stigmer-server's store test support). */
 const POSTGRES_CALLS = new Set(["testDatabaseAdminUrl", "createTestDatabase"]);
 /**
- * The calls that start a Temporal test server (`TestWorkflowEnvironment` of
- * `@temporalio/testing`). The package itself is not the service: its
+ * The calls that start a Temporal test server: these methods of
+ * `TestWorkflowEnvironment` (`@temporalio/testing`), under that name or an
+ * alias bound to it. The package itself is not the service: its
  * `MockActivityEnvironment` runs an activity in the test process.
  */
 const TEMPORAL_CALLS = new Set(["createLocal", "createTimeSkipping"]);
+const TEMPORAL_ENVIRONMENT = "TestWorkflowEnvironment";
 
 // ─── Parsing one file ───────────────────────────────────────────────────
 
@@ -450,13 +453,17 @@ export function scanModule(ts, path, text) {
   const services = new Set();
   const valueImports = [];
   const specifiers = [];
-  // `import { createTestDatabase as make }` reaches through `make()`.
-  const local = new Map([...POSTGRES_CALLS, "gateDependency"].map((name) => [name, name]));
+  // Local names bound to an entry point: `import { createTestDatabase as make }`,
+  // `const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing")`.
+  const local = new Map([...POSTGRES_CALLS, "gateDependency", TEMPORAL_ENVIRONMENT].map((name) => [name, name]));
   const bindAliases = (node) => {
-    const bindings = node.importClause?.namedBindings;
-    if (!bindings || !ts.isNamedImports(bindings)) return;
-    for (const e of bindings.elements) if (e.propertyName && local.has(e.propertyName.text)) local.set(e.name.text, e.propertyName.text);
+    if (ts.isImportSpecifier(node) && node.propertyName && local.has(node.propertyName.text)) local.set(node.name.text, node.propertyName.text);
+    if (ts.isBindingElement(node) && node.propertyName && ts.isIdentifier(node.propertyName) && ts.isIdentifier(node.name) && local.has(node.propertyName.text)) {
+      local.set(node.name.text, node.propertyName.text);
+    }
+    ts.forEachChild(node, bindAliases);
   };
+  bindAliases(sf);
   const note = (spec, value, node) => {
     specifiers.push({ spec, line: lineOf(sf, node) });
     if (value && spec.startsWith(".")) valueImports.push(spec);
@@ -464,7 +471,6 @@ export function scanModule(ts, path, text) {
   const walk = (node) => {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
       note(node.moduleSpecifier.text, isValueImport(ts, node), node);
-      bindAliases(node);
     } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
       note(node.moduleSpecifier.text, !node.isTypeOnly, node);
     } else if (ts.isCallExpression(node)) {
@@ -476,7 +482,8 @@ export function scanModule(ts, path, text) {
         const named = ts.isIdentifier(node.expression) ? node.expression.text : ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : undefined;
         const callee = named && ts.isIdentifier(node.expression) ? local.get(named) ?? named : named;
         if (callee && POSTGRES_CALLS.has(callee)) services.add("postgres");
-        if (callee && TEMPORAL_CALLS.has(callee) && ts.isPropertyAccessExpression(node.expression)) services.add("temporal");
+        const receiver = ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression) ? local.get(node.expression.expression.text) : undefined;
+        if (callee && TEMPORAL_CALLS.has(callee) && receiver === TEMPORAL_ENVIRONMENT) services.add("temporal");
         if (callee === "gateDependency" && literal !== undefined && GATE_VARIABLES.has(literal)) services.add(GATE_VARIABLES.get(literal));
       }
     }
@@ -576,10 +583,12 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
     if (words.includes("load") && !configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) {
       find("layout-word-place", path, 1, `${pkg} has no vitest.load.config, the one config that runs the load class`, "load");
     }
-    if (!words.some((w) => ANY_SERVICE.has(w)) && !ANY_SERVICE_TREES.some((t) => path.startsWith(t))) {
+    {
+      // A layer or a tree that may use any service still may not name one it never reaches.
+      const anyService = words.some((w) => ANY_SERVICE.has(w)) || ANY_SERVICE_TREES.some((t) => path.startsWith(t));
       const reached = reach(path);
       for (const service of SERVICE_WORDS) {
-        if (reached.has(service) && !words.includes(service)) {
+        if (!anyService && reached.has(service) && !words.includes(service)) {
           find("layout-service-unnamed", path, 1, `reaches ${service}, which its name does not say: add \`.${service}\` before \`.test\``, service);
         }
         if (words.includes(service) && !reached.has(service)) {
@@ -596,7 +605,8 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
 
   for (const path of [...files].filter((p) => p.startsWith(SUPPORT_TREE) && !p.includes("/__tests__/")).sort()) {
     for (const { spec, line } of scan(path).specifiers) {
-      if (spec.startsWith("node:") || (spec.startsWith(".") && /\.tsx?$/.test(spec))) continue;
+      const own = spec.startsWith(".") && /\.tsx?$/.test(spec) && posix.normalize(posix.join(posix.dirname(path), spec)).startsWith(SUPPORT_TREE);
+      if (spec.startsWith("node:") || own) continue;
       find("layout-support-import", path, line, `imports \`${spec}\`; test/support imports only \`node:*\` and its own files by their \`.ts\` path, so bare node loads it`, spec);
     }
   }

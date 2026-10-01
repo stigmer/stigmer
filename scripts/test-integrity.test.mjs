@@ -453,6 +453,8 @@ it("reaching a service is a value use of its entry point; types, strings and an 
   assert.deepEqual(services(`import { gateDependency as needs } from "./test-gate.js"; needs("TEST_FGA_API_URL", "OpenFGA");`), ["openfga"]);
   assert.deepEqual(services(`const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing"); env = await TWE.createLocal();`), ["temporal"]);
   assert.deepEqual(services(`env = await TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
+  assert.deepEqual(services(`import { TestWorkflowEnvironment as Env } from "@temporalio/testing"; await Env.createLocal();`), ["temporal"]);
+  assert.deepEqual(services(`const store = open(); await store.createLocal(); await createLocal();`), []);
   assert.deepEqual(services(`import { MockActivityEnvironment } from "@temporalio/testing"; new MockActivityEnvironment();`), []);
   assert.deepEqual(services(`import type { TestWorkflowEnvironment } from "@temporalio/testing"; type E = import("@temporalio/testing").TestWorkflowEnvironment;`), []);
   assert.deepEqual(services(`const why = "needs TEST_DATABASE_URL and createTestDatabase()"; gateDependency(name, "x");`), []);
@@ -504,6 +506,8 @@ it("composed, conformance, load and live files, and the suites' own trees, may u
   assert.deepEqual(layout({ "pkg/src/__tests__/lane.composed.test.ts": body }), []);
   assert.deepEqual(layout({ "test/e2e/tests/flow/login.spec.ts": body }, { packages: ["test/e2e"] }), []);
   assert.deepEqual(layout({ "test/conformance/src/suites/agent.conformance.test.ts": body }, { packages: ["test/conformance"] }), []);
+  // They may not name a service they never reach.
+  assert.deepEqual(layout({ "pkg/src/__tests__/lane.postgres.composed.test.ts": `it("a", () => {});` }), ["layout-service-unreached pkg/src/__tests__/lane.postgres.composed.test.ts postgres"]);
 });
 
 it("helpers that import each other are walked once, and a cycle ends the walk", () => {
@@ -563,11 +567,11 @@ it("a TypeScript test lives in __tests__, a spec under the e2e homes; the suites
 
 it("test/support imports only node:* and its own files by their .ts path; its own tests are free", () => {
   const tree = {
-    "test/support/src/fake.ts": `import { createServer } from "node:http";\nimport { wire } from "./wire.ts";\nimport { x } from "./other";\nimport pg from "pg";`,
+    "test/support/src/fake.ts": `import { createServer } from "node:http";\nimport { wire } from "./wire.ts";\nimport { x } from "./other";\nimport pg from "pg";\nimport { store } from "../../../backend/services/stigmer-server/src/store/store.ts";`,
     "test/support/src/wire.ts": `export const wire = 1;`,
     "test/support/src/__tests__/fake.test.ts": `import { describe } from "vitest"; it("a", () => {});`,
   };
-  assert.deepEqual(layout(tree, { packages: ["test/support"] }), ["layout-support-import test/support/src/fake.ts ./other", "layout-support-import test/support/src/fake.ts pg"]);
+  assert.deepEqual(layout(tree, { packages: ["test/support"] }), ["layout-support-import test/support/src/fake.ts ./other", "layout-support-import test/support/src/fake.ts pg", "layout-support-import test/support/src/fake.ts ../../../backend/services/stigmer-server/src/store/store.ts"]);
 });
 
 it("the baseline is read line by line: comments skipped, any other shape and a repeated line refused", () => {
