@@ -23,6 +23,7 @@
  * ships prebuilt bundles; the prebuilt sibling is the hook it fills).
  */
 import type { Logger } from "../../boot/logger.js";
+import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
 import type { WorkflowExecutionTemporalConfig } from "../../domain/workflowexecution/temporal/config.js";
 import type { StreamBroker } from "../../domain/workflowexecution/stream-broker.js";
 import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
@@ -38,6 +39,12 @@ export interface WorkflowExecutionWorkerDeps {
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
   /** The activity persist site's sandbox teardown observer (§6d, O6). */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
+  /**
+   * The server's own delete of a run's ExecutionContext (the run-end
+   * activity): the context's delete chain over the in-process transport,
+   * resolved lazily because the worker is built before the routes exist.
+   */
+  readonly executionContextDeleter: () => ExecutionContextDeleter;
 }
 
 export function newWorkflowExecutionWorkerFactory(
@@ -49,6 +56,7 @@ export function newWorkflowExecutionWorkerFactory(
       logger: deps.logger,
       broker: deps.broker,
       sandboxTerminalObserver: deps.sandboxTerminalObserver,
+      executionContextDeleter: deps.executionContextDeleter,
     });
 
     const workflowSource = resolveWorkflowSource({

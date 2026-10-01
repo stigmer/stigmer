@@ -99,7 +99,7 @@ import type { ServerExtension } from "../registry.js";
 import type { IdentityVerifier } from "../identity.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
-import { deleteExecutionContextForExecution } from "../../domain/executioncontext/temporal/delete-execution-context.js";
+import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
 
 /** The refusal a call answered; a call that succeeds fails the case. */
@@ -1650,12 +1650,25 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     expect(getError?.code).toBe(Code.NotFound);
   });
 
-  /** The run-end activity's delete of a run's context, as the server composes it. */
+  /**
+   * The run-end activity's delete of a run's context, as the server composes
+   * it: the store read, then the edge built exactly as boot/inprocess.ts
+   * builds it, the context's delete RPC over the in-process transport.
+   */
   async function deleteExecutionContextAsTheServer(executionId: string): Promise<void> {
+    const command = createClient(ExecutionContextCommandController, server.inProcessTransport);
     await deleteExecutionContextForExecution(
-      server.store,
-      createLogger({ level: "error", pretty: false, write: () => {} }),
+      {
+        store: server.store,
+        deleter: () => ({
+          delete: async (contextId) => {
+            await command.delete({ resourceId: contextId });
+          },
+        }),
+        logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+      },
       executionId,
+      "run-end",
     );
   }
 

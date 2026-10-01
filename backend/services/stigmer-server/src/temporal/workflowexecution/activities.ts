@@ -1,7 +1,9 @@
 /**
  * Server-side activity implementations for the workflow-execution worker —
  * ports pkg/domain/workflowexecution/temporal/activities
- * (update_status_impl.go) and registers #15's DeleteExecutionContext seam.
+ * (update_status_impl.go) and registers DeleteExecutionContext, the
+ * server's own delete of the run's context through the context's delete
+ * chain (domain/executioncontext/internal-delete.ts, stigmer#1647).
  *
  * UpdateWorkflowExecutionStatus deliberately does NOT reuse the domain's
  * updateStatus RPC merge (the choice agentexecution's port made): in Go
@@ -47,10 +49,9 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { StreamBroker } from "../../domain/workflowexecution/stream-broker.js";
-import {
-  DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
-  deleteExecutionContextForExecution,
-} from "../../domain/executioncontext/temporal/delete-execution-context.js";
+import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
+import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
+import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../domain/executioncontext/temporal/delete-execution-context.js";
 import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
 import type { Store } from "../../store/interface.js";
 import { UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME } from "./names.js";
@@ -66,6 +67,13 @@ export interface WorkflowExecutionActivityDeps {
    * wires.
    */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
+  /**
+   * The server's own delete of a run's ExecutionContext, read per call:
+   * the context's delete chain over the in-process transport, which exists
+   * only once the routes do (the composition root's requireInProcess
+   * idiom).
+   */
+  readonly executionContextDeleter: () => ExecutionContextDeleter;
 }
 
 /**
@@ -141,11 +149,15 @@ export function createWorkflowExecutionActivities(
       );
     },
 
-    /** #15's seam, shared with the agent-execution worker exactly as in Go. */
+    /** The server's own delete of the run's context, shared with the agent-execution worker exactly as in Go. */
     [DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (
       executionId: string,
     ): Promise<void> => {
-      await deleteExecutionContextForExecution(store, logger, executionId);
+      await deleteExecutionContextForExecution(
+        { store, deleter: deps.executionContextDeleter, logger },
+        executionId,
+        "run-end",
+      );
     },
   };
 }

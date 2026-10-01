@@ -947,6 +947,10 @@ export async function composeServer(
         // hooks, and the broadcast reach the workflow's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
+        // The run-end delete of the run's ExecutionContext rides the same
+        // lane: the context's own delete chain (stigmer#1647).
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
         temporalConfig,
       }),
       newWorkflowExecutionWorkerFactory({
@@ -955,6 +959,8 @@ export async function composeServer(
         broker: workflowExecutionStreamBroker,
         temporalConfig: workflowExecutionTemporalConfig,
         sandboxTerminalObserver: workflowSandboxTerminalObserver,
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
       }),
       newScheduleWorkerFactory({
         store,
@@ -1568,6 +1574,8 @@ export async function composeServer(
         environmentResolution,
         executionContextCreator: () =>
           requireInProcess().executionContextCreator,
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
         managedEnvService,
         // The minting client's environment layer reads the client through
         // the port, which a composition's driver may serve (#1256).
@@ -1619,6 +1627,8 @@ export async function composeServer(
         environmentResolution,
         executionContextCreator: () =>
           requireInProcess().workflowExecutionContextCreator,
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
       },
     });
     // The whole surface: the CRUD slice (D4 #9) plus the connect/OAuth

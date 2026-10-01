@@ -31,9 +31,12 @@
  * cloud composition left a hung, never-FAILED execution
  * (stigmer-cloud#610, stigmer#979).
  *
- * The reads (LoadAgentExecution, ReadHarnessStateId) and the
- * ExecutionContext delete stay store-direct: pure reads with Java
- * `findById` parity and #15's idempotent seam — no chain to bypass.
+ * The reads (LoadAgentExecution, ReadHarnessStateId) stay store-direct:
+ * pure reads with Java `findById` parity — no chain to bypass. The
+ * ExecutionContext delete is not a read: it rides the context's own delete
+ * chain over the in-process transport (domain/executioncontext/
+ * internal-delete.ts), because a bare store delete skipped the chain's
+ * cleanup event and left the search row (stigmer#1647).
  *
  * CompleteExternalActivity receives a live client PROVIDER instead of
  * Go's package-global (re-set on every reconnect); the input carries the
@@ -60,10 +63,9 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import {
-  DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
-  deleteExecutionContextForExecution,
-} from "../../domain/executioncontext/temporal/delete-execution-context.js";
+import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
+import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
+import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../domain/executioncontext/temporal/delete-execution-context.js";
 import type { Store } from "../../store/interface.js";
 import {
   COMPLETE_EXTERNAL_ACTIVITY_NAME,
@@ -95,6 +97,13 @@ export interface AgentExecutionActivityDeps {
    * lazily like the RunStarter's create edge).
    */
   readonly statusWriter: () => ExecutionStatusWriter;
+  /**
+   * The server's own delete of a run's ExecutionContext, read per call (the
+   * same boot cycle as the status edge): the context's delete chain over
+   * the in-process transport, so its cleanup and search-row delete run on
+   * the run-end delete too (stigmer#1647).
+   */
+  readonly executionContextDeleter: () => ExecutionContextDeleter;
   /** Live Temporal client (reads the manager's CURRENT client). */
   readonly client: () => Client;
 }
@@ -203,11 +212,15 @@ export function createAgentExecutionActivities(
       return session.spec?.harnessStateId ?? "";
     },
 
-    /** #15's seam, registered as a local activity (shared with #21). */
+    /** The server's own delete of the run's context, a local activity (shared with #21). */
     [DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (
       executionId: string,
     ): Promise<void> => {
-      await deleteExecutionContextForExecution(store, logger, executionId);
+      await deleteExecutionContextForExecution(
+        { store, deleter: deps.executionContextDeleter, logger },
+        executionId,
+        "run-end",
+      );
     },
 
     /**

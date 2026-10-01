@@ -21,6 +21,7 @@
  */
 import type { Logger } from "../../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/temporal/config.js";
+import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
@@ -37,6 +38,12 @@ export interface AgentExecutionWorkerDeps {
    * composes none of them itself.
    */
   readonly statusWriter: () => ExecutionStatusWriter;
+  /**
+   * The server's own delete of a run's ExecutionContext (the run-end
+   * activity): the context's delete chain over the same in-process lane,
+   * resolved lazily for the same reason.
+   */
+  readonly executionContextDeleter: () => ExecutionContextDeleter;
   readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
@@ -48,6 +55,7 @@ export function newAgentExecutionWorkerFactory(
       store: deps.store,
       logger: deps.logger,
       statusWriter: deps.statusWriter,
+      executionContextDeleter: deps.executionContextDeleter,
       client,
     });
 
