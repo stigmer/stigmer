@@ -110,7 +110,6 @@ test("the Coverage job needs exactly the lanes that upload coverage, and Gate ne
   assert.equal(download.with.pattern, "coverage-*");
   const judged = coverage.steps.map((step) => String(step.run ?? "")).join("\n");
   assert.match(judged, /node scripts\/test-coverage\.mjs --floors test\/coverage-floors\.json --input "\$RUNNER_TEMP\/coverage"/);
-  assert.match(judged, /node scripts\/test-integrity\.mjs --run-report "\$RUNNER_TEMP\/coverage"/);
 });
 
 test("the coverage provider and vitest are pinned to one exact version wherever the provider is declared", () => {

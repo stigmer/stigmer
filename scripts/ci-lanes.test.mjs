@@ -233,11 +233,8 @@ test("a pull request is judged by the base branch's copy of each body-reading ch
   const integritySteps = readWorkflow("ci.integrity.yaml").jobs.integrity.steps;
   const pullRequestStep = integritySteps.find((s) => s.if === "github.event_name == 'pull_request'");
   assert.match(pullRequestStep.run, /git show "origin\/\$BASE_REF:scripts\/test-integrity\.mjs" > "\$RUNNER_TEMP\/test-integrity\.mjs"/);
-  const lockStep = integritySteps.find((s) => s.name === "Choose the lockfile that pins the parser");
-  assert.match(lockStep.run, /git show "origin\/\$BASE_REF:package-lock\.json" > "\$RUNNER_TEMP\/root-lock\.json"/, "the parser that judges a pull request is the one the base pins");
   const parserStep = integritySteps.find((s) => s.name === "Install the TypeScript parser");
-  assert.equal(parserStep.uses, "./.github/actions/typescript-parser");
-  assert.equal(parserStep.with.lockfile, "${{ runner.temp }}/root-lock.json", "the parser is installed from the lockfile the step before chose");
+  assert.match(parserStep.run, /git show "origin\/\$BASE_REF:package-lock\.json"/, "the parser that judges a pull request is the one the base pins");
   const invoked = [...pullRequestStep.run.matchAll(/\bnode\s+(\S+)/g)].map((m) => m[1]);
   assert.deepEqual(invoked, ['"$RUNNER_TEMP/test-integrity.mjs"'], "Test integrity judges a pull request with the base's copy, and runs nothing else");
 });

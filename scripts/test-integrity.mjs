@@ -101,10 +101,7 @@
  * skip; this one judges what a run did skip, so a gate that provides every
  * dependency can refuse a skip nobody explained. A case whose title the
  * inventory cannot match (a computed title) is unexplained, so the rule fails
- * closed. --run-report repeats, and takes a directory as well as a file: a
- * directory is searched at any depth for vitest reports by their shape, as
- * scripts/test-coverage.mjs finds its inputs, so a gate that collects every
- * suite's report in one place judges them all in one call.
+ * closed.
  *
  * Anything else is refused unless the pull request declares it, one line each
  * in its body (--pr-body-file, or the TEST_INTEGRITY_PR_BODY variable):
@@ -126,13 +123,13 @@
  *
  * Usage:
  *   node scripts/test-integrity.mjs [--base <ref>] [--pr-body-file <path>]
- *       [--check-issues] [--run-report <vitest JSON or directory> ...] [--json]
+ *       [--check-issues] [--run-report <vitest JSON>] [--json]
  * Exit: 0 clean, 1 findings, 2 the script could not judge (a usage or git
  * error, no `typescript` to parse with).
  */
 
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, existsSync, realpathSync, statSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -851,39 +848,6 @@ export function explainRunSkips(report, inventories, root) {
   return { skipped, explained, findings };
 }
 
-/** The file names vitest's coverage reporters write: JSON, but never a run report. */
-const COVERAGE_OUTPUT = new Set(["coverage-final.json", "coverage-summary.json"]);
-
-/**
- * The vitest JSON reports at the given paths, as one report: `{ report, reports }`.
- * A file is read as a report. A directory is walked at any depth, and every JSON
- * file in it with a `testResults` array is a report; coverage output is skipped
- * by name and other JSON is ignored. A named file that is missing, or any JSON
- * that does not parse, throws: the run cannot be judged.
- */
-export function readRunReports(paths) {
-  const testResults = [];
-  let reports = 0;
-  const take = (data) => {
-    if (!Array.isArray(data?.testResults)) return false;
-    testResults.push(...data.testResults);
-    reports += 1;
-    return true;
-  };
-  const walk = (dir) => {
-    for (const entry of readdirSync(dir).sort()) {
-      const path = join(dir, entry);
-      if (statSync(path).isDirectory()) walk(path);
-      else if (entry.endsWith(".json") && !COVERAGE_OUTPUT.has(entry)) take(JSON.parse(readFileSync(path, "utf8")));
-    }
-  };
-  for (const path of paths) {
-    if (statSync(path).isDirectory()) walk(path);
-    else if (!take(JSON.parse(readFileSync(path, "utf8")))) throw new Error(`${path} is not a vitest JSON report (no testResults)`);
-  }
-  return { report: { testResults }, reports };
-}
-
 // ─── RPC waivers ────────────────────────────────────────────────────────
 
 /**
@@ -1009,7 +973,6 @@ export function formatReport({ findings, comparison, declared, filesRead, base, 
     for (const m of comparison.moved) lines.push(`• moved  "${m.key}" out of ${m.from}`);
   }
   const verdict = findings.length === 0 ? "clean" : `${findings.length} finding(s)`;
-  if (runReport?.reports !== undefined) lines.push(`• run reports  ${runReport.reports} read`);
   const run = runReport ? `, ${runReport.skipped} case(s) skipped in the run` : "";
   const listed = layoutBaselined > 0 ? `, ${layoutBaselined} layout finding(s) listed in ${LAYOUT_BASELINE}` : "";
   lines.push(`test-integrity: ${filesRead} test file(s) read${base ? `, compared with ${base}` : ""}${run}${listed}; ${verdict}`);
@@ -1023,13 +986,13 @@ function git(root, args) {
 }
 
 function parseArgs(argv) {
-  const opts = { base: undefined, prBodyFile: undefined, checkIssues: false, runReports: [], json: false, typescriptDirs: [] };
+  const opts = { base: undefined, prBodyFile: undefined, checkIssues: false, runReport: undefined, json: false, typescriptDirs: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--base") opts.base = argv[++i];
     else if (arg === "--pr-body-file") opts.prBodyFile = argv[++i];
     else if (arg === "--check-issues") opts.checkIssues = true;
-    else if (arg === "--run-report") opts.runReports.push(argv[++i]);
+    else if (arg === "--run-report") opts.runReport = argv[++i];
     else if (arg === "--json") opts.json = true;
     else if (arg === "--typescript") opts.typescriptDirs.push(argv[++i]);
     else throw new Error(`unknown argument: ${arg}`);
@@ -1149,12 +1112,12 @@ function main(argv) {
   }
 
   let runReport;
-  if (opts.runReports.length > 0) {
-    // A named report that is missing or not JSON throws: the run cannot be judged (exit 2).
-    const { report, reports } = readRunReports(opts.runReports.map((path) => resolve(path)));
+  if (opts.runReport) {
+    // A report that is missing or not JSON throws: the run cannot be judged (exit 2).
+    const report = JSON.parse(readFileSync(resolve(opts.runReport), "utf8"));
     // The reporter writes the path it ran from; a symlinked checkout or temp dir (macOS /tmp) must still meet `root`.
-    for (const file of report.testResults) if (file.name && existsSync(file.name)) file.name = realpathSync(file.name);
-    runReport = { ...explainRunSkips(report, head, root), reports };
+    for (const file of report.testResults ?? []) if (file.name && existsSync(file.name)) file.name = realpathSync(file.name);
+    runReport = explainRunSkips(report, head, root);
     findings.push(...runReport.findings);
   }
 

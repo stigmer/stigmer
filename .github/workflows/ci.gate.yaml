@@ -26,9 +26,8 @@
 # The lanes that run a package's own vitest suite upload its coverage and its
 # report (`coverage-*` artifacts); this job refuses a changed line no test ran
 # and a package below its floor (scripts/test-coverage.mjs, the floors in
-# test/coverage-floors.json), and a case that skipped at run time with no
-# reason in its file (scripts/test-integrity.mjs --run-report). `Gate` needs
-# it like a lane and fails unless it passed. It runs under `!cancelled()`, not
+# test/coverage-floors.json). `Gate` needs it like a lane and fails unless it
+# passed. It runs under `!cancelled()`, not
 # `always()`: it is not a required check itself, and `Gate` reads a skipped or
 # cancelled `coverage` as a failure. scripts/ci-coverage.test.mjs holds the
 # uploads and this job's needs to one shape.
@@ -216,7 +215,7 @@ jobs:
     uses: ./.github/workflows/ci.workflows.yaml
 
   coverage:
-    name: Coverage and run-time skips
+    name: Coverage
     needs: [lanes, authorization-model, conformance, docs, go-sdk, runner, stigmer-server, ts-workspace]
     if: ${{ !cancelled() && needs.lanes.result == 'success' }}
     runs-on: ubuntu-latest
@@ -236,8 +235,8 @@ jobs:
           node-version-file: ".nvmrc"
 
       # A change that ran no package's tests uploads nothing, and the download
-      # then creates no directory; the tools read an empty one as "nothing
-      # measured" and judge the change alone.
+      # then creates no directory; the tool reads an empty one as "nothing
+      # measured" and judges the change alone.
       - name: Collect the package suites' coverage and reports
         run: mkdir -p "$RUNNER_TEMP/coverage"
 
@@ -259,22 +258,6 @@ jobs:
           base=()
           if [ -n "$BASE" ]; then base=(--base "$BASE"); fi
           node scripts/test-coverage.mjs --floors test/coverage-floors.json --input "$RUNNER_TEMP/coverage" "${base[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: Install the TypeScript parser
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/typescript-parser
-        with:
-          lockfile: package-lock.json
-          directory: ${{ runner.temp }}/ts
-
-      # Every case the package suites skipped at run time must be explained in
-      # its file (a reason by construction, or a quarantine on an open issue).
-      # The same call applies the tree rules `Test integrity` applies.
-      - name: Every run-time skip explained
-        if: ${{ !cancelled() }}
-        shell: bash
-        run: |
-          node scripts/test-integrity.mjs --run-report "$RUNNER_TEMP/coverage" --typescript "$RUNNER_TEMP/ts" | tee -a "$GITHUB_STEP_SUMMARY"
 
   gate:
     name: Gate

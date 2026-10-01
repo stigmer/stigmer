@@ -97,6 +97,14 @@ export default defineConfig({
           include: ["src/**/*.test.{ts,tsx}"],
           exclude: FORKS_ONLY,
           pool: "vmForks",
+          // A vm worker keeps every file's module graph, and coverage keeps
+          // its counters, so its heap only grows. vitest recycles a worker
+          // past `1 / workers` of the machine's memory: about 5.3 GB on the
+          // 4-vCPU, 16 GB CI runner, above V8's ~4 GB heap ceiling, so with
+          // coverage on the workers died out of memory before any was
+          // recycled (8.5 minutes into the suite, 2026-10-01). 2 GB recycles
+          // them first, between files.
+          poolOptions: { vmForks: { memoryLimit: "2GB" } },
         },
       },
       {
