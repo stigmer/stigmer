@@ -555,7 +555,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     }
 
     /** Saves a context row straight into the store, as a row written before this rule. */
-    async function plantContext(
+    async function seedContextRow(
       contextId: string,
       executionId: string,
       value: string,
@@ -629,8 +629,8 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
 
     it("two contexts naming one run: the runner's read refuses with FailedPrecondition instead of taking the first", async () => {
       const run = "aex_two_contexts_read";
-      await plantContext("ectx_two_read_a", run, "first");
-      await plantContext("ectx_two_read_b", run, "second");
+      await seedContextRow("ectx_two_read_a", run, "first");
+      await seedContextRow("ectx_two_read_b", run, "second");
       const { token } = ts.server.runnerAuthService.mint(run);
       const error = await grpcError(() =>
         ts.query.getByExecutionId(
@@ -643,8 +643,8 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
 
     it("two contexts naming one run: the server's own delete removes both", async () => {
       const run = "aex_two_contexts_delete";
-      await plantContext("ectx_two_delete_a", run, "first");
-      await plantContext("ectx_two_delete_b", run, "second");
+      await seedContextRow("ectx_two_delete_a", run, "first");
+      await seedContextRow("ectx_two_delete_b", run, "second");
       const { executionContextDeleter } = createInProcessClients(
         ts.server.routes,
         silentLogger,
