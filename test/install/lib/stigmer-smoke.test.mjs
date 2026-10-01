@@ -24,7 +24,8 @@
 // resolutions are read from every page of the event log, its creator is
 // refused when absent, and `stigmer execution logs` must say a timed-out gate
 // decided nothing before its task failed, and name who approved the other.
-// Run via
+// The stream probe: a CLI run's NDJSON is read for its final phase and its
+// last top-level reply, the two facts a live-model run asserts. Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test` and
 // ci.ts-workspace).
 
@@ -49,6 +50,7 @@ import {
   runSetVarsWorkflow,
   serverLogEntries,
   serverVersion,
+  streamedRunOutcome,
   waitForBootstrapOrganization,
   waitForPendingApproval,
   workflowExecutionCreator,
@@ -830,4 +832,18 @@ test("an approved gate's logs must name its outcome and its reviewer", () => {
     gateLogProblem("[10:00:05] ✓ approval resolved: review — approve by acc_local_other", "review", { outcome: "approve", by: "acc_local" }),
     /no line reads/,
   );
+});
+
+test("reads a CLI run's stream: the done phase and the last top-level reply, skipping what is not the stream", () => {
+  const line = (type, payload) => JSON.stringify({ type, ts: "2026-10-01T00:00:00Z", payload });
+  const stream = [
+    "a status line that is not JSON",
+    line("phase_change", { phase: "EXECUTION_IN_PROGRESS" }),
+    line("ai_message", { content: "a sub-agent's words", sub_agent_id: "sub_1" }),
+    line("ai_message", { content: "Hello there." }),
+    line("done", { phase: "EXECUTION_COMPLETED", error: "" }),
+  ].join("\n");
+  assert.deepEqual(streamedRunOutcome(stream), { phase: "EXECUTION_COMPLETED", reply: "Hello there." });
+  assert.deepEqual(streamedRunOutcome(line("done", { phase: "EXECUTION_FAILED", error: "boom" })), { phase: "EXECUTION_FAILED", reply: "" });
+  assert.deepEqual(streamedRunOutcome(""), { phase: "", reply: "" });
 });

@@ -511,6 +511,29 @@ export function lastAiReply(execution) {
   return ai.at(-1)?.content ?? "";
 }
 
+/**
+ * What a `stigmer run <agent> --json` stream says happened: the phase of its
+ * `done` event and the content of its last top-level `ai_message` (the CLI
+ * writes one `{type, ts, payload}` line per event; a line that is not JSON is
+ * not the stream's and is skipped). A real model's words are never compared;
+ * the caller asks only that the run completed with a reply.
+ */
+export function streamedRunOutcome(ndjson) {
+  let phase = "";
+  let reply = "";
+  for (const line of ndjson.split("\n")) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (event?.type === "done") phase = String(event.payload?.phase ?? "");
+    if (event?.type === "ai_message" && !event.payload?.sub_agent_id) reply = String(event.payload?.content ?? "");
+  }
+  return { phase, reply };
+}
+
 /** The release the server reports it is (getServerInfo, public): `3.41.0` for a release, `0.0.0-dev.<sha>` for a stamped source build. */
 export async function serverVersion(baseUrl) {
   const info = await connectJson(baseUrl, "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo", {});

@@ -30,8 +30,11 @@
  * global `fetch` — only its Connect RPC stream rides connect-node. Such a run
  * keeps this document for the registry (pricing and tier stay pinned; nothing
  * a live turn proves lives there) and lets every other URL reach the network
- * through the `fetch` that was global before the stub. The refusal stays the
- * default: a hermetic run that grows a network dependency must still fail.
+ * through the `fetch` that was global before the stub. A native live run
+ * serves the control plane's real document instead (`document`), because the
+ * Anthropic API is sent the registry's `apiModelId`, which this document's
+ * native row does not carry. The refusal stays the default: a hermetic run
+ * that grows a network dependency must still fail.
  */
 
 import { vi } from "vitest";
@@ -92,6 +95,14 @@ export interface StubRegistryFetchOptions {
    * run.
    */
   readonly live?: boolean;
+  /**
+   * The registry document to serve instead of {@link REGISTRY_DOCUMENT}. A
+   * native live run needs the control plane's real one
+   * (`real-model-registry.ts`): the fixture's native row carries no
+   * `apiModelId` and round-number prices, so a real provider would be sent an
+   * id it does not know and a cost cap would count invented prices.
+   */
+  readonly document?: object;
 }
 
 /**
@@ -103,13 +114,14 @@ export interface StubRegistryFetchOptions {
 export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { readonly urls: string[]; restore(): void } {
   const urls: string[] = [];
   const networkFetch = globalThis.fetch;
+  const document = options.document ?? REGISTRY_DOCUMENT;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       urls.push(url);
       if (url.includes("/model-registry")) {
-        return { ok: true, status: 200, json: async () => REGISTRY_DOCUMENT } as unknown as Response;
+        return { ok: true, status: 200, json: async () => document } as unknown as Response;
       }
       if (options.live) {
         return networkFetch(input, init);
