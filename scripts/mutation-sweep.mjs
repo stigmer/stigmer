@@ -39,7 +39,9 @@
  *     and restores them when it ends, keeping its copies of the originals in
  *     the package's `.stryker-tmp`, which it removes; so `--run` refuses a
  *     package with uncommitted changes. `--only <file>` sweeps one file, which
- *     is how a fix is checked locally in minutes.
+ *     is how a fix is checked locally in minutes; it writes to
+ *     `<out>/<target>.only/`, so it never replaces the weekly run's report or
+ *     its cache of verdicts, and `--publish` skips it.
  *     Then the confirm step applies each not-noticed change to the real file,
  *     runs every test that imports it with the package's own config, and
  *     restores the file: Stryker switches its changes on at run time, so code
@@ -81,7 +83,7 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -319,8 +321,10 @@ export function applyChange(source, location, replacement) {
 /**
  * What one run of the related tests says, read from vitest's JSON report
  * (`report`, undefined when none was written) and the process result:
- *   - "interrupted": the run was killed by a signal (a Ctrl-C reaches the
- *     whole process group, vitest included);
+ *   - "interrupted": the run was stopped by a signal (a Ctrl-C reaches the
+ *     whole process group, vitest included), whether the process was killed
+ *     by it or, as vitest does, caught it and exited 130 (SIGINT) or 143
+ *     (SIGTERM) with no report;
  *   - "red": at least one test ran and failed;
  *   - "green": tests ran, none failed, and vitest exited 0;
  *   - "inconclusive": anything else (no report, no test ran, a file that
@@ -329,7 +333,8 @@ export function applyChange(source, location, replacement) {
  * counted as a catch, because an engine that went down fails the same way.
  */
 export function relatedOutcome(result, report) {
-  if (result.signal) return "interrupted";
+  // vitest catches SIGINT and SIGTERM itself and exits 128 plus the signal's number.
+  if (result.signal || result.status === 130 || result.status === 143) return "interrupted";
   if (!report || !(report.numTotalTests > 0)) return "inconclusive";
   if (report.numFailedTests > 0) return "red";
   if (result.status === 0 && !(report.numFailedTestSuites > 0)) return "green";
@@ -439,6 +444,9 @@ export function compareRuns(previousKeys, currentKeys) {
 /** The most findings an issue lists; the rest are counted. */
 const MAX_LISTED = 200;
 
+/** The most characters of visible text a body carries; the lists stop short of it, whatever their lines' length. */
+const MAX_TEXT = 55_000;
+
 /**
  * The longest body the script writes. GitHub refuses one over 65,536
  * characters, and the hidden list of finding keys grows with the findings, not
@@ -471,20 +479,33 @@ function findingLine(f) {
   return `- L${f.line} \`${oneLine(f.original, 60)}\` -> \`${oneLine(f.replacement, 60)}\` (${f.mutator})${ran}${unchecked}`;
 }
 
-function listByFile(findings, budget) {
+/**
+ * Takes lines from `entries` while the shared budget (`lines` left and
+ * `chars` left) allows; each entry is the lines it adds. Returns the lines
+ * taken and how many entries they hold.
+ */
+function takeWithin(entries, budget) {
   const lines = [];
-  let listed = 0;
-  let file;
-  for (const f of findings) {
-    if (listed === budget) break;
-    if (f.path !== file) {
-      file = f.path;
-      lines.push("", `**\`${file}\`**`);
-    }
-    lines.push(findingLine(f));
-    listed += 1;
+  let taken = 0;
+  for (const add of entries) {
+    const cost = add.reduce((n, l) => n + l.length + 1, 0);
+    if (budget.lines === 0 || cost > budget.chars) break;
+    lines.push(...add);
+    taken += 1;
+    budget.lines -= 1;
+    budget.chars -= cost;
   }
-  return { lines, listed };
+  return { lines, taken };
+}
+
+/** Findings grouped under their file's name, as the entries `takeWithin` takes. */
+function byFileEntries(findings) {
+  let file;
+  return findings.map((f) => {
+    const add = f.path === file ? [] : ["", `**\`${f.path}\`**`];
+    file = f.path;
+    return [...add, findingLine(f)];
+  });
 }
 
 /**
@@ -516,21 +537,21 @@ export function renderIssue({ name, target, summary, change, commit, runUrl }) {
     "",
     facts.join(" · "),
   ];
-  let budget = MAX_LISTED;
+  const budget = { lines: MAX_LISTED, chars: MAX_TEXT - body.join("\n").length };
   for (const [heading, group, note] of [
     [`Not noticed (${notNoticed.length})`, notNoticed, undefined],
     [`Never run by any test (${neverRun.length})`, neverRun, "No test runs these lines at all, so no change to them can be noticed."],
     [`Probably harmless: messages and payloads (${harmless.length})`, harmless, "A blanked string or an emptied object that no test noticed: mostly error messages and log or event payloads, listed so the few that matter (an error name a caller compares) are seen. Not re-checked."],
   ]) {
     if (group.length === 0) continue;
-    const { lines, listed } = listByFile(group, budget);
-    budget -= listed;
+    const { lines, taken } = takeWithin(byFileEntries(group), budget);
     body.push("", `### ${heading}`, ...(note ? ["", note] : []), ...lines);
-    if (listed < group.length) body.push("", `…and ${group.length - listed} more in the run's \`mutation.json\`.`);
+    if (taken < group.length) body.push("", `…and ${group.length - taken} more in the run's \`mutation.json\`.`);
   }
   if (summary.reasonless.length > 0) {
-    body.push("", `### Disable comments without a reason (${summary.reasonless.length})`, "");
-    for (const r of summary.reasonless) body.push(`- \`${r.path}:${r.line}\` \`${oneLine(r.text, 100)}\``);
+    const { lines, taken } = takeWithin(summary.reasonless.map((r) => [`- \`${r.path}:${r.line}\` \`${oneLine(r.text, 100)}\``]), budget);
+    body.push("", `### Disable comments without a reason (${summary.reasonless.length})`, "", ...lines);
+    if (taken < summary.reasonless.length) body.push("", `…and ${summary.reasonless.length - taken} more.`);
   }
   if (summary.findings.length === 0 && summary.reasonless.length === 0) body.push("", "Every change was caught. This issue closes itself, and reopens if a finding returns.");
   const keys = `<!-- ${MARKER}:keys=${summary.findings.map((f) => f.key).join(",")} -->`;
@@ -640,9 +661,14 @@ function runTarget(opts) {
   if (!target) throw new Error(`no target "${opts.run}" in ${opts.targets} (known: ${Object.keys(targets).join(", ")})`);
   const repo = root();
   const packageDir = join(repo, target.package);
-  const outDir = resolve(opts.out, opts.run);
+  // A one-file check writes beside the weekly run's directory, never into it,
+  // so it cannot replace that run's report or its cache of verdicts.
+  const outDir = resolve(opts.out, opts.only ? `${opts.run}.only` : opts.run);
   mkdirSync(outDir, { recursive: true });
-  const only = opts.only ? relative(packageDir, resolve(opts.only)).split("\\").join("/") : undefined;
+  // Both sides through realpath: git names the repository by its real path, and a
+  // path given through a symlink (macOS's /var is /private/var) would read as outside it.
+  if (opts.only && !existsSync(opts.only)) throw new Error(`--only ${opts.only}: no such file`);
+  const only = opts.only ? relative(realpathSync(packageDir), realpathSync(resolve(opts.only))).split("\\").join("/") : undefined;
   if (only && only.startsWith("..")) throw new Error(`--only ${opts.only} is not inside ${target.package}`);
   const dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=no", "--", target.package], { cwd: repo, encoding: "utf8" }).trim();
   if (dirty) throw new Error(`${target.package} has uncommitted changes; the sweep changes its files in place and must be able to restore them from git:\n${dirty}`);

@@ -242,6 +242,8 @@ test("a related run is red only when a test failed, green only when tests ran an
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 2)), "red");
   assert.equal(relatedOutcome({ status: 0, signal: null }, report(5, 0)), "green");
   assert.equal(relatedOutcome({ status: null, signal: "SIGINT" }, report(5, 2)), "interrupted");
+  assert.equal(relatedOutcome({ status: 130, signal: null }, undefined), "interrupted", "vitest catches SIGINT and exits 130 with no report");
+  assert.equal(relatedOutcome({ status: 143, signal: null }, undefined), "interrupted", "and SIGTERM, 143");
   assert.equal(relatedOutcome({ status: 1, signal: null }, undefined), "inconclusive", "no report: a crash proves nothing");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0)), "inconclusive", "no test ran");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0, 1)), "inconclusive", "a file that failed to load, as when an engine is down");
@@ -389,6 +391,23 @@ test("a body never passes GitHub's limit: too many keys are left out and marked 
   assert.equal(keysFromBody(full.body).length, 1000);
 });
 
+test("a body's visible text stops short of GitHub's limit however long its lines are", () => {
+  const long = "x".repeat(400);
+  const files = {};
+  for (let i = 0; i < 200; i++) {
+    files[`src/${"deeply/nested/".repeat(8)}module-${i}.ts`] = { language: "typescript", source: `${long}\n`, mutants: [{ ...mutant(String(i), "Survived", "ConditionalExpression", 1, 1, 400, long), coveredBy: ["t1", "t2"] }] };
+  }
+  const wide = { schemaVersion: "2", thresholds: { high: 80, low: 60 }, files, testFiles: { "t.test.ts": { tests: [{ id: "t1", name: long }, { id: "t2", name: long }] } } };
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(wide, `backend/${"services/".repeat(10)}example`) });
+  assert.ok(body.length <= MAX_BODY, `${body.length} characters`);
+  assert.match(body, /…and \d+ more in the run's `mutation.json`/);
+  const disables = Array.from({ length: 5000 }, (_, i) => `// Stryker disable next-line Rule${i}`).join("\n");
+  const reasonless = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(report([], disables), "pkg") });
+  assert.ok(reasonless.body.length <= MAX_BODY, `${reasonless.body.length} characters`);
+  assert.match(reasonless.body, /### Disable comments without a reason \(5000\)/);
+  assert.match(reasonless.body, /…and \d+ more\./);
+});
+
 test("a body with no findings says the issue closes itself", () => {
   const summary = summarize(report([mutant("1", "Killed", "EqualityOperator", 2, 7, 17, "used <= cap")]), "pkg");
   const { title, body } = renderIssue({ name: "credit-gate", target: TARGET, summary });
@@ -503,6 +522,38 @@ test("--report --publish closes the target's open issue once every change is cau
   }
 });
 
+test("--report reads the confirm step's verdicts beside the report, and leaves a refuted finding out", () => {
+  const gh = fakeGh([]);
+  try {
+    const mutants = [mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"]), mutant("3", "Survived", "LogicalOperator", 2, 7, 28, "used < cap || cap > 0", ["t1"])];
+    writeRun(gh.dir, "credit-gate", mutants);
+    const [refuted, kept] = summarize(report(mutants), TARGET.package).findings;
+    writeFileSync(join(gh.dir, "runs/credit-gate/confirmed.json"), JSON.stringify({ [refuted.confirmKey]: { verdict: false, tests: {} }, [kept.confirmKey]: { verdict: true, tests: {} } }));
+    const out = spawnSync(process.execPath, [SCRIPT, "--targets", join(gh.dir, "targets.json"), "--report", "--input", join(gh.dir, "runs")], { env: gh.env, encoding: "utf8" });
+    assert.equal(out.status, 0, out.stderr);
+    assert.match(out.stdout, /2 changes, 1 caught \(1 on re-check\), 1 not noticed/);
+    assert.match(out.stdout, /-- 1 change no test notices/);
+    assert.doesNotMatch(out.stdout, /used < cap \|\| cap > 0/);
+    assert.doesNotMatch(out.stdout, /- L\d+ .*\(not re-checked\)/);
+  } finally {
+    rmSync(gh.dir, { recursive: true, force: true });
+  }
+});
+
+test("--report --publish files nothing for a one-file check", () => {
+  const gh = fakeGh([]);
+  try {
+    writeRun(gh.dir, "credit-gate", [mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]);
+    const meta = join(gh.dir, "runs/credit-gate/target.json");
+    writeFileSync(meta, JSON.stringify({ ...JSON.parse(readFileSync(meta, "utf8")), only: "src/gate/allowed.ts" }));
+    const out = spawnSync(process.execPath, [SCRIPT, "--targets", join(gh.dir, "targets.json"), "--report", "--input", join(gh.dir, "runs"), "--publish", "--repo", "o/r"], { env: gh.env, encoding: "utf8" });
+    assert.equal(out.status, 0, out.stderr);
+    assert.deepEqual(gh.calls().map((c) => c.split(" ").slice(0, 2).join(" ")), ["issue list"]);
+  } finally {
+    rmSync(gh.dir, { recursive: true, force: true });
+  }
+});
+
 test("--report refuses a run for a target the file does not name", () => {
   const gh = fakeGh([]);
   try {
@@ -548,10 +599,11 @@ test("a usage error exits 2 and names the problem", () => {
 /**
  * A git repository holding one package with SOURCE in it, and a fake `npx`
  * on PATH that plays Stryker (it writes `FAKE_REPORT` where the config asks)
- * and vitest (red when the file under test contains `FAKE_RED_TEXT`, killed
- * by SIGINT on a changed file when `FAKE_VITEST=signal`, no tests run when
- * `FAKE_VITEST=none`, red on the unchanged file when `FAKE_VITEST=red`). Every
- * vitest call is logged, one line each.
+ * and vitest (red when the file under test contains `FAKE_RED_TEXT`; on a
+ * changed file, interrupted as vitest is, exiting 130 with no report, when
+ * `FAKE_VITEST=signal`, or killed by SIGINT when `FAKE_VITEST=killed`; no
+ * tests run when `FAKE_VITEST=none`; red on the unchanged file when
+ * `FAKE_VITEST=red`). Every vitest call is logged, one line each.
  */
 function runFixture() {
   const dir = mkdtempSync(join(tmpdir(), "mutation-sweep-run-"));
@@ -589,7 +641,8 @@ const text = readFileSync(file, "utf8");
 const changed = !text.includes("used < cap && cap > 0");
 appendFileSync(process.env.FAKE_LOG, (changed ? "changed " : "unchanged ") + file + "\\n");
 const mode = process.env.FAKE_VITEST ?? "";
-if (mode === "signal" && changed) process.kill(process.pid, "SIGINT");
+if (mode === "signal" && changed) process.exit(130);
+if (mode === "killed" && changed) process.kill(process.pid, "SIGINT");
 const red = (mode === "red" && !changed) || (process.env.FAKE_RED_TEXT && changed && text.includes(process.env.FAKE_RED_TEXT));
 const tests = mode === "none" ? [] : [resolve("src/gate/__tests__/allowed.test.ts")];
 writeFileSync(out, JSON.stringify({ numTotalTests: tests.length, numFailedTests: red ? 1 : 0, numFailedTestSuites: 0, testResults: tests.map((name) => ({ name })) }));
@@ -655,14 +708,33 @@ test("--run reuses cached verdicts, and judges again once a test that judged the
   }
 });
 
-test("--run interrupted mid-confirm exits 130, records no verdict for the run that was killed, and restores the file", () => {
+test("--run interrupted mid-confirm exits 130, records no verdict for the interrupted run, and restores the file", () => {
+  for (const mode of ["signal", "killed"]) {
+    const f = runFixture();
+    try {
+      const out = f.run({ FAKE_VITEST: mode });
+      assert.equal(out.status, 130, `${mode}: ${out.stderr}`);
+      assert.match(out.stderr, /interrupted/);
+      assert.deepEqual(f.confirmed(), {}, mode);
+      assert.equal(f.calls().length, 2, `${mode}: it stops at the first interrupted run`);
+      assert.equal(readFileSync(join(f.pkg, "src/gate/allowed.ts"), "utf8"), SOURCE);
+    } finally {
+      rmSync(f.dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test("--run --only writes beside the weekly run, so the weekly report and its verdicts survive", () => {
   const f = runFixture();
   try {
-    const out = f.run({ FAKE_VITEST: "signal" });
-    assert.equal(out.status, 130, out.stderr);
-    assert.match(out.stderr, /interrupted/);
-    assert.deepEqual(f.confirmed(), {});
-    assert.equal(readFileSync(join(f.pkg, "src/gate/allowed.ts"), "utf8"), SOURCE);
+    assert.equal(f.run().status, 0);
+    const weekly = f.confirmed();
+    const out = f.run({}, ["--only", join(f.pkg, "src/gate/allowed.ts")]);
+    assert.equal(out.status, 0, out.stderr);
+    assert.deepEqual(f.confirmed(), weekly);
+    const only = JSON.parse(readFileSync(join(f.dir, "out/credit-gate.only/target.json"), "utf8"));
+    assert.equal(only.only, "src/gate/allowed.ts");
+    assert.equal(only.target, "credit-gate");
   } finally {
     rmSync(f.dir, { recursive: true, force: true });
   }
@@ -689,9 +761,13 @@ test("--run refuses a package with uncommitted changes, and an --only file outsi
     assert.equal(dirty.status, 2);
     assert.match(dirty.stderr, /backend\/services\/example has uncommitted changes/);
     spawnSync("git", ["checkout", "--", "."], { cwd: f.repo });
+    writeFileSync(join(f.repo, "elsewhere.ts"), "export {};\n");
     const outside = f.run({}, ["--only", join(f.repo, "elsewhere.ts")]);
     assert.equal(outside.status, 2);
     assert.match(outside.stderr, /is not inside backend\/services\/example/);
+    const missing = f.run({}, ["--only", join(f.pkg, "src/gate/missing.ts")]);
+    assert.equal(missing.status, 2);
+    assert.match(missing.stderr, /no such file/);
     assert.deepEqual(f.calls(), []);
   } finally {
     rmSync(f.dir, { recursive: true, force: true });
