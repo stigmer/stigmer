@@ -764,12 +764,20 @@ it("the command: --run-report repeats and takes a directory, whose reports are f
     assert.match(both.stdout, /^• run reports  2 read$/m);
     assert.match(both.stdout, /2 case\(s\) skipped in the run; 1 finding\(s\)$/m);
 
-    // A file and a directory together; an empty directory holds no report and judges nothing.
+    // A directory and a file together: every one is judged, not only the last.
     r.write("loose.json", report(A_TEST, "a"));
-    r.write("reports/empty/.keep", "");
-    const mixed = r.run("--run-report", join(r.dir, "reports", "empty"), "--run-report", join(r.dir, "loose.json"));
+    const mixed = r.run("--run-report", join(r.dir, "reports", "coverage-lane-b"), "--run-report", join(r.dir, "loose.json"));
     assert.equal(mixed.status, 1, mixed.stdout + mixed.stderr);
-    assert.match(mixed.stdout, /^• run reports  1 read$/m);
+    assert.match(mixed.stdout, /^• run reports  2 read$/m);
+    assert.match(mixed.stdout, /• skipped  pkg\/src\/__tests__\/b\.test\.ts:2/);
+    assert.match(mixed.stdout, /unexplained-skip +pkg\/src\/__tests__\/a\.test\.ts:1/);
+
+    // A directory with no report in it (a change that ran no package's suite) judges nothing and passes.
+    r.write("reports/empty/.keep", "");
+    const none = r.run("--run-report", join(r.dir, "reports", "empty"));
+    assert.equal(none.status, 0, none.stdout + none.stderr);
+    assert.match(none.stdout, /^• run reports  0 read$/m);
+    assert.match(none.stdout, /0 case\(s\) skipped in the run; clean$/m);
 
     // A named file must be a report: one without testResults cannot be judged.
     r.write("not-a-report.json", JSON.stringify({ other: true }));
