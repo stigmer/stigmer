@@ -2,7 +2,7 @@ import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 /**
  * The default (happy-dom) suite runs on vitest's `vmForks` pool, apart from
- * the files in `FORKS_ONLY` below.
+ * the files in `FORKS_ONLY` below and a coverage run (`COVERAGE_RUN`).
  *
  * Why the pool matters: under the default `forks` pool every test file starts
  * a new child process and re-imports happy-dom before its first test, and on
@@ -35,6 +35,19 @@ const FORKS_ONLY = [
 ];
 // A file that fails only under vmForks joins FORKS_ONLY with its reason; its
 // test body is not bent to fit the pool.
+
+/**
+ * A coverage run (`--coverage.enabled`, as the CI lanes pass it) puts every
+ * file on `forks`. Under `vmForks` each file evaluates its whole module graph
+ * again in its own context, and gathering V8's coverage of all those scripts
+ * outgrew every worker's ~4 GB heap at once on the 4-vCPU CI runner
+ * (2026-10-01: 497 of 499 files passed, then all three workers died, with or
+ * without recycling them at 2 GB). `forks` gathers each file's coverage on its
+ * own and covers the same statements (the diff above), at the `forks` time.
+ */
+const COVERAGE_RUN = process.argv.some(
+  (arg) => arg === "--coverage" || arg === "--coverage.enabled" || arg === "--coverage.enabled=true",
+);
 
 export default defineConfig({
   test: {
@@ -96,15 +109,7 @@ export default defineConfig({
           name: "vm",
           include: ["src/**/*.test.{ts,tsx}"],
           exclude: FORKS_ONLY,
-          pool: "vmForks",
-          // A vm worker keeps every file's module graph, and coverage keeps
-          // its counters, so its heap only grows. vitest recycles a worker
-          // past `1 / workers` of the machine's memory: about 5.3 GB on the
-          // 4-vCPU, 16 GB CI runner, above V8's ~4 GB heap ceiling, so with
-          // coverage on the workers died out of memory before any was
-          // recycled (8.5 minutes into the suite, 2026-10-01). 2 GB recycles
-          // them first, between files.
-          poolOptions: { vmForks: { memoryLimit: "2GB" } },
+          pool: COVERAGE_RUN ? "forks" : "vmForks",
         },
       },
       {
