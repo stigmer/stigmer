@@ -60,7 +60,8 @@ describe("buildSubAgentMiddleware", () => {
     expect(subView.wrapModelCall, "the view prices each call as the model answers").toBeDefined();
     expect(subView.afterModel, "no hook writes the sub-agent's state").toBeUndefined();
     expect(subView.wrapToolCall, "the advisory never blocks a tool; the runtime enforces the cap").toBeUndefined();
-    expect(subView.beforeAgent).toBeUndefined();
+    subView.beforeAgent!({}, {});
+    expect(parentCostAdvisory.runningCost, "a sub-agent starting never resets the shared total").toBe(0);
   });
 
   it("execution budget uses periodic mode (interval=30, max=4)", () => {

@@ -36,10 +36,15 @@
  *
  * forSubAgent — a view that shares the running total, so a sub-agent's calls
  *   advance the same figure the parent's warning reads. The view keeps its
- *   own pending advisory, delivered on that sub-agent's next model call. The
- *   warning is given once per run, so when the crossing call is a sub-agent's
- *   last, nobody is warned: the sub-agent makes no further call and the
- *   parent's flag is already spent.
+ *   own pending advisory, delivered on that sub-agent's next model call. One
+ *   view serves every invocation of its sub-agent in the turn (the stack is
+ *   built once per sub-agent spec), so its `beforeAgent` drops a warning the
+ *   previous invocation left undelivered, and never resets the shared total.
+ *   The warning is given once per run, so when the crossing call is a
+ *   sub-agent's last, nobody is warned: the sub-agent makes no further call
+ *   and the parent's flag is already spent (#1679). Concurrent invocations of
+ *   one sub-agent share the view, as they share its loop and budget
+ *   middleware.
  *
  * Only built when `max_cost_usd > 0` is explicitly configured.
  */
@@ -194,11 +199,14 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
     },
 
     forSubAgent(): StigmerMiddleware {
-      // The view does NOT reset the running total on beforeAgent: a
-      // sub-agent's calls advance the parent's figure.
       const view = advisingWrapper();
       return {
         name: "CostAdvisorySubAgentView",
+        // Drops only this view's undelivered warning. The running total is the
+        // parent's and is never reset here: a sub-agent's calls advance it.
+        beforeAgent() {
+          view.clear();
+        },
         wrapModelCall: view.wrapModelCall,
       };
     },

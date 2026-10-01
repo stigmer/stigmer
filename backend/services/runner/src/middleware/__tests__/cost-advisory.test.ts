@@ -154,7 +154,19 @@ describe("CostAdvisoryMiddleware", () => {
       const parent = createCostAdvisoryMiddleware(BASE_CONFIG);
       await callModel(parent, responseWithUsage(1000, 500));
       const child = parent.forSubAgent();
-      expect(child.beforeAgent, "the view has no beforeAgent on purpose").toBeUndefined();
+      child.beforeAgent!({}, {});
+      expect(parent.runningCost, "the view's beforeAgent leaves the parent's total alone").toBeCloseTo(0.0105, 4);
+    });
+
+    it("drops a warning the sub-agent's previous invocation left undelivered when it is invoked again", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+      const child = parent.forSubAgent();
+      // One invocation's last call crosses the threshold; the invocation ends there.
+      child.beforeAgent!({}, {});
+      await callModel(child, responseWithUsage(1000, 500));
+      // The same view serves the sub-agent's next invocation in the turn.
+      child.beforeAgent!({}, {});
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "no stale warning from the earlier invocation").toBeUndefined();
       expect(parent.runningCost).toBeCloseTo(0.0105, 4);
     });
 
