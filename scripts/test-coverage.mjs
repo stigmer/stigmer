@@ -33,7 +33,17 @@
  * matched to the tracked file it ends with. A file is attributed to the
  * package with the nearest package.json. Coverage of one package collected in
  * several runs (the shards of one suite, one package run by two lanes) is
- * merged by summing its hit counts, and a case reported twice counts once.
+ * merged by summing its hit counts, and a test file reported by two runs
+ * counts its cases once, from the run that passed more of them.
+ *
+ * The inputs are expected from the subject configs as they are set: AST-aware
+ * remapping (`coverage.experimentalAstAwareRemapping`), whose statements and
+ * branches are the source's own, so every run of one file reports the same
+ * map. The default remapping's map depends on what V8 happened to compile in
+ * that run, so two shards could disagree and the file would be refused as a
+ * mismatch. And every source file under a config's `include` is listed, a
+ * file no test loads at zero (vitest's `coverage.all`), so a changed source
+ * file the coverage does not list is one its config excludes.
  *
  * Only the packages this run measured are judged, because a pull request
  * runs only the packages it affects. A package with a floor whose source the
@@ -233,27 +243,27 @@ export function percent(covered, total) {
 }
 
 /**
- * The passed cases of every report, once each, per package: a case is its
- * test file and its full name, so the same case in two reports of one
- * package (one package run by two lanes) is counted once.
+ * The passed cases per package. A test file reported by more than one run
+ * (one package run by two lanes) counts once, at the run that passed more of
+ * its cases. Cases are counted, not named: two cases of one file may share a
+ * title (an `it.each` row, a repeated name), and each is a case.
  */
 export function casesByPackage(reports, relativize, packageDirs) {
-  const seen = new Map();
+  const byFile = new Map();
   for (const report of reports) {
     for (const file of report.testResults ?? []) {
       const path = relativize(file.name);
       if (!path) continue;
-      const pkg = packageOf(path, packageDirs);
-      const keys = seen.get(pkg) ?? new Set();
-      seen.set(pkg, keys);
-      for (const result of file.assertionResults ?? []) {
-        if (result.status !== "passed") continue;
-        const name = result.fullName ?? [...(result.ancestorTitles ?? []), result.title].join(" ");
-        keys.add(`${path} > ${name}`);
-      }
+      const passed = (file.assertionResults ?? []).filter((result) => result.status === "passed").length;
+      byFile.set(path, Math.max(byFile.get(path) ?? 0, passed));
     }
   }
-  return new Map([...seen].map(([pkg, keys]) => [pkg, keys.size]));
+  const packages = new Map();
+  for (const [path, passed] of byFile) {
+    const pkg = packageOf(path, packageDirs);
+    packages.set(pkg, (packages.get(pkg) ?? 0) + passed);
+  }
+  return packages;
 }
 
 /**
@@ -300,7 +310,11 @@ export function readFloors(text) {
   }
   for (const [pkg, floor] of Object.entries(packages)) {
     for (const figure of FIGURES) {
-      if (typeof floor?.[figure] !== "number" || floor[figure] < 0) problems.push(`${pkg}: ${figure} must be a number of zero or more`);
+      const value = floor?.[figure];
+      if (typeof value !== "number" || value < 0) problems.push(`${pkg}: ${figure} must be a number of zero or more`);
+      else if (figure === "cases" && !Number.isInteger(value)) problems.push(`${pkg}: cases must be a whole number`);
+      // A share is compared at one decimal place (floorTo1), so a finer floor could refuse the measurement it was meant to admit.
+      else if (figure !== "cases" && (value > 100 || Math.round(value * 10) !== value * 10)) problems.push(`${pkg}: ${figure} must be a percentage of at most 100 with at most one decimal place`);
     }
   }
   return { margin, packages, problems };

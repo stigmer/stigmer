@@ -94,6 +94,8 @@ test("two shards of one suite merge by summing hits; a file measured from differ
   const moved = { "/m4/p/a.ts": entry("/m4/p/a.ts", [[1, 1, 1], [3, 3, 1]], [[1, 0]]) };
   assert.deepEqual(mergeCoverage([shard1, moved], relativize).mismatched, ["p/a.ts"]);
   assert.deepEqual(files.get("p/a.ts").s, { 0: 1, 1: 3 });
+  // A mismatched file keeps the first input's hits; the second is reported, never summed in.
+  assert.deepEqual(files.get("p/b.ts").s, { 0: 1 });
   assert.deepEqual(files.get("p/a.ts").b, { 0: [1, 2] });
   assert.deepEqual(unmatched, ["/m2/gen/c.ts"]);
   assert.deepEqual(mismatched, ["p/b.ts"]);
@@ -107,16 +109,17 @@ test("a line is a statement's start line, counted at its best statement; branche
   assert.equal(percent(1, 4), 25);
 });
 
-test("a case is counted once per package, by its file and full name, and only when it passed", () => {
-  const relativize = makeRelativizer(["p/a.test.ts", "q/b.test.ts"]);
+test("a package's cases are its passed cases; a file two runs report counts once, at the run that passed more; shared titles each count", () => {
+  const relativize = makeRelativizer(["p/a.test.ts", "p/c.test.ts", "q/b.test.ts"]);
   const dirs = new Set(["p", "q"]);
   const lane = (name, results) => ({ testResults: [{ name, assertionResults: results }] });
   const reports = [
     lane("/m1/p/a.test.ts", [{ fullName: "a one", status: "passed" }, { fullName: "a two", status: "failed" }]),
-    lane("/m2/p/a.test.ts", [{ fullName: "a one", status: "passed" }, { ancestorTitles: ["a"], title: "three", status: "passed" }]),
+    lane("/m2/p/a.test.ts", [{ fullName: "a one", status: "passed" }, { fullName: "a two", status: "passed" }]),
+    lane("/m2/p/c.test.ts", [{ fullName: "row", status: "passed" }, { fullName: "row", status: "passed" }]),
     lane("/m2/q/b.test.ts", [{ fullName: "b", status: "skipped" }]),
   ];
-  assert.deepEqual([...casesByPackage(reports, relativize, dirs)], [["p", 2], ["q", 0]]);
+  assert.deepEqual([...casesByPackage(reports, relativize, dirs)], [["p", 4], ["q", 0]]);
 });
 
 test("a package's figures sum its files; cases are absent when no report named it", () => {
@@ -140,8 +143,15 @@ test("the floors file is read with its margin and refused when its shape is wron
   assert.deepEqual(good.problems, []);
   assert.deepEqual(good.margin, { lines: 0.5, branches: 0, cases: 0 });
   assert.match(readFloors("{").problems[0], /not JSON/);
-  const bad = readFloors(JSON.stringify({ margin: { cases: -1 }, packages: { p: { lines: "80", branches: 70 } } }));
-  assert.deepEqual(bad.problems, ["margin.cases must be a number of zero or more", "p: lines must be a number of zero or more", "p: cases must be a number of zero or more"]);
+  const bad = readFloors(JSON.stringify({ margin: { cases: -1 }, packages: { p: { lines: "80", branches: 70 }, q: { lines: 81.45, branches: 100.1, cases: 2.5 } } }));
+  assert.deepEqual(bad.problems, [
+    "margin.cases must be a number of zero or more",
+    "p: lines must be a number of zero or more",
+    "p: cases must be a number of zero or more",
+    "q: lines must be a percentage of at most 100 with at most one decimal place",
+    "q: branches must be a percentage of at most 100 with at most one decimal place",
+    "q: cases must be a whole number",
+  ]);
 });
 
 test("a floor rounds down to one decimal place and never up", () => {
@@ -201,6 +211,10 @@ test("raising lifts a floor to the measurement less the margin, never lowers one
     r: { lines: 0, branches: 0, cases: 0 },
   });
   assert.deepEqual(raised.floors.margin, floors.margin);
+  // What a raise writes is a floors file the reader accepts, from measurements that are not exact in binary.
+  const odd = raiseFloors(new Map([["p", { lines: 0.1 + 0.2, branches: 57.49999999999999, cases: 1 }]]), floorsOf({}));
+  assert.deepEqual(odd.floors.packages.p, { lines: 0.3, branches: 57.5, cases: 1 });
+  assert.deepEqual(readFloors(JSON.stringify(odd.floors)).problems, []);
   assert.deepEqual(raiseFloors(new Map([["p", full.get("p")]]), floors).missing, ["q"]);
 });
 
