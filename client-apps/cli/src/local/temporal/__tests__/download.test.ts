@@ -396,7 +396,9 @@ describe("downloadTemporalCli with a cache directory", () => {
 
   it("never caches an archive nothing verified: without a checksum URL the directory is ignored", async () => {
     const { binPath, cacheDir } = dirs();
-    seed(cacheDir, linuxArm, archiveFor(Buffer.from("a cached copy")), checksums);
+    // Built once: gzip stamps the current second into its header, so two builds can differ.
+    const cachedCopy = archiveFor(Buffer.from("a cached copy"));
+    seed(cacheDir, linuxArm, cachedCopy, checksums);
 
     const result = await fetchTarballBinary({
       url: temporalReleaseAssetUrl("1.5.1", linuxArm),
@@ -409,7 +411,7 @@ describe("downloadTemporalCli with a cache directory", () => {
 
     expect(result).toEqual({ source: "network", cache: "unused" });
     expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
-    expect(readFileSync(join(cacheDir, linuxArm))).toEqual(archiveFor(Buffer.from("a cached copy")));
+    expect(readFileSync(join(cacheDir, linuxArm))).toEqual(cachedCopy);
   });
 
   it("does not take another version's cached pair for this one", async () => {

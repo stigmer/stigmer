@@ -28,6 +28,9 @@
 #     it (`--print-archive`), so an entry holds exactly what the key says and a
 #     pin bump starts a new one.
 #
+# A caller runs it after checkout and the root `npm ci`: the installer runs
+# from source through the workspace's tsx (node_modules/.bin/tsx).
+#
 # This is a reader. There is no save here and must never be: a reader that
 # saved would turn every lane into a writer (turbo-cache's header).
 name: Install the Temporal CLI
