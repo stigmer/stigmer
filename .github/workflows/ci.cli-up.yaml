@@ -2,9 +2,9 @@
 # CLI Up — `stigmer up` end to end, from source
 # =============================================================================
 # Proves the CLI's local edition the way a user meets it
-# (scripts/smoke-cli-cutover.mjs): `stigmer up` in an isolated home launches
+# (test/install/smoke-cli-cutover.mjs): `stigmer up` in an isolated home launches
 # the packaged slim server, then apply, run and stream a workflow, an agent
-# run to the fake model's reply (scripts/lib/fake-model.mjs, configured the
+# run to the fake model's reply (test/install/lib/fake-model.mjs, configured the
 # way a user exports ANTHROPIC_BASE_URL), two approval gates decided from the
 # CLI, the bundled console, and `stigmer down`. It is the only run of the CLI
 # binary's own commands against a server it started.

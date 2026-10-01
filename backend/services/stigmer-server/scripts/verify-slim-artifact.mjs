@@ -18,7 +18,7 @@
  *   3. the console lane answers over live HTTP (DD-012; the #24 lesson —
  *      packaging gaps are invisible at PR time unless a gate exercises
  *      the artifact): /config.json is the trusted-local document (the
- *      shared probe in scripts/lib/stigmer-smoke.mjs; #1087), the root
+ *      shared probe in test/install/lib/stigmer-smoke.mjs; #1087), the root
  *      and a dynamic deep link serve documents, an unknown URL serves the
  *      export's 404 page WITH a 404 status, and a flight .txt request
  *      serves its placeholder payload,
@@ -40,7 +40,7 @@ import { cpSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertConsoleServed } from "../../../../scripts/lib/stigmer-smoke.mjs";
+import { assertConsoleServed } from "../../../../test/install/lib/stigmer-smoke.mjs";
 
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 const slimDir = join(serverRoot, "dist-slim");
@@ -139,7 +139,7 @@ async function probeConsole() {
   const baseUrl = `http://127.0.0.1:${portMatch[1]}`;
 
   // /config.json is the one trusted-local document and / is HTML — the
-  // probe every self-host smoke shares (scripts/lib/stigmer-smoke.mjs).
+  // probe every self-host smoke shares (test/install/lib/stigmer-smoke.mjs).
   await assertConsoleServed(baseUrl);
 
   // A dynamic deep link and its flight payload: /sessions/[id] is a core

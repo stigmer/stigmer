@@ -2,8 +2,8 @@
  * The all-in-one evaluation image (deploy/all-in-one) as an install a script
  * can bring up, move to another release, and take down: the one place that
  * knows how the image is run, shared by its smoke
- * (scripts/smoke-all-in-one.mjs) and the upgrade rehearsal
- * (scripts/rehearse-upgrade.mjs).
+ * (test/install/smoke-all-in-one.mjs) and the upgrade rehearsal
+ * (test/install/rehearse-upgrade.mjs).
  *
  * A container runs the way all-in-one.mdx tells a user to: one named volume
  * at /data, the model's ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL as -e flags,
@@ -24,7 +24,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pollUntil } from "./stigmer-smoke.mjs";
 
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const imageRoot = join(repoRoot, "deploy", "all-in-one");
 
 /** The published image's repository: `ghcr.io/stigmer/stigmer:v<version>`. */

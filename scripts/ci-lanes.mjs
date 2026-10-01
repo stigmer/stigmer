@@ -65,8 +65,14 @@ export const LANES = {
     paths: [
       "deploy/all-in-one/**",
       "scripts/stage-all-in-one.mjs",
-      "scripts/smoke-all-in-one.mjs",
+      "test/install/smoke-all-in-one.mjs",
       "scripts/lib/**",
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
+      "test/install/lib/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       "scripts/publish-libs.mjs",
       "client-apps/cli/src/local/**",
       "client-apps/cli/src/commands/up.ts",
@@ -94,15 +100,21 @@ export const LANES = {
     ],
   },
   "ci.cli-up.yaml": {
-    // `stigmer up` end to end (scripts/smoke-cli-cutover.mjs): the only run
+    // `stigmer up` end to end (test/install/smoke-cli-cutover.mjs): the only run
     // of the CLI binary's own commands against a server it started, so the
     // whole CLI source is in it, not only its runtime acquisition.
     paths: [
       "client-apps/cli/src/**",
       "client-apps/cli/package.json",
-      "scripts/smoke-cli-cutover.mjs",
+      "test/install/smoke-cli-cutover.mjs",
       "scripts/lib/**",
-      // The published install's registry wait (scripts/lib/install-cli.mjs).
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
+      "test/install/lib/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
+      // The published install's registry wait (test/install/lib/install-cli.mjs).
       "scripts/publish-standalone.mjs",
       "backend/services/runner/scripts/bundle-slim.mjs",
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
@@ -133,11 +145,17 @@ export const LANES = {
       "docker-compose.yml",
       "docker-compose.dev.yml",
       ".env.example",
-      "scripts/smoke-compose.mjs",
+      "test/install/smoke-compose.mjs",
       // The whole lib, not one file: the smoke imports stigmer-smoke.mjs and
       // the build-from-source path runs bundle-slim.mjs, which imports
       // source-map-pragma.mjs (#1087).
       "scripts/lib/**",
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
+      "test/install/lib/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       // The compose-runner image installs the CLI tarballs these two stage
       // (the stage script packs through publish-libs.mjs --only); a change
       // to either is a change to what the runner image contains.
@@ -258,9 +276,15 @@ export const LANES = {
       // The parity test reads the compose file: a compose-only change must
       // run it, or the drift it exists to catch merges green.
       "docker-compose.yml",
-      "scripts/smoke-helm.mjs",
+      "test/install/smoke-helm.mjs",
       // The whole lib: the smoke imports stigmer-smoke.mjs (#1087).
       "scripts/lib/**",
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
+      "test/install/lib/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       // The kind gate builds the compose-runner image, which installs the
       // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
@@ -332,12 +356,14 @@ export const LANES = {
       "scripts/turbo-set.mjs",
       "scripts/publish-libs.mjs",
       "client-apps/web/nginx.conf",
-      // scripts/lib/ is imported by this package's own scripts: bundle-slim.mjs
-      // (source-map-pragma.mjs) and verify-slim-artifact.mjs / smoke-docker-
-      // image.mjs (stigmer-smoke.mjs, the shared console-lane probe). A change
-      // there must run this gate in its own PR (#1087: the probe's contract
-      // moved and this lane went red on main).
+      // scripts/lib/ and test/install/lib/ are imported by this package's own
+      // scripts: bundle-slim.mjs (source-map-pragma.mjs) and
+      // verify-slim-artifact.mjs / smoke-docker-image.mjs (stigmer-smoke.mjs,
+      // the shared console-lane probe). A change there must run this gate in
+      // its own PR (#1087: the probe's contract moved and this lane went red on
+      // main).
       "scripts/lib/**",
+      "test/install/lib/**",
       "scripts/verify-static-export-routes.mjs",
       "test/extension-consumer/**",
       "Makefile",
@@ -350,7 +376,7 @@ export const LANES = {
   },
   "ci.upgrade-rehearsal.yaml": {
     // Each install moved from the newest release to this change by its
-    // guide's procedure (scripts/rehearse-upgrade.mjs): the changes that can
+    // guide's procedure (test/install/rehearse-upgrade.mjs): the changes that can
     // break what the last release stored, or the way a user upgrades.
     paths: [
       // Both engines' migrations and the row code that reads what they hold:
@@ -363,8 +389,14 @@ export const LANES = {
       // The CLI's runtime acquisition and `up`: how its upgrade happens.
       "client-apps/cli/src/local/**",
       "client-apps/cli/src/commands/up.ts",
-      "scripts/rehearse-upgrade.mjs",
+      "test/install/rehearse-upgrade.mjs",
       "scripts/lib/**",
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
+      "test/install/lib/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       "scripts/publish-standalone.mjs",
       "scripts/stage-all-in-one.mjs",
       "scripts/stage-compose-runner-cli.mjs",

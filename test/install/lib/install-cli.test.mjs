@@ -1,4 +1,4 @@
-// Pins how the CLI install runs one command (scripts/lib/install-cli.mjs):
+// Pins how the CLI install runs one command (test/install/lib/install-cli.mjs):
 // `spawnCommand` resolves at the command's exit with its output and never
 // rejects; its `kill()` ends the whole process group and says so in `error`;
 // a timeout says that instead, and a kill after the exit changes nothing.

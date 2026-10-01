@@ -31,6 +31,14 @@
 // `reset()` keeps the mode (it is configuration, not a script), and the
 // capture log keeps only the last DEFAULT_REPLY_CAPTURE_LIMIT requests so a
 // long-lived stack cannot grow it without bound. The suites never set it.
+//
+// Default-error mode is its red twin, for the install journeys
+// (test/install/lib/fake-model.mjs): every unscripted request gets a 400
+// invalid_request_error in its provider's shape, which neither the SDKs nor
+// the runner retry, so a run against it goes red at its model call with the
+// provider's message instead of timing out. The install journeys also bind
+// the fake on every interface (`host`), because a container or a kind pod
+// reaches it through the host gateway; `url()` stays the loopback address.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
@@ -53,6 +61,14 @@ export const DEFAULT_REPLY_CAPTURE_LIMIT = 200;
 export interface FakeLlmUpstreamOptions {
   /** Answer an unscripted request with a canned text turn instead of a 500. */
   readonly defaultReply?: boolean;
+  /**
+   * Answer an unscripted request with a non-retryable 400
+   * invalid_request_error carrying this message, instead of a 500. Excludes
+   * defaultReply.
+   */
+  readonly defaultError?: { readonly message: string };
+  /** The interface to listen on: loopback by default, `0.0.0.0` for a container's host gateway. */
+  readonly host?: string;
 }
 
 // One scripted provider answer. Exactly one shape per entry; the fixture
@@ -88,16 +104,35 @@ export class FakeLlmUpstream {
   private captured: CapturedUpstreamRequest[] = [];
   private consumed = 0;
   private readonly defaultReply: boolean;
+  private readonly defaultError: { readonly message: string } | undefined;
+  private readonly host: string;
 
   constructor(options: FakeLlmUpstreamOptions = {}) {
+    if (options.defaultReply === true && options.defaultError !== undefined) {
+      throw new Error("FakeLlmUpstream: defaultReply and defaultError exclude each other");
+    }
     this.defaultReply = options.defaultReply ?? false;
+    this.defaultError = options.defaultError;
+    this.host = options.host ?? "127.0.0.1";
   }
 
   async start(): Promise<void> {
-    this.server = createServer((req, res) => {
-      void this.handle(req, res);
+    const server = createServer((req, res) => {
+      this.handle(req, res).catch((error: unknown) => {
+        // A request that fails mid-read (the client aborted) fails alone:
+        // the process the fake lives in (a suite, an install smoke) keeps
+        // running, and so do the other requests. Anything else is a defect
+        // in the fake, said aloud before its socket is reset.
+        // The format string is constant: the request's own values are arguments, never directives.
+        if (!req.destroyed) console.error("FakeLlmUpstream: answering %s %s failed:", req.method, req.url, error);
+        if (!res.writableEnded) res.destroy();
+      });
     });
-    await new Promise<void>((resolve) => this.server?.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, this.host, resolve);
+    });
+    this.server = server;
   }
 
   async close(): Promise<void> {
@@ -109,9 +144,13 @@ export class FakeLlmUpstream {
   }
 
   url(): string {
-    if (this.server === undefined) throw new Error("FakeLlmUpstream.start() must be called before url()");
-    const address = this.server.address() as AddressInfo;
-    return `http://127.0.0.1:${address.port}`;
+    return `http://127.0.0.1:${this.port()}`;
+  }
+
+  /** The bound port, for a caller that reaches the fake by another host name. */
+  port(): number {
+    if (this.server === undefined) throw new Error("FakeLlmUpstream.start() must be called before port()");
+    return (this.server.address() as AddressInfo).port;
   }
 
   enqueue(script: UpstreamScript): this {
@@ -141,7 +180,7 @@ export class FakeLlmUpstream {
       body: parseJsonOrUndefined(rawBody),
       rawBody,
     });
-    if (this.defaultReply && this.captured.length > DEFAULT_REPLY_CAPTURE_LIMIT) {
+    if ((this.defaultReply || this.defaultError !== undefined) && this.captured.length > DEFAULT_REPLY_CAPTURE_LIMIT) {
       this.captured.splice(0, this.captured.length - DEFAULT_REPLY_CAPTURE_LIMIT);
     }
 
@@ -150,12 +189,16 @@ export class FakeLlmUpstream {
       return;
     }
     const scripted = this.scripts.shift();
-    if (scripted === undefined && !this.defaultReply) {
+    if (scripted === undefined && !this.defaultReply && this.defaultError === undefined) {
       writeJson(res, 500, { error: `FakeLlmUpstream: no queued response (consumed ${this.consumed})` });
       return;
     }
     if (scripted !== undefined) this.consumed += 1;
-    const next = scripted ?? defaultReplyFor(provider, requestModel(rawBody));
+    const next =
+      scripted ??
+      (this.defaultError !== undefined
+        ? defaultErrorFor(provider, this.defaultError.message)
+        : defaultReplyFor(provider, requestModel(rawBody)));
 
     const wantsStream = isStreamingRequest(rawBody);
     switch (next.kind) {
@@ -215,6 +258,16 @@ function defaultReplyFor(provider: "anthropic" | "openai", model: string | undef
   }
   const body = openAiText(DEFAULT_REPLY_TEXT);
   return { kind: "openai", body: model === undefined ? body : { ...body, model } };
+}
+
+// The non-retryable 400 default-error mode answers with, in the provider's
+// error shape so its SDK surfaces the message.
+function defaultErrorFor(provider: "anthropic" | "openai", message: string): UpstreamScript {
+  const body =
+    provider === "anthropic"
+      ? { type: "error", error: { type: "invalid_request_error", message } }
+      : { error: { type: "invalid_request_error", message, param: null, code: null } };
+  return { kind: "error", status: 400, body };
 }
 
 function requestModel(rawBody: string): string | undefined {

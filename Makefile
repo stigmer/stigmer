@@ -557,7 +557,7 @@ test-conformance-postgres-execution: build-runner ## Run gRPC conformance execut
 smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
 	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
-	node scripts/smoke-cli-cutover.mjs
+	node test/install/smoke-cli-cutover.mjs
 
 # The bundle targets linux for THIS machine's arch (the docker daemon's
 # native platform), not the host OS — the smoke builds a linux container.
@@ -577,7 +577,7 @@ smoke-docker-image: build-server build-web ## Build the server Docker image from
 smoke-all-in-one: build-runner build-server build-web ## Stage, build and boot-smoke the all-in-one evaluation image (needs Docker)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the all-in-one smoke needs a Docker daemon"; exit 1; }
 	node scripts/stage-all-in-one.mjs
-	node scripts/smoke-all-in-one.mjs
+	node test/install/smoke-all-in-one.mjs
 
 # The compose-runner image's CLI (Dockerfile.sandbox, the compose-runner
 # stage): @stigmer/cli and its @stigmer/* closure packed from THIS checkout
@@ -609,7 +609,7 @@ stage-server-library: node_modules ## Stage @stigmer/server and its @stigmer/* l
 smoke-compose: build-server build-web stage-compose-runner-cli ## Build the compose stack from source and run the clean-clone gate smoke (DD-013; needs Docker)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the compose smoke needs a Docker daemon"; exit 1; }
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
-	node scripts/smoke-compose.mjs --build
+	node test/install/smoke-compose.mjs --build
 
 # The Helm chart (deploy/helm/stigmer; stigmer-cloud project 20260914.02):
 # docker-compose.yml translated for Kubernetes. Three gates, the compose
@@ -658,9 +658,9 @@ test-helm: node_modules ## Run the chart's render, compose-parity and schema tes
 smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
-	node scripts/smoke-helm.mjs --build
+	node test/install/smoke-helm.mjs --build
 
-# The upgrade rehearsal (scripts/rehearse-upgrade.mjs): one install moved from
+# The upgrade rehearsal (test/install/rehearse-upgrade.mjs): one install moved from
 # the newest published release to THIS checkout by the procedure its guide
 # gives a user, then proven to have kept what the old release stored. Each
 # target builds what its artifact's smoke builds, stamped with the checkout's
@@ -680,24 +680,24 @@ rehearse-upgrade: ## Rehearse an upgrade from the last release to this checkout:
 rehearse-upgrade-compose: build-server build-web stage-compose-runner-cli ## Rehearse the compose stack's upgrade from the last release to this checkout (needs Docker)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the compose rehearsal needs a Docker daemon"; exit 1; }
 	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs --platform=$(LINUX_SLIM_PLATFORM)
-	node scripts/rehearse-upgrade.mjs --artifact=compose $(REHEARSE_ARGS)
+	node test/install/rehearse-upgrade.mjs --artifact=compose $(REHEARSE_ARGS)
 
 .PHONY: rehearse-upgrade-all-in-one
 rehearse-upgrade-all-in-one: build-runner build-server build-web ## Rehearse the all-in-one image's upgrade from the last release to this checkout (needs Docker)
 	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the all-in-one rehearsal needs a Docker daemon"; exit 1; }
 	node scripts/stage-all-in-one.mjs
-	node scripts/rehearse-upgrade.mjs --artifact=all-in-one $(REHEARSE_ARGS)
+	node test/install/rehearse-upgrade.mjs --artifact=all-in-one $(REHEARSE_ARGS)
 
 .PHONY: rehearse-upgrade-helm
 rehearse-upgrade-helm: build-server build-web stage-compose-runner-cli ## Rehearse the Helm chart's upgrade from the last release to this checkout on kind (needs Docker, kind, helm, kubectl)
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm rehearsal needs it"; exit 1; }; done
 	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs --platform=$(LINUX_SLIM_PLATFORM)
-	node scripts/rehearse-upgrade.mjs --artifact=helm $(REHEARSE_ARGS)
+	node test/install/rehearse-upgrade.mjs --artifact=helm $(REHEARSE_ARGS)
 
 .PHONY: rehearse-upgrade-cli
 rehearse-upgrade-cli: build-runner build-server build-web ## Rehearse the CLI's `stigmer up` upgrade from the last release to this checkout
 	@cd $(SERVER_DIR) && STIGMER_SERVER_VERSION=$(SOURCE_BUILD_VERSION) node scripts/bundle-slim.mjs
-	node scripts/rehearse-upgrade.mjs --artifact=cli $(REHEARSE_ARGS)
+	node test/install/rehearse-upgrade.mjs --artifact=cli $(REHEARSE_ARGS)
 
 # The `cloud` conformance targets have no target this repository can boot:
 # the cloud edition is the TypeScript composition in the private stigmer-cloud

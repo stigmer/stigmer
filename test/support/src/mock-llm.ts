@@ -163,6 +163,16 @@ export interface CapturedLlmRequest {
   path: string;
   body: unknown;
   disposition: RequestDisposition;
+  // When the request arrived (epoch milliseconds), for lining a run's model
+  // calls up with the runner's and the server's logs.
+  receivedAt: number;
+}
+
+export interface MockLlmProxyOptions {
+  // Called with every request as it is captured, before it is answered: an
+  // observation point for a harness that logs the model's timeline as it
+  // happens (the e2e diagnostics), never a way to answer a request.
+  onCapture?: (request: CapturedLlmRequest) => void;
 }
 
 // One embeddings request as the retriever sent it: the model it asked for and
@@ -229,6 +239,12 @@ function isTitleGenerationRequest(body: unknown): boolean {
 }
 
 export class MockLlmProxy {
+  private readonly onCapture: ((request: CapturedLlmRequest) => void) | undefined;
+
+  constructor(options: MockLlmProxyOptions = {}) {
+    this.onCapture = options.onCapture;
+  }
+
   private server: Server | undefined;
   // FIFO of pending turns; a request claims the head synchronously on arrival.
   private readonly queue: QueuedResponse[] = [];
@@ -448,7 +464,13 @@ export class MockLlmProxy {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 
+  private capture(request: CapturedLlmRequest): void {
+    this.captured.push(request);
+    this.onCapture?.(request);
+  }
+
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const receivedAt = Date.now();
     const path = req.url ?? "";
     const isLlm = path.includes("/v1/messages") || path.includes("/v1/proxy/llm/");
     if (!isLlm) {
@@ -491,7 +513,7 @@ export class MockLlmProxy {
     // not a phase-timeout mystery (#715).
     const isForeignProvider = path.includes("/v1/proxy/llm/") && !path.includes("/v1/proxy/llm/anthropic");
     if (isForeignProvider) {
-      this.captured.push({ path, body: parsedBody, disposition: "fenced" });
+      this.capture({ path, body: parsedBody, disposition: "fenced", receivedAt });
       writeJson(res, 500, {
         error:
           `MockLlmProxy speaks only Anthropic but received ${path}. A runner-side LLM caller ` +
@@ -507,7 +529,7 @@ export class MockLlmProxy {
     // wired all the way through — the titling activity really parses it and
     // writes it as the session subject, so suites can pin the feature.
     if (isTitleGenerationRequest(parsedBody)) {
-      this.captured.push({ path, body: parsedBody, disposition: "out-of-band" });
+      this.capture({ path, body: parsedBody, disposition: "out-of-band", receivedAt });
       this.titleRequestCount += 1;
       const body = anthropicText(MOCK_SESSION_TITLE);
       if (streaming) {
@@ -523,7 +545,7 @@ export class MockLlmProxy {
     // 500 — unless a persistent error turn was served, in which case the fault
     // it models is what every retry keeps hitting.
     const next = this.queue.shift();
-    this.captured.push({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted" });
+    this.capture({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted", receivedAt });
     if (next === undefined) {
       if (this.persistentError !== undefined) {
         writeJson(res, this.persistentError.status, this.persistentError.body, this.persistentError.headers);

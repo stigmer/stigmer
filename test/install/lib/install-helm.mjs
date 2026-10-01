@@ -2,8 +2,8 @@
  * The Helm chart (deploy/helm/stigmer) as an install a script can bring up,
  * move to another release, and take down, on a kind cluster: the one place
  * that knows how a release of the chart is installed, shared by its smoke
- * (scripts/smoke-helm.mjs) and the upgrade rehearsal
- * (scripts/rehearse-upgrade.mjs).
+ * (test/install/smoke-helm.mjs) and the upgrade rehearsal
+ * (test/install/rehearse-upgrade.mjs).
  *
  * Two levels, because the smoke runs several releases on one cluster:
  *   - the cluster ({@link createKindCluster}): created (or an existing one
@@ -39,7 +39,7 @@ import { FAKE_MODEL_API_KEY } from "./fake-model.mjs";
 import { buildSourceImages } from "./install-compose.mjs";
 import { pollUntil } from "./stigmer-smoke.mjs";
 
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 
 /** This checkout's chart. */
 export const CHECKOUT_CHART = join(repoRoot, "deploy", "helm", "stigmer");

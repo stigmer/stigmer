@@ -1,12 +1,12 @@
 /**
  * The probes every self-host smoke asks of a running Stigmer, in one place so
- * the compose gate (scripts/smoke-compose.mjs) and the all-in-one image smoke
- * (scripts/smoke-all-in-one.mjs) prove the same facts the same way: a server
+ * the compose gate (test/install/smoke-compose.mjs) and the all-in-one image smoke
+ * (test/install/smoke-all-in-one.mjs) prove the same facts the same way: a server
  * that answers SERVING, a console lane that serves its contract, an artifact
  * file server on its published port, and the end-to-end runs through the
  * runner (a workflow, then an agent answered by the install's model). A smoke
  * that needs a new probe adds it here, never inline. The upgrade rehearsal
- * (scripts/rehearse-upgrade.mjs) adds the state probes: what the runs created
+ * (test/install/rehearse-upgrade.mjs) adds the state probes: what the runs created
  * is recorded before an upgrade and read back after it, field by field, and
  * the server says which release answers (getServerInfo). The refusal and log
  * probes read what an install must not admit and what its server says at

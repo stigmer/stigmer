@@ -16,6 +16,7 @@ import {
   MockLlmProxy,
   anthropicText,
   deterministicEmbeddings,
+  type CapturedLlmRequest,
   type EmbeddingsResponseBody,
 } from "../mock-llm.ts";
 
@@ -187,5 +188,31 @@ describe("MockLlmProxy request disposition", () => {
       "scripted",
       "unscripted",
     ]);
+  });
+});
+
+describe("MockLlmProxy's capture observer", () => {
+  it("hands every request to onCapture as it arrives, with its disposition and arrival time", async () => {
+    const seen: CapturedLlmRequest[] = [];
+    const observed = new MockLlmProxy({ onCapture: (request) => seen.push(request) });
+    await observed.start();
+    try {
+      observed.enqueue(anthropicText("scripted"));
+      const before = Date.now();
+      await fetch(`${observed.url()}${ANTHROPIC_PATH}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model: "m", messages: [] }),
+      });
+      await fetch(`${observed.url()}/v1/proxy/llm/openai/v1/chat/completions`, { method: "POST", body: "{}" });
+      expect(seen.map((request) => request.disposition)).toEqual(["scripted", "fenced"]);
+      expect(seen).toEqual(observed.requests());
+      for (const request of seen) {
+        expect(request.receivedAt).toBeGreaterThanOrEqual(before);
+        expect(request.receivedAt).toBeLessThanOrEqual(Date.now());
+      }
+    } finally {
+      await observed.close();
+    }
   });
 });

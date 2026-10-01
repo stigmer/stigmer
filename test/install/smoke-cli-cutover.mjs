@@ -23,7 +23,7 @@
  * shutdown. Then an agent is applied and run with `stigmer run <agent> -m`:
  * the shell `stigmer up` starts from carries the model settings a user
  * exports (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), pointed at a fake
- * Anthropic API on loopback (scripts/lib/fake-model.mjs), and the streamed
+ * Anthropic API on loopback (test/install/lib/fake-model.mjs), and the streamed
  * run must carry the fake's reply — what a CLI user sees as the answer.
  * Then two workflow approval gates are run and decided the way a reviewer
  * does from the CLI: one times out under the fail policy, and
@@ -45,7 +45,7 @@
  * here is the SERVER slim bundle, staged byte-for-byte.
  *
  * How the CLI is installed, started and stopped in its isolated home is
- * scripts/lib/install-cli.mjs, the one boot the upgrade rehearsal shares.
+ * test/install/lib/install-cli.mjs, the one boot the upgrade rehearsal shares.
  * `stigmer up` serves on port 7234, so the smoke refuses before anything
  * starts when that port is taken: another stack is running.
  *
@@ -53,9 +53,9 @@
  * and the server's dist-slim/ (make smoke-cli-cutover builds both).
  *
  * Usage:
- *   node scripts/smoke-cli-cutover.mjs
+ *   node test/install/smoke-cli-cutover.mjs
  *       The CLI from source, the staged slim server (the gate's mode).
- *   node scripts/smoke-cli-cutover.mjs --published --version=X.Y.Z
+ *   node test/install/smoke-cli-cutover.mjs --published --version=X.Y.Z
  *       The published CLI, installed by site/public/install.sh into the
  *       isolated home, which acquires its own published server and runner
  *       on `up` — a user's install, end to end.
@@ -108,7 +108,7 @@ function parseArgs() {
     else if ((m = arg.match(/^--version=(.+)$/)) !== null) parsed.version = m[1].replace(/^v/, "");
     else
       usage(
-        `unknown argument: ${arg} (usage: node scripts/smoke-cli-cutover.mjs [--published --version=X.Y.Z] [--fake-model=error])`,
+        `unknown argument: ${arg} (usage: node test/install/smoke-cli-cutover.mjs [--published --version=X.Y.Z] [--fake-model=error])`,
       );
   }
   if (parsed.published && parsed.version === "") usage("--published requires --version=X.Y.Z (the published @stigmer/cli)");
@@ -157,7 +157,7 @@ try {
   //    console and the server serves it from the unified port. Probe the
   //    three load-bearing arms a browser exercises: the synthesized
   //    /config.json (the one trusted-local document, asserted by the shared
-  //    probe in scripts/lib/stigmer-smoke.mjs together with / as HTML), a
+  //    probe in test/install/lib/stigmer-smoke.mjs together with / as HTML), a
   //    dynamic deep link resolving to its placeholder document, and the 404
   //    posture (the export's not-found page WITH a 404 status — never the
   //    blank app shell). `--no-web` only suppresses URL reporting; serving

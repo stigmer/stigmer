@@ -22,7 +22,7 @@ import {
   pickPublishedBase,
   versionCore,
 } from "./rehearse-upgrade.mjs";
-import { sourceBuildVersion } from "./lib/source-version.mjs";
+import { sourceBuildVersion } from "../../scripts/lib/source-version.mjs";
 
 const PUBLISHED = ["3.38.3", "3.39.0", "3.39.1-dev.20260928194002", "3.40.0", "3.40.1", "3.41.0", "3.9.9"];
 

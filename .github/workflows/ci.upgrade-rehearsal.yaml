@@ -1,7 +1,7 @@
 # =============================================================================
 # Upgrade Rehearsal — every install moved from the last release to this change
 # =============================================================================
-# For each packaged install, scripts/rehearse-upgrade.mjs installs the newest
+# For each packaged install, test/install/rehearse-upgrade.mjs installs the newest
 # stable release the way its guide says, records state (a workflow run and an
 # agent run answered by the fake model), upgrades to this change built from
 # source by the guide's own procedure, then proves every recorded resource

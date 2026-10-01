@@ -723,7 +723,7 @@ jobs:
       # (Package visibility: see the note on publish-server-image.)
 
   # The published-tag re-verification the P5 gate ruled (Q-A): the SAME
-  # scripts/smoke-compose.mjs that gates PRs (there: build-from-source)
+  # test/install/smoke-compose.mjs that gates PRs (there: build-from-source)
   # runs the full stack — Postgres, Temporal, server, runner — from the
   # images just pushed, up to one end-to-end workflow run, natively per
   # arch. `stigmer-runner:latest` only moves after the stack these tags
@@ -742,6 +742,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup Node.js
+        # The install smokes load test/support's TypeScript fake through
+        # Node's type stripping, so they need the pinned Node, not the image's.
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -751,7 +760,7 @@ jobs:
 
       - name: Compose smoke against the pushed tags (native amd64)
         run: |
-          node scripts/smoke-compose.mjs --published \
+          node test/install/smoke-compose.mjs --published \
             --version="v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
@@ -769,6 +778,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup Node.js
+        # The install smokes load test/support's TypeScript fake through
+        # Node's type stripping, so they need the pinned Node, not the image's.
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -778,13 +796,13 @@ jobs:
 
       - name: Compose smoke against the pushed tags (native arm64)
         run: |
-          node scripts/smoke-compose.mjs --published \
+          node test/install/smoke-compose.mjs --published \
             --version="v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
   rehearse-compose:
-    # The upgrade a compose user makes (scripts/rehearse-upgrade.mjs): the
+    # The upgrade a compose user makes (test/install/rehearse-upgrade.mjs): the
     # newest stable release below this one, its state recorded, then the
     # guide's upgrade to the pushed tags and every record read back. Both
     # images' `latest` wait for it. amd64 only: the per-arch smokes prove
@@ -817,7 +835,7 @@ jobs:
 
       - name: Rehearse the upgrade from the last release to the pushed version
         run: |
-          node scripts/rehearse-upgrade.mjs --artifact=compose \
+          node test/install/rehearse-upgrade.mjs --artifact=compose \
             --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
@@ -1049,7 +1067,7 @@ jobs:
 
       - name: Boot-smoke the pushed image (native amd64)
         run: |
-          node scripts/smoke-all-in-one.mjs \
+          node test/install/smoke-all-in-one.mjs \
             --image="ghcr.io/${{ github.repository_owner }}/stigmer:v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
@@ -1083,7 +1101,7 @@ jobs:
 
       - name: Boot-smoke the pushed image (native arm64)
         run: |
-          node scripts/smoke-all-in-one.mjs \
+          node test/install/smoke-all-in-one.mjs \
             --image="ghcr.io/${{ github.repository_owner }}/stigmer:v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
@@ -1119,7 +1137,7 @@ jobs:
 
       - name: Rehearse the upgrade from the last release to the pushed version
         run: |
-          node scripts/rehearse-upgrade.mjs --artifact=all-in-one \
+          node test/install/rehearse-upgrade.mjs --artifact=all-in-one \
             --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
@@ -1170,7 +1188,7 @@ jobs:
   # `make release` refuses to tag otherwise), verified here before anything
   # is packaged. Order: package once → install the PACKAGED chart on kind
   # against the PUSHED image tags, natively on amd64 and arm64, with the
-  # same scripts/smoke-helm.mjs the PR gate runs from source → push. Smoke
+  # same test/install/smoke-helm.mjs the PR gate runs from source → push. Smoke
   # before push: a chart, unlike an image, has no `latest` pointer to
   # withhold — the moment it is in the registry, `helm install` without a
   # version resolves to it. Pre-releases are pushed too; Helm's semver
@@ -1267,7 +1285,7 @@ jobs:
 
       - name: Install the packaged chart on kind against the pushed tags (native amd64)
         run: |
-          node scripts/smoke-helm.mjs --published \
+          node test/install/smoke-helm.mjs --published \
             --version="v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}" \
             --chart="$(ls dist-chart/stigmer-*.tgz)"
         env:
@@ -1309,7 +1327,7 @@ jobs:
 
       - name: Install the packaged chart on kind against the pushed tags (native arm64)
         run: |
-          node scripts/smoke-helm.mjs --published \
+          node test/install/smoke-helm.mjs --published \
             --version="v${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}" \
             --chart="$(ls dist-chart/stigmer-*.tgz)"
         env:
@@ -1361,7 +1379,7 @@ jobs:
 
       - name: Rehearse the upgrade from the last release to the pushed version
         run: |
-          node scripts/rehearse-upgrade.mjs --artifact=helm \
+          node test/install/rehearse-upgrade.mjs --artifact=helm \
             --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}" \
             --chart="$(ls dist-chart/stigmer-*.tgz)"
         env:
@@ -1406,7 +1424,7 @@ jobs:
     # The CLI after npm has published it. npm's dist-tag moved with the
     # publish, so these gate nothing: a red one fails the release run, and
     # the next release train reads it. The install waits until npm serves
-    # the version (scripts/lib/install-cli.mjs).
+    # the version (test/install/lib/install-cli.mjs).
     needs: [determine-version, publish, publish-runner, publish-server-slim]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1427,7 +1445,7 @@ jobs:
 
       - name: stigmer up from the published CLI, end to end
         run: |
-          node scripts/smoke-cli-cutover.mjs --published --version="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+          node test/install/smoke-cli-cutover.mjs --published --version="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
@@ -1435,7 +1453,7 @@ jobs:
     # The CLI after npm has published it. npm's dist-tag moved with the
     # publish, so these gate nothing: a red one fails the release run, and
     # the next release train reads it. The install waits until npm serves
-    # the version (scripts/lib/install-cli.mjs).
+    # the version (test/install/lib/install-cli.mjs).
     needs: [determine-version, publish, publish-runner, publish-server-slim]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1456,6 +1474,6 @@ jobs:
 
       - name: Rehearse the CLI's upgrade from the last release to the pushed version
         run: |
-          node scripts/rehearse-upgrade.mjs --artifact=cli --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+          node test/install/rehearse-upgrade.mjs --artifact=cli --to="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
