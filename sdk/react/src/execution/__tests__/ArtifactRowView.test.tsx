@@ -75,7 +75,7 @@ describe("ArtifactRowView — the shared row primitive", () => {
     expect(screen.getByText("bundle/")).toBeTruthy();
     // The "Download ZIP" copy moved to the house tooltip (native titles
     // are banned — stigmer-cloud#268); its reveal is pinned in the
-    // real-browser suite (artifact-row-tooltips.layout.test.tsx).
+    // real-browser suite (artifact-row-tooltips.layout.browser.test.tsx).
     expect(document.querySelector("[title]")).toBeNull();
   });
 });

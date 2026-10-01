@@ -9,7 +9,7 @@
  *
  * Pure-function tables — no database needed, always runs. The DB-backed
  * read semantics live in the shared contract suite; the driver-relative
- * ranking pin lives in store-contract.test.ts.
+ * ranking pin lives in store-contract.postgres.test.ts.
  */
 import { describe, expect, it } from "vitest";
 

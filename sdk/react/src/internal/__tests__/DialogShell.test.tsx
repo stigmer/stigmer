@@ -5,7 +5,7 @@
  * target a modal shell provides to the popups inside it (stigmer#1509).
  * happy-dom has no top layer, so this file pins the contract only; the
  * popups themselves are proven in a real browser by
- * `dialog-popups.layout.test.tsx`.
+ * `dialog-popups.layout.browser.test.tsx`.
  */
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
@@ -265,7 +265,7 @@ describe("DialogShell portal target (stigmer#1509)", () => {
     expect(dialogOf(container).contains(published!)).toBe(true);
     expect(published!.hasAttribute("data-stgm-portal")).toBe(false);
     // Fixed, so the dialog's scrolling box cannot clip what it holds
-    // (proven in Chromium by dialog-popups.layout.test.tsx).
+    // (proven in Chromium by dialog-popups.layout.browser.test.tsx).
     expect(published!.className).toContain("stg:fixed");
   });
 

@@ -33,7 +33,7 @@
  * database from racing the chain (compose scale-out, a second `docker
  * run`). The lock is session-scoped and released in a finally.
  *
- * Proven by __tests__/migrations.test.ts (fresh replay, idempotent reopen,
+ * Proven by __tests__/migrations.postgres.test.ts (fresh replay, idempotent reopen,
  * version tracking) against a real Postgres.
  */
 import type { PoolClient } from "pg";

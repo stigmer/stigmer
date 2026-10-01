@@ -54,7 +54,11 @@
  *   - a layer word where its layer does not live: `conformance` outside
  *     test/conformance/src/suites*, `browser` in a package no vitest config
  *     names `*.browser.test.*` in an `include`, `load` in a package with no
- *     vitest.load.config;
+ *     vitest.load.config. A config counts for its own package only, the one
+ *     with the nearest package.json, so a test at the repository root needs a
+ *     config at the root;
+ *   - in a package with a vitest.load.config, another vitest config that does
+ *     not exclude `*.load.test.*`: a default run would collect the load class;
  *   - a service the file reaches that its name does not carry, and a service
  *     word on a file that never reaches it. Reaching is a value use of the
  *     service's entry point (a call of `testDatabaseAdminUrl` or
@@ -205,6 +209,7 @@ const POSTGRES_CALLS = new Set(["testDatabaseAdminUrl", "createTestDatabase"]);
  */
 const TEMPORAL_CALLS = new Set(["createLocal", "createTimeSkipping"]);
 const TEMPORAL_ENVIRONMENT = "TestWorkflowEnvironment";
+const TEMPORAL_TESTING = "@temporalio/testing";
 
 // ─── Parsing one file ───────────────────────────────────────────────────
 
@@ -458,7 +463,24 @@ export function scanModule(ts, path, text) {
   // Local names bound to an entry point: `import { createTestDatabase as make }`,
   // `const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing")`.
   const local = new Map([...POSTGRES_CALLS, "gateDependency", TEMPORAL_ENVIRONMENT].map((name) => [name, name]));
+  // Names bound to the package itself: `import * as testing from "@temporalio/testing"`,
+  // `import testing from "@temporalio/testing"`, `const testing = await import("@temporalio/testing")`.
+  // A test file is a module (it imports its runner), so a top-level `await (...)` parses as an await.
+  const temporalPackage = new Set();
+  const isTemporalImport = (expr) => {
+    let e = expr;
+    while (e && (ts.isParenthesizedExpression(e) || ts.isAwaitExpression(e))) e = e.expression;
+    const arg = e && ts.isCallExpression(e) && e.expression.kind === ts.SyntaxKind.ImportKeyword ? e.arguments[0] : undefined;
+    return Boolean(arg && ts.isStringLiteral(arg) && arg.text === TEMPORAL_TESTING);
+  };
   const bindAliases = (node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === TEMPORAL_TESTING) {
+      const bindings = node.importClause?.namedBindings;
+      if (bindings && ts.isNamespaceImport(bindings)) temporalPackage.add(bindings.name.text);
+      // A default import of the CommonJS package is the package too.
+      if (node.importClause?.name && !node.importClause.isTypeOnly) temporalPackage.add(node.importClause.name.text);
+    }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && isTemporalImport(node.initializer)) temporalPackage.add(node.name.text);
     if (ts.isImportSpecifier(node) && node.propertyName && local.has(node.propertyName.text)) local.set(node.name.text, node.propertyName.text);
     if (ts.isBindingElement(node) && node.propertyName && ts.isIdentifier(node.propertyName) && ts.isIdentifier(node.name) && local.has(node.propertyName.text)) {
       local.set(node.name.text, node.propertyName.text);
@@ -486,8 +508,11 @@ export function scanModule(ts, path, text) {
         if (callee && POSTGRES_CALLS.has(callee)) services.add("postgres");
         // The receiver is a name bound to TestWorkflowEnvironment, or a member of
         // that name (`testing.TestWorkflowEnvironment`, `(await import(...)).TestWorkflowEnvironment`).
+        // A member counts only on the package itself: a namespace bound to it, or an inline import of it.
         const object = ts.isPropertyAccessExpression(node.expression) ? node.expression.expression : undefined;
-        const receiver = object && ts.isIdentifier(object) ? local.get(object.text) : object && ts.isPropertyAccessExpression(object) ? object.name.text : undefined;
+        const member = object && ts.isPropertyAccessExpression(object) && object.name.text === TEMPORAL_ENVIRONMENT
+          && ((ts.isIdentifier(object.expression) && temporalPackage.has(object.expression.text)) || isTemporalImport(object.expression));
+        const receiver = object && ts.isIdentifier(object) ? local.get(object.text) : member ? TEMPORAL_ENVIRONMENT : undefined;
         if (callee && TEMPORAL_CALLS.has(callee) && receiver === TEMPORAL_ENVIRONMENT) services.add("temporal");
         if (callee === "gateDependency" && literal !== undefined && GATE_VARIABLES.has(literal)) services.add(GATE_VARIABLES.get(literal));
       }
@@ -546,6 +571,15 @@ export function makeReach(ts, files, read) {
  * comment collects nothing.
  */
 export function configIncludes(ts, path, text) {
+  return configGlobs(ts, path, text, "include");
+}
+
+/** The globs a config's `exclude` arrays name, read the way `configIncludes` reads `include`. */
+export function configExcludes(ts, path, text) {
+  return configGlobs(ts, path, text, "exclude");
+}
+
+function configGlobs(ts, path, text, key) {
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const constants = new Map();
   for (const statement of sf.statements) {
@@ -556,7 +590,7 @@ export function configIncludes(ts, path, text) {
   }
   const globs = [];
   const walk = (node) => {
-    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === "include") {
+    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === key) {
       const value = ts.isIdentifier(node.initializer) ? constants.get(node.initializer.text) : node.initializer;
       if (value && ts.isArrayLiteralExpression(value)) {
         for (const e of value.elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) globs.push(e.text);
@@ -578,6 +612,7 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
   const findings = [];
   const { reach, scan } = makeReach(ts, files, read);
   // A config collects for its own package: the nearest package.json above it, not a parent's.
+  // So a test at the repository root needs a config at the root.
   const configsIn = (pkg) => configs.filter((c) => packageOf(c.path, packageDirs) === pkg);
   // `detail` (the word, the service, the specifier) keys a baseline line with the rule and the path,
   // so one listed finding never covers a second of the same rule in the same file.
@@ -623,6 +658,18 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
     }
   }
 
+  // The load class runs on its own cadence: in a package with a load config, every other vitest
+  // config excludes `*.load.test.*`, so a default run never collects a measurement.
+  for (const config of configs) {
+    const name = posix.basename(config.path);
+    if (!/^vitest(\..+)?\.config\./.test(name) || /^vitest\.load\.config\./.test(name)) continue;
+    const pkg = packageOf(config.path, packageDirs);
+    if (!configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) continue;
+    if (!configExcludes(ts, config.path, config.text).some((g) => g.includes(".load.test"))) {
+      find("layout-load-collected", config.path, 1, "the package has a vitest.load.config, so this config excludes `**/*.load.test.ts`; without it a default run collects the load class");
+    }
+  }
+
   for (const path of [...files].filter((p) => p.startsWith(SUPPORT_TREE) && !p.includes("/__tests__/")).sort()) {
     for (const { spec, line } of scan(path).specifiers) {
       const own = spec.startsWith(".") && /\.tsx?$/.test(spec) && posix.normalize(posix.join(posix.dirname(path), spec)).startsWith(SUPPORT_TREE);
@@ -654,7 +701,7 @@ export function readLayoutBaseline(text) {
     const key = layoutKey({ rule: match[1], path: match[2], detail: match[3] });
     if (seen.has(key)) problems.push({ line: i + 1, message: `\`${key}\` is listed twice` });
     seen.add(key);
-    entries.push({ rule: match[1], path: match[2], line: i + 1, key });
+    entries.push({ rule: match[1], path: match[2], detail: match[3], line: i + 1, key });
   });
   return { entries, problems };
 }
@@ -677,7 +724,7 @@ export function applyLayoutBaseline(findings, head, base, renamed = new Map()) {
   for (const e of head ?? []) {
     if (!found.has(e.key)) {
       refused.push({ rule: "layout-baseline-stale", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` no longer applies; remove the line` });
-    } else if (was && !was.has(e.key) && !(renamed.has(e.path) && was.has(layoutKey({ rule: e.rule, path: renamed.get(e.path), detail: e.key.split(" ")[2] })))) {
+    } else if (was && !was.has(e.key) && !(renamed.has(e.path) && was.has(layoutKey({ rule: e.rule, path: renamed.get(e.path), detail: e.detail })))) {
       refused.push({ rule: "layout-baseline-grown", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` was added; the list only shrinks, so make the file follow the standard instead` });
     }
   }

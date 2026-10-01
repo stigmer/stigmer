@@ -34,7 +34,7 @@
  * propagates — an outage must never read as "no account".
  *
  * The port's contract is proven by store-contract.ts, run over this
- * adapter on both drivers in __tests__/resource-store.test.ts, which
+ * adapter on both drivers in __tests__/resource-store.postgres.test.ts, which
  * also pins the two invariants above that are this adapter's own.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";

@@ -3,7 +3,7 @@
  * that must hold on sqlite AND Postgres (the source, the Authorizer, the
  * directory, the fire caller): `describe.each(driverFixtures(kinds))`
  * opens a fresh sqlite file per test, or the shared Postgres test
- * database with the named kinds cleared — the shape derived-tuples.test.ts
+ * database with the named kinds cleared — the shape derived-tuples.postgres.test.ts
  * established, lifted here so four files do not carry four copies.
  *
  * Postgres is skipped, never failed, when no `TEST_DATABASE_URL` is set

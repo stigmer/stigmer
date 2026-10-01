@@ -3,7 +3,7 @@
  * A11 and A12): every behavior an implementation of store.ts must satisfy
  * identically, as cases a driver's test iterates. Open source runs them
  * over its own adapter (resource-store.ts) on sqlite and Postgres in
- * __tests__/resource-store.test.ts; a composition runs the SAME cases over
+ * __tests__/resource-store.postgres.test.ts; a composition runs the SAME cases over
  * the store it registers as `drivers.identityAccountStore` (the cloud's
  * `cloud.iam_identity_account` store), so "the port holds" is one
  * statement proven per driver, never restated per repository.

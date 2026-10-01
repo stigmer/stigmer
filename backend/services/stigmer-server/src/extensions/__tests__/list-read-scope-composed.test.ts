@@ -25,7 +25,7 @@
  *     narrowed exactly like the wire.
  *
  * Per-lane logic beyond the wiring is pinned in the helper matrix
- * (list-read-scope.test.ts), the summaries suite, and the store-contract
+ * (list-read-scope.postgres.test.ts), the summaries suite, and the store-contract
  * allowlist arms; cross-tenant isolation with the REAL FGA driver is the
  * cloud conformance suite's outsider arms.
  */

@@ -180,8 +180,8 @@ unmarked target, since the top layer would cover the body container. The
 `className` prop is a theming channel mirrored onto both scope containers and
 must never become a layout channel.
 `sdk/react/src/__tests__/provider-theme-scope.test.tsx` pins the markers and
-`sdk/react/src/__tests__/provider-container.layout.test.tsx` pins the layout in
-a real browser.
+`sdk/react/src/__tests__/provider-container.layout.browser.test.tsx` pins the
+layout in a real browser.
 
 **Console chrome is SDK-owned.** `WorkspaceSidebar` and `SettingsSidebar` are
 public `@stigmer/react` surfaces rendered by the web console, the desktop app

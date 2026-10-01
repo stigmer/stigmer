@@ -47,6 +47,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:load": "vitest run -c vitest.load.config.ts",
     "clean": "rm -rf dist dist-slim"
   },
   "repository": {

@@ -222,7 +222,7 @@ function isClassBearingName(name: string): boolean {
  * BOTH rewriting and the `--check` guard. For the rare literals that look
  * like utilities but are not CSS classes at all — the `VisualClass`
  * node-shape taxonomy (`"container"`), and the host-simulation class strings
- * in `styles-host-isolation.layout.test.tsx`, which must stay unprefixed to
+ * in `styles-host-isolation.layout.browser.test.tsx`, which must stay unprefixed to
  * mean anything.
  */
 function isSuppressed(node: ts.Node, sourceFile: ts.SourceFile): boolean {

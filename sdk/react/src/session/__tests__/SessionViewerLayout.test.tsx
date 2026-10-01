@@ -78,7 +78,7 @@ describe("SessionViewerLayout", () => {
   // The collapse classes are container-query variants keyed on the split's
   // own box, never the viewport (stigmer/stigmer#301). These are class-name
   // pins only — the real layout behavior (a narrow dock inside a wide window
-  // collapsing) is proven in Chromium by ResizableSplit.layout.test.tsx.
+  // collapsing) is proven in Chromium by ResizableSplit.layout.browser.test.tsx.
   it("responsive (default): the open-panel conversation pane collapses in a narrow container", () => {
     const { container } = render(
       <SessionViewerLayout conversation={conversation()} panel={panel()} />,

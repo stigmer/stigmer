@@ -239,9 +239,9 @@ jobs:
         if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/demos')
         run: node scripts/verify-scenar-tours.mjs
 
-  # Browser-mode suites (sdk/react/vitest.a11y.config.ts): the workspace-panel
-  # a11y audit (DD-22) plus layout-contract regressions (*.layout.test.tsx,
-  # e.g. the provider container's sizing contract, #260/DD-019) — both need a
+  # Browser-mode suites (sdk/react/vitest.a11y.config.ts, every
+  # *.browser.test.ts(x)): the workspace-panel a11y audit plus layout-contract
+  # regressions (e.g. the provider container's sizing contract, #260) — both need a
   # real Chromium for layout/paint that happy-dom cannot evaluate. The task
   # waits on react's own build: the suites render against dist/styles.css,
   # the SHIPPED stylesheet (DD-21).

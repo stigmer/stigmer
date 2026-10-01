@@ -1,7 +1,7 @@
 /**
  * Test-only workflow: runs the engine on a model the caller hands it.
  *
- * The golden E2E (`src/__tests__/golden-e2e.test.ts`) and the engine's
+ * The golden E2E (`src/__tests__/golden-e2e.temporal.test.ts`) and the engine's
  * unit test (`src/workflows/__tests__/engine-inline-model.test.ts`) drive
  * the engine with a materialized {@link ExecuteServerlessWorkflowInput}
  * and no server to hydrate from.

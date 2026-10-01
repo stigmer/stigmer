@@ -132,12 +132,12 @@ in `@stigmer/protos` asks is a relation the model defines, today's known gaps
 pinned by name. The rest pin the machinery:
 alias matching, the memo, the bounds, the source and the two derived rules on
 both store drivers. The four drivers are pinned arm by arm on both store drivers
-(`__tests__/authorizer.test.ts`, `organization-directory.test.ts`,
-`schedule-fire-caller.test.ts`, `list-read-scope.test.ts` — the adversarial
+(`__tests__/authorizer.postgres.test.ts`, `organization-directory.postgres.test.ts`,
+`schedule-fire-caller.postgres.test.ts`, `list-read-scope.postgres.test.ts` — the adversarial
 cells first: the outsider, the viewer rung, the admin who does not read members'
 conversations, the orphaned execution, the memory with no subject), the posture
 at the wire over three real boots
 (`extensions/__tests__/built-in-authorization-composed.test.ts`, the list lanes
 included, and the two-boot proof that the sole person's lists are byte-identical
 with and without the scope), and the scope's cost is measured rather than
-assumed (`list-read-scope.measure.test.ts`, gated on `AUTHORIZATION_MEASURE=1`).
+assumed (`list-read-scope.load.test.ts`, the load class: `npm run test:load`).
