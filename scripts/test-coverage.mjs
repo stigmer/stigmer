@@ -17,15 +17,14 @@
  *     was added, so an edit in the middle of a long call is judged too. The
  *     one exception is v8's own ignore hint in the code
  *     (`/* v8 ignore next -- @preserve: <reason> *\/`): the provider drops
- *     those statements, the hint sits in the diff for the reviewer, and the
- *     integrity tool requires its reason.
+ *     those statements, and the hint and its reason sit in the diff for the
+ *     reviewer to judge.
  *   - each package against its floor: the share of its lines and of its
  *     branches its tests ran, and how many of its cases passed, must not fall
  *     below the committed floor (--floors). A floor is the lowest a package
  *     may fall to, not its last measurement, so an ordinary pull request
- *     never edits the file; `--raise` lifts the floors from a full run (the
- *     release train does it weekly), and the integrity tool refuses a lowered
- *     floor that the pull request does not declare.
+ *     never edits the file; `--raise` lifts the floors from a full run, and
+ *     never lowers one.
  *
  * Inputs are found under each --input directory, at any depth: every
  * `coverage-final.json` and every vitest JSON report (a `report.json`, or any
@@ -60,7 +59,8 @@
  *   node scripts/test-coverage.mjs --floors <file> --input <dir> ... --raise
  *   node scripts/test-coverage.mjs --floors <file> --from-run <run id> --raise
  * Exit: 0 clean (or floors written), 1 findings, 2 the script could not judge
- * (a usage or git error, unreadable input, no input at all).
+ * (a usage or git error, unreadable input, no coverage at all, or coverage
+ * that matches no tracked file).
  */
 
 import { execFileSync } from "node:child_process";
@@ -147,9 +147,11 @@ export function packageOf(path, packageDirs) {
 
 // ─── Merging and measuring ──────────────────────────────────────────────
 
+/** Two inputs measured the same source the same way when every statement and branch sits at the same place. */
 function sameShape(a, b) {
-  return Object.keys(a.statementMap).length === Object.keys(b.statementMap).length
-    && Object.keys(a.branchMap ?? {}).length === Object.keys(b.branchMap ?? {}).length;
+  const branches = (map) => Object.entries(map ?? {}).map(([id, branch]) => [id, branch.locations]);
+  return JSON.stringify(a.statementMap) === JSON.stringify(b.statementMap)
+    && JSON.stringify(branches(a.branchMap)) === JSON.stringify(branches(b.branchMap));
 }
 
 /**
@@ -419,9 +421,13 @@ export function checkChange(added, files, measuredPackages, floors, packageDirs)
 
 // ─── Report ─────────────────────────────────────────────────────────────
 
-export function formatReport({ findings, measured, floors, notMeasured, base, changedFiles }) {
+export function formatReport({ findings, measured, floors, notMeasured, base, changedFiles, unmatched = [] }) {
   const lines = [];
   for (const f of findings) lines.push(`✗ ${f.rule}  ${f.path}  ${f.message}`);
+  if (unmatched.length > 0) {
+    const shown = unmatched.slice(0, 3).join(", ");
+    lines.push(`• unmatched  ${unmatched.length} measured file(s) match no tracked file and were left out (${shown}${unmatched.length > 3 ? ", …" : ""})`);
+  }
   for (const [pkg, m] of [...measured].sort(([a], [b]) => a.localeCompare(b))) {
     const floor = floors.packages[pkg];
     const against = floor ? ` (floor ${floor.lines}%, ${floor.branches}%, ${floor.cases})` : "";
@@ -455,6 +461,7 @@ function parseArgs(argv) {
   }
   if (!opts.floors) throw new Error("--floors <file> is required");
   if (opts.fromRun && !opts.raise) throw new Error("--from-run is for --raise only: a gate judges its own run's inputs");
+  if (opts.fromRun && opts.inputs.length > 0) throw new Error("give --from-run or --input, not both: a raise reads one run");
   if (opts.inputs.length === 0 && !opts.fromRun) throw new Error("give at least one --input <dir>, or --from-run <id> with --raise");
   return opts;
 }
@@ -488,8 +495,16 @@ function main(argv) {
     const relativize = makeRelativizer(tracked);
     const merged = mergeCoverage(inputs.coverage, relativize);
     const measured = measure(merged.files, casesByPackage(inputs.reports, relativize, packageDirs), packageDirs);
+    if (measured.size === 0) {
+      console.error(`test-coverage: none of the ${merged.unmatched.length} measured file(s) matches a tracked file (first: ${merged.unmatched[0] ?? "none"}); nothing can be judged`);
+      return 2;
+    }
 
     if (opts.raise) {
+      if (merged.mismatched.length > 0) {
+        console.error(`test-coverage: the run measured ${merged.mismatched.join(", ")} twice with different statements or branches; its figures cannot be trusted to raise a floor`);
+        return 2;
+      }
       const raised = raiseFloors(measured, floors);
       if (raised.missing.length > 0) {
         console.error(`test-coverage: not a full run; these packages have floors and were not measured: ${raised.missing.join(", ")}`);
@@ -514,7 +529,8 @@ function main(argv) {
     if (opts.base) {
       const mergeBase = git(root, ["merge-base", opts.base, "HEAD"]).trim();
       baseLabel = `${opts.base} (${mergeBase.slice(0, 9)})`;
-      const added = addedLines(git(root, ["diff", "-U0", "-M", "--no-color", "--no-ext-diff", mergeBase, "--"]));
+      // Fixed prefixes and unquoted paths, so the parse never depends on the user's diff configuration.
+      const added = addedLines(git(root, ["-c", "core.quotePath=false", "diff", "-U0", "-M", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", mergeBase, "--"]));
       changedFiles = added.size;
       const change = checkChange(added, merged.files, new Set(measured.keys()), floors, packageDirs);
       findings.push(...change.findings);

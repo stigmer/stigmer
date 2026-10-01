@@ -89,6 +89,9 @@ test("two shards of one suite merge by summing hits; a file measured from differ
   };
   const other = { "/m3/p/b.ts": entry("/m3/p/b.ts", [[1, 1, 1], [2, 2, 1]]) };
   const { files, unmatched, mismatched } = mergeCoverage([shard1, shard2, other], relativize);
+  // The same number of statements at other places is other source too, not a shard to sum.
+  const moved = { "/m4/p/a.ts": entry("/m4/p/a.ts", [[1, 1, 1], [3, 3, 1]], [[1, 0]]) };
+  assert.deepEqual(mergeCoverage([shard1, moved], relativize).mismatched, ["p/a.ts"]);
   assert.deepEqual(files.get("p/a.ts").s, { 0: 1, 1: 3 });
   assert.deepEqual(files.get("p/a.ts").b, { 0: [1, 2] });
   assert.deepEqual(unmatched, ["/m2/gen/c.ts"]);
@@ -258,9 +261,11 @@ test("the report lists findings, each measured package against its floor, and on
     notMeasured: ["scripts/x.mjs"],
     base: "origin/main (abc123456)",
     changedFiles: 2,
+    unmatched: ["/m/gen/a.ts", "/m/gen/b.ts", "/m/gen/c.ts", "/m/gen/d.ts"],
   });
   assert.equal(text, [
     "✗ unrun  p/a.ts:3  is never run by a test (p's own tests)",
+    "• unmatched  4 measured file(s) match no tracked file and were left out (/m/gen/a.ts, /m/gen/b.ts, /m/gen/c.ts, …)",
     "• measured  p  lines 81.3%, branches 70.0%, 9 cases (floor 80%, 70%, 9)",
     "• measured  q  lines 100.0%, branches 100.0%, cases not reported",
     "• not measured  scripts/x.mjs",
@@ -296,6 +301,8 @@ function repo() {
   git("init", "-q", "-b", "main");
   git("config", "user.email", "t@example.com");
   git("config", "user.name", "t");
+  // A user's diff configuration must not change what the command reads (`w/` and `i/` prefixes instead of `b/`).
+  git("config", "diff.mnemonicPrefix", "true");
   const write = (path, text) => {
     mkdirSync(join(dir, dirname(path)), { recursive: true });
     writeFileSync(join(dir, path), text);
@@ -377,6 +384,26 @@ test("the command: a drop below a floor is refused without a base; no coverage, 
     assert.match(partial.stderr, /--from-run is for --raise only/);
 
     assert.equal(r.run("--input", "in").status, 2);
+
+    const both = r.run("--floors", "floors.json", "--input", "in", "--from-run", "1", "--raise");
+    assert.equal(both.status, 2);
+    assert.match(both.stderr, /give --from-run or --input, not both/);
+
+    const foreign = "/elsewhere/untracked/z.ts";
+    r.write("foreign/coverage-final.json", JSON.stringify({ [foreign]: entry(foreign, [[1, 1, 1]]) }));
+    const unmatched = r.run("--floors", "floors.json", "--input", "foreign");
+    assert.equal(unmatched.status, 2, unmatched.stdout);
+    assert.match(unmatched.stderr, /none of the 1 measured file\(s\) matches a tracked file \(first: \/elsewhere\/untracked\/z\.ts\)/);
+
+    const a = "/m2/pkg/src/a.ts";
+    r.write("split/shard-2/coverage-final.json", JSON.stringify({ [a]: entry(a, [[1, 1, 1], [3, 3, 0]]) }));
+    r.write("split/shard-1/coverage-final.json", JSON.stringify({ [a]: entry(a, [[1, 1, 1], [2, 2, 0]]) }));
+    const mismatchedRaise = r.run("--floors", "floors.json", "--input", "split", "--raise");
+    assert.equal(mismatchedRaise.status, 2);
+    assert.match(mismatchedRaise.stderr, /measured pkg\/src\/a\.ts twice with different statements or branches/);
+    const mismatchedJudge = r.run("--floors", "floors.json", "--input", "split");
+    assert.equal(mismatchedJudge.status, 1);
+    assert.match(mismatchedJudge.stdout, /✗ mismatch  pkg\/src\/a\.ts  was measured twice/);
 
     const json = r.run("--floors", "floors.json", "--input", "in", "--json");
     assert.equal(json.status, 1);
