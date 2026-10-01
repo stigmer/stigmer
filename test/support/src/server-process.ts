@@ -94,13 +94,22 @@ export interface SpawnServerOptions {
   // survives from the retired Go binary, which spawned bare — the identical
   // env contract is what let the two servers share this harness.)
   args?: string[];
+  // A fixed gRPC port instead of a free one, for a suite whose clients are
+  // configured before the stack boots (the e2e console points at 7234).
+  // Omit it everywhere else: a free port is what lets servers boot side by
+  // side.
+  port?: number;
+  // When set, the server's combined stdout/stderr is also streamed to this
+  // file, which survives teardown (the e2e diagnostics). It takes precedence
+  // over STIGMER_CONFORMANCE_LOG_DIR.
+  logFile?: string;
 }
 
 export async function spawnServer(
   binaryPath: string,
   opts: SpawnServerOptions = {},
 ): Promise<RunningServer> {
-  const port = await getFreePort();
+  const port = opts.port ?? (await getFreePort());
   const artifactHttpPort = await getFreePort();
   const temporalHostPort = opts.temporalHostPort ?? ENGINELESS_TEMPORAL_HOST_PORT;
   const stateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
@@ -147,9 +156,11 @@ export async function spawnServer(
   // races (writer-ordering flakes) undiagnosable without it.
   const output = teeChildOutput(child, {
     tailBytes: LOG_TAIL_BYTES,
-    file: process.env.STIGMER_CONFORMANCE_LOG_DIR
-      ? join(process.env.STIGMER_CONFORMANCE_LOG_DIR, `server-${port}-${Date.now()}.log`)
-      : undefined,
+    file:
+      opts.logFile ??
+      (process.env.STIGMER_CONFORMANCE_LOG_DIR
+        ? join(process.env.STIGMER_CONFORMANCE_LOG_DIR, `server-${port}-${Date.now()}.log`)
+        : undefined),
   });
 
   let exit: { code: number | null; signal: NodeJS.Signals | null } | null = null;

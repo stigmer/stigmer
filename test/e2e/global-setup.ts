@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createNodeClient } from "@stigmer/sdk/node";
 import {
+  adoptStackFixture,
   isPortReachable,
   startBackendStack,
   type ServerState,
@@ -31,7 +32,7 @@ const MOCK_LLM =
 // Opt-in FILE-GATE stack for the interactive-approval-gate project: the runner
 // boots with ARTIFACT_STORAGE_TYPE=none, so a non-git session workspace has no
 // capture substrate and file writes take the pre-execution approval gate (the
-// deny-gate mode, DD-22) instead of flowing under apply-then-review. This is
+// deny-gate mode) instead of flowing under apply-then-review. This is
 // the only stack shape where the file-diff GATE card exists — the surface
 // tool-card-ux.spec.ts pins. Requires the mock stack (a fresh boot).
 const FILE_GATES =
@@ -48,7 +49,7 @@ async function globalSetup() {
 
   const alreadyRunning = await isPortReachable(API_PORT);
 
-  // The OIDC stack shape (20260913.02 sp.console-login): the hermetic issuer
+  // The OIDC stack shape: the hermetic issuer
   // as a process, the server booted with STIGMER_OIDC_ISSUER pointed at it,
   // and NO seeded organization — the console-login spec asserts the
   // first-sign-in onboarding. A running trusted-local stack cannot be
@@ -81,8 +82,11 @@ async function globalSetup() {
         STIGMER_OIDC_AUDIENCE: OIDC_AUDIENCE,
         STIGMER_OIDC_CONSOLE_CLIENT_ID: OIDC_CONSOLE_CLIENT_ID,
       },
+    }).catch((error: unknown) => {
+      issuer.kill();
+      throw error;
     });
-    state.issuerPid = issuer.pid;
+    adoptStackFixture(issuer);
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
     console.log(
       "[e2e] Backend stack ready in the OIDC posture (no organization seeded on purpose)",
@@ -115,8 +119,11 @@ async function globalSetup() {
       extraServerEnv: {
         STIGMER_OAUTH_REDIRECT_URI: `${baseURL}/auth/oauth/callback`,
       },
+    }).catch((error: unknown) => {
+      fixture.kill();
+      throw error;
     });
-    state.oauthMcpPid = fixture.pid;
+    adoptStackFixture(fixture);
     state.oauthMcp = ready;
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
     const client = createNodeClient({
@@ -160,14 +167,13 @@ async function globalSetup() {
           ? " (file-gate mode: no artifact store, writes gate pre-execution)"
           : ""),
     );
-    const proxy = await startMockLlmProxy();
-    const mockLlmEndpoint = proxy.url();
+    const mock = await startMockLlmProxy();
     const state = await startBackendStack({
       apiPort: API_PORT,
-      mockLlmEndpoint,
+      mockLlmEndpoint: mock.proxyUrl,
       fileGates: FILE_GATES,
     });
-    state.mockLlmControlUrl = mockLlmEndpoint;
+    state.mockLlmControlUrl = mock.controlUrl;
     state.fileGateMode = FILE_GATES;
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 
@@ -181,7 +187,7 @@ async function globalSetup() {
     await ensureDefaultOrg(client);
 
     console.log(
-      `[e2e] Mock LLM proxy ready (control: ${mockLlmEndpoint}); seeded "default" org`,
+      `[e2e] Mock LLM proxy ready (proxy: ${mock.proxyUrl}, control: ${mock.controlUrl}); seeded "default" org`,
     );
     return;
   }

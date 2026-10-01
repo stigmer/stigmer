@@ -6,7 +6,7 @@
 // single stateless McpServer shared across all requests?
 //
 // Finding: yes, and this file is the proof. Retained as the seed for the full
-// HTTP hardening work; the production transport in ../src grew from it.
+// HTTP hardening work; the production transport in mcp-server/src grew from it.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";

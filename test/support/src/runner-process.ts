@@ -154,6 +154,12 @@ export interface RunnerOptions {
   // STIGMER_ARTIFACT_PROXY_ENDPOINT while LLM traffic stays on `proxy`.
   // Mutually exclusive with artifactDir (shared-local vs proxy store).
   artifactProxy?: { endpoint: string };
+  // `none` boots the runner with NO artifact store (ARTIFACT_STORAGE_TYPE=none,
+  // with a proxy): a non-git workspace then has no capture substrate, so file
+  // writes take the pre-execution approval gate instead of apply-then-review.
+  // The e2e file-gate stack is the one shape that needs it. Mutually
+  // exclusive with artifactDir and artifactProxy.
+  artifactStore?: "none";
   // When set, the runner's combined stdout/stderr is also streamed to this
   // file (directory created as needed). The cloud-execution target points it
   // under test/conformance/.test-output/logs/ so a red CI run's uploaded
@@ -190,6 +196,9 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
         "cloudBootstrap (embedded-runner discovery); got " +
         (opts.temporalHostPort === undefined ? "neither" : "both"),
     );
+  }
+  if (opts.artifactStore === "none" && (opts.artifactDir !== undefined || opts.artifactProxy !== undefined)) {
+    throw new Error("spawnRunner: artifactStore \"none\" excludes artifactDir and artifactProxy");
   }
   const workspaceDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-"));
   // The runner's home for this run: its `~/.stigmer` (session checkpoints,
@@ -258,7 +267,9 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
             // queued agent turns (#715). Keep every LLM caller on the one
             // provider the mock implements.
             STIGMER_PRIMARY_MODEL: "claude-sonnet-4-6",
-            ...(opts.artifactProxy !== undefined
+            ...(opts.artifactStore === "none"
+              ? { ARTIFACT_STORAGE_TYPE: "none" }
+              : opts.artifactProxy !== undefined
               ? {
                   ARTIFACT_STORAGE_TYPE: "proxy",
                   STIGMER_ARTIFACT_PROXY_ENDPOINT: opts.artifactProxy.endpoint,

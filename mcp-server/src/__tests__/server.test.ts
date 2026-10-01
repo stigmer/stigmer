@@ -4,7 +4,7 @@
 // the MCP server at it, drives it through an in-memory MCP client, and asserts:
 //   - tools/list advertises get_agent
 //   - get_agent returns the agent's protojson, byte-comparable (after parse)
-//     with the canonical toJson — the parity contract (DD-005).
+//     with the canonical toJson — the parity contract.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";

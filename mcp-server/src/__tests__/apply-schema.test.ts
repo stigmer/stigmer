@@ -19,12 +19,13 @@
 // protobuf-es already ships the descriptors, so no extra buf plugin (option b)
 // and no divergent hand-maintained intermediate schemas (option c) are needed.
 //
-// Ergonomic-projection gap (flagged for T02): this derives the RAW proto shape.
+// Ergonomic-projection gap (flagged, not decided here): this derives the RAW proto shape.
 // `task_config` is a google.protobuf.Struct, so fork/for_each nested tasks are
 // untyped JSON here, and only `compensate` is typed recursion. The Go ergonomic
 // input instead HOISTS metadata and EXPANDS task_config into one typed config
 // per kind (adding typed fork/for_each nested-task recursion). Reconciling
-// "derive from proto" (DD-005) with that hand-friendly shape is a T02 decision.
+// "derive from proto" (the parity contract server.test.ts pins) with that
+// hand-friendly shape is a separate decision.
 
 import { create, toJson, ScalarType, type DescField, type DescMessage, type MessageInitShape } from "@bufbuild/protobuf";
 import { WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
@@ -36,7 +37,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-// --- the descriptor walker (prototype for the T02 derivation, option a) ---
+// --- the descriptor walker (prototype for the proto derivation, option a) ---
 
 function scalarToZod(scalar: ScalarType): z.ZodTypeAny {
   switch (scalar) {

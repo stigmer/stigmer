@@ -1,8 +1,8 @@
 /**
  * The OAuth MCP stack shape: a hosted MCP server that answers the OAuth
  * challenge and a login server that consents by redirect, both as one
- * PROCESS from the conformance harness (`oauth-mcp-fixture-main.ts`; the
- * e2e package never imports across test packages), and the control plane
+ * PROCESS from the conformance harness (`oauth-mcp-fixture-main.ts`, which
+ * stays there because it needs the MCP SDK), and the control plane
  * booted with the console's callback as its OAuth redirect. The shape lets
  * the plugin journey drive a real sign-in through the browser: install a
  * URL-only server, watch the save complete its OAuth, press Sign in on the

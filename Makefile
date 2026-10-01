@@ -995,8 +995,8 @@ test-e2e-oauth-mcp: ## Run the plugin journey's sign-in arm against a hosted OAu
 	cd test/e2e && npx playwright install --with-deps chromium && STIGMER_E2E_OAUTH_MCP=1 npx playwright test --project=functional plugin-install-journey
 
 test-e2e-console-login: ## Run the console sign-in E2E against a server in the OIDC posture (hermetic issuer, serial)
-	# One stack shape of its own (20260913.02 sp.console-login): the
-	# conformance harness's local OIDC issuer as a process, the server booted
+	# One stack shape of its own: test/support's local OIDC issuer
+	# (local-oidc-issuer-main.ts) as a process, the server booted
 	# with STIGMER_OIDC_ISSUER pointed at it, `next dev` in OIDC mode with the
 	# same coordinates (test/e2e/fixtures/oidc.ts). Root install for the same
 	# reason as test-e2e-approval; needs the built server and runner.

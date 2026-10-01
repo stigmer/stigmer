@@ -1,15 +1,15 @@
 /**
- * The OIDC stack shape's one set of coordinates (20260913.02 sp.console-login,
- * Q-CL-7), read by playwright.config.ts (to give `next dev` its
- * NEXT_PUBLIC_* before anything runs), by global-setup.ts (to spawn the
- * issuer and boot the server in the posture) and by the console-login spec
- * (to recognise the issuer's origin). Defined once so the three can never
- * disagree — the console, the server and the issuer must all name the same
- * issuer URL, audience and client id or the sign-in fails somewhere silent.
+ * The OIDC stack shape's one set of coordinates, read by playwright.config.ts
+ * (to give `next dev` its NEXT_PUBLIC_* before anything runs), by
+ * global-setup.ts (to spawn the issuer and boot the server in the posture)
+ * and by the console-login spec (to recognise the issuer's origin). Defined
+ * once so the three can never disagree — the console, the server and the
+ * issuer must all name the same issuer URL, audience and client id or the
+ * sign-in fails somewhere silent.
  *
- * The issuer itself is the conformance harness's hermetic local issuer, run
- * as a PROCESS (`local-oidc-issuer-main.ts`): the e2e package never imports
- * across test packages.
+ * The issuer itself is test/support's hermetic local issuer, run as a
+ * PROCESS (`test/support/src/local-oidc-issuer-main.ts`) like the stack's
+ * servers, so it serves every Playwright worker from one place.
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import * as path from "node:path";

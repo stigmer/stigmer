@@ -5,7 +5,7 @@
 // both from the same constant, so the two can never drift. Setting the server's
 // load-bearing env explicitly (ports, queues, db/storage paths) rather than
 // relying on its compiled defaults makes the launch deterministic and the pin
-// enforceable — mirroring test/e2e/fixtures/server-manager.ts.
+// enforceable.
 
 import { dirname, join } from "node:path";
 import { RUNNER_TASK_QUEUE, RUNNER_READY_MARKER, SERVER_PID_FILE, RUNNER_PID_FILE, SERVER_PORT, TEMPORAL_NAMESPACE } from "../constants.js";

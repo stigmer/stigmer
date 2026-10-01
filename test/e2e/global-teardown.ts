@@ -19,7 +19,7 @@ async function globalTeardown() {
     console.log("[e2e] Backend was reused — nothing to tear down");
   } else {
     console.log("[e2e] Stopping backend stack...");
-    stopBackendStack(state);
+    await stopBackendStack();
     console.log("[e2e] Backend stack stopped");
   }
 
