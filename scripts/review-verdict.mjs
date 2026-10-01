@@ -15,7 +15,14 @@
  *   Head: <the head commit the reviewer read>
  *   Reviewed: sha256:<digest>
  *   Reviewer: <model>, fresh context, review-pull-request
+ *   Security: none found (<the security questions the change touched>)
  *   Findings: none
+ *
+ * `Security:` is the reviewer's answer to the questions in
+ * `.agents/skills/review-change-security/SKILL.md`: `none found` with the
+ * questions it read the change against, or the concern. Every verdict is
+ * written with it; a review posted before the line existed is read without it,
+ * so a pull request approved then stays approved until its change moves.
  *
  * The marker line under the heading is what makes a comment a review, so a
  * person's own "## Review" notes are never read as a verdict.
@@ -71,6 +78,7 @@
  * and `digest` that `--status --json` printed before the reviewer was
  * launched. `--verdict-file` holds the reviewer's JSON output:
  *   { "verdict": "approve" | "changes-needed", "reviewer": "<model>",
+ *     "security": "none found (<the questions touched>)" | "<the concern>",
  *     "findings": [{ "path": "...", "line": 1, "severity": "blocking" | "minor", "summary": "..." }] }
  *
  * Exit: 0 current (for --status) or posted (for --write); 1 not current, or
@@ -139,17 +147,19 @@ export function parseReview(body) {
   const head = fields.get("Head");
   const reviewed = fields.get("Reviewed");
   const reviewer = fields.get("Reviewer");
+  const security = fields.get("Security");
   const findingsField = fields.get("Findings");
   if (!VERDICTS.includes(verdict)) problems.push(`Verdict must be one of ${VERDICTS.join(", ")}`);
   if (!SHA.test(head ?? "")) problems.push("Head must be a full commit SHA");
   if (!DIGEST.test(reviewed ?? "")) problems.push("Reviewed must be sha256:<64 hex>");
   if (!reviewer) problems.push("Reviewer is missing");
+  if (security === "") problems.push("Security is empty");
   if (findingsField === undefined) problems.push("Findings is missing");
   else if (findingsField === "none" && findings.length > 0) problems.push("Findings says none and lists findings");
   else if (findingsField !== "none" && findingsField !== "") problems.push("Findings is `none` or a list below it");
   else if (findingsField === "" && findings.length === 0) problems.push("Findings lists nothing; write `none`");
 
-  return { verdict, head, reviewed, reviewer, findings, problems };
+  return { verdict, head, reviewed, reviewer, security, findings, problems };
 }
 
 /** The declarations as one canonical text, so a reworded or added one moves the digest. */
@@ -215,6 +225,9 @@ export function verdictProblems(output) {
   if (!output || typeof output !== "object") return ["the verdict is not a JSON object"];
   if (!VERDICTS.includes(output.verdict)) problems.push(`verdict must be one of ${VERDICTS.join(", ")}`);
   if (typeof output.reviewer !== "string" || output.reviewer.trim() === "") problems.push("reviewer names the model that reviewed");
+  if (typeof output.security !== "string" || output.security.trim() === "") {
+    problems.push("security answers the review-change-security questions: `none found` with the questions read, or the concern");
+  }
   if (!Array.isArray(output.findings)) problems.push("findings is a list (empty when there are none)");
   for (const [i, f] of (Array.isArray(output.findings) ? output.findings : []).entries()) {
     if (typeof f?.path !== "string" || f.path === "") problems.push(`findings[${i}].path is missing`);
@@ -229,9 +242,9 @@ export function verdictProblems(output) {
 }
 
 /** The comment for a verdict. Each finding is one line, so the comment always parses. */
-export function renderReview({ verdict, head, reviewed, reviewer, findings }) {
+export function renderReview({ verdict, head, reviewed, reviewer, security, findings }) {
   const oneLine = (text) => String(text).replace(/\s+/g, " ").trim();
-  const lines = [HEADING, MARKER, "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, `Reviewer: ${oneLine(reviewer)}, fresh context, review-pull-request`];
+  const lines = [HEADING, MARKER, "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, `Reviewer: ${oneLine(reviewer)}, fresh context, review-pull-request`, `Security: ${oneLine(security)}`];
   if (findings.length === 0) lines.push("Findings: none");
   else {
     lines.push("Findings:");
@@ -438,7 +451,7 @@ export function postVerdict({ repo, number, dir, output, reviewedHead, reviewedD
   if (reviewed !== reviewedDigest) {
     return { exit: 1, lines: [`#${number}'s change or declarations moved during the review (digest ${reviewed}, reviewed ${reviewedDigest}); review it again`] };
   }
-  look.comment(repo, number, renderReview({ verdict: output.verdict, head: pr.headRefOid, reviewed, reviewer: output.reviewer, findings: output.findings }));
+  look.comment(repo, number, renderReview({ verdict: output.verdict, head: pr.headRefOid, reviewed, reviewer: output.reviewer, security: output.security, findings: output.findings }));
   const posted = `posted ${output.verdict} on ${repo}#${number} at ${pr.headRefOid.slice(0, 10)}`;
   try {
     return { exit: 0, lines: [posted, look.rejudge(repo, pr.headRefOid)] };

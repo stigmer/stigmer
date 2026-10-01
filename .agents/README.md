@@ -124,10 +124,12 @@ procedures a person invokes by name (`disable-model-invocation: true`), because
 they act on git, GitHub or a release: `commit-stigmer-oss-changes`,
 `create-stigmer-oss-pull-request`, `release-stigmer-oss`,
 `wrap-up-github-issue`, and `review-pull-request` (which posts a review verdict,
-and which the pull-request skill runs by path). Two skills the model reaches for
-on its own: `verify-stigmer-oss-changes`, because a session should verify before
-it commits, and `test-gate`, the posture every code change is written under,
-because a change ships with the tests that pin it.
+and which the pull-request skill runs by path). Three skills the model reaches
+for on its own: `verify-stigmer-oss-changes`, because a session should verify
+before it commits; `test-gate`, the posture every code change is written under,
+because a change ships with the tests that pin it; and `review-change-security`,
+the security questions a change is written and reviewed against, which the
+review brief links.
 
 Claude Code reads the root `AGENTS.md` natively when no `CLAUDE.md` exists, so
 this repository carries no `CLAUDE.md`: Cursor reads one too, and an import file

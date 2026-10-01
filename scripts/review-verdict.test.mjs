@@ -6,7 +6,9 @@
 // that the digest follows the change and the declarations and nothing else;
 // that the newest review by a writer decides, and a review by anyone else is
 // ignored; that a reviewer's output is refused when it could not be posted
-// honestly; that a posted comment parses back to what was posted; how a
+// honestly, a missing security reading included, while a review posted before
+// the Security line existed still reads; that a posted comment parses back to
+// what was posted; how a
 // permission lookup fails, how a posted verdict makes the check judge again;
 // and, through throwaway git repositories, that the change id survives a merge
 // of the base, moves with any edit to the change (whitespace included), and
@@ -41,8 +43,13 @@ const HEAD = "a".repeat(40);
 const DIGEST = `sha256:${"b".repeat(64)}`;
 const OTHER_DIGEST = `sha256:${"c".repeat(64)}`;
 
-function review({ verdict = "approve", head = HEAD, reviewed = DIGEST, findings = "Findings: none" } = {}) {
-  return ["## Review", "<!-- review-verdict -->", "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, "Reviewer: claude-opus-5-5, fresh context, review-pull-request", findings].join("\n");
+const SECURITY = "none found (untrusted input, credential destinations)";
+
+// `security: null` writes a review as they were posted before the Security line.
+function review({ verdict = "approve", head = HEAD, reviewed = DIGEST, security = `Security: ${SECURITY}`, findings = "Findings: none" } = {}) {
+  const lines = ["## Review", "<!-- review-verdict -->", "", `Verdict: ${verdict}`, `Head: ${head}`, `Reviewed: ${reviewed}`, "Reviewer: claude-opus-5-5, fresh context, review-pull-request"];
+  if (security !== null) lines.push(security);
+  return [...lines, findings].join("\n");
 }
 
 const writers = new Set(["owner"]);
@@ -65,7 +72,15 @@ test("a well-formed review parses with no problems", () => {
   assert.equal(parsed.verdict, "approve");
   assert.equal(parsed.head, HEAD);
   assert.equal(parsed.reviewed, DIGEST);
+  assert.equal(parsed.security, SECURITY);
   assert.deepEqual(parsed.findings, []);
+});
+
+test("a review posted before the Security line still parses with no problems", () => {
+  const parsed = parseReview(review({ security: null }));
+  assert.deepEqual(parsed.problems, []);
+  assert.equal(parsed.security, undefined);
+  assert.equal(reviewState({ comments: [comment("owner", review({ security: null }))], digest: DIGEST, trusted }).state, "current");
 });
 
 test("leading blank lines and CRLF line ends still parse", () => {
@@ -89,6 +104,7 @@ test("each malformed field is named", () => {
     [`${review()}\nVerdict: approve`, /Verdict appears twice/],
     [`${review()}\nand one more thing`, /unexpected line/],
     [review().replace(/^Reviewer:.*$/m, ""), /Reviewer is missing/],
+    [review({ security: "Security:" }), /Security is empty/],
   ];
   for (const [body, pattern] of cases) {
     const problems = parseReview(body).problems;
@@ -183,7 +199,7 @@ test("a malformed newest review is invalid, never current", () => {
 // ─── The reviewer's output and the posted comment ───────────────────────
 
 test("a reviewer's output that could not be posted honestly is refused", () => {
-  assert.deepEqual(verdictProblems({ verdict: "approve", reviewer: "claude-opus-5-5", findings: [] }), []);
+  assert.deepEqual(verdictProblems({ verdict: "approve", reviewer: "claude-opus-5-5", security: SECURITY, findings: [] }), []);
   const cases = [
     [null, /not a JSON object/],
     [{ verdict: "ok", reviewer: "m", findings: [] }, /verdict must be one of/],
@@ -196,6 +212,10 @@ test("a reviewer's output that could not be posted honestly is refused", () => {
     [{ verdict: "changes-needed", reviewer: "m", findings: [{ path: "a.ts", line: "3", severity: "minor", summary: "x" }] }, /line is not a line number/],
     [{ verdict: "changes-needed", reviewer: "m", findings: [{ severity: "minor", summary: "x" }] }, /path is missing/],
     [{ verdict: "changes-needed", reviewer: "m", findings: [{ path: "a.ts", severity: "minor" }] }, /summary is missing/],
+    // The security questions are answered on every verdict, either way.
+    [{ verdict: "approve", reviewer: "m", findings: [] }, /security answers the review-change-security questions/],
+    [{ verdict: "approve", reviewer: "m", security: " ", findings: [] }, /security answers the review-change-security questions/],
+    [{ verdict: "approve", reviewer: "m", security: ["none found"], findings: [] }, /security answers the review-change-security questions/],
   ];
   for (const [output, pattern] of cases) {
     const problems = verdictProblems(output);
@@ -208,13 +228,18 @@ test("a rendered verdict parses back to what was posted, with each finding on on
     { path: "a.ts", line: 3, severity: "blocking", summary: "crashes\non empty input" },
     { path: "b.ts", severity: "minor", summary: "typo" },
   ];
-  const body = renderReview({ verdict: "changes-needed", head: HEAD, reviewed: DIGEST, reviewer: "claude-opus-5-5", findings });
+  const security = "the token reaches\nany host whose name contains github.com";
+  const body = renderReview({ verdict: "changes-needed", head: HEAD, reviewed: DIGEST, reviewer: "claude-opus-5-5", security, findings });
   const parsed = parseReview(body);
   assert.deepEqual(parsed.problems, []);
   assert.equal(parsed.verdict, "changes-needed");
+  assert.equal(parsed.security, "the token reaches any host whose name contains github.com");
+  // The reading sits beside the other fields, and the findings stay last.
+  assert.match(body, /^Reviewer: .*\nSecurity: .*\nFindings:\n/m);
   assert.deepEqual(parsed.findings, ["a.ts:3 (blocking) crashes on empty input", "b.ts (minor) typo"]);
-  const clean = parseReview(renderReview({ verdict: "approve", head: HEAD, reviewed: DIGEST, reviewer: "m", findings: [] }));
+  const clean = parseReview(renderReview({ verdict: "approve", head: HEAD, reviewed: DIGEST, reviewer: "m", security: SECURITY, findings: [] }));
   assert.deepEqual(clean.problems, []);
+  assert.equal(clean.security, SECURITY);
   assert.deepEqual(clean.findings, []);
 });
 
@@ -282,7 +307,7 @@ function postLookups({ head = HEAD, body = REVIEWED_BODY } = {}) {
     },
   };
 }
-const approve = { verdict: "approve", reviewer: "claude-opus-5-5", findings: [] };
+const approve = { verdict: "approve", reviewer: "claude-opus-5-5", security: SECURITY, findings: [] };
 
 test("a posted verdict carries the digest of the change and declarations it was given for", () => {
   const { lookups, posted } = postLookups();
@@ -292,6 +317,7 @@ test("a posted verdict carries the digest of the change and declarations it was 
   const parsed = parseReview(posted[0]);
   assert.deepEqual(parsed.problems, []);
   assert.equal(parsed.reviewed, REVIEWED);
+  assert.equal(parsed.security, SECURITY);
   assert.deepEqual(result.lines, ["posted approve on stigmer/stigmer#7 at aaaaaaaaaa", "reran"]);
 });
 
@@ -330,6 +356,9 @@ test("a verdict of the wrong shape is not posted", () => {
   const result = postVerdict({ repo: "stigmer/stigmer", number: 7, output: { ...approve, findings: [{ path: "a", severity: "blocking", summary: "x" }] }, reviewedHead: HEAD, reviewedDigest: REVIEWED }, lookups);
   assert.equal(result.exit, 1);
   assert.match(result.lines[0], /approve cannot carry a blocking finding/);
+  assert.deepEqual(posted, []);
+  const { security: _security, ...unanswered } = approve;
+  assert.match(postVerdict({ repo: "stigmer/stigmer", number: 7, output: unanswered, reviewedHead: HEAD, reviewedDigest: REVIEWED }, lookups).lines[0], /security answers the review-change-security questions/);
   assert.deepEqual(posted, []);
 });
 

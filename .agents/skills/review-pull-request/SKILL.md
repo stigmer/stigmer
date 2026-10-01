@@ -122,6 +122,10 @@ stop at the first finding.
 - **The tests.** Answer the questions before "done" in
   `.agents/skills/conformance-test-authoring/references/test-discipline.md` for
   this change. The red flags in that file are findings.
+- **Security.** Answer each question in
+  [../review-change-security/SKILL.md](../review-change-security/SKILL.md) that
+  the change touches, and report as that file says. The `security` field of your
+  answer is never empty.
 - **Each declaration.** Is the removal, quarantine or skip justified by its
   reason, and does a quarantine name an open issue? An unjustified declaration
   is a blocking finding.
@@ -130,11 +134,11 @@ stop at the first finding.
 - **The guides.** Does the change keep the laws of the root `AGENTS.md` and of
   each touched package's guide?
 - **The gate itself.** A change to `.github/workflows/ci.review.yaml`,
-  `scripts/review-verdict.mjs`, this brief, or any other required check's
-  workflow judges its own pull request with the edited copy, since GitHub takes
-  a pull request's workflow from its merge commit. Read it as a change to what
-  every later pull request must pass. A weakening the body does not name and
-  justify is a blocking finding.
+  `scripts/review-verdict.mjs`, this brief, the security questions it links, or
+  any other required check's workflow judges its own pull request with the
+  edited copy, since GitHub takes a pull request's workflow from its merge
+  commit. Read it as a change to what every later pull request must pass. A
+  weakening the body does not name and justify is a blocking finding.
 - **Nothing private in a public repository.** In stigmer, a diff, a comment or
   the body that names a private planning record, its folder or its task,
   decision, ruling or milestone ids is a blocking finding. A maintainer reads
@@ -152,6 +156,7 @@ when it is worth fixing but the change is sound without the fix. The verdict is
 {
   "verdict": "approve",
   "reviewer": "<the model you run on>",
+  "security": "none found (authorization, untrusted input)",
   "findings": [
     {
       "path": "backend/x.ts",
@@ -164,4 +169,5 @@ when it is worth fixing but the change is sound without the fix. The verdict is
 ```
 
 `findings` is empty when there are none. Each summary is one sentence a
-maintainer can act on without asking you.
+maintainer can act on without asking you. `security` is `none found` followed by
+the questions you read the change against, or the concern in one sentence.
