@@ -8,6 +8,23 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 | **E2E (Playwright)** | `e2e/` | Browser UI tests — smoke, functional, and interactive tiers | see `e2e/` |
 | **Extension consumer** | `extension-consumer/` | A clean-room consumer of the `@stigmer/server` extension registry | `make test-extension-consumer` |
 
+## The rules every test keeps
+
+A green run must mean the tests ran. These five rules bind every test in this repository and in stigmer-cloud, whoever writes it:
+
+1. A test that cannot run fails, or skips with its reason printed. It never passes.
+2. A missing dependency may skip a test only outside the gate. The gate provides every dependency, and inside it (`STIGMER_TEST_GATE=1`) the helper behind such a skip throws instead.
+3. A test is never retried into green. A flaky test is quarantined by name, against an open issue, until it is fixed.
+4. A change that adds or changes code changes the tests that pin it.
+5. The gate's own files (its workflows, the test configs, thresholds and baselines, the hooks, and these rules) change only with a maintainer's explicit approval.
+
+How they are enforced:
+
+- `scripts/test-integrity.mjs` refuses the ways a suite goes quiet without going red: a focused `.only`, a valueless `return` in a test body, a config that retries or passes with no tests, a deleted case, a new skip, and a skip in a run that nothing explains. Its header has the full rules.
+- An exception is declared in the pull request's body, one line each: `Test-removal: <case or file> -- <reason>`, `Quarantine: <case or file> -- <repo>#<issue>`, `Skip: <case or file> -- <why it does not apply there>`, `RPC-waiver: <Service>.<method> -- <why no conformance test pins it>`. A declaration makes the exception loud; it does not make it right.
+- `Gate` (every lane the change needs), `Test integrity` and `Review verdict` are required checks on `main`, through the merge queue, with no bypass.
+- A reviewer that did not write the pull request reads the change and every declaration, and the merge waits for its current approve (`.agents/skills/review-pull-request/SKILL.md`).
+
 There is no Go test harness any more. The five Go suites under `test/integration*` booted the retired Java service and retired with it on 2026-09-10: the four Java-only suites in stigmer#1024, their coverage accounted for row by row in the conformance suite; the offline runner suite in stigmer#1022, ported arm for arm into the conformance execution class; and the shared harness deleted with it in stigmer#1031. The follow-ups that retirement left open are tracked on stigmer#988.
 
 ## The conformance suite
