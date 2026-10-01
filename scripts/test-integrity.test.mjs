@@ -567,9 +567,21 @@ it("a layer word goes only where its layer lives", () => {
   // A test at the repository root needs a config at the root: a package's config collects only for that package.
   const inPackage = { "pkg/vitest.a11y.config.ts": `export default { test: { include: ["**/*.browser.test.tsx"] } };` };
   assert.deepEqual(layout({ "src/__tests__/panel.browser.test.tsx": ok }, { packages: ["pkg"], configs: inPackage }), ["layout-word-place src/__tests__/panel.browser.test.tsx browser"]);
+  // ...and a config at the root does collect it.
+  const atRoot = { "vitest.a11y.config.ts": `export default { test: { include: ["src/**/*.browser.test.tsx"] } };` };
+  assert.deepEqual(layout({ "src/__tests__/panel.browser.test.tsx": ok }, { packages: ["pkg"], configs: atRoot }), []);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts load"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }, { configs: { "pkg/vitest.load.config.ts": "" } }), []);
   assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts conformance"]);
+});
+
+it("in a package with a load config, every other vitest config excludes the load class", () => {
+  const load = { "pkg/vitest.load.config.ts": `export default { test: { include: ["src/**/*.load.test.ts"] } };` };
+  const excluding = `import { configDefaults } from "vitest/config";\nexport default { test: { exclude: [...configDefaults.exclude, "**/*.load.test.ts"] } };`;
+  assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": excluding } }), []);
+  assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": `export default { test: { include: ["src/**/*.test.ts"] } };` } }), ["layout-load-collected pkg/vitest.config.ts"]);
+  // A package without a load config has no such rule.
+  assert.deepEqual(layout({}, { configs: { "pkg/vitest.config.ts": `export default { test: {} };` } }), []);
 });
 
 it("a TypeScript test lives in __tests__, a spec under the e2e homes; the suites' trees are placed by their suite", () => {

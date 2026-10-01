@@ -54,7 +54,11 @@
  *   - a layer word where its layer does not live: `conformance` outside
  *     test/conformance/src/suites*, `browser` in a package no vitest config
  *     names `*.browser.test.*` in an `include`, `load` in a package with no
- *     vitest.load.config;
+ *     vitest.load.config. A config counts for its own package only, the one
+ *     with the nearest package.json, so a test at the repository root needs a
+ *     config at the root;
+ *   - in a package with a vitest.load.config, another vitest config that does
+ *     not exclude `*.load.test.*`: a default run would collect the load class;
  *   - a service the file reaches that its name does not carry, and a service
  *     word on a file that never reaches it. Reaching is a value use of the
  *     service's entry point (a call of `testDatabaseAdminUrl` or
@@ -567,6 +571,15 @@ export function makeReach(ts, files, read) {
  * comment collects nothing.
  */
 export function configIncludes(ts, path, text) {
+  return configGlobs(ts, path, text, "include");
+}
+
+/** The globs a config's `exclude` arrays name, read the way `configIncludes` reads `include`. */
+export function configExcludes(ts, path, text) {
+  return configGlobs(ts, path, text, "exclude");
+}
+
+function configGlobs(ts, path, text, key) {
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const constants = new Map();
   for (const statement of sf.statements) {
@@ -577,7 +590,7 @@ export function configIncludes(ts, path, text) {
   }
   const globs = [];
   const walk = (node) => {
-    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === "include") {
+    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === key) {
       const value = ts.isIdentifier(node.initializer) ? constants.get(node.initializer.text) : node.initializer;
       if (value && ts.isArrayLiteralExpression(value)) {
         for (const e of value.elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) globs.push(e.text);
@@ -642,6 +655,18 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
       if (!SPEC_HOMES.some((home) => path.startsWith(home))) find("layout-placement", path, 1, "a `*.spec.ts` lives under test/e2e/tests/ or site/e2e/");
     } else if (!path.includes("/__tests__/") && !SUITE_TREES.some((tree) => path.startsWith(tree))) {
       find("layout-placement", path, 1, "a TypeScript test lives in a `__tests__` directory beside the module it tests");
+    }
+  }
+
+  // The load class runs on its own cadence: in a package with a load config, every other vitest
+  // config excludes `*.load.test.*`, so a default run never collects a measurement.
+  for (const config of configs) {
+    const name = posix.basename(config.path);
+    if (!/^vitest(\..+)?\.config\./.test(name) || /^vitest\.load\.config\./.test(name)) continue;
+    const pkg = packageOf(config.path, packageDirs);
+    if (!configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) continue;
+    if (!configExcludes(ts, config.path, config.text).some((g) => g.includes(".load.test"))) {
+      find("layout-load-collected", config.path, 1, "the package has a vitest.load.config, so this config excludes `**/*.load.test.ts`; without it a default run collects the load class");
     }
   }
 
