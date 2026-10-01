@@ -542,3 +542,4 @@ function migrateToV12(db: DatabaseSync): void {
     retire.run(slug, recordedAt, recordedAt);
   }
 }
+// Scratch: a comment-only change, to show the upgrade rehearsal lane is selected. Never merged.
