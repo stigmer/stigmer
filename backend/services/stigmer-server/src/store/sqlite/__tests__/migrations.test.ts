@@ -651,6 +651,10 @@ describe("v12: the organization-slug ledger records every slug taken before it",
   it("reads a kind across keyset pages, missing no row past the first page", () => {
     const { dbPath, db: setup } = v11Database();
     const rows = HISTORY_PAGE_SIZE + 2;
+    // One transaction for the seed: row by row, each insert is its own
+    // synced commit, and 502 of them outran the test's limit on a busy runner
+    // (stigmer/stigmer#1569).
+    setup.exec("BEGIN");
     for (let i = 0; i < rows; i++) {
       const id = `agt_${String(i).padStart(4, "0")}`;
       // The last row, past the first page, is the only one naming its
@@ -662,6 +666,7 @@ describe("v12: the organization-slug ledger records every slug taken before it",
         agentNaming(id, i === rows - 1 ? "past-the-page" : "on-the-page"),
       );
     }
+    setup.exec("COMMIT");
     setup.close();
 
     const store = SqliteStore.open(dbPath);
