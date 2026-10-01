@@ -22,14 +22,16 @@
  *     inherited real state, healed by retry).
  *   - onResourceDeleted: best-effort — the call site logs and continues;
  *     a throw never fails the delete (orphaned grants are inert once the
- *     resource row is gone). It fires for every deleted resource: a delete
- *     chain's own, and each child a parent's cascade deletes (an agent's
+ *     resource row is gone). It fires for the resource a delete chain
+ *     removes, and for each child a parent's cascade deletes (an agent's
  *     instances and same-organization shares, a workflow's instances, a
  *     session's runs), right after the child's row and before the
  *     parent's event (pipeline/steps/authorization-tuples.ts
- *     `cleanUpDeletedResource`, stigmer#1603). No sweep revisits a cleanup
- *     that failed: its rows stay until another cleanup reaches them from
- *     their other side.
+ *     `cleanUpDeletedResource`, stigmer#1603). A row deleted outside both
+ *     fires nothing: the internal execution-context deletes are
+ *     stigmer#1647. No sweep revisits a cleanup that did not run or
+ *     failed: its rows stay until another cleanup reaches them from their
+ *     other side.
  *   - onVisibilityChanged: SYNCHRONOUS, post-persist; a throw fails the
  *     request (metadata may be persisted with tuples lagging — retrying
  *     the same transition converges, the set-diff is idempotent).

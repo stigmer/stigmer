@@ -55,7 +55,8 @@
  *     revoked after an earlier delete removed its resource's links takes
  *     the organization from the stored row the walk ends at (the resource,
  *     or the session a run walks to), and records none when this server
- *     stores no such row (stigmer#1603). The log lines carry the same facts.
+ *     stores no such row (stigmer#1603); a grant on a resource with no link
+ *     takes it from the same row. The log lines carry the same facts.
  *
  * The row the path builds is pinned too: the proto's apiVersion const, the
  * derived id, the caller's audit stamp — the cloud's `buildNewPolicy`
@@ -1119,6 +1120,24 @@ describe("who and why: every access row reaches the store with its change record
           cause: "resource_deleted",
           organizationId: "acme",
         },
+      },
+    ]);
+  });
+
+  it("a grant on a resource with no scope link records the organization of its stored row", async () => {
+    const { policies, path } = pathOver(
+      [],
+      undefined,
+      storedResources({ organizations: { [`agent:${SHARED}`]: "acme" } }),
+    );
+
+    await path.grant(share(BOB, "viewer"), alice, "grant");
+
+    expect(policies.changes).toEqual([
+      {
+        op: "save",
+        id: policyIdFor(share(BOB, "viewer")),
+        record: { actor: aliceActor, cause: "grant", organizationId: "acme" },
       },
     ]);
   });
