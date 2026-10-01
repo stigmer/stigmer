@@ -4,9 +4,13 @@
 // which failures are transient (a dropped connection before or during the body,
 // a 5xx, a 429) and which are answers (a 404, a bad digest), the backoff, and
 // the error a persistent failure ends in. A recording `sleep` keeps them instant.
+// The cache-directory cases pin what lets a CI lane install through a release-host
+// outage: a matching cached pair installs with no request at all, a miss keeps
+// the pair it verified, a copy that does not match (or belongs to another
+// version) is downloaded again, and a directory that cannot be written fails.
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "fflate";
@@ -104,9 +108,10 @@ describe("downloadTemporalCli", () => {
     const fetchImpl = release("1.5.1", { [linuxArm]: arm, [linuxAmd]: amd }, checksums);
 
     const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-temporal-")), "bin", "temporal");
-    await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", fetchImpl });
+    const result = await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", fetchImpl });
 
     expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(result).toEqual({ source: "network", cache: "unused" });
   });
 
   it("refuses an archive whose digest does not match its checksums.txt line", async () => {
@@ -176,7 +181,7 @@ describe("downloadTemporalCli over an unreliable network", () => {
   const arm = archiveFor(Buffer.from("the-arm64-binary"));
   const good = release("1.5.1", { [linuxArm]: arm }, `${sha256(arm)}  ${linuxArm}\n`);
 
-  function install(fetchImpl: typeof fetch): { binPath: string; delays: number[]; run: Promise<void> } {
+  function install(fetchImpl: typeof fetch): { binPath: string; delays: number[]; run: Promise<unknown> } {
     const binPath = join(mkdtempSync(join(tmpdir(), "stigmer-temporal-")), "temporal");
     const delays: number[] = [];
     const sleep = async (ms: number): Promise<void> => {
@@ -244,5 +249,122 @@ describe("downloadTemporalCli over an unreliable network", () => {
     expect(net.calls()).toBe(4);
     expect(delays).toEqual([1000, 2000, 4000]);
     expect(existsSync(binPath)).toBe(false);
+  });
+});
+
+describe("downloadTemporalCli with a cache directory", () => {
+  const linuxArm = temporalArchiveName("1.5.1", "linux", "arm64");
+  const arm = archiveFor(Buffer.from("the-arm64-binary"));
+  const checksums = `${sha256(arm)}  ${linuxArm}\n`;
+  const good = release("1.5.1", { [linuxArm]: arm }, checksums);
+
+  // The release host mid-outage: every request answers 504, and each is counted.
+  function hostDown(): { fetchImpl: typeof fetch; calls: () => number } {
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls += 1;
+      return { ok: false, status: 504, arrayBuffer: async () => new ArrayBuffer(0) } as unknown as Response;
+    }) as unknown as typeof fetch;
+    return { fetchImpl, calls: () => calls };
+  }
+
+  function dirs(): { binPath: string; cacheDir: string } {
+    const root = mkdtempSync(join(tmpdir(), "stigmer-temporal-cache-"));
+    return { binPath: join(root, "bin", "temporal"), cacheDir: join(root, "cache") };
+  }
+
+  function seed(cacheDir: string, archiveName: string, archive: Buffer, checksumFile: string): void {
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(join(cacheDir, archiveName), archive);
+    writeFileSync(join(cacheDir, `${archiveName}.${TEMPORAL_CHECKSUMS_FILE}`), checksumFile);
+  }
+
+  const noWait = async (): Promise<void> => {};
+
+  it("installs from a matching cached pair while the release host is down, sending no request", async () => {
+    const { binPath, cacheDir } = dirs();
+    seed(cacheDir, linuxArm, arm, checksums);
+    const host = hostDown();
+
+    const result = await downloadTemporalCli({
+      version: "1.5.1",
+      binPath,
+      platform: "linux",
+      arch: "arm64",
+      cacheDir,
+      fetchImpl: host.fetchImpl,
+      sleep: noWait,
+    });
+
+    expect(result).toEqual({ source: "cache" });
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(host.calls()).toBe(0);
+  });
+
+  it("on a miss, downloads, installs, and keeps the verified archive beside its checksums.txt", async () => {
+    const { binPath, cacheDir } = dirs();
+
+    const result = await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", cacheDir, fetchImpl: good });
+
+    expect(result).toEqual({ source: "network", cache: "absent" });
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(readFileSync(join(cacheDir, linuxArm))).toEqual(arm);
+    expect(readFileSync(join(cacheDir, `${linuxArm}.${TEMPORAL_CHECKSUMS_FILE}`), "utf8")).toBe(checksums);
+  });
+
+  it("downloads again over a cached archive that does not match its line, and repairs the cache", async () => {
+    const { binPath, cacheDir } = dirs();
+    seed(cacheDir, linuxArm, archiveFor(Buffer.from("tampered")), checksums);
+
+    const result = await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", cacheDir, fetchImpl: good });
+
+    expect(result).toEqual({ source: "network", cache: "mismatch" });
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(readFileSync(join(cacheDir, linuxArm))).toEqual(arm);
+  });
+
+  it("downloads when the cached checksums.txt has no line for the archive", async () => {
+    const { binPath, cacheDir } = dirs();
+    seed(cacheDir, linuxArm, arm, `${sha256(arm)}  some_other_asset.tar.gz\n`);
+
+    const result = await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", cacheDir, fetchImpl: good });
+
+    expect(result).toEqual({ source: "network", cache: "mismatch" });
+    expect(readFileSync(join(cacheDir, `${linuxArm}.${TEMPORAL_CHECKSUMS_FILE}`), "utf8")).toBe(checksums);
+  });
+
+  it("does not take another version's cached pair for this one", async () => {
+    const { binPath, cacheDir } = dirs();
+    const older = temporalArchiveName("1.5.0", "linux", "arm64");
+    const olderArchive = archiveFor(Buffer.from("the-1.5.0-binary"));
+    seed(cacheDir, older, olderArchive, `${sha256(olderArchive)}  ${older}\n`);
+
+    const result = await downloadTemporalCli({ version: "1.5.1", binPath, platform: "linux", arch: "arm64", cacheDir, fetchImpl: good });
+
+    expect(result).toEqual({ source: "network", cache: "absent" });
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+  });
+
+  it("fails, naming the directory, when the cache cannot be written", async () => {
+    const { binPath, cacheDir } = dirs();
+    writeFileSync(cacheDir, "a file where the cache directory should be");
+    const unwritable = join(cacheDir, "temporal-cli");
+
+    const err: unknown = await downloadTemporalCli({
+      version: "1.5.1",
+      binPath,
+      platform: "linux",
+      arch: "arm64",
+      cacheDir: unwritable,
+      fetchImpl: good,
+    }).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+
+    expect(err).toBeInstanceOf(CliExitError);
+    const exit = err as CliExitError;
+    expect(exit.message).toBe("could not write the Temporal CLI cache");
+    expect(exit.hints?.[0]).toBe(`path:  ${unwritable}`);
   });
 });

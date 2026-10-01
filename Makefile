@@ -1262,7 +1262,8 @@ install-temporal-cli: node_modules ## Install ~/bin/temporal — the pinned, che
 	@mkdir -p $(HOME)/bin
 	@# The product's own downloader (client-apps/cli/src/local/temporal/download.ts), run from
 	@# source: the version pin, the checksums.txt verification and the retry are the ones
-	@# `stigmer up` uses. CI calls this same target, so a laptop and a lane run the same Temporal.
+	@# `stigmer up` uses. CI runs this same script through .github/actions/temporal-cli, so a laptop
+	@# and a lane run the same Temporal.
 	@"$(CURDIR)/node_modules/.bin/tsx" "$(CURDIR)/client-apps/cli/scripts/install-temporal-cli.ts" --bin-dir "$(HOME)/bin"
 	@command -v temporal >/dev/null 2>&1 || echo "note: add $(HOME)/bin to your PATH, then reopen your shell, to use 'temporal'"
 

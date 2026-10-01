@@ -12,11 +12,12 @@
 // all-in-one image bakes, so one pin and one verification serve every channel.
 
 import { existsSync } from "node:fs";
-import { fetchTarballBinary, mapReleaseArch, mapReleaseOs } from "../artifact.js";
+import { fetchTarballBinary, mapReleaseArch, mapReleaseOs, type TarballInstall } from "../artifact.js";
 
 // Re-exported so existing consumers (temporal/index.ts, download.test.ts) keep
 // importing the tar reader from here.
 export { extractTarEntry } from "../artifact.js";
+export type { CacheMiss, TarballInstall } from "../artifact.js";
 
 /**
  * The Temporal CLI version every channel runs: `stigmer up`, the all-in-one
@@ -37,6 +38,11 @@ export interface TemporalDownloadTarget {
   platform?: NodeJS.Platform;
   /** Node arch (defaults to process.arch). */
   arch?: string;
+  /**
+   * A directory that keeps the verified archive and its `checksums.txt` between
+   * installs, so a CI lane installs without the release host (`artifact.ts`).
+   */
+  cacheDir?: string;
   /** Override the fetch implementation (tests). */
   fetchImpl?: typeof fetch;
   /** Override the wait between download attempts (tests). */
@@ -53,16 +59,20 @@ export function temporalReleaseAssetUrl(version: string, asset: string): string 
   return `https://github.com/temporalio/cli/releases/download/v${version}/${asset}`;
 }
 
-/** Download, verify and install the Temporal CLI binary to `binPath`. */
-export async function downloadTemporalCli(target: TemporalDownloadTarget): Promise<void> {
+/**
+ * Install the verified Temporal CLI binary to `binPath`, from `cacheDir` when it
+ * holds a matching copy, otherwise downloaded; says which.
+ */
+export async function downloadTemporalCli(target: TemporalDownloadTarget): Promise<TarballInstall> {
   const archive = temporalArchiveName(target.version, target.platform ?? process.platform, target.arch ?? process.arch);
 
-  await fetchTarballBinary({
+  return fetchTarballBinary({
     url: temporalReleaseAssetUrl(target.version, archive),
     checksumUrl: temporalReleaseAssetUrl(target.version, TEMPORAL_CHECKSUMS_FILE),
     entryName: "temporal",
     binPath: target.binPath,
     label: "Temporal CLI",
+    cacheDir: target.cacheDir,
     fetchImpl: target.fetchImpl,
     sleep: target.sleep,
   });
