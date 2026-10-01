@@ -251,6 +251,9 @@ describe("AgentExecution conformance — a turn belongs to its session's organiz
       expect(refused.rawMessage).toBe(
         `an execution in session '${sessionId}' must belong to the session's organization`,
       );
+      // Refused before any side effect: the session holds no execution.
+      const listed = await clients.agentExecutionQuery.listBySession({ sessionId });
+      expect(listed.entries).toHaveLength(0);
     } finally {
       await clients.sessionCommand.delete({ value: sessionId });
     }

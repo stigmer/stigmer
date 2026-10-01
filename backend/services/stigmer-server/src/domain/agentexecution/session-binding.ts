@@ -22,8 +22,13 @@
  *     neither organization. The edition lanes (a guest, a channel, a
  *     schedule fire) pass the run gate unchecked and are admitted later, in
  *     the gate slot, so the caller refused here may be one who may not read
- *     the session at all; the answer tells it nothing the session id it
- *     sent did not.
+ *     the session at all. One signal remains for such a caller: holding a
+ *     session's id, it can tell this refusal (a differing organization)
+ *     from its lane gate's later answer (a matching one, or no session), so
+ *     it can confirm a guessed organization for a session id it already
+ *     has. Closing that would mean skipping the check for caller classes
+ *     the server does not know, which trusts every future lane by default,
+ *     so the check stays for every caller.
  *
  * Position: right after the run gate, so a caller the gate checked and
  * refused learns nothing about the session (ValidateThinkingMode's rule for

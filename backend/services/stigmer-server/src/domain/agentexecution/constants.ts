@@ -44,10 +44,11 @@ export function addExecutionToSessionDeniedMessage(sessionId: string): string {
  * existing session belongs to that session's organization. It names no
  * organization: the edition lanes (a guest, a channel, a schedule fire)
  * pass the run gate unchecked and are admitted later, in the gate slot, so
- * a caller refused here may not be one who may read the session. The
- * session id is the caller's own input, and a caller who may read the
- * session finds its organization there. Pinned by the conformance
- * agentexecution suite.
+ * a caller refused here may not be one who may read the session. A caller
+ * who may read the session finds its organization there. The refusal
+ * itself still tells a lane caller holding the id that the organization it
+ * sent is not the session's (session-binding.ts says why that stays).
+ * Pinned by the conformance agentexecution suite.
  */
 export function sessionOrganizationMismatchMessage(sessionId: string): string {
   return `an execution in session '${sessionId}' must belong to the session's organization`;
