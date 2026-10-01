@@ -169,6 +169,8 @@ describe("marketplace show", () => {
     expect(payload.data.warnings[0].subject).toBe("ghost");
   });
 
+  // About 1 s on its own, and about four times that with coverage on: on the
+  // 4-vCPU CI runner it took 6.4 s (2026-10-01), past vitest's 5 s default.
   it("shows the built-in marketplace", async () => {
     const outcome = await run("show", "stigmer", "--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);
@@ -177,7 +179,7 @@ describe("marketplace show", () => {
     expect(payload.data.plugins.map((p: { name: string }) => p.name)).toContain(
       "linear",
     );
-  });
+  }, 20_000);
 
   it("refuses an unknown name toward list", async () => {
     const outcome = await run("show", "nope");

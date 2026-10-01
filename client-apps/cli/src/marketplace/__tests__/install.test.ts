@@ -206,6 +206,8 @@ describe("locateEntry", () => {
     expect(requests.some((url) => url.startsWith("https://codeload.github.com/"))).toBe(false);
   });
 
+  // About 1 s on its own, and about four times that with coverage on: on the
+  // 4-vCPU CI runner it took 9.5 s (2026-10-01), past vitest's 5 s default.
   it("treats a GitHub repository with no marketplace file as declaring nothing, and a declared entry the tree lacks as not held", async () => {
     const empty = {
       name: "empty",
@@ -233,7 +235,7 @@ describe("locateEntry", () => {
       }),
     ).rejects.toThrow(/no configured marketplace offers a plugin named 'ghost'/);
     expect(countTempTrees()).toBe(before);
-  });
+  }, 20_000);
 
   it("disposes a fetched tree when the located entry is released", async () => {
     const remote = {
