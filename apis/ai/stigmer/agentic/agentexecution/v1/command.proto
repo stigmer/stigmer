@@ -17,9 +17,14 @@ service AgentExecutionCommandController {
   // Session is optional — can be provided or auto-created from agent_id.
   //
   // @internal
-  // Authorization is handled in handler:
-  //   - If session_id provided: checks can_create_execution_in on session
-  //   - If session_id NOT provided: checks can_create_execution_in on organization
+  // Authorization is handled in the handler's run gate (AuthorizeRunTarget),
+  // by request shape:
+  //   - session_id provided: can_create_execution_in on the session; the
+  //     execution then belongs to the session's organization
+  //     (ValidateSessionOrganization, right after the gate)
+  //   - otherwise: can_execute on the agent instance or agent it runs, or no
+  //     check for the built-in assistant, which names neither; the
+  //     auto-created session authorizes can_create_session on metadata.org
   rpc create(AgentExecution) returns (AgentExecution) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

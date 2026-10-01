@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { InlineEditBaseProps } from "./types.js";
+import { useInlineDraft } from "./useInlineDraft.js";
 
 /** Props for {@link InlineEditText}. */
 export interface InlineEditTextProps extends InlineEditBaseProps {
@@ -24,6 +25,10 @@ export interface InlineEditTextProps extends InlineEditBaseProps {
  * Displays the value as styled text. On click, transitions to an input
  * with inline confirm/cancel controls. Confirm triggers `onSave`;
  * cancel reverts. Escape key also cancels.
+ *
+ * The draft is seeded from `value` when editing opens. While the editor is
+ * open, a draft the user has edited keeps their text if `value` changes, and
+ * an untouched draft follows the new `value`.
  */
 export function InlineEditText({
   value,
@@ -36,18 +41,15 @@ export function InlineEditText({
   error,
   className,
 }: InlineEditTextProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isEditing, setIsEditing, draft, setDraft, startEditing } =
+    useInlineDraft(value, inputRef);
 
-  useEffect(() => {
-    if (isEditing) {
-      setDraft(value);
-      setLocalError(null);
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [isEditing, value]);
+  const handleEdit = useCallback(() => {
+    setLocalError(null);
+    startEditing();
+  }, [startEditing]);
 
   const handleConfirm = useCallback(async () => {
     const trimmed = draft.trim();
@@ -91,7 +93,7 @@ export function InlineEditText({
       <div className={cn("stg:group/inline-edit", className)}>
         <button
           type="button"
-          onClick={() => { if (!disabled) setIsEditing(true); }}
+          onClick={() => { if (!disabled) handleEdit(); }}
           disabled={disabled}
           className={cn(
             "stg:inline-flex stg:w-full stg:items-center stg:gap-1.5 stg:rounded-md stg:px-1.5 stg:py-0.5 stg:text-left stg:transition-colors",

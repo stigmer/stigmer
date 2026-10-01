@@ -18,7 +18,10 @@ does. Its verdict is a comment on the pull request, and
 `changes-needed`, bound to the change and the body's declarations. The script's
 header has the rules. The `Review verdict` check (`ci.review.yaml`) requires a
 current `approve`; a repository without that check can hold its merges to the
-same verdict by importing `readReview` from a copy of the script.
+same verdict by importing `readReview` from a copy of the script. The copy needs
+`scripts/test-integrity.mjs` beside it, at the same commit: the verdict imports
+the declaration grammar from there, so a review binds exactly the declarations
+the integrity check reads.
 
 The session that owns the pull request runs this at the end of its verification,
 so a `changes-needed` is fixed before anyone is asked to merge. Whoever arms the

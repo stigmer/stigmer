@@ -162,6 +162,15 @@ export interface UseSessionConversationReturn {
   /** The session object, or null while loading. */
   readonly session: Session | null;
   /**
+   * The organization this conversation's turns are filed under: the
+   * session's own (`session.metadata.org`) once it has loaded, the `org`
+   * argument until then. A turn in a session belongs to that session's
+   * organization, and the server refuses any other (stigmer/stigmer#1580),
+   * so every org-scoped control of a session surface reads this value
+   * rather than the caller's active organization.
+   */
+  readonly org: string;
+  /**
    * Executions in terminal phases, in chronological order.
    *
    * Excludes turns replaced via edit-and-resubmit (an execution whose id
@@ -373,7 +382,7 @@ export interface UseSessionConversationReturn {
  * locally, so it is safe in every environment.
  *
  * @param sessionId - Session to display and converse in. Pass `null` to skip.
- * @param org - Organization slug for creating follow-up executions.
+ * @param org - Organization slug to act in until the session has loaded; after that the session's own organization is used (the returned `org`).
  *
  * @example
  * ```tsx
@@ -433,6 +442,7 @@ export function useSessionConversation(
     clearError: clearCreateError,
   } = useCreateAgentExecution();
   const { update: updateSession } = useUpdateSession();
+  const turnOrg = session?.metadata?.org || org;
   const {
     submitApproval: rawSubmitApproval,
     submittingToolCallIds,
@@ -667,7 +677,7 @@ export function useSessionConversation(
         }
 
         const result = await create({
-          org,
+          org: turnOrg,
           sessionId,
           message,
           modelName: options?.modelName,
@@ -698,7 +708,7 @@ export function useSessionConversation(
         }
       }
     },
-    [sessionId, session, org, stigmer, create, updateSession, refetch, refetchSession],
+    [sessionId, session, turnOrg, stigmer, create, updateSession, refetch, refetchSession],
   );
 
   const retryLastSend = useCallback(() => {
@@ -763,6 +773,7 @@ export function useSessionConversation(
 
   return {
     session,
+    org: turnOrg,
     completedExecutions,
     activeStreamExecution,
     activePhase,

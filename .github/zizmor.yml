@@ -10,8 +10,6 @@ rules:
     config:
       policies:
         "*": hash-pin
-    ignore:
-      - ci.integrity.yaml
 
   # The `$/` self-repository syntax is not adopted: ci.gate.yaml calls its
   # lanes as `./.github/workflows/<lane>.yaml`, and scripts/ci-lanes.test.mjs
@@ -24,14 +22,3 @@ rules:
   # provenance in #1557, not a workflow-hygiene fix.
   use-trusted-publishing:
     disable: true
-
-  # ci.integrity.yaml runs the test-integrity check and is being extended by a
-  # separate change; its pins, checkout and parser install land with that
-  # change, so the three audits below skip it until then (and unpinned-uses
-  # above).
-  artipacked:
-    ignore:
-      - ci.integrity.yaml
-  adhoc-packages:
-    ignore:
-      - ci.integrity.yaml

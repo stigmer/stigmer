@@ -127,9 +127,13 @@ export function useExplainWorkflowFlow(
     prevTerminalRef.current = false;
 
     try {
+      // The session and its first turn live in one organization, read once:
+      // a turn in a session belongs to that session's organization
+      // (stigmer/stigmer#1580), even if `org` changes during the create.
+      const sessionOrg = orgRef.current;
       const { sessionId } = await createSession({
-        org: orgRef.current,
-        agentRef: workflowArchitectRef(orgRef.current),
+        org: sessionOrg,
+        agentRef: workflowArchitectRef(sessionOrg),
       });
 
       const message =
@@ -139,7 +143,7 @@ export function useExplainWorkflowFlow(
         "\n```";
 
       const { executionId: newExecId } = await createExecution({
-        org: orgRef.current,
+        org: sessionOrg,
         sessionId,
         message,
         structuredOutputSchema: WORKFLOW_ARCHITECT_RESPONSE_SCHEMA,

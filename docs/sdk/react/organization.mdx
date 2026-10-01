@@ -77,6 +77,24 @@ const org = await create({
 ```
 
 
+### useFollowSessionOrganization
+
+Makes the loaded session's organization the active one, once per visit
+to the conversation, when the person belongs to it.
+
+**Signature**
+
+```tsx
+function useFollowSessionOrganization(session: Session | null): void
+```
+
+<TypeTable
+  type={{
+    session: { type: "Session | null", description: "The session the page shows, or null while it loads.", required: true },
+  }}
+/>
+
+
 ### useOrg
 
 Access the active organization context from the nearest

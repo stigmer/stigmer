@@ -121,7 +121,13 @@ export function useRefineWorkflowFlow(
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
-  const sessionIdRef = useRef<string | null>(null);
+  // The flow's session and the organization it was created in: every turn
+  // continues there, since a turn in a session belongs to that session's
+  // organization (stigmer/stigmer#1580), even if `org` changes meanwhile.
+  const sessionRef = useRef<{
+    readonly id: string;
+    readonly org: string;
+  } | null>(null);
   const lastSentYamlRef = useRef<string | null>(null);
   const prevTerminalRef = useRef(false);
 
@@ -244,22 +250,23 @@ export function useRefineWorkflowFlow(
       prevTerminalRef.current = false;
 
       try {
-        let activeSessionId = sessionIdRef.current;
+        let activeSession = sessionRef.current;
 
-        if (!activeSessionId) {
+        if (!activeSession) {
+          const sessionOrg = orgRef.current;
           const { sessionId: newSessionId } = await createSession({
-            org: orgRef.current,
-            agentRef: workflowArchitectRef(orgRef.current),
+            org: sessionOrg,
+            agentRef: workflowArchitectRef(sessionOrg),
           });
-          sessionIdRef.current = newSessionId;
-          activeSessionId = newSessionId;
+          activeSession = { id: newSessionId, org: sessionOrg };
+          sessionRef.current = activeSession;
         }
 
         const message = buildMessage(trimmed);
 
         const { executionId: newExecutionId } = await createExecution({
-          org: orgRef.current,
-          sessionId: activeSessionId,
+          org: activeSession.org,
+          sessionId: activeSession.id,
           message,
           structuredOutputSchema: WORKFLOW_ARCHITECT_RESPONSE_SCHEMA,
         });
@@ -305,7 +312,7 @@ export function useRefineWorkflowFlow(
     setCompletedExecutions([]);
     setExtracted(null);
     setError(null);
-    sessionIdRef.current = null;
+    sessionRef.current = null;
     lastSentYamlRef.current = null;
     prevTerminalRef.current = false;
   }, []);

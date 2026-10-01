@@ -144,7 +144,12 @@ const CONVERSATION_COLUMN_CLASS = "stg:mx-auto stg:w-full stg:max-w-3xl";
 export interface SessionViewerProps {
   /** Session ID to load and display. */
   readonly sessionId: string;
-  /** Organization slug. */
+  /**
+   * Organization slug to act in until the session has loaded. After that
+   * the viewer acts in the session's own organization (`session.metadata.org`),
+   * whatever this prop says: a turn in a session belongs to that session's
+   * organization.
+   */
   readonly org: string;
   /**
    * GitHub connection state. Platform-specific — web passes
@@ -384,7 +389,7 @@ export interface SessionViewerProps {
  */
 export function SessionViewer({
   sessionId,
-  org,
+  org: orgProp,
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
@@ -410,13 +415,18 @@ export function SessionViewer({
 }: SessionViewerProps) {
   const flow = useSessionPageFlow({
     sessionId,
-    org,
+    org: orgProp,
     getRuntimeEnv,
     audience,
     runConfig,
     accountDefaults,
   });
   const { conv } = flow;
+  // Everything org-scoped below acts in the session's own organization once
+  // it has loaded (the pickers, artifacts, plan actions and the reply), so a
+  // session opened while another organization is active never files its
+  // turns there (stigmer/stigmer#1580).
+  const org = conv.org;
   const isGuest = audience === "guest";
   // A pinned model makes the picker a dead control (the pin wins over any
   // choice it could offer), so the pin forces it hidden; the guest strip

@@ -74,6 +74,7 @@ vi.mock("../useNewSessionFlow", () => ({
 }));
 
 const stubConv = {
+  org: "acme",
   session: { spec: {} },
   isLoading: false,
   loadError: null,

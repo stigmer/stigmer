@@ -247,6 +247,9 @@ describe("execution tools integration", () => {
       session_id: "ses_42",
     });
     expect(createdAgentExecution?.spec?.sessionId).toBe("ses_42");
+    // The follow-up names no organization: the server files it under the
+    // session's, which may differ from the agent's (stigmer/stigmer#1580).
+    expect(createdAgentExecution?.metadata?.org).toBe("");
   });
 
   it("run_workflow creates the execution with the org env injected", async () => {

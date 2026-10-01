@@ -257,6 +257,34 @@ describe("useDiagnoseExecutionFlow", () => {
     expect(mockCreateExecution).toHaveBeenCalledTimes(2);
   });
 
+  it("sendFollowUp continues in the organization the session was created in, even after org changes (#1580)", async () => {
+    const opts = { ...defaultOptions(), autoStart: false };
+    const { result, rerender } = renderHook(
+      ({ options }) => useDiagnoseExecutionFlow(options),
+      { initialProps: { options: opts } },
+    );
+
+    await act(async () => {
+      await result.current.diagnose();
+    });
+    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({ phase: 4, execution: makeExecution(), isStreaming: false }),
+    );
+    rerender({ options: { ...opts, org: "other-org" } });
+    await waitFor(() => {
+      expect(result.current.phase).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.sendFollowUp("Can you explain the root cause in more detail?");
+    });
+
+    expect(mockCreateSession).toHaveBeenCalledTimes(1);
+    expect(mockCreateExecution).toHaveBeenLastCalledWith(
+      expect.objectContaining({ org: "test-org", sessionId: "sess-diag-1" }),
+    );
+  });
+
   it("sendFollowUp allowed from ready phase", async () => {
     const opts = { ...defaultOptions(), autoStart: false };
     const { result, rerender } = renderHook(() =>

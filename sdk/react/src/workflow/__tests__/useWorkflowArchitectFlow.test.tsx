@@ -172,6 +172,38 @@ describe("useWorkflowArchitectFlow", () => {
     );
   });
 
+  it("files the first turn in the organization the session was created in, even if org changes meanwhile (#1580)", async () => {
+    let releaseSession: (value: { sessionId: string }) => void = () => {};
+    mockCreateSession.mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseSession = resolve;
+      }),
+    );
+    const opts = defaultOptions();
+    const { result, rerender } = renderHook(
+      ({ options }) => useWorkflowArchitectFlow(options),
+      { initialProps: { options: opts } },
+    );
+    act(() => {
+      result.current.setPrompt("Create a workflow that processes user onboarding");
+    });
+
+    let generating: Promise<void> = Promise.resolve();
+    act(() => {
+      generating = result.current.generate();
+    });
+    rerender({ options: { ...opts, org: "other-org" } });
+    await act(async () => {
+      releaseSession({ sessionId: "sess-123" });
+      await generating;
+    });
+
+    expect(mockCreateSession).toHaveBeenCalledWith(expect.objectContaining({ org: "test-org" }));
+    expect(mockCreateExecution).toHaveBeenCalledWith(
+      expect.objectContaining({ org: "test-org", sessionId: "sess-123" }),
+    );
+  });
+
   it("transitions from starting to streaming", async () => {
     const { result } = renderHook(() => useWorkflowArchitectFlow(defaultOptions()));
 

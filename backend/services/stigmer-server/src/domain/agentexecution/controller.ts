@@ -124,6 +124,10 @@ import {
 } from "./lifecycle.js";
 import { agentExecutionRunTarget } from "./run-target.js";
 import { agentExecutionSearchExtractor } from "./search-extractor.js";
+import {
+  newValidateSessionImmutabilityStep,
+  newValidateSessionOrganizationStep,
+} from "./session-binding.js";
 import type { StreamBroker } from "./stream-broker.js";
 import { submitApproval } from "./submit-approval.js";
 import { submitFileDecision } from "./submit-file-decision.js";
@@ -303,13 +307,17 @@ export function registerAgentExecutionServices(
  * (proto → visibility → tier #357) → the run gate
  * (AuthorizeRunTarget, P1 sp.run-gate: asking the target's own permission
  * by request shape — session, instance or blueprint; the all-empty shape
- * is the built-in assistant, admitted by Authorize's organization check
- * and gated on nothing further — before the engine gate so a denied caller
+ * is the built-in assistant, which the run gate does not check (create is
+ * is_skip_authorization; its auto-created session's own create authorizes
+ * can_create_session on the org) — before the engine gate so a denied caller
  * learns nothing about engine state, and before every side effect) → the
- * thinking-mode validation (#772), which judges the model on the harness
- * the execution will run on and so may read the stored session: it runs
- * behind the run gate, so nothing about a session is read or disclosed
- * before the caller may add a turn to it (#1280) → the standard build
+ * session's organization (#1580, session-binding.ts: a turn in a session
+ * belongs to that session's organization, filled in when the request
+ * names none) → the thinking-mode validation (#772), which judges the
+ * model on the harness the execution will run on and so may read the
+ * stored session: both run behind the run gate, so nothing about a
+ * session is read or disclosed before the caller may add a turn to it
+ * (#1280) → the standard build
  * → the engine gate (fail fast BEFORE the first side effect, so a down
  * engine orphans nothing) → the pre-side-effect gate slot (O4; empty in OSS) → the
  * side-effecting steps (default instance, session bootstrap,
@@ -345,6 +353,7 @@ async function createExecution(
     .addStep(
       newAuthorizeRunTargetStep(deps.authorizer, agentExecutionRunTarget),
     )
+    .addStep(newValidateSessionOrganizationStep(deps.store))
     .addStep(newValidateThinkingModeStep(deps.modelRegistry, deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
@@ -445,7 +454,9 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 /**
  * Update — update.go buildUpdatePipeline: USER-initiated spec updates
  * (status updates from the runner use UpdateStatus instead). Standard
- * chain; BuildUpdateState clears status per the shared pattern.
+ * chain; BuildUpdateState clears status per the shared pattern, and
+ * ValidateSessionImmutability keeps the execution in its session
+ * (session-binding.ts).
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -472,6 +483,7 @@ async function update(
     .addStep(newResolveSlugStep())
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newValidateSessionImmutabilityStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store))
     .addStep(newPersistStep(deps.store))

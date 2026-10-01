@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { InlineEditBaseProps } from "./types.js";
+import { useInlineDraft } from "./useInlineDraft.js";
 
 /** Props for {@link InlineEditTextarea}. */
 export interface InlineEditTextareaProps extends InlineEditBaseProps {
@@ -23,6 +24,10 @@ export interface InlineEditTextareaProps extends InlineEditBaseProps {
  *
  * In read mode, renders the value as preformatted text with expand/collapse.
  * On click, opens a textarea with confirm/cancel. Ctrl+Enter confirms.
+ *
+ * The draft is seeded from `value` when editing opens. While the editor is
+ * open, a draft the user has edited keeps their text if `value` changes, and
+ * an untouched draft follows the new `value`.
  */
 export function InlineEditTextarea({
   value,
@@ -35,24 +40,15 @@ export function InlineEditTextarea({
   error,
   className,
 }: InlineEditTextareaProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
   const [localError, setLocalError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { isEditing, setIsEditing, draft, setDraft, startEditing } =
+    useInlineDraft(value, textareaRef, { caretAtEnd: true });
 
-  useEffect(() => {
-    if (isEditing) {
-      setDraft(value);
-      setLocalError(null);
-      requestAnimationFrame(() => {
-        const ta = textareaRef.current;
-        if (ta) {
-          ta.focus();
-          ta.selectionStart = ta.value.length;
-        }
-      });
-    }
-  }, [isEditing, value]);
+  const handleEdit = useCallback(() => {
+    setLocalError(null);
+    startEditing();
+  }, [startEditing]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -103,7 +99,7 @@ export function InlineEditTextarea({
       <div className={cn("stg:group/inline-edit", className)}>
         <button
           type="button"
-          onClick={() => { if (!disabled) setIsEditing(true); }}
+          onClick={() => { if (!disabled) handleEdit(); }}
           disabled={disabled}
           className={cn(
             "stg:w-full stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:transition-colors",

@@ -28,6 +28,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentexecutions";
+import { makeSession } from "../support/sessions";
 import { collectStream } from "../support/collect-stream";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -226,6 +227,38 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
 // so every read RPC is asserted in its zero-record / validation arm — the
 // truthful answers a fresh server owes before anything has ever run. The
 // populated arms live in suites-execution/.
+
+describe("AgentExecution conformance — a turn belongs to its session's organization (#1580)", () => {
+  it("[rpc:AgentExecutionCommandController.create] refuses a turn in a session under another organization (FailedPrecondition, naming neither)", async () => {
+    // One caller, two organizations: the session lives in the first, and the
+    // turn names the second. The refusal comes right after the run gate,
+    // before the engine gate, so no engine is needed.
+    const home = await target.provisionTenancy();
+    const other = await target.provisionTenancy();
+    const session = await clients.sessionCommand.create(
+      makeSession({ org: home.org, name: uniqueName("aex-home-session"), agentInstanceId: "" }),
+    );
+    const sessionId = session.metadata!.id;
+    try {
+      const refused = await expectGrpcCode(
+        () =>
+          clients.agentExecutionCommand.create(
+            makeAgentExecution({ org: other.org, name: uniqueName("aex-foreign-org"), sessionId }),
+          ),
+        Code.FailedPrecondition,
+        "create under another organization than the session's",
+      );
+      expect(refused.rawMessage).toBe(
+        `an execution in session '${sessionId}' must belong to the session's organization`,
+      );
+      // Refused before any side effect: the session holds no execution.
+      const listed = await clients.agentExecutionQuery.listBySession({ sessionId });
+      expect(listed.entries).toHaveLength(0);
+    } finally {
+      await clients.sessionCommand.delete({ value: sessionId });
+    }
+  });
+});
 
 describe("AgentExecution conformance — the engine gate (CW-7)", () => {
   it("[rpc:AgentExecutionCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
