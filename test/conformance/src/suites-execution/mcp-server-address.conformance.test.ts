@@ -49,10 +49,12 @@ const SERVER_ADDRESS_ENV_KEY = "STIGMER_SERVER_ADDRESS";
 // The header the suite templates the key into; Node lowercases incoming names.
 const ADDRESS_HEADER = "x-stigmer-server-address";
 
-// The address a fill from `endpoint` delivers: the endpoint's host and port as
-// a gRPC target, the scheme's default port when the URL names none (the
-// runner's platform-server-address.ts grpcTarget rule, stated as the promise).
+// The address a fill from `endpoint` delivers, the runner's grpcTarget rule
+// (platform-server-address.ts) stated as the promise: an http(s) URL becomes
+// its host with an explicit port, the scheme's default when the URL names
+// none; anything else is already a dial target and arrives unchanged.
 function filledAddressFrom(endpoint: string): string {
+  if (!/^https?:\/\//i.test(endpoint)) return endpoint;
   const url = new URL(endpoint);
   const port = url.port !== "" ? url.port : url.protocol === "https:" ? "443" : "80";
   return `${url.hostname}:${port}`;
