@@ -239,9 +239,13 @@ test.describe("Schedule detail tabs and inline editing", () => {
       await expect(messageField).toHaveValue("Send today's reminders.");
       await messageField.fill("Send this week's reminders.");
       await page.getByRole("button", { name: "Save" }).click();
+      // The editor closes only once the save has returned. Until then its
+      // own (disabled) textarea carries the new text, which getByText
+      // matches, so the read view's button is what proves the save landed.
+      await expect(messageField).toBeHidden({ timeout: 15_000 });
       await expect(
-        page.getByText("Send this week's reminders."),
-      ).toBeVisible({ timeout: 15_000 });
+        page.getByRole("button", { name: "Send this week's reminders." }),
+      ).toBeVisible();
 
       // Server-side confirmation that the save was the lossless
       // full-proto re-apply: the edited field changed, nothing else.
