@@ -55,22 +55,37 @@ export function triple(
   });
 }
 
-/** A server that stores no resource rows: nothing the sweep meets is anyone's authorship. */
-export const NO_STORED_RESOURCES: StoredResources = {
-  async creatorOf() {
-    return undefined;
-  },
-};
+/**
+ * A server that stores no resource rows: nothing the sweep meets is
+ * anyone's authorship, and no row names an organization a revoke could
+ * fall back to.
+ */
+export const NO_STORED_RESOURCES: StoredResources = storedResources({});
+
+/**
+ * Stored rows by `kind:id`: the creator the removal sweep keeps authorship
+ * by, and the organization a record falls back to when the resource's
+ * scope links are gone. A row named in neither map is not stored.
+ */
+export function storedResources(rows: {
+  readonly creators?: Readonly<Record<string, string>>;
+  readonly organizations?: Readonly<Record<string, string>>;
+}): StoredResources {
+  return {
+    async creatorOf(kind, id) {
+      return rows.creators?.[`${kind}:${id}`];
+    },
+    async organizationOf(kind, id) {
+      return rows.organizations?.[`${kind}:${id}`] ?? "";
+    },
+  };
+}
 
 /** Recorded creators by `kind:id`, the removal sweep's authorship read. */
 export function recordedCreators(
   creators: Readonly<Record<string, string>>,
 ): StoredResources {
-  return {
-    async creatorOf(kind, id) {
-      return creators[`${kind}:${id}`];
-    },
-  };
+  return storedResources({ creators });
 }
 
 /** What a recording fixture saw, in order. */

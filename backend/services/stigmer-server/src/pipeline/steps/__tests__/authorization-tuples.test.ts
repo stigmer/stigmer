@@ -5,9 +5,11 @@
  * the run-audience policy of a workflow instance's execution visibility,
  * and the config-driven creation-event resolution
  * (CreateAuthorizationTuplesStepV2's scope/owner/parent semantics,
- * including every failure arm). The driver-facing behavior of the steps
- * themselves is pinned end to end in
- * extensions/__tests__/extension-composition.test.ts.
+ * including every failure arm), and the one delete cleanup every delete
+ * chain and every cascade hands its deleted resource to: best-effort, a
+ * driver's failure logged and never raised. The driver-facing behavior of
+ * the steps themselves, the cascades' cleanup included, is pinned end to
+ * end in extensions/__tests__/extension-composition.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -25,7 +27,12 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 
 import { createLogger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import type {
+  ResourceAuthorizationLifecycle,
+  ResourceDeletedEvent,
+} from "../../../extensions/resource-authorization.js";
 import {
+  cleanUpDeletedResource,
   diffVisibilityShapes,
   executionAudienceShapes,
   resolveResourceCreatedEvent,
@@ -321,5 +328,67 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(() =>
       resolveResourceCreatedEvent(ApiResourceKind.agent, agent, caller, logger),
     ).toThrowError(/failed to create authorization tuples/);
+  });
+});
+
+describe("cleanUpDeletedResource (the delete cleanup every chain and cascade shares)", () => {
+  const event: ResourceDeletedEvent = {
+    kind: ApiResourceKind.agent_instance,
+    resourceId: "ain_cleanup_subject",
+    orgId: "acme",
+    caller,
+  };
+
+  function lifecycleDeleting(
+    onResourceDeleted: (event: ResourceDeletedEvent) => Promise<void>,
+  ): ResourceAuthorizationLifecycle {
+    return {
+      onResourceCreated: () => Promise.resolve(),
+      onResourceDeleted,
+      onVisibilityChanged: () => Promise.resolve(),
+    };
+  }
+
+  it("hands the composed driver the deleted resource's event", async () => {
+    const seen: ResourceDeletedEvent[] = [];
+    await cleanUpDeletedResource(
+      lifecycleDeleting(async (deleted) => {
+        seen.push(deleted);
+      }),
+      logger,
+      event,
+    );
+    expect(seen).toEqual([event]);
+  });
+
+  it("does nothing when no driver is composed", async () => {
+    await expect(cleanUpDeletedResource(undefined, logger, event)).resolves.toBeUndefined();
+  });
+
+  it("logs a driver's failure and never raises it, so the delete it serves still succeeds", async () => {
+    const warnings: Array<{ message: string; fields: Record<string, unknown> }> = [];
+    const capturing = {
+      debug() {},
+      info() {},
+      warn(message: string, fields?: Record<string, unknown>) {
+        warnings.push({ message, fields: fields ?? {} });
+      },
+      error() {},
+    };
+    await cleanUpDeletedResource(
+      lifecycleDeleting(() => Promise.reject(new Error("fga is down"))),
+      capturing,
+      event,
+    );
+    expect(warnings).toEqual([
+      {
+        message: "authorization cleanup failed — orphaned IAM policies may remain",
+        fields: {
+          kind: "agent_instance",
+          resourceId: "ain_cleanup_subject",
+          error: "fga is down",
+        },
+      },
+    ]);
   });
 });

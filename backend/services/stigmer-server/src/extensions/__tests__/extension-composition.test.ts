@@ -8,7 +8,9 @@
  * services), and the registry-declared edition answers on getServerInfo.
  * Later entries add their own composed arms below: caller guards
  * (20260902.02), the require-authentication posture (20260904.02), the
- * O5 drivers, the O4 slots and hooks, the C2 tuple lifecycle, and the
+ * O5 drivers, the O4 slots and hooks, the C2 tuple lifecycle (a parent's
+ * cascade included: every child it deletes is cleaned as its own delete
+ * would clean it, before the parent, stigmer#1603), and the
  * organization directory's external-id lookup: scoped to the identity
  * provider the request names, and answered only to a caller who may view
  * that provider, with one NotFound for every miss.
@@ -34,6 +36,9 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
+import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
   ExecutionControlSignal,
   ExecutionPhase,
@@ -1089,6 +1094,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
   const executionVisibilityEvents: ExecutionVisibilityChangedEvent[] = [];
   let failCreates = false;
   let failDeletes = false;
+  const failDeleteKinds = new Set<ApiResourceKind>();
   let failExecutionVisibility = false;
 
   const fakeLifecycle: ResourceAuthorizationLifecycle = {
@@ -1099,7 +1105,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       createdEvents.push(event);
     },
     async onResourceDeleted(event): Promise<void> {
-      if (failDeletes) {
+      if (failDeletes || failDeleteKinds.has(event.kind)) {
         throw new Error("fga is down");
       }
       deletedEvents.push(event);
@@ -1290,8 +1296,12 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
     );
     deletedEvents.length = 0;
     await command.delete({ value: first.metadata?.id ?? "" });
-    expect(deletedEvents).toHaveLength(1);
-    expect(deletedEvents[0]!.resourceId).toBe(first.metadata?.id);
+    // The agent's default instance goes with it, and is cleaned first,
+    // while the agent's own links still stand (stigmer#1603).
+    expect(deletedEvents.map((event) => [event.kind, event.resourceId])).toEqual([
+      [ApiResourceKind.agent_instance, first.status?.defaultInstanceId],
+      [ApiResourceKind.agent, first.metadata?.id],
+    ]);
 
     const second = await command.create(
       create(AgentSchema, {
@@ -1317,6 +1327,177 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       getError = ConnectError.from(error);
     }
     expect(getError?.code).toBe(Code.NotFound);
+  });
+
+  // stigmer#1603. A parent's delete removes the children it owns (an
+  // agent's instances and same-organization shares, a workflow's instances,
+  // a session's runs) row by row. Each child's access is cleaned as its own
+  // delete would clean it: the same event, the child's own organization, the
+  // deleting caller, fired before the parent's, while every link the child
+  // reaches its organization through still stands.
+  describe("a parent's cascade cleans every child it deletes", () => {
+    /** The events as `[kind, id]`, the children in id order, then the parent. */
+    function cascadeOrder(events: ReadonlyArray<ResourceDeletedEvent>): Array<[ApiResourceKind, string]> {
+      const children = events.slice(0, -1).map((event): [ApiResourceKind, string] => [event.kind, event.resourceId]);
+      children.sort((a, b) => a[1].localeCompare(b[1]));
+      const parent = events.at(-1);
+      return parent === undefined ? children : [...children, [parent.kind, parent.resourceId]];
+    }
+
+    function expectOneCallerAndOrganization(events: ReadonlyArray<ResourceDeletedEvent>): void {
+      for (const event of events) {
+        expect(event.orgId, `${ApiResourceKind[event.kind]} ${event.resourceId}`).toBe("c2seededorg");
+        expect(event.caller).toEqual(events.at(-1)?.caller);
+      }
+    }
+
+    it("an agent's delete cleans its default instance, a personal instance and its share, then the agent", async () => {
+      const command = createClient(AgentCommandController, portTransport);
+      const agent = await command.create(
+        create(AgentSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Agent",
+          metadata: { name: "c2-cascade-agent", org: "c2seededorg" },
+          spec: { instructions: "a conformant instruction body" },
+        }),
+      );
+      const agentId = agent.metadata?.id ?? "";
+      const personal = await createClient(AgentInstanceCommandController, portTransport).create({
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "AgentInstance",
+        metadata: { name: "c2-cascade-personal", org: "c2seededorg" },
+        spec: { agentId },
+      });
+      // Shares are seeded as the agent domain suite seeds them; the cascade
+      // finds a share by its agent reference.
+      await server.store.saveResource(
+        ApiResourceKind.agent_share,
+        "ash_c2_cascade",
+        AgentShareSchema,
+        create(AgentShareSchema, {
+          metadata: { id: "ash_c2_cascade", name: "c2-cascade-share", org: "c2seededorg" },
+          spec: {
+            agentRef: { kind: ApiResourceKind.agent, org: "c2seededorg", slug: agent.metadata?.slug ?? "" },
+          },
+        }),
+      );
+
+      deletedEvents.length = 0;
+      await command.delete({ value: agentId });
+
+      const children: Array<[ApiResourceKind, string]> = [
+        [ApiResourceKind.agent_instance, agent.status?.defaultInstanceId ?? ""],
+        [ApiResourceKind.agent_instance, personal.metadata?.id ?? ""],
+        [ApiResourceKind.agent_share, "ash_c2_cascade"],
+      ];
+      children.sort((a, b) => a[1].localeCompare(b[1]));
+      expect(cascadeOrder(deletedEvents)).toEqual([...children, [ApiResourceKind.agent, agentId]]);
+      expectOneCallerAndOrganization(deletedEvents);
+    });
+
+    it("a workflow's delete cleans each of its instances, then the workflow", async () => {
+      const workflows = createClient(WorkflowCommandController, portTransport);
+      const workflow = await workflows.create(
+        create(WorkflowSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Workflow",
+          metadata: { name: "c2-cascade-workflow", org: "c2seededorg" },
+          spec: {
+            document: { dsl: "1.0.0", namespace: "tests", name: "c2-cascade", version: "0.1.0" },
+            tasks: [{ name: "seed", kind: 1, taskConfig: { variables: { greeting: "hello" } } }],
+          },
+        }),
+      );
+      const workflowId = workflow.metadata?.id ?? "";
+      const extra = await createClient(WorkflowInstanceCommandController, portTransport).create(
+        create(WorkflowInstanceSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "WorkflowInstance",
+          metadata: { name: "c2-cascade-extra", org: "c2seededorg" },
+          spec: { workflowId },
+        }),
+      );
+
+      deletedEvents.length = 0;
+      await workflows.delete({ value: workflowId });
+
+      const children: Array<[ApiResourceKind, string]> = [
+        [ApiResourceKind.workflow_instance, workflow.status?.defaultInstanceId ?? ""],
+        [ApiResourceKind.workflow_instance, extra.metadata?.id ?? ""],
+      ];
+      children.sort((a, b) => a[1].localeCompare(b[1]));
+      expect(cascadeOrder(deletedEvents)).toEqual([...children, [ApiResourceKind.workflow, workflowId]]);
+      expectOneCallerAndOrganization(deletedEvents);
+    });
+
+    it("a session's delete cleans each of its runs, then the session", async () => {
+      const sessionId = "ses_c2_cascade";
+      await server.store.saveResource(
+        ApiResourceKind.session,
+        sessionId,
+        SessionSchema,
+        create(SessionSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Session",
+          metadata: { id: sessionId, name: "c2-cascade-session", org: "c2seededorg" },
+          spec: { agentInstanceId: "ain_c2_cascade" },
+        }),
+      );
+      const runIds = ["aex_c2_cascade_1", "aex_c2_cascade_2"];
+      for (const runId of runIds) {
+        await server.store.saveResource(
+          ApiResourceKind.agent_execution,
+          runId,
+          AgentExecutionSchema,
+          create(AgentExecutionSchema, {
+            apiVersion: "agentic.stigmer.ai/v1",
+            kind: "AgentExecution",
+            metadata: { id: runId, name: runId, org: "c2seededorg" },
+            spec: { sessionId },
+            status: { phase: ExecutionPhase.EXECUTION_COMPLETED },
+          }),
+        );
+      }
+
+      deletedEvents.length = 0;
+      await createClient(SessionCommandController, portTransport).delete({ value: sessionId });
+
+      expect(cascadeOrder(deletedEvents)).toEqual([
+        ...runIds.map((runId): [ApiResourceKind, string] => [ApiResourceKind.agent_execution, runId]),
+        [ApiResourceKind.session, sessionId],
+      ]);
+      expectOneCallerAndOrganization(deletedEvents);
+    });
+
+    it("a child's cleanup failure never fails the parent's delete", async () => {
+      const command = createClient(AgentCommandController, portTransport);
+      const agent = await command.create(
+        create(AgentSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Agent",
+          metadata: { name: "c2-cascade-unclean", org: "c2seededorg" },
+          spec: { instructions: "a conformant instruction body" },
+        }),
+      );
+      deletedEvents.length = 0;
+      failDeleteKinds.add(ApiResourceKind.agent_instance);
+      try {
+        await command.delete({ value: agent.metadata?.id ?? "" });
+      } finally {
+        failDeleteKinds.clear();
+      }
+      // Best-effort, as the parent's own cleanup is: the instance's cleanup
+      // threw and was logged, the instance row is gone, the agent is cleaned.
+      expect(deletedEvents.map((event) => [event.kind, event.resourceId])).toEqual([
+        [ApiResourceKind.agent, agent.metadata?.id],
+      ]);
+      const refused = await refusalOf(
+        createClient(AgentInstanceQueryController, portTransport).get({
+          value: agent.status?.defaultInstanceId ?? "",
+        }),
+      );
+      expect(refused.code).toBe(Code.NotFound);
+    });
   });
 
   it("a driver failure on create fails the request but the row survives (inherited semantics)", async () => {

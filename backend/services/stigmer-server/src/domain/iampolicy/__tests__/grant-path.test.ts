@@ -89,6 +89,7 @@ import {
   orgRole,
   recordedCreators,
   recordingLifecycle,
+  storedResources,
   triple,
 } from "./support.js";
 import type { FakeIamPolicyStore, RecordedEvent } from "./support.js";
@@ -1033,6 +1034,98 @@ describe("who and why: every access row reaches the store with its change record
       },
       { op: "delete", id: policyIdFor(share(BOB, "owner")), record: deleted },
     ]);
+  });
+
+  // stigmer#1603. A delete can remove a resource's scope links before
+  // another cleanup reaches the resource's access rows: an organization's
+  // delete removes every link that names it and keeps the resources, and
+  // the owner's account goes later. The walk then finds nothing, and the
+  // resource's own stored row is what still names its organization.
+  const organizationRef = create(ApiResourceRefSchema, {
+    kind: "organization",
+    id: "acme",
+  });
+  const bobRef = create(ApiResourceRefSchema, {
+    kind: "identity_account",
+    id: BOB,
+  });
+
+  it("a revoke whose scope links a delete already removed takes the organization from the resource's stored row", async () => {
+    const { policies, path } = pathOver(
+      [],
+      undefined,
+      storedResources({ organizations: { [`agent:${SHARED}`]: "acme" } }),
+    );
+    await path.grant(scopeLink("agent", SHARED, "acme"), alice, "structural");
+    await path.grant(share(BOB, "owner"), bob, "structural");
+    await path.cleanupResource(organizationRef, alice);
+    policies.changes.length = 0;
+
+    await path.cleanupResource(bobRef, bob);
+
+    expect(policies.changes).toEqual([
+      {
+        op: "delete",
+        id: policyIdFor(share(BOB, "owner")),
+        record: {
+          actor: bobActor,
+          cause: "resource_deleted",
+          organizationId: "acme",
+        },
+      },
+    ]);
+  });
+
+  it("a run's revoke walks to its session and takes the organization from the session's stored row", async () => {
+    const RUN = "aex_audited00000000000000000";
+    const SESSION = "ses_audited00000000000000000";
+    const { policies, path } = pathOver(
+      [],
+      undefined,
+      storedResources({ organizations: { [`session:${SESSION}`]: "acme" } }),
+    );
+    const viewer = triple({ kind: "identity_account", id: BOB }, "viewer", {
+      kind: "agent_execution",
+      id: RUN,
+    });
+    await path.grant(scopeLink("session", SESSION, "acme"), alice, "structural");
+    await path.grant(
+      triple({ kind: "session", id: SESSION }, "session", {
+        kind: "agent_execution",
+        id: RUN,
+      }),
+      alice,
+      "structural",
+    );
+    await path.grant(viewer, alice, "grant");
+    await path.cleanupResource(organizationRef, alice);
+    policies.changes.length = 0;
+
+    await path.cleanupResource(bobRef, bob);
+
+    expect(policies.changes).toEqual([
+      {
+        op: "delete",
+        id: policyIdFor(viewer),
+        record: {
+          actor: bobActor,
+          cause: "resource_deleted",
+          organizationId: "acme",
+        },
+      },
+    ]);
+  });
+
+  it("a resource this server stores no row of still records no organization once its links are gone", async () => {
+    const { policies, path } = pathOver([], undefined);
+    await path.grant(scopeLink("agent", SHARED, "acme"), alice, "structural");
+    await path.grant(share(BOB, "owner"), bob, "structural");
+    await path.cleanupResource(organizationRef, alice);
+    policies.changes.length = 0;
+
+    await path.cleanupResource(bobRef, bob);
+
+    expect(policies.changes.map((change) => change.record?.organizationId)).toEqual([""]);
   });
 
   it("the grant and revoke log lines carry who, why and where", async () => {
