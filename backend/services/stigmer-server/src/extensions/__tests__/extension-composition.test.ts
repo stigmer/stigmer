@@ -77,6 +77,7 @@ import {
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { loadConfig } from "../../boot/config.js";
+import { createInProcessClients } from "../../boot/inprocess.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
@@ -1652,21 +1653,14 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
 
   /**
    * The run-end activity's delete of a run's context, as the server composes
-   * it: the store read, then the edge built exactly as boot/inprocess.ts
-   * builds it, the context's delete RPC over the in-process transport.
+   * it: the store read, then the production edge from boot/inprocess.ts,
+   * built over the composed server's own routes and in-process chain.
    */
   async function deleteExecutionContextAsTheServer(executionId: string): Promise<void> {
-    const command = createClient(ExecutionContextCommandController, server.inProcessTransport);
+    const logger = createLogger({ level: "error", pretty: false, write: () => {} });
+    const { executionContextDeleter } = createInProcessClients(server.routes, logger).clients;
     await deleteExecutionContextForExecution(
-      {
-        store: server.store,
-        deleter: () => ({
-          delete: async (contextId) => {
-            await command.delete({ resourceId: contextId });
-          },
-        }),
-        logger: createLogger({ level: "error", pretty: false, write: () => {} }),
-      },
+      { store: server.store, deleter: () => executionContextDeleter, logger },
       executionId,
       "run-end",
     );

@@ -864,6 +864,50 @@ describe("DeleteExecutionContext activity seam", () => {
     }
   });
 
+  it("a found row that carries no id is skipped quietly (nothing for the chain to load)", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-noid-"));
+    const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);
+    try {
+      const ec = ecInput({ executionId: "aex_noid" });
+      await store.saveResource(
+        ApiResourceKind.execution_context,
+        "ectx_noid",
+        ExecutionContextSchema,
+        create(ExecutionContextSchema, {
+          ...ec,
+          metadata: { ...ec.metadata, id: "" },
+        }),
+      );
+      const { logger, lines } = recordingLogger();
+      const deleted: string[] = [];
+
+      await expect(
+        deleteExecutionContextForExecution(
+          {
+            store,
+            deleter: () => ({
+              delete: async (contextId) => {
+                deleted.push(contextId);
+              },
+            }),
+            logger,
+          },
+          "aex_noid",
+          "recover",
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(deleted, "no delete without an id").toEqual([]);
+      expect(
+        lines.filter((line) => line.includes('"level":"warn"')),
+        "no operator signal for a row the chain cannot load",
+      ).toEqual([]);
+    } finally {
+      await store.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("a context gone between the read and the chain's load is quiet (NotFound is nothing to clean)", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-race-"));
     const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);

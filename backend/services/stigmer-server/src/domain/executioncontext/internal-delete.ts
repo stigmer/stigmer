@@ -111,6 +111,15 @@ export async function deleteExecutionContextForExecution(
 
   const contextId = ec.metadata?.id ?? "";
   const dataCount = Object.keys(ec.spec?.data ?? {}).length;
+  if (contextId === "") {
+    // A row with no id has nothing the chain can load by; it is skipped
+    // quietly, as the recover steps' predecessors skipped it.
+    logger.debug("ExecutionContext row carries no id -- nothing to delete", {
+      executionId,
+      reason,
+    });
+    return;
+  }
 
   try {
     await deps.deleter().delete(contextId);
