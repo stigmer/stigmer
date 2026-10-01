@@ -8,8 +8,11 @@
 // pass without passing; how a deletion is told from a retitle and a move; which
 // skips carry their reason by construction; the PR-body declarations; which
 // of a run's skipped cases a skip site explains; how the RPC waiver file is
-// read and which of its changes weaken the contract; and, through a throwaway
-// git repository, the command's exit codes end to end.
+// read and which of its changes weaken the contract; the layout rules (which
+// words a name may carry and when they are true, where a test may live, what
+// test/support may import) and the baseline that lists what does not follow
+// them yet; and, through a throwaway git repository, the command's exit codes
+// end to end.
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -21,19 +24,26 @@ import { fileURLToPath } from "node:url";
 
 import {
   applyDeclarations,
+  applyLayoutBaseline,
   byConstruction,
   compareRpcWaivers,
   CONFIG_PATHSPECS,
   checkConfig,
+  checkLayout,
   compareInventories,
   explainRunSkips,
   formatReport,
   inventoryFile,
+  LAYOUT_BASELINE,
   loadTypeScript,
+  nameWords,
   packageOf,
   parseDeclarations,
+  readLayoutBaseline,
   readRpcWaivers,
+  resolveRelative,
   RPC_WAIVERS,
+  scanModule,
   typeScriptCandidates,
 } from "./test-integrity.mjs";
 
@@ -421,7 +431,138 @@ it("the report counts the run's skips and lists the explained ones", () => {
   assert.match(text, /test-integrity: 2 test file\(s\) read, 1 case\(s\) skipped in the run; clean$/);
 });
 
+// ─── Layout: names and places ───────────────────────────────────────────
+
+it("a name's words are its last segment and the service and layer words before it; the topic is never a word", () => {
+  assert.deepEqual(nameWords("x/__tests__/team.openfga.postgres.test.ts"), { words: ["openfga", "postgres"], last: "postgres" });
+  assert.deepEqual(nameWords("x/__tests__/panel.a11y.browser.test.tsx"), { words: ["browser"], last: "browser" });
+  assert.deepEqual(nameWords("x/__tests__/postgres-kinds.postgres.test.ts"), { words: ["postgres"], last: "postgres" });
+  assert.deepEqual(nameWords("x/__tests__/postgres.test.ts"), { words: [], last: undefined });
+  assert.deepEqual(nameWords("x/__tests__/scope.load-tenancy.test.ts"), { words: [], last: "load-tenancy" });
+  assert.deepEqual(nameWords("x/__tests__/lane.e2e.test.ts"), { words: [], last: "e2e" });
+  assert.deepEqual(nameWords("test/e2e/tests/login.spec.ts"), { words: [], last: undefined });
+});
+
+it("reaching a service is a value use of its entry point; types, strings and an in-process mock reach nothing", () => {
+  const services = (text) => [...scanModule(ts, "p/__tests__/a.test.ts", text).services].sort();
+  assert.deepEqual(services(`const url = gateDependency("TEST_FGA_API_URL", "OpenFGA");`), ["openfga"]);
+  assert.deepEqual(services(`const a = gateDependency("TEST_VAULT_ADDR", "OpenBAO"); const b = gateDependency("CLOUD_SCHEMA_TEST_DATABASE_URL", "x");`), ["postgres", "vault"]);
+  assert.deepEqual(services(`const db = await createTestDatabase();`), ["postgres"]);
+  assert.deepEqual(services(`const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing"); env = await TWE.createLocal();`), ["temporal"]);
+  assert.deepEqual(services(`env = await TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
+  assert.deepEqual(services(`import { MockActivityEnvironment } from "@temporalio/testing"; new MockActivityEnvironment();`), []);
+  assert.deepEqual(services(`import type { TestWorkflowEnvironment } from "@temporalio/testing"; type E = import("@temporalio/testing").TestWorkflowEnvironment;`), []);
+  assert.deepEqual(services(`const why = "needs TEST_DATABASE_URL and createTestDatabase()"; gateDependency(name, "x");`), []);
+});
+
+it("a module's value imports are followed; a type-only import is not", () => {
+  const { valueImports } = scanModule(ts, "p/__tests__/a.test.ts", `
+    import { a } from "./value";
+    import type { T } from "./types-only";
+    import { type U } from "./type-specifiers";
+    import { type V, w } from "./mixed";
+    import "./side-effect";
+    export * from "./re-export";
+    const m = await import("./dynamic.js");
+  `);
+  assert.deepEqual(valueImports, ["./value", "./mixed", "./side-effect", "./re-export", "./dynamic.js"]);
+  const files = new Set(["p/__tests__/support.ts", "p/src/index.ts"]);
+  assert.equal(resolveRelative("p/__tests__/a.test.ts", "./support.js", files), "p/__tests__/support.ts");
+  assert.equal(resolveRelative("p/__tests__/a.test.ts", "../src", files), "p/src/index.ts");
+  assert.equal(resolveRelative("p/__tests__/a.test.ts", "./missing", files), undefined);
+});
+
+/** Runs the layout rules over an in-memory tree: `tree` maps a path to its text. */
+function layout(tree, { packages = ["pkg"], configs = {} } = {}) {
+  const files = new Set(Object.keys(tree).filter((p) => /\.(m?ts|tsx)$/.test(p)));
+  const tests = [...files].filter((p) => /\.(test|spec)\.(m?ts|tsx)$/.test(p));
+  return checkLayout(ts, {
+    tests,
+    files,
+    read: (p) => tree[p],
+    packageDirs: new Set(packages),
+    configs: Object.entries(configs).map(([path, text]) => ({ path, text })),
+  }).map((f) => `${f.rule} ${f.path}`);
+}
+
+it("a service reached through a test helper must be named, and a named service must be reached", () => {
+  const support = { "pkg/src/store/__tests__/support.ts": `export async function db() { return createTestDatabase(); }` };
+  const reaches = `import { db } from "./support.js"; it("a", async () => { await db(); });`;
+  assert.deepEqual(layout({ ...support, "pkg/src/store/__tests__/repo.test.ts": reaches }), ["layout-service-unnamed pkg/src/store/__tests__/repo.test.ts"]);
+  assert.deepEqual(layout({ ...support, "pkg/src/store/__tests__/repo.postgres.test.ts": reaches }), []);
+  assert.deepEqual(layout({ "pkg/src/store/__tests__/repo.postgres.test.ts": `it("a", () => {});` }), ["layout-service-unreached pkg/src/store/__tests__/repo.postgres.test.ts"]);
+});
+
+it("composed, conformance, load and live files, and the suites' own trees, may use any service unnamed", () => {
+  const body = `const db = await createTestDatabase(); it("a", () => {});`;
+  assert.deepEqual(layout({ "pkg/src/__tests__/lane.composed.test.ts": body }), []);
+  assert.deepEqual(layout({ "test/e2e/tests/flow/login.spec.ts": body }, { packages: ["test/e2e"] }), []);
+  assert.deepEqual(layout({ "test/conformance/src/suites/agent.conformance.test.ts": body }, { packages: ["test/conformance"] }), []);
+});
+
+it("reaching is followed through test helpers only, never into the module under test", () => {
+  const tree = {
+    "pkg/src/store.ts": `export const open = () => createTestDatabase();`,
+    "pkg/src/__tests__/store.test.ts": `import { open } from "../store.js"; it("a", () => { open; });`,
+  };
+  assert.deepEqual(layout(tree), []);
+});
+
+it("a retired word as a name's last word is refused; before a layer word it is a topic", () => {
+  const configs = { "pkg/vitest.a11y.config.ts": `export default { test: { include: ["src/**/*.browser.test.tsx"] } };` };
+  assert.deepEqual(layout({ "pkg/src/__tests__/lane.integration.test.ts": `it("a", () => {});` }), ["layout-retired-word pkg/src/__tests__/lane.integration.test.ts"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.a11y.browser.test.tsx": `it("a", () => {});` }, { configs }), []);
+});
+
+it("a layer word goes only where its layer lives", () => {
+  const ok = `it("a", () => {});`;
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }, { configs: { "pkg/vitest.load.config.ts": "" } }), []);
+  assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts"]);
+});
+
+it("a TypeScript test lives in __tests__, a spec under the e2e homes; the suites' trees are placed by their suite", () => {
+  const ok = `it("a", () => {});`;
+  assert.deepEqual(layout({ "pkg/src/cmd/run.test.ts": ok }), ["layout-placement pkg/src/cmd/run.test.ts"]);
+  assert.deepEqual(layout({ "pkg/src/cmd/__tests__/run.test.ts": ok }), []);
+  assert.deepEqual(layout({ "pkg/e2e/flow.spec.ts": ok }), ["layout-placement pkg/e2e/flow.spec.ts"]);
+  assert.deepEqual(layout({ "site/e2e/demos/demo.spec.ts": ok }, { packages: ["site"] }), []);
+  assert.deepEqual(layout({ "test/conformance/src/suites-execution/agent.harness.test.ts": ok }, { packages: ["test/conformance"] }), []);
+});
+
+it("test/support imports only node:* and its own files by their .ts path; its own tests are free", () => {
+  const tree = {
+    "test/support/src/fake.ts": `import { createServer } from "node:http";\nimport { wire } from "./wire.ts";\nimport { x } from "./other";\nimport pg from "pg";`,
+    "test/support/src/wire.ts": `export const wire = 1;`,
+    "test/support/src/__tests__/fake.test.ts": `import { describe } from "vitest"; it("a", () => {});`,
+  };
+  assert.deepEqual(layout(tree, { packages: ["test/support"] }), ["layout-support-import test/support/src/fake.ts", "layout-support-import test/support/src/fake.ts"]);
+});
+
+it("the baseline is read line by line: comments skipped, any other shape and a repeated line refused", () => {
+  const { entries, problems } = readLayoutBaseline("# why\n\nlayout-placement a/b.test.ts\nnot a line\nlayout-placement a/b.test.ts\n");
+  assert.deepEqual(entries.map((e) => [e.key, e.line]), [["layout-placement a/b.test.ts", 3], ["layout-placement a/b.test.ts", 5]]);
+  assert.deepEqual(problems.map((p) => p.line), [4, 5]);
+});
+
+it("a listed finding is counted, an unlisted one refused, a stale line refused, and a line the base lacked refused", () => {
+  const finding = (rule, path) => ({ rule, path, line: 1, message: "m" });
+  const findings = [finding("layout-placement", "a.test.ts"), finding("layout-retired-word", "b.e2e.test.ts")];
+  const head = readLayoutBaseline("layout-placement a.test.ts\nlayout-placement gone.test.ts\n").entries;
+  const noBase = applyLayoutBaseline(findings, head, undefined);
+  assert.equal(noBase.baselined, 1);
+  assert.deepEqual(noBase.refused.map((f) => `${f.rule} ${f.path}:${f.line}`), ["layout-retired-word b.e2e.test.ts:1", `layout-baseline-stale ${LAYOUT_BASELINE}:2`]);
+  const base = readLayoutBaseline("layout-placement gone.test.ts\n").entries;
+  const grown = applyLayoutBaseline(findings, head, base);
+  assert.deepEqual(grown.refused.map((f) => f.rule), ["layout-retired-word", "layout-baseline-grown", "layout-baseline-stale"]);
+  assert.equal(applyLayoutBaseline(findings, undefined, undefined).refused.length, 2);
+});
+
 // ─── The command, end to end ────────────────────────────────────────────
+
+/** Where the end-to-end cases keep their test file: a `__tests__` directory, as the placement rule asks. */
+const A_TEST = "pkg/src/__tests__/a.test.ts";
 
 function repo() {
   const dir = mkdtempSync(join(tmpdir(), "test-integrity-"));
@@ -469,12 +610,12 @@ it("the command: clean, a deleted case refused, then declared", () => {
 it("the command: a silent return on the tree fails without a base", () => {
   const r = repo();
   try {
-    r.write("a.test.ts", `it("a", () => { if (!ready) return; });`);
+    r.write(A_TEST, `it("a", () => { if (!ready) return; });`);
     r.git("add", ".");
     r.git("commit", "-q", "-m", "base");
     const result = r.run();
     assert.equal(result.status, 1);
-    assert.match(result.stdout, /valueless-return +a\.test\.ts:1/);
+    assert.match(result.stdout, /valueless-return +pkg\/src\/__tests__\/a\.test\.ts:1/);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }
@@ -483,16 +624,16 @@ it("the command: a silent return on the tree fails without a base", () => {
 it("the command: a run report's unexplained skip fails, a quarantined one passes, a missing report cannot be judged", () => {
   const r = repo();
   try {
-    r.write("a.test.ts", `it.skip("a", () => {});`);
+    r.write(A_TEST, `it.skip("a", () => {});`);
     r.git("add", ".");
     r.git("commit", "-q", "-m", "base");
-    const write = () => r.write("run.json", JSON.stringify({ testResults: [{ name: join(r.dir, "a.test.ts"), assertionResults: [{ ancestorTitles: [], title: "a", status: "skipped" }] }] }));
+    const write = () => r.write("run.json", JSON.stringify({ testResults: [{ name: join(r.dir, A_TEST), assertionResults: [{ ancestorTitles: [], title: "a", status: "skipped" }] }] }));
     write();
     const refused = r.run("--run-report", join(r.dir, "run.json"));
     assert.equal(refused.status, 1, refused.stdout);
-    assert.match(refused.stdout, /unexplained-skip +a\.test\.ts:1/);
+    assert.match(refused.stdout, /unexplained-skip +pkg\/src\/__tests__\/a\.test\.ts:1/);
 
-    r.write("a.test.ts", `// quarantined: stigmer#1322 -- flaky\nit.skip("a", () => {});`);
+    r.write(A_TEST, `// quarantined: stigmer#1322 -- flaky\nit.skip("a", () => {});`);
     r.git("commit", "-qam", "quarantine");
     const passed = r.run("--run-report", join(r.dir, "run.json"));
     assert.equal(passed.status, 0, passed.stdout);
@@ -508,11 +649,11 @@ it("the command: a new RPC waiver is refused until declared; a tree without the 
   const r = repo();
   try {
     const waivers = (...entries) => `waivers:\n${entries.map(([rpc, kind]) => `  - rpc: ${rpc}\n    kind: ${kind}\n    reason: >-\n      Why.\n`).join("")}`;
-    r.write("a.test.ts", `it("a", () => {});`);
+    r.write(A_TEST, `it("a", () => {});`);
     r.git("add", ".");
     r.git("commit", "-q", "-m", "base");
     r.git("checkout", "-q", "-b", "without");
-    r.write("a.test.ts", `it("a", () => {}); it("b", () => {});`);
+    r.write(A_TEST, `it("a", () => {}); it("b", () => {});`);
     r.git("commit", "-qam", "no waiver file anywhere");
     assert.equal(r.run("--base", "main").status, 0);
 
@@ -544,6 +685,44 @@ it("the command: a new RPC waiver is refused until declared; a tree without the 
     const shape = r.run("--base", "main");
     assert.equal(shape.status, 1, shape.stdout);
     assert.match(shape.stdout, /rpc-waivers-shape +test\/conformance\/inventory\/rpc-waivers\.yaml:2/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a misplaced test is refused until listed; the list refuses a stale line and, against a base, a new one", () => {
+  const r = repo();
+  try {
+    r.write("pkg/package.json", "{}");
+    r.write("pkg/src/run.test.ts", `it("a", () => {});`);
+    r.write(LAYOUT_BASELINE, "# listed\nlayout-placement pkg/src/run.test.ts\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    const listed = r.run();
+    assert.equal(listed.status, 0, listed.stdout);
+    assert.match(listed.stdout, /1 layout finding\(s\) listed in scripts\/test-layout-baseline\.txt; clean$/m);
+
+    r.git("checkout", "-q", "-b", "grow");
+    r.write("pkg/src/other.test.ts", `it("b", () => {});`);
+    r.write(LAYOUT_BASELINE, "layout-placement pkg/src/run.test.ts\nlayout-placement pkg/src/other.test.ts\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "list a new misplaced test");
+    const grown = r.run("--base", "main");
+    assert.equal(grown.status, 1, grown.stdout);
+    assert.match(grown.stdout, /layout-baseline-grown +scripts\/test-layout-baseline\.txt:2/);
+
+    r.git("checkout", "-q", "main");
+    r.git("checkout", "-q", "-b", "fix");
+    r.git("mv", "pkg/src/run.test.ts", "pkg/src/__tests__/run.test.ts");
+    r.git("commit", "-q", "-m", "move it, keep the line");
+    const stale = r.run("--base", "main");
+    assert.equal(stale.status, 1, stale.stdout);
+    assert.match(stale.stdout, /layout-baseline-stale +scripts\/test-layout-baseline\.txt:2/);
+
+    r.write(LAYOUT_BASELINE, "# listed\n");
+    r.git("commit", "-qam", "drop the line");
+    const fixed = r.run("--base", "main");
+    assert.equal(fixed.status, 0, fixed.stdout);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }

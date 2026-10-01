@@ -41,6 +41,37 @@
  *     entry is never passed unread; the conformance suite's `inventory:check`
  *     holds the rest of the file. A tree without the file has no such rule.
  *
+ * Rules on where a test lives and what its name says (always; the standard
+ * they enforce is test/README.md, "The test standard"). A name that says
+ * something false is a quiet failure too: a file named for a service the gate
+ * provides that never reaches it, or one that reaches a service its name
+ * hides, misleads the reader and the run alike, and a test outside the place
+ * its layer lives is one no reader finds.
+ *   - a retired word (`integration`, `e2e`, `contract`, `smoke`, `measure`,
+ *     `a11y`, `layout`) as the last word of a test file's name;
+ *   - a layer word where its layer does not live: `conformance` outside
+ *     test/conformance/src/suites*, `browser` in a package no vitest config
+ *     collects `*.browser.test.*` in, `load` in a package with no
+ *     vitest.load.config;
+ *   - a service the file reaches that its name does not carry, and a service
+ *     word on a file that never reaches it. Reaching is a value use of the
+ *     service's entry point (a call of `testDatabaseAdminUrl` or
+ *     `createTestDatabase`, a `gateDependency` call for its variable, a
+ *     `createLocal()` or `createTimeSkipping()` that starts a Temporal test
+ *     server), in the file or in a test helper it
+ *     imports, followed through relative imports; a type-only import or a
+ *     mention in a string reaches nothing. A `composed`, `conformance`, `load`
+ *     or `live` file, and the suites' own trees, may use any service;
+ *   - a TypeScript test outside a `__tests__` directory (the suites' own trees
+ *     excepted), a `*.spec.ts` outside test/e2e/tests and site/e2e, and an
+ *     import in test/support of anything but `node:*` or its own `.ts` files.
+ * Files that do not follow the standard yet are listed in
+ * scripts/test-layout-baseline.txt, one `<rule> <path>` per line: a listed
+ * finding is counted, not refused; a line whose finding is gone is refused as
+ * stale; and with --base, a line the base's list did not carry is refused, so
+ * the list only shrinks. A base without the list (the change that introduces
+ * it) has nothing to compare with.
+ *
  * Three skips carry their reason by construction and are never "new": a
  * condition on a target capability (`capabilities.x`, the conformance guide's
  * idiom), on the platform (`process.platform`), or on a dependency the gate
@@ -127,6 +158,42 @@ const DECLARATION = /^\s*(Test-removal|Quarantine|Skip|RPC-waiver)\s*:\s*(.+?)\s
 /** The conformance suite's RPC waivers, read by the change rule on weakened waivers. */
 export const RPC_WAIVERS = "test/conformance/inventory/rpc-waivers.yaml";
 const WAIVER_KINDS = new Set(["gap", "proven-elsewhere"]);
+
+/** The services a gate provides: a file's name carries one exactly when the file reaches it. */
+export const SERVICE_WORDS = ["openfga", "postgres", "temporal", "vault"];
+/** The layers a name may carry; each goes only where its layer lives. */
+export const LAYER_WORDS = ["browser", "composed", "conformance", "live", "load"];
+/** Words that meant different things in different places, refused as a name's last word. */
+export const RETIRED_WORDS = ["a11y", "contract", "e2e", "integration", "layout", "measure", "smoke"];
+/** Layers whose files may use any service without naming it. */
+const ANY_SERVICE = new Set(["composed", "conformance", "live", "load"]);
+/** The suites' own trees, placed by their suite rather than by `__tests__`. */
+const SUITE_TREES = ["test/conformance/src/suites", "test/e2e/tests/"];
+/** Where a Playwright spec may live: the console's journeys and the site's. */
+const SPEC_HOMES = ["test/e2e/tests/", "site/e2e/"];
+/** The trees whose tests may use any service: the contract suite and the console's journeys. */
+const ANY_SERVICE_TREES = ["test/conformance/", "test/e2e/"];
+/** The machinery two or more suites share, which imports only `node:*` and its own files. */
+export const SUPPORT_TREE = "test/support/";
+/** Today's layout violations, one `<rule> <path>` per line; the list may only shrink. */
+export const LAYOUT_BASELINE = "scripts/test-layout-baseline.txt";
+/** A test's helpers: reaching a service is followed through these and no further. */
+const HELPER = /(^|\/)(__tests__|__test-utils__|__fixtures__)\/|^test\//;
+/** The variables a `gateDependency(variable, ...)` call names, by the service behind them. */
+const GATE_VARIABLES = new Map([
+  ["TEST_DATABASE_URL", "postgres"],
+  ["CLOUD_SCHEMA_TEST_DATABASE_URL", "postgres"],
+  ["TEST_FGA_API_URL", "openfga"],
+  ["TEST_VAULT_ADDR", "vault"],
+]);
+/** The calls that reach the Postgres a gate provides (backend/services/stigmer-server's store test support). */
+const POSTGRES_CALLS = new Set(["testDatabaseAdminUrl", "createTestDatabase"]);
+/**
+ * The calls that start a Temporal test server (`TestWorkflowEnvironment` of
+ * `@temporalio/testing`). The package itself is not the service: its
+ * `MockActivityEnvironment` runs an activity in the test process.
+ */
+const TEMPORAL_CALLS = new Set(["createLocal", "createTimeSkipping"]);
 
 // ─── Parsing one file ───────────────────────────────────────────────────
 
@@ -330,6 +397,208 @@ export function checkConfig(ts, path, text) {
   };
   walk(sf);
   return findings;
+}
+
+// ─── Layout: where a test lives and what its name says ──────────────────
+
+/**
+ * A test file's name words: the last dotted segment before `.test` or `.spec`,
+ * and the service and layer words before it. The first segment is the
+ * topic and is never a word (`postgres-kinds.postgres.test.ts` carries one).
+ */
+export function nameWords(path) {
+  const match = /^(.*)\.(?:test|spec)\.[cm]?[jt]sx?$/.exec(posix.basename(path));
+  if (!match) return { words: [], last: undefined };
+  const segments = match[1].split(".");
+  const reserved = new Set([...SERVICE_WORDS, ...LAYER_WORDS]);
+  const words = [];
+  for (let i = segments.length - 1; i >= 1 && reserved.has(segments[i]); i--) words.unshift(segments[i]);
+  return { words, last: segments.length > 1 ? segments[segments.length - 1] : undefined };
+}
+
+/** Whether an import declaration brings in a value, not only types. */
+function isValueImport(ts, node) {
+  const clause = node.importClause;
+  if (!clause) return true;
+  if (clause.isTypeOnly) return false;
+  if (clause.name) return true;
+  const bindings = clause.namedBindings;
+  if (!bindings || ts.isNamespaceImport(bindings)) return true;
+  return bindings.elements.length === 0 || bindings.elements.some((e) => !e.isTypeOnly);
+}
+
+/**
+ * What one module does with services and imports: the services its own code
+ * reaches, the relative specifiers it imports values from, and every
+ * specifier it names at all (the support tree's import rule reads these).
+ */
+export function scanModule(ts, path, text) {
+  const kind = path.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind);
+  const services = new Set();
+  const valueImports = [];
+  const specifiers = [];
+  const note = (spec, value, node) => {
+    specifiers.push({ spec, line: lineOf(sf, node) });
+    if (value && spec.startsWith(".")) valueImports.push(spec);
+  };
+  const walk = (node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      note(node.moduleSpecifier.text, isValueImport(ts, node), node);
+    } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      note(node.moduleSpecifier.text, !node.isTypeOnly, node);
+    } else if (ts.isCallExpression(node)) {
+      const first = node.arguments[0];
+      const literal = first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) ? first.text : undefined;
+      if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+        if (literal !== undefined) note(literal, true, node);
+      } else {
+        const callee = ts.isIdentifier(node.expression) ? node.expression.text : ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : undefined;
+        if (callee && POSTGRES_CALLS.has(callee)) services.add("postgres");
+        if (callee && TEMPORAL_CALLS.has(callee) && ts.isPropertyAccessExpression(node.expression)) services.add("temporal");
+        if (callee === "gateDependency" && literal !== undefined && GATE_VARIABLES.has(literal)) services.add(GATE_VARIABLES.get(literal));
+      }
+    }
+    ts.forEachChild(node, walk);
+  };
+  walk(sf);
+  return { services, valueImports, specifiers };
+}
+
+/** The tracked module a relative specifier names, trying TypeScript's extensions for a `.js` or bare one. */
+export function resolveRelative(from, spec, files) {
+  const target = posix.normalize(posix.join(posix.dirname(from), spec));
+  const bare = target.replace(/\.(?:m?js|jsx)$/, "");
+  for (const candidate of [target, `${bare}.ts`, `${bare}.tsx`, `${bare}.mts`, `${target}.ts`, `${target}.tsx`, `${target}/index.ts`]) {
+    if (files.has(candidate)) return candidate;
+  }
+  return undefined;
+}
+
+/**
+ * The services a module reaches, itself or through the test helpers it
+ * value-imports, transitively. `read(path)` returns a tracked module's text.
+ */
+export function makeReach(ts, files, read) {
+  const scans = new Map();
+  const reached = new Map();
+  const scan = (path) => {
+    if (!scans.has(path)) scans.set(path, scanModule(ts, path, read(path)));
+    return scans.get(path);
+  };
+  const reach = (path, visiting = new Set()) => {
+    if (reached.has(path)) return reached.get(path);
+    if (visiting.has(path)) return new Set();
+    visiting.add(path);
+    const { services, valueImports } = scan(path);
+    const out = new Set(services);
+    for (const spec of valueImports) {
+      const target = resolveRelative(path, spec, files);
+      if (target && HELPER.test(target)) for (const s of reach(target, visiting)) out.add(s);
+    }
+    visiting.delete(path);
+    reached.set(path, out);
+    return out;
+  };
+  return { reach, scan };
+}
+
+/**
+ * The layout rules over the tree (see the header). `tests` are the tracked
+ * test files, `files` every tracked TypeScript module, `read` a module's text,
+ * `packageDirs` the directories holding a package.json, and `configs` the
+ * tracked vitest configs as `{ path, text }`.
+ */
+export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
+  const findings = [];
+  const { reach, scan } = makeReach(ts, files, read);
+  const configsIn = (pkg) => configs.filter((c) => pkg === "." || c.path.startsWith(`${pkg}/`));
+  const find = (rule, path, line, message) => findings.push({ rule, path, line, message });
+
+  for (const path of tests) {
+    const { words, last } = nameWords(path);
+    const spec = /\.spec\.[cm]?[jt]sx?$/.test(path);
+    if (last && RETIRED_WORDS.includes(last)) {
+      find("layout-retired-word", path, 1, `"${last}" is a retired name word: name the file for its layer or its service (test/README.md, "Names")`);
+    }
+    if (words.includes("conformance") && !path.startsWith("test/conformance/src/suites")) {
+      find("layout-word-place", path, 1, "a `conformance` file lives in test/conformance/src/suites*");
+    }
+    const pkg = packageOf(path, packageDirs);
+    if (words.includes("browser") && !configsIn(pkg).some((c) => c.text.includes(".browser.test"))) {
+      find("layout-word-place", path, 1, `no vitest config in ${pkg} collects \`*.browser.test.*\`, so nothing runs this file in a browser`);
+    }
+    if (words.includes("load") && !configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) {
+      find("layout-word-place", path, 1, `${pkg} has no vitest.load.config, the one config that runs the load class`);
+    }
+    if (!words.some((w) => ANY_SERVICE.has(w)) && !ANY_SERVICE_TREES.some((t) => path.startsWith(t))) {
+      const reached = reach(path);
+      for (const service of SERVICE_WORDS) {
+        if (reached.has(service) && !words.includes(service)) {
+          find("layout-service-unnamed", path, 1, `reaches ${service}, which its name does not say: add \`.${service}\` before \`.test\``);
+        }
+        if (words.includes(service) && !reached.has(service)) {
+          find("layout-service-unreached", path, 1, `is named for ${service} but never reaches it: drop \`.${service}\` from the name`);
+        }
+      }
+    }
+    if (spec) {
+      if (!SPEC_HOMES.some((home) => path.startsWith(home))) find("layout-placement", path, 1, "a `*.spec.ts` lives under test/e2e/tests/ or site/e2e/");
+    } else if (!path.includes("/__tests__/") && !SUITE_TREES.some((tree) => path.startsWith(tree))) {
+      find("layout-placement", path, 1, "a TypeScript test lives in a `__tests__` directory beside the module it tests");
+    }
+  }
+
+  for (const path of [...files].filter((p) => p.startsWith(SUPPORT_TREE) && !p.includes("/__tests__/")).sort()) {
+    for (const { spec, line } of scan(path).specifiers) {
+      if (spec.startsWith("node:") || (spec.startsWith(".") && /\.tsx?$/.test(spec))) continue;
+      find("layout-support-import", path, line, `imports \`${spec}\`; test/support imports only \`node:*\` and its own files by their \`.ts\` path, so bare node loads it`);
+    }
+  }
+  return findings;
+}
+
+/** Reads the layout baseline: `<rule> <path>` per line; blank lines and `#` comments are skipped. */
+export function readLayoutBaseline(text) {
+  const entries = [];
+  const problems = [];
+  const seen = new Set();
+  text.split("\n").forEach((raw, i) => {
+    const line = raw.trim();
+    if (line === "" || line.startsWith("#")) return;
+    const match = /^(layout-[a-z-]+)\s+(\S+)$/.exec(line);
+    if (!match) {
+      problems.push({ line: i + 1, message: `\`${line}\` is not \`<rule> <path>\`` });
+      return;
+    }
+    const key = `${match[1]} ${match[2]}`;
+    if (seen.has(key)) problems.push({ line: i + 1, message: `\`${key}\` is listed twice` });
+    seen.add(key);
+    entries.push({ rule: match[1], path: match[2], line: i + 1, key });
+  });
+  return { entries, problems };
+}
+
+/**
+ * Splits the layout findings by the baseline. `head` is the list's entries in
+ * the tree, `base` the base's (undefined when there is no base to compare
+ * with, or the base had no list). Returns what is refused, how many findings
+ * the list covers, and the list's own refusals: a stale line, a grown one.
+ */
+export function applyLayoutBaseline(findings, head, base) {
+  const listed = new Set((head ?? []).map((e) => e.key));
+  const refused = findings.filter((f) => !listed.has(`${f.rule} ${f.path}`));
+  const baselined = findings.length - refused.length;
+  const found = new Set(findings.map((f) => `${f.rule} ${f.path}`));
+  const was = base ? new Set(base.map((e) => e.key)) : undefined;
+  for (const e of head ?? []) {
+    if (!found.has(e.key)) {
+      refused.push({ rule: "layout-baseline-stale", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` no longer applies; remove the line` });
+    } else if (was && !was.has(e.key)) {
+      refused.push({ rule: "layout-baseline-grown", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` was added; the list only shrinks, so make the file follow the standard instead` });
+    }
+  }
+  return { refused, baselined };
 }
 
 // ─── Comparing base and head ────────────────────────────────────────────
@@ -564,7 +833,7 @@ export function applyDeclarations(comparison, declarations) {
 
 // ─── Report ─────────────────────────────────────────────────────────────
 
-export function formatReport({ findings, comparison, declared, filesRead, base, runReport }) {
+export function formatReport({ findings, comparison, declared, filesRead, base, runReport, layoutBaselined = 0 }) {
   const lines = [];
   for (const f of findings) lines.push(`✗ ${f.rule}  ${f.path}:${f.line}  ${f.message}`);
   for (const e of runReport?.explained ?? []) lines.push(`• skipped  ${e.path}:${e.line}  "${e.name}" (${e.reason})`);
@@ -575,7 +844,8 @@ export function formatReport({ findings, comparison, declared, filesRead, base, 
   }
   const verdict = findings.length === 0 ? "clean" : `${findings.length} finding(s)`;
   const run = runReport ? `, ${runReport.skipped} case(s) skipped in the run` : "";
-  lines.push(`test-integrity: ${filesRead} test file(s) read${base ? `, compared with ${base}` : ""}${run}; ${verdict}`);
+  const listed = layoutBaselined > 0 ? `, ${layoutBaselined} layout finding(s) listed in ${LAYOUT_BASELINE}` : "";
+  lines.push(`test-integrity: ${filesRead} test file(s) read${base ? `, compared with ${base}` : ""}${run}${listed}; ${verdict}`);
   return lines.join("\n");
 }
 
@@ -626,16 +896,27 @@ function main(argv) {
   }
 
   const tracked = git(root, ["ls-files", "--", ...TEST_PATHSPECS]).split("\n").filter(Boolean).filter((p) => !p.includes("node_modules/"));
+  const texts = new Map();
+  const read = (path) => {
+    if (!texts.has(path)) texts.set(path, readFileSync(join(root, path), "utf8"));
+    return texts.get(path);
+  };
   const findings = [];
   const head = new Map();
   for (const path of tracked) {
-    const inventory = inventoryFile(ts, path, readFileSync(join(root, path), "utf8"));
+    const inventory = inventoryFile(ts, path, read(path));
     head.set(path, inventory);
     findings.push(...inventory.findings);
   }
-  for (const path of git(root, ["ls-files", "--", ...CONFIG_PATHSPECS]).split("\n").filter(Boolean)) {
-    findings.push(...checkConfig(ts, path, readFileSync(join(root, path), "utf8")));
-  }
+  const configs = git(root, ["ls-files", "--", ...CONFIG_PATHSPECS]).split("\n").filter(Boolean).map((path) => ({ path, text: read(path) }));
+  for (const { path, text } of configs) findings.push(...checkConfig(ts, path, text));
+
+  const modules = new Set(git(root, ["ls-files", "--", "*.ts", "*.tsx", "*.mts"]).split("\n").filter((p) => p && !p.includes("node_modules/")));
+  const headManifests = git(root, ["ls-files", "--", "package.json", "**/package.json"]).split("\n").filter(Boolean).map((p) => posix.dirname(p));
+  const layout = checkLayout(ts, { tests: tracked, files: modules, read, packageDirs: new Set(headManifests), configs });
+  const headBaseline = existsSync(join(root, LAYOUT_BASELINE)) ? readLayoutBaseline(read(LAYOUT_BASELINE)) : undefined;
+  for (const p of headBaseline?.problems ?? []) findings.push({ rule: "layout-baseline-shape", path: LAYOUT_BASELINE, line: p.line, message: p.message });
+  let baseBaseline;
 
   let comparison;
   let declared = [];
@@ -664,6 +945,9 @@ function main(argv) {
       ...git(root, ["ls-tree", "-r", "--name-only", mergeBase]).split("\n").filter((p) => posix.basename(p) === "package.json"),
     ].filter(Boolean).map((p) => posix.dirname(p)));
     comparison = compareInventories(lineages, manifests);
+    if (git(root, ["ls-tree", "--name-only", mergeBase, "--", LAYOUT_BASELINE]).trim() !== "") {
+      baseBaseline = readLayoutBaseline(git(root, ["show", `${mergeBase}:${LAYOUT_BASELINE}`]));
+    }
     const hasWaivers = existsSync(join(root, RPC_WAIVERS));
     const baseHasWaivers = git(root, ["ls-tree", "--name-only", mergeBase, "--", RPC_WAIVERS]).trim() !== "";
     if (hasWaivers || baseHasWaivers) {
@@ -677,6 +961,9 @@ function main(argv) {
     findings.push(...applied.refused);
     declared = applied.declared;
   }
+
+  const appliedLayout = applyLayoutBaseline(layout, headBaseline?.entries, baseBaseline?.entries);
+  findings.push(...appliedLayout.refused);
 
   if (opts.checkIssues) {
     const quarantined = [];
@@ -702,7 +989,7 @@ function main(argv) {
     findings.push(...runReport.findings);
   }
 
-  const result = { findings, comparison, declared, runReport, filesRead: head.size, base: baseLabel };
+  const result = { findings, comparison, declared, runReport, filesRead: head.size, base: baseLabel, layoutBaselined: appliedLayout.baselined };
   console.log(opts.json ? JSON.stringify(result, null, 2) : formatReport(result));
   return findings.length === 0 ? 0 : 1;
 }
