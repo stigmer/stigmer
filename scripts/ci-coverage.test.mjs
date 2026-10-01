@@ -51,7 +51,7 @@ const SUBJECTS = {
   plugins: { script: "test", jobs: [LIBS] },
   "sdk/embed": { script: "test", jobs: [LIBS] },
   "sdk/ink": { script: "test", jobs: [LIBS] },
-  "sdk/react": { script: "test", jobs: [LIBS] },
+  "sdk/react": { script: "test", jobs: [["ci.ts-workspace.yaml", "react-tests"]] },
   "sdk/theme": { script: "test", jobs: [LIBS] },
   "sdk/typescript": { script: "test", jobs: [LIBS] },
   site: { script: "test:unit", jobs: [["ci.docs.yaml", "lint-and-build"]] },
@@ -80,6 +80,22 @@ test("each subject's job runs its tests with the coverage flags and uploads its 
       assert.equal(uploads.length, 1, `${file} ${jobId}: one coverage-* upload`);
       assert.ok(uploadPaths(uploads[0]).includes(`${pkg}/coverage/`), `${file} ${jobId}: the upload does not hold ${pkg}/coverage/`);
       assert.equal(uploads[0].if, "${{ !cancelled() }}", `${file} ${jobId}: a red run still uploads what it covered`);
+    }
+  }
+});
+
+test("every path a coverage upload holds belongs to a subject this file runs in that job", () => {
+  const owner = new Map();
+  for (const [pkg, { jobs }] of Object.entries(SUBJECTS)) {
+    for (const [file, jobId] of jobs) owner.set(`${file} ${jobId} ${pkg}/coverage/`, true);
+  }
+  for (const file of readdirSync(workflowsDir).filter((f) => /^ci\..*\.ya?ml$/.test(f))) {
+    for (const [jobId, job] of Object.entries(readWorkflow(file).jobs ?? {})) {
+      for (const step of (job.steps ?? []).filter(isCoverageUpload)) {
+        for (const path of uploadPaths(step)) {
+          assert.ok(owner.has(`${file} ${jobId} ${path}`), `${file} ${jobId} uploads ${path}, which no subject here names for that job`);
+        }
+      }
     }
   }
 });
