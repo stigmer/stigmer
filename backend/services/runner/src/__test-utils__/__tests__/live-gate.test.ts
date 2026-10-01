@@ -72,20 +72,26 @@ describe("recordLiveSpend", () => {
 
 describe("useProviderDirectly", () => {
   it("clears every provider redirect for the run and restores exactly what was there", () => {
-    const env: NodeJS.ProcessEnv = {
+    const redirects = {
       ANTHROPIC_BASE_URL: "http://gateway.internal",
+      ANTHROPIC_API_URL: "http://other-gateway.internal",
       STIGMER_ANTHROPIC_BACKEND: "vertex",
+      STIGMER_OPENAI_BACKEND: "azure",
       STIGMER_PROXY_ENDPOINT: "http://proxy",
-      ANTHROPIC_API_KEY: "k-1",
+      STIGMER_TOKEN: "t-1",
     };
+    const env: NodeJS.ProcessEnv = { ...redirects, ANTHROPIC_API_KEY: "k-1" };
     const restore = useProviderDirectly(env);
     expect(env).toEqual({ ANTHROPIC_API_KEY: "k-1" });
     restore();
-    expect(env).toEqual({
-      ANTHROPIC_BASE_URL: "http://gateway.internal",
-      STIGMER_ANTHROPIC_BACKEND: "vertex",
-      STIGMER_PROXY_ENDPOINT: "http://proxy",
-      ANTHROPIC_API_KEY: "k-1",
-    });
+    expect(env).toEqual({ ...redirects, ANTHROPIC_API_KEY: "k-1" });
+  });
+
+  it("removes on restore a redirect that was absent before and set during the run", () => {
+    const env: NodeJS.ProcessEnv = { ANTHROPIC_API_KEY: "k-1" };
+    const restore = useProviderDirectly(env);
+    env.ANTHROPIC_BASE_URL = "http://set-during-the-run";
+    restore();
+    expect(env).toEqual({ ANTHROPIC_API_KEY: "k-1" });
   });
 });

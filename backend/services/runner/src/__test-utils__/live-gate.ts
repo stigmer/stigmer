@@ -65,6 +65,8 @@ export function liveSecret(name: LiveSecretName, env: NodeJS.ProcessEnv = proces
  */
 const PROVIDER_REDIRECTS = [
   "ANTHROPIC_BASE_URL",
+  // The Anthropic client reads this one when it is given no base URL, which a direct run never gives.
+  "ANTHROPIC_API_URL",
   "STIGMER_ANTHROPIC_BACKEND",
   "STIGMER_OPENAI_BACKEND",
   "STIGMER_PROXY_ENDPOINT",

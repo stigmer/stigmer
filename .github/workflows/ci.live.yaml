@@ -39,12 +39,12 @@
 
 name: ci.live
 
-# workflow_run is safe here: the triggering workflow runs only on `v*` tag
-# pushes and dispatches, which only a writer can make; the job condition
-# below admits only a successful tag push. The tagged commit is checked out
-# on purpose (the live check tests the code that was released), with
-# persist-credentials off, and nothing from the triggering run (artifacts,
-# outputs) is read.
+# workflow_run is safe here: the job condition below admits only a
+# successful tag push, and the release job refuses any commit main does not
+# already carry, so the code run with the keys is code that passed main's
+# review. The tagged commit is checked out on purpose (the live check tests
+# the code that was released), with persist-credentials off, and nothing from
+# the triggering run (artifacts, outputs) is read.
 on: # zizmor: ignore[dangerous-triggers]
   workflow_run:
     workflows:
@@ -102,6 +102,13 @@ jobs:
           fi
           if ! printf '%s' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "::error::not a release tag: $tag"
+            exit 1
+          fi
+          # The keys are main's: the commit run with them must be one main
+          # already carries (reviewed and merged), whatever pointed at it.
+          on_main=$(gh api "repos/$REPO/compare/main...$ref" --jq .status)
+          if [ "$on_main" != "behind" ] && [ "$on_main" != "identical" ]; then
+            echo "::error::$ref is not on main ($on_main against main); the live check runs only code main carries"
             exit 1
           fi
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
