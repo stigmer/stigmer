@@ -307,8 +307,9 @@ export function registerAgentExecutionServices(
  * (proto → visibility → tier #357) → the run gate
  * (AuthorizeRunTarget, P1 sp.run-gate: asking the target's own permission
  * by request shape — session, instance or blueprint; the all-empty shape
- * is the built-in assistant, admitted by Authorize's organization check
- * and gated on nothing further — before the engine gate so a denied caller
+ * is the built-in assistant, which the run gate does not check (create is
+ * is_skip_authorization; its auto-created session's own create authorizes
+ * can_create_session on the org) — before the engine gate so a denied caller
  * learns nothing about engine state, and before every side effect) → the
  * session's organization (#1580, session-binding.ts: a turn in a session
  * belongs to that session's organization, filled in when the request

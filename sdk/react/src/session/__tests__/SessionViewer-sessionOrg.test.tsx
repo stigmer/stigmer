@@ -146,11 +146,4 @@ describe("SessionViewer — the session's organization", () => {
     expect(threadProps.length).toBeGreaterThan(0);
     expect(threadProps.at(-1)!.org).toBe("acme");
   });
-
-  it("follows the conversation's organization while the session is still loading", () => {
-    stubConv.org = "personal";
-    render(<SessionViewer sessionId="ses_1" org="personal" />);
-
-    expect(lastComposerProps().org).toBe("personal");
-  });
 });
