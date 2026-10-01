@@ -67,9 +67,12 @@ export const LANES = {
       "scripts/stage-all-in-one.mjs",
       "test/install/smoke-all-in-one.mjs",
       "scripts/lib/**",
-      // The install layer's drivers and probes, and the fake model it starts from test/support.
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
-      "test/support/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       "scripts/publish-libs.mjs",
       "client-apps/cli/src/local/**",
       "client-apps/cli/src/commands/up.ts",
@@ -105,9 +108,12 @@ export const LANES = {
       "client-apps/cli/package.json",
       "test/install/smoke-cli-cutover.mjs",
       "scripts/lib/**",
-      // The install layer's drivers and probes, and the fake model it starts from test/support.
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
-      "test/support/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       // The published install's registry wait (test/install/lib/install-cli.mjs).
       "scripts/publish-standalone.mjs",
       "backend/services/runner/scripts/bundle-slim.mjs",
@@ -144,9 +150,12 @@ export const LANES = {
       // the build-from-source path runs bundle-slim.mjs, which imports
       // source-map-pragma.mjs (#1087).
       "scripts/lib/**",
-      // The install layer's drivers and probes, and the fake model it starts from test/support.
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
-      "test/support/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       // The compose-runner image installs the CLI tarballs these two stage
       // (the stage script packs through publish-libs.mjs --only); a change
       // to either is a change to what the runner image contains.
@@ -270,9 +279,12 @@ export const LANES = {
       "test/install/smoke-helm.mjs",
       // The whole lib: the smoke imports stigmer-smoke.mjs (#1087).
       "scripts/lib/**",
-      // The install layer's drivers and probes, and the fake model it starts from test/support.
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
-      "test/support/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       // The kind gate builds the compose-runner image, which installs the
       // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
@@ -379,9 +391,12 @@ export const LANES = {
       "client-apps/cli/src/commands/up.ts",
       "test/install/rehearse-upgrade.mjs",
       "scripts/lib/**",
-      // The install layer's drivers and probes, and the fake model it starts from test/support.
+      // The install layer's drivers and probes, and the two test/support
+      // modules it loads (the fake model and its wire); the rest of
+      // test/support is the contract and e2e suites' machinery.
       "test/install/lib/**",
-      "test/support/**",
+      "test/support/src/fake-llm-upstream.ts",
+      "test/support/src/llm-wire.ts",
       "scripts/publish-standalone.mjs",
       "scripts/stage-all-in-one.mjs",
       "scripts/stage-compose-runner-cli.mjs",

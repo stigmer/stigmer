@@ -118,7 +118,12 @@ export class FakeLlmUpstream {
 
   async start(): Promise<void> {
     const server = createServer((req, res) => {
-      void this.handle(req, res);
+      this.handle(req, res).catch(() => {
+        // A request that fails mid-read (the client aborted) fails alone:
+        // the process the fake lives in (a suite, an install smoke) keeps
+        // running, and so do the other requests.
+        if (!res.writableEnded) res.destroy();
+      });
     });
     await new Promise<void>((resolve, reject) => {
       server.once("error", reject);

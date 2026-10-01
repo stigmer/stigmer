@@ -6,6 +6,7 @@
 // the install fake's own, carried over title for title when it folded into
 // this one. Driven over loopback; no target.
 // Domain: test support (model fakes).
+import { request } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_REPLY_TEXT, FakeLlmUpstream, type FakeLlmUpstreamOptions } from "../fake-llm-upstream.ts";
 
@@ -112,6 +113,18 @@ describe("FakeLlmUpstream in the install journeys' modes", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ model: "m", messages: [] }),
     });
+    expect(response.status).toBe(200);
+  });
+
+  it("survives a client that aborts mid-request, and answers the next one", async () => {
+    const upstream = await started({ defaultReply: true });
+    await new Promise<void>((resolve) => {
+      const aborted = request(`${upstream.url()}/v1/messages`, { method: "POST", headers: { "content-length": "1000" } });
+      aborted.on("error", () => resolve());
+      aborted.write('{"model":');
+      setTimeout(() => aborted.destroy(), 50);
+    });
+    const response = await post(upstream, "/v1/messages", { model: "m", messages: [] });
     expect(response.status).toBe(200);
   });
 
