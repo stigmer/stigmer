@@ -838,12 +838,12 @@ test("reads a CLI run's stream: the done phase and the last top-level reply, ski
   const line = (type, payload) => JSON.stringify({ type, ts: "2026-10-01T00:00:00Z", payload });
   const stream = [
     "a status line that is not JSON",
-    line("phase_change", { phase: "EXECUTION_IN_PROGRESS" }),
+    line("phase_change", { phase: "in_progress", previous: "pending" }),
     line("ai_message", { content: "a sub-agent's words", sub_agent_id: "sub_1" }),
     line("ai_message", { content: "Hello there." }),
-    line("done", { phase: "EXECUTION_COMPLETED", error: "" }),
+    line("done", { phase: "completed" }),
   ].join("\n");
-  assert.deepEqual(streamedRunOutcome(stream), { phase: "EXECUTION_COMPLETED", reply: "Hello there." });
-  assert.deepEqual(streamedRunOutcome(line("done", { phase: "EXECUTION_FAILED", error: "boom" })), { phase: "EXECUTION_FAILED", reply: "" });
+  assert.deepEqual(streamedRunOutcome(stream), { phase: "completed", reply: "Hello there." });
+  assert.deepEqual(streamedRunOutcome(line("done", { phase: "failed", error: "boom" })), { phase: "failed", reply: "" });
   assert.deepEqual(streamedRunOutcome(""), { phase: "", reply: "" });
 });

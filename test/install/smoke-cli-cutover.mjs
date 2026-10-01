@@ -64,8 +64,8 @@
  *       so the agent run must fail (its red-first check).
  *   --live-model   no fake: the install is handed the shell's ANTHROPIC_API_KEY
  *       and no base URL, the agent runs on the cheapest native model
- *       (`LIVE_MODEL`), and the stream must report EXECUTION_COMPLETED with a
- *       non-empty reply; the words are never compared. The live lane runs it
+ *       (`LIVE_MODEL`), and the stream's `done` event must report `completed`
+ *       with a non-empty reply; the words are never compared. The live lane runs it
  *       against the published CLI after a release. It spends real money (one
  *       short turn), and the CLI has no cost-limit flag, so the bound is the
  *       one turn.
@@ -254,7 +254,8 @@ spec:
   });
   if (fake === undefined) {
     const outcome = streamedRunOutcome(agentRun.stdout);
-    if (outcome.phase !== "EXECUTION_COMPLETED" || outcome.reply.trim() === "") {
+    // The CLI's stream names phases in its short words (`pending`, `in_progress`, `completed`).
+    if (outcome.phase !== "completed" || outcome.reply.trim() === "") {
       throw new Error(
         `the live agent run on ${LIVE_MODEL} did not complete with a reply (phase ${outcome.phase || "none"})\n` +
           `stdout:\n${agentRun.stdout}\nstderr:\n${agentRun.stderr}`,
