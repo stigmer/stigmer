@@ -45,6 +45,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { createLogger } from "../../../boot/logger.js";
 import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
+import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import {
   errorOf,
   failingStore,
@@ -100,6 +101,7 @@ function lifecycleDeps(store: Store): LifecycleDeps {
     store,
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
+    recoverSerializer: new KeyedSerializer(),
     broker: untouchable("broker"),
     engineState: untouchable("engineState"),
     executionContextBuilder: untouchable("executionContextBuilder"),

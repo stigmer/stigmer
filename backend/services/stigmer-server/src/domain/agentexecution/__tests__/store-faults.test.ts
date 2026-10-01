@@ -36,6 +36,7 @@ import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";
 import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
+import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import {
   errorOf,
   failingStore,
@@ -78,6 +79,7 @@ function lifecycleDeps(store: Store): LifecycleDeps {
     store,
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
+    recoverSerializer: new KeyedSerializer(),
     broker: untouchable("broker"),
     engineState: untouchable("engineState"),
     executionContextBuilder: untouchable("executionContextBuilder"),
