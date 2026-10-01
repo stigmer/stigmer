@@ -129,6 +129,33 @@ export function scanForFieldMatch<Desc extends DescMessage>(
 }
 
 /**
+ * The findAllByField scan every driver shares: deserialize each stored
+ * blob, keep the ORIGINAL bytes of rows whose field at fieldPath equals
+ * value (the matcher `scanForFieldMatch` uses). Malformed records are
+ * skipped, as the single-row scan skips them.
+ */
+export function filterRowsByField<Desc extends DescMessage>(
+  rows: Iterable<Uint8Array>,
+  schema: Desc,
+  fieldPath: string,
+  value: string,
+): Uint8Array[] {
+  const results: Uint8Array[] = [];
+  for (const data of rows) {
+    let msg: MessageShape<Desc>;
+    try {
+      msg = fromBinary(schema, data);
+    } catch {
+      continue;
+    }
+    if (extractFieldValue(schema, msg, fieldPath) === value) {
+      results.push(data);
+    }
+  }
+  return results;
+}
+
+/**
  * The findAllByLabel scan every driver shares: deserialize each stored
  * blob, keep the ORIGINAL bytes of rows whose metadata.labels[labelKey]
  * equals labelValue (callers receive stored bytes, not re-marshaled ones).

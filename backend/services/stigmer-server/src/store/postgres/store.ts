@@ -88,6 +88,7 @@ import { NOOP_STORE_LOGGER } from "../logger.js";
 import type { StoreLogger } from "../logger.js";
 import {
   apiResourceKindName,
+  filterRowsByField,
   filterRowsByLabel,
   scanForFieldMatch,
 } from "../proto-fields.js";
@@ -435,17 +436,14 @@ export class PostgresStore implements Store {
     return match;
   }
 
-  async findAllByField(
+  async findAllByField<Desc extends DescMessage>(
     kind: ApiResourceKind,
     fieldPath: string,
     value: string,
+    schema: Desc,
   ): Promise<Uint8Array[]> {
-    // Go-parity quirk preserved (interface.ts doc; both drivers mirror it):
-    // returns ALL rows of the kind, unfiltered. The parameters are kept so
-    // the signature stays surface-identical.
-    void fieldPath;
-    void value;
-    return this.listResources(kind);
+    const rows = await this.listResources(kind);
+    return filterRowsByField(rows, schema, fieldPath, value);
   }
 
   async findAllByLabel<Desc extends DescMessage>(
