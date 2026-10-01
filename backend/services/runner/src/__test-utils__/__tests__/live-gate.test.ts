@@ -20,23 +20,20 @@ afterEach(() => {
 
 describe("liveSecret", () => {
   it("returns the key when it is set, in or out of the lane", () => {
-    expect(liveSecret("ANTHROPIC_API_KEY", { ANTHROPIC_API_KEY: "k-1" })).toBe("k-1");
-    expect(liveSecret("ANTHROPIC_API_KEY", { ANTHROPIC_API_KEY: "k-1", STIGMER_LIVE: "1" })).toBe("k-1");
+    expect(liveSecret("CURSOR_API_KEY", { CURSOR_API_KEY: "k-1" })).toBe("k-1");
+    expect(liveSecret("CURSOR_API_KEY", { CURSOR_API_KEY: "k-1", STIGMER_LIVE: "1" })).toBe("k-1");
   });
 
-  it("returns undefined outside the lane when the key is missing, and says why", () => {
+  it("returns undefined outside the lane when the key is missing, and says why once per key", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(liveSecret("CURSOR_API_KEY", {})).toBeUndefined();
-    expect(warn.mock.calls.flat().join(" ")).toMatch(/CURSOR_API_KEY is not set/);
+    expect(liveSecret("CURSOR_API_KEY", { CURSOR_API_KEY: "" }), "an empty value is missing").toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toMatch(/CURSOR_API_KEY is not set/);
   });
 
-  it("treats an empty value as missing", () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(liveSecret("CURSOR_API_KEY", { CURSOR_API_KEY: "" })).toBeUndefined();
-  });
-
-  it("throws inside the lane when the key is missing, naming the variable", () => {
-    expect(() => liveSecret("ANTHROPIC_API_KEY", { STIGMER_LIVE: "1" })).toThrow(/ANTHROPIC_API_KEY is not set, but STIGMER_LIVE=1/);
+  it("throws inside the lane when the key is missing, naming the variable and no value", () => {
+    expect(() => liveSecret("CURSOR_API_KEY", { STIGMER_LIVE: "1" })).toThrow(/CURSOR_API_KEY is not set, but STIGMER_LIVE=1/);
   });
 });
 
@@ -60,5 +57,12 @@ describe("recordLiveSpend", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     recordLiveSpend("cursor transcript", 0.05, {});
     expect(log.mock.calls.flat().join(" ")).toMatch(/cursor transcript: \$0\.0500 estimated/);
+  });
+
+  it("says a run reported no estimate rather than reading it as free", () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    recordLiveSpend("cursor transcript", undefined, {});
+    expect(log.mock.calls.flat().join(" ")).toMatch(/cursor transcript: no estimate reported/);
+    expect(log.mock.calls.flat().join(" ")).not.toMatch(/\$0\.0000/);
   });
 });

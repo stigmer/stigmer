@@ -233,15 +233,26 @@ it("a new skip is one beyond what the file carried; by-construction and quaranti
   assert.deepEqual(newSkips.map((s) => s.title), ["b", "g"]);
 });
 
-it("the by-construction classes are capability, platform and a gate-provided dependency", () => {
+it("the by-construction classes are capability, platform, a gate-provided dependency, and a live file's key", () => {
   assert.equal(byConstruction("!capabilities.versionTagging"), "target capability");
   assert.equal(byConstruction('process.platform === "win32"'), "platform");
   assert.equal(byConstruction("!TEST_FGA_API_URL"), "gate-provided dependency");
   assert.equal(byConstruction("!testDatabaseAdminUrl()"), "gate-provided dependency");
-  assert.equal(byConstruction('!liveSecret("CURSOR_API_KEY")'), "live-lane credential");
+  assert.equal(byConstruction('!liveSecret("CURSOR_API_KEY")', "pkg/src/__tests__/turn.live.test.ts"), "live-lane credential");
+  // Outside a live file the key explains nothing: an ordinary test never runs in the live lane.
+  assert.equal(byConstruction('!liveSecret("CURSOR_API_KEY")', "pkg/src/__tests__/turn.test.ts"), undefined);
+  assert.equal(byConstruction('!liveSecret("CURSOR_API_KEY")'), undefined);
   // A key read through a variable carries no reason the tool can read.
-  assert.equal(byConstruction("!key"), undefined);
+  assert.equal(byConstruction("!key", "pkg/src/__tests__/turn.live.test.ts"), undefined);
   assert.equal(byConstruction("!hasBash"), undefined);
+});
+
+it("a liveSecret skip is new in an ordinary test, and by construction only in a live one", () => {
+  const skip = `describe.skipIf(!liveSecret("CURSOR_API_KEY"))("s", () => { it("a", () => {}); });`;
+  const ordinary = compareInventories([{ base: file("pkg/a.test.ts", ""), head: file("pkg/a.test.ts", skip) }], PKGS);
+  assert.deepEqual(ordinary.newSkips.map((s) => s.title), ["s"]);
+  const live = compareInventories([{ base: file("pkg/a.live.test.ts", ""), head: file("pkg/a.live.test.ts", skip) }], PKGS);
+  assert.deepEqual(live.newSkips, []);
 });
 
 it("packageOf finds the nearest manifest directory", () => {

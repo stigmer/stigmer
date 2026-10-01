@@ -187,7 +187,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
 
     // ── Findings dump (what a bump's PR quotes) ──────────────────────────────
     const final = record.lastFullStatus;
-    recordLiveSpend("cursor transcript (composer-2.5)", final?.streamingUsage?.estimatedCostUsd ?? 0);
+    recordLiveSpend("cursor transcript (composer-2.5)", final?.streamingUsage?.estimatedCostUsd);
     const rows = record.toolCalls();
     console.log(`[transcript-live] outcome: ${invocation.outcome.kind}; phases persisted: ${record.persistedPhases.map((p) => ExecutionPhase[p]).join(" → ")}`);
     for (const m of final?.messages ?? []) {

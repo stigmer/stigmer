@@ -91,10 +91,11 @@
  * Four skips carry their reason by construction and are never "new": a
  * condition on a target capability (`capabilities.x`, the conformance guide's
  * idiom), on the platform (`process.platform`), on a dependency the gate
- * provides (a `TEST_*` URL, `testDatabaseAdminUrl()`), or on a live suite's
- * provider key (`liveSecret(...)`): inside the gate, and inside the live lane,
- * the helper behind it throws when the dependency is missing, so that skip
- * cannot hide there. A case quarantined by name carries its reason in a comment on
+ * provides (a `TEST_*` URL, `testDatabaseAdminUrl()`), or, in a `live` file
+ * only, on its provider key (`liveSecret(...)`): inside the gate the gate's
+ * helpers, and inside the live lane `liveSecret`, throw when the dependency is
+ * missing, so that skip cannot hide there. An ordinary test never runs in the
+ * live lane, so a `liveSecret` skip in one is a new skip like any other. A case quarantined by name carries its reason in a comment on
  * the line above, `// quarantined: <repo>#<issue>`; with --check-issues the
  * issue must be open.
  *
@@ -168,7 +169,9 @@ export const BY_CONSTRUCTION = [
   { reason: "platform", pattern: /\bprocess\s*\.\s*platform\b/ },
   { reason: "gate-provided dependency", pattern: /\bTEST_[A-Z0-9_]+\b|\btestDatabaseAdminUrl\s*\(/ },
   // The live class's key: missing outside the live lane skips by name, missing inside it throws.
-  { reason: "live-lane credential", pattern: /\bliveSecret\s*\(/ },
+  // Only in a live file: an ordinary test never runs in the live lane, so its `liveSecret` skip
+  // would skip in every run, the gate's included, and must stay a skip someone answers for.
+  { reason: "live-lane credential", pattern: /\bliveSecret\s*\(/, layer: "live" },
 ];
 
 const QUARANTINE_COMMENT = /quarantined:\s*((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/i;
@@ -325,8 +328,12 @@ function runtimeCondition(ts, sf, call) {
   return "";
 }
 
-export function byConstruction(condition) {
-  return BY_CONSTRUCTION.find(({ pattern }) => pattern.test(condition))?.reason;
+/**
+ * The reason a skip carries by construction, or undefined. `path` is the test file's: a class
+ * bound to a layer (`layer`) explains a skip only in a file whose name carries that layer word.
+ */
+export function byConstruction(condition, path = "") {
+  return BY_CONSTRUCTION.find(({ pattern, layer }) => pattern.test(condition) && (layer === undefined || nameWords(path).words.includes(layer)))?.reason;
 }
 
 /**
@@ -810,8 +817,8 @@ export function compareInventories(lineages, packageDirs) {
     for (const c of vanished.slice(pairs)) vanishedPool.push({ ...c, path: base.path, pkg });
     for (const c of gained.slice(pairs)) gainedPool.push({ ...c, path, pkg });
 
-    const headSkips = (head?.skips ?? []).filter((s) => !byConstruction(s.condition) && !s.quarantine);
-    const baseSkips = (base?.skips ?? []).filter((s) => !byConstruction(s.condition) && !s.quarantine);
+    const headSkips = (head?.skips ?? []).filter((s) => !byConstruction(s.condition, path) && !s.quarantine);
+    const baseSkips = (base?.skips ?? []).filter((s) => !byConstruction(s.condition, base?.path ?? path) && !s.quarantine);
     for (const s of surplus(headSkips, baseSkips, (x) => `${x.kind}|${x.condition}`)) newSkips.push({ ...s, path });
   }
 
@@ -856,9 +863,9 @@ export function explainRunSkips(report, inventories, root) {
       const ancestors = result.ancestorTitles ?? [];
       const name = [...ancestors, result.title].join(" > ");
       const sites = (inventory?.skips ?? []).filter((s) => covers(s, ancestors, result.title));
-      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => byConstruction(s.condition));
+      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => byConstruction(s.condition, path));
       if (site) {
-        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : byConstruction(site.condition) });
+        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : byConstruction(site.condition, path) });
         continue;
       }
       const line = sites[0]?.line ?? inventory?.cases.find((c) => c.key === name)?.line ?? 1;
