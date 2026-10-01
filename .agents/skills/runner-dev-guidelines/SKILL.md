@@ -117,8 +117,10 @@ The worked cases behind these laws are in
   turns: the harness contract kit's scripted adapter
   (`backend/services/runner/src/__test-utils__/harness-contract/scripted-adapter.ts`)
   inside this package, and the conformance suite's scripted model
-  (`test/support/src/mock-llm.ts`) across the wire. A test that makes a live
-  model call is an experiment, not a test.
+  (`test/support/src/mock-llm.ts`) across the wire. A live model call never
+  stands in for those: it belongs to the live class (`*.live.test.ts`), which
+  proves the far side (a provider id, a provider's wire, a price) by hand and
+  after each release, and never replaces a deterministic test.
 - Assert on structure and side effects, never on prose.
 - Edge cases are where incidents hide: context overflow, an MCP server crashing
   mid-call, provider rate limiting, a malformed tool response. Test them by

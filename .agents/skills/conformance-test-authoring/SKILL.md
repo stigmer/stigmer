@@ -112,8 +112,9 @@ never a silent return.
 ## Live vendors
 
 A test that needs a live vendor credential has no offline arm and says so in its
-header; the credentials are held by the maintainers outside this repository and
-no CI lane here exercises them.
+header. It is not a conformance test: it belongs to the live class
+(`*.live.test.ts`, `test/README.md`), which runs by hand and in `ci.live.yaml`
+after each release, with the keys from the `provider-integration` environment.
 
 ## The package's own gates
 

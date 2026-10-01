@@ -1421,6 +1421,7 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server Docker image        (release.mcp-server.yaml)"
+	@echo "  - Live check on real providers   (ci.live.yaml, after the npm release)"
 
 # ─── Dev Publishing ───────────────────────────
 # Publish throwaway "dev" builds to each ecosystem's native ephemeral channel so
