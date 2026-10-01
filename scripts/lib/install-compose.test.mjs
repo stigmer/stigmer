@@ -1,5 +1,6 @@
 // Pins what the compose driver writes for a stack: the env file keeps the
-// same keys across an upgrade and carries STIGMER_VERSION only for a
+// same keys across an upgrade, names the address clients reach the stack on
+// (STIGMER_PUBLIC_URL), and carries STIGMER_VERSION only for a
 // published release (a source build carries the staged CLI's version
 // instead); the override maps host.docker.internal into the runner, and
 // hands it ANTHROPIC_BASE_URL only when the compose file does not pass it
@@ -10,18 +11,20 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { composeEnvText, composeOverrideText, serviceImages } from "./install-compose.mjs";
+import { COMPOSE_PUBLIC_URL, composeEnvText, composeOverrideText, serviceImages } from "./install-compose.mjs";
 
 const KEYS = { postgresPassword: "pw", encryptionKey: "ek", runnerTokenKey: "rk" };
+const PUBLIC_URL = COMPOSE_PUBLIC_URL;
 const MODEL = { ANTHROPIC_API_KEY: "sk-fake", ANTHROPIC_BASE_URL: "http://host.docker.internal:4000" };
 
-test("a published release's env file sets STIGMER_VERSION with the tag's v, and the model", () => {
+test("a published release's env file sets the public address, STIGMER_VERSION with the tag's v, and the model", () => {
   assert.equal(
-    composeEnvText({ keys: KEYS, release: { kind: "published", version: "3.41.0" }, runnerCliVersion: "", model: MODEL }),
+    composeEnvText({ keys: KEYS, publicUrl: PUBLIC_URL, release: { kind: "published", version: "3.41.0" }, runnerCliVersion: "", model: MODEL }),
     [
       "POSTGRES_PASSWORD=pw",
       "STIGMER_ENCRYPTION_KEY=ek",
       "STIGMER_RUNNER_TOKEN_KEY=rk",
+      "STIGMER_PUBLIC_URL=http://127.0.0.1:7234",
       "STIGMER_VERSION=v3.41.0",
       "ANTHROPIC_API_KEY=sk-fake",
       "ANTHROPIC_BASE_URL=http://host.docker.internal:4000",
@@ -31,8 +34,8 @@ test("a published release's env file sets STIGMER_VERSION with the tag's v, and 
 });
 
 test("a source build's env file carries the staged CLI version and no STIGMER_VERSION, with the same keys", () => {
-  const text = composeEnvText({ keys: KEYS, release: { kind: "build" }, runnerCliVersion: "0.0.0-dev.abc1234", model: MODEL });
-  assert.match(text, /^POSTGRES_PASSWORD=pw\nSTIGMER_ENCRYPTION_KEY=ek\nSTIGMER_RUNNER_TOKEN_KEY=rk\n/);
+  const text = composeEnvText({ keys: KEYS, publicUrl: PUBLIC_URL, release: { kind: "build" }, runnerCliVersion: "0.0.0-dev.abc1234", model: MODEL });
+  assert.match(text, /^POSTGRES_PASSWORD=pw\nSTIGMER_ENCRYPTION_KEY=ek\nSTIGMER_RUNNER_TOKEN_KEY=rk\nSTIGMER_PUBLIC_URL=http:\/\/127\.0\.0\.1:7234\n/);
   assert.match(text, /\nSTIGMER_CLI_VERSION=0\.0\.0-dev\.abc1234\n/);
   assert.doesNotMatch(text, /STIGMER_VERSION=/);
 });

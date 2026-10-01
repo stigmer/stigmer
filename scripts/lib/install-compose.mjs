@@ -9,7 +9,8 @@
  *
  * A stack is configured the way the self-hosting guide tells a user to: one
  * env file (fresh keys, STIGMER_VERSION for a published release, the model's
- * ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), the compose file, and, for a
+ * ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL, and STIGMER_PUBLIC_URL, the
+ * address clients reach the stack on), the compose file, and, for a
  * source build, docker-compose.dev.yml on top. One override file maps
  * host.docker.internal into the runner so it can reach a model on this host,
  * and, for a compose file older than its ANTHROPIC_BASE_URL line (v3.41.0
@@ -43,6 +44,14 @@ const DEV_OVERLAY_FILE = join(repoRoot, "docker-compose.dev.yml");
 /** The product's fixed host ports, published by docker-compose.yml. */
 export const COMPOSE_SERVER_PORT = 7234;
 export const COMPOSE_ARTIFACT_PORT = 7235;
+
+/**
+ * The STIGMER_PUBLIC_URL a stack is configured with: the address the scripts
+ * reach it on, so every link the server mints still answers, and not the
+ * compose file's own default (http://localhost:7234), so a stack that loses
+ * the variable on its way to the server mints the default and shows it.
+ */
+export const COMPOSE_PUBLIC_URL = `http://127.0.0.1:${COMPOSE_SERVER_PORT}`;
 
 /** The tags docker-compose.dev.yml gives the two source-built images. */
 export const SOURCE_IMAGES = Object.freeze({
@@ -129,14 +138,16 @@ export function composeFileAtRelease(version, dir) {
 
 /**
  * The env file a stack runs with, as text: the same keys on every write, so
- * an upgrade keeps the database password and the encryption keys; the
- * published version or the staged CLI version the release needs; the model.
+ * an upgrade keeps the database password and the encryption keys; the public
+ * address; the published version or the staged CLI version the release
+ * needs; the model.
  */
-export function composeEnvText({ keys, release, runnerCliVersion, model }) {
+export function composeEnvText({ keys, publicUrl, release, runnerCliVersion, model }) {
   const lines = [
     `POSTGRES_PASSWORD=${keys.postgresPassword}`,
     `STIGMER_ENCRYPTION_KEY=${keys.encryptionKey}`,
     `STIGMER_RUNNER_TOKEN_KEY=${keys.runnerTokenKey}`,
+    `STIGMER_PUBLIC_URL=${publicUrl}`,
   ];
   if (release.kind === "published") lines.push(`STIGMER_VERSION=v${release.version}`);
   else lines.push(`STIGMER_CLI_VERSION=${runnerCliVersion}`);
@@ -189,7 +200,7 @@ export function createComposeStack({ model, log }) {
 
   const configure = (target, file) => {
     const runnerCliVersion = target.kind === "build" ? stagedRunnerCliVersion() : "";
-    writeFileSync(envFile, composeEnvText({ keys, release: target, runnerCliVersion, model }));
+    writeFileSync(envFile, composeEnvText({ keys, publicUrl: COMPOSE_PUBLIC_URL, release: target, runnerCliVersion, model }));
     writeFileSync(overrideFile, composeOverrideText(readFileSync(file, "utf8"), model));
     // The first file is the project directory, so after a swap to this
     // checkout's file the dev overlay's build contexts resolve against it.
@@ -227,6 +238,10 @@ export function createComposeStack({ model, log }) {
     /** The guide's upgrade: the target's compose file, the version moved, pull, up -d. */
     async upgrade(target, { composeFile = CHECKOUT_COMPOSE_FILE } = {}) {
       bringUp(target, composeFile);
+    },
+    /** One service's log as compose prints it, without the service prefix: what `docker compose logs` shows a user. */
+    logs(service) {
+      return compose(["logs", "--no-log-prefix", "--no-color", service]);
     },
     /** The image each running service was created from, by service name. */
     async images() {

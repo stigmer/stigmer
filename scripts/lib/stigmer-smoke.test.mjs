@@ -14,7 +14,17 @@
 // change named at once (compareState is pure; recordState and
 // assertStateSurvived run against a scripted lane whose rows can be made to
 // vanish, the way a data-losing migration would). The version probe: the
-// server's own getServerInfo answer, refused when empty. Run via
+// server's own getServerInfo answer, refused when empty. The refusal probe:
+// a request the server must refuse passes only on a non-2xx naming the
+// expected text, and an admission or another refusal fails, naming the
+// answer. The log probes: the server's log is read in both of its forms, a
+// log with no parseable line refuses, and the boot line that derives the
+// OAuth callback must name the public address it was given. The approval
+// probes: a gate is found in the organization's queue by its workflow, its
+// resolutions are read from every page of the event log, its creator is
+// refused when absent, and `stigmer execution logs` must say a timed-out gate
+// decided nothing before its task failed, and name who approved the other.
+// Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test` and
 // ci.ts-workspace).
 
@@ -23,16 +33,25 @@ import { createServer } from "node:http";
 import { test } from "node:test";
 
 import {
+  approvalResolutions,
   assertConsoleServed,
+  assertMissingOrganizationRefused,
+  assertOAuthCallbackFromPublicOrigin,
   assertStateSurvived,
   compareState,
+  connectRefusal,
+  expectRefusal,
+  gateLogProblem,
   pollUntil,
   readState,
   recordState,
   runAgentToReply,
   runSetVarsWorkflow,
+  serverLogEntries,
   serverVersion,
   waitForBootstrapOrganization,
+  waitForPendingApproval,
+  workflowExecutionCreator,
 } from "./stigmer-smoke.mjs";
 
 const TRUSTED_LOCAL_DOCUMENT = {
@@ -528,4 +547,210 @@ test("serverVersion reads getServerInfo's version and refuses an empty one", asy
   } finally {
     await lane.close();
   }
+});
+
+/** A lane that answers every call with one status and body, and records the bodies it was sent. */
+async function serveAnswer(status, body) {
+  const sent = [];
+  const server = createServer((request, response) => {
+    let text = "";
+    request.on("data", (chunk) => (text += chunk));
+    request.on("end", () => {
+      sent.push({ procedure: (request.url ?? "").replace(/^\//, ""), body: JSON.parse(text) });
+      response.writeHead(status, { "content-type": "application/json" });
+      response.end(typeof body === "string" ? body : JSON.stringify(body));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    baseUrl: `http://127.0.0.1:${server.address().port}`,
+    sent,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
+
+test("a refusal naming the expected text passes, and yields its status, code and message", async () => {
+  const lane = await serveAnswer(404, { code: "not_found", message: "Organization not found: stigmer" });
+  try {
+    assert.deepEqual(await expectRefusal(lane.baseUrl, "x.v1.C/create", {}, { text: "Organization not found: stigmer" }), {
+      status: 404,
+      code: "not_found",
+      message: "Organization not found: stigmer",
+    });
+  } finally {
+    await lane.close();
+  }
+});
+
+test("an admitted request fails the refusal probe, naming the status", async () => {
+  const lane = await serveAnswer(200, { metadata: { id: "agt_1" } });
+  try {
+    await assert.rejects(expectRefusal(lane.baseUrl, "x.v1.C/create", {}, { text: "Organization not found" }), {
+      message: 'x.v1.C/create: expected a refusal containing "Organization not found", the server answered 200',
+    });
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a refusal for another reason fails the refusal probe, naming what the server said", async () => {
+  const lane = await serveAnswer(400, { code: "invalid_argument", message: "spec.instructions is required" });
+  try {
+    await assert.rejects(
+      expectRefusal(lane.baseUrl, "x.v1.C/create", {}, { text: "Organization not found" }),
+      /refused, but not with "Organization not found": HTTP 400 invalid_argument: spec\.instructions is required/,
+    );
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a refusal whose body is not a Connect error keeps its text as the message", () => {
+  assert.deepEqual(connectRefusal(502, "<html>bad gateway</html>"), { status: 502, code: "", message: "<html>bad gateway</html>" });
+});
+
+test("the missing-organization probe creates an agent in `stigmer` and wants that organization named", async () => {
+  const lane = await serveAnswer(404, { code: "not_found", message: "Organization not found: stigmer" });
+  try {
+    await assertMissingOrganizationRefused(lane.baseUrl);
+    assert.equal(lane.sent.length, 1);
+    assert.equal(lane.sent[0].procedure, "ai.stigmer.agentic.agent.v1.AgentCommandController/create");
+    assert.equal(lane.sent[0].body.metadata.org, "stigmer");
+  } finally {
+    await lane.close();
+  }
+});
+
+const DERIVED =
+  "STIGMER_OAUTH_REDIRECT_URI is not set — deriving the served console's callback for MCP server OAuth Connect";
+
+test("the server's log reads in its pretty form and as NDJSON, and other output is skipped", () => {
+  const text = [
+    `2026-10-01T10:00:00.000Z INFO  ${DERIVED} {"redirectUri":"http://127.0.0.1:7234/auth/oauth/callback","from":"public-origin"}`,
+    "2026-10-01T10:00:00.100Z WARN  a message {with a brace} and no fields",
+    '{"level":"error","time":"2026-10-01T10:00:01.000Z","message":"boom","cause":"x"}',
+    "Temporal worker: something that is not the server's",
+  ].join("\n");
+  assert.deepEqual(serverLogEntries(text), [
+    {
+      level: "info",
+      message: DERIVED,
+      fields: { redirectUri: "http://127.0.0.1:7234/auth/oauth/callback", from: "public-origin" },
+    },
+    { level: "warn", message: "a message {with a brace} and no fields", fields: {} },
+    { level: "error", message: "boom", fields: { cause: "x" } },
+  ]);
+});
+
+test("a log in which no line parses refuses, so a format change cannot pass unseen", () => {
+  assert.throws(() => serverLogEntries("plain text\nmore plain text\n"), /no line of the server's log parses/);
+});
+
+test("the callback derived from the public address passes", () => {
+  const log = `2026-10-01T10:00:00.000Z INFO  ${DERIVED} {"redirectUri":"http://127.0.0.1:7234/auth/oauth/callback","from":"public-origin"}`;
+  assert.deepEqual(assertOAuthCallbackFromPublicOrigin(log, "http://127.0.0.1:7234"), {
+    redirectUri: "http://127.0.0.1:7234/auth/oauth/callback",
+    from: "public-origin",
+  });
+});
+
+test("a callback derived from the compose file's default address fails, naming both", () => {
+  const log = `2026-10-01T10:00:00.000Z INFO  ${DERIVED} {"redirectUri":"http://localhost:7234/auth/oauth/callback","from":"public-origin"}`;
+  assert.throws(
+    () => assertOAuthCallbackFromPublicOrigin(log, "http://127.0.0.1:7234"),
+    /derived as \{"redirectUri":"http:\/\/localhost:7234\/auth\/oauth\/callback","from":"public-origin"\}; want \{"redirectUri":"http:\/\/127\.0\.0\.1:7234\/auth\/oauth\/callback"/,
+  );
+});
+
+test("a boot that logs no derived callback fails", () => {
+  const log = '{"level":"warn","time":"t","message":"STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)"}';
+  assert.throws(() => assertOAuthCallbackFromPublicOrigin(log, "http://127.0.0.1:7234"), /logged no derived OAuth callback/);
+});
+
+const WEX_QUERY = "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController";
+
+test("a pending approval is found by its workflow once it reaches the queue", async () => {
+  const lane = await serveConnectLane({
+    [`${WEX_QUERY}/listPendingApprovals`]: (n) => ({
+      entries:
+        n === 1
+          ? [{ executionId: "wex_other", workflowName: "another-workflow", taskName: "review" }]
+          : [
+              { executionId: "wex_other", workflowName: "another-workflow", taskName: "review" },
+              { executionId: "wex_gate", workflowName: "gated", taskName: "review" },
+            ],
+    }),
+  });
+  try {
+    assert.deepEqual(await waitForPendingApproval(lane.baseUrl, { org: "stigmer", workflowName: "gated", timeoutMs: 10_000 }), {
+      executionId: "wex_gate",
+      taskName: "review",
+    });
+    assert.equal(lane.calls(`${WEX_QUERY}/listPendingApprovals`), 2);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("approval resolutions are read from every page of the event log, with their task", async () => {
+  const lane = await serveConnectLane({
+    [`${WEX_QUERY}/getEventLog`]: (n) =>
+      n === 1
+        ? {
+            events: [{ sequenceNumber: "4", taskName: "review", approvalResolved: { outcome: "approve", comment: "first" } }],
+            hasMore: true,
+          }
+        : { events: [{ sequenceNumber: "9", taskName: "second", approvalResolved: { autoResolved: true } }] },
+  });
+  try {
+    assert.deepEqual(await approvalResolutions(lane.baseUrl, "wex_gate"), [
+      { taskName: "review", outcome: "approve", comment: "first" },
+      { taskName: "second", autoResolved: true },
+    ]);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a workflow execution's creator is read from its audit, and its absence refuses", async () => {
+  const lane = await serveConnectLane({
+    [`${WEX_QUERY}/get`]: (n) =>
+      n === 1 ? { status: { audit: { specAudit: { createdBy: { id: "acc_local" } } } } } : { status: {} },
+  });
+  try {
+    assert.equal(await workflowExecutionCreator(lane.baseUrl, "wex_gate"), "acc_local");
+    await assert.rejects(workflowExecutionCreator(lane.baseUrl, "wex_gate"), /records no creator/);
+  } finally {
+    await lane.close();
+  }
+});
+
+const TIMED_OUT_LOGS = [
+  "10:00:00 ▶ execution started",
+  "10:00:00 → task started: review",
+  "10:00:00 ⏳ approval requested: review — Approve?",
+  "10:00:20 ⏱ approval resolved: review — timed out, no decision",
+  "10:00:20 ✗ task failed: review — human_input timed out",
+  "10:00:20 ✗ execution failed: human_input timed out",
+].join("\n");
+
+test("a timed-out gate's logs pass when it decided nothing before its task failed", () => {
+  assert.equal(gateLogProblem(TIMED_OUT_LOGS, "review", "timed out"), undefined);
+});
+
+test("a timed-out gate's logs fail without the no-decision line, or with the failure first", () => {
+  assert.match(
+    gateLogProblem(TIMED_OUT_LOGS.replace("timed out, no decision", "approve (timeout)"), "review", "timed out"),
+    /no line reads "approval resolved: review — timed out, no decision"/,
+  );
+  const reordered = TIMED_OUT_LOGS.split("\n");
+  [reordered[3], reordered[4]] = [reordered[4], reordered[3]];
+  assert.match(gateLogProblem(reordered.join("\n"), "review", "timed out"), /printed before its gate resolved/);
+});
+
+test("an approved gate's logs must name its outcome and its reviewer", () => {
+  const logs = "10:00:05 ✓ approval resolved: review — approve by acc_local";
+  assert.equal(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_local" }), undefined);
+  assert.match(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_someone_else" }), /no line reads/);
+  assert.match(gateLogProblem("10:00:05 ✓ approval resolved: review — approve", "review", { outcome: "approve", by: "acc_local" }), /no line reads/);
 });

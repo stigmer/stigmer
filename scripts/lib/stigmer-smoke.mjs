@@ -8,7 +8,13 @@
  * that needs a new probe adds it here, never inline. The upgrade rehearsal
  * (scripts/rehearse-upgrade.mjs) adds the state probes: what the runs created
  * is recorded before an upgrade and read back after it, field by field, and
- * the server says which release answers (getServerInfo).
+ * the server says which release answers (getServerInfo). The refusal and log
+ * probes read what an install must not admit and what its server says at
+ * boot: a request for an organization nobody created is refused by name,
+ * and the OAuth callback is derived from the public address the install was
+ * given. The approval probes read a workflow's human_input gate as a
+ * reviewer meets it: waiting in the organization's queue, resolved on the
+ * execution's event log, and printed by `stigmer execution logs`.
  *
  * Plain node + fetch, no dependencies — runnable everywhere CI is. Every
  * probe takes the server's base URL so the same code serves a stack on
@@ -63,6 +69,147 @@ export async function connectJson(baseUrl, procedure, body) {
     throw new Error(`${procedure} -> HTTP ${response.status}: ${text.slice(0, 300)}`);
   }
   return JSON.parse(text);
+}
+
+/**
+ * A unary Connect-JSON call the server must refuse. Resolves the refusal
+ * `{ status, code, message }` when the answer is a non-2xx whose message
+ * contains `text`; throws when the server admits the request, or refuses it
+ * for another reason, naming what it answered.
+ */
+export async function expectRefusal(baseUrl, procedure, body, { text }) {
+  const response = await fetch(`${baseUrl}/${procedure}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const refusal = connectRefusal(response.status, await response.text());
+  const problem = refusalProblem(refusal, text);
+  if (problem !== undefined) throw new Error(`${procedure}: ${problem}`);
+  return refusal;
+}
+
+/** A Connect answer as `{ status, code, message }`; a body that is not a Connect error keeps its text as the message. */
+export function connectRefusal(status, body) {
+  try {
+    const parsed = JSON.parse(body);
+    if (parsed !== null && typeof parsed === "object" && typeof parsed.message === "string") {
+      return { status, code: typeof parsed.code === "string" ? parsed.code : "", message: parsed.message };
+    }
+  } catch {
+    // not JSON: the raw text is the message
+  }
+  return { status, code: "", message: body.slice(0, 300) };
+}
+
+/** Why `refusal` is not the refusal expected, or undefined when it is. Pure. */
+export function refusalProblem(refusal, text) {
+  if (refusal.status >= 200 && refusal.status < 300) {
+    return `expected a refusal containing ${JSON.stringify(text)}, the server answered ${refusal.status}`;
+  }
+  if (!refusal.message.includes(text)) {
+    return (
+      `refused, but not with ${JSON.stringify(text)}: ` +
+      `HTTP ${refusal.status} ${refusal.code || "(no code)"}: ${refusal.message}`
+    );
+  }
+  return undefined;
+}
+
+/**
+ * An install that runs no bootstrap holds no organization, so a bare create
+ * naming one (what `stigmer apply` sends as the implicit `stigmer`) is
+ * refused with the organization named, never stored under a slug nobody
+ * created (#1484). Run before anything creates an organization.
+ */
+export async function assertMissingOrganizationRefused(baseUrl, { org = "stigmer" } = {}) {
+  return expectRefusal(
+    baseUrl,
+    "ai.stigmer.agentic.agent.v1.AgentCommandController/create",
+    {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { name: `smoke-orphan-${uniqueSuffix()}`, org },
+      spec: { description: "self-host smoke fixture", instructions: "Never stored.", mcpServerUsages: [] },
+    },
+    { text: `Organization not found: ${org}` },
+  );
+}
+
+/**
+ * The server's log lines as `{ level, message, fields }`, in either form the
+ * server writes (boot/logger.ts): NDJSON, or the local pretty line
+ * `<time> <LEVEL> <message> <fields as JSON>`. Lines in neither form (another
+ * process's output) are skipped; a log in which no line parses throws, so a
+ * change of format fails the probes that read it instead of letting them
+ * find nothing and pass.
+ */
+export function serverLogEntries(text) {
+  const entries = [];
+  for (const line of text.split("\n")) {
+    const entry = ndjsonEntry(line) ?? prettyEntry(line);
+    if (entry !== undefined) entries.push(entry);
+  }
+  if (entries.length === 0) {
+    throw new Error(`no line of the server's log parses as a log entry:\n${text.slice(0, 600)}`);
+  }
+  return entries;
+}
+
+const LOG_LEVELS = new Set(["debug", "info", "warn", "error"]);
+
+function ndjsonEntry(line) {
+  if (!line.startsWith("{")) return undefined;
+  try {
+    const { level, message, time: _time, ...fields } = JSON.parse(line);
+    return LOG_LEVELS.has(level) && typeof message === "string" ? { level, message, fields } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function prettyEntry(line) {
+  const match = /^\d{4}-\d{2}-\d{2}T\S+ (DEBUG|INFO|WARN|ERROR)\s+(.*)$/.exec(line);
+  if (match === null) return undefined;
+  const level = match[1].toLowerCase();
+  const rest = match[2];
+  // The fields are the JSON object that ends the line; the message is what precedes it.
+  for (let at = rest.indexOf(" {"); at !== -1; at = rest.indexOf(" {", at + 1)) {
+    try {
+      const fields = JSON.parse(rest.slice(at + 1));
+      if (fields !== null && typeof fields === "object" && !Array.isArray(fields)) {
+        return { level, message: rest.slice(0, at), fields };
+      }
+    } catch {
+      // not the fields yet: a brace inside the message
+    }
+  }
+  return { level, message: rest, fields: {} };
+}
+
+/**
+ * With no STIGMER_OAUTH_REDIRECT_URI, a server that serves the console
+ * derives the MCP OAuth callback from the public address it was given and
+ * says so at boot (boot/compose.ts). Throws unless that line names
+ * `<publicUrl>/auth/oauth/callback` and `from: "public-origin"` (#1486).
+ * Pure over the log's text.
+ */
+export function assertOAuthCallbackFromPublicOrigin(logText, publicUrl) {
+  const wanted = `${publicUrl}/auth/oauth/callback`;
+  const derived = serverLogEntries(logText).filter((entry) =>
+    entry.message.includes("deriving the served console's callback"),
+  );
+  if (derived.length === 0) {
+    throw new Error("the server logged no derived OAuth callback at boot");
+  }
+  const last = derived.at(-1);
+  if (last.fields.redirectUri !== wanted || last.fields.from !== "public-origin") {
+    throw new Error(
+      `the OAuth callback was derived as ${JSON.stringify(last.fields)}; want ` +
+        JSON.stringify({ redirectUri: wanted, from: "public-origin" }),
+    );
+  }
+  return last.fields;
 }
 
 /** Resolves once the real health service answers SERVING (wiring complete, not merely port-bound). */
@@ -467,6 +614,76 @@ export async function assertStateSurvived(baseUrl, recorded) {
   if (problems.length > 0) {
     throw new Error(`the state did not survive the upgrade:\n  ${problems.join("\n  ")}`);
   }
+}
+
+const WORKFLOW_EXECUTION_QUERY = "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController";
+
+/**
+ * Waits until a run of `workflowName` has a human_input gate in `org`'s
+ * approval queue (listPendingApprovals), and resolves that entry's
+ * `{ executionId, taskName }`: the gate a reviewer is asked to decide.
+ */
+export async function waitForPendingApproval(baseUrl, { org, workflowName, timeoutMs }) {
+  return pollUntil(
+    `a pending approval of ${workflowName} in ${org}`,
+    timeoutMs,
+    async () => {
+      const list = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/listPendingApprovals`, { org, pageSize: 100 });
+      const entry = (list.entries ?? []).find((candidate) => candidate.workflowName === workflowName);
+      return entry === undefined ? false : { executionId: entry.executionId, taskName: entry.taskName };
+    },
+    { intervalMs: 500 },
+  );
+}
+
+/** Every approval_resolved payload on an execution's event log, oldest first (getEventLog, paged to its end). */
+export async function approvalResolutions(baseUrl, executionId) {
+  const resolutions = [];
+  let afterSequence = 0;
+  for (;;) {
+    const page = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/getEventLog`, {
+      executionId,
+      afterSequence,
+      eventTypes: ["approval_resolved"],
+    });
+    const events = page.events ?? [];
+    for (const event of events) {
+      if (event.approvalResolved !== undefined) resolutions.push({ taskName: event.taskName ?? "", ...event.approvalResolved });
+    }
+    if (!page.hasMore || events.length === 0) return resolutions;
+    afterSequence = Number(events.at(-1).sequenceNumber);
+  }
+}
+
+/** The identity a workflow execution records as its creator (status.audit.specAudit.createdBy), the person a local gate's decision is attributed to. */
+export async function workflowExecutionCreator(baseUrl, executionId) {
+  const execution = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/get`, { value: executionId });
+  const creator = execution.status?.audit?.specAudit?.createdBy?.id ?? "";
+  if (creator === "") throw new Error(`workflow execution ${executionId} records no creator`);
+  return creator;
+}
+
+/**
+ * Why `stigmer execution logs` output does not show a gate's resolution, or
+ * undefined when it does. `resolution` is `"timed out"` for a gate that
+ * timed out under the fail policy, whose line must say it decided nothing
+ * and come before the task's failure; otherwise `{ outcome, by }`, whose
+ * line must name both. Pure, over the command's text.
+ */
+export function gateLogProblem(text, task, resolution) {
+  const lines = text.split("\n");
+  const wanted =
+    resolution === "timed out"
+      ? `approval resolved: ${task} — timed out, no decision`
+      : `approval resolved: ${task} — ${resolution.outcome} by ${resolution.by}`;
+  const at = lines.findIndex((line) => line.includes(wanted));
+  if (at === -1) return `no line reads ${JSON.stringify(wanted)} in:\n${text}`;
+  if (resolution === "timed out") {
+    const failedAt = lines.findIndex((line) => line.includes(`task failed: ${task}`));
+    if (failedAt === -1) return `no line reads "task failed: ${task}" after the timeout in:\n${text}`;
+    if (failedAt < at) return `the task's failure is printed before its gate resolved in:\n${text}`;
+  }
+  return undefined;
 }
 
 /** Fails when the port is already taken — a stigmer stack is running. */

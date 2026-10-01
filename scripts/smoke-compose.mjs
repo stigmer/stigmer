@@ -18,17 +18,24 @@
  *      / answers HTML) — DD-012 must survive the compose topology;
  *   3. the artifact file server is published and answering on 7235 (the
  *      0.0.0.0 bind + port publish — a 404 from it IS the proof of life);
- *   4. one END-TO-END RUN: a deterministic `set_vars` workflow execution
+ *   4. the env file's STIGMER_PUBLIC_URL reached the server through the
+ *      compose file: its boot line derives the MCP OAuth callback from that
+ *      address (from "public-origin"), not from the file's default (#1486);
+ *   5. an organization nobody created is refused by name: compose runs no
+ *      bootstrap, so an agent create naming `stigmer` (what a bare
+ *      `stigmer apply` sends) answers "Organization not found: stigmer"
+ *      instead of storing it (#1484);
+ *   6. one END-TO-END RUN: a deterministic `set_vars` workflow execution
  *      travels server → Temporal → runner → COMPLETED, with zero LLM
  *      keys (the gate ruling Q-C; the ci.conformance-execution precedent).
  *      This is the line the phase gate draws: the runner container
  *      polled the queue and executed real work;
- *   5. one AGENT RUN answered by a model: the stack is configured the way
+ *   7. one AGENT RUN answered by a model: the stack is configured the way
  *      the guide tells a user to (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL
  *      in the env file), pointed at a fake Anthropic API on this host
  *      (scripts/lib/fake-model.mjs), and the run must complete with the
  *      fake's reply as its last message;
- *   6. clean teardown (`docker compose down --volumes`).
+ *   8. clean teardown (`docker compose down --volumes`).
  *
  * Usage:
  *   node scripts/smoke-compose.mjs --build
@@ -46,7 +53,7 @@
  *   --keep    leave the stack running (skip teardown) for debugging; the
  *             fake model stops with this process, so agent runs then fail.
  *   --fake-model=error   the fake answers every model call with an error,
- *             so step 5 must fail — the red-first check of that step.
+ *             so step 7 must fail — the red-first check of that step.
  *
  * How the stack is brought up and torn down (the env file, the override,
  * the source build) is scripts/lib/install-compose.mjs, the one boot the
@@ -61,13 +68,20 @@ import process from "node:process";
 import {
   assertArtifactLane,
   assertConsoleServed,
+  assertMissingOrganizationRefused,
+  assertOAuthCallbackFromPublicOrigin,
   assertPortFree,
   runAgentToReply,
   runSetVarsWorkflow,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
-import { COMPOSE_ARTIFACT_PORT, COMPOSE_SERVER_PORT, createComposeStack } from "./lib/install-compose.mjs";
+import {
+  COMPOSE_ARTIFACT_PORT,
+  COMPOSE_PUBLIC_URL,
+  COMPOSE_SERVER_PORT,
+  createComposeStack,
+} from "./lib/install-compose.mjs";
 
 // First boot pulls/starts four containers, runs Temporal schema setup, and
 // waits for the server's start-period; generous on shared CI hosts.
@@ -139,12 +153,20 @@ async function main() {
     await assertArtifactLane(stack.artifactUrl);
     log("artifact file server: answering on the published port");
 
-    // 4. The end-to-end run — the phase gate's line: it only completes if the
+    // 4. The public address the env file gave the stack, as the server took it.
+    const callback = assertOAuthCallbackFromPublicOrigin(stack.logs("stigmer-server"), COMPOSE_PUBLIC_URL);
+    log(`public address: the server derived its OAuth callback ${callback.redirectUri} from ${callback.from}`);
+
+    // 5. Nothing has created an organization yet, and nothing may be stored under one.
+    const refusal = await assertMissingOrganizationRefused(baseUrl);
+    log(`missing organization: refused (HTTP ${refusal.status} ${refusal.code}: ${refusal.message})`);
+
+    // 6. The end-to-end run — the phase gate's line: it only completes if the
     // runner container connected to Temporal and polled the queue.
     const { executionId } = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
     log(`end-to-end run: execution ${executionId} COMPLETED through the runner`);
 
-    // 5. The agent run — the model path a user configures, end to end.
+    // 7. The agent run — the model path a user configures, end to end.
     const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
     log(`agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
 

@@ -25,6 +25,12 @@
  * exports (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), pointed at a fake
  * Anthropic API on loopback (scripts/lib/fake-model.mjs), and the streamed
  * run must carry the fake's reply — what a CLI user sees as the answer.
+ * Then two workflow approval gates are run and decided the way a reviewer
+ * does from the CLI: one times out under the fail policy, and
+ * `stigmer execution logs` must say it decided nothing before its task
+ * failed; the other is approved with `stigmer execution approve --comment`,
+ * and the logs must name who approved it (the run's creator) while its
+ * approval_resolved event carries the comment. No model is called.
  * Since the console restoration (DD-012) it also proves the
  * unified port serves the bundled web console: /config.json synthesis, a
  * dynamic deep link, and the 404 posture — the P3 acceptance's
@@ -57,13 +63,26 @@ import { join } from "node:path";
 import process from "node:process";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall } from "./lib/install-cli.mjs";
-import { assertConsoleServed } from "./lib/stigmer-smoke.mjs";
+import {
+  approvalResolutions,
+  assertConsoleServed,
+  connectJson,
+  gateLogProblem,
+  waitForPendingApproval,
+  workflowExecutionCreator,
+} from "./lib/stigmer-smoke.mjs";
 
 /** The org `stigmer up`'s bootstrap creates — the CLI's fallback on a local backend. */
 const ORG = "stigmer";
 const RUN_TIMEOUT_MS = 120_000;
 /** The agent the smoke applies and runs by slug. */
 const AGENT = "cutover-smoke-agent";
+/** The two gated workflows: one whose gate times out under the fail policy, one a reviewer approves. */
+const TIMEOUT_GATE_WORKFLOW = "cutover-smoke-gate-timeout";
+const APPROVED_GATE_WORKFLOW = "cutover-smoke-gate-approved";
+/** Long enough for the smoke to see the gate waiting before it times out. */
+const GATE_TIMEOUT_SECONDS = 20;
+const REVIEW_COMMENT = "approved by the CLI smoke's reviewer";
 
 function log(step) {
   console.log(`smoke-cli-cutover: ${step}`);
@@ -210,7 +229,78 @@ spec:
   }
   log(`agent run streamed the model's reply (${fake.requests()} model calls)`);
 
-  // 7. Down — clean teardown, port released.
+  // 7. The approval gates, as a reviewer meets them from the CLI.
+  await applyGateWorkflow(TIMEOUT_GATE_WORKFLOW, { timeoutSeconds: GATE_TIMEOUT_SECONDS });
+  const timedOutRun = cli(["--org", ORG, "run", "workflow", TIMEOUT_GATE_WORKFLOW, "--json"], {
+    timeoutMs: RUN_TIMEOUT_MS,
+    allowFailure: true,
+  });
+  const timedOut = await waitForPendingApproval(stack.baseUrl, {
+    org: ORG,
+    workflowName: TIMEOUT_GATE_WORKFLOW,
+    timeoutMs: RUN_TIMEOUT_MS,
+  });
+  log(`gate ${timedOut.taskName} of ${timedOut.executionId} waits; leaving it to time out`);
+  await timedOutRun;
+  const timedOutPhase = (
+    await connectJson(stack.baseUrl, "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get", {
+      value: timedOut.executionId,
+    })
+  ).status?.phase;
+  if (timedOutPhase !== "EXECUTION_FAILED") {
+    throw new Error(`the timed-out gate's run ended ${timedOutPhase}, expected EXECUTION_FAILED under the fail policy`);
+  }
+  const timedOutLogs = await cli(["--org", ORG, "execution", "logs", timedOut.executionId]);
+  const timedOutProblem = gateLogProblem(timedOutLogs.stdout, timedOut.taskName, "timed out");
+  if (timedOutProblem !== undefined) throw new Error(`execution logs of the timed-out gate: ${timedOutProblem}`);
+  log("execution logs: the timed-out gate decided nothing, then its task failed");
+
+  await applyGateWorkflow(APPROVED_GATE_WORKFLOW);
+  const approvedRun = cli(["--org", ORG, "run", "workflow", APPROVED_GATE_WORKFLOW, "--json"], {
+    timeoutMs: RUN_TIMEOUT_MS,
+    allowFailure: true,
+  });
+  const approved = await waitForPendingApproval(stack.baseUrl, {
+    org: ORG,
+    workflowName: APPROVED_GATE_WORKFLOW,
+    timeoutMs: RUN_TIMEOUT_MS,
+  });
+  await cli([
+    "--org",
+    ORG,
+    "execution",
+    "approve",
+    approved.executionId,
+    "--task",
+    approved.taskName,
+    "--outcome",
+    "approve",
+    "--comment",
+    REVIEW_COMMENT,
+  ]);
+  const approvedResult = await approvedRun;
+  if (approvedResult.status !== 0 || !/completed/i.test(approvedResult.stdout)) {
+    throw new Error(
+      `the approved gate's run did not complete (exit ${approvedResult.status})\n` +
+        `stdout:\n${approvedResult.stdout}\nstderr:\n${approvedResult.stderr}`,
+    );
+  }
+  const reviewer = await workflowExecutionCreator(stack.baseUrl, approved.executionId);
+  const approvedLogs = await cli(["--org", ORG, "execution", "logs", approved.executionId]);
+  const approvedProblem = gateLogProblem(approvedLogs.stdout, approved.taskName, { outcome: "approve", by: reviewer });
+  if (approvedProblem !== undefined) throw new Error(`execution logs of the approved gate: ${approvedProblem}`);
+  const resolved = (await approvalResolutions(stack.baseUrl, approved.executionId)).filter(
+    (resolution) => resolution.taskName === approved.taskName,
+  );
+  if (resolved.length !== 1 || resolved[0].comment !== REVIEW_COMMENT) {
+    throw new Error(
+      `the approved gate's approval_resolved events carry ${JSON.stringify(resolved)}; ` +
+        `want one, with the comment ${JSON.stringify(REVIEW_COMMENT)}`,
+    );
+  }
+  log(`execution logs: approve by ${reviewer}; the event carries the reviewer's comment`);
+
+  // 8. Down — clean teardown, port released.
   await cli(["down"]);
   const status = await cli(["status"], { allowFailure: true });
   if (
@@ -232,3 +322,43 @@ spec:
   await fake.close();
 }
 process.exit(failed ? 1 : 0);
+
+/**
+ * Apply a workflow whose one gate is a human_input task offering approve or
+ * deny, followed by a set_vars step that runs only once the gate resolves.
+ * With `timeoutSeconds` the gate fails the run when nobody decides in time.
+ */
+async function applyGateWorkflow(name, { timeoutSeconds } = {}) {
+  const timeoutLines =
+    timeoutSeconds === undefined ? "" : `        timeout: ${timeoutSeconds}\n        on_timeout: HUMAN_INPUT_TIMEOUT_FAIL\n`;
+  const path = join(home, `${name}.yaml`);
+  writeFileSync(
+    path,
+    `apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: ${name}
+spec:
+  description: An approval gate for the CLI smoke; no model is called.
+  document:
+    dsl: "1.0.0"
+    namespace: stigmer
+    name: ${name}
+    version: "1.0.0"
+  tasks:
+    - name: review
+      kind: human_input
+      task_config:
+        prompt: Approve the CLI smoke's run?
+        outcomes:
+          - name: approve
+          - name: deny
+${timeoutLines}    - name: after_review
+      kind: set_vars
+      task_config:
+        variables:
+          reviewed: "yes"
+`,
+  );
+  await cli(["--org", ORG, "apply", "-f", path]);
+}
