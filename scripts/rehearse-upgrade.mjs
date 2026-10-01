@@ -6,8 +6,9 @@
  * have kept what the old release stored.
  *
  * For --artifact=compose, all-in-one, helm or cli, one pass:
- *   1. installs --from (default: the newest stable release below --to) the
- *      way its guide says, with the model a user configures pointed at the
+ *   1. installs --from (default: the newest stable release below --to whose
+ *      artifacts for this install are all published,
+ *      scripts/lib/published-release.mjs) the way its guide says, with the model a user configures pointed at the
  *      fake on this host (scripts/lib/fake-model.mjs), and checks that the
  *      server reports that release (getServerInfo);
  *   2. records state: a workflow run, and an agent run answered by the
@@ -82,6 +83,7 @@ import {
   createStigmerRelease,
   profileValues,
 } from "./lib/install-helm.mjs";
+import { PUBLISHED_IMAGES, unpublishedArtifact } from "./lib/published-release.mjs";
 import { sourceBuildVersion } from "./lib/source-version.mjs";
 import {
   assertPortFree,
@@ -160,14 +162,41 @@ export function compareVersions(a, b) {
  * version being rehearsed.
  */
 export function pickFromVersion(versions, to) {
+  return releasesBelow(versions, to)[0];
+}
+
+/** Every stable version in `versions` below `to`, newest first; refuses when there is none. */
+function releasesBelow(versions, to) {
   const below = versions
     .filter((version) => STABLE.test(version))
     .filter((version) => to.kind === "build" || compareVersions(version, versionCore(to.version)) < 0)
-    .sort(compareVersions);
+    .sort(compareVersions)
+    .reverse();
   if (below.length === 0) {
     throw new Error(`no published release below ${to.kind === "build" ? "this build" : to.version} to upgrade from`);
   }
-  return below.at(-1);
+  return below;
+}
+
+/**
+ * The base an install upgrades from when --from is not given: the newest
+ * release `pickFromVersion` would choose whose own artifacts are all
+ * published (`unpublishedAt(version)` names the first that is not, or is
+ * undefined). npm lists a release before its images and its chart are
+ * pushed, and a held push never arrives, so a newer release is passed over,
+ * and named, rather than installed half-published.
+ */
+export async function pickPublishedBase(versions, to, unpublishedAt, log) {
+  const below = releasesBelow(versions, to);
+  for (const version of below) {
+    const missing = await unpublishedAt(version);
+    if (missing === undefined) return version;
+    log(`base ${version} passed over: ${missing} is not published`);
+  }
+  throw new Error(
+    `no release below ${to.kind === "build" ? "this build" : to.version} has every artifact this install needs published ` +
+      `(tried ${below.join(", ")})`,
+  );
 }
 
 /** The version the server must report once `release` runs. */
@@ -207,8 +236,8 @@ const INSTALLS = {
             release.kind === "build"
               ? { "stigmer-server": SOURCE_IMAGES.server, "stigmer-runner": SOURCE_IMAGES.runner }
               : {
-                  "stigmer-server": `ghcr.io/stigmer/stigmer-server:v${release.version}`,
-                  "stigmer-runner": `ghcr.io/stigmer/stigmer-runner:v${release.version}`,
+                  "stigmer-server": `${PUBLISHED_IMAGES.server}:v${release.version}`,
+                  "stigmer-runner": `${PUBLISHED_IMAGES.runner}:v${release.version}`,
                 };
           return { running, want };
         },
@@ -289,7 +318,7 @@ const INSTALLS = {
           const tag = target.kind === "build" ? "compose-dev" : `v${target.version}`;
           return {
             running: await release.images(),
-            want: { server: `ghcr.io/stigmer/stigmer-server:${tag}`, runner: `ghcr.io/stigmer/stigmer-runner:${tag}` },
+            want: { server: `${PUBLISHED_IMAGES.server}:${tag}`, runner: `${PUBLISHED_IMAGES.runner}:${tag}` },
           };
         },
         diagnostics: () => (release === undefined ? "--- no release was installed ---" : release.diagnostics()),
@@ -361,7 +390,11 @@ async function main() {
   // there is nothing to tear down.
   let from;
   try {
-    from = { kind: "published", version: args.from !== "" ? args.from : pickFromVersion(publishedCliVersions(), to) };
+    const base =
+      args.from !== ""
+        ? args.from
+        : await pickPublishedBase(publishedCliVersions(), to, (version) => unpublishedArtifact(args.artifact, version), log);
+    from = { kind: "published", version: base };
     for (const port of spec.ports) await assertPortFree(port);
   } catch (error) {
     console.error(`rehearse-upgrade: FAIL — ${error instanceof Error ? error.message : String(error)}`);

@@ -76,6 +76,9 @@ test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer 
     "upgrade-rehearsal",
   ]);
   assert.deepEqual(selected(["client-apps/cli/src/commands/run.ts"]), ["cli-up", "docs", "ts-workspace"]);
+  // An image's user and data paths decide whether the last release's volume is still readable.
+  assert.ok(selected(["backend/services/stigmer-server/Dockerfile"]).includes("upgrade-rehearsal"));
+  assert.ok(selected(["backend/services/runner/Dockerfile.sandbox"]).includes("upgrade-rehearsal"));
 });
 
 test("a lane's own workflow file runs that lane, and the workflow audit", () => {

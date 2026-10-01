@@ -223,7 +223,7 @@ function seedTemporal(home) {
  * and a killed tsx alone leaves that child holding the output pipes open.
  * `done` resolves at the exit and never rejects.
  */
-function spawnCommand([bin, ...prefix], args, env, timeoutMs) {
+export function spawnCommand([bin, ...prefix], args, env, timeoutMs) {
   const child = spawn(bin, [...prefix, ...args], { env, stdio: ["ignore", "pipe", "pipe"], detached: true });
   let ended = false;
   let endedBy;
@@ -254,4 +254,19 @@ function spawnCommand([bin, ...prefix], args, env, timeoutMs) {
     });
   });
   return { done, kill: () => killGroup("killed by the caller") };
+}
+
+/**
+ * Runs `body` while `child` (a `spawnCommand` or `stack.cliChild` handle)
+ * runs. When `body` throws, the child is killed and awaited before the error
+ * goes on, so a caller reports its own failure with no command left behind.
+ */
+export async function whileRunning(child, body) {
+  try {
+    return await body();
+  } catch (error) {
+    child.kill();
+    await child.done;
+    throw error;
+  }
 }

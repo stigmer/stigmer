@@ -67,7 +67,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
-import { CLI_SERVER_PORT, createCliInstall } from "./lib/install-cli.mjs";
+import { CLI_SERVER_PORT, createCliInstall, whileRunning } from "./lib/install-cli.mjs";
 import {
   approvalResolutions,
   assertConsoleServed,
@@ -351,21 +351,6 @@ spec:
   await fake.close();
 }
 process.exit(failed ? 1 : 0);
-
-/**
- * Runs `body` while `child` (a `stack.cliChild` run) streams. When `body`
- * throws, the child is killed and awaited before the error goes on, so the
- * smoke reports its own failure with no run left behind.
- */
-async function whileRunning(child, body) {
-  try {
-    return await body();
-  } catch (error) {
-    child.kill();
-    await child.done;
-    throw error;
-  }
-}
 
 /**
  * Apply a workflow whose one gate is a human_input task offering approve or

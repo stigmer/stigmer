@@ -19,6 +19,7 @@ import {
   imageMismatches,
   parseRehearsalArgs,
   pickFromVersion,
+  pickPublishedBase,
   versionCore,
 } from "./rehearse-upgrade.mjs";
 import { sourceBuildVersion } from "./lib/source-version.mjs";
@@ -51,6 +52,37 @@ test("a prerelease target upgrades from the newest stable release below its X.Y.
   assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.41.1-rc.1" }), "3.41.0");
   assert.equal(versionCore("3.42.0-rc.1"), "3.42.0");
   assert.equal(versionCore("3.42.0"), "3.42.0");
+});
+
+test("the base is the newest release whose own artifacts are published, and a release passed over is named", async () => {
+  const logged = [];
+  const unpublished = { "3.41.0": "ghcr.io/stigmer/charts/stigmer:3.41.0", "3.40.1": "ghcr.io/stigmer/stigmer-server:v3.40.1" };
+  const base = await pickPublishedBase(PUBLISHED, { kind: "build" }, async (version) => unpublished[version], (line) => logged.push(line));
+  assert.equal(base, "3.40.0");
+  assert.deepEqual(logged, [
+    "base 3.41.0 passed over: ghcr.io/stigmer/charts/stigmer:3.41.0 is not published",
+    "base 3.40.1 passed over: ghcr.io/stigmer/stigmer-server:v3.40.1 is not published",
+  ]);
+});
+
+test("the base is the newest release when everything is published, asked about once", async () => {
+  const asked = [];
+  const base = await pickPublishedBase(PUBLISHED, { kind: "published", version: "3.41.0" }, async (version) => (asked.push(version), undefined), () => {});
+  assert.equal(base, "3.40.1");
+  assert.deepEqual(asked, ["3.40.1"]);
+});
+
+test("no fully published release below the target is refused, naming every one tried; a registry fault is not a gap", async () => {
+  await assert.rejects(
+    pickPublishedBase(["3.40.1", "3.41.0"], { kind: "build" }, async () => "the chart", () => {}),
+    /no release below this build has every artifact this install needs published \(tried 3\.41\.0, 3\.40\.1\)/,
+  );
+  await assert.rejects(
+    pickPublishedBase(PUBLISHED, { kind: "build" }, async () => {
+      throw new Error("ghcr.io answered HTTP 503");
+    }, () => {}),
+    /HTTP 503/,
+  );
 });
 
 test("compareVersions orders numerically", () => {

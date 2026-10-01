@@ -360,6 +360,10 @@ export const LANES = {
       "scripts/publish-standalone.mjs",
       "scripts/stage-all-in-one.mjs",
       "scripts/stage-compose-runner-cli.mjs",
+      // The images' users and data paths decide whether a volume the last
+      // release wrote is still readable after the upgrade.
+      "backend/services/stigmer-server/Dockerfile",
+      "backend/services/runner/Dockerfile.sandbox",
       "Makefile",
       ".github/workflows/ci.upgrade-rehearsal.yaml",
     ],
