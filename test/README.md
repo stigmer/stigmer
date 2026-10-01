@@ -21,7 +21,7 @@ Every test in this repository and in stigmer-cloud belongs to one layer. The lay
 | contract | every assembled edition keeps the API's promises | `test/conformance/src/suites*/` | `*.conformance.test.ts` | `make test-conformance`, `make test-conformance-execution` |
 | e2e | a person's journey through an app in a browser | `test/e2e/tests/` (the console), `site/e2e/` (the site) | `*.spec.ts` | `make test-e2e*`, `make test-demos` |
 | install | a shipped artifact installs, runs an agent, upgrades | `test/install/` (today `scripts/smoke-*.mjs` and `scripts/rehearse-upgrade.mjs`) | one script per artifact | `make smoke-<artifact>`, `make rehearse-upgrade ARTIFACT=<artifact>` |
-| load | behaviour under volume, on its own cadence | beside the code | `*.load.test.ts`, collected only by the package's `vitest.load.config.ts` (none in this repository yet; stigmer-cloud's composition has one) | `npm run test:load`, by hand |
+| load | behaviour under volume, on its own cadence | beside the code | `*.load.test.ts`, collected only by the package's `vitest.load.config.ts` (`backend/services/stigmer-server` has one, as does stigmer-cloud's composition) | `npm run test:load`, by hand |
 | live | real providers and models, budget-capped | beside the code | `*.live.test.ts` | by hand or at release |
 | synthetic | production works now | stigmer-cloud `_ops/probes/*-smoke` | one probe per journey | on a schedule |
 | tooling | a plain-Node repository script (`*.mjs`) | beside the script | `*.test.mjs` | `node --test`: `npm run test:scripts`, or the package's `test:scripts` |

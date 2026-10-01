@@ -726,7 +726,7 @@ strip under the runner's capture throttle), `agentexecution-memory-selection`
 `agentexecution` (idempotent cancel/terminate), `agentexecution-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and
 `mcpserver-connect` (the classifier's economy-tier model on the wire).
-`runner-ipc.harness.smoke` proves the manager-mode `ready` handshake end to
+`runner-ipc.harness` proves the manager-mode `ready` handshake end to
 end.
 
 `agentexecution-request-shape` reads the other direction of the wire: not
