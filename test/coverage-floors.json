@@ -31,7 +31,7 @@
       "cases": 5222
     },
     "backend/services/stigmer-server": {
-      "lines": 83.5,
+      "lines": 86.0,
       "branches": 69.8,
       "cases": 4652
     },
