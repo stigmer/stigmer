@@ -1,0 +1,103 @@
+{
+  "targets": {
+    "server-authorization": {
+      "title": "the server's authorization decisions",
+      "package": "backend/services/stigmer-server",
+      "mutate": [
+        "src/authorization/**/*.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "server-iam-policy": {
+      "title": "the server's IAM policy rules",
+      "package": "backend/services/stigmer-server",
+      "mutate": [
+        "src/domain/iampolicy/roles.ts",
+        "src/domain/iampolicy/permissions.ts",
+        "src/domain/iampolicy/grant-path.ts",
+        "src/domain/iampolicy/grant-scope.ts",
+        "src/domain/iampolicy/membership.ts",
+        "src/domain/iampolicy/role-lifecycle.ts",
+        "src/domain/iampolicy/access-lists.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "server-request-checks": {
+      "title": "the server's request checks",
+      "package": "backend/services/stigmer-server",
+      "mutate": [
+        "src/pipeline/steps/validation.ts",
+        "src/pipeline/steps/slug.ts",
+        "src/pipeline/steps/duplicate.ts",
+        "src/pipeline/steps/validate-visibility.ts",
+        "src/pipeline/steps/guard-*.ts",
+        "src/pipeline/steps/authorize*.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "server-schedules-secrets-archives": {
+      "title": "the server's schedules, secrets at rest and archive limits",
+      "package": "backend/services/stigmer-server",
+      "mutate": [
+        "src/domain/schedule/cron.ts",
+        "src/domain/schedule/clock.ts",
+        "src/domain/schedule/trigger.ts",
+        "src/encryption/codec.ts",
+        "src/encryption/v1-codec.ts",
+        "src/encryption/scope.ts",
+        "src/platformtoken/envelope.ts",
+        "src/platformtoken/key-ring.ts",
+        "src/archive/limits.ts",
+        "src/archive/inflate.ts",
+        "src/archive/prefilter.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "runner-workflow-engine": {
+      "title": "the runner's workflow engine and budgets",
+      "package": "backend/services/runner",
+      "mutate": [
+        "src/workflow-engine/*.ts",
+        "src/budget/**/*.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "runner-workflow-tasks": {
+      "title": "the runner's workflow tasks",
+      "package": "backend/services/runner",
+      "mutate": [
+        "src/workflow-engine/tasks/**/*.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "runner-middleware-pricing-guards": {
+      "title": "the runner's middleware, pricing and guards",
+      "package": "backend/services/runner",
+      "mutate": [
+        "src/middleware/approval-gate.ts",
+        "src/middleware/loop-detection.ts",
+        "src/middleware/execution-budget.ts",
+        "src/middleware/tool-truncation.ts",
+        "src/middleware/path-normalization.ts",
+        "src/shared/model-pricing.ts",
+        "src/shared/cost-guard.ts",
+        "src/tools/url-guard.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    }
+  }
+}
