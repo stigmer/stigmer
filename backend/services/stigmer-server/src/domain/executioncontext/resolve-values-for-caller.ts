@@ -15,7 +15,10 @@
  * getRunnerScopedToken and presented as a Bearer authorization header
  * (the same header shape a cloud runner uses for its sandbox credential).
  * Decrypt requires the FULL binding: a valid token whose execution_id
- * claim equals this EC's spec.execution_id, and — for a RUN credential,
+ * claim equals this EC's spec.execution_id — the one context naming that
+ * execution, since only the server binds a context to a run and the read
+ * refuses two (steps.ts `GuardExecutionBinding`, `LoadByExecutionId`) —
+ * and — for a RUN credential,
  * the no-`exp` token the dispatch path hands the runner — a bound
  * execution that is still live (runnerauth/bound-execution.ts: not
  * terminal, or ended within the grace). Everything else — no header, a

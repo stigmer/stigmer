@@ -430,11 +430,16 @@ export function describeStoreContract(
         "only-this-one",
         OrganizationSchema,
       );
-      expect(rows.map((row) => fromBinary(OrganizationSchema, row).metadata?.id)).toEqual([
-        "beta",
-      ]);
       expect(
-        await fx.store.findAllByField(KIND, "spec.description", "nobody-carries-this", OrganizationSchema),
+        rows.map((row) => fromBinary(OrganizationSchema, row).metadata?.id),
+      ).toEqual(["beta"]);
+      expect(
+        await fx.store.findAllByField(
+          KIND,
+          "spec.description",
+          "nobody-carries-this",
+          OrganizationSchema,
+        ),
         "a value no row carries matches nothing",
       ).toEqual([]);
     });

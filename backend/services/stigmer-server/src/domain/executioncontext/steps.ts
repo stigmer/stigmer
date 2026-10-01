@@ -36,6 +36,7 @@ import { EncryptionScope } from "../../encryption/encryption.js";
 import type { Authorizer, AuthzDecision } from "../../extensions/authorizer.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import {
+  failedPreconditionError,
   internalError,
   invalidArgumentError,
   notFoundError,
@@ -43,12 +44,13 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
-import { ResourceNotFoundError } from "../../store/interface.js";
-import type { Store } from "../../store/interface.js";
+import { boundExecutionKindOf } from "../../runnerauth/bound-execution.js";
 import {
   ENCRYPT_BATCH_FAILURE_MESSAGE,
   ciphertextShapedMessage,
 } from "./constants.js";
+import { findExecutionContextsForExecution } from "./contexts-for-execution.js";
+import type { ExecutionContextLookupStore } from "./contexts-for-execution.js";
 
 /**
  * RejectCiphertextShapedValues — Go rejectCiphertextShapedStep: refuses
@@ -173,18 +175,25 @@ type GetByExecutionIdDesc =
   typeof ExecutionContextQueryController.method.getByExecutionId.input;
 
 /**
- * LoadByExecutionId — Go loadByExecutionIdStep: loads an ExecutionContext
- * by querying the spec.executionId FIELD (protobuf JSON naming), not the
- * resource id — the runner's lookup key is the parent execution's id.
- * findByField is a full scan of the kind with first-match semantics, the
- * Go-parity behavior the store interface documents.
+ * LoadByExecutionId — Go loadByExecutionIdStep: loads THE ExecutionContext
+ * of an execution by its spec.executionId FIELD (protobuf JSON naming), not
+ * the resource id — the runner's lookup key is the parent execution's id.
+ *
+ * A run has one context, the server's (`GuardExecutionBinding` below), so
+ * the read never chooses between two: none is NotFound, as always, and
+ * more than one is FailedPrecondition, logged with every context id. Not
+ * NotFound, because the runners read NotFound as "no environment, proceed"
+ * (runner shared/env-resolver.ts, activities/hydrate-workflow-execution.ts);
+ * the refusal fails the run instead of handing it either row's values. The
+ * answer names no organization.
  *
  * The empty-input guard is unreachable behind ValidateProto (min_len 1 on
  * execution_id) but ports Go's in-step defense verbatim so the chains
  * correspond step-for-step.
  */
 export function newLoadByExecutionIdStep(
-  store: Store,
+  store: ExecutionContextLookupStore,
+  logger: Logger,
 ): PipelineStep<GetByExecutionIdDesc> {
   return {
     name: "LoadByExecutionId",
@@ -194,25 +203,74 @@ export function newLoadByExecutionIdStep(
         throw invalidArgumentError("execution_id is required");
       }
 
-      let executionContext: ExecutionContext;
+      let contexts: ExecutionContext[];
       try {
-        executionContext = await store.findByField(
-          ctx.apiResourceKind,
-          "spec.executionId",
+        contexts = await findExecutionContextsForExecution(
+          store,
           input.executionId,
-          ExecutionContextSchema,
         );
       } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          throw notFoundError(
-            "execution_context",
-            `execution_id=${input.executionId}`,
-          );
-        }
         throw internalError(error, "failed to query execution context");
       }
 
+      const [executionContext, ...others] = contexts;
+      if (executionContext === undefined) {
+        throw notFoundError(
+          "execution_context",
+          `execution_id=${input.executionId}`,
+        );
+      }
+      if (others.length > 0) {
+        logger.error(
+          "More than one ExecutionContext names one execution -- refusing the read",
+          {
+            executionId: input.executionId,
+            contextIds: contexts.map((ec) => ec.metadata?.id ?? ""),
+          },
+        );
+        throw failedPreconditionError(
+          `more than one execution context names execution '${input.executionId}'`,
+        );
+      }
+
       ctx.set(TARGET_RESOURCE_KEY, executionContext);
+    },
+  };
+}
+
+/**
+ * GuardExecutionBinding — a context bound to a run is the server's to
+ * create. The run builders and the MCP connect lane create a run's or a
+ * connect's context in-process (boot/inprocess.ts), so a WIRE caller's
+ * create or apply naming a run's id (`aex_…`, `wex_…`) or a connect's
+ * (`connect-…`) is refused with PermissionDenied. Every lookup by run id
+ * then meets the one context the server made (contexts-for-execution.ts).
+ *
+ * The id's shape alone decides, through the classifier the runner
+ * credential lane trusts (runnerauth/bound-execution.ts
+ * `boundExecutionKindOf`), with no store read: the answer is the same
+ * whether or not the run exists, so it tells the caller nothing about
+ * other runs. A server-composed request passes, the same arm
+ * `AuthorizeCreate` keeps; an id that binds nothing passes, since no
+ * runner reads it.
+ */
+export function newGuardExecutionBindingStep(): PipelineStep<
+  typeof ExecutionContextSchema
+> {
+  return {
+    name: "GuardExecutionBinding",
+    execute(ctx: RequestContext<typeof ExecutionContextSchema>): void {
+      if (isServerComposedRequest(ctx.callerIdentity)) {
+        return;
+      }
+      const executionId = ctx.newState.spec?.executionId ?? "";
+      if (boundExecutionKindOf(executionId) === undefined) {
+        return;
+      }
+      throw new ConnectError(
+        "an execution context for a run is created by the server",
+        Code.PermissionDenied,
+      );
     },
   };
 }

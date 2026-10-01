@@ -44,7 +44,7 @@
  */
 import { randomBytes } from "node:crypto";
 
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
@@ -139,16 +139,17 @@ const store: BoundExecutionStore = {
     }
     return Promise.resolve(row as MessageShape<Desc>);
   },
-  findByField<Desc extends DescMessage>(
-    kind: ApiResourceKind,
+  findAllByField<Desc extends DescMessage>(
+    _kind: ApiResourceKind,
     fieldPath: string,
     value: string,
     _schema: Desc,
-  ): Promise<MessageShape<Desc>> {
-    if (fieldPath === "spec.executionId" && value === CONNECT_ID) {
-      return Promise.resolve(CONNECT_CONTEXT as unknown as MessageShape<Desc>);
-    }
-    return Promise.reject(new ResourceNotFoundError(`${kind}/${value}`));
+  ): Promise<Uint8Array[]> {
+    return Promise.resolve(
+      fieldPath === "spec.executionId" && value === CONNECT_ID
+        ? [toBinary(ExecutionContextSchema, CONNECT_CONTEXT)]
+        : [],
+    );
   },
 };
 

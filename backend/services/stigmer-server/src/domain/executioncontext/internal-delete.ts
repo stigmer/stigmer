@@ -38,13 +38,11 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { ResourceNotFoundError } from "../../store/interface.js";
-import type { Store } from "../../store/interface.js";
+import { findExecutionContextsForExecution } from "./contexts-for-execution.js";
+import type { ExecutionContextLookupStore } from "./contexts-for-execution.js";
 
 /**
  * The server's own delete of one context, by id, through the context's
@@ -57,7 +55,7 @@ export interface ExecutionContextDeleter {
 
 export interface InternalDeleteDeps {
   /** The find by `spec.executionId`: a pure read, store-direct. */
-  readonly store: Store;
+  readonly store: ExecutionContextLookupStore;
   /** Read per call: the in-process edge exists only once the routes do. */
   readonly deleter: () => ExecutionContextDeleter;
   readonly logger: Logger;
@@ -69,7 +67,8 @@ export type InternalDeleteReason = "run-end" | "recover";
 /**
  * Finds the ExecutionContext of the given execution (an AgentExecution or
  * WorkflowExecution id — the lookup uses the spec.executionId field) and
- * deletes it through the context's delete chain.
+ * deletes it through the context's delete chain. A run has one; if more
+ * than one names it, every one is deleted, each through the chain.
  */
 export async function deleteExecutionContextForExecution(
   deps: InternalDeleteDeps,
@@ -82,22 +81,10 @@ export async function deleteExecutionContextForExecution(
     reason,
   });
 
-  let ec: ExecutionContext;
+  let contexts: ExecutionContext[];
   try {
-    ec = await store.findByField(
-      ApiResourceKind.execution_context,
-      "spec.executionId",
-      executionId,
-      ExecutionContextSchema,
-    );
+    contexts = await findExecutionContextsForExecution(store, executionId);
   } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      logger.debug(
-        "No ExecutionContext found for execution -- nothing to clean up",
-        { executionId, reason },
-      );
-      return;
-    }
     logger.warn(
       "Failed to query ExecutionContext -- leaving cleanup to the operator",
       {
@@ -109,6 +96,38 @@ export async function deleteExecutionContextForExecution(
     return;
   }
 
+  if (contexts.length === 0) {
+    logger.debug(
+      "No ExecutionContext found for execution -- nothing to clean up",
+      { executionId, reason },
+    );
+    return;
+  }
+  if (contexts.length > 1) {
+    // A run has one context (contexts-for-execution.ts); a second is a row
+    // no lookup will read, so it goes with the run instead of outliving it.
+    logger.warn(
+      "More than one ExecutionContext names the execution -- deleting every one",
+      {
+        executionId,
+        reason,
+        contextIds: contexts.map((ec) => ec.metadata?.id ?? ""),
+      },
+    );
+  }
+  for (const ec of contexts) {
+    await deleteOne(deps, ec, executionId, reason);
+  }
+}
+
+/** One context through the delete chain; best-effort, never throws. */
+async function deleteOne(
+  deps: InternalDeleteDeps,
+  ec: ExecutionContext,
+  executionId: string,
+  reason: InternalDeleteReason,
+): Promise<void> {
+  const { logger } = deps;
   const contextId = ec.metadata?.id ?? "";
   const dataCount = Object.keys(ec.spec?.data ?? {}).length;
   if (contextId === "") {

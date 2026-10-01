@@ -76,22 +76,6 @@ function storeOf(
         ? Promise.reject(new ResourceNotFoundError(`${kind}/${id}`))
         : Promise.resolve(row as MessageShape<Desc>);
     },
-    findByField<Desc extends DescMessage>(
-      kind: ApiResourceKind,
-      fieldPath: string,
-      value: string,
-      _schema: Desc,
-    ): Promise<MessageShape<Desc>> {
-      reads.push(`${fieldPath}=${value}`);
-      const row =
-        kind === ApiResourceKind.execution_context &&
-        fieldPath === "spec.executionId"
-          ? contextsFor(value)[0]
-          : undefined;
-      return row === undefined
-        ? Promise.reject(new ResourceNotFoundError(`${kind}/${value}`))
-        : Promise.resolve(row as MessageShape<Desc>);
-    },
     findAllByField<Desc extends DescMessage>(
       kind: ApiResourceKind,
       fieldPath: string,
@@ -102,7 +86,9 @@ function storeOf(
       return Promise.resolve(
         kind === ApiResourceKind.execution_context &&
           fieldPath === "spec.executionId"
-          ? contextsFor(value).map((row) => toBinary(ExecutionContextSchema, row))
+          ? contextsFor(value).map((row) =>
+              toBinary(ExecutionContextSchema, row),
+            )
           : [],
       );
     },
@@ -236,7 +222,7 @@ describe("loadBoundExecution", () => {
       const fault = new Error("connection reset");
       const store: BoundExecutionStore = {
         getResource: vi.fn(() => Promise.reject(new Error("unreachable"))),
-        findByField: vi.fn(() => Promise.reject(fault)),
+        findAllByField: vi.fn(() => Promise.reject(fault)),
       };
       await expect(loadBoundExecution(store, connectId, NOW)).rejects.toBe(
         fault,
@@ -254,7 +240,7 @@ describe("loadBoundExecution", () => {
     const fault = new Error("connection reset");
     const store: BoundExecutionStore = {
       getResource: vi.fn(() => Promise.reject(fault)),
-      findByField: vi.fn(() => Promise.reject(new Error("unreachable"))),
+      findAllByField: vi.fn(() => Promise.reject(new Error("unreachable"))),
     };
     await expect(loadBoundExecution(store, "aex_1", NOW)).rejects.toBe(fault);
   });
