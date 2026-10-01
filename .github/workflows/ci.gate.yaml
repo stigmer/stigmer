@@ -248,16 +248,20 @@ jobs:
 
       # The base is the pull request's base branch, or the commit the merge
       # queue builds on; a manual dispatch has none, and judges the floors
-      # alone. `shell: bash` runs with pipefail, so the tee keeps the tool's
-      # exit code.
+      # alone. The report goes to the log and, fenced so each line stays a
+      # line, to the job summary; the step exits with the tool's own code.
       - name: Every changed line run, every package at its floor
-        shell: bash
         env:
           BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.merge_group.base_sha }}
         run: |
           base=()
           if [ -n "$BASE" ]; then base=(--base "$BASE"); fi
-          node scripts/test-coverage.mjs --floors test/coverage-floors.json --input "$RUNNER_TEMP/coverage" "${base[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+          report="$RUNNER_TEMP/coverage-report.txt"
+          status=0
+          node scripts/test-coverage.mjs --floors test/coverage-floors.json --input "$RUNNER_TEMP/coverage" "${base[@]}" > "$report" || status=$?
+          cat "$report"
+          { echo "### Coverage"; echo; echo '```'; cat "$report"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
   gate:
     name: Gate
