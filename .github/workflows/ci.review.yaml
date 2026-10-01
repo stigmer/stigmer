@@ -20,11 +20,13 @@
 # run to finish, and shares its concurrency group, so a job inside
 # ci.integrity.yaml would wait on the integrity job and cancel it.
 #
-# The script a pull request is judged by is the base branch's: the job checks
-# out the base commit and runs its copy, so a pull request that edits
-# scripts/review-verdict.mjs cannot loosen that rule for itself. Only a pull
-# request that adds the script to a base without one runs its own copy; any
-# other pull request against such a base is refused.
+# The script a pull request is judged by is the base branch's as it is now:
+# the job checks out the base branch's tip and runs its copy, so a pull
+# request that edits scripts/review-verdict.mjs cannot loosen that rule for
+# itself, and every pull request is judged by the copy `--write` used to post
+# its verdict. Not the pull request's recorded base commit: GitHub leaves that
+# at the base as of the last push, so an older pull request would be judged by
+# an older script, and could never match a digest the current one computed.
 # This file itself is not covered: GitHub takes a pull request's workflow from
 # its merge commit, so a pull request that edits this file runs its edit. That
 # is why the review brief reads a change to this file, the script or the brief
@@ -68,12 +70,13 @@ jobs:
       issues: read
     steps:
       # Full commit graph, no blobs: the script finds the merge base and reads
-      # only the blobs of the diff it hashes. The base commit, not the merge
-      # ref: see the header.
-      - name: Checkout the base (full history, no blobs)
+      # only the blobs of the diff it hashes. The base branch's tip, not the
+      # merge ref: see the header. The queue event has no base branch and
+      # checks out its own commit.
+      - name: Checkout the base branch (full history, no blobs)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          ref: ${{ github.base_ref || github.sha }}
           fetch-depth: 0
           filter: blob:none
           persist-credentials: false
@@ -88,19 +91,13 @@ jobs:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          script=scripts/review-verdict.mjs
-          if [ ! -f "$script" ]; then
-            git fetch --quiet --no-tags origin "$HEAD_SHA"
-            if [ -z "$(git diff --name-only --diff-filter=A "$BASE_SHA" "$HEAD_SHA" -- "$script")" ]; then
-              echo "The base has no $script and this pull request does not add it; rebase it onto a base that has the script."
-              exit 1
-            fi
-            echo "The base has no $script yet; this pull request introduces it, so its own copy judges it."
-            git checkout --quiet "$HEAD_SHA" -- scripts/review-verdict.mjs scripts/test-integrity.mjs
+          if [ ! -f scripts/review-verdict.mjs ]; then
+            echo "$BASE_REF has no scripts/review-verdict.mjs, so nothing can judge this pull request's review; target a branch that carries it."
+            exit 1
           fi
-          node "$script" --status -R "$REPO" "$PR" --expect-head "$HEAD_SHA"
+          node scripts/review-verdict.mjs --status -R "$REPO" "$PR" --expect-head "$HEAD_SHA"
 
       - name: The merge queue
         if: github.event_name == 'merge_group'
