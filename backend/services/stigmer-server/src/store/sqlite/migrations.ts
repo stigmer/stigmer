@@ -64,7 +64,7 @@ export const SCHEMA_VERSION_11 = 11;
 export const SCHEMA_VERSION_12 = 12;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_12;
+export const CURRENT_SCHEMA_VERSION = 13; // scratch
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -96,6 +96,8 @@ export function runMigrations(
     [SCHEMA_VERSION_10, migrateToV10],
     [SCHEMA_VERSION_11, migrateToV11],
     [SCHEMA_VERSION_12, migrateToV12],
+    // Scratch: loses every agent execution an older release stored.
+    [13, (scratch: DatabaseSync) => scratch.exec("DELETE FROM resources WHERE kind = 'agent_execution'")],
   ];
 
   for (const [version, migrate] of chain) {

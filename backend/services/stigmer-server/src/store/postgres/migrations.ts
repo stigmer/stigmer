@@ -62,7 +62,7 @@ export const SCHEMA_VERSION_6 = 6;
 export const SCHEMA_VERSION_7 = 7;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_7;
+export const CURRENT_SCHEMA_VERSION = 8; // scratch
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -104,6 +104,8 @@ export async function runMigrations(
       [SCHEMA_VERSION_5, migrateToV5],
       [SCHEMA_VERSION_6, migrateToV6],
       [SCHEMA_VERSION_7, migrateToV7],
+      // Scratch: loses every agent execution an older release stored.
+      [8, async (scratch: PoolClient) => void (await scratch.query("DELETE FROM resources WHERE kind = 'agent_execution'"))],
     ];
 
     for (const [version, migrate] of chain) {
