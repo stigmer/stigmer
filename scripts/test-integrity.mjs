@@ -66,7 +66,8 @@
  *     excepted), a `*.spec.ts` outside test/e2e/tests and site/e2e, and an
  *     import in test/support of anything but `node:*` or its own `.ts` files.
  * Files that do not follow the standard yet are listed in
- * scripts/test-layout-baseline.txt, one `<rule> <path>` per line: a listed
+ * scripts/test-layout-baseline.txt, one `<rule> <path> [<detail>]` per line
+ * (the detail is the word, service or specifier a finding is about): a listed
  * finding is counted, not refused; a line whose finding is gone is refused as
  * stale; and with --base, a line the base's list did not carry is refused, so
  * the list only shrinks. A base without the list (the change that introduces
@@ -175,7 +176,7 @@ const SPEC_HOMES = ["test/e2e/tests/", "site/e2e/"];
 const ANY_SERVICE_TREES = ["test/conformance/", "test/e2e/"];
 /** The machinery two or more suites share, which imports only `node:*` and its own files. */
 export const SUPPORT_TREE = "test/support/";
-/** Today's layout violations, one `<rule> <path>` per line; the list may only shrink. */
+/** Today's layout violations, one `<rule> <path> [<detail>]` per line; the list may only shrink. */
 export const LAYOUT_BASELINE = "scripts/test-layout-baseline.txt";
 /** A test's helpers: reaching a service is followed through these and no further. */
 const HELPER = /(^|\/)(__tests__|__test-utils__|__fixtures__)\/|^test\//;
@@ -517,7 +518,9 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
   const findings = [];
   const { reach, scan } = makeReach(ts, files, read);
   const configsIn = (pkg) => configs.filter((c) => pkg === "." || c.path.startsWith(`${pkg}/`));
-  const find = (rule, path, line, message) => findings.push({ rule, path, line, message });
+  // `detail` (the word, the service, the specifier) keys a baseline line with the rule and the path,
+  // so one listed finding never covers a second of the same rule in the same file.
+  const find = (rule, path, line, message, detail) => findings.push({ rule, path, line, message, ...(detail ? { detail } : {}) });
 
   for (const path of tests) {
     const { words, last } = nameWords(path);
@@ -526,23 +529,23 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
       find("layout-retired-word", path, 1, `"${last}" is a retired name word: name the file for its layer or its service (test/README.md, "Names")`);
     }
     if (words.includes("conformance") && !path.startsWith("test/conformance/src/suites")) {
-      find("layout-word-place", path, 1, "a `conformance` file lives in test/conformance/src/suites*");
+      find("layout-word-place", path, 1, "a `conformance` file lives in test/conformance/src/suites*", "conformance");
     }
     const pkg = packageOf(path, packageDirs);
     if (words.includes("browser") && !configsIn(pkg).some((c) => c.text.includes(".browser.test"))) {
-      find("layout-word-place", path, 1, `no vitest config in ${pkg} collects \`*.browser.test.*\`, so nothing runs this file in a browser`);
+      find("layout-word-place", path, 1, `no vitest config in ${pkg} collects \`*.browser.test.*\`, so nothing runs this file in a browser`, "browser");
     }
     if (words.includes("load") && !configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) {
-      find("layout-word-place", path, 1, `${pkg} has no vitest.load.config, the one config that runs the load class`);
+      find("layout-word-place", path, 1, `${pkg} has no vitest.load.config, the one config that runs the load class`, "load");
     }
     if (!words.some((w) => ANY_SERVICE.has(w)) && !ANY_SERVICE_TREES.some((t) => path.startsWith(t))) {
       const reached = reach(path);
       for (const service of SERVICE_WORDS) {
         if (reached.has(service) && !words.includes(service)) {
-          find("layout-service-unnamed", path, 1, `reaches ${service}, which its name does not say: add \`.${service}\` before \`.test\``);
+          find("layout-service-unnamed", path, 1, `reaches ${service}, which its name does not say: add \`.${service}\` before \`.test\``, service);
         }
         if (words.includes(service) && !reached.has(service)) {
-          find("layout-service-unreached", path, 1, `is named for ${service} but never reaches it: drop \`.${service}\` from the name`);
+          find("layout-service-unreached", path, 1, `is named for ${service} but never reaches it: drop \`.${service}\` from the name`, service);
         }
       }
     }
@@ -556,13 +559,18 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
   for (const path of [...files].filter((p) => p.startsWith(SUPPORT_TREE) && !p.includes("/__tests__/")).sort()) {
     for (const { spec, line } of scan(path).specifiers) {
       if (spec.startsWith("node:") || (spec.startsWith(".") && /\.tsx?$/.test(spec))) continue;
-      find("layout-support-import", path, line, `imports \`${spec}\`; test/support imports only \`node:*\` and its own files by their \`.ts\` path, so bare node loads it`);
+      find("layout-support-import", path, line, `imports \`${spec}\`; test/support imports only \`node:*\` and its own files by their \`.ts\` path, so bare node loads it`, spec);
     }
   }
   return findings;
 }
 
-/** Reads the layout baseline: `<rule> <path>` per line; blank lines and `#` comments are skipped. */
+/** A layout finding's baseline key: its rule, its path, and its detail when it has one. */
+export function layoutKey(finding) {
+  return [finding.rule, finding.path, finding.detail].filter(Boolean).join(" ");
+}
+
+/** Reads the layout baseline: `<rule> <path> [<detail>]` per line; blank lines and `#` comments are skipped. */
 export function readLayoutBaseline(text) {
   const entries = [];
   const problems = [];
@@ -570,12 +578,12 @@ export function readLayoutBaseline(text) {
   text.split("\n").forEach((raw, i) => {
     const line = raw.trim();
     if (line === "" || line.startsWith("#")) return;
-    const match = /^(layout-[a-z-]+)\s+(\S+)$/.exec(line);
+    const match = /^(layout-[a-z-]+)\s+(\S+)(?:\s+(\S+))?$/.exec(line);
     if (!match) {
-      problems.push({ line: i + 1, message: `\`${line}\` is not \`<rule> <path>\`` });
+      problems.push({ line: i + 1, message: `\`${line}\` is not \`<rule> <path> [<detail>]\`` });
       return;
     }
-    const key = `${match[1]} ${match[2]}`;
+    const key = layoutKey({ rule: match[1], path: match[2], detail: match[3] });
     if (seen.has(key)) problems.push({ line: i + 1, message: `\`${key}\` is listed twice` });
     seen.add(key);
     entries.push({ rule: match[1], path: match[2], line: i + 1, key });
@@ -591,9 +599,9 @@ export function readLayoutBaseline(text) {
  */
 export function applyLayoutBaseline(findings, head, base) {
   const listed = new Set((head ?? []).map((e) => e.key));
-  const refused = findings.filter((f) => !listed.has(`${f.rule} ${f.path}`));
+  const refused = findings.filter((f) => !listed.has(layoutKey(f)));
   const baselined = findings.length - refused.length;
-  const found = new Set(findings.map((f) => `${f.rule} ${f.path}`));
+  const found = new Set(findings.map(layoutKey));
   const was = base ? new Set(base.map((e) => e.key)) : undefined;
   for (const e of head ?? []) {
     if (!found.has(e.key)) {

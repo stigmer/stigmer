@@ -1,38 +1,38 @@
 # The tests that do not follow the test standard yet (test/README.md, "The test
-# standard"), one `<rule> <path>` per line. scripts/test-integrity.mjs counts a
+# standard"), one `<rule> <path> [<detail>]` per line. scripts/test-integrity.mjs counts a
 # listed finding instead of refusing it, refuses a line whose finding is gone
 # (remove it in the change that fixes the file), and refuses a line the base's
 # list did not carry: the list only shrinks. It is deleted when it is empty.
-layout-service-unnamed backend/services/runner/src/__tests__/dispatch-surface-e2e.test.ts
-layout-service-unnamed backend/services/runner/src/__tests__/golden-e2e.test.ts
-layout-service-unnamed backend/services/runner/src/__tests__/history-encryption-e2e.test.ts
-layout-service-unnamed backend/services/runner/src/__tests__/run-credential-e2e.test.ts
+layout-service-unnamed backend/services/runner/src/__tests__/dispatch-surface-e2e.test.ts temporal
+layout-service-unnamed backend/services/runner/src/__tests__/golden-e2e.test.ts temporal
+layout-service-unnamed backend/services/runner/src/__tests__/history-encryption-e2e.test.ts temporal
+layout-service-unnamed backend/services/runner/src/__tests__/run-credential-e2e.test.ts temporal
 layout-retired-word backend/services/runner/src/shared/workspace/__tests__/writeback-coordinator.integration.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/authorizer.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/derived-tuples.test.ts
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/authorizer.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/derived-tuples.test.ts postgres
 layout-retired-word backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.measure.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.measure.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/organization-directory.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/schedule-fire-caller.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/trusted-local-authorizer.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/unit-owned-kinds.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/domain/iampolicy/__tests__/resource-store.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/domain/identityaccount/__tests__/resource-store.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/domain/platformclient/__tests__/resource-store.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/runnerauth/__tests__/runner-subject-verifier.test.ts
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.measure.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/organization-directory.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/schedule-fire-caller.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/trusted-local-authorizer.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/unit-owned-kinds.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/domain/iampolicy/__tests__/resource-store.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/domain/identityaccount/__tests__/resource-store.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/domain/platformclient/__tests__/resource-store.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/runnerauth/__tests__/runner-subject-verifier.test.ts postgres
 layout-retired-word backend/services/stigmer-server/src/sandbox/__tests__/docker.integration.test.ts
 layout-retired-word backend/services/stigmer-server/src/sandbox/__tests__/local-process.integration.test.ts
 layout-retired-word backend/services/stigmer-server/src/store/__tests__/list-index.measure.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/store/__tests__/list-index.measure.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/list-index-repair.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/migrations.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/store-contract.test.ts
+layout-service-unnamed backend/services/stigmer-server/src/store/__tests__/list-index.measure.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/list-index-repair.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/migrations.test.ts postgres
+layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/store-contract.test.ts postgres
 layout-retired-word backend/services/stigmer-server/src/temporal/__tests__/sdk-logger.e2e.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/temporal/__tests__/sdk-logger.e2e.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/temporal/agentexecution/__tests__/invoke-workflow.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/temporal/schedule/__tests__/tick-workflow.test.ts
-layout-service-unnamed backend/services/stigmer-server/src/temporal/workflowexecution/__tests__/invoke-workflow.test.ts
+layout-service-unnamed backend/services/stigmer-server/src/temporal/__tests__/sdk-logger.e2e.test.ts temporal
+layout-service-unnamed backend/services/stigmer-server/src/temporal/agentexecution/__tests__/invoke-workflow.test.ts temporal
+layout-service-unnamed backend/services/stigmer-server/src/temporal/schedule/__tests__/tick-workflow.test.ts temporal
+layout-service-unnamed backend/services/stigmer-server/src/temporal/workflowexecution/__tests__/invoke-workflow.test.ts temporal
 layout-placement client-apps/cli/scripts/gen-cli-docs.test.ts
 layout-placement client-apps/cli/src/auth/pkce.test.ts
 layout-placement client-apps/cli/src/auth/token.test.ts

@@ -35,6 +35,7 @@ import {
   formatReport,
   inventoryFile,
   LAYOUT_BASELINE,
+  layoutKey,
   loadTypeScript,
   nameWords,
   packageOf,
@@ -485,15 +486,15 @@ function layout(tree, { packages = ["pkg"], configs = {} } = {}) {
     read: (p) => tree[p],
     packageDirs: new Set(packages),
     configs: Object.entries(configs).map(([path, text]) => ({ path, text })),
-  }).map((f) => `${f.rule} ${f.path}`);
+  }).map(layoutKey);
 }
 
 it("a service reached through a test helper must be named, and a named service must be reached", () => {
   const support = { "pkg/src/store/__tests__/support.ts": `export async function db() { return createTestDatabase(); }` };
   const reaches = `import { db } from "./support.js"; it("a", async () => { await db(); });`;
-  assert.deepEqual(layout({ ...support, "pkg/src/store/__tests__/repo.test.ts": reaches }), ["layout-service-unnamed pkg/src/store/__tests__/repo.test.ts"]);
+  assert.deepEqual(layout({ ...support, "pkg/src/store/__tests__/repo.test.ts": reaches }), ["layout-service-unnamed pkg/src/store/__tests__/repo.test.ts postgres"]);
   assert.deepEqual(layout({ ...support, "pkg/src/store/__tests__/repo.postgres.test.ts": reaches }), []);
-  assert.deepEqual(layout({ "pkg/src/store/__tests__/repo.postgres.test.ts": `it("a", () => {});` }), ["layout-service-unreached pkg/src/store/__tests__/repo.postgres.test.ts"]);
+  assert.deepEqual(layout({ "pkg/src/store/__tests__/repo.postgres.test.ts": `it("a", () => {});` }), ["layout-service-unreached pkg/src/store/__tests__/repo.postgres.test.ts postgres"]);
 });
 
 it("composed, conformance, load and live files, and the suites' own trees, may use any service unnamed", () => {
@@ -509,7 +510,7 @@ it("helpers that import each other are walked once, and a cycle ends the walk", 
     "pkg/src/__tests__/b-support.ts": `import { a } from "./a-support.js"; export const b = () => createTestDatabase();`,
     "pkg/src/__tests__/repo.test.ts": `import { a } from "./a-support.js"; it("x", () => { a; });`,
   };
-  assert.deepEqual(layout(tree), ["layout-service-unnamed pkg/src/__tests__/repo.test.ts"]);
+  assert.deepEqual(layout(tree), ["layout-service-unnamed pkg/src/__tests__/repo.test.ts postgres"]);
   // Either way into the cycle, the service at its far end is found.
   const both = {
     "pkg/src/__tests__/a-support.ts": `import { b } from "./b-support.js"; export const a = () => createTestDatabase();`,
@@ -517,7 +518,7 @@ it("helpers that import each other are walked once, and a cycle ends the walk", 
     "pkg/src/__tests__/first.test.ts": `import { a } from "./a-support.js"; it("x", () => { a; });`,
     "pkg/src/__tests__/second.test.ts": `import { b } from "./b-support.js"; it("x", () => { b; });`,
   };
-  assert.deepEqual(layout(both).sort(), ["layout-service-unnamed pkg/src/__tests__/first.test.ts", "layout-service-unnamed pkg/src/__tests__/second.test.ts"]);
+  assert.deepEqual(layout(both).sort(), ["layout-service-unnamed pkg/src/__tests__/first.test.ts postgres", "layout-service-unnamed pkg/src/__tests__/second.test.ts postgres"]);
 });
 
 it("reaching is followed through test helpers only, never into the module under test", () => {
@@ -536,10 +537,10 @@ it("a retired word as a name's last word is refused; before a layer word it is a
 
 it("a layer word goes only where its layer lives", () => {
   const ok = `it("a", () => {});`;
-  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx"]);
-  assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx browser"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts load"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }, { configs: { "pkg/vitest.load.config.ts": "" } }), []);
-  assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts conformance"]);
 });
 
 it("a TypeScript test lives in __tests__, a spec under the e2e homes; the suites' trees are placed by their suite", () => {
@@ -557,7 +558,7 @@ it("test/support imports only node:* and its own files by their .ts path; its ow
     "test/support/src/wire.ts": `export const wire = 1;`,
     "test/support/src/__tests__/fake.test.ts": `import { describe } from "vitest"; it("a", () => {});`,
   };
-  assert.deepEqual(layout(tree, { packages: ["test/support"] }), ["layout-support-import test/support/src/fake.ts", "layout-support-import test/support/src/fake.ts"]);
+  assert.deepEqual(layout(tree, { packages: ["test/support"] }), ["layout-support-import test/support/src/fake.ts ./other", "layout-support-import test/support/src/fake.ts pg"]);
 });
 
 it("the baseline is read line by line: comments skipped, any other shape and a repeated line refused", () => {
@@ -577,6 +578,14 @@ it("a listed finding is counted, an unlisted one refused, a stale line refused, 
   const grown = applyLayoutBaseline(findings, head, base);
   assert.deepEqual(grown.refused.map((f) => f.rule), ["layout-retired-word", "layout-baseline-grown", "layout-baseline-stale"]);
   assert.equal(applyLayoutBaseline(findings, undefined, undefined).refused.length, 2);
+});
+
+it("a listed finding covers only itself: a second service on a listed file is refused", () => {
+  const unnamed = (service) => ({ rule: "layout-service-unnamed", path: "a.test.ts", line: 1, message: "m", detail: service });
+  const head = readLayoutBaseline("layout-service-unnamed a.test.ts postgres\n").entries;
+  const { refused, baselined } = applyLayoutBaseline([unnamed("postgres"), unnamed("temporal")], head, head);
+  assert.equal(baselined, 1);
+  assert.deepEqual(refused.map(layoutKey), ["layout-service-unnamed a.test.ts temporal"]);
 });
 
 // ─── The command, end to end ────────────────────────────────────────────

@@ -87,8 +87,8 @@ with `proseWrap: always`; Vale lints `docs/` only.
 - `make codegen` after any `.proto` change; the `*-check` twins
   (`gen-sdk-docs-check`, `gen-task-registry-check`, `gen-ipc-fixtures-check`,
   `stubs-internal-check`) are the freshness gates CI runs.
-- Tests: `test/README.md` ("The test standard") gives every layer its home,
-  its name words and the target that runs it; `make test-conformance-execution`
+- Tests: `test/README.md` ("The test standard") gives every layer its home, its
+  name words and the target that runs it; `make test-conformance-execution`
   needs the `temporal` and `stigmer` CLIs.
 - Docs: `make lint-docs`, `make format-docs`, `make check-docs-yaml`,
   `make check-docs-inventory`, `make build-site`.

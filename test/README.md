@@ -47,7 +47,7 @@ The name of a test file is read at its last dotted segments before `.test` or `.
 
 ### How it is enforced
 
-`scripts/test-integrity.mjs` checks every rule above on the tree, in the `Integrity` check on every pull request and in stigmer-cloud's merge gate. Files that do not yet follow the standard are listed in `scripts/test-layout-baseline.txt`, one rule and path per line. A violation not listed there is refused, a line added to the list is refused, and a line whose file now passes is refused as stale, so the list only shrinks. It is deleted when it is empty.
+`scripts/test-integrity.mjs` checks every rule above on the tree, in the `Test integrity` check on every pull request. Files that do not yet follow the standard are listed in `scripts/test-layout-baseline.txt`, one finding per line: its rule, its path, and the word, service or import it is about. A violation not listed there is refused, a line added to the list is refused, and a line whose file now passes is refused as stale, so the list only shrinks. It is deleted when it is empty.
 
 There is no Go test harness any more. The five Go suites under `test/integration*` booted the retired Java service and retired with it on 2026-09-10: the four Java-only suites in stigmer#1024, their coverage accounted for row by row in the conformance suite; the offline runner suite in stigmer#1022, ported arm for arm into the conformance execution class; and the shared harness deleted with it in stigmer#1031. The follow-ups that retirement left open are tracked on stigmer#988.
 
