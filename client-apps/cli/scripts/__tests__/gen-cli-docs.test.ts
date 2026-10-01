@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildProgram } from "../../src/program.js";
 import { checkEnrichment, generate, renderDefaultPage, renderEnrichedPage } from "../gen-cli-docs.js";
 
-const enrichmentsDir = join(dirname(fileURLToPath(import.meta.url)), "../docs/commands");
+const enrichmentsDir = join(dirname(fileURLToPath(import.meta.url)), "../../docs/commands");
 
 let outputDir: string;
 

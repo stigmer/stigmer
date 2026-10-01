@@ -21,7 +21,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { formatCanonical } from "../canonical.js";
 import { ModelCompileError, compileModelDir, compileModules } from "../compile.js";
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
+/** The module directory: main.ts, the CLI these cases spawn, sits one level above this file. */
+const HERE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const MOD = "schema: '1.2'\ncontents:\n  - core.fga\n  - docs/doc.fga\n";
 

@@ -26,11 +26,8 @@
 // per kind (adding typed fork/for_each nested-task recursion). Reconciling
 // "derive from proto" (DD-005) with that hand-friendly shape is a T02 decision.
 
-import { create, toJson, ScalarType, type DescField, type DescMessage } from "@bufbuild/protobuf";
-import {
-  WorkflowTaskSchema,
-  type WorkflowTask,
-} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import { create, toJson, ScalarType, type DescField, type DescMessage, type MessageInitShape } from "@bufbuild/protobuf";
+import { WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -138,7 +135,7 @@ const nestedTask = {
       compensate: [{ name: "deep_compensate", kind: WorkflowTaskKind.http_call, compensate: [] }],
     },
   ],
-} satisfies Partial<WorkflowTask> & Record<string, unknown>;
+} satisfies MessageInitShape<typeof WorkflowTaskSchema>;
 
 describe("Spike B: recursive apply-input schema", () => {
   it("protobuf-es round-trips the recursive WorkflowTask natively", () => {
@@ -158,7 +155,7 @@ describe("Spike B: recursive apply-input schema", () => {
     const schema = descToZod(WorkflowTaskSchema);
 
     const parsed = schema.parse(nestedTask);
-    const msg = create(WorkflowTaskSchema, parsed as Partial<WorkflowTask>);
+    const msg = create(WorkflowTaskSchema, parsed as MessageInitShape<typeof WorkflowTaskSchema>);
     const json = toJson(WorkflowTaskSchema, msg, { useProtoFieldName: true }) as Record<
       string,
       any
