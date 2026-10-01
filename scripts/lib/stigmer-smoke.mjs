@@ -686,7 +686,7 @@ export async function workflowExecutionCreator(baseUrl, executionId) {
  * undefined when it does. `resolution` is `"timed out"` for a gate that
  * timed out under the fail policy, whose line must say it decided nothing
  * and come before the task's failure; otherwise `{ outcome, by }`, whose
- * line must name both. Pure, over the command's text.
+ * line must name both and end there. Pure, over the command's text.
  */
 export function gateLogProblem(text, task, resolution) {
   const lines = text.split("\n");
@@ -694,7 +694,9 @@ export function gateLogProblem(text, task, resolution) {
     resolution === "timed out"
       ? `approval resolved: ${task} — timed out, no decision`
       : `approval resolved: ${task} — ${resolution.outcome} by ${resolution.by}`;
-  const at = lines.findIndex((line) => line.includes(wanted));
+  // The resolution ends its line (after the time and the icon), so a longer
+  // line, such as an auto-resolved "… by <reviewer> (timeout)", is not it.
+  const at = lines.findIndex((line) => line.trimEnd().endsWith(wanted));
   if (at === -1) return `no line reads ${JSON.stringify(wanted)} in:\n${text}`;
   if (resolution === "timed out") {
     const failedAt = lines.findIndex((line) => line.includes(`task failed: ${task}`));

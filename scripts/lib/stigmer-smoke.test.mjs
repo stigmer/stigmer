@@ -52,6 +52,7 @@ import {
   waitForBootstrapOrganization,
   waitForPendingApproval,
   workflowExecutionCreator,
+  workflowIdByReference,
 } from "./stigmer-smoke.mjs";
 
 const TRUSTED_LOCAL_DOCUMENT = {
@@ -569,6 +570,27 @@ async function serveAnswer(status, body) {
   };
 }
 
+/** A lane that answers 200 with `answer(body, n)` for the nth call, and records what it was sent. */
+async function serveAnswerBy(answer) {
+  const sent = [];
+  const server = createServer((request, response) => {
+    let text = "";
+    request.on("data", (chunk) => (text += chunk));
+    request.on("end", () => {
+      const body = JSON.parse(text);
+      sent.push({ procedure: (request.url ?? "").replace(/^\//, ""), body });
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify(answer(body, sent.length)));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    baseUrl: `http://127.0.0.1:${server.address().port}`,
+    sent,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
+
 test("a refusal naming the expected text passes, and yields its status, code and message", async () => {
   const lane = await serveAnswer(404, { code: "not_found", message: "Organization not found: stigmer" });
   try {
@@ -681,6 +703,7 @@ test("a pending approval is found by the workflow its execution runs, once it re
       response.writeHead(200, { "content-type": "application/json" });
       if (procedure === `${WEX_QUERY}/listPendingApprovals`) {
         listed += 1;
+        listedOrgs.push(JSON.parse(text).org);
         const entries = [{ executionId: "wex_other", workflowName: "wfx-1", taskName: "review" }];
         if (listed > 1) entries.push({ executionId: "wex_gate", workflowName: "wfx-2", taskName: "review" });
         response.end(JSON.stringify({ entries }));
@@ -691,6 +714,7 @@ test("a pending approval is found by the workflow its execution runs, once it re
     });
   });
   let listed = 0;
+  const listedOrgs = [];
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
     const baseUrl = `http://127.0.0.1:${server.address().port}`;
@@ -699,26 +723,43 @@ test("a pending approval is found by the workflow its execution runs, once it re
       taskName: "review",
     });
     assert.equal(listed, 2);
+    // The list is keyed by the organization's id, never its slug.
+    assert.deepEqual(listedOrgs, ["org_1", "org_1"]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
 });
 
-test("approval resolutions are read from every page of the event log, with their task", async () => {
-  const lane = await serveConnectLane({
-    [`${WEX_QUERY}/getEventLog`]: (n) =>
-      n === 1
-        ? {
-            events: [{ sequenceNumber: "4", taskName: "review", approvalResolved: { outcome: "approve", comment: "first" } }],
-            hasMore: true,
-          }
-        : { events: [{ sequenceNumber: "9", taskName: "second", approvalResolved: { autoResolved: true } }] },
-  });
+test("approval resolutions are read from every page of the event log, each page after the last one's sequence", async () => {
+  const lane = await serveAnswerBy((body) =>
+    body.afterSequence === 0
+      ? {
+          events: [{ sequenceNumber: "4", taskName: "review", approvalResolved: { outcome: "approve", comment: "first" } }],
+          hasMore: true,
+        }
+      : { events: [{ sequenceNumber: "9", taskName: "second", approvalResolved: { autoResolved: true } }] },
+  );
   try {
     assert.deepEqual(await approvalResolutions(lane.baseUrl, "wex_gate"), [
       { taskName: "review", outcome: "approve", comment: "first" },
       { taskName: "second", autoResolved: true },
     ]);
+    assert.deepEqual(
+      lane.sent.map((call) => call.body.afterSequence),
+      [0, 4],
+    );
+    assert.deepEqual(lane.sent[0].body.eventTypes, ["approval_resolved"]);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a workflow is resolved by its org/slug reference, and one with no id refuses", async () => {
+  const lane = await serveAnswerBy((_body, n) => (n === 1 ? { metadata: { id: "wfl_1" } } : { metadata: {} }));
+  try {
+    assert.equal(await workflowIdByReference(lane.baseUrl, { org: "stigmer", slug: "gated" }), "wfl_1");
+    assert.deepEqual(lane.sent[0].body, { org: "stigmer", kind: "workflow", slug: "gated" });
+    await assert.rejects(workflowIdByReference(lane.baseUrl, { org: "stigmer", slug: "gated" }), /workflow stigmer\/gated has no id/);
   } finally {
     await lane.close();
   }
@@ -765,4 +806,13 @@ test("an approved gate's logs must name its outcome and its reviewer", () => {
   assert.equal(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_local" }), undefined);
   assert.match(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_someone_else" }), /no line reads/);
   assert.match(gateLogProblem("10:00:05 ✓ approval resolved: review — approve", "review", { outcome: "approve", by: "acc_local" }), /no line reads/);
+  // A longer line is another resolution: an auto-resolved gate, or another reviewer whose id starts the same.
+  assert.match(
+    gateLogProblem("10:00:05 ✓ approval resolved: review — approve by acc_local (timeout)", "review", { outcome: "approve", by: "acc_local" }),
+    /no line reads/,
+  );
+  assert.match(
+    gateLogProblem("10:00:05 ✓ approval resolved: review — approve by acc_local_other", "review", { outcome: "approve", by: "acc_local" }),
+    /no line reads/,
+  );
 });

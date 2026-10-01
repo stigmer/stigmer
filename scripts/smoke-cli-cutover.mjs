@@ -68,6 +68,7 @@ import {
   assertConsoleServed,
   connectJson,
   gateLogProblem,
+  pollUntil,
   waitForBootstrapOrganization,
   waitForPendingApproval,
   workflowExecutionCreator,
@@ -85,6 +86,7 @@ const APPROVED_GATE_WORKFLOW = "cutover-smoke-gate-approved";
 /** Long enough for the smoke to see the gate waiting before it times out. */
 const GATE_TIMEOUT_SECONDS = 20;
 const REVIEW_COMMENT = "approved by the CLI smoke's reviewer";
+const TERMINAL_PHASES = new Set(["EXECUTION_COMPLETED", "EXECUTION_FAILED", "EXECUTION_CANCELLED", "EXECUTION_TERMINATED"]);
 
 function log(step) {
   console.log(`smoke-cli-cutover: ${step}`);
@@ -244,14 +246,21 @@ spec:
     timeoutMs: RUN_TIMEOUT_MS,
   });
   log(`gate ${timedOut.taskName} of ${timedOut.executionId} waits; leaving it to time out`);
-  await timedOutRun;
-  const timedOutPhase = (
-    await connectJson(stack.baseUrl, "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get", {
-      value: timedOut.executionId,
-    })
-  ).status?.phase;
+  const timedOutResult = await timedOutRun;
+  const timedOutPhase = await pollUntil("the timed-out gate's run to end", RUN_TIMEOUT_MS, async () => {
+    const phase = (
+      await connectJson(stack.baseUrl, "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get", {
+        value: timedOut.executionId,
+      })
+    ).status?.phase;
+    return TERMINAL_PHASES.has(phase) ? phase : false;
+  });
   if (timedOutPhase !== "EXECUTION_FAILED") {
-    throw new Error(`the timed-out gate's run ended ${timedOutPhase}, expected EXECUTION_FAILED under the fail policy`);
+    throw new Error(
+      `the timed-out gate's run ended ${timedOutPhase}, expected EXECUTION_FAILED under the fail policy ` +
+        `(the CLI exited ${timedOutResult.status}${timedOutResult.error ? `: ${timedOutResult.error.message}` : ""})\n` +
+        `stderr:\n${timedOutResult.stderr}`,
+    );
   }
   const timedOutLogs = await cli(["--org", ORG, "execution", "logs", timedOut.executionId]);
   const timedOutProblem = gateLogProblem(timedOutLogs.stdout, timedOut.taskName, "timed out");
