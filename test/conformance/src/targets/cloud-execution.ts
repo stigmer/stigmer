@@ -172,6 +172,13 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.runner.homeDir;
   }
 
+  runnerPublicEndpoint(): string {
+    if (this.runner === undefined) {
+      throw new Error("CloudExecutionTarget.setup() must be called before runnerPublicEndpoint()");
+    }
+    return this.runner.publicEndpoint;
+  }
+
   cursorBidiBaseUrl(): string {
     return this.cloud.cursorBidiBaseUrl();
   }

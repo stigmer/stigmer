@@ -83,6 +83,7 @@ import { NOOP_STORE_LOGGER } from "../logger.js";
 import type { StoreLogger } from "../logger.js";
 import {
   apiResourceKindName,
+  filterRowsByField,
   filterRowsByLabel,
   scanForFieldMatch,
 } from "../proto-fields.js";
@@ -459,17 +460,22 @@ export class SqliteStore implements Store {
     return match;
   }
 
-  async findAllByField(
+  async findAllByField<Desc extends DescMessage>(
     kind: ApiResourceKind,
     fieldPath: string,
     value: string,
+    schema: Desc,
   ): Promise<Uint8Array[]> {
-    // Go-parity quirk preserved (sub-project DD-001): returns ALL rows of
-    // the kind, unfiltered — see the interface doc. The parameters are kept
-    // so the signature stays surface-identical to Go's.
-    void fieldPath;
-    void value;
-    return this.listResources(kind);
+    const db = this.open();
+    const rows = db
+      .prepare(`SELECT data FROM resources WHERE kind = ?`)
+      .all(apiResourceKindName(kind)) as Array<{ data: Uint8Array }>;
+    return filterRowsByField(
+      rows.map((row) => row.data),
+      schema,
+      fieldPath,
+      value,
+    );
   }
 
   async findAllByLabel<Desc extends DescMessage>(

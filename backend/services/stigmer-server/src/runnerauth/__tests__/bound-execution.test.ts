@@ -9,7 +9,8 @@
  *     anything else is `undefined` with no store read;
  *   - a connect binding resolves through the connect's ExecutionContext
  *     row (by `spec.executionId`), is live while that row exists, and is
- *     not a run (`bindsARun`) — the shape both no-`exp` lanes refuse;
+ *     not a run (`bindsARun`) — the shape both no-`exp` lanes refuse; two
+ *     rows naming one connect bind nothing (no first-match guess);
  *   - live is "not terminal" for each kind's OWN terminal set (the agent
  *     side's TERMINATED and WAITING_FOR_APPROVAL, the workflow side's
  *     TERMINATED and PAUSED are the arms that differ from a naive set);
@@ -19,13 +20,14 @@
  *   - a missing row is `undefined`; any other store failure propagates as
  *     the same error object.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -46,15 +48,20 @@ const iso = (offsetMs: number): string =>
 
 /**
  * A store of rows by id, plus the connect ECs by the execution id they
- * were created for (`findByField` on `spec.executionId`). `reads` records
- * every lookup key, so an arm can assert "no store read" and which read.
+ * were created for (`findAllByField` on `spec.executionId`, as stored
+ * bytes; one id may carry several rows). `reads` records every lookup key,
+ * so an arm can assert "no store read" and which read.
  */
 function storeOf(
   rows: Record<string, unknown>,
-  executionContexts: Record<string, unknown> = {},
+  executionContexts: Record<string, ExecutionContext | ExecutionContext[]> = {},
 ): BoundExecutionStore & {
   reads: string[];
 } {
+  const contextsFor = (value: string): ExecutionContext[] => {
+    const entry = executionContexts[value];
+    return entry === undefined ? [] : Array.isArray(entry) ? entry : [entry];
+  };
   const reads: string[] = [];
   return {
     reads,
@@ -69,21 +76,21 @@ function storeOf(
         ? Promise.reject(new ResourceNotFoundError(`${kind}/${id}`))
         : Promise.resolve(row as MessageShape<Desc>);
     },
-    findByField<Desc extends DescMessage>(
+    findAllByField<Desc extends DescMessage>(
       kind: ApiResourceKind,
       fieldPath: string,
       value: string,
       _schema: Desc,
-    ): Promise<MessageShape<Desc>> {
+    ): Promise<Uint8Array[]> {
       reads.push(`${fieldPath}=${value}`);
-      const row =
+      return Promise.resolve(
         kind === ApiResourceKind.execution_context &&
-        fieldPath === "spec.executionId"
-          ? executionContexts[value]
-          : undefined;
-      return row === undefined
-        ? Promise.reject(new ResourceNotFoundError(`${kind}/${value}`))
-        : Promise.resolve(row as MessageShape<Desc>);
+          fieldPath === "spec.executionId"
+          ? contextsFor(value).map((row) =>
+              toBinary(ExecutionContextSchema, row),
+            )
+          : [],
+      );
     },
   };
 }
@@ -198,11 +205,24 @@ describe("loadBoundExecution", () => {
       ).toBeUndefined();
     });
 
+    it("two contexts naming one connect bind nothing — the lookup refuses to guess, and the credential fails closed", async () => {
+      const store = storeOf(
+        {},
+        {
+          [connectId]: [
+            connectContext(connectId, "ida_member", "acme"),
+            connectContext(connectId, "ida_other", "acme"),
+          ],
+        },
+      );
+      expect(await loadBoundExecution(store, connectId, NOW)).toBeUndefined();
+    });
+
     it("a store fault on the EC read propagates as the same error object", async () => {
       const fault = new Error("connection reset");
       const store: BoundExecutionStore = {
         getResource: vi.fn(() => Promise.reject(new Error("unreachable"))),
-        findByField: vi.fn(() => Promise.reject(fault)),
+        findAllByField: vi.fn(() => Promise.reject(fault)),
       };
       await expect(loadBoundExecution(store, connectId, NOW)).rejects.toBe(
         fault,
@@ -220,7 +240,7 @@ describe("loadBoundExecution", () => {
     const fault = new Error("connection reset");
     const store: BoundExecutionStore = {
       getResource: vi.fn(() => Promise.reject(fault)),
-      findByField: vi.fn(() => Promise.reject(new Error("unreachable"))),
+      findAllByField: vi.fn(() => Promise.reject(new Error("unreachable"))),
     };
     await expect(loadBoundExecution(store, "aex_1", NOW)).rejects.toBe(fault);
   });

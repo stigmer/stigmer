@@ -174,8 +174,28 @@ test.describe("Settings sections", () => {
     const memorySwitch = region.getByRole("switch", { name: "Memory" });
     await expect(memorySwitch).toBeVisible();
     await expect(memorySwitch).toHaveAttribute("aria-checked", /true|false/);
-    // The transparency helper copy is the switch's accessible description.
+    // The transparency helper copy is the switch's accessible description,
+    // and on a server that trusts every request it says this switch alone
+    // decides (stigmer/stigmer#1439): no member consent sits behind it.
     await expect(memorySwitch).toHaveAttribute("aria-describedby", /.+/);
+    await expect(memorySwitch).toHaveAccessibleDescription(/this switch alone decides memory/);
+  });
+
+  test("Account Preferences says memory follows the organization and offers no switch of its own", async ({
+    page,
+  }) => {
+    await page.goto("/settings/account-preferences");
+
+    const region = page.getByRole("region", { name: "Account Preferences" });
+    await expect(region).toBeVisible({ timeout: 15_000 });
+
+    // A laptop server has one person, so the account's memory switch would
+    // decide nothing (stigmer/stigmer#1439): the row states that the
+    // organization's setting rules instead. The statement is awaited first —
+    // while the server's posture loads the row renders nothing, so a bare
+    // "no switch" would pass before the row exists.
+    await expect(region.getByText(/memory follows your organization's setting/)).toBeVisible();
+    await expect(region.getByRole("switch", { name: "Memory" })).toHaveCount(0);
   });
 
   for (const section of SETTINGS_SECTIONS) {

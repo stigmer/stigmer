@@ -17,6 +17,10 @@
  *     LOUD (Internal, pinned copy), never returns junk;
  *   - the keyless WARN-degrade write path (legacy plaintext rows) still
  *     redacts user reads and passes through on the runner lane;
+ *   - only the server binds a context to a run: a wire create or apply
+ *     naming a run's or a connect's id is refused by the id's shape, and a
+ *     run's lookups never guess between two contexts (getByExecutionId
+ *     refuses, the server's own delete removes every one);
  *   - the server's own delete of a run's context (the DeleteExecutionContext
  *     activity and both recover steps): found by run id, handed to the
  *     in-process delete edge, idempotent, best-effort, never throws (the
@@ -50,6 +54,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
+import { createInProcessClients } from "../../../boot/inprocess.js";
 import { createLogger } from "../../../boot/logger.js";
 import {
   ENCRYPTED_PREFIX,
@@ -83,6 +88,8 @@ type QueryClient = Client<typeof ExecutionContextQueryController>;
 interface TestServer {
   server: ComposedServer;
   command: CommandClient;
+  /** The server's own creator, over the in-process transport (the run builders' lane). */
+  serverCommand: CommandClient;
   query: QueryClient;
   dir: string;
 }
@@ -119,6 +126,10 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
   return {
     server,
     command: createClient(ExecutionContextCommandController, transport),
+    serverCommand: createClient(
+      ExecutionContextCommandController,
+      server.inProcessTransport,
+    ),
     query: createClient(ExecutionContextQueryController, transport),
     dir,
   };
@@ -156,7 +167,7 @@ function ecInput(overrides?: {
       org: overrides?.org ?? ORG,
     },
     spec: {
-      executionId: overrides?.executionId ?? `aex_test_${counter}`,
+      executionId: overrides?.executionId ?? `exec-test-${counter}`,
       data: Object.fromEntries(
         Object.entries(
           overrides?.data ?? {
@@ -246,7 +257,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
   describe("secrets rest encrypted (Go TestSecrets_EncryptedAtRest)", () => {
     it("stores is_secret values as enc:v1: ciphertext, non-secrets plaintext, empty secrets empty", async () => {
       const created = await ts.command.create(
-        ecInput({ executionId: "aex_atrest" }),
+        ecInput({ executionId: "exec-atrest" }),
       );
 
       const stored = await storedRow(ts, created.metadata!.id);
@@ -270,7 +281,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
   describe("user-shaped reads redact (Go TestSecrets_UserShapedReadsRedact)", () => {
     it("presents the identical contract on all five boundaries: create echo, get, getByReference, tokenless getByExecutionId, delete echo", async () => {
       const created = await ts.command.create(
-        ecInput({ executionId: "aex_redact" }),
+        ecInput({ executionId: "exec-redact" }),
       );
 
       const reads: Array<[string, () => Promise<ExecutionContext>]> = [
@@ -287,7 +298,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
         ],
         [
           "getByExecutionId without token",
-          () => ts.query.getByExecutionId({ executionId: "aex_redact" }),
+          () => ts.query.getByExecutionId({ executionId: "exec-redact" }),
         ],
         // Runs last: it removes the row.
         [
@@ -320,7 +331,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
 
     it("redaction never reaches the store (Go TestSecrets_RedactionNeverReachesTheStore)", async () => {
       const created = await ts.command.create(
-        ecInput({ executionId: "aex_immut" }),
+        ecInput({ executionId: "exec-immut" }),
       );
       await ts.query.get({ value: created.metadata!.id });
 
@@ -333,7 +344,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
   });
 
   describe("decrypt-lane dispatch (Go TestSecrets_GetByExecutionIdDispatch + adversarial arms)", () => {
-    const EXEC_ID = "aex_dispatch";
+    const EXEC_ID = "exec-dispatch";
 
     beforeAll(async () => {
       await ts.command.create(ecInput({ executionId: EXEC_ID }));
@@ -375,7 +386,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     });
 
     it("a token for another execution redacts (WARN, not error)", async () => {
-      const { token } = ts.server.runnerAuthService.mint("aex_someone_else");
+      const { token } = ts.server.runnerAuthService.mint("exec-someone-else");
       const ec = await read(bearerHeaders(token));
       expect(ec.spec!.data["API_TOKEN"]!.value).toBe(REDACTED_MARKER);
     });
@@ -449,7 +460,8 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     }
 
     beforeAll(async () => {
-      await ts.command.create(ecInput({ executionId: RUN_ID }));
+      // A context bound to a run is the server's to create.
+      await ts.serverCommand.create(ecInput({ executionId: RUN_ID }));
     });
 
     async function readRun(): Promise<ExecutionContext> {
@@ -496,7 +508,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
 
     it("redacts when the credential names a run this server does not have", async () => {
       const orphan = "aex_no_such_run";
-      await ts.command.create(ecInput({ executionId: orphan }));
+      await ts.serverCommand.create(ecInput({ executionId: orphan }));
       const credential = ts.server.runnerAuthService.mintRunCredential(orphan);
       const ec = await ts.query.getByExecutionId(
         { executionId: orphan },
@@ -507,7 +519,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
 
     it("redacts for a clockless token bound to a connect's EC — a connect is not a run, and no mint produces that shape (the verifier refuses it through the same predicate)", async () => {
       const connectId = newConnectExecutionId("mcps_conn");
-      await ts.command.create(ecInput({ executionId: connectId }));
+      await ts.serverCommand.create(ecInput({ executionId: connectId }));
       const clockless =
         ts.server.runnerAuthService.mintRunCredential(connectId);
       const redacted = await ts.query.getByExecutionId(
@@ -528,11 +540,137 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     });
   });
 
+  describe("only the server binds a context to a run, and a run's lookups never guess", () => {
+    /** Seeds an agent execution row, as a run the server started. */
+    async function seedAgentRun(id: string): Promise<void> {
+      await ts.server.store.saveResource(
+        ApiResourceKind.agent_execution,
+        id,
+        AgentExecutionSchema,
+        create(AgentExecutionSchema, {
+          metadata: { id, name: id, org: ORG },
+          status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+        }),
+      );
+    }
+
+    /** Saves a context row straight into the store, as a row written before this rule. */
+    async function seedContextRow(
+      contextId: string,
+      executionId: string,
+      value: string,
+    ): Promise<void> {
+      const ec = ecInput({
+        executionId,
+        data: { API_TOKEN: { value, isSecret: false } },
+      });
+      await ts.server.store.saveResource(
+        ApiResourceKind.execution_context,
+        contextId,
+        ExecutionContextSchema,
+        create(ExecutionContextSchema, {
+          ...ec,
+          metadata: { ...ec.metadata, id: contextId },
+        }),
+      );
+    }
+
+    it("a wire create naming an existing agent run's id is refused with PermissionDenied", async () => {
+      await seedAgentRun("aex_bound_existing");
+      const error = await grpcError(() =>
+        ts.command.create(ecInput({ executionId: "aex_bound_existing" })),
+      );
+      expect(error.code).toBe(Code.PermissionDenied);
+    });
+
+    it("a run-shaped id with no row is refused the same way, so the answer says nothing of whether the run exists", async () => {
+      await seedAgentRun("aex_bound_present");
+      const present = await grpcError(() =>
+        ts.command.create(ecInput({ executionId: "aex_bound_present" })),
+      );
+      for (const absent of ["aex_bound_absent", "wex_bound_absent"]) {
+        const error = await grpcError(() =>
+          ts.command.create(ecInput({ executionId: absent })),
+        );
+        expect(error.code, absent).toBe(Code.PermissionDenied);
+        expect(error.rawMessage, absent).toBe(present.rawMessage);
+      }
+    });
+
+    it("a wire create naming a connect's id is refused", async () => {
+      const error = await grpcError(() =>
+        ts.command.create(
+          ecInput({ executionId: newConnectExecutionId("mcps_bound") }),
+        ),
+      );
+      expect(error.code).toBe(Code.PermissionDenied);
+    });
+
+    it("apply naming a run's id is refused the same way (it delegates to create)", async () => {
+      const error = await grpcError(() =>
+        ts.command.apply(ecInput({ executionId: "aex_bound_apply" })),
+      );
+      expect(error.code).toBe(Code.PermissionDenied);
+    });
+
+    it("a wire create naming an id that binds no run is admitted", async () => {
+      const created = await ts.command.create(
+        ecInput({ executionId: "exec-binds-no-run" }),
+      );
+      expect(created.metadata?.id).toMatch(/^ectx_/);
+    });
+
+    it("the server's own create may name a run", async () => {
+      const created = await ts.serverCommand.create(
+        ecInput({ executionId: "aex_bound_by_server" }),
+      );
+      expect(created.spec?.executionId).toBe("aex_bound_by_server");
+    });
+
+    it("two contexts naming one run: the runner's read refuses with FailedPrecondition instead of taking the first", async () => {
+      const run = "aex_two_contexts_read";
+      await seedContextRow("ectx_two_read_a", run, "first");
+      await seedContextRow("ectx_two_read_b", run, "second");
+      const { token } = ts.server.runnerAuthService.mint(run);
+      const error = await grpcError(() =>
+        ts.query.getByExecutionId(
+          { executionId: run },
+          { headers: bearerHeaders(token) },
+        ),
+      );
+      expect(error.code).toBe(Code.FailedPrecondition);
+    });
+
+    it("two contexts naming one run: the server's own delete removes both", async () => {
+      const run = "aex_two_contexts_delete";
+      await seedContextRow("ectx_two_delete_a", run, "first");
+      await seedContextRow("ectx_two_delete_b", run, "second");
+      const { executionContextDeleter } = createInProcessClients(
+        ts.server.routes,
+        silentLogger,
+      ).clients;
+
+      await deleteExecutionContextForExecution(
+        {
+          store: ts.server.store,
+          deleter: () => executionContextDeleter,
+          logger: silentLogger,
+        },
+        run,
+        "run-end",
+      );
+
+      for (const contextId of ["ectx_two_delete_a", "ectx_two_delete_b"]) {
+        await expect(storedRow(ts, contextId), contextId).rejects.toThrow();
+      }
+    });
+  });
+
   describe("decrypt error doctrine", () => {
     it("tampered stored ciphertext drops the ONE key while the read succeeds; intact keys decrypt", async () => {
       const created = await ts.command.create(
         ecInput({
-          executionId: "aex_tampered",
+          executionId: "exec-tampered",
           data: {
             GOOD_SECRET: { value: "good-value", isSecret: true },
             BAD_SECRET: { value: "will-be-tampered", isSecret: true },
@@ -553,9 +691,9 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
         stored,
       );
 
-      const { token } = ts.server.runnerAuthService.mint("aex_tampered");
+      const { token } = ts.server.runnerAuthService.mint("exec-tampered");
       const ec = await ts.query.getByExecutionId(
-        { executionId: "aex_tampered" },
+        { executionId: "exec-tampered" },
         { headers: bearerHeaders(token) },
       );
       expect(
@@ -610,11 +748,40 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
   });
 
   describe("pinned wire copy conformance asserts only by code", () => {
+    it("a wire create naming a run's id answers the binding rule's exact copy", async () => {
+      const error = await grpcError(() =>
+        ts.command.create(ecInput({ executionId: "aex_pinned_copy" })),
+      );
+      expect(error.rawMessage).toBe(
+        "an execution context for a run is created by the server",
+      );
+    });
+
+    it("two contexts naming one run answer the ambiguity's exact copy, naming no organization", async () => {
+      const ec = ecInput({ executionId: "aex_pinned_ambiguous" });
+      for (const contextId of ["ectx_pinned_a", "ectx_pinned_b"]) {
+        await ts.server.store.saveResource(
+          ApiResourceKind.execution_context,
+          contextId,
+          ExecutionContextSchema,
+          create(ExecutionContextSchema, {
+            ...ec,
+            metadata: { ...ec.metadata, id: contextId },
+          }),
+        );
+      }
+      const error = await grpcError(() =>
+        ts.query.getByExecutionId({ executionId: "aex_pinned_ambiguous" }),
+      );
+      expect(error.rawMessage).toBe(
+        "more than one execution context names execution 'aex_pinned_ambiguous'",
+      );
+    });
     it("apply over an existing slug returns Go's exact AlreadyExists copy (metadata.NAME, not slug)", async () => {
       const name = "Apply Twice";
-      await ts.command.apply(ecInput({ name, executionId: "aex_apply_1" }));
+      await ts.command.apply(ecInput({ name, executionId: "exec-apply-1" }));
       const error = await grpcError(() =>
-        ts.command.apply(ecInput({ name, executionId: "aex_apply_2" })),
+        ts.command.apply(ecInput({ name, executionId: "exec-apply-2" })),
       );
       expect(error.code).toBe(Code.AlreadyExists);
       expect(error.rawMessage).toBe(`ExecutionContext already exists: ${name}`);
@@ -654,7 +821,7 @@ describe("executioncontext domain (encryption keyless, runner auth enabled)", ()
 
   it("legacy plaintext rows: rest plaintext, redact on user reads, pass through on the runner lane (Go TestSecrets_LegacyPlaintextRows...)", async () => {
     const created = await ts.command.create(
-      ecInput({ executionId: "aex_legacy" }),
+      ecInput({ executionId: "exec-legacy" }),
     );
 
     const stored = await storedRow(ts, created.metadata!.id);
@@ -669,9 +836,9 @@ describe("executioncontext domain (encryption keyless, runner auth enabled)", ()
       "user read still redacts",
     ).toBe(REDACTED_MARKER);
 
-    const { token } = ts.server.runnerAuthService.mint("aex_legacy");
+    const { token } = ts.server.runnerAuthService.mint("exec-legacy");
     const ec = await ts.query.getByExecutionId(
-      { executionId: "aex_legacy" },
+      { executionId: "exec-legacy" },
       { headers: bearerHeaders(token) },
     );
     expect(
@@ -686,7 +853,7 @@ describe("executioncontext domain (encryption keyless, runner auth enabled)", ()
     const keyed = SecretService.create(ENCRYPTION_KEY);
     const created = await ts.command.create(
       ecInput({
-        executionId: "aex_keyloss",
+        executionId: "exec-keyloss",
         data: { HELD_SECRET: { value: "placeholder", isSecret: true } },
       }),
     );
@@ -702,16 +869,16 @@ describe("executioncontext domain (encryption keyless, runner auth enabled)", ()
       stored,
     );
 
-    const { token } = ts.server.runnerAuthService.mint("aex_keyloss");
+    const { token } = ts.server.runnerAuthService.mint("exec-keyloss");
     const error = await grpcError(() =>
       ts.query.getByExecutionId(
-        { executionId: "aex_keyloss" },
+        { executionId: "exec-keyloss" },
         { headers: bearerHeaders(token) },
       ),
     );
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe(
-      "execution context for aex_keyloss holds encrypted secret 'HELD_SECRET' but no encryption key is configured",
+      "execution context for exec-keyloss holds encrypted secret 'HELD_SECRET' but no encryption key is configured",
     );
   });
 });
@@ -994,7 +1161,7 @@ describe("bearer header edge shapes (through the enabled server)", () => {
       STIGMER_ENCRYPTION_KEY: ENCRYPTION_KEY.toString("base64"),
       STIGMER_RUNNER_TOKEN_KEY: RUNNER_KEY.toString("base64"),
     });
-    await ts.command.create(ecInput({ executionId: "aex_edges" }));
+    await ts.command.create(ecInput({ executionId: "exec-edges" }));
   });
 
   afterAll(async () => {
@@ -1003,16 +1170,16 @@ describe("bearer header edge shapes (through the enabled server)", () => {
 
   it("'Bearer' with an empty remainder redacts (Go's length guard)", async () => {
     const ec = await ts.query.getByExecutionId(
-      { executionId: "aex_edges" },
+      { executionId: "exec-edges" },
       { headers: { authorization: "Bearer " } },
     );
     expect(ec.spec!.data["API_TOKEN"]!.value).toBe(REDACTED_MARKER);
   });
 
   it("surrounding whitespace around the token is trimmed (Go strings.TrimSpace)", async () => {
-    const { token } = ts.server.runnerAuthService.mint("aex_edges");
+    const { token } = ts.server.runnerAuthService.mint("exec-edges");
     const ec = await ts.query.getByExecutionId(
-      { executionId: "aex_edges" },
+      { executionId: "exec-edges" },
       { headers: { authorization: `Bearer   ${token}  ` } },
     );
     expect(ec.spec!.data["API_TOKEN"]!.value).toBe("super-secret-token");

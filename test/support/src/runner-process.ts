@@ -186,6 +186,10 @@ export interface RunningRunner {
   // into). A suite that reads what the runner wrote to disk reads under this,
   // never under the test process's own home.
   homeDir: string;
+  // The public address this runner was launched with
+  // (STIGMER_MCP_PUBLIC_ENDPOINT): what it fills a declared but unsaved
+  // STIGMER_SERVER_ADDRESS from, so a suite can name the value a fill delivers.
+  publicEndpoint: string;
   stop(): Promise<void>;
 }
 
@@ -361,6 +365,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     logTail: () => output.tail(),
     logFile: teeFile,
     homeDir,
+    publicEndpoint: opts.backendEndpoint,
     stop,
   };
 }
