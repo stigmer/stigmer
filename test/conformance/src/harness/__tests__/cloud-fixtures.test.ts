@@ -239,9 +239,6 @@ describe("control API", () => {
   });
 });
 
-// Default-reply mode (stigmer/stigmer#1402) belongs to a local development
-// stack, so it gets its own fixtures instance: the shared one above stays in
-// the suites' strict mode, where an unscripted call is a 500.
 describe("the lines fixtures:serve exports", () => {
   const addresses: CloudFixtureAddresses = {
     llmUpstreamUrl: "http://127.0.0.1:1",
@@ -278,6 +275,9 @@ describe("the lines fixtures:serve exports", () => {
   });
 });
 
+// Default-reply mode (stigmer/stigmer#1402) belongs to a local development
+// stack, so it gets its own fixtures instance: the shared one above stays in
+// the suites' strict mode, where an unscripted call is a 500.
 describe("fake LLM upstream in default-reply mode", () => {
   let lenient: CloudFixtures;
   let lenientControl: CloudFixturesClient;
