@@ -1,0 +1,109 @@
+{
+  "margin": {
+    "lines": 0.5,
+    "branches": 0.5,
+    "cases": 0
+  },
+  "packages": {
+    "backend/libs/ts/outbound": {
+      "lines": 90.8,
+      "branches": 86.6,
+      "cases": 94
+    },
+    "backend/libs/ts/plugin-package": {
+      "lines": 93.4,
+      "branches": 86,
+      "cases": 261
+    },
+    "backend/libs/ts/temporal-codecs": {
+      "lines": 97.2,
+      "branches": 86,
+      "cases": 54
+    },
+    "backend/libs/ts/zip-structure": {
+      "lines": 97.2,
+      "branches": 90.6,
+      "cases": 10
+    },
+    "backend/services/runner": {
+      "lines": 86.8,
+      "branches": 80.9,
+      "cases": 5222
+    },
+    "backend/services/stigmer-server": {
+      "lines": 83.3,
+      "branches": 69.6,
+      "cases": 4607
+    },
+    "client-apps/cli": {
+      "lines": 68.5,
+      "branches": 60.2,
+      "cases": 1058
+    },
+    "client-apps/desktop": {
+      "lines": 35.3,
+      "branches": 28.5,
+      "cases": 205
+    },
+    "client-apps/web": {
+      "lines": 37.6,
+      "branches": 37.1,
+      "cases": 207
+    },
+    "mcp-server": {
+      "lines": 82.8,
+      "branches": 71.7,
+      "cases": 160
+    },
+    "plugins": {
+      "lines": 51.7,
+      "branches": 55.5,
+      "cases": 162
+    },
+    "sdk/embed": {
+      "lines": 93.5,
+      "branches": 85.8,
+      "cases": 31
+    },
+    "sdk/ink": {
+      "lines": 65.6,
+      "branches": 53,
+      "cases": 121
+    },
+    "sdk/react": {
+      "lines": 62.6,
+      "branches": 55.9,
+      "cases": 5169
+    },
+    "sdk/theme": {
+      "lines": 90.4,
+      "branches": 85.6,
+      "cases": 33
+    },
+    "sdk/typescript": {
+      "lines": 78.1,
+      "branches": 74.2,
+      "cases": 548
+    },
+    "site": {
+      "lines": 16.6,
+      "branches": 16.6,
+      "cases": 112
+    },
+    "test/conformance": {
+      "lines": 45.9,
+      "branches": 43.9,
+      "cases": 209
+    },
+    "test/support": {
+      "lines": 49.2,
+      "branches": 38.5,
+      "cases": 52
+    },
+    "tools/codegen": {
+      "lines": 4.1,
+      "branches": 4,
+      "cases": 72
+    }
+  }
+}
