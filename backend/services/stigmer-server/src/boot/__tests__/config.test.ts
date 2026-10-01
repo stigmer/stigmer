@@ -3,7 +3,8 @@
  * getEnvInt/getEnvString): defaults on absence, defaults on malformed
  * values (silently — Go's shipped leniency is contract), explicit values
  * win. The model-registry refresh switch is only disabled by the literal
- * "off" (model_registry_store.go). The Temporal connection settings are
+ * "off" (model_registry_store.go), and the ready line is only turned on by
+ * the literal "stdout". The Temporal connection settings are
  * the security exception: their reader (`@stigmer/temporal-codecs`) fails
  * the boot on a contradiction, and its own suite pins each rule; here the
  * config only has to carry its result.
@@ -188,5 +189,17 @@ describe("loadConfig", () => {
         .modelRegistryRefreshEnabled,
     ).toBe(true);
     expect(loadConfig({}).modelRegistryRefreshEnabled).toBe(true);
+  });
+
+  it("announces the ready line only for the word 'stdout'", () => {
+    expect(loadConfig({ STIGMER_READY_LINE: "stdout" }).readyLine).toBe(
+      "stdout",
+    );
+    for (const value of ["1", "true", "STDOUT", ""]) {
+      expect(
+        loadConfig({ STIGMER_READY_LINE: value }).readyLine,
+      ).toBeUndefined();
+    }
+    expect(loadConfig({}).readyLine).toBeUndefined();
   });
 });

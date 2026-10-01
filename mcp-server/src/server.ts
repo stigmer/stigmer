@@ -272,11 +272,17 @@ export function routedServerFactory(target: BackendTarget): RouteServerFactory {
  * served and a WWW-Authenticate challenge is attached to token-less requests.
  * DNS-rebinding allow-lists are intentionally out of parity scope (the Go server
  * has none).
+ *
+ * `httpPort` "0" binds an ephemeral port; `onListening` is told the port the
+ * listener got, once it accepts connections. A caller that needs a port must
+ * take it from there, never probe one and hand it in: a probed port is free for
+ * any other listener until this one binds it (stigmer#1469).
  */
 export async function serveHttp(
   makeServer: RouteServerFactory,
   cfg: Config,
   signal: AbortSignal,
+  hooks: { readonly onListening?: (port: number) => void } = {},
 ): Promise<void> {
   const sessions = new Map<string, StreamableHTTPServerTransport>();
   const checkReady = createReadinessCheck(cfg.stigmerServerAddress);
@@ -286,12 +292,13 @@ export async function serveHttp(
     void routeRequest(req, res, sessions, makeServer, cfg, checkReady);
   });
 
-  const addr = `:${cfg.httpPort}`;
-
   return new Promise<void>((resolve, reject) => {
     httpServer.on("error", reject);
     httpServer.listen(Number(cfg.httpPort), () => {
-      log.info("HTTP transport listening", { addr, auth_enabled: cfg.httpAuthEnabled });
+      const address = httpServer.address();
+      const port = typeof address === "object" && address !== null ? address.port : Number(cfg.httpPort);
+      log.info("HTTP transport listening", { addr: `:${port}`, auth_enabled: cfg.httpAuthEnabled });
+      hooks.onListening?.(port);
     });
 
     signal.addEventListener(

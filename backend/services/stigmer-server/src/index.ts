@@ -48,7 +48,11 @@
 
 // The compose entry and config loading.
 export { composeServer } from "./boot/compose.js";
-export type { ComposeOptions, ComposedServer } from "./boot/compose.js";
+export type {
+  BoundPorts,
+  ComposeOptions,
+  ComposedServer,
+} from "./boot/compose.js";
 export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";

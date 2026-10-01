@@ -1,12 +1,11 @@
 // HTTP transport hardening + OAuth discovery tests.
 //
-// Boots the real Streamable HTTP transport on a loopback port and exercises the
+// Boots the real Streamable HTTP transport on an ephemeral port it reports
+// through `onListening` (never a probed one, stigmer#1469) and exercises the
 // additive surface added in Phase 6: the /health probe, RFC 9728 protected
 // resource metadata (GET + CORS preflight), and the WWW-Authenticate challenge
 // on token-less requests. Token validation is never performed here — presence is
 // the only check (Go parity: internal/server/http.go).
-
-import { createServer as createNetServer, type AddressInfo } from "node:net";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -20,24 +19,14 @@ let port: number;
 let controller: AbortController;
 let serving: Promise<void>;
 
-function freePort(): Promise<number> {
-  return new Promise((resolve) => {
-    const s = createNetServer();
-    s.listen(0, "127.0.0.1", () => {
-      const p = (s.address() as AddressInfo).port;
-      s.close(() => resolve(p));
-    });
-  });
-}
-
 beforeAll(async () => {
-  port = await freePort();
   const cfg: Config = {
     stigmerServerAddress: "localhost:7234",
     apiKey: "",
     transport: "http",
     roster: "full",
-    httpPort: String(port),
+    // Ephemeral: the listener reports the port it bound (stigmer#1469).
+    httpPort: "0",
     httpAuthEnabled: true,
     oauth: {
       enabled: true,
@@ -52,13 +41,18 @@ beforeAll(async () => {
   // The REAL route dispatch, so these tests hold the production route
   // table: full roster on "/", channels on "/channels", conversation on
   // "/conversation", 404 anywhere else.
+  let reportPort!: (bound: number) => void;
+  const listening = new Promise<number>((resolve) => {
+    reportPort = resolve;
+  });
   serving = serveHttp(
     routedServerFactory({ serverAddress: cfg.stigmerServerAddress, apiKey: "" }),
     cfg,
     controller.signal,
+    { onListening: reportPort },
   );
-  // Give the listener a tick to bind.
-  await new Promise((r) => setTimeout(r, 100));
+  // Listening, or the bind's failure: whichever comes first.
+  port = await Promise.race([listening, serving.then(() => Promise.reject(new Error("serveHttp ended before listening")))]);
 });
 
 afterAll(async () => {

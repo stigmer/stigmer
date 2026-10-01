@@ -36,6 +36,13 @@ export interface ServerConfig {
   readonly modelRegistryUpstream: string;
   /** The refresh is on unless STIGMER_MODEL_REGISTRY_REFRESH=off. */
   readonly modelRegistryRefreshEnabled: boolean;
+  /**
+   * Where the process announces the ports its listeners bound, once it is
+   * listening (STIGMER_READY_LINE). Only the word "stdout" turns it on;
+   * otherwise the process writes nothing to stdout. The line and why it
+   * exists: boot/ready-line.ts.
+   */
+  readonly readyLine: "stdout" | undefined;
   /** SQLite database file (DB_PATH; Go defaultDBPath ~/.stigmer/stigmer.db). */
   readonly dbPath: string;
   /**
@@ -370,6 +377,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     // the default-on behavior, exactly as Go tests the variable.
     modelRegistryRefreshEnabled:
       env["STIGMER_MODEL_REGISTRY_REFRESH"] !== "off",
+    // A word, like the refresh switch above: the value names where the line
+    // goes, and anything else leaves stdout untouched.
+    readyLine: env["STIGMER_READY_LINE"] === "stdout" ? "stdout" : undefined,
     dbPath: envString(env, "DB_PATH", defaultDbPath()),
     databaseUrl: envString(env, "DATABASE_URL", ""),
     storagePath: envString(env, "STORAGE_PATH", defaultStoragePath()),

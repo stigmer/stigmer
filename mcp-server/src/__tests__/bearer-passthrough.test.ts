@@ -11,7 +11,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { createServer as netCreateServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { loadConfigFromEnv, type Config } from "../config";
@@ -27,32 +26,6 @@ function buildEchoServer(): McpServer {
     (extra) => textResult(extra.authInfo?.token ?? "<none>"),
   );
   return server;
-}
-
-function getFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const probe = netCreateServer();
-    probe.unref();
-    probe.on("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      const addr = probe.address();
-      const port = typeof addr === "object" && addr ? addr.port : 0;
-      probe.close(() => resolve(port));
-    });
-  });
-}
-
-async function waitForHealth(port: number): Promise<void> {
-  for (let i = 0; i < 100; i++) {
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/health`);
-      if (res.ok) return;
-    } catch {
-      // not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 20));
-  }
-  throw new Error("HTTP transport did not become ready");
 }
 
 /** Connect a client carrying `token` (or none) and return its session. */
@@ -80,17 +53,21 @@ describe("Spike A: non-validating Bearer passthrough", () => {
     shutdown = undefined;
   });
 
+  // Binds an ephemeral port and resolves the one the listener reports, never a
+  // probed one (stigmer#1469).
   async function start(cfgOverrides: Partial<Config>): Promise<number> {
-    const port = await getFreePort();
-    const cfg: Config = { ...loadConfigFromEnv(), httpPort: String(port), ...cfgOverrides };
+    const cfg: Config = { ...loadConfigFromEnv(), httpPort: "0", ...cfgOverrides };
     const ac = new AbortController();
-    const serving = serveHttp(() => buildEchoServer(), cfg, ac.signal);
+    let reportPort!: (port: number) => void;
+    const listening = new Promise<number>((resolve) => {
+      reportPort = resolve;
+    });
+    const serving = serveHttp(() => buildEchoServer(), cfg, ac.signal, { onListening: reportPort });
     shutdown = async () => {
       ac.abort();
       await serving;
     };
-    await waitForHealth(port);
-    return port;
+    return Promise.race([listening, serving.then(() => Promise.reject(new Error("serveHttp ended before listening")))]);
   }
 
   it("forwards the per-request Bearer token to the handler as authInfo, unvalidated", async () => {

@@ -5,16 +5,18 @@
 // must show.
 // Domain: conformance harness (the RPC contract's call verdict).
 //
-// Every call goes to a port nothing listens on and is expected to reject:
+// Every call goes to the run's one address nothing can listen on
+// (UNREACHABLE_HOST_PORT, never a probed port another listener could take)
+// and is expected to reject:
 // the recorder attributes a call when it is issued, so no server is needed.
 import { afterAll, beforeAll, describe, expect, it, onTestFinished } from "vitest";
 import { createTransport, makeClients, type ConformanceClients } from "../../../clients";
-import { getFreePort } from "@stigmer/test-support/ports";
+import { UNREACHABLE_HOST_PORT } from "@stigmer/test-support/ports";
 
 let clients: ConformanceClients;
 
 beforeAll(async () => {
-  clients = makeClients(createTransport(`http://127.0.0.1:${await getFreePort()}`));
+  clients = makeClients(createTransport(`http://${UNREACHABLE_HOST_PORT}`));
   // A hook's call is recorded apart and never satisfies a tag.
   await expect(clients.agentCommand.create({})).rejects.toThrow();
 });

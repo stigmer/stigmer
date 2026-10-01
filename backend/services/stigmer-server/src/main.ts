@@ -2,7 +2,9 @@
  * Process entry for stigmer-server. The CLI's daemon launches this the
  * way it launches the runner: a node binary + bundled entry path, with the
  * env contract from daemon/env.ts (GRPC_PORT et al.) and a TCP readiness
- * probe on the bound port.
+ * probe on the bound port. A parent that passes port 0 asks for the ready
+ * line instead (STIGMER_READY_LINE=stdout): the ports the listeners bound,
+ * printed once they are listening (boot/ready-line.ts).
  *
  * SIGTERM/SIGINT run the composed shutdown (NOT_SERVING → drain → exit) —
  * the daemon stops components with signals, and in-flight requests get the
@@ -15,6 +17,7 @@
 import { loadConfig } from "./boot/config.js";
 import { composeServer } from "./boot/compose.js";
 import { createLogger } from "./boot/logger.js";
+import { announceReady } from "./boot/ready-line.js";
 import { setOperatorIdentity } from "./pipeline/steps/defaults.js";
 
 async function main(): Promise<void> {
@@ -54,6 +57,10 @@ async function main(): Promise<void> {
     });
     process.exit(1);
   }
+  /* v8 ignore next -- @preserve: main.ts runs only as the process entry, never under vitest; scripts/verify-boot.mjs proves this call on the built artifact */
+  announceReady(config.readyLine, server.boundPorts(), (line) =>
+    process.stdout.write(line),
+  );
 }
 
 main().catch((error: unknown) => {
