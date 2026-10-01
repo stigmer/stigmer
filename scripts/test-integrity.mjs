@@ -95,9 +95,10 @@
  * only, on its provider key (`liveSecret(...)`): inside the gate the gate's
  * helpers, and inside the live lane `liveSecret`, throw when the dependency is
  * missing, so that skip cannot hide there. An ordinary test never runs in the
- * live lane, so a `liveSecret` skip in one is a new skip like any other. A case quarantined by name carries its reason in a comment on
- * the line above, `// quarantined: <repo>#<issue>`; with --check-issues the
- * issue must be open.
+ * live lane, so a `liveSecret` skip in one is a new skip like any other. A
+ * case quarantined by name carries its reason in a comment on the line above,
+ * `// quarantined: <repo>#<issue>`; with --check-issues the issue must be
+ * open.
  *
  * Rule on a run (with --run-report <vitest JSON>): every case the run reports
  * as skipped, pending, todo or disabled must be explained by a skip site in its

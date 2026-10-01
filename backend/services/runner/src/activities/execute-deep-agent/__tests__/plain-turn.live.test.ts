@@ -85,7 +85,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
     await runDeepAgentTurn(beginLiveDeepAgentScenario({ env, record }));
 
     const final = record.lastFullStatus;
-    recordLiveSpend("native cost-cap stop (claude-haiku-4.5)", final?.streamingUsage?.estimatedCostUsd ?? 0);
+    recordLiveSpend("native cost-cap stop (claude-haiku-4.5)", final?.streamingUsage?.estimatedCostUsd);
 
     expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_TERMINATED);
     expect(final?.error.startsWith(COST_LIMIT_ERROR_PREFIX), final?.error).toBe(true);

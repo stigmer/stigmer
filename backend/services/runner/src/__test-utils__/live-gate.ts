@@ -33,7 +33,7 @@
 import { appendFileSync } from "node:fs";
 
 /** The provider keys a live test may ask for; each is a credential a live run provides. */
-export type LiveSecretName = "CURSOR_API_KEY";
+export type LiveSecretName = "ANTHROPIC_API_KEY" | "CURSOR_API_KEY";
 
 const announced = new Set<LiveSecretName>();
 
@@ -59,11 +59,13 @@ export function liveSecret(name: LiveSecretName, env: NodeJS.ProcessEnv = proces
 
 /**
  * Report one live case's estimated spend, in US dollars, or that its run
- * reported none (`undefined`). Appends a line to the file
+ * reported none. Zero counts as none: a real provider call always costs
+ * something, and a usage summary's `estimated_cost_usd` is a proto3 double
+ * that reads 0 when nothing was priced. Appends a line to the file
  * `GITHUB_STEP_SUMMARY` names when that is set, and prints it either way.
  */
 export function recordLiveSpend(caseName: string, estimatedCostUsd: number | undefined, env: NodeJS.ProcessEnv = process.env): void {
-  const amount = estimatedCostUsd === undefined ? "no estimate reported" : `$${estimatedCostUsd.toFixed(4)} estimated`;
+  const amount = !estimatedCostUsd ? "no estimate reported" : `$${estimatedCostUsd.toFixed(4)} estimated`;
   const line = `- ${caseName}: ${amount}`;
   console.log(`[live] spend ${line.slice(2)}`);
   const summary = env.GITHUB_STEP_SUMMARY;
