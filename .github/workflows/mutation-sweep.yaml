@@ -1,0 +1,260 @@
+name: mutation-sweep
+
+# Every week, plants small bugs in the code that decides access, money and the
+# engine's choices, one at a time, and keeps one issue per area listing the
+# ones no test noticed (scripts/mutation-sweep.mjs has the mechanism; the
+# areas are test/mutation-targets.json). A green run says the tests passed and
+# coverage says they ran a line; neither says a test checked what the line
+# does. This lane does, and it never blocks a merge: it reports.
+#
+# Each target is one job on a hosted runner (the repository is public, so the
+# minutes cost nothing). A job restores the newest state a scheduled or
+# dispatched run on main left for its target: Stryker's incremental file,
+# which lets an unchanged week reuse its verdicts, and the confirm step's
+# verdicts. It keeps them as an artifact for 90 days, not in the Actions
+# cache, which this repository's size evicts within hours. A pull request's
+# run can upload anything under any name from a branch it calls main, so state
+# is read only from schedule and workflow_dispatch runs, which a fork cannot
+# cause. The last job rewrites the issues, labelled `mutation-sweep`.
+#
+# A pull request that changes the sweep runs every target's first, unchanged
+# Stryker run (it proves the target's tests run under Stryker, on this
+# machine), and sweeps one file end to end with the report printed and nothing
+# published. GitHub dispatches a workflow only once it is on the default
+# branch, so the full sweep is first dispatched after the merge.
+
+on:
+  schedule:
+    # Mondays at 03:00 IST (Sundays 21:30 UTC), before the week's work starts.
+    - cron: '30 21 * * 0'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/mutation-sweep.yaml'
+      - 'scripts/mutation-sweep.mjs'
+      - 'test/mutation-targets.json'
+
+permissions:
+  contents: read
+
+# The weekly and dispatched runs on main share one group and never cancel
+# each other; a pull request's run has its own, and a newer push replaces it.
+concurrency:
+  group: mutation-sweep-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # A missing engine fails instead of skipping: a sweep whose database suites
+  # skipped would list every line only they check as run by nothing.
+  STIGMER_TEST_GATE: "1"
+  TARGETS: test/mutation-targets.json
+  # The pull request's end-to-end check: a file of the target with the
+  # smallest related set of tests and no engine, chosen because it has
+  # not-noticed changes for the confirm step to apply (seven, all confirmed,
+  # 2026-10-02), so the check reaches every stage up to the issue body.
+  SELF_TEST_TARGET: runner-middleware-pricing-guards
+  SELF_TEST_PACKAGE: backend/services/runner
+  SELF_TEST_FILE: backend/services/runner/src/shared/model-pricing.ts
+
+jobs:
+  targets:
+    name: Read the targets
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.list.outputs.targets }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: List the targets file's targets (validated)
+        id: list
+        # Captured first, so a targets file the script refuses fails this step with its message.
+        run: |
+          targets=$(node scripts/mutation-sweep.mjs --targets "$TARGETS" --list)
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+
+  sweep:
+    name: Sweep ${{ matrix.target.name }}
+    needs: targets
+    runs-on: ubuntu-latest
+    # A first week confirms every finding; the script's budget (below) stops
+    # the confirm step in time for the upload.
+    timeout-minutes: 345
+    permissions:
+      # The checkout.
+      contents: read
+      # Reading the artifacts an earlier run left.
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.targets.outputs.targets) }}
+    # The server's Postgres-backed suites need it (ci.stigmer-server.yaml
+    # declares the same); the runner's ignore it.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TARGET: ${{ matrix.target.name }}
+      PACKAGE: ${{ matrix.target.package }}
+      TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build the libraries the packages link
+        run: npm run build:runner-deps
+
+      - name: Install the target's package
+        run: cd "$PACKAGE" && npm ci
+
+      - name: Prove the target's tests run under Stryker
+        if: github.event_name == 'pull_request'
+        run: node scripts/mutation-sweep.mjs --targets "$TARGETS" --run "$TARGET" --out "$RUNNER_TEMP/sweep" --dry-run
+
+      - name: Restore the state the last run on main left
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/sweep/$TARGET"
+          mkdir -p "$dir"
+          runs=$(gh api "repos/$REPO/actions/workflows/mutation-sweep.yaml/runs?branch=main&status=completed&per_page=20" \
+            --jq '.workflow_runs[] | select(.event == "schedule" or .event == "workflow_dispatch") | .id')
+          for id in $runs; do
+            if gh run download "$id" --repo "$REPO" --name "mutation-sweep-$TARGET" --dir "$dir"; then
+              echo "Restored $TARGET's state from run $id."
+              exit 0
+            fi
+          done
+          echo "No earlier run on main left $TARGET's state; this is a cold run."
+
+      - name: Sweep the target
+        if: github.event_name != 'pull_request'
+        run: node scripts/mutation-sweep.mjs --targets "$TARGETS" --run "$TARGET" --out "$RUNNER_TEMP/sweep" --budget 300
+
+      # Kept whatever happened: a confirm step cut short, or a job that failed
+      # after the restore, still carries its target's state to the next run.
+      - name: Keep the report and the state
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mutation-sweep-${{ matrix.target.name }}
+          path: ${{ runner.temp }}/sweep/${{ matrix.target.name }}/
+          retention-days: 90
+          overwrite: true
+
+  self-test:
+    name: Sweep one file end to end
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build the libraries the packages link
+        run: npm run build:runner-deps
+
+      - name: Install the self-test's package
+        run: cd "$SELF_TEST_PACKAGE" && npm ci
+
+      - name: Sweep one file and confirm its findings
+        run: node scripts/mutation-sweep.mjs --targets "$TARGETS" --run "$SELF_TEST_TARGET" --out "$RUNNER_TEMP/sweep" --only "$SELF_TEST_FILE" --budget 30
+
+      - name: Print the issue it would write
+        run: node scripts/mutation-sweep.mjs --targets "$TARGETS" --report --input "$RUNNER_TEMP/sweep"
+
+  publish:
+    name: Rewrite the issues
+    needs: [targets, sweep]
+    # A target whose job failed has no record, so its issue is left as the
+    # last good run wrote it.
+    if: always() && needs.targets.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      # The checkout.
+      contents: read
+      # Creating, rewriting, commenting on, closing and reopening the target issues.
+      issues: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Fetch this run's reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: mutation-sweep-*
+          path: ${{ runner.temp }}/reports
+
+      - name: Rewrite one issue per target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/mutation-sweep.mjs --targets "$TARGETS" --report --input "$RUNNER_TEMP/reports" --publish --repo "$REPO" --run-url "$RUN_URL"
+
+  # Scheduled runs are unattended; manual dispatches are watched. Shared
+  # file-or-comment mechanics live in notify-failure.yaml.
+  notify-failure:
+    name: File Mutation Sweep Failure Issue
+    needs: [targets, sweep, publish]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      # Filing or commenting on the one failure issue.
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: mutation-sweep-failure
+      title: "mutation-sweep: the weekly mutation sweep is failing"
+      body-context: >-
+        This lane plants small changes in the targets of
+        test/mutation-targets.json and rewrites one mutation-sweep issue per
+        target; while it is red, those issues go stale. Usual suspects: a
+        target's tests red under Stryker before any change (a suite that needs
+        its own process, which Stryker's one-thread pool breaks), a job past
+        its time limit (split the target), or a target whose files were
+        renamed (the targets file's own test names it).

@@ -34,6 +34,10 @@ coverage.html
 # A vitest run's v8 coverage (`--coverage.enabled`), in each package
 coverage/
 
+# Stryker's copies of the files it changes in place during a mutation sweep
+# (scripts/mutation-sweep.mjs), which it removes when the run ends
+.stryker-tmp/
+
 # Go workspace sum file (auto-generated, can be ignored)
 go.work.sum
 

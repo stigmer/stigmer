@@ -62,7 +62,10 @@ describe("recordLiveSpend", () => {
   it("says a run reported no estimate rather than reading it as free", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     recordLiveSpend("cursor transcript", undefined, {});
+    // A proto3 double reads 0 when nothing was priced; a real call never costs nothing.
+    recordLiveSpend("native turn", 0, {});
     expect(log.mock.calls.flat().join(" ")).toMatch(/cursor transcript: no estimate reported/);
+    expect(log.mock.calls.flat().join(" ")).toMatch(/native turn: no estimate reported/);
     expect(log.mock.calls.flat().join(" ")).not.toMatch(/\$0\.0000/);
   });
 });

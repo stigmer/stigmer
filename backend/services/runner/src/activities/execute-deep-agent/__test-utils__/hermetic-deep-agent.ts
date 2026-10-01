@@ -65,6 +65,13 @@
  * (`ExecutionRecord.whenToolCallsSettled`): the ground a real model's latency
  * gives for free, without which the producer runs ahead of a consumer that is
  * awaiting a slow persist and the stamps of one turn straddle the next tick.
+ *
+ * Two postures, one turn runner, as in the Cursor driver.
+ * `beginDeepAgentScenario` is the hermetic posture described above.
+ * `beginLiveDeepAgentScenario` is the live posture the live class
+ * (`*.live.test.ts`) runs: the real model client against a real provider, the
+ * real clock, only the control-plane client doubled. `runDeepAgentTurn` reads
+ * only what both have (`DeepAgentScenarioBase`).
  */
 
 import { rmSync } from "node:fs";
@@ -215,8 +222,20 @@ export function resetDeepAgentScenarioState(env: HermeticEnvironment): void {
   rmSync(sessionWorkspaceDir(env), { recursive: true, force: true });
 }
 
+/**
+ * What every posture's scenario carries, and all {@link runDeepAgentTurn}
+ * reads: the environment, the record, the runner config and the controls of
+ * the invocation in flight.
+ */
+export interface DeepAgentScenarioBase {
+  readonly env: HermeticEnvironment;
+  readonly record: ExecutionRecord;
+  readonly config: Config;
+  controls: InvocationControls | undefined;
+}
+
 /** One scenario: the record, the one LLM, the runner it runs on, and the invocation in flight. */
-export class DeepAgentScenario {
+export class DeepAgentScenario implements DeepAgentScenarioBase {
   /** The controls of the invocation in flight; set by {@link runDeepAgentTurn} before the activity starts. */
   controls: InvocationControls | undefined;
   readonly model: ScriptedModel;
@@ -290,6 +309,32 @@ export function beginDeepAgentScenario(options: DeepAgentScenarioOptions): DeepA
   return scenario;
 }
 
+/** The options of a live scenario: no script and no clock, because the model and the time are real. */
+export type LiveDeepAgentScenarioOptions = Pick<DeepAgentScenarioOptions, "env" | "record" | "clientOverrides" | "config">;
+
+/**
+ * Bind the record for a LIVE scenario (the `beginLiveCursorScenario` twin);
+ * resets the harness's module and session state first. No scripted model is
+ * bound, and the scenario file must NOT mock `shared/model-client.ts`: the
+ * real model client builds the real provider's chat model, in the OSS direct
+ * posture this driver's config already is (no proxy, local mode), with the key
+ * read through `getRunnerSecret`'s live `process.env` fallback. The file serves
+ * the control plane's real registry (`stubRegistryFetch({ live: true, document })`)
+ * so the provider is sent the row's real id and the cost cap counts real
+ * prices. A live scenario has no `model` and no `clock`; the type says which
+ * posture a file is in.
+ */
+export function beginLiveDeepAgentScenario(options: LiveDeepAgentScenarioOptions): DeepAgentScenarioBase {
+  resetDeepAgentScenarioState(options.env);
+  bindHermeticClient(options.record.client(options.clientOverrides));
+  return {
+    env: options.env,
+    record: options.record,
+    config: { ...hermeticDeepAgentConfig(options.env, "memory"), ...options.config },
+    controls: undefined,
+  };
+}
+
 /**
  * The session's NEXT message on the scenario's thread: a new record and a new
  * script over the same environment, runner config and checkpointer, WITHOUT
@@ -328,12 +373,12 @@ export interface DeepAgentTurnOptions {
 }
 
 /**
- * Run ONE `ExecuteDeepAgent` invocation for the scenario. Built per invocation
- * (the factory constructs its client, which is the one bound at
- * `beginDeepAgentScenario`).
+ * Run ONE `ExecuteDeepAgent` invocation for the scenario, either posture.
+ * Built per invocation (the factory constructs its client, which is the one
+ * bound at `begin*DeepAgentScenario`).
  */
 export async function runDeepAgentTurn(
-  scenario: DeepAgentScenario,
+  scenario: DeepAgentScenarioBase,
   options: DeepAgentTurnOptions = {},
 ): Promise<ActivityInvocation> {
   const activity = await (options.activityFactory ?? runtimeActivityFactory)(scenario.config);
