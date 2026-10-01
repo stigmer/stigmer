@@ -95,11 +95,6 @@
       "branches": 43.9,
       "cases": 209
     },
-    "test/support": {
-      "lines": 49.2,
-      "branches": 38.5,
-      "cases": 52
-    },
     "tools/codegen": {
       "lines": 4.1,
       "branches": 4,
