@@ -8,8 +8,9 @@
  * For --artifact=compose, all-in-one, helm or cli, one pass:
  *   1. installs --from (default: the newest stable release below --to whose
  *      artifacts for this install are all published,
- *      scripts/lib/published-release.mjs) the way its guide says, with the model a user configures pointed at the
- *      fake on this host (scripts/lib/fake-model.mjs), and checks that the
+ *      scripts/lib/published-release.mjs) the way its guide says, with the
+ *      model a user configures pointed at the fake on this host
+ *      (scripts/lib/fake-model.mjs), and checks that the
  *      server reports that release (getServerInfo);
  *   2. records state: a workflow run, and an agent run answered by the
  *      model, each in an organization of its own, every resource read back;

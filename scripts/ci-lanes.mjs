@@ -72,11 +72,13 @@ export const LANES = {
       "client-apps/cli/src/commands/up.ts",
       "backend/services/runner/scripts/bundle-slim.mjs",
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
-      // The model address a self-hoster's runner reads (ANTHROPIC_BASE_URL):
-      // the install journeys are its only end-to-end proof. These two files,
-      // not the runner package, which would pull in the package's links.
+      // The model path a self-hoster's runner takes: the client, the base URL
+      // it reads (ANTHROPIC_BASE_URL) and the provider routing it applies. The
+      // install journeys are its only end-to-end proof. These files, not the
+      // runner package, which would pull in the package's links.
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
+      "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
       ".github/workflows/ci.all-in-one.yaml",
     ],
@@ -104,9 +106,10 @@ export const LANES = {
       "scripts/publish-standalone.mjs",
       "backend/services/runner/scripts/bundle-slim.mjs",
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
-      // The runner's model address (ci.all-in-one says why these two).
+      // The runner's model path (ci.all-in-one says why these files).
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
+      "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
       ".github/workflows/ci.cli-up.yaml",
     ],
@@ -142,9 +145,10 @@ export const LANES = {
       "scripts/publish-libs.mjs",
       "backend/services/runner/Dockerfile.sandbox",
       "backend/services/stigmer-server/Dockerfile",
-      // The runner's model address (ci.all-in-one says why these two).
+      // The runner's model path (ci.all-in-one says why these files).
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
+      "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
       ".github/workflows/ci.compose-stack.yaml",
     ],
@@ -258,9 +262,10 @@ export const LANES = {
       // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
-      // The runner's model address (ci.all-in-one says why these two).
+      // The runner's model path (ci.all-in-one says why these files).
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
+      "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
       ".github/workflows/ci.helm-chart.yaml",
     ],

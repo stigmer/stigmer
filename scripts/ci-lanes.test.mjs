@@ -60,10 +60,11 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
   assert.deepEqual(selected([]), ["ts-workspace"], "an empty diff still runs the lane that decides inside");
 });
 
-test("the runner's model address runs every install journey beside the runner's own lanes", () => {
+test("the runner's model path runs every install journey beside the runner's own lanes", () => {
   const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-execution", "e2e-interactive", "helm-chart", "runner", "ts-workspace"];
   assert.deepEqual(selected(["backend/services/runner/src/shared/model-client.ts"]), installs);
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-backend.ts"]), installs);
+  assert.deepEqual(selected(["backend/services/runner/src/shared/llm-proxy.ts"]), installs);
 });
 
 test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer up`", () => {

@@ -43,6 +43,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { configuredRegistry, installGap, waitForRegistry } from "../publish-standalone.mjs";
+import { CLI_PACKAGES } from "./published-release.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const cliEntry = join(repoRoot, "client-apps", "cli", "src", "cli", "stigmer.ts");
@@ -58,8 +59,6 @@ export const CLI_SERVER_PORT = 7234;
 const UP_TIMEOUT_MS = 300_000; // first `up` may download the Temporal CLI and the runtimes
 // The published install downloads Node and the CLI from npm.
 const INSTALL_TIMEOUT_MS = 300_000;
-/** What a published `stigmer up` installs at its version: the CLI, then the runtimes it acquires. */
-const PUBLISHED_PACKAGES = ["@stigmer/cli", "@stigmer/server-slim", "@stigmer/runner-slim"];
 
 /** Why this checkout cannot run as a `stigmer` yet, or "" when it can. */
 export function sourceCliMissing() {
@@ -92,7 +91,7 @@ export function createCliInstall({ model, log }) {
   const install = async (release) => {
     if (release.kind === "published") {
       const registry = configuredRegistry();
-      await waitForRegistry(PUBLISHED_PACKAGES, release.version, {
+      await waitForRegistry(CLI_PACKAGES, release.version, {
         gapOf: (name, version) => installGap(name, version, { registry }),
         log,
       });
