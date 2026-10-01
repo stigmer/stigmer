@@ -76,7 +76,7 @@ import {
   specOwnerRoleChange,
 } from "../steps.js";
 import {
-  NO_RECORDED_CREATORS,
+  NO_STORED_RESOURCES,
   fakeIamPolicyStore,
   orgRole,
   triple,
@@ -445,7 +445,7 @@ describe("ValidateGrantableRole", () => {
 describe("Grant and Revoke leave their result under POLICY_RESULT_KEY", () => {
   function pathOverFreshStore() {
     return newIamPolicyGrantPath({
-      creators: NO_RECORDED_CREATORS,
+      resources: NO_STORED_RESOURCES,
       policies: fakeIamPolicyStore(),
       lifecycle: undefined,
       logger: silent,
@@ -533,7 +533,7 @@ describe("owner is assigned by owners", () => {
   ): Promise<ReturnType<typeof fakeIamPolicyStore> & { readonly ownerReads: () => number }> {
     const store = fakeIamPolicyStore();
     const path = newIamPolicyGrantPath({
-      creators: NO_RECORDED_CREATORS,
+      resources: NO_STORED_RESOURCES,
       policies: store,
       lifecycle: undefined,
       logger: silent,

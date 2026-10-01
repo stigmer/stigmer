@@ -94,7 +94,7 @@ import { registerIamPolicyServices } from "../controller.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import { newOrganizationOnlyGrantScope } from "../grant-scope.js";
 import {
-  NO_RECORDED_CREATORS,
+  NO_STORED_RESOURCES,
   fakeIamPolicyStore,
   orgRole,
   triple,
@@ -230,7 +230,7 @@ async function harness(options: {
   const authorizer = recordingAuthorizer();
   const engine = options.engine === true ? recordingEngine() : undefined;
   const grantPath = newIamPolicyGrantPath({
-    creators: NO_RECORDED_CREATORS,
+    resources: NO_STORED_RESOURCES,
     policies,
     lifecycle: undefined,
     logger: silent,
@@ -989,7 +989,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     roles: ReadonlyArray<readonly [string, string]>,
   ): Promise<void> {
     const path = newIamPolicyGrantPath({
-      creators: NO_RECORDED_CREATORS,
+      resources: NO_STORED_RESOURCES,
       policies: h.policies,
       lifecycle: undefined,
       logger: silent,

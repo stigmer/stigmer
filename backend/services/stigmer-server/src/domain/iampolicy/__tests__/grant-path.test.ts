@@ -81,10 +81,10 @@ import {
 } from "../constants.js";
 import type { PolicyActor } from "../change.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
-import type { ResourceCreators } from "../grant-path.js";
+import type { StoredResources } from "../grant-path.js";
 import { DuplicatePolicyError } from "../store.js";
 import {
-  NO_RECORDED_CREATORS,
+  NO_STORED_RESOURCES,
   fakeIamPolicyStore,
   orgRole,
   recordedCreators,
@@ -137,11 +137,11 @@ const silentLogger = { debug() {}, info() {}, warn() {}, error() {} };
 function pathOver(
   recorded: RecordedEvent[],
   lifecycle: ResourceAuthorizationLifecycle | undefined,
-  creators: ResourceCreators = NO_RECORDED_CREATORS,
+  resources: StoredResources = NO_STORED_RESOURCES,
 ) {
   const policies = fakeIamPolicyStore(recorded);
   const path = newIamPolicyGrantPath({
-    creators,
+    resources,
     policies,
     lifecycle,
     logger: silentLogger,
@@ -280,7 +280,7 @@ describe("the row for a triple is found by triple, so legacy ids converge", () =
       await racingSave(policy);
     };
     const path = newIamPolicyGrantPath({
-      creators: NO_RECORDED_CREATORS,
+      resources: NO_STORED_RESOURCES,
       policies,
       lifecycle: recordingLifecycle(recorded),
       logger: silentLogger,
@@ -1042,7 +1042,7 @@ describe("who and why: every access row reaches the store with its change record
       lines.push({ message, fields: fields ?? {} });
     };
     const path = newIamPolicyGrantPath({
-      creators: NO_RECORDED_CREATORS,
+      resources: NO_STORED_RESOURCES,
       policies: fakeIamPolicyStore(),
       lifecycle: undefined,
       logger: { ...silentLogger, info: capture },

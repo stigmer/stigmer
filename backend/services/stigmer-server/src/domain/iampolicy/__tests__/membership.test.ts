@@ -86,7 +86,7 @@ import {
 } from "../membership.js";
 import type { MembershipRules, ScannedResource } from "../membership.js";
 import type { IamPolicyStore } from "../store.js";
-import { NO_RECORDED_CREATORS, fakeIamPolicyStore } from "./support.js";
+import { NO_STORED_RESOURCES, fakeIamPolicyStore } from "./support.js";
 import type { FakeIamPolicyStore } from "./support.js";
 
 const OPERATOR_EMAIL = "operator@example.com";
@@ -129,7 +129,7 @@ describe("membership rules", () => {
   ): MembershipRules {
     return newMembershipRules({
       grantPath: newIamPolicyGrantPath({
-        creators: NO_RECORDED_CREATORS,
+        resources: NO_STORED_RESOURCES,
         policies: port,
         lifecycle: undefined,
         logger: silentLogger,
@@ -145,7 +145,7 @@ describe("membership rules", () => {
     store = temp.store;
     policies = fakeIamPolicyStore();
     grantPath = newIamPolicyGrantPath({
-      creators: NO_RECORDED_CREATORS,
+      resources: NO_STORED_RESOURCES,
       policies,
       lifecycle: undefined,
       logger: silentLogger,

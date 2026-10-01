@@ -233,7 +233,7 @@ export interface IamPolicyGrantPath {
  * The recorded creator of a stored resource, the one fact the removal
  * sweep needs from outside the policy rows.
  */
-export interface ResourceCreators {
+export interface StoredResources {
   /**
    * The row's `status.audit.spec_audit.created_by.id`, or undefined when
    * this server stores no row of that kind and id.
@@ -243,7 +243,7 @@ export interface ResourceCreators {
 
 export interface IamPolicyGrantPathDeps {
   readonly policies: IamPolicyStore;
-  readonly creators: ResourceCreators;
+  readonly resources: StoredResources;
   /** The composed driver, if any; a driver without the two policy hooks is the same as none. */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly logger: Logger;
@@ -261,7 +261,7 @@ type OrganizationOf = (resource: ApiResourceRef) => Promise<string>;
 export function newIamPolicyGrantPath(
   deps: IamPolicyGrantPathDeps,
 ): IamPolicyGrantPath {
-  const { policies, creators, lifecycle, logger } = deps;
+  const { policies, resources, lifecycle, logger } = deps;
 
   /** The organization a resource belongs to, through its scope links; "" when it names none. */
   async function organizationByScope(
@@ -367,7 +367,7 @@ export function newIamPolicyGrantPath(
     ) {
       return false;
     }
-    const creator = await creators.creatorOf(
+    const creator = await resources.creatorOf(
       spec.resource.kind,
       spec.resource.id,
     );

@@ -62,7 +62,7 @@ import { newIamPolicyGrantPath } from "../grant-path.js";
 import { newBuiltInRoleLifecycle } from "../role-lifecycle.js";
 import type { IamPolicyStore } from "../store.js";
 import {
-  NO_RECORDED_CREATORS,
+  NO_STORED_RESOURCES,
   fakeIamPolicyStore,
   orgRole,
   triple,
@@ -134,7 +134,7 @@ function lifecycleOver(
     }),
   );
   const grantPath = newIamPolicyGrantPath({
-    creators: NO_RECORDED_CREATORS,
+    resources: NO_STORED_RESOURCES,
     policies: store,
     lifecycle: undefined,
     logger: silentLogger,

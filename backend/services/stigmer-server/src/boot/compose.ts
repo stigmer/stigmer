@@ -41,7 +41,7 @@ import {
   authorizationPostureOf,
   kindsWithoutRows,
 } from "../authorization/posture.js";
-import { newStoreResourceCreators } from "../authorization/resource-creators.js";
+import { newStoredResources } from "../authorization/stored-resources.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
 import { newTrustedLocalAuthorizer } from "../authorization/trusted-local-authorizer.js";
 import type { Authorizer } from "../extensions/authorizer.js";
@@ -463,7 +463,7 @@ export async function composeServer(
     newResourcePlatformClientStore(store);
   const iamPolicyGrantPath = newIamPolicyGrantPath({
     policies: iamPolicies,
-    creators: newStoreResourceCreators(store),
+    resources: newStoredResources(store),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
   });

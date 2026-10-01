@@ -21,7 +21,7 @@ import type {
   ResourceAuthorizationLifecycle,
 } from "../../../extensions/resource-authorization.js";
 import type { PolicyChangeRecord } from "../change.js";
-import type { ResourceCreators } from "../grant-path.js";
+import type { StoredResources } from "../grant-path.js";
 import { DuplicatePolicyError } from "../store.js";
 import type { IamPolicyStore } from "../store.js";
 
@@ -56,7 +56,7 @@ export function triple(
 }
 
 /** A server that stores no resource rows: nothing the sweep meets is anyone's authorship. */
-export const NO_RECORDED_CREATORS: ResourceCreators = {
+export const NO_STORED_RESOURCES: StoredResources = {
   async creatorOf() {
     return undefined;
   },
@@ -65,7 +65,7 @@ export const NO_RECORDED_CREATORS: ResourceCreators = {
 /** Recorded creators by `kind:id`, the removal sweep's authorship read. */
 export function recordedCreators(
   creators: Readonly<Record<string, string>>,
-): ResourceCreators {
+): StoredResources {
   return {
     async creatorOf(kind, id) {
       return creators[`${kind}:${id}`];
