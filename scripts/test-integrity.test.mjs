@@ -449,6 +449,8 @@ it("reaching a service is a value use of its entry point; types, strings and an 
   assert.deepEqual(services(`const url = gateDependency("TEST_FGA_API_URL", "OpenFGA");`), ["openfga"]);
   assert.deepEqual(services(`const a = gateDependency("TEST_VAULT_ADDR", "OpenBAO"); const b = gateDependency("CLOUD_SCHEMA_TEST_DATABASE_URL", "x");`), ["postgres", "vault"]);
   assert.deepEqual(services(`const db = await createTestDatabase();`), ["postgres"]);
+  assert.deepEqual(services(`import { createTestDatabase as make } from "./support.js"; await make();`), ["postgres"]);
+  assert.deepEqual(services(`import { gateDependency as needs } from "./test-gate.js"; needs("TEST_FGA_API_URL", "OpenFGA");`), ["openfga"]);
   assert.deepEqual(services(`const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing"); env = await TWE.createLocal();`), ["temporal"]);
   assert.deepEqual(services(`env = await TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
   assert.deepEqual(services(`import { MockActivityEnvironment } from "@temporalio/testing"; new MockActivityEnvironment();`), []);
@@ -760,6 +762,23 @@ it("the command: a misplaced test is refused until listed; the list refuses a st
     r.git("commit", "-qam", "drop the line");
     const fixed = r.run("--base", "main");
     assert.equal(fixed.status, 0, fixed.stdout);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a baseline line of any other shape, or listed twice, is refused", () => {
+  const r = repo();
+  try {
+    r.write("pkg/package.json", "{}");
+    r.write("pkg/src/run.test.ts", `it("a", () => {});`);
+    r.write(LAYOUT_BASELINE, "layout-placement pkg/src/run.test.ts\nlayout-placement pkg/src/run.test.ts\nnot a line\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    const result = r.run();
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /layout-baseline-shape +scripts\/test-layout-baseline\.txt:2 +`layout-placement pkg\/src\/run\.test\.ts` is listed twice/);
+    assert.match(result.stdout, /layout-baseline-shape +scripts\/test-layout-baseline\.txt:3/);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }

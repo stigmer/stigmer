@@ -62,7 +62,10 @@
  *     `createLocal()` or `createTimeSkipping()` that starts a Temporal test
  *     server), in the file or in a test helper it
  *     imports, followed through relative imports; a type-only import or a
- *     mention in a string reaches nothing. A `composed`, `conformance`, `load`
+ *     mention in a string reaches nothing. Reaching is judged per module, not
+ *     per imported name: importing anything from a helper that reaches a
+ *     service reaches it, so a helper that mixes the two is split, not named
+ *     around. A `composed`, `conformance`, `load`
  *     or `live` file, and the suites' own trees, may use any service;
  *   - a TypeScript test outside a `__tests__` directory (the suites' own trees
  *     excepted), a `*.spec.ts` outside test/e2e/tests and site/e2e, and an
@@ -447,6 +450,13 @@ export function scanModule(ts, path, text) {
   const services = new Set();
   const valueImports = [];
   const specifiers = [];
+  // `import { createTestDatabase as make }` reaches through `make()`.
+  const local = new Map([...POSTGRES_CALLS, "gateDependency"].map((name) => [name, name]));
+  const bindAliases = (node) => {
+    const bindings = node.importClause?.namedBindings;
+    if (!bindings || !ts.isNamedImports(bindings)) return;
+    for (const e of bindings.elements) if (e.propertyName && local.has(e.propertyName.text)) local.set(e.name.text, e.propertyName.text);
+  };
   const note = (spec, value, node) => {
     specifiers.push({ spec, line: lineOf(sf, node) });
     if (value && spec.startsWith(".")) valueImports.push(spec);
@@ -454,6 +464,7 @@ export function scanModule(ts, path, text) {
   const walk = (node) => {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
       note(node.moduleSpecifier.text, isValueImport(ts, node), node);
+      bindAliases(node);
     } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
       note(node.moduleSpecifier.text, !node.isTypeOnly, node);
     } else if (ts.isCallExpression(node)) {
@@ -462,7 +473,8 @@ export function scanModule(ts, path, text) {
       if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
         if (literal !== undefined) note(literal, true, node);
       } else {
-        const callee = ts.isIdentifier(node.expression) ? node.expression.text : ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : undefined;
+        const named = ts.isIdentifier(node.expression) ? node.expression.text : ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : undefined;
+        const callee = named && ts.isIdentifier(node.expression) ? local.get(named) ?? named : named;
         if (callee && POSTGRES_CALLS.has(callee)) services.add("postgres");
         if (callee && TEMPORAL_CALLS.has(callee) && ts.isPropertyAccessExpression(node.expression)) services.add("temporal");
         if (callee === "gateDependency" && literal !== undefined && GATE_VARIABLES.has(literal)) services.add(GATE_VARIABLES.get(literal));
