@@ -44,7 +44,6 @@ import {
 import type { TestDatabase } from "../postgres/__tests__/support.js";
 import { tempStore } from "../sqlite/__tests__/support.js";
 
-
 const ORGS = 12;
 const EXECUTIONS = 1_279;
 const SESSIONS = 865;
