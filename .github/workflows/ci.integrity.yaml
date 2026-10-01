@@ -8,13 +8,24 @@
 # request does not declare (`Test-removal:`, `Quarantine:`, `Skip:` or
 # `RPC-waiver:` lines in its body; the script's header has the rules).
 # `Test integrity` is a required check on `main`, beside `Gate`
-# (ci.gate.yaml).
+# (ci.gate.yaml) and `Review verdict` (ci.review.yaml).
 #
 # Its own workflow, not a job in the gate: the declarations live in the pull
 # request's body, and a body edit (`edited`) must re-run this check in seconds
 # without re-running the lanes. In the merge queue there is no body; the job
-# runs the tree rules on the exact commit the queue will land, since the pull
-# request's own run already judged the change.
+# runs the tree rules on the exact commit the queue will land, with that
+# commit's own copy of the script, since the pull request's own run already
+# judged the change.
+#
+# On a pull request the script, and the parser version it is handed, are the
+# base branch's, run against the pull request's tree: a pull request that
+# edits scripts/test-integrity.mjs or the lockfile's parser entry cannot
+# loosen the rules for itself, the rule ci.review.yaml keeps for its own
+# script. The script still prefers a parser installed in the tree it judges
+# over the one it is handed (#1601). A change to the script's command line
+# and to this file together therefore lands in two pull requests. This file
+# itself is the pull request's, since GitHub takes a pull request's workflow
+# from its merge commit (#1584).
 #
 # The job never carries an `if:`: a required check that is skipped counts as
 # passed.
@@ -27,46 +38,77 @@ on:
     types: [opened, edited, synchronize, reopened]
   merge_group:
 
+# Keyed on the pull request's number: two forks' branches can share a name.
 concurrency:
-  group: integrity-${{ github.head_ref || github.ref }}
+  group: integrity-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-permissions:
-  contents: read
-  # --check-issues reads the state of each issue a quarantine names.
-  issues: read
+permissions: {}
 
 jobs:
   integrity:
     name: Test integrity
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      # --check-issues reads the state of each issue a quarantine names.
+      issues: read
     steps:
       # Full commit graph, no blobs: the change rules read the base tree with
       # `git show` at the merge base.
       - name: Checkout (full history, no blobs)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           filter: blob:none
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: ".nvmrc"
 
-      # Only the parser, at the version the root lockfile pins: the script
-      # imports no module of the repository, so a full `npm ci` would only
-      # cost minutes.
+      # Only the parser, at the version, tarball and hash the root lockfile
+      # pins: the script imports no module of the repository, so a full
+      # `npm ci` would only cost minutes. The manifest and lockfile are written
+      # from the root lockfile's own entry, so the version has one definition
+      # and `npm ci` refuses a tarball whose hash differs. On a pull request
+      # the entry is the base branch's, like the script, so the pull request
+      # cannot choose the parser that judges it; the queue reads its commit's.
       - name: Install the TypeScript parser
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          version=$(node -p "require('./package-lock.json').packages['node_modules/typescript'].version")
           mkdir -p "$RUNNER_TEMP/ts"
-          echo '{"private":true}' > "$RUNNER_TEMP/ts/package.json"
-          npm install --prefix "$RUNNER_TEMP/ts" --no-audit --no-fund "typescript@$version"
+          if [ -n "$BASE_REF" ]; then
+            git show "origin/$BASE_REF:package-lock.json" > "$RUNNER_TEMP/root-lock.json"
+          else
+            cp package-lock.json "$RUNNER_TEMP/root-lock.json"
+          fi
+          node - "$RUNNER_TEMP/ts" "$RUNNER_TEMP/root-lock.json" <<'JS'
+          const { readFileSync, writeFileSync } = require("node:fs");
+          const [dir, lock] = process.argv.slice(2);
+          const entry = JSON.parse(readFileSync(lock, "utf8")).packages["node_modules/typescript"];
+          const { version, resolved, integrity } = entry ?? {};
+          if (!version || !resolved || !integrity) throw new Error("package-lock.json has no pinned typescript entry");
+          const dependencies = { typescript: version };
+          writeFileSync(`${dir}/package.json`, JSON.stringify({ private: true, dependencies }));
+          writeFileSync(`${dir}/package-lock.json`, JSON.stringify({
+            lockfileVersion: 3,
+            requires: true,
+            packages: {
+              "": { dependencies },
+              "node_modules/typescript": { version, resolved, integrity, license: entry.license, bin: entry.bin, engines: entry.engines },
+            },
+          }));
+          JS
+          npm ci --prefix "$RUNNER_TEMP/ts" --ignore-scripts --no-audit --no-fund
 
       # The body reaches the script through a file written from `env`, never
       # through `${{ }}` inside `run`: a pull request's body is untrusted text.
+      # The script is the base branch's copy (see the header), run from a
+      # temporary path with this checkout as the tree it judges.
       - name: Judge the change (pull request)
         if: github.event_name == 'pull_request'
         env:
@@ -74,8 +116,13 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_REF: ${{ github.base_ref }}
         run: |
+          if ! git cat-file -e "origin/$BASE_REF:scripts/test-integrity.mjs" 2>/dev/null; then
+            echo "$BASE_REF has no scripts/test-integrity.mjs, so nothing can judge this pull request's tests; target a branch that carries it."
+            exit 1
+          fi
           printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
-          node scripts/test-integrity.mjs --base "origin/$BASE_REF" \
+          git show "origin/$BASE_REF:scripts/test-integrity.mjs" > "$RUNNER_TEMP/test-integrity.mjs"
+          node "$RUNNER_TEMP/test-integrity.mjs" --base "origin/$BASE_REF" \
             --pr-body-file "$RUNNER_TEMP/pr-body.md" --check-issues \
             --typescript "$RUNNER_TEMP/ts"
 

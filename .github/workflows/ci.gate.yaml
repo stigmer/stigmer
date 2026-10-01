@@ -5,11 +5,11 @@
 # first job asks scripts/ci-lanes.mjs which lanes the change needs (the path
 # map lives there, with the reason for each entry); it then calls each needed
 # lane as a reusable workflow; and its last job, `Gate`, passes only when
-# every needed lane passed. `Gate` and `Test integrity` (ci.integrity.yaml)
-# are the required checks on `main`, for everyone, through the merge queue:
-# the queue runs this workflow again on the exact commit it will land, on top
-# of `main` and every entry ahead of it, and lands that commit only if `Gate`
-# passed there.
+# every needed lane passed. `Gate`, `Test integrity` (ci.integrity.yaml) and
+# `Review verdict` (ci.review.yaml) are the required checks on `main`, for
+# everyone, through the merge queue: the queue runs this workflow again on the
+# exact commit it will land, on top of `main` and every entry ahead of it, and
+# lands that commit only if `Gate` passed there.
 #
 # Why one workflow. A lane that decided for itself whether to run could not be
 # required: a lane whose filter did not match never created its check, and a

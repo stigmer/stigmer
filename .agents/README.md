@@ -107,6 +107,7 @@ AGENTS.md                         the always-on root guide (a real file, not a s
   README.md                       this file
   ARCHITECTURE_PRINCIPLES.md      what the codebase optimises for; the reasons behind the laws
   skills/<name>/SKILL.md          repo skills, with optional references/ beside each
+.claude/skills                    a symlink to .agents/skills: how Claude Code finds the same skills (below)
 .cursor/rules/agents-<slug>.mdc   generated shim per nested guide; the ONLY files allowed in .cursor/rules
 .cursor/hooks.json                generated; registers the worktree guidance hook
 scripts/agents-check.mjs          the gate: shims and hooks.json in sync, cited paths resolve, no private ids,
@@ -128,12 +129,18 @@ on its own: `verify-stigmer-oss-changes`, because a session should verify before
 it commits, and `test-gate`, the posture every code change is written under,
 because a change ships with the tests that pin it.
 
-`CLAUDE.md` and a `.claude` skills folder are deliberately absent: no Claude
-Code session runs here yet, and Cursor also reads `CLAUDE.md`, so an import file
-today would load the root guide twice for a tool nobody uses. When Claude Code
-is adopted, add a one-line `CLAUDE.md` containing `@AGENTS.md` beside each
-`AGENTS.md`, and teach `scripts/agents-check.mjs` to require it. Codex reads
-`AGENTS.md` and `.agents/skills/` natively.
+Claude Code reads the root `AGENTS.md` natively when no `CLAUDE.md` exists, so
+this repository carries no `CLAUDE.md`: Cursor reads one too, and an import file
+would load the root guide twice. Claude Code looks for skills only under
+`.claude/skills/`, so `.claude/skills` is one symlink to `.agents/skills`. Every
+skill here, and every skill added later, reaches Claude Code with nothing to
+generate and nothing to drift, and its frontmatter flags mean the same there.
+`scripts/agents-check.mjs` skips dot-directories, so it never walks the link.
+Claude Code attaches no nested `AGENTS.md` to a file in a worktree, which is
+outside its working directory, and the hook above is Cursor's only: before the
+first edit of a package in a worktree, run
+`node scripts/agents-context-hook.mjs --explain <path>` and read what it names.
+Codex reads `AGENTS.md` and `.agents/skills/` natively.
 
 ## Adding or changing guidance
 

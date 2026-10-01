@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { InlineEditBaseProps } from "./types.js";
+import { useInlineDraft } from "./useInlineDraft.js";
 
 /** Props for {@link InlineEditImage}. */
 export interface InlineEditImageProps extends InlineEditBaseProps {
@@ -21,6 +22,10 @@ export interface InlineEditImageProps extends InlineEditBaseProps {
  *
  * Shows the current image (or fallback icon). On click, reveals
  * an input for entering a new image URL with confirm/cancel.
+ *
+ * The draft is seeded from `value` when editing opens. While the editor is
+ * open, a draft the user has edited keeps their text if `value` changes, and
+ * an untouched draft follows the new `value`.
  */
 export function InlineEditImage({
   value,
@@ -32,18 +37,15 @@ export function InlineEditImage({
   error,
   className,
 }: InlineEditImageProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
   const [localError, setLocalError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isEditing, setIsEditing, draft, setDraft, startEditing } =
+    useInlineDraft(value, inputRef);
 
-  useEffect(() => {
-    if (isEditing) {
-      setDraft(value);
-      setLocalError(null);
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [isEditing, value]);
+  const handleEdit = useCallback(() => {
+    setLocalError(null);
+    startEditing();
+  }, [startEditing]);
 
   const handleConfirm = useCallback(async () => {
     const trimmed = draft.trim();
@@ -81,7 +83,7 @@ export function InlineEditImage({
       <div className={cn("stg:group/inline-edit stg:inline-flex", className)}>
         <button
           type="button"
-          onClick={() => { if (!disabled) setIsEditing(true); }}
+          onClick={() => { if (!disabled) handleEdit(); }}
           disabled={disabled}
           className={cn(
             "stg:relative stg:rounded-md stg:p-0.5 stg:transition-colors",
