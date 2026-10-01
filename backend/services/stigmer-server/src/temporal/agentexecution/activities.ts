@@ -2,7 +2,9 @@
  * Server-side activity implementations for the agent-execution worker —
  * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
  * load_execution, read_harness_state_id, complete_external_activity) and
- * registers #15's DeleteExecutionContext seam.
+ * registers DeleteExecutionContext, the server's own delete of the run's
+ * context through the context's delete chain
+ * (domain/executioncontext/internal-delete.ts, stigmer#1647).
  *
  * Payload boundary (sub-project 20260824.03 design rule): statuses and
  * executions cross as proto-JSON — the TS default payload converter
