@@ -23,8 +23,12 @@ vi.mock("../../composer", async (importOriginal) => {
   };
 });
 
+const threadProps: CapturedProps[] = [];
 vi.mock("../../execution/MessageThread", () => ({
-  MessageThread: () => <div data-testid="thread-probe" />,
+  MessageThread: (props: CapturedProps) => {
+    threadProps.push(props);
+    return <div data-testid="thread-probe" />;
+  },
 }));
 
 vi.mock("../../execution/FileReviewDock", () => ({
@@ -120,6 +124,7 @@ function lastComposerProps(): CapturedProps {
 
 beforeEach(() => {
   composerProps.length = 0;
+  threadProps.length = 0;
   stubConv.org = "acme";
 });
 
@@ -133,6 +138,13 @@ describe("SessionViewer — the session's organization", () => {
     render(<SessionViewer sessionId="ses_1" org="personal" />);
 
     expect(lastComposerProps().org).toBe("acme");
+  });
+
+  it("hands the thread (its plan actions) the session's organization too", () => {
+    render(<SessionViewer sessionId="ses_1" org="personal" />);
+
+    expect(threadProps.length).toBeGreaterThan(0);
+    expect(threadProps.at(-1)!.org).toBe("acme");
   });
 
   it("follows the conversation's organization while the session is still loading", () => {

@@ -32,12 +32,14 @@
  * ValidateSessionImmutability (update, stigmer/stigmer#1588). Update
  * replaces the spec in full, and without this step a caller who may edit an
  * execution could point it at another session, past the run gate, while
- * its `session` tuple kept naming the first. A changed `session_id` is
- * refused with FailedPrecondition, as a session refuses a changed harness
- * (ValidateHarnessImmutability); an empty one, or an update with no spec
- * at all, keeps the stored session, since every execution has one after
- * create, so a replacement that leaves the field out stays valid. It runs after BuildUpdateState, on the merged
- * state, because that is where the stored value can be carried over.
+ * its `session` tuple kept naming the first. A `session_id` different from
+ * the stored one is refused with FailedPrecondition, as a session refuses a
+ * changed harness (ValidateHarnessImmutability), and that includes naming
+ * a session for an execution stored without one: it would join a session
+ * nobody admitted it to. An empty one, or an update with no spec at all,
+ * keeps the stored session, so a replacement that leaves the field out
+ * stays valid. It runs after BuildUpdateState, on the merged state,
+ * because that is where the stored value can be carried over.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -106,9 +108,6 @@ export function newValidateSessionImmutabilityStep(): PipelineStep<
         | AgentExecution
         | undefined;
       const storedSessionId = existing?.spec?.sessionId ?? "";
-      if (storedSessionId === "") {
-        return;
-      }
       // An update that leaves the spec out replaces it with nothing; the
       // session is carried over all the same, as for an empty session_id.
       const merged = ctx.newState;

@@ -57,8 +57,12 @@ export function sessionOrganizationMismatchMessage(
 /**
  * update's session refusal (stigmer/stigmer#1588): an execution stays in the
  * session it was created in, as a session keeps its harness
- * (ValidateHarnessImmutability).
+ * (ValidateHarnessImmutability), and one created without a session never
+ * joins one past the run gate.
  */
 export function sessionIdImmutableMessage(sessionId: string): string {
+  if (sessionId === "") {
+    return "session_id cannot be set on update — an execution created without a session cannot join one";
+  }
   return `session_id cannot be changed — an execution belongs to the session it was created in ('${sessionId}')`;
 }

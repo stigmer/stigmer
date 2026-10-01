@@ -8,7 +8,8 @@
  *   the steps that own those shapes; a store fault is Internal.
  * - update (stigmer/stigmer#1588): a changed session id is refused; an
  *   empty one, or no spec at all, keeps the stored session; the same one
- *   passes; an execution stored with no session is not judged.
+ *   passes; an execution stored without a session cannot be moved into
+ *   one.
  *
  * A real SQLite store holds the sessions, as in the thinking-mode tests.
  */
@@ -234,16 +235,25 @@ describe("ValidateSessionImmutability (update)", () => {
     expect(ctx.newState.spec?.sessionId).toBe("ses_first");
   });
 
-  it("a stored execution with no session is not judged", () => {
+  it("an execution stored without a session cannot be moved into one", async () => {
     const sessionless = create(AgentExecutionSchema, {
       metadata: { id: "aex_1", org: "acme" },
       spec: { message: "original" },
     });
-    const ctx = mergedFor("ses_any", sessionless);
 
-    newValidateSessionImmutabilityStep().execute(ctx);
+    const err = await refusalOf(() =>
+      newValidateSessionImmutabilityStep().execute(
+        mergedFor("ses_any", sessionless),
+      ),
+    );
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(
+      "session_id cannot be set on update — an execution created without a session cannot join one",
+    );
 
-    expect(ctx.newState.spec?.sessionId).toBe("ses_any");
+    const unchanged = mergedFor("", sessionless);
+    newValidateSessionImmutabilityStep().execute(unchanged);
+    expect(unchanged.newState.spec?.sessionId).toBe("");
   });
 
   it("an empty session id keeps the stored session", () => {
