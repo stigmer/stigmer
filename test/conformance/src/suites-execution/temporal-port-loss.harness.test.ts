@@ -55,12 +55,15 @@ describe.skipIf(!hasEngineCoordinates)("Temporal dev server harness, a boot that
       warn: (line) => warnings.push(line),
     });
 
+    // The fresh port can itself be lost to another listener, the race the
+    // retry exists for, so a third attempt is the harness working, not a
+    // failure: what must hold is that the held port was tried first and
+    // named, every loss was announced, and the server is on the last port.
     expect(handed[0]).toBe(held);
-    expect(handed).toHaveLength(2);
-    expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain(`${held}: bind: address already in use`);
     expect(warnings[0]).toContain("retrying with a fresh port, attempt 2 of 3");
-    expect(temporal.hostPort).toBe(`127.0.0.1:${handed[1]}`);
+    expect(warnings).toHaveLength(handed.length - 1);
+    expect(temporal.hostPort).toBe(`127.0.0.1:${handed.at(-1)}`);
 
     // Serving on the fresh port, by the CLI's own account.
     const { stdout } = await execFileAsync("temporal", [

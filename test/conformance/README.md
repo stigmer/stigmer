@@ -772,7 +772,7 @@ src/
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers)
+  suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
                     + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
