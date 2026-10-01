@@ -113,11 +113,3 @@ export function validateRequiredKeys(
   missingRequired.sort();
   return missingRequired;
 }
-
-/** Scratch: an exported function no test calls, to show the coverage gate refuse it. */
-export function scratchUntested(name: string): string {
-  if (name.length > 3) {
-    return name.toUpperCase();
-  }
-  return name;
-}
