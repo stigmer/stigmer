@@ -32,8 +32,10 @@
 // those rows run where `scheduleFiring` (the engine-backed flag those suites
 // gate the same boundary on) holds. On the open-source server the execution
 // class pins the same rule for both creates, with an engine behind it
-// ("create never keeps a metadata.id the caller sent" in each suite). Memory create is refused for the cloud's
-// platform-client-minted caller (`firstPartyMemoryCapture`).
+// ("create never keeps a metadata.id the caller sent" in each suite). Memory
+// create is refused for the cloud's platform-client-minted caller
+// (`firstPartyMemoryCapture`). Each gated group sits under its own
+// `describe.skipIf` on the flag itself, so the skip names its reason.
 //
 // Deliberately out of scope: an update's id (an update addresses an existing
 // row by its id), an apply that updates (it keeps the stored id, pinned by each
@@ -71,7 +73,6 @@ import { makeWorkflowExecution } from "../support/workflowexecutions";
 import { makeWorkflowInstance } from "../support/workflowinstances";
 import { makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
-import type { CapabilityFlags } from "../targets/target";
 
 let target: TargetProfile;
 // Read at collection time so an edition without a capability reports its rows
@@ -131,11 +132,6 @@ interface Answer {
   readonly slug: string;
 }
 
-interface EditionGate {
-  readonly holds: (caps: CapabilityFlags) => boolean;
-  readonly reason: string;
-}
-
 interface Row {
   // The case's label: the RPC's tag, literal, then the kind.
   readonly title: string;
@@ -145,24 +141,15 @@ interface Row {
   // "minted": the id is BuildNewState's. "slug": the kind derives its id from
   // its slug after the mint (Organization's CopySlugToId).
   readonly idRule: "minted" | "slug";
-  readonly requires?: EditionGate;
+  // The edition the row needs, when not every target serves its RPC to this
+  // caller: "engine" (an execution create), "memory" (first-party memory).
+  readonly edition?: "engine" | "memory";
   // Creates what the request references, sends it with metadata.id set to
   // chosenId, defers the cleanup, and answers the resource's id and slug.
   send(scope: Scope, chosenId: string): Promise<Answer>;
   // Reads the resource back by id and answers the id the read carries.
   read(id: string): Promise<string | undefined>;
 }
-
-const ENGINE_GATE: EditionGate = {
-  holds: (caps) => caps.scheduleFiring,
-  reason:
-    "an execution create needs a Temporal engine behind the server; this target has none and refuses it Unavailable before an id is minted",
-};
-
-const MEMORY_GATE: EditionGate = {
-  holds: (caps) => caps.firstPartyMemoryCapture,
-  reason: "memory create is refused for this target's platform-client-minted caller",
-};
 
 // The answer of a create: its id and slug, or a failure naming the RPC.
 function answerOf(key: string, metadata: { id: string; slug: string } | undefined): Answer {
@@ -268,7 +255,7 @@ const ROWS: readonly Row[] = [
     key: "AgentExecutionCommandController.create",
     kind: ApiResourceKind.agent_execution,
     idRule: "minted",
-    requires: ENGINE_GATE,
+    edition: "engine",
     async send({ org }, chosenId) {
       await fundedWhereMetered(org);
       const agent = await agentIn(org);
@@ -513,7 +500,7 @@ const ROWS: readonly Row[] = [
     key: "MemoryCommandController.create",
     kind: ApiResourceKind.memory,
     idRule: "minted",
-    requires: MEMORY_GATE,
+    edition: "memory",
     async send({ org }, chosenId) {
       // Memory create fails closed while the organization's switch is off.
       await enableOrganizationMemory(clients, org);
@@ -637,7 +624,7 @@ const ROWS: readonly Row[] = [
     key: "WorkflowExecutionCommandController.create",
     kind: ApiResourceKind.workflow_execution,
     idRule: "minted",
-    requires: ENGINE_GATE,
+    edition: "engine",
     async send({ org }, chosenId) {
       await fundedWhereMetered(org);
       const workflowId = await workflowIn(org);
@@ -811,30 +798,56 @@ const EXEMPT_BY_NAME: ReadonlyMap<string, string> = new Map([
   ],
 ]);
 
+// The row's three assertions: the caller's id replaced, the answered id the
+// kind's shape (or its slug), and a read-back under the answered id.
+async function assertMintsItsOwnId(row: Row): Promise<void> {
+  const prefix = kindMetaOf(row.kind).idPrefix;
+  const chosenId = foreignId(prefix);
+  const context = await target.provisionTenancy();
+  fixtures.defer(() => target.cleanupTenancy(context));
+
+  const answered = await row.send({ org: context.org }, chosenId);
+
+  expect(answered.id, `${row.key} kept the caller's id ${chosenId}; the server must assign its own`).not.toBe(chosenId);
+  if (row.idRule === "slug") {
+    expect(answered.id, `${row.key} answered id ${answered.id}, expected the slug ${answered.slug}`).toBe(answered.slug);
+  } else {
+    expect(answered.id, `${row.key} answered id ${answered.id}, not a ${prefix}_ id the server minted`).toMatch(
+      mintedIdPattern(prefix),
+    );
+  }
+  const read = await row.read(answered.id);
+  expect(read, `${row.key}: a read of ${answered.id} answered id ${read ?? "(none)"}`).toBe(answered.id);
+}
+
+// Each case is a [title, row] pair so `%s` prints the title verbatim: a
+// `$title` placeholder quotes and truncates it, cutting the tag the call
+// verdict reads from the test's name.
+function casesFor(edition: Row["edition"]): ReadonlyArray<readonly [string, Row]> {
+  return ROWS.filter((row) => row.edition === edition).map((row) => [row.title, row] as const);
+}
+
+const CASE_TITLE = "%s: the caller's id is replaced by the server's, and the resource reads back under it";
+
 describe("A create never keeps the id the caller sent", () => {
-  // Each case is a [title, row] pair so `%s` prints the title verbatim: a
-  // `$title` placeholder quotes and truncates it, cutting the tag the call
-  // verdict reads from the test's name.
-  const cases = ROWS.map((row) => [row.title, row] as const);
-  it.for(cases)("%s: the caller's id is replaced by the server's, and the resource reads back under it", async ([, row], ctx) => {
-    if (row.requires !== undefined && !row.requires.holds(capabilities)) return ctx.skip(row.requires.reason);
-    const prefix = kindMetaOf(row.kind).idPrefix;
-    const chosenId = foreignId(prefix);
-    const context = await target.provisionTenancy();
-    fixtures.defer(() => target.cleanupTenancy(context));
+  it.for(casesFor(undefined))(CASE_TITLE, async ([, row]) => {
+    await assertMintsItsOwnId(row);
+  });
 
-    const answered = await row.send({ org: context.org }, chosenId);
+  // An execution create needs a Temporal engine behind the server: the plain
+  // local targets refuse it Unavailable before an id is minted, and the
+  // execution class pins the rule there instead.
+  describe.skipIf(!capabilities.scheduleFiring)("with an engine behind the server", () => {
+    it.for(casesFor("engine"))(CASE_TITLE, async ([, row]) => {
+      await assertMintsItsOwnId(row);
+    });
+  });
 
-    expect(answered.id, `${row.key} kept the caller's id ${chosenId}; the server must assign its own`).not.toBe(chosenId);
-    if (row.idRule === "slug") {
-      expect(answered.id, `${row.key} answered id ${answered.id}, expected the slug ${answered.slug}`).toBe(answered.slug);
-    } else {
-      expect(answered.id, `${row.key} answered id ${answered.id}, not a ${prefix}_ id the server minted`).toMatch(
-        mintedIdPattern(prefix),
-      );
-    }
-    const read = await row.read(answered.id);
-    expect(read, `${row.key}: a read of ${answered.id} answered id ${read ?? "(none)"}`).toBe(answered.id);
+  // Memory create is refused for the cloud's platform-client-minted caller.
+  describe.skipIf(!capabilities.firstPartyMemoryCapture)("where first-party memory capture is served", () => {
+    it.for(casesFor("memory"))(CASE_TITLE, async ([, row]) => {
+      await assertMintsItsOwnId(row);
+    });
   });
 
   it("every declared create and apply on an open-source kind has a row or a stated exemption", async () => {

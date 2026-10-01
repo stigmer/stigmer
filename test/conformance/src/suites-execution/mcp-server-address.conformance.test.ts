@@ -21,7 +21,11 @@
 // here is launched by that one harness, which hands the endpoint back
 // (TargetProfile.runnerPublicEndpoint), so the unsaved arm asserts the fill
 // from the endpoint the runner was given, as the gRPC target `host:port` the
-// fill writes. Deliberately out of scope: WHICH endpoint each production
+// fill writes. The harness gives the runner one value for both its public and
+// its backend endpoint, so the arm proves the fill reaches the server end to
+// end, not which of the two it read: that a remote server is filled from the
+// public endpoint alone is pinned beside the code
+// (runner shared/__tests__/platform-server-address.test.ts). Deliberately out of scope: WHICH endpoint each production
 // launcher passes (`stigmer up`, the chart, the desktop), pinned per launcher
 // beside its code. An unresolved `${STIGMER_SERVER_ADDRESS}` makes the runner
 // skip the server, so a fixture that receives the call has already shown no
@@ -156,7 +160,7 @@ describe("platform STIGMER_SERVER_ADDRESS (environment → instance → executio
     }
   });
 
-  it("fills the address from the runner's public endpoint when nothing is saved", async () => {
+  it("fills the address from the endpoint the runner was launched with when nothing is saved", async () => {
     if (target.runnerPublicEndpoint === undefined) {
       throw new Error(`target ${target.name} spawns no runner; the fill arm needs the endpoint it was given`);
     }
@@ -207,7 +211,7 @@ describe("platform STIGMER_SERVER_ADDRESS (environment → instance → executio
       `execution ${executionId}: the echo dispatch reaches the fixture, so the placeholder resolved`,
     ).toBeGreaterThan(0);
     for (const call of toolCalls) {
-      expect(call.headers[ADDRESS_HEADER], `execution ${executionId}: the runner fills its public endpoint`).toBe(
+      expect(call.headers[ADDRESS_HEADER], `execution ${executionId}: the runner fills the endpoint it was launched with`).toBe(
         expected,
       );
     }
