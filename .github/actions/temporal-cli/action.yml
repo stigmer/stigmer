@@ -14,8 +14,12 @@
 # downloaded as it always was.
 #
 # The trust model, in three lines:
-#   - main writes. Only the writer saves, and only push, schedule and dispatch
-#     runs on main may write to the default branch's cache scope.
+#   - main writes. Only the writer saves. Of the events that run on main, only
+#     push, schedule and dispatch (and a few that are not used here) may write
+#     the default branch's cache scope; every other, pull_request_target and
+#     workflow_run included, restores read-only (GitHub's dependency-caching
+#     reference, "cache poisoning"), and a pull request's entries stay in its
+#     merge ref.
 #   - every lane reads, on every event, the merge queue included: that is where
 #     an outage costs the most. Unlike turbo-cache, a replay cannot differ from
 #     a fresh install, because the cached archive is checked against its
@@ -37,6 +41,9 @@ outputs:
   cache-hit:
     description: "'true' when the exact key was restored."
     value: ${{ steps.restore.outputs.cache-hit }}
+  from-cache:
+    description: "'true' when the restored archive matched its checksum line and served the install."
+    value: ${{ steps.install.outputs.from-cache }}
 runs:
   using: composite
   steps:
@@ -62,10 +69,19 @@ runs:
     # GITHUB_PATH write here. The line adds the constant $HOME/bin, nothing a
     # pull request controls, and the callers are the gate's lanes and the
     # main-only writer, none on pull_request_target or workflow_run.
+    # The installer's last line names its source (describeInstall in the
+    # script, pinned by its test); the writer reads `from-cache` to catch an
+    # entry that restores but no longer matches, which no save can replace.
     - name: Install the Temporal CLI
+      id: install
       shell: bash
       run: | # zizmor: ignore[github-env]
-        "$GITHUB_WORKSPACE/node_modules/.bin/tsx" "$GITHUB_WORKSPACE/client-apps/cli/scripts/install-temporal-cli.ts" \
-          --bin-dir "$HOME/bin" --cache-dir "$HOME/.cache/stigmer/temporal-cli"
+        line=$("$GITHUB_WORKSPACE/node_modules/.bin/tsx" "$GITHUB_WORKSPACE/client-apps/cli/scripts/install-temporal-cli.ts" \
+          --bin-dir "$HOME/bin" --cache-dir "$HOME/.cache/stigmer/temporal-cli")
+        echo "$line"
+        case "$line" in
+          *"from the cache)") echo "from-cache=true" >> "$GITHUB_OUTPUT" ;;
+          *) echo "from-cache=false" >> "$GITHUB_OUTPUT" ;;
+        esac
         echo "$HOME/bin" >> "$GITHUB_PATH"
         "$HOME/bin/temporal" --version

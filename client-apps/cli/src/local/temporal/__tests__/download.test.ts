@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { gzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { CliExitError } from "../../../errors/cli-exit-error.js";
+import { fetchTarballBinary } from "../../artifact.js";
 import {
   TEMPORAL_CHECKSUMS_FILE,
   downloadTemporalCli,
@@ -391,6 +392,24 @@ describe("downloadTemporalCli with a cache directory", () => {
     const exit = err as CliExitError;
     expect(exit.message).toBe("temporal not found in the Temporal CLI archive");
     expect(exit.hints).toEqual([`archive: ${join(cacheDir, linuxArm)}`]);
+  });
+
+  it("never caches an archive nothing verified: without a checksum URL the directory is ignored", async () => {
+    const { binPath, cacheDir } = dirs();
+    seed(cacheDir, linuxArm, archiveFor(Buffer.from("a cached copy")), checksums);
+
+    const result = await fetchTarballBinary({
+      url: temporalReleaseAssetUrl("1.5.1", linuxArm),
+      entryName: "temporal",
+      binPath,
+      label: "Temporal CLI",
+      cacheDir,
+      fetchImpl: good,
+    });
+
+    expect(result).toEqual({ source: "network", cache: "unused" });
+    expect(readFileSync(binPath, "utf8")).toBe("the-arm64-binary");
+    expect(readFileSync(join(cacheDir, linuxArm))).toEqual(archiveFor(Buffer.from("a cached copy")));
   });
 
   it("does not take another version's cached pair for this one", async () => {
