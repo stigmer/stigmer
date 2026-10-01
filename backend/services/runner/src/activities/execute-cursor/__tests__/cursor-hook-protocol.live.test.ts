@@ -24,20 +24,21 @@
  * for a write-, shell- or delete-class action is the one outcome that must
  * stop a bump: the gate would let it through.
  *
- * Skipped without CURSOR_API_KEY (the cursor-sdk-auth-smoke.test.ts
- * convention) — it spends real credits for one short turn. Findings are
- * PRINTED as well as asserted, so a bump's PR can quote the shapes seen.
- *
- * Run with: CURSOR_API_KEY=<key> npx vitest run cursor-hook-protocol-live
+ * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
+ * hand or in the live lane; skips without `CURSOR_API_KEY` outside the lane
+ * (`src/__test-utils__/live-gate.ts`). It spends real credits for one short
+ * turn, with no product cost cap (the SDK is driven directly, not through an
+ * execution). Findings are PRINTED as well as asserted, so a bump's PR can
+ * quote the shapes seen.
  */
 import { describe, it, expect } from "vitest";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { liveSecret } from "../../../__test-utils__/live-gate.js";
 import { approvalCategory } from "../approval-policy.js";
 
-const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
-const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
 
 /** One hook invocation as the SDK wrote it to the hook's stdin. */
 interface HookInvocation {
@@ -89,7 +90,7 @@ function readInvocations(logPath: string): HookInvocation[] {
   return invocations;
 }
 
-describeWithCursorKey("Cursor SDK hook protocol (live ground truth)", () => {
+describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor SDK hook protocol (live ground truth)", () => {
   it("delivers PascalCase tool_name, an object tool_input and hook_event_name for a file edit and a shell command", async () => {
     const { Agent } = await import("@cursor/sdk");
     const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");

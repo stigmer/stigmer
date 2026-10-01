@@ -4,8 +4,8 @@
  * (`harness/transcript/builder.ts`) against what the REAL `@cursor/sdk` sends,
  * through the REAL `ExecuteCursor` activity. The standing instrument an
  * `@cursor/sdk` bump runs before it is trusted, beside
- * `cursor-hook-protocol-live.test.ts` (the hook payloads) and
- * `cursor-sdk-auth-smoke.test.ts` (the credential).
+ * `cursor-hook-protocol.live.test.ts` (the hook payloads) and
+ * `cursor-sdk-auth.live.test.ts` (the credential).
  *
  * WHY THIS EXISTS. The hermetic goldens under `hermetic/` prove the folding
  * rules against the SDK shapes CAPTURED in the scripted double
@@ -66,13 +66,15 @@
  * are written to `<dir>/<executionId>.cursor-events.jsonl` in arrival order,
  * and this file prints their sequence.
  *
- * Skipped without CURSOR_API_KEY (the sibling arms' convention) — it spends
- * real credits for one two-tool turn. Findings are PRINTED as well as
- * asserted, so a bump's PR can quote what the real SDK sent.
- *
- * Run with:
- *   CURSOR_API_KEY=<member key> CURSOR_EVENT_RECORD_DIR=/tmp/cursor-live \
- *     CI=1 npx vitest run cursor-transcript-live
+ * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
+ * hand or in the live lane; skips without CURSOR_API_KEY outside the lane
+ * (`src/__test-utils__/live-gate.ts`). It spends real credits for one
+ * two-tool turn, under the execution's own cost cap (`MAX_COST_USD`, priced
+ * at the registry fixture's rate for `composer-2.5`, which is above the real
+ * one), and reports its estimate through `recordLiveSpend`. Findings are
+ * PRINTED as well as asserted, so a bump's PR can quote what the real SDK
+ * sent. To keep the raw events, set `CURSOR_EVENT_RECORD_DIR` by hand; the
+ * live lane never sets it.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -85,12 +87,15 @@ vi.mock("../../../client/stigmer-client.js", async () =>
 );
 
 import { createHermeticEnvironment, type HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
+import { liveSecret, recordLiveSpend } from "../../../__test-utils__/live-gate.js";
 import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { approvalCategory } from "../approval-policy.js";
 import { beginLiveCursorScenario, cursorExecutionRecord, runCursorTurn } from "../__test-utils__/hermetic-cursor.js";
 
-const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
-const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
+
+/** The execution's own cost cap: a turn that would spend more is ended TERMINATED by the runtime (cost-guard.ts). */
+const MAX_COST_USD = 0.05;
 
 /**
  * Read BEFORE the environment is created: the environment owns the variable
@@ -158,7 +163,7 @@ const SETTLED: ReadonlySet<ToolCallStatus> = new Set([
   ToolCallStatus.TOOL_CALL_INTERRUPTED,
 ]);
 
-describeWithCursorKey("ExecuteCursor live — the transcript against the real SDK", () => {
+describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the transcript against the real SDK", () => {
   let env: HermeticEnvironment;
   let registry: ReturnType<typeof stubRegistryFetch>;
 
@@ -174,7 +179,7 @@ describeWithCursorKey("ExecuteCursor live — the transcript against the real SD
 
   it("settles every row, lands the shell output exactly as printed, and records both channels in arrival order", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
-    const record = cursorExecutionRecord({ message: PROMPT, autoApproveAll: true });
+    const record = cursorExecutionRecord({ message: PROMPT, autoApproveAll: true, maxCostUsd: MAX_COST_USD });
     const scenario = beginLiveCursorScenario({ env, record, apiKey: CURSOR_API_KEY });
 
     // ── Act ──────────────────────────────────────────────────────────────────
@@ -182,6 +187,7 @@ describeWithCursorKey("ExecuteCursor live — the transcript against the real SD
 
     // ── Findings dump (what a bump's PR quotes) ──────────────────────────────
     const final = record.lastFullStatus;
+    recordLiveSpend("cursor transcript (composer-2.5)", final?.streamingUsage?.estimatedCostUsd);
     const rows = record.toolCalls();
     console.log(`[transcript-live] outcome: ${invocation.outcome.kind}; phases persisted: ${record.persistedPhases.map((p) => ExecutionPhase[p]).join(" → ")}`);
     for (const m of final?.messages ?? []) {

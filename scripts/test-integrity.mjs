@@ -54,11 +54,14 @@
  *   - a layer word where its layer does not live: `conformance` outside
  *     test/conformance/src/suites*, `browser` in a package no vitest config
  *     names `*.browser.test.*` in an `include`, `load` in a package with no
- *     vitest.load.config. A config counts for its own package only, the one
- *     with the nearest package.json, so a test at the repository root needs a
- *     config at the root;
- *   - in a package with a vitest.load.config, another vitest config that does
- *     not exclude `*.load.test.*`: a default run would collect the load class;
+ *     vitest.load.config, `live` in a package with no vitest.live.config. A
+ *     config counts for its own package only, the one with the nearest
+ *     package.json, so a test at the repository root needs a config at the
+ *     root;
+ *   - in a package with a vitest.load.config or a vitest.live.config, another
+ *     vitest config that does not exclude `*.load.test.*` or `*.live.test.*`:
+ *     a default run would collect a measurement, or a paid call to a real
+ *     provider that skips without its key and looks green;
  *   - a service the file reaches that its name does not carry, and a service
  *     word on a file that never reaches it. Reaching is a value use of the
  *     service's entry point (a call of `testDatabaseAdminUrl` or
@@ -85,12 +88,14 @@
  * without the list (the change that introduces it) has nothing to compare
  * with.
  *
- * Three skips carry their reason by construction and are never "new": a
+ * Four skips carry their reason by construction and are never "new": a
  * condition on a target capability (`capabilities.x`, the conformance guide's
- * idiom), on the platform (`process.platform`), or on a dependency the gate
- * provides (a `TEST_*` URL, `testDatabaseAdminUrl()`): inside the gate the
- * helper behind it throws when the dependency is missing, so that skip cannot
- * hide there. A case quarantined by name carries its reason in a comment on
+ * idiom), on the platform (`process.platform`), on a dependency the gate
+ * provides (a `TEST_*` URL, `testDatabaseAdminUrl()`), or, in a `live` file
+ * only, on its provider key (`liveSecret(...)`): inside the gate the gate's
+ * helpers, and inside the live lane `liveSecret`, throw when the dependency is
+ * missing, so that skip cannot hide there. An ordinary test never runs in the
+ * live lane, so a `liveSecret` skip in one is a new skip like any other. A case quarantined by name carries its reason in a comment on
  * the line above, `// quarantined: <repo>#<issue>`; with --check-issues the
  * issue must be open.
  *
@@ -163,6 +168,10 @@ export const BY_CONSTRUCTION = [
   { reason: "target capability", pattern: /\bcapabilities\s*\.\s*\w+/ },
   { reason: "platform", pattern: /\bprocess\s*\.\s*platform\b/ },
   { reason: "gate-provided dependency", pattern: /\bTEST_[A-Z0-9_]+\b|\btestDatabaseAdminUrl\s*\(/ },
+  // The live class's key: missing outside the live lane skips by name, missing inside it throws.
+  // Only in a live file: an ordinary test never runs in the live lane, so its `liveSecret` skip
+  // would skip in every run, the gate's included, and must stay a skip someone answers for.
+  { reason: "live-lane credential", pattern: /\bliveSecret\s*\(/, layer: "live" },
 ];
 
 const QUARANTINE_COMMENT = /quarantined:\s*((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/i;
@@ -180,6 +189,16 @@ export const LAYER_WORDS = ["browser", "composed", "conformance", "live", "load"
 export const RETIRED_WORDS = ["a11y", "contract", "e2e", "integration", "layout", "measure", "smoke"];
 /** Layers whose files may use any service without naming it (but name none they never reach). */
 const ANY_SERVICE = new Set(["composed", "conformance", "live", "load"]);
+/**
+ * The layers that run on their own cadence through a config of their own, never in a default run:
+ * the load class measures (by hand), the live class spends money on real providers (by hand and
+ * after a release). A file with the word needs its package's config; every other config there
+ * excludes it.
+ */
+const OWN_CADENCE = [
+  { word: "load", config: /^vitest\.load\.config\./ },
+  { word: "live", config: /^vitest\.live\.config\./ },
+];
 /** The suites' own trees, placed by their suite rather than by `__tests__`. */
 const SUITE_TREES = ["test/conformance/src/suites", "test/e2e/tests/"];
 /** Where a Playwright spec may live: the console's journeys and the site's. */
@@ -309,8 +328,12 @@ function runtimeCondition(ts, sf, call) {
   return "";
 }
 
-export function byConstruction(condition) {
-  return BY_CONSTRUCTION.find(({ pattern }) => pattern.test(condition))?.reason;
+/**
+ * The reason a skip carries by construction, or undefined. `path` is the test file's: a class
+ * bound to a layer (`layer`) explains a skip only in a file whose name carries that layer word.
+ */
+export function byConstruction(condition, path = "") {
+  return BY_CONSTRUCTION.find(({ pattern, layer }) => pattern.test(condition) && (layer === undefined || nameWords(path).words.includes(layer)))?.reason;
 }
 
 /**
@@ -635,8 +658,10 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
     if (words.includes("browser") && !configsIn(pkg).some((c) => configIncludes(ts, c.path, c.text).some((g) => g.includes(".browser.test")))) {
       find("layout-word-place", path, 1, `no vitest config in ${pkg} collects \`*.browser.test.*\`, so nothing runs this file in a browser`, "browser");
     }
-    if (words.includes("load") && !configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) {
-      find("layout-word-place", path, 1, `${pkg} has no vitest.load.config, the one config that runs the load class`, "load");
+    for (const { word, config } of OWN_CADENCE) {
+      if (words.includes(word) && !configsIn(pkg).some((c) => config.test(posix.basename(c.path)))) {
+        find("layout-word-place", path, 1, `${pkg} has no vitest.${word}.config, the one config that runs the ${word} class`, word);
+      }
     }
     {
       // A layer or a tree that may use any service still may not name one it never reaches.
@@ -658,15 +683,18 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
     }
   }
 
-  // The load class runs on its own cadence: in a package with a load config, every other vitest
-  // config excludes `*.load.test.*`, so a default run never collects a measurement.
+  // The load and live classes run on their own cadence: in a package with a class's config, every
+  // other vitest config excludes that class, so a default run never collects a measurement or a
+  // paid call to a real provider (where it would skip without its key and look green).
   for (const config of configs) {
     const name = posix.basename(config.path);
-    if (!/^vitest(\..+)?\.config\./.test(name) || /^vitest\.load\.config\./.test(name)) continue;
+    if (!/^vitest(\..+)?\.config\./.test(name)) continue;
     const pkg = packageOf(config.path, packageDirs);
-    if (!configsIn(pkg).some((c) => /^vitest\.load\.config\./.test(posix.basename(c.path)))) continue;
-    if (!configExcludes(ts, config.path, config.text).some((g) => g.includes(".load.test"))) {
-      find("layout-load-collected", config.path, 1, "the package has a vitest.load.config, so this config excludes `**/*.load.test.ts`; without it a default run collects the load class");
+    for (const { word, config: own } of OWN_CADENCE) {
+      if (own.test(name) || !configsIn(pkg).some((c) => own.test(posix.basename(c.path)))) continue;
+      if (!configExcludes(ts, config.path, config.text).some((g) => g.includes(`.${word}.test`))) {
+        find(`layout-${word}-collected`, config.path, 1, `the package has a vitest.${word}.config, so this config excludes \`**/*.${word}.test.ts\`; without it a default run collects the ${word} class`);
+      }
     }
   }
 
@@ -789,8 +817,8 @@ export function compareInventories(lineages, packageDirs) {
     for (const c of vanished.slice(pairs)) vanishedPool.push({ ...c, path: base.path, pkg });
     for (const c of gained.slice(pairs)) gainedPool.push({ ...c, path, pkg });
 
-    const headSkips = (head?.skips ?? []).filter((s) => !byConstruction(s.condition) && !s.quarantine);
-    const baseSkips = (base?.skips ?? []).filter((s) => !byConstruction(s.condition) && !s.quarantine);
+    const headSkips = (head?.skips ?? []).filter((s) => !byConstruction(s.condition, path) && !s.quarantine);
+    const baseSkips = (base?.skips ?? []).filter((s) => !byConstruction(s.condition, base?.path ?? path) && !s.quarantine);
     for (const s of surplus(headSkips, baseSkips, (x) => `${x.kind}|${x.condition}`)) newSkips.push({ ...s, path });
   }
 
@@ -835,9 +863,9 @@ export function explainRunSkips(report, inventories, root) {
       const ancestors = result.ancestorTitles ?? [];
       const name = [...ancestors, result.title].join(" > ");
       const sites = (inventory?.skips ?? []).filter((s) => covers(s, ancestors, result.title));
-      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => byConstruction(s.condition));
+      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => byConstruction(s.condition, path));
       if (site) {
-        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : byConstruction(site.condition) });
+        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : byConstruction(site.condition, path) });
         continue;
       }
       const line = sites[0]?.line ?? inventory?.cases.find((c) => c.key === name)?.line ?? 1;

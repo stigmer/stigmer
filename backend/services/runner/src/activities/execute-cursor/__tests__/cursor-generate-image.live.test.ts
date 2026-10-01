@@ -25,13 +25,14 @@
  * classify + gate behind the standard write approval; otherwise → the
  * honest-unavailability posture (there is no seam to gate or deny it).
  *
- * Skipped without CURSOR_API_KEY (the cursor-sdk-auth-smoke.test.ts
- * convention) — it spends real credits for one short turn. Findings are
- * PRINTED, not asserted: like the Phase-0 capture, this documents upstream
- * behavior we do not own; the only hard assertion is that the run itself
- * reaches a terminal outcome (no infinite hang at the SDK boundary).
- *
- * Run with: CURSOR_API_KEY=<key> npx vitest run cursor-generate-image-live
+ * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
+ * hand or in the live lane; skips without `CURSOR_API_KEY` outside the lane
+ * (`src/__test-utils__/live-gate.ts`). It spends real credits for one short
+ * turn, with no product cost cap (the SDK is driven directly, not through an
+ * execution). Findings are PRINTED, not asserted: like the Phase-0 capture,
+ * this documents upstream behavior we do not own; the only hard assertion is
+ * that the run itself reaches a terminal outcome (no infinite hang at the SDK
+ * boundary), which is a promise worth a release check.
  */
 
 import { describe, it, expect } from "vitest";
@@ -40,8 +41,9 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, chmodS
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
-const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+import { liveSecret } from "../../../__test-utils__/live-gate.js";
+
+const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
 
 /**
  * A minimal observation-only preToolUse/beforeMCPExecution hook: appends every
@@ -72,7 +74,7 @@ function installObservationHook(workspaceRoot: string, logPath: string): void {
   );
 }
 
-describeWithCursorKey("generateImage live ground truth (issue #965)", () => {
+describe.skipIf(!liveSecret("CURSOR_API_KEY"))("generateImage live ground truth (issue #965)", () => {
   it("captures whether generateImage completes headless and whether preToolUse sees it", async () => {
     const { Agent } = await import("@cursor/sdk");
 

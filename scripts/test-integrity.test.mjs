@@ -233,12 +233,26 @@ it("a new skip is one beyond what the file carried; by-construction and quaranti
   assert.deepEqual(newSkips.map((s) => s.title), ["b", "g"]);
 });
 
-it("the by-construction classes are capability, platform and a gate-provided dependency", () => {
+it("the by-construction classes are capability, platform, a gate-provided dependency, and a live file's key", () => {
   assert.equal(byConstruction("!capabilities.versionTagging"), "target capability");
   assert.equal(byConstruction('process.platform === "win32"'), "platform");
   assert.equal(byConstruction("!TEST_FGA_API_URL"), "gate-provided dependency");
   assert.equal(byConstruction("!testDatabaseAdminUrl()"), "gate-provided dependency");
+  assert.equal(byConstruction('!liveSecret("CURSOR_API_KEY")', "pkg/src/__tests__/turn.live.test.ts"), "live-lane credential");
+  // Outside a live file the key explains nothing: an ordinary test never runs in the live lane.
+  assert.equal(byConstruction('!liveSecret("CURSOR_API_KEY")', "pkg/src/__tests__/turn.test.ts"), undefined);
+  assert.equal(byConstruction('!liveSecret("CURSOR_API_KEY")'), undefined);
+  // A key read through a variable carries no reason the tool can read.
+  assert.equal(byConstruction("!key", "pkg/src/__tests__/turn.live.test.ts"), undefined);
   assert.equal(byConstruction("!hasBash"), undefined);
+});
+
+it("a liveSecret skip is new in an ordinary test, and by construction only in a live one", () => {
+  const skip = `describe.skipIf(!liveSecret("CURSOR_API_KEY"))("s", () => { it("a", () => {}); });`;
+  const ordinary = compareInventories([{ base: file("pkg/a.test.ts", ""), head: file("pkg/a.test.ts", skip) }], PKGS);
+  assert.deepEqual(ordinary.newSkips.map((s) => s.title), ["s"]);
+  const live = compareInventories([{ base: file("pkg/a.live.test.ts", ""), head: file("pkg/a.live.test.ts", skip) }], PKGS);
+  assert.deepEqual(live.newSkips, []);
 });
 
 it("packageOf finds the nearest manifest directory", () => {
@@ -572,6 +586,13 @@ it("a layer word goes only where its layer lives", () => {
   assert.deepEqual(layout({ "src/__tests__/panel.browser.test.tsx": ok }, { packages: ["pkg"], configs: atRoot }), []);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts load"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }, { configs: { "pkg/vitest.load.config.ts": "" } }), []);
+  assert.deepEqual(layout({ "pkg/src/__tests__/turn.live.test.ts": ok }), ["layout-word-place pkg/src/__tests__/turn.live.test.ts live"]);
+  assert.deepEqual(layout({ "pkg/src/__tests__/turn.live.test.ts": ok }, { configs: { "pkg/vitest.live.config.ts": "" } }), []);
+  // A live config in another package does not run this one's live files.
+  assert.deepEqual(
+    layout({ "pkg/src/__tests__/turn.live.test.ts": ok }, { packages: ["pkg", "other"], configs: { "other/vitest.live.config.ts": "" } }),
+    ["layout-word-place pkg/src/__tests__/turn.live.test.ts live"],
+  );
   assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts conformance"]);
 });
 
@@ -581,6 +602,25 @@ it("in a package with a load config, every other vitest config excludes the load
   assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": excluding } }), []);
   assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": `export default { test: { include: ["src/**/*.test.ts"] } };` } }), ["layout-load-collected pkg/vitest.config.ts"]);
   // A package without a load config has no such rule.
+  assert.deepEqual(layout({}, { configs: { "pkg/vitest.config.ts": `export default { test: {} };` } }), []);
+});
+
+it("in a package with a live config, every other vitest config excludes the live class", () => {
+  const live = { "pkg/vitest.live.config.ts": `export default { test: { include: ["src/**/__tests__/**/*.live.test.ts"] } };` };
+  const excluding = `import { configDefaults } from "vitest/config";\nexport default { test: { exclude: [...configDefaults.exclude, "**/*.live.test.ts"] } };`;
+  assert.deepEqual(layout({}, { configs: { ...live, "pkg/vitest.config.ts": excluding } }), []);
+  assert.deepEqual(layout({}, { configs: { ...live, "pkg/vitest.config.ts": `export default { test: { include: ["src/**/*.test.ts"] } };` } }), ["layout-live-collected pkg/vitest.config.ts"]);
+  // Excluding the load class is not excluding the live class.
+  const loadOnly = `export default { test: { exclude: ["**/*.load.test.ts"] } };`;
+  assert.deepEqual(layout({}, { configs: { ...live, "pkg/vitest.config.ts": loadOnly } }), ["layout-live-collected pkg/vitest.config.ts"]);
+  // A package with both classes needs both excluded, and each class's own config is exempt only from its own rule.
+  const both = {
+    "pkg/vitest.load.config.ts": `export default { test: { include: ["src/**/*.load.test.ts"] } };`,
+    "pkg/vitest.live.config.ts": `export default { test: { include: ["src/**/*.live.test.ts"], exclude: ["**/*.load.test.ts"] } };`,
+    "pkg/vitest.config.ts": `export default { test: { exclude: ["**/*.load.test.ts", "**/*.live.test.ts"] } };`,
+  };
+  assert.deepEqual(layout({}, { configs: both }), ["layout-live-collected pkg/vitest.load.config.ts"]);
+  // A package without a live config has no such rule.
   assert.deepEqual(layout({}, { configs: { "pkg/vitest.config.ts": `export default { test: {} };` } }), []);
 });
 
