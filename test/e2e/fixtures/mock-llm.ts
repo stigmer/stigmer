@@ -109,12 +109,19 @@ class MockLlmControl {
   }
 
   // STIGMER_E2E_DIAG (fixtures/diag.ts): every request the proxy answered since
-  // the last reset, one line each, appended before the reset drops them.
+  // the last reset, in arrival order, one line each, appended before the reset
+  // drops them. The shared proxy records no arrival time, so each block is
+  // stamped once with the time it was flushed (a reset or the teardown), and
+  // the stream flag is read from the captured body.
   private writeDiagLog(): void {
     try {
-      const lines = this.proxy
-        .requests()
-        .map((request) => `${new Date().toISOString()} LLM path=${request.path} served=${request.disposition}\n`);
+      const requests = this.proxy.requests();
+      if (requests.length === 0) return;
+      const lines = [`--- flushed ${new Date().toISOString()}: ${requests.length} request(s), ${this.proxy.remaining()} turn(s) still queued\n`];
+      for (const request of requests) {
+        const streaming = typeof request.body === "object" && request.body !== null && (request.body as { stream?: unknown }).stream === true;
+        lines.push(`LLM path=${request.path} streaming=${streaming} served=${request.disposition}\n`);
+      }
       appendFileSync(diagLogPath("mock"), lines.join(""));
     } catch {
       // Diagnostics never fail the stack they observe.

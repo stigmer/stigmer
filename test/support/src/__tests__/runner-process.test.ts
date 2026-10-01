@@ -10,7 +10,7 @@
 // Pure: a string (or a number) in, a string out. No target, no spawn.
 // Domain: test support (stack spawns).
 import { describe, expect, it } from "vitest";
-import { describeRunnerForceKill, describeRunnerSlowExit, runnerHomeEnv } from "../runner-process.ts";
+import { describeRunnerForceKill, describeRunnerSlowExit, runnerHomeEnv, spawnRunner } from "../runner-process.ts";
 
 // The Temporal SDK prints each worker state change as a five-line object.
 function workerStateChanged(state: string): string[] {
@@ -166,5 +166,23 @@ describe("describeRunnerSlowExit", () => {
 describe("runnerHomeEnv", () => {
   it("relocates both home variables the runner reads to the harness-owned directory", () => {
     expect(runnerHomeEnv("/tmp/harness-home")).toEqual({ HOME: "/tmp/harness-home", USERPROFILE: "/tmp/harness-home" });
+  });
+});
+
+// The no-artifact-store posture's two refusals, both decided before anything
+// is created or spawned.
+describe("spawnRunner's artifactStore \"none\"", () => {
+  const base = { entryPath: "/nonexistent/main.js", temporalHostPort: "127.0.0.1:1", backendEndpoint: "http://127.0.0.1:1", registryOrigin: "http://127.0.0.1:1" };
+
+  it("needs a proxy, since it is the agent-execution artifact posture", async () => {
+    await expect(spawnRunner({ ...base, artifactStore: "none" })).rejects.toThrow('artifactStore "none" needs a proxy');
+  });
+
+  it("excludes a shared artifact dir and an artifact proxy", async () => {
+    const proxy = { endpoint: "http://127.0.0.1:1", token: "t" };
+    await expect(spawnRunner({ ...base, proxy, artifactStore: "none", artifactDir: "/tmp/x" })).rejects.toThrow("excludes artifactDir and artifactProxy");
+    await expect(spawnRunner({ ...base, proxy, artifactStore: "none", artifactProxy: { endpoint: "http://127.0.0.1:2" } })).rejects.toThrow(
+      "excludes artifactDir and artifactProxy",
+    );
   });
 });

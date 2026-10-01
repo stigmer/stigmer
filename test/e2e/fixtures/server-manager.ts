@@ -104,7 +104,11 @@ export async function startBackendStack(opts: {
     "npm run build -w @stigmer/protos && npm run build -w @stigmer/runner (or make build-runner)",
     "Unified runner",
   );
+  // STIGMER_E2E_DIAG (fixtures/diag.ts): each stream's log starts fresh with
+  // the run, as the mock's does, and the server logs at info, so the three
+  // logs cover the same run at the depth the resume probe reads.
   const diag = diagEnabled();
+  if (diag) for (const name of ["server", "runner"]) fs.writeFileSync(diagLogPath(name), "");
 
   // A free Temporal port, never the fixed 7233, so a developer's live dev stack
   // (its own Temporal and a runner polling the same queue) cannot poach this
@@ -120,7 +124,7 @@ export async function startBackendStack(opts: {
       args: [serverEntry],
       port: opts.apiPort,
       temporalHostPort: temporal.hostPort,
-      env: opts.extraServerEnv,
+      env: { ...(diag ? { LOG_LEVEL: "info" } : {}), ...opts.extraServerEnv },
       logFile: diag ? diagLogPath("server") : undefined,
     });
     console.log(`[e2e] stigmer-server ready on ${server.baseUrl}`);

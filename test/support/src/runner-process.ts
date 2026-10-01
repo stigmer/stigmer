@@ -157,8 +157,8 @@ export interface RunnerOptions {
   // `none` boots the runner with NO artifact store (ARTIFACT_STORAGE_TYPE=none,
   // with a proxy): a non-git workspace then has no capture substrate, so file
   // writes take the pre-execution approval gate instead of apply-then-review.
-  // The e2e file-gate stack is the one shape that needs it. Mutually
-  // exclusive with artifactDir and artifactProxy.
+  // The e2e file-gate stack is the one shape that needs it. Requires a
+  // proxy; mutually exclusive with artifactDir and artifactProxy.
   artifactStore?: "none";
   // When set, the runner's combined stdout/stderr is also streamed to this
   // file (directory created as needed). The cloud-execution target points it
@@ -197,8 +197,13 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
         (opts.temporalHostPort === undefined ? "neither" : "both"),
     );
   }
-  if (opts.artifactStore === "none" && (opts.artifactDir !== undefined || opts.artifactProxy !== undefined)) {
-    throw new Error("spawnRunner: artifactStore \"none\" excludes artifactDir and artifactProxy");
+  if (opts.artifactStore === "none") {
+    if (opts.proxy === undefined) {
+      throw new Error("spawnRunner: artifactStore \"none\" needs a proxy (it is the agent-execution artifact posture)");
+    }
+    if (opts.artifactDir !== undefined || opts.artifactProxy !== undefined) {
+      throw new Error("spawnRunner: artifactStore \"none\" excludes artifactDir and artifactProxy");
+    }
   }
   const workspaceDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-"));
   // The runner's home for this run: its `~/.stigmer` (session checkpoints,
