@@ -174,3 +174,30 @@ test("every required check runs on pull requests and in the merge queue, and non
     assert.equal(job.if, undefined, `${name}: a skipped required check passes`);
   }
 });
+
+test("a pull request is judged by the base branch's copy of each body-reading check's script", () => {
+  // A pull request that edits the script its check runs must not loosen that
+  // check for itself, so neither job runs the pull request's own copy.
+  const reviewJob = readWorkflow("ci.review.yaml").jobs.review;
+  const reviewCheckout = reviewJob.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
+  assert.equal(
+    reviewCheckout.with.ref,
+    "${{ github.base_ref || github.sha }}",
+    "Review verdict checks out the base branch's tip: a recorded base commit can predate the script `--write` used",
+  );
+  for (const step of reviewJob.steps.filter((s) => s.run)) {
+    assert.doesNotMatch(step.run, /git (checkout|fetch|switch|restore)\b/, `${step.name}: no step brings the pull request's own files into the base checkout`);
+  }
+  assert.ok(
+    reviewJob.steps.some((s) => s.run?.includes("node scripts/review-verdict.mjs --status")),
+    "Review verdict runs the checked-out base's script",
+  );
+
+  const integritySteps = readWorkflow("ci.integrity.yaml").jobs.integrity.steps;
+  const pullRequestStep = integritySteps.find((s) => s.if === "github.event_name == 'pull_request'");
+  assert.match(pullRequestStep.run, /git show "origin\/\$BASE_REF:scripts\/test-integrity\.mjs" > "\$RUNNER_TEMP\/test-integrity\.mjs"/);
+  const parserStep = integritySteps.find((s) => s.name === "Install the TypeScript parser");
+  assert.match(parserStep.run, /git show "origin\/\$BASE_REF:package-lock\.json"/, "the parser that judges a pull request is the one the base pins");
+  const invoked = [...pullRequestStep.run.matchAll(/\bnode\s+(\S+)/g)].map((m) => m[1]);
+  assert.deepEqual(invoked, ['"$RUNNER_TEMP/test-integrity.mjs"'], "Test integrity judges a pull request with the base's copy, and runs nothing else");
+});

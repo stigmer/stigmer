@@ -466,6 +466,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         const client = await v6Client();
         try {
           const rows = HISTORY_PAGE_SIZE + 2;
+          // One transaction for the seed, as in the SQLite twin: row by row,
+          // each insert is its own synced commit (stigmer/stigmer#1569).
+          await client.query("BEGIN");
           for (let i = 0; i < rows; i++) {
             const id = `agt_${String(i).padStart(4, "0")}`;
             // The last row, past the first page, is the only one naming
@@ -476,6 +479,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               [id, agentNaming(id, org)],
             );
           }
+          await client.query("COMMIT");
 
           const reopened = await PostgresStore.open(db.databaseUrl);
           await reopened.close();
