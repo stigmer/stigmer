@@ -48,12 +48,15 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a b
   });
 
   it("calls write_todos once, the row completes, and the turn completes under the cap", async () => {
+    // Approvals are granted: a real model may also reach for a gated tool, and a pause on
+    // its approval is not this case's subject; the cap bounds what that call can spend.
     const record = deepAgentExecutionRecord({
       message:
         `Call the ${TOOL} tool exactly once with a single todo whose content is "live check" and status "completed". ` +
         "Then reply with one short sentence. Do not call any other tool.",
       modelName: LIVE_MODEL,
       maxCostUsd: MAX_COST_USD,
+      autoApproveAll: true,
     });
     await runDeepAgentTurn(beginLiveDeepAgentScenario({ env, record }));
 

@@ -54,10 +54,14 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
   });
 
   it("completes with a reply, its usage and an estimated cost under the cap", async () => {
+    // A real model may still reach for a built-in tool (a live run did, and paused on
+    // its approval); approvals are not this case's subject, so they are granted, and
+    // the cap bounds what a stray tool call can spend.
     const record = deepAgentExecutionRecord({
-      message: "Reply with one short sentence saying the live check ran.",
+      message: "Without calling any tool, reply with one short sentence saying the live check ran.",
       modelName: LIVE_MODEL,
       maxCostUsd: MAX_COST_USD,
+      autoApproveAll: true,
     });
     const invocation = await runDeepAgentTurn(beginLiveDeepAgentScenario({ env, record }));
 
