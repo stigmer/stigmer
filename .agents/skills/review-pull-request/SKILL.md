@@ -91,8 +91,9 @@ merge runs it again only when the verdict is missing or stale.
    minor findings, and every `changes-needed`. The comments are the only record
    of what each reviewer found, and a verdict fixed without being posted is lost
    to everyone who later asks what the reviews catch. A verdict the script
-   refuses because the change moved during the review cannot be posted; review
-   the change again.
+   refuses, because the change moved during the review or because the verdict's
+   shape is wrong, cannot be posted: have the change read again by a new
+   reviewer.
 
 5. **Act on it.** On `approve`, the pull request is ready for its merge. On
    `changes-needed`, fix each blocking finding, verify, push, and run this
@@ -100,8 +101,10 @@ merge runs it again only when the verdict is missing or stale.
    findings is no longer fresh. A finding you judge wrong is answered in a reply
    on the pull request, with the reason, and the next reviewer reads that reply
    with everything else. After an `approve`, you may still fix its minor
-   findings: post the approve first, leave the merge unarmed, push, and run this
-   procedure again with a new reviewer.
+   findings: disarm an armed merge first
+   (`gh pr merge <n> -R <owner/repo> --disable-auto`), post the approve, push
+   the fixes, and run this procedure again with a new reviewer; arm the merge
+   only on that review's `approve`.
 
 ## What the reviewer does
 
