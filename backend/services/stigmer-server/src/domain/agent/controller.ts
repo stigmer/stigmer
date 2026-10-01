@@ -275,8 +275,8 @@ async function apply(
 
 /**
  * Delete — cascades children before the parent (delete_cascade.go):
- * ALL instances, then same-org shares, then the agent row and its index
- * entry. Returns the deleted agent (the audit-trail convention).
+ * ALL instances, then same-org shares, each child's access cleaned with
+ * its row, then the agent row, its access and its index entry. Returns the deleted agent (the audit-trail convention).
  */
 async function deleteAgent(
   deps: AgentControllerDeps,
@@ -300,8 +300,20 @@ async function deleteAgent(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentSchema))
     .addStep(newGuardPluginManagedStep(deps.store))
-    .addStep(newCascadeDeleteInstancesStep(deps.store, deps.logger))
-    .addStep(newCascadeDeleteSharesStep(deps.store, deps.logger))
+    .addStep(
+      newCascadeDeleteInstancesStep(
+        deps.store,
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
+    .addStep(
+      newCascadeDeleteSharesStep(
+        deps.store,
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

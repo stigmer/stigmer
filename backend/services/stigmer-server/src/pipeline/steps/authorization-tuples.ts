@@ -23,7 +23,11 @@
  *     half-created resource is a real, retry-healed state (inherited).
  *   - delete cleanup: best-effort — log and continue, never fail the
  *     delete (Java's step swallows everything; orphaned grants are inert
- *     once the row is gone).
+ *     once the row is gone). One function, `cleanUpDeletedResource`, is
+ *     that cleanup for every delete chain's own resource and for every
+ *     child a parent's cascade deletes (stigmer#1603): a cascaded child is
+ *     cleaned as its own delete would clean it, so its rows and tuples go
+ *     while the links that name its organization still stand.
  *   - visibility: a driver throw fails the request as Internal — after
  *     persist; retrying the same transition converges (set-diff
  *     idempotency).
@@ -57,6 +61,7 @@ import type {
   ResolvedParentLink,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
+  ResourceDeletedEvent,
   VisibilityTupleShape,
 } from "../../extensions/resource-authorization.js";
 
@@ -381,14 +386,50 @@ export function newCreateAuthorizationTuplesStep<Desc extends DescMessage>(
 }
 
 /**
- * CleanupIamPolicies — after the store delete in every delete chain.
- * Best-effort by contract: a driver failure is logged and the delete
- * succeeds (Java's DeleteOperationCleanupIamPoliciesStep swallows all),
- * because a deleted resource's rows grant nothing once it is gone. The
- * organization is the one kind whose id another caller can take next, so
- * its chain revokes the organization's rows before the row, failing
- * closed (RevokeOrganizationPolicies, domain/organization/steps.ts), and
- * this step is only its backstop there.
+ * The delete cleanup of one deleted resource: the composed driver's
+ * `onResourceDeleted`, best-effort by contract. A driver failure is logged
+ * and never raised (Java's DeleteOperationCleanupIamPoliciesStep swallowed
+ * all), because a deleted resource's rows grant nothing once it is gone,
+ * and no sweep revisits them: a cleanup that fails here stays undone until
+ * another cleanup reaches the row from its other side. No driver = no-op.
+ *
+ * Two callers, one contract: every delete chain's CleanupIamPolicies step
+ * for the chain's own resource, and every cascade step for each child it
+ * deletes, right after the child's row (the agent's instances and shares,
+ * the workflow's instances, the session's runs). The child is cleaned
+ * before its parent, so the walk that finds its organization still meets
+ * every link (stigmer#1603: a child whose cleanup never ran was revoked
+ * later, from its owner's side, under no organization).
+ */
+export async function cleanUpDeletedResource(
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
+  logger: Logger,
+  event: ResourceDeletedEvent,
+): Promise<void> {
+  if (lifecycle === undefined) {
+    return;
+  }
+  try {
+    await lifecycle.onResourceDeleted(event);
+  } catch (error) {
+    logger.warn(
+      "authorization cleanup failed — orphaned IAM policies may remain",
+      {
+        kind: getKindName(event.kind),
+        resourceId: event.resourceId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+  }
+}
+
+/**
+ * CleanupIamPolicies — after the store delete in every delete chain: the
+ * chain's own resource through `cleanUpDeletedResource`. The organization
+ * is the one kind whose id another caller can take next, so its chain
+ * revokes the organization's rows before the row, failing closed
+ * (RevokeOrganizationPolicies, domain/organization/steps.ts), and this
+ * step is only its backstop there.
  */
 export function newCleanupIamPoliciesStep<Desc extends DescMessage>(
   lifecycle: ResourceAuthorizationLifecycle | undefined,
@@ -397,9 +438,6 @@ export function newCleanupIamPoliciesStep<Desc extends DescMessage>(
   return {
     name: "CleanupIamPolicies",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      if (lifecycle === undefined) {
-        return;
-      }
       const deleted = ctx.get(EXISTING_RESOURCE_KEY) as
         | HasMetadataShape
         | undefined;
@@ -407,23 +445,12 @@ export function newCleanupIamPoliciesStep<Desc extends DescMessage>(
       if (metadata === undefined || metadata.id === "") {
         return;
       }
-      try {
-        await lifecycle.onResourceDeleted({
-          kind: ctx.apiResourceKind,
-          resourceId: metadata.id,
-          orgId: metadata.org,
-          caller: ctx.callerIdentity,
-        });
-      } catch (error) {
-        logger.warn(
-          "authorization cleanup failed — orphaned IAM policies may remain",
-          {
-            kind: getKindName(ctx.apiResourceKind),
-            resourceId: metadata.id,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
-      }
+      await cleanUpDeletedResource(lifecycle, logger, {
+        kind: ctx.apiResourceKind,
+        resourceId: metadata.id,
+        orgId: metadata.org,
+        caller: ctx.callerIdentity,
+      });
     },
   };
 }

@@ -401,7 +401,13 @@ async function deleteWorkflow(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, WorkflowSchema))
     .addStep(newGuardPluginManagedStep(deps.store))
-    .addStep(newCascadeDeleteWorkflowInstancesStep(deps.store, deps.logger))
+    .addStep(
+      newCascadeDeleteWorkflowInstancesStep(
+        deps.store,
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

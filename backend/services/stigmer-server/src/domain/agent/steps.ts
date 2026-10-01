@@ -39,7 +39,10 @@ import {
 } from "../../pipeline/errors.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
+import {
+  cleanUpDeletedResource,
+  notifyDefaultInstanceLinked,
+} from "../../pipeline/steps/authorization-tuples.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
@@ -450,7 +453,11 @@ export function newUpdateAgentStatusWithDefaultInstanceStep(
 
 // ---------------------------------------------------------------------------
 // Cascade steps — delete_cascade.go. Children before parent, so a
-// mid-failure retry converges. What deliberately SURVIVES an agent delete,
+// mid-failure retry converges. Each child's access goes with its row: the
+// composed driver hears the child's own delete event right after the row
+// (cleanUpDeletedResource, best-effort as every delete chain's cleanup),
+// while the agent and its organization still hold the links the child
+// reaches its organization through (stigmer#1603). What deliberately SURVIVES an agent delete,
 // and must never be swept into this cascade: sessions and agent executions
 // (historical record, the #582 posture — they reference agent and instance
 // by immutable IDs) and resource_audit rows (surviving sessions and
@@ -470,6 +477,7 @@ export function newUpdateAgentStatusWithDefaultInstanceStep(
  */
 export function newCascadeDeleteInstancesStep<Desc extends DescMessage>(
   store: Store,
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
 ): PipelineStep<Desc> {
   return {
@@ -519,6 +527,12 @@ export function newCascadeDeleteInstancesStep<Desc extends DescMessage>(
             `failed to cascade-delete instance ${instanceId} of agent ${agentId}`,
           );
         }
+        await cleanUpDeletedResource(lifecycle, logger, {
+          kind: ApiResourceKind.agent_instance,
+          resourceId: instanceId,
+          orgId: instance.metadata?.org ?? "",
+          caller: ctx.callerIdentity,
+        });
 
         // Best-effort, matching DeleteSearchIndex: a stale index entry is a
         // cosmetic search artifact, not a correctness problem.
@@ -565,6 +579,7 @@ export function newCascadeDeleteInstancesStep<Desc extends DescMessage>(
  */
 export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
   store: Store,
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
 ): PipelineStep<Desc> {
   return {
@@ -618,6 +633,12 @@ export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
             `failed to cascade-delete share ${shareId} of agent ${agentOrg}/${agentSlug}`,
           );
         }
+        await cleanUpDeletedResource(lifecycle, logger, {
+          kind: ApiResourceKind.agent_share,
+          resourceId: shareId,
+          orgId: agentOrg,
+          caller: ctx.callerIdentity,
+        });
         deleted++;
       }
 

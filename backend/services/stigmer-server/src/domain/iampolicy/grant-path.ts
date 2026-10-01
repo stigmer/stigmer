@@ -89,8 +89,13 @@
  * unit as the row (store.ts). The organization is resolved before any row
  * of the operation is deleted: `cleanupResource` removes a resource's
  * scope link before its owner rows, and the sweep already knows its
- * organization. The grant and revoke log lines carry the same facts, open
- * source's own trail.
+ * organization. A row on another resource is resolved when it is revoked,
+ * through that resource's scope links; when an earlier delete already
+ * removed them (an organization's delete removes every link that names
+ * it, and keeps the resources), the stored row of the highest level the
+ * walk still reaches names the organization, the same `metadata.org` the
+ * links were written from (stigmer#1603). The grant and revoke log lines
+ * carry the same facts, open source's own trail.
  *
  * The row this path builds: the proto's apiVersion const and kind, the
  * derived id, the spec as given, and the caller's audit stamp through the
@@ -230,8 +235,10 @@ export interface IamPolicyGrantPath {
 }
 
 /**
- * The recorded creator of a stored resource, the one fact the removal
- * sweep needs from outside the policy rows.
+ * What the path reads from a stored resource's own row, the two facts it
+ * needs from outside the policy rows: who created it (the removal sweep
+ * keeps authorship), and which organization it belongs to (a change record
+ * whose scope links a delete already removed).
  */
 export interface StoredResources {
   /**
@@ -239,6 +246,12 @@ export interface StoredResources {
    * this server stores no row of that kind and id.
    */
   creatorOf(kind: string, id: string): Promise<string | undefined>;
+  /**
+   * The row's `metadata.org`, or "" when this server stores no row of that
+   * kind and id (a kind a composition keeps in its own table, or a row
+   * already deleted).
+   */
+  organizationOf(kind: string, id: string): Promise<string>;
 }
 
 export interface IamPolicyGrantPathDeps {
@@ -255,7 +268,7 @@ interface Change {
   readonly cause: PolicyChangeCause;
 }
 
-/** How a row's organization is found: the scope walk, or a value its operation already knows. */
+/** How a row's organization is found: `organizationOfResource`, or a value its operation already knows. */
 type OrganizationOf = (resource: ApiResourceRef) => Promise<string>;
 
 export function newIamPolicyGrantPath(
@@ -263,8 +276,14 @@ export function newIamPolicyGrantPath(
 ): IamPolicyGrantPath {
   const { policies, resources, lifecycle, logger } = deps;
 
-  /** The organization a resource belongs to, through its scope links; "" when it names none. */
-  async function organizationByScope(
+  /**
+   * The organization a resource belongs to: through its scope links, or,
+   * when the walk reaches no organization (a delete already removed the
+   * link), the `metadata.org` of the stored row at the walk's last level,
+   * the resource itself or the parent it inherits from (a run's session).
+   * "" when neither names one.
+   */
+  async function organizationOfResource(
     resource: ApiResourceRef,
   ): Promise<string> {
     if (resource.kind === ORGANIZATION_KIND) {
@@ -276,9 +295,12 @@ export function newIamPolicyGrantPath(
       resource.id,
       true,
     );
-    return (
-      hierarchy.find((level) => level.kind === ORGANIZATION_KIND)?.id ?? ""
-    );
+    const linked = hierarchy.find((level) => level.kind === ORGANIZATION_KIND);
+    if (linked !== undefined) {
+      return linked.id;
+    }
+    const top = hierarchy[hierarchy.length - 1] ?? resource;
+    return resources.organizationOf(top.kind, top.id);
   }
 
   /** The record the store keeps beside an access row; none for a structural link. */
@@ -320,7 +342,7 @@ export function newIamPolicyGrantPath(
   async function revokeRow(
     policy: IamPolicy,
     change: Change,
-    organizationOf: OrganizationOf = organizationByScope,
+    organizationOf: OrganizationOf = organizationOfResource,
   ): Promise<void> {
     const spec = policy.spec;
     if (spec === undefined) {
@@ -431,7 +453,7 @@ export function newIamPolicyGrantPath(
       let duplicate = policy !== undefined;
       if (policy === undefined) {
         const fresh = buildRow(spec, caller);
-        const record = await recordFor(spec, change, organizationByScope);
+        const record = await recordFor(spec, change, organizationOfResource);
         try {
           await policies.save(fresh, record);
           policy = fresh;
@@ -512,12 +534,12 @@ export function newIamPolicyGrantPath(
       const refOrganization = asResource.some(
         (policy) => policy.spec !== undefined && grantsAccess(policy.spec),
       )
-        ? await organizationByScope(ref)
+        ? await organizationOfResource(ref)
         : "";
       const organizationOf: OrganizationOf = async (resource) =>
         resource.kind === ref.kind && resource.id === ref.id
           ? refOrganization
-          : organizationByScope(resource);
+          : organizationOfResource(resource);
       const isOwner = (policy: IamPolicy): boolean =>
         policy.spec?.relation === OWNER_RELATION;
       for (const policy of distinctById([

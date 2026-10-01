@@ -51,8 +51,11 @@
  *     structural link, no write at all on a duplicate grant or a revoke of
  *     a row that is not held. The organization is read before any row of
  *     the operation goes, so a cleanup that deletes a resource's scope link
- *     before its owner still names the owner row's organization. The log
- *     lines carry the same facts.
+ *     before its owner still names the owner row's organization. A row
+ *     revoked after an earlier delete removed its resource's links takes
+ *     the organization from the stored row the walk ends at (the resource,
+ *     or the session a run walks to), and records none when this server
+ *     stores no such row (stigmer#1603). The log lines carry the same facts.
  *
  * The row the path builds is pinned too: the proto's apiVersion const, the
  * derived id, the caller's audit stamp — the cloud's `buildNewPolicy`
@@ -1088,7 +1091,11 @@ describe("who and why: every access row reaches the store with its change record
       kind: "agent_execution",
       id: RUN,
     });
-    await path.grant(scopeLink("session", SESSION, "acme"), alice, "structural");
+    await path.grant(
+      scopeLink("session", SESSION, "acme"),
+      alice,
+      "structural",
+    );
     await path.grant(
       triple({ kind: "session", id: SESSION }, "session", {
         kind: "agent_execution",
@@ -1125,7 +1132,9 @@ describe("who and why: every access row reaches the store with its change record
 
     await path.cleanupResource(bobRef, bob);
 
-    expect(policies.changes.map((change) => change.record?.organizationId)).toEqual([""]);
+    expect(
+      policies.changes.map((change) => change.record?.organizationId),
+    ).toEqual([""]);
   });
 
   it("the grant and revoke log lines carry who, why and where", async () => {

@@ -33,7 +33,10 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { notifyDefaultInstanceLinked } from "../../pipeline/steps/authorization-tuples.js";
+import {
+  cleanUpDeletedResource,
+  notifyDefaultInstanceLinked,
+} from "../../pipeline/steps/authorization-tuples.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { AuditNotFoundError } from "../../store/interface.js";
@@ -654,6 +657,7 @@ export function newUpdateWorkflowStatusWithDefaultInstanceStep(
 
 export function newCascadeDeleteWorkflowInstancesStep<Desc extends DescMessage>(
   store: Store,
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
 ): PipelineStep<Desc> {
   return {
@@ -695,6 +699,14 @@ export function newCascadeDeleteWorkflowInstancesStep<Desc extends DescMessage>(
             `failed to cascade-delete instance ${instanceId} of workflow ${workflowId}`,
           );
         }
+        // The instance's access goes with its row, as its own delete would
+        // clean it, while the workflow's links still stand (stigmer#1603).
+        await cleanUpDeletedResource(lifecycle, logger, {
+          kind: ApiResourceKind.workflow_instance,
+          resourceId: instanceId,
+          orgId: instance.metadata?.org ?? "",
+          caller: ctx.callerIdentity,
+        });
 
         // Best-effort, matching DeleteSearchIndexStep: a stale index entry
         // is a cosmetic search artifact, not a correctness problem.

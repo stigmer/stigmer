@@ -35,6 +35,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
 import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
 import {
   failedPreconditionError,
@@ -351,13 +353,16 @@ export function newRejectDeleteWithActiveExecutionsStep<
 
 /**
  * CascadeDeleteAgentExecutions — deletes the session's agent executions
- * before the session row itself. Billing/usage data is unaffected — usage
+ * before the session row itself, each execution's access cleaned with its
+ * row while the session still holds the link the execution reaches its
+ * organization through (stigmer#1603). Billing/usage data is unaffected — usage
  * records are immutable and carry their own copies of session/execution
  * identifiers. Search-index removal per execution is best-effort,
  * matching DeleteSearchIndexStep's convention.
  */
 export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
   store: Store,
+  lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
 ): PipelineStep<Desc> {
   return {
@@ -386,6 +391,12 @@ export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
             `failed to cascade-delete execution ${executionId} of session ${sessionId}`,
           );
         }
+        await cleanUpDeletedResource(lifecycle, logger, {
+          kind: ApiResourceKind.agent_execution,
+          resourceId: executionId,
+          orgId: execution.metadata?.org ?? "",
+          caller: ctx.callerIdentity,
+        });
         try {
           await store.deleteSearchIndex(
             ApiResourceKind.agent_execution,

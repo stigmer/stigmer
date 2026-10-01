@@ -362,11 +362,16 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
   });
 
   it("does nothing when no driver is composed", async () => {
-    await expect(cleanUpDeletedResource(undefined, logger, event)).resolves.toBeUndefined();
+    await expect(
+      cleanUpDeletedResource(undefined, logger, event),
+    ).resolves.toBeUndefined();
   });
 
   it("logs a driver's failure and never raises it, so the delete it serves still succeeds", async () => {
-    const warnings: Array<{ message: string; fields: Record<string, unknown> }> = [];
+    const warnings: Array<{
+      message: string;
+      fields: Record<string, unknown>;
+    }> = [];
     const capturing = {
       debug() {},
       info() {},
@@ -382,9 +387,10 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
     );
     expect(warnings).toEqual([
       {
-        message: "authorization cleanup failed — orphaned IAM policies may remain",
+        message:
+          "authorization cleanup failed — orphaned IAM policies may remain",
         fields: {
-          kind: "agent_instance",
+          kind: "AgentInstance",
           resourceId: "ain_cleanup_subject",
           error: "fga is down",
         },

@@ -345,7 +345,13 @@ async function deleteSession(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, SessionSchema))
     .addStep(newRejectDeleteWithActiveExecutionsStep(deps.store, deps.logger))
-    .addStep(newCascadeDeleteAgentExecutionsStep(deps.store, deps.logger))
+    .addStep(
+      newCascadeDeleteAgentExecutionsStep(
+        deps.store,
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
