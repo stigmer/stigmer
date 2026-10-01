@@ -42,7 +42,10 @@ export function makeExecutionValues(
 }
 
 export interface ExecutionContextSpecOptions {
-  // Parent execution id. Required (min_len=1); defaults to a synthetic id.
+  // Parent execution id. Required (min_len=1); defaults to a synthetic id
+  // that names no run: a context bound to a run is the server's to create,
+  // so a run-shaped id (`aex_…`, `wex_…`) is refused for a caller like this
+  // harness's.
   executionId?: string;
   // spec.data entries keyed by variable name. Defaults to one plain (non-secret)
   // variable so the canonical context is parity-stable across editions.
@@ -56,7 +59,7 @@ export function makeExecutionContextSpec(
 ): InitShape<typeof ExecutionContextSpecSchema> {
   const data = opts.data ?? { PLAIN_KEY: { value: "plain-value" } };
   return {
-    executionId: opts.executionId ?? "aex_conformance_fixture",
+    executionId: opts.executionId ?? "exec-conformance-fixture",
     data: makeExecutionValues(data),
   };
 }

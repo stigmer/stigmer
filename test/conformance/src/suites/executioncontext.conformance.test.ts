@@ -15,7 +15,9 @@
 // envmerge precedence (how spec.data is populated from layered Environments at
 // execution start) is intentionally out of scope: it is only observable after a
 // live execution and is covered by the execution-lifecycle session. Here we test
-// the resource's own API contract by creating contexts directly.
+// the resource's own API contract by creating contexts directly. A context
+// bound to a run is the server's to create: a create naming a run's id
+// (`aex_…`, `wex_…`) is refused, so these contexts name ids that bind none.
 //
 // Secret value handling is edition-CONVERGED since stigmer#535 (following
 // Environment, converged in stigmer#405): both editions encrypt EC values at
@@ -316,6 +318,20 @@ describe("[rpc:ExecutionContextCommandController.create] ExecutionContext confor
       Code.InvalidArgument,
       "create without metadata",
     );
+  });
+
+  it("refuses a create naming a run's execution id (contract: PermissionDenied)", async () => {
+    const { org } = await target.provisionTenancy();
+    for (const executionId of [`aex_${uniqueName("bound")}`, `wex_${uniqueName("bound")}`]) {
+      await expectGrpcCode(
+        () =>
+          clients.executionContextCommand.create(
+            makeExecutionContext({ org, name: uniqueName("bound"), executionId }),
+          ),
+        Code.PermissionDenied,
+        `create naming ${executionId}`,
+      );
+    }
   });
 
   it("rejects a duplicate create (contract: AlreadyExists)", async () => {
