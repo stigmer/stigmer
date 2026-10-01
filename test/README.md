@@ -20,7 +20,7 @@ Every test in this repository and in stigmer-cloud belongs to one layer. The lay
 | browser | a component that needs real layout, paint or pixels | the same `__tests__` directories | `*.browser.test.ts(x)` | the package's browser config (`npm run test:a11y -w @stigmer/react`) |
 | contract | every assembled edition keeps the API's promises | `test/conformance/src/suites*/` | `*.conformance.test.ts`; `*.harness.test.ts` for a suite that proves the harness itself is wired (it boots the same stack and asserts no domain contract) | `make test-conformance`, `make test-conformance-execution` |
 | e2e | a person's journey through an app in a browser | `test/e2e/tests/` (the console), `site/e2e/` (the site) | `*.spec.ts` | `make test-e2e*`, `make test-demos` |
-| install | a shipped artifact installs, runs an agent, upgrades | `test/install/` (today `scripts/smoke-*.mjs` and `scripts/rehearse-upgrade.mjs`) | one script per artifact | `make smoke-<artifact>`, `make rehearse-upgrade ARTIFACT=<artifact>` |
+| install | a shipped artifact installs, runs an agent, upgrades | `test/install/` (`smoke-<artifact>.mjs`, `rehearse-upgrade.mjs`; their drivers in `test/install/lib/`) | one script per artifact | `make smoke-<artifact>`, `make rehearse-upgrade ARTIFACT=<artifact>` |
 | load | behaviour under volume, on its own cadence | beside the code | `*.load.test.ts`, collected only by the package's `vitest.load.config.ts` (`backend/services/stigmer-server` has one, as does stigmer-cloud's composition) | `npm run test:load`, by hand |
 | live | real providers and models, budget-capped | beside the code | `*.live.test.ts` | by hand or at release |
 | synthetic | production works now | stigmer-cloud `_ops/probes/*-smoke` | one probe per journey | on a schedule |
@@ -44,6 +44,7 @@ The name of a test file is read at its last dotted segments before `.test` or `.
 - A `*.spec.ts` sits only under `test/e2e/tests/` or `site/e2e/`.
 - A `*.test.mjs` sits beside the script it tests.
 - Machinery that two or more suites use lives once, in `test/support`: it imports only `node:*` and its own files, in TypeScript that Node runs without a build, so the install layer can load it with no install. A suite's own machinery stays in the suite.
+- The install layer lives in `test/install`: plain-Node scripts that run straight after a checkout, with no install, importing only `node:*`, their own files, `test/support` by relative path, and the release scripts under `scripts/`.
 
 ### How it is enforced
 

@@ -1,5 +1,5 @@
 // Pins which artifacts make a release an install's upgrade base
-// (scripts/lib/published-release.mjs): the images, the all-in-one image, the
+// (test/install/lib/published-release.mjs): the images, the all-in-one image, the
 // chart and the CLI's packages each install pulls, under the tags the
 // release pushes them with; that a 404 manifest or a version npm does not
 // list is "not published" while every other answer throws, so an outage

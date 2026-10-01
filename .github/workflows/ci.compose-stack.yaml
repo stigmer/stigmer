@@ -9,7 +9,7 @@
 # Q-A): the committed docker-compose.yml pins published version tags for
 # users, but a PR must prove the real topology without waiting for a
 # release. The published-tag path is re-proven by the release lane
-# (release.npm-libs.yaml), which runs the SAME scripts/smoke-compose.mjs
+# (release.npm-libs.yaml), which runs the SAME test/install/smoke-compose.mjs
 # against the pushed images on native amd64 + arm64 runners.
 #
 # When it runs (its list in scripts/ci-lanes.mjs): the compose surface only. Server/runner SOURCE changes are
@@ -61,7 +61,7 @@ jobs:
       # make smoke-compose = build-server (stubs + deps + compile) +
       # build-web (the console export bundle-slim stages, DD-012) +
       # stage-compose-runner-cli (the CLI tarballs the runner image
-      # installs) + bundle-slim + scripts/smoke-compose.mjs --build. One
+      # installs) + bundle-slim + test/install/smoke-compose.mjs --build. One
       # entry point, identical to what a contributor runs locally.
       - name: Build the stack from source and run the gate smoke
         run: make smoke-compose

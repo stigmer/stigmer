@@ -2,8 +2,8 @@
  * The compose stack as an install a script can bring up, move to another
  * release, and take down: the one place that knows how this repository's
  * docker-compose.yml is started, shared by the compose smoke
- * (scripts/smoke-compose.mjs) and the upgrade rehearsal
- * (scripts/rehearse-upgrade.mjs), so the two can never boot it differently.
+ * (test/install/smoke-compose.mjs) and the upgrade rehearsal
+ * (test/install/rehearse-upgrade.mjs), so the two can never boot it differently.
  * It also owns the source build of the two images, which the Helm smoke loads
  * into kind: one build path for every source-built install.
  *
@@ -33,7 +33,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
 const runnerCliStage = join(repoRoot, "backend", "services", "runner", "stage", "cli");
 

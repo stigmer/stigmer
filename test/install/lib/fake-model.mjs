@@ -1,36 +1,35 @@
 /**
- * The install journeys' model: a fake Anthropic Messages API that every
- * self-host smoke points a real install at, so an agent run completes
- * end to end with no key, no network and no cost. The install is configured
- * the way a user configures it (ANTHROPIC_API_KEY plus ANTHROPIC_BASE_URL);
- * only the model on the far side is fake.
+ * The install journeys' model: test/support's FakeLlmUpstream, the one fake
+ * provider every suite shares, started the way an install smoke needs it.
+ * Every self-host smoke points a real install at it, so an agent run
+ * completes end to end with no key, no network and no cost. The install is
+ * configured the way a user configures it (ANTHROPIC_API_KEY plus
+ * ANTHROPIC_BASE_URL); only the model on the far side is fake.
  *
  * Plain node, no dependencies, like its neighbour stigmer-smoke.mjs: the
- * release runs the smokes straight after a checkout, with no install, so
- * nothing here may import a package or TypeScript. That is why this is a copy
- * and not an import of the conformance harness's FakeLlmUpstream
- * (test/support/src/fake-llm-upstream.ts). The copy is bounded on
- * purpose: one provider, one canned reply, one error. The reply text is the
- * harness's own DEFAULT_REPLY_TEXT, and fake-model.test.mjs fails when the two
- * drift. The shared test machinery's one home, test/support, is to fold both
- * into a form bare node can load.
+ * release runs the smokes straight after a checkout, with no install. The
+ * fake itself is erasable TypeScript that Node's type stripping loads
+ * directly, by relative path (test/support's one import rule), so the reply
+ * text and the wire are the conformance suites' own. What lives here is only
+ * what the install journeys add: the key, the `--fake-model` flag, and the
+ * model settings an install is started with.
  *
  * Modes:
- *   reply  every POST /v1/messages answers one text turn that ends the agent
- *          loop, as SSE when the request streams and JSON otherwise, echoing
- *          the request's model so the caller's routing sees itself.
- *   error  every POST /v1/messages answers a 400 invalid_request_error, which
- *          neither the SDK nor the runner retries, so a smoke run against it
- *          goes red at its agent step with the provider's message instead of
- *          timing out.
- * Any other path answers 404 with a loud body.
+ *   reply  every unscripted model call answers one text turn that ends the
+ *          agent loop, as SSE when the request streams and JSON otherwise,
+ *          echoing the request's model so the caller's routing sees itself
+ *          (FakeLlmUpstream's default-reply mode).
+ *   error  every unscripted model call answers a 400 invalid_request_error,
+ *          which neither the SDK nor the runner retries, so a smoke run
+ *          against it goes red at its agent step with the provider's message
+ *          instead of timing out (its default-error mode).
+ * Any path that is no provider's answers 404 with a loud body.
  */
 
-import { createServer } from "node:http";
+import { DEFAULT_REPLY_TEXT, FakeLlmUpstream } from "../../support/src/fake-llm-upstream.ts";
 
-/** The text every reply carries: the conformance fake's, plainly not a real model's answer. */
-export const FAKE_MODEL_REPLY_TEXT =
-  "This is the Stigmer fake model's default reply; no real model was called.";
+/** The text every reply carries: the shared fake's, plainly not a real model's answer. */
+export const FAKE_MODEL_REPLY_TEXT = DEFAULT_REPLY_TEXT;
 
 /** The provider message the error mode answers with. */
 export const FAKE_MODEL_ERROR_MESSAGE = "the install journey's fake model is in error mode";
@@ -74,106 +73,15 @@ export function parseFakeModelArg(arg) {
  */
 export async function startFakeModel({ host = "127.0.0.1", mode = "reply" } = {}) {
   if (!MODES.has(mode)) throw new Error(`fake model: unknown mode ${JSON.stringify(mode)} (reply | error)`);
-  let answered = 0;
-  const server = createServer((request, response) => {
-    readBody(request).then(
-      (raw) => {
-        const path = new URL(request.url ?? "/", "http://fake").pathname;
-        if (request.method !== "POST" || path !== "/v1/messages") {
-          writeJson(response, 404, { error: `fake model: unhandled ${request.method} ${path}` });
-          return;
-        }
-        answered += 1;
-        if (mode === "error") {
-          writeJson(response, 400, {
-            type: "error",
-            error: { type: "invalid_request_error", message: FAKE_MODEL_ERROR_MESSAGE },
-          });
-          return;
-        }
-        const body = parseJson(raw);
-        const message = replyMessage(typeof body?.model === "string" && body.model !== "" ? body.model : undefined);
-        if (body?.stream === true) writeSse(response, message);
-        else writeJson(response, 200, message);
-      },
-      (error) => writeJson(response, 400, { error: `fake model: unreadable request: ${error.message}` }),
-    );
-  });
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, host, resolve);
-  });
-  const { port } = server.address();
+  const fake = new FakeLlmUpstream(
+    mode === "reply" ? { host, defaultReply: true } : { host, defaultError: { message: FAKE_MODEL_ERROR_MESSAGE } },
+  );
+  await fake.start();
   return {
-    url: `http://127.0.0.1:${port}`,
-    port,
+    url: fake.url(),
+    port: fake.port(),
     replyText: FAKE_MODEL_REPLY_TEXT,
-    requests: () => answered,
-    close: () =>
-      new Promise((resolve, reject) => {
-        server.closeAllConnections();
-        server.close((error) => (error ? reject(error) : resolve(undefined)));
-      }),
+    requests: () => fake.requests().filter((request) => request.provider !== "unknown").length,
+    close: () => fake.close(),
   };
-}
-
-/** One Anthropic text turn that ends the agent loop (stop_reason end_turn). */
-function replyMessage(model) {
-  return {
-    id: "msg_fake_install_journey",
-    type: "message",
-    role: "assistant",
-    model: model ?? "claude-sonnet-4-6",
-    content: [{ type: "text", text: FAKE_MODEL_REPLY_TEXT }],
-    stop_reason: "end_turn",
-    stop_sequence: null,
-    usage: { input_tokens: 10, output_tokens: 5 },
-  };
-}
-
-/** The event sequence Anthropic's streaming API sends for one text block. */
-function writeSse(response, message) {
-  response.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
-  const event = (name, data) => response.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
-  event("message_start", {
-    type: "message_start",
-    message: { ...message, content: [], stop_reason: null, usage: { ...message.usage, output_tokens: 0 } },
-  });
-  event("content_block_start", { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } });
-  event("content_block_delta", {
-    type: "content_block_delta",
-    index: 0,
-    delta: { type: "text_delta", text: FAKE_MODEL_REPLY_TEXT },
-  });
-  event("content_block_stop", { type: "content_block_stop", index: 0 });
-  event("message_delta", {
-    type: "message_delta",
-    delta: { stop_reason: "end_turn", stop_sequence: null },
-    usage: { output_tokens: message.usage.output_tokens },
-  });
-  event("message_stop", { type: "message_stop" });
-  response.end();
-}
-
-function writeJson(response, status, body) {
-  response.writeHead(status, { "content-type": "application/json" });
-  response.end(JSON.stringify(body));
-}
-
-function readBody(request) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    request.on("data", (chunk) => chunks.push(chunk));
-    request.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    request.on("error", reject);
-  });
-}
-
-function parseJson(raw) {
-  if (raw === "") return undefined;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return undefined;
-  }
 }

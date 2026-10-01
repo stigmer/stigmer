@@ -8,7 +8,7 @@
 #
 #   make build-server build-web stage-compose-runner-cli
 #   cd backend/services/stigmer-server && node scripts/bundle-slim.mjs && cd -
-#   node scripts/smoke-compose.mjs --build --keep
+#   node test/install/smoke-compose.mjs --build --keep
 #
 # (smoke-compose.mjs stages dist-slim into the dist-slim-<arch>/ directory
 # the Dockerfile's TARGETARCH COPY expects, reads the staged CLI version into

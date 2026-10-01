@@ -8,7 +8,7 @@
 # test yesterday's composition. scripts/stage-all-in-one.mjs packs every
 # workspace package and the slim server and runner at a dev-stamped version
 # and downloads the checksum-verified Temporal binary; the Dockerfile
-# installs them; scripts/smoke-all-in-one.mjs proves the container (healthy,
+# installs them; test/install/smoke-all-in-one.mjs proves the container (healthy,
 # console, the bootstrap, one end-to-end run through the embedded Temporal and
 # runner, clean and UNCLEAN restarts, graceful stop). One job per arch on
 # native runners: the packages carry a per-arch native bridge, and the

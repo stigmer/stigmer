@@ -163,13 +163,24 @@ export function adoptStackFixture(child: ChildProcess): void {
   stack.fixtures.push(child);
 }
 
-/** Stops the stack this process started, runner first. No-op when none was started. */
+/** Stops the stack this process started, runner first, every process even when one fails. No-op when none was started. */
 export async function stopBackendStack(): Promise<void> {
   const running = stack;
   stack = undefined;
   if (running === undefined) return;
-  await running.runner.stop();
-  await running.server.stop();
-  await running.temporal.stop();
-  for (const child of running.fixtures) child.kill("SIGTERM");
+  // Best effort, like the pid sweep it replaced: one process failing to stop
+  // must not leave the rest running.
+  try {
+    await running.runner.stop();
+  } finally {
+    try {
+      await running.server.stop();
+    } finally {
+      try {
+        await running.temporal.stop();
+      } finally {
+        for (const child of running.fixtures) child.kill("SIGTERM");
+      }
+    }
+  }
 }
