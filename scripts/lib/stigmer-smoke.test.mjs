@@ -669,26 +669,38 @@ test("a boot that logs no derived callback fails", () => {
 
 const WEX_QUERY = "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController";
 
-test("a pending approval is found by its workflow once it reaches the queue", async () => {
-  const lane = await serveConnectLane({
-    [`${WEX_QUERY}/listPendingApprovals`]: (n) => ({
-      entries:
-        n === 1
-          ? [{ executionId: "wex_other", workflowName: "another-workflow", taskName: "review" }]
-          : [
-              { executionId: "wex_other", workflowName: "another-workflow", taskName: "review" },
-              { executionId: "wex_gate", workflowName: "gated", taskName: "review" },
-            ],
-    }),
+test("a pending approval is found by the workflow its execution runs, once it reaches the queue", async () => {
+  // An entry's workflowName is its execution's own name, so the probe reads
+  // each candidate's execution for the workflow it runs.
+  const executions = { wex_other: "wfl_other", wex_gate: "wfl_gated" };
+  const server = createServer((request, response) => {
+    let text = "";
+    request.on("data", (chunk) => (text += chunk));
+    request.on("end", () => {
+      const procedure = (request.url ?? "").replace(/^\//, "");
+      response.writeHead(200, { "content-type": "application/json" });
+      if (procedure === `${WEX_QUERY}/listPendingApprovals`) {
+        listed += 1;
+        const entries = [{ executionId: "wex_other", workflowName: "wfx-1", taskName: "review" }];
+        if (listed > 1) entries.push({ executionId: "wex_gate", workflowName: "wfx-2", taskName: "review" });
+        response.end(JSON.stringify({ entries }));
+      } else {
+        const id = JSON.parse(text).value;
+        response.end(JSON.stringify({ metadata: { id }, spec: { workflowId: executions[id] } }));
+      }
+    });
   });
+  let listed = 0;
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
-    assert.deepEqual(await waitForPendingApproval(lane.baseUrl, { org: "stigmer", workflowName: "gated", timeoutMs: 10_000 }), {
+    const baseUrl = `http://127.0.0.1:${server.address().port}`;
+    assert.deepEqual(await waitForPendingApproval(baseUrl, { orgId: "org_1", workflowId: "wfl_gated", timeoutMs: 10_000 }), {
       executionId: "wex_gate",
       taskName: "review",
     });
-    assert.equal(lane.calls(`${WEX_QUERY}/listPendingApprovals`), 2);
+    assert.equal(listed, 2);
   } finally {
-    await lane.close();
+    await new Promise((resolve) => server.close(resolve));
   }
 });
 

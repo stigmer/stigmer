@@ -618,19 +618,37 @@ export async function assertStateSurvived(baseUrl, recorded) {
 
 const WORKFLOW_EXECUTION_QUERY = "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController";
 
+/** A workflow's id, by its `org/slug` reference: what `stigmer run workflow <slug>` resolves. */
+export async function workflowIdByReference(baseUrl, { org, slug }) {
+  const workflow = await connectJson(baseUrl, "ai.stigmer.agentic.workflow.v1.WorkflowQueryController/getByReference", {
+    org,
+    kind: "workflow",
+    slug,
+  });
+  const id = workflow.metadata?.id;
+  if (!id) throw new Error(`workflow ${org}/${slug} has no id: ${JSON.stringify(workflow)}`);
+  return id;
+}
+
 /**
- * Waits until a run of `workflowName` has a human_input gate in `org`'s
- * approval queue (listPendingApprovals), and resolves that entry's
- * `{ executionId, taskName }`: the gate a reviewer is asked to decide.
+ * Waits until a run of workflow `workflowId` has a human_input gate in the
+ * organization `orgId`'s approval queue (listPendingApprovals), and resolves
+ * that entry's `{ executionId, taskName }`: the gate a reviewer is asked to
+ * decide. An entry names its execution, not its workflow (its workflowName
+ * is the execution's own name), so each candidate's execution is read for
+ * the workflow it runs.
  */
-export async function waitForPendingApproval(baseUrl, { org, workflowName, timeoutMs }) {
+export async function waitForPendingApproval(baseUrl, { orgId, workflowId, timeoutMs }) {
   return pollUntil(
-    `a pending approval of ${workflowName} in ${org}`,
+    `a pending approval of ${workflowId} in ${orgId}`,
     timeoutMs,
     async () => {
-      const list = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/listPendingApprovals`, { org, pageSize: 100 });
-      const entry = (list.entries ?? []).find((candidate) => candidate.workflowName === workflowName);
-      return entry === undefined ? false : { executionId: entry.executionId, taskName: entry.taskName };
+      const list = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/listPendingApprovals`, { org: orgId, pageSize: 100 });
+      for (const entry of list.entries ?? []) {
+        const execution = await connectJson(baseUrl, `${WORKFLOW_EXECUTION_QUERY}/get`, { value: entry.executionId });
+        if (execution.spec?.workflowId === workflowId) return { executionId: entry.executionId, taskName: entry.taskName };
+      }
+      return false;
     },
     { intervalMs: 500 },
   );

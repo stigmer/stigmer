@@ -68,8 +68,10 @@ import {
   assertConsoleServed,
   connectJson,
   gateLogProblem,
+  waitForBootstrapOrganization,
   waitForPendingApproval,
   workflowExecutionCreator,
+  workflowIdByReference,
 } from "./lib/stigmer-smoke.mjs";
 
 /** The org `stigmer up`'s bootstrap creates — the CLI's fallback on a local backend. */
@@ -230,14 +232,15 @@ spec:
   log(`agent run streamed the model's reply (${fake.requests()} model calls)`);
 
   // 7. The approval gates, as a reviewer meets them from the CLI.
+  const orgId = await waitForBootstrapOrganization(stack.baseUrl, RUN_TIMEOUT_MS, { slug: ORG });
   await applyGateWorkflow(TIMEOUT_GATE_WORKFLOW, { timeoutSeconds: GATE_TIMEOUT_SECONDS });
   const timedOutRun = cli(["--org", ORG, "run", "workflow", TIMEOUT_GATE_WORKFLOW, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
     allowFailure: true,
   });
   const timedOut = await waitForPendingApproval(stack.baseUrl, {
-    org: ORG,
-    workflowName: TIMEOUT_GATE_WORKFLOW,
+    orgId,
+    workflowId: await workflowIdByReference(stack.baseUrl, { org: ORG, slug: TIMEOUT_GATE_WORKFLOW }),
     timeoutMs: RUN_TIMEOUT_MS,
   });
   log(`gate ${timedOut.taskName} of ${timedOut.executionId} waits; leaving it to time out`);
@@ -261,8 +264,8 @@ spec:
     allowFailure: true,
   });
   const approved = await waitForPendingApproval(stack.baseUrl, {
-    org: ORG,
-    workflowName: APPROVED_GATE_WORKFLOW,
+    orgId,
+    workflowId: await workflowIdByReference(stack.baseUrl, { org: ORG, slug: APPROVED_GATE_WORKFLOW }),
     timeoutMs: RUN_TIMEOUT_MS,
   });
   await cli([
