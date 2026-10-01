@@ -12,7 +12,9 @@
  *     instance would crash the default converter);
  *   - ReadHarnessStateId's empty-input and not-found contracts (Go
  *     read_harness_state_id.go);
- *   - DeleteExecutionContext delegates to #15's idempotent seam;
+ *   - DeleteExecutionContext delegates to the server's own delete of a
+ *     run's context, handing the context to the in-process delete edge
+ *     (stigmer#1647), idempotently;
  *   - CompleteExternalActivity: empty-token skip, base64 token decode,
  *     error-over-result precedence — the DD-001 lane Go cannot deliver
  *     (oss#861), so the ERROR path is the load-bearing assertion.
@@ -107,10 +109,22 @@ function newFixture() {
     },
   };
 
+  // The in-process delete edge as a recording fake that removes the row
+  // the way the delete chain does, so a repeat finds nothing (the chain
+  // itself is pinned in extension-composition.test.ts's C2 arm).
+  const deletedContexts: string[] = [];
+  const executionContextDeleter = {
+    delete: async (contextId: string): Promise<void> => {
+      deletedContexts.push(contextId);
+      await store.deleteResource(ApiResourceKind.execution_context, contextId);
+    },
+  };
+
   const activities = createAgentExecutionActivities({
     store,
     logger: silentLogger,
     statusWriter: () => statusWriter,
+    executionContextDeleter: () => executionContextDeleter,
     client: () => stubClient,
   });
   return {
@@ -118,6 +132,7 @@ function newFixture() {
     activities,
     completions,
     writes,
+    deletedContexts,
     failWriterWith(error: ConnectError): void {
       writerFault = error;
     },
@@ -278,8 +293,8 @@ describe("ReadHarnessStateId activity", () => {
 });
 
 describe("DeleteExecutionContext activity", () => {
-  it("deletes the ExecutionContext for the execution and is idempotent", async () => {
-    const { store, activities } = newFixture();
+  it("hands the execution's ExecutionContext to the server's delete edge, idempotently", async () => {
+    const { store, activities, deletedContexts } = newFixture();
     await store.saveResource(
       ApiResourceKind.execution_context,
       "ectx_1",
@@ -305,6 +320,7 @@ describe("DeleteExecutionContext activity", () => {
     ).rejects.toThrow();
     // Best-effort seam: a second delete (nothing left) must not throw.
     await expect(remove("aex_del_1")).resolves.toBeUndefined();
+    expect(deletedContexts, "one delete, through the edge").toEqual(["ectx_1"]);
   });
 });
 

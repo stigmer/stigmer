@@ -81,6 +81,7 @@ import type { SandboxLane } from "../../sandbox/lane.js";
 import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
 import { ensureWorkflowSandboxForExecution } from "../../sandbox/steps.js";
 import type { WorkflowExecutionTemporalConfig } from "./temporal/config.js";
+import { deleteExecutionContextForExecution } from "../executioncontext/internal-delete.js";
 import type { WorkflowExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { EngineWorkflowNotFoundError } from "./engine.js";
 import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
@@ -445,7 +446,17 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
 
       // Delete a stale EC left by the interrupted run (best-effort; no
       // TTL sweep exists — a leftover row stays until deleted, oss#892).
-      await deleteStaleExecutionContext(deps, executionId);
+      // The server's own delete, through the context's delete chain
+      // (domain/executioncontext/internal-delete.ts, stigmer#1647).
+      await deleteExecutionContextForExecution(
+        {
+          store: builder.store,
+          deleter: builder.executionContextDeleter,
+          logger: deps.logger,
+        },
+        executionId,
+        "recover",
+      );
 
       let instance: WorkflowInstance;
       try {
@@ -541,46 +552,6 @@ function newRecreateExecutionContextStep<Desc extends DescMessage>(
       }
     },
   };
-}
-
-/** Best-effort stale-EC removal (Go deleteStaleEC — every miss is a no-op). */
-async function deleteStaleExecutionContext(
-  deps: LifecycleDeps,
-  executionId: string,
-): Promise<void> {
-  let staleId = "";
-  try {
-    const existing = await deps.executionContextBuilder.store.findByField(
-      ApiResourceKind.execution_context,
-      "spec.executionId",
-      executionId,
-      ExecutionContextSchema,
-    );
-    staleId = existing.metadata?.id ?? "";
-  } catch {
-    return;
-  }
-  if (staleId === "") {
-    return;
-  }
-  deps.logger.info("Deleting stale ExecutionContext before recreation", {
-    executionContextId: staleId,
-    executionId,
-  });
-  try {
-    await deps.executionContextBuilder.store.deleteResource(
-      ApiResourceKind.execution_context,
-      staleId,
-    );
-  } catch (error) {
-    deps.logger.warn(
-      "Failed to delete stale ExecutionContext (proceeding anyway)",
-      {
-        executionContextId: staleId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-  }
 }
 
 /**

@@ -135,6 +135,10 @@ it("an unresolvable environment ref surfaces the inner status code with Go's wra
     executionContextCreator: () => ({
       create: async (ec) => ec,
     }),
+    // The create path never deletes a context.
+    executionContextDeleter: () => ({
+      delete: () => Promise.reject(new Error("unused on the create path")),
+    }),
     managedEnvService: {
       readSecretValue: async () => "",
       updateSecrets: async () => {},
@@ -277,6 +281,10 @@ it("assembles merge → filter → OAuth injection → EC persist over a non-emp
         return ec;
       },
     }),
+    // The create path never deletes a context.
+    executionContextDeleter: () => ({
+      delete: () => Promise.reject(new Error("unused on the create path")),
+    }),
     managedEnvService,
     platformClients: unreadPlatformClients,
     // The vendor's token endpoint: rotates the refresh token and issues
@@ -418,6 +426,10 @@ it("a session-level server's declared key saved in the personal environment reac
         return ec;
       },
     }),
+    // The create path never deletes a context.
+    executionContextDeleter: () => ({
+      delete: () => Promise.reject(new Error("unused on the create path")),
+    }),
     managedEnvService: {
       readSecretValue: async () => "",
       updateSecrets: async () => {},
@@ -504,6 +516,10 @@ it("the built-in assistant: no instance, no agent, the session's servers are the
         createdEcs.push(ec);
         return ec;
       },
+    }),
+    // The create path never deletes a context.
+    executionContextDeleter: () => ({
+      delete: () => Promise.reject(new Error("unused on the create path")),
     }),
     managedEnvService: {
       readSecretValue: async () => "",
@@ -658,6 +674,10 @@ function platformClientLayerDeps(opts: {
         opts.createdEcs.push(ec);
         return ec;
       },
+    }),
+    // The create path never deletes a context.
+    executionContextDeleter: () => ({
+      delete: () => Promise.reject(new Error("unused on the create path")),
     }),
     managedEnvService: {
       readSecretValue: async () => "",

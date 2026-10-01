@@ -10,7 +10,9 @@
  * substitutions, the gate slots and status hooks, the authorization-tuple
  * lifecycle (a parent's cascade included: every child it deletes is
  * cleaned as its own delete would clean it, before the parent,
- * stigmer#1603), and the organization directory's external-id lookup: scoped to the identity
+ * stigmer#1603; the server's own delete of a run's execution context
+ * included: it rides the context's delete chain, stigmer#1647), and the
+ * organization directory's external-id lookup: scoped to the identity
  * provider the request names, and answered only to a caller who may view
  * that provider, with one NotFound for every miss.
  *
@@ -42,6 +44,9 @@ import {
   ExecutionControlSignal,
   ExecutionPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
+import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
@@ -72,6 +77,7 @@ import {
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { loadConfig } from "../../boot/config.js";
+import { createInProcessClients } from "../../boot/inprocess.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
@@ -94,6 +100,8 @@ import type { ServerExtension } from "../registry.js";
 import type { IdentityVerifier } from "../identity.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
+import { deleteExecutionContextForExecution } from "../../domain/executioncontext/internal-delete.js";
+import { apiResourceKindName } from "../../store/proto-fields.js";
 
 /** The refusal a call answered; a call that succeeds fails the case. */
 async function refusalOf(work: Promise<unknown>): Promise<ConnectError> {
@@ -1594,6 +1602,69 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
       expect(missing.rawMessage).toBe(`Organization not found: ${externalOrgId}`);
     }
   });
+
+  // stigmer#1647. The server deletes a run's execution context itself: the
+  // run-end activity, and the recover steps before they recreate it. That
+  // delete is the context's own delete chain over the in-process edge, so the
+  // context is cleaned exactly as its delete RPC cleans it: the lifecycle's
+  // event, and the search row its create indexed.
+  it("the server's own delete of an execution context cleans it as its delete RPC would", async () => {
+    const command = createClient(ExecutionContextCommandController, server.inProcessTransport);
+    const query = createClient(ExecutionContextQueryController, server.inProcessTransport);
+    const executionId = "aex_c2_internal_delete";
+    const context = await command.create(
+      create(ExecutionContextSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "ExecutionContext",
+        metadata: { name: `exec-ctx-${executionId}`, org: "c2seededorg" },
+        spec: { executionId },
+      }),
+    );
+    const contextId = context.metadata?.id ?? "";
+    const kindName = apiResourceKindName(ApiResourceKind.execution_context);
+    const searchRows = async (): Promise<number> =>
+      (
+        await server.store.querySearchIndex({
+          kinds: [kindName],
+          terms: undefined,
+          orgFilter: "",
+          authorizedIdsByKind: new Map([[kindName, new Set([contextId])]]),
+          limit: 10,
+          offset: 0,
+        })
+      ).totalCount;
+    expect(await searchRows(), "the create indexed the context").toBe(1);
+
+    deletedEvents.length = 0;
+    await deleteExecutionContextAsTheServer(executionId);
+
+    expect(deletedEvents.map((event) => [event.kind, event.resourceId, event.orgId])).toEqual([
+      [ApiResourceKind.execution_context, contextId, "c2seededorg"],
+    ]);
+    expect(await searchRows(), "the search row went with the context").toBe(0);
+    let getError: ConnectError | undefined;
+    try {
+      await query.get({ value: contextId });
+    } catch (error) {
+      getError = ConnectError.from(error);
+    }
+    expect(getError?.code).toBe(Code.NotFound);
+  });
+
+  /**
+   * The run-end activity's delete of a run's context, as the server composes
+   * it: the store read, then the production edge from boot/inprocess.ts,
+   * built over the composed server's own routes and in-process chain.
+   */
+  async function deleteExecutionContextAsTheServer(executionId: string): Promise<void> {
+    const logger = createLogger({ level: "error", pretty: false, write: () => {} });
+    const { executionContextDeleter } = createInProcessClients(server.routes, logger).clients;
+    await deleteExecutionContextForExecution(
+      { store: server.store, deleter: () => executionContextDeleter, logger },
+      executionId,
+      "run-end",
+    );
+  }
 
   // The run audience of a workflow instance (`spec.execution_visibility`):
   // open source derives `execution_viewer` from the row when a check asks;

@@ -35,6 +35,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { ExecutionContextDeleter } from "../executioncontext/internal-delete.js";
 import type { RuntimeResolutionService } from "../../domain/environment/resolution/resolution.js";
 import {
   filterByDeclaredKeys,
@@ -72,6 +73,12 @@ export interface WorkflowExecutionContextBuilderDeps {
   /** The decrypt-for-execution path (oss#405); a direct service, no RPC. */
   readonly environmentResolution: RuntimeResolutionService;
   readonly executionContextCreator: WorkflowExecutionContextCreatorProvider;
+  /**
+   * The server's own delete of a context, through its delete chain: the
+   * recover step removes the interrupted run's stale context with it
+   * before recreating one (stigmer#1647).
+   */
+  readonly executionContextDeleter: () => ExecutionContextDeleter;
 }
 
 export function newCreateExecutionContextStep(

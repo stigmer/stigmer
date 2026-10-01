@@ -58,6 +58,7 @@ import type {
   ExecutionContextCreator,
   SessionLoader,
 } from "../domain/agentexecution/create-execution-context-step.js";
+import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
 import type { WorkflowInstanceCreator } from "../domain/workflow/steps.js";
@@ -110,6 +111,13 @@ export interface InProcessClients {
   readonly executionEnvironmentReader: EnvironmentReader &
     ManagedEnvironmentClient;
   readonly executionContextCreator: ExecutionContextCreator;
+  /**
+   * The server's own delete of a run's ExecutionContext — the run-end
+   * activity on both execution workers and both recover steps
+   * (domain/executioncontext/internal-delete.ts): the context's delete
+   * chain, so its cleanup event and search-row delete run (stigmer#1647).
+   */
+  readonly executionContextDeleter: ExecutionContextDeleter;
   /**
    * The connect lanes' ephemeral-EC lifecycle (server.go 693–705: the
    * mcpserver controller's executioncontext client) — create before the
@@ -312,6 +320,13 @@ export function createInProcessClients(
     },
     executionContextCreator: {
       create: (ec) => executionContextCommand.create(ec),
+    },
+    // The server acting for itself, as the create above: the context is the
+    // server's, and so is its removal (the connect lane's rule below).
+    executionContextDeleter: {
+      delete: async (contextId) => {
+        await executionContextCommand.delete({ resourceId: contextId });
+      },
     },
     // The connect lane's ephemeral EC is created AS THE CONNECTING PERSON
     // (ruling R5's asCaller lane): its creator stamp is what the

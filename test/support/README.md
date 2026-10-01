@@ -5,8 +5,8 @@ The test machinery two or more suites share, in one place (`test/README.md`, "Th
 | Module | What it is |
 |---|---|
 | `ts-build` | Builds the TypeScript server from source, once per run |
-| `server-process`, `ports` | Spawns one hermetic server on free ports, or on a fixed `port` (the e2e console's 7234), with an optional `logFile`; the server's base environment (`HERMETIC_OAUTH_REDIRECT_URI` and the rest) |
-| `temporal` | The Temporal dev server (`temporal server start-dev`) on a free port |
+| `server-process`, `ports` | Spawns one hermetic server on port 0, or on a fixed `port` (the e2e console's 7234), and reads the ports it bound from its ready line, with an optional `logFile`; the server's base environment (`HERMETIC_OAUTH_REDIRECT_URI` and the rest). `ports` states the law (a listener binds 0 and reports, nothing hands it a probed port) and holds `UNREACHABLE_HOST_PORT`, the address nothing can listen on |
+| `temporal` | The Temporal dev server (`temporal server start-dev`), whose CLI cannot be told port 0: a boot that loses a port to another listener is retried on a fresh one, loudly, and any other failure is not |
 | `child-process` | Process lifecycle shared by the spawns: start, wait for readiness, stop and kill |
 | `runner-build`, `runner-process` | Builds the runner and runs it as a child process against a server and a model endpoint; `artifactStore: "none"` boots it with no artifact store (the e2e file-gate stack) |
 | `llm-wire` | The Anthropic and OpenAI wire shapes the model fakes write |

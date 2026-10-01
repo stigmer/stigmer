@@ -534,8 +534,11 @@ its `llm-wire`, `fake-llm-upstream`, `jwt`, `local-oidc-issuer` and
 `oauth-authorization-server`. `src/harness/` holds the rest, the suite's own.
 
 `ts-build` compiles the server once per run (vitest `globalSetup`); each suite
-file boots its own instance (`server-process` + `ports`) against a private temp
-dir, so files run in parallel without colliding. `clients` builds the Connect
+file boots its own instance (`server-process`) against a private temp dir, on
+ports its listeners bind and report on their ready line, so files run in
+parallel without colliding. No harness hands a child a port it probed (`ports`
+states the law and holds the run's one unreachable address; `temporal`, whose
+CLI cannot be told port 0, retries a boot that lost its port). `clients` builds the Connect
 clients; `grpc-ready` is the shared store-probe readiness gate; `fixtures`
 tracks created resources for best-effort reverse-order cleanup.
 
@@ -769,7 +772,7 @@ src/
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers)
+  suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
                     + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,

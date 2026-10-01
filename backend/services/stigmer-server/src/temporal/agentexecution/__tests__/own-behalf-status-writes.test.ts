@@ -141,6 +141,9 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       store: server.store,
       logger: createLogger({ level: "error", pretty: false, write: () => {} }),
       statusWriter: () => statusWriter,
+      executionContextDeleter: () => ({
+        delete: () => Promise.reject(new Error("unused in this suite")),
+      }),
       client: () => ({}) as unknown as Client,
     })[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as UpdateStatusActivity;
   });

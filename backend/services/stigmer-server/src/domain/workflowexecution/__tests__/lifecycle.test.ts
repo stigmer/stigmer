@@ -5,7 +5,8 @@
  * target-phase no-ops, the engineless postures, the connected-engine call
  * shapes over the byte-pinned workflow IDs, the workflow-not-found
  * warn-and-proceed arms, terminate's reason/error quirk, and recover's
- * full choreography (terminate both tree members, EC recreate
+ * full choreography (terminate both tree members, the stale EC deleted
+ * through the server's own delete edge (stigmer#1647), EC recreate
  * degrade-gracefully, fresh start with recovery_mode, error clear).
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
@@ -19,6 +20,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import {
@@ -92,8 +94,12 @@ afterAll(async () => {
 });
 
 /** The EC-builder deps recover consumes; the loaders throw NotFound-ish
- * errors by default, exercising the degrade-gracefully arms. */
-function builderDeps(): WorkflowExecutionContextBuilderDeps {
+ * errors by default, exercising the degrade-gracefully arms. The deleter
+ * records the context ids the server deletes, or throws `deleteFailure`. */
+function builderDeps(edges?: {
+  deleted?: string[];
+  deleteFailure?: Error;
+}): WorkflowExecutionContextBuilderDeps {
   return {
     store,
     logger: silentLogger,
@@ -110,7 +116,32 @@ function builderDeps(): WorkflowExecutionContextBuilderDeps {
     executionContextCreator: () => ({
       create: () => Promise.reject(new Error("unused in this test")),
     }),
+    executionContextDeleter: () => ({
+      delete: async (contextId) => {
+        if (edges?.deleteFailure !== undefined) {
+          throw edges.deleteFailure;
+        }
+        edges?.deleted?.push(contextId);
+      },
+    }),
   };
+}
+
+/** A context the interrupted run left behind, keyed by its run's id. */
+async function seedStaleContext(executionId: string): Promise<string> {
+  const contextId = `ectx_stale_${executionId}`;
+  await store.saveResource(
+    ApiResourceKind.execution_context,
+    contextId,
+    ExecutionContextSchema,
+    create(ExecutionContextSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "ExecutionContext",
+      metadata: { id: contextId, name: `stale-${executionId}`, org: "acme" },
+      spec: { executionId },
+    }),
+  );
+  return contextId;
 }
 
 function deps(engineStub?: EngineStub): LifecycleDeps {
@@ -508,6 +539,35 @@ describe("connected-engine transitions", () => {
       result.status?.completedAt,
       "back to IN_PROGRESS clears completed_at",
     ).toBe("");
+  });
+
+  it("recover: the run's stale context is deleted through the server's delete edge", async () => {
+    const id = await seed(ExecutionPhase.EXECUTION_FAILED, { error: "boom" });
+    const staleId = await seedStaleContext(id);
+    const deleted: string[] = [];
+    const result = await recoverExecution(
+      { ...deps(engine), executionContextBuilder: builderDeps({ deleted }) },
+      recoverInput({ id }),
+      testCallerIdentity(),
+    );
+    expect(deleted).toEqual([staleId]);
+    expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+  });
+
+  it("recover: a failed stale-context delete never fails the recover (best-effort)", async () => {
+    const id = await seed(ExecutionPhase.EXECUTION_FAILED, { error: "boom" });
+    await seedStaleContext(id);
+    const result = await recoverExecution(
+      {
+        ...deps(engine),
+        executionContextBuilder: builderDeps({
+          deleteFailure: new Error("the delete chain is down"),
+        }),
+      },
+      recoverInput({ id }),
+      testCallerIdentity(),
+    );
+    expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
   });
 
   it("recover: NOT_FOUND on either tree member is tolerated; orchestrator failure short-circuits the child", async () => {

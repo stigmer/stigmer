@@ -38,7 +38,6 @@ import type {
   ResumeAgentExecutionInput,
   TerminateAgentExecutionInput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
@@ -68,6 +67,7 @@ import type { Store } from "../../store/interface.js";
 
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
+import { deleteExecutionContextForExecution } from "../executioncontext/internal-delete.js";
 import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { buildAndPersistExecutionContext } from "./create-execution-context-step.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
@@ -748,6 +748,8 @@ export async function recoverExecution(
  * the run genuinely needs; the execution stays FAILED and recover can be
  * retried. Stale-EC delete first (best-effort): the failure-path cleanup
  * is itself best-effort, and the EC name derives from the execution id.
+ * It is the server's own delete of the context, through the context's
+ * delete chain (domain/executioncontext/internal-delete.ts, stigmer#1647).
  */
 function newRecreateExecutionContextStep(
   deps: LifecycleDeps,
@@ -761,7 +763,16 @@ function newRecreateExecutionContextStep(
       const execution = loadedExecution(ctx);
       const executionId = execution.metadata?.id ?? "";
 
-      await deleteStaleExecutionContext(deps, executionId);
+      const builder = deps.executionContextBuilder;
+      await deleteExecutionContextForExecution(
+        {
+          store: builder.store,
+          deleter: builder.executionContextDeleter,
+          logger: deps.logger,
+        },
+        executionId,
+        "recover",
+      );
 
       // No pre-resolved instance id on the recover path: a persisted
       // execution always carries session_id (the create pipeline
@@ -789,43 +800,6 @@ function newRecreateExecutionContextStep(
       }
     },
   };
-}
-
-/** Best-effort stale-EC removal before recreation. */
-async function deleteStaleExecutionContext(
-  deps: LifecycleDeps,
-  executionId: string,
-): Promise<void> {
-  let existing;
-  try {
-    existing = await deps.store.findByField(
-      ApiResourceKind.execution_context,
-      "spec.executionId",
-      executionId,
-      ExecutionContextSchema,
-    );
-  } catch {
-    return;
-  }
-  const ecId = existing.metadata?.id ?? "";
-  if (ecId === "") {
-    return;
-  }
-  deps.logger.info("Deleting stale ExecutionContext before recreation", {
-    executionContextId: ecId,
-    executionId,
-  });
-  try {
-    await deps.store.deleteResource(ApiResourceKind.execution_context, ecId);
-  } catch (error) {
-    deps.logger.warn(
-      "Failed to delete stale ExecutionContext (proceeding anyway)",
-      {
-        executionContextId: ecId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-  }
 }
 
 /**

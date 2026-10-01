@@ -12,7 +12,8 @@
  *     cannot bind fails start() with the address and the setting named and
  *     the server never reports itself serving (stigmer#1089), and a server
  *     on an ephemeral port gets an ephemeral lane whose minted download
- *     URLs reach it;
+ *     URLs reach it, and reports both ports it bound once started, and
+ *     none before (the ready line's source, stigmer#1469);
  *   - the skill transfer lane's capability URLs on an ephemeral unified
  *     port name the port the server bound, and a PUT to one reaches it
  *     (stigmer#1386);
@@ -142,10 +143,18 @@ describe("the artifact download lane", () => {
     }
   });
 
-  it("binds an ephemeral lane beside an ephemeral unified port, and a minted download URL reaches it", async () => {
+  it("binds an ephemeral lane beside an ephemeral unified port, reports both, and a minted download URL reaches it", async () => {
     const server = await compose();
+    expect(server.boundPorts()).toBeUndefined();
     const port = await server.start();
     try {
+      // What the process entry announces on the ready line: the two ports
+      // the listeners got, neither of them the 0 they were asked for.
+      const bound = server.boundPorts();
+      expect(bound?.grpc).toBe(port);
+      expect(bound?.artifactHttp).toBeGreaterThan(0);
+      expect(bound?.artifactHttp).not.toBe(port);
+
       const transport = createGrpcTransport({
         baseUrl: `http://127.0.0.1:${port}`,
       });
@@ -167,6 +176,7 @@ describe("the artifact download lane", () => {
       // An OS-assigned port, never the privileged port 1 that +1 derived
       // from 0; the bytes coming back prove it is THIS server's lane.
       expect(Number(new URL(download.url).port)).toBeGreaterThan(1024);
+      expect(Number(new URL(download.url).port)).toBe(bound?.artifactHttp);
       const served = await fetch(download.url);
       expect(served.status).toBe(200);
       expect(new Uint8Array(await served.arrayBuffer())).toEqual(content);

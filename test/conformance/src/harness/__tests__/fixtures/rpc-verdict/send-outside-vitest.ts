@@ -7,9 +7,9 @@
 // Domain: conformance harness (the RPC contract's call verdict).
 import { ConnectError } from "@connectrpc/connect";
 import { createTransport, makeClients } from "../../../clients";
-import { getFreePort } from "@stigmer/test-support/ports";
+import { UNREACHABLE_HOST_PORT } from "@stigmer/test-support/ports";
 
-const clients = makeClients(createTransport(`http://127.0.0.1:${await getFreePort()}`));
+const clients = makeClients(createTransport(`http://${UNREACHABLE_HOST_PORT}`));
 try {
   await clients.agentQuery.get({});
   console.log(JSON.stringify({ outcome: "answered" }));

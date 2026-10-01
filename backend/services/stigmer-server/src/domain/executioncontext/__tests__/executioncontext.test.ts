@@ -17,8 +17,11 @@
  *     LOUD (Internal, pinned copy), never returns junk;
  *   - the keyless WARN-degrade write path (legacy plaintext rows) still
  *     redacts user reads and passes through on the runner lane;
- *   - the DeleteExecutionContext activity seam: idempotent, best-effort,
- *     never throws.
+ *   - the server's own delete of a run's context (the DeleteExecutionContext
+ *     activity and both recover steps): found by run id, handed to the
+ *     in-process delete edge, idempotent, best-effort, never throws (the
+ *     edge's real chain is pinned in extension-composition.test.ts's C2
+ *     arm, stigmer#1647).
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
  * before its file steps — the real ~/.stigmer is never touched (DD-002).
@@ -56,10 +59,9 @@ import {
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { REDACTED_MARKER } from "../../environment/constants.js";
 import { newConnectExecutionId } from "../../mcpserver/connect-execution-id.js";
-import {
-  DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
-  deleteExecutionContextForExecution,
-} from "../temporal/delete-execution-context.js";
+import { deleteExecutionContextForExecution } from "../internal-delete.js";
+import type { ExecutionContextDeleter } from "../internal-delete.js";
+import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../temporal/delete-execution-context.js";
 import { executionContextSearchExtractor } from "../search-extractor.js";
 import { seedOrganizations } from "../../organization/__tests__/support.js";
 
@@ -715,37 +717,66 @@ describe("executioncontext domain (encryption keyless, runner auth enabled)", ()
 });
 
 // ---------------------------------------------------------------------------
-// The DeleteExecutionContext activity seam (store-direct, no server).
+// The server's own delete of a run's context (a real store, a fake edge).
 // ---------------------------------------------------------------------------
 
 describe("DeleteExecutionContext activity seam", () => {
+  /** Saves a context for `executionId` under `contextId`. */
+  async function saveContext(
+    store: SqliteStore,
+    contextId: string,
+    executionId: string,
+  ): Promise<void> {
+    const ec = ecInput({ executionId });
+    await store.saveResource(
+      ApiResourceKind.execution_context,
+      contextId,
+      ExecutionContextSchema,
+      create(ExecutionContextSchema, {
+        ...ec,
+        metadata: { ...ec.metadata, id: contextId },
+      }),
+    );
+  }
+
+  /** A logger whose lines the case reads back. */
+  function recordingLogger(): { logger: typeof silentLogger; lines: string[] } {
+    const lines: string[] = [];
+    return {
+      logger: createLogger({
+        level: "debug",
+        pretty: false,
+        write: (line) => lines.push(line),
+      }),
+      lines,
+    };
+  }
+
   it("exports Go's registration name byte-identically", () => {
     expect(DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME).toBe(
       "DeleteExecutionContext",
     );
   });
 
-  it("deletes the EC for an execution and is a no-op when none exists (idempotent)", async () => {
+  it("hands the execution's EC to the delete edge and is a no-op when none exists (idempotent)", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-test-"));
     const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);
     try {
-      const ec = ecInput({ executionId: "aex_cleanup" });
-      const message = create(ExecutionContextSchema, {
-        ...ec,
-        metadata: { ...ec.metadata, id: "ectx_cleanup" },
-      });
-      await store.saveResource(
-        ApiResourceKind.execution_context,
-        "ectx_cleanup",
-        ExecutionContextSchema,
-        message,
-      );
+      await saveContext(store, "ectx_cleanup", "aex_cleanup");
+      // The edge as a fake that removes the row the way the chain does.
+      const deleted: string[] = [];
+      const deleter: ExecutionContextDeleter = {
+        delete: async (contextId) => {
+          deleted.push(contextId);
+          await store.deleteResource(
+            ApiResourceKind.execution_context,
+            contextId,
+          );
+        },
+      };
+      const deps = { store, deleter: () => deleter, logger: silentLogger };
 
-      await deleteExecutionContextForExecution(
-        store,
-        silentLogger,
-        "aex_cleanup",
-      );
+      await deleteExecutionContextForExecution(deps, "aex_cleanup", "run-end");
       await expect(
         store.getResource(
           ApiResourceKind.execution_context,
@@ -756,8 +787,9 @@ describe("DeleteExecutionContext activity seam", () => {
 
       // Second run: the row is gone — best-effort means no throw, ever.
       await expect(
-        deleteExecutionContextForExecution(store, silentLogger, "aex_cleanup"),
+        deleteExecutionContextForExecution(deps, "aex_cleanup", "run-end"),
       ).resolves.toBeUndefined();
+      expect(deleted, "one delete, through the edge").toEqual(["ectx_cleanup"]);
     } finally {
       await store.close();
       rmSync(dir, { recursive: true, force: true });
@@ -768,10 +800,24 @@ describe("DeleteExecutionContext activity seam", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-closed-"));
     const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);
     await store.close();
+    const deleted: string[] = [];
     try {
       await expect(
-        deleteExecutionContextForExecution(store, silentLogger, "aex_whatever"),
+        deleteExecutionContextForExecution(
+          {
+            store,
+            deleter: () => ({
+              delete: async (contextId) => {
+                deleted.push(contextId);
+              },
+            }),
+            logger: silentLogger,
+          },
+          "aex_whatever",
+          "run-end",
+        ),
       ).resolves.toBeUndefined();
+      expect(deleted, "a failed read deletes nothing").toEqual([]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -781,30 +827,21 @@ describe("DeleteExecutionContext activity seam", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-delfail-"));
     const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);
     try {
-      const ec = ecInput({ executionId: "aex_delfail" });
-      await store.saveResource(
-        ApiResourceKind.execution_context,
-        "ectx_delfail",
-        ExecutionContextSchema,
-        create(ExecutionContextSchema, {
-          ...ec,
-          metadata: { ...ec.metadata, id: "ectx_delfail" },
-        }),
-      );
-
-      // A delegating stub that fails ONLY the delete — exercises the
-      // second best-effort branch (find succeeds, delete throws).
-      const failingStore = {
-        findByField: store.findByField.bind(store),
-        deleteResource: () =>
-          Promise.reject(new Error("simulated delete failure")),
-      } as unknown as Parameters<typeof deleteExecutionContextForExecution>[0];
+      await saveContext(store, "ectx_delfail", "aex_delfail");
+      const { logger, lines } = recordingLogger();
 
       await expect(
         deleteExecutionContextForExecution(
-          failingStore,
-          silentLogger,
+          {
+            store,
+            deleter: () => ({
+              delete: () =>
+                Promise.reject(new Error("simulated delete failure")),
+            }),
+            logger,
+          },
           "aex_delfail",
+          "recover",
         ),
       ).resolves.toBeUndefined();
 
@@ -816,6 +853,92 @@ describe("DeleteExecutionContext activity seam", () => {
       expect(survivor.metadata?.id, "the row survives a failed delete").toBe(
         "ectx_delfail",
       );
+      const warning = lines.find((line) =>
+        line.includes("Failed to delete ExecutionContext"),
+      );
+      expect(warning, "the operator's signal").toContain('"level":"warn"');
+      expect(warning).toContain('"reason":"recover"');
+    } finally {
+      await store.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("a found row that carries no id is skipped quietly (nothing for the chain to load)", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-noid-"));
+    const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);
+    try {
+      const ec = ecInput({ executionId: "aex_noid" });
+      await store.saveResource(
+        ApiResourceKind.execution_context,
+        "ectx_noid",
+        ExecutionContextSchema,
+        create(ExecutionContextSchema, {
+          ...ec,
+          metadata: { ...ec.metadata, id: "" },
+        }),
+      );
+      const { logger, lines } = recordingLogger();
+      const deleted: string[] = [];
+
+      await expect(
+        deleteExecutionContextForExecution(
+          {
+            store,
+            deleter: () => ({
+              delete: async (contextId) => {
+                deleted.push(contextId);
+              },
+            }),
+            logger,
+          },
+          "aex_noid",
+          "recover",
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(deleted, "no delete without an id").toEqual([]);
+      expect(
+        lines.filter((line) => line.includes('"level":"warn"')),
+        "no operator signal for a row the chain cannot load",
+      ).toEqual([]);
+    } finally {
+      await store.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("a context gone between the read and the chain's load is quiet (NotFound is nothing to clean)", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-race-"));
+    const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);
+    try {
+      await saveContext(store, "ectx_race", "aex_race");
+      const { logger, lines } = recordingLogger();
+
+      await expect(
+        deleteExecutionContextForExecution(
+          {
+            store,
+            deleter: () => ({
+              delete: () =>
+                Promise.reject(
+                  new ConnectError(
+                    "ExecutionContext not found: ectx_race",
+                    Code.NotFound,
+                  ),
+                ),
+            }),
+            logger,
+          },
+          "aex_race",
+          "run-end",
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(
+        lines.filter((line) => line.includes('"level":"warn"')),
+        "another delete won: no operator signal",
+      ).toEqual([]);
     } finally {
       await store.close();
       rmSync(dir, { recursive: true, force: true });

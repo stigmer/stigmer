@@ -27,9 +27,10 @@
  *     instances and same-organization shares, a workflow's instances, a
  *     session's runs), right after the child's row and before the
  *     parent's event (pipeline/steps/authorization-tuples.ts
- *     `cleanUpDeletedResource`, stigmer#1603). A row deleted outside both
- *     fires nothing: the internal execution-context deletes are
- *     stigmer#1647. No sweep revisits a cleanup that did not run or
+ *     `cleanUpDeletedResource`, stigmer#1603). The server's own deletes
+ *     ride a delete chain too: a run's execution context goes through its
+ *     delete RPC in-process (domain/executioncontext/internal-delete.ts,
+ *     stigmer#1647). No sweep revisits a cleanup that did not run or
  *     failed: its rows stay until another cleanup reaches them from their
  *     other side.
  *   - onVisibilityChanged: SYNCHRONOUS, post-persist; a throw fails the

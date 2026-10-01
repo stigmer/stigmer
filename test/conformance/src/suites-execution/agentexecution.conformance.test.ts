@@ -21,6 +21,10 @@
 //   arm pinned below and in the CRUD suite's session create.
 // - The query analogue of listByWorkflow is listBySession (filter by spec.session_id).
 //
+// A run's ExecutionContext lives as long as the run: the run-end activity
+// deletes it through the context's own delete chain (stigmer#1647), so once
+// the run settles its context answers NotFound, in every edition.
+//
 // One-call session bootstrap (stigmer/stigmer#249): create may carry
 // spec.session_spec — the full shape of the session to auto-create (workspace,
 // harness, execution_target) alongside the first message. The bootstrap
@@ -51,7 +55,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
@@ -70,6 +74,7 @@ import {
   pollExecution,
   requireLlmProxy,
 } from "../support/agentexecutions";
+import { pollUntil } from "../support/execution-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -223,6 +228,38 @@ describe("AgentExecution conformance — completion", () => {
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
     expect(final.status?.startedAt, "started_at is set when the run begins").toBeTruthy();
     expect(final.status?.completedAt, "completed_at is set on completion").toBeTruthy();
+  });
+
+  it("[rpc:ExecutionContextQueryController.getByExecutionId] a run's ExecutionContext is deleted once the run ends", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const created = await createHeldExecution(org, agentId);
+    const executionId = created.metadata!.id;
+    const live = await clients.executionContextQuery.getByExecutionId({ executionId });
+    expect(live.spec?.executionId, "the run's context exists while the run is held").toBe(executionId);
+
+    mock.releaseHolds();
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+
+    const readContext = async (): Promise<"present" | "gone"> => {
+      try {
+        await clients.executionContextQuery.getByExecutionId({ executionId });
+        return "present";
+      } catch (error) {
+        if (ConnectError.from(error).code === Code.NotFound) {
+          return "gone";
+        }
+        throw error;
+      }
+    };
+    await pollUntil(
+      readContext,
+      (state) => state === "gone",
+      (_, timeoutMs) =>
+        `execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after the run reached ${ExecutionPhase[final.status!.phase]}`,
+      { timeoutMs: 30_000 },
+    );
   });
 });
 

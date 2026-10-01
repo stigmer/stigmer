@@ -78,6 +78,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";
+import type { ExecutionContextDeleter } from "../executioncontext/internal-delete.js";
 import {
   filterByDeclaredKeys,
   mergeEnvironmentLayers,
@@ -164,6 +165,12 @@ export interface ExecutionContextBuilderDeps {
   readonly environmentReader: () => EnvironmentReader;
   readonly environmentResolution: RuntimeResolutionService;
   readonly executionContextCreator: () => ExecutionContextCreator;
+  /**
+   * The server's own delete of a context, through its delete chain: the
+   * recover step removes the interrupted run's stale context with it
+   * before recreating one (stigmer#1647).
+   */
+  readonly executionContextDeleter: () => ExecutionContextDeleter;
   readonly managedEnvService: ManagedEnvironmentService;
   /**
    * The PlatformClient port the minting client's environment layer reads

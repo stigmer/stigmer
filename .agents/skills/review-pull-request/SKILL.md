@@ -53,10 +53,12 @@ merge runs it again only when the verdict is missing or stale.
 
 3. **Launch the reviewer in a fresh context:** a subagent that starts from
    nothing but its prompt. In Claude Code that is the `general-purpose` agent,
-   never a fork; in Cursor, a subagent. It runs on the session's main model.
-   Pass the prompt below verbatim, with its five placeholders filled and nothing
-   added. A sentence about what the change is for steers the review toward the
-   author's reading, which is what the review exists to avoid.
+   never a fork; in Cursor, a subagent. It runs on the session's main model:
+   launch it with no model override, and in Claude Code with no default subagent
+   model configured, since an agent launched without an override takes that
+   default. Pass the prompt below verbatim, with its five placeholders filled
+   and nothing added. A sentence about what the change is for steers the review
+   toward the author's reading, which is what the review exists to avoid.
 
    ```text
    You are reviewing pull request {number} of {repo}, at head commit {head}.
@@ -85,12 +87,26 @@ merge runs it again only when the verdict is missing or stale.
    check so that it reads the comment. Never write a review comment by hand, and
    never post a verdict the reviewer did not give.
 
+   Post every verdict the reviewer gives, as soon as it arrives and before you
+   act on any finding (an armed merge is disarmed first when you mean to
+   supersede an `approve`, step 5): an `approve` you are about to supersede by
+   fixing its minor findings, and every `changes-needed`. The comments are the
+   only record of what each reviewer found, and a verdict fixed without being
+   posted is lost to everyone who later asks what the reviews catch. A verdict
+   the script refuses, because the change moved during the review or because the
+   verdict's shape is wrong, cannot be posted: have the change read again by a
+   new reviewer.
+
 5. **Act on it.** On `approve`, the pull request is ready for its merge. On
    `changes-needed`, fix each blocking finding, verify, push, and run this
    procedure again with a new reviewer; a reviewer that saw its own earlier
    findings is no longer fresh. A finding you judge wrong is answered in a reply
    on the pull request, with the reason, and the next reviewer reads that reply
-   with everything else.
+   with everything else. After an `approve`, you may still fix its minor
+   findings: disarm an armed merge first
+   (`gh pr merge <n> -R <owner/repo> --disable-auto`), post the approve, push
+   the fixes, and run this procedure again with a new reviewer; arm the merge
+   only on that review's `approve`.
 
 ## What the reviewer does
 

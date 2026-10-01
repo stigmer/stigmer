@@ -1,32 +1,37 @@
-// Boots a stigmer-server child process against throwaway state and waits for its
-// TCP port to accept connections.
+// Boots a stigmer-server child process against throwaway state and waits for
+// it to report the ports it bound.
 // Domain: test support (stack spawns).
 //
-// Each instance owns a temp dir (SQLite DB + storage) and a free port, so suite
-// files can boot servers concurrently without colliding. TCP-readiness only
-// proves the listener is up; the gRPC-level readiness gate lives in the target.
+// Each instance owns a temp dir (SQLite DB + storage) and its own ports, so
+// suite files can boot servers concurrently without colliding. The child is
+// handed port 0 for both listeners and asked for its ready line
+// (STIGMER_READY_LINE=stdout, the server's boot/ready-line.ts): the ports its
+// listeners actually bound, printed once both are listening. That removes the
+// window a probed-then-released port leaves for another listener to take
+// (ports.ts, stigmer#1469), and because the line comes from this child, the
+// harness can never mistake another process on the port for its server. The
+// ready line only proves the listeners are up; the gRPC-level readiness gate
+// lives in the target.
 import { spawn } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
-import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 import { stopChild, teeChildOutput } from "./child-process.ts";
-import { getFreePort } from "./ports.ts";
+import { UNREACHABLE_HOST_PORT } from "./ports.ts";
 
-const TCP_READY_TIMEOUT_MS = 20_000;
-const TCP_READY_POLL_MS = 100;
+const READY_TIMEOUT_MS = 20_000;
 const LOG_TAIL_BYTES = 8_000;
 
+// The ready line's one top-level key. The server's boot/ready-line.ts
+// (READY_LINE_KEY) spells it too: this package imports only `node:*` and its
+// own files, so the two copies are pinned together end to end instead, by
+// every boot through this function.
+const READY_LINE_KEY = "stigmerServerReady";
+
 // The Temporal address of a server spawned with no engine behind it. It must
-// stay dead for the whole run: Temporal's client counts any gRPC listener
-// there as a live frontend (its connect probe tolerates UNIMPLEMENTED), so a
-// sibling server landing on it flips the engine to connected and the engine
-// gate stops refusing (stigmer#1221). Port 1 lies below every operating
-// system's ephemeral range and is privileged on Linux, so no listen(0), no
-// getFreePort() and no sibling this run spawns can ever take it; a connect
-// there is refused at once. The composed server tests use the same address.
-const ENGINELESS_TEMPORAL_HOST_PORT = "127.0.0.1:1";
+// stay dead for the whole run, for the reason ports.ts gives (stigmer#1221).
+const ENGINELESS_TEMPORAL_HOST_PORT = UNREACHABLE_HOST_PORT;
 
 // The OAuth callback URL every hermetic server boots with (see the env block
 // below): a fixed dummy the server only forwards as the redirect_uri, never
@@ -94,43 +99,55 @@ export interface SpawnServerOptions {
   // survives from the retired Go binary, which spawned bare — the identical
   // env contract is what let the two servers share this harness.)
   args?: string[];
-  // A fixed gRPC port instead of a free one, for a suite whose clients are
-  // configured before the stack boots (the e2e console points at 7234).
-  // Omit it everywhere else: a free port is what lets servers boot side by
-  // side.
+  // A fixed gRPC port instead of an ephemeral one, for a suite whose clients
+  // are configured before the stack boots (the e2e console points at 7234).
+  // Omit it everywhere else: an ephemeral port is what lets servers boot side
+  // by side. The artifact lane stays ephemeral either way.
   port?: number;
   // When set, the server's combined stdout/stderr is also streamed to this
   // file, which survives teardown (the e2e diagnostics). It takes precedence
   // over STIGMER_CONFORMANCE_LOG_DIR.
   logFile?: string;
+  // How long the child may take to print its ready line (default 20 s). The
+  // harness's own tests shorten it to prove the silent case.
+  readyTimeoutMs?: number;
 }
+
+// The ports a server's ready line reports.
+interface ReadyPorts {
+  readonly grpcPort: number;
+  readonly artifactHttpPort: number;
+}
+
+// Names a server's diagnostic log file before its port is known.
+let spawnCount = 0;
 
 export async function spawnServer(
   binaryPath: string,
   opts: SpawnServerOptions = {},
 ): Promise<RunningServer> {
-  const port = opts.port ?? (await getFreePort());
-  const artifactHttpPort = await getFreePort();
   const temporalHostPort = opts.temporalHostPort ?? ENGINELESS_TEMPORAL_HOST_PORT;
   const stateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
   // The base path IS the artifact root (#285); mirror the production
   // ~/.stigmer/data/artifacts shape. The runner is pointed at this same dir.
   const artifactBaseDir = join(stateDir, "data", "artifacts");
-  const artifactServeUrl = `http://127.0.0.1:${artifactHttpPort}`;
+  spawnCount += 1;
 
   const child = spawn(binaryPath, opts.args ?? [], {
     stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
-      GRPC_PORT: String(port),
+      // 0 asks the listener for an ephemeral port; the ready line says which.
+      GRPC_PORT: String(opts.port ?? 0),
       DB_PATH: join(stateDir, "stigmer.db"),
       STORAGE_PATH: join(stateDir, "storage"),
       ARTIFACT_STORAGE_TYPE: "local",
       ARTIFACT_LOCAL_BASE_PATH: artifactBaseDir,
-      // Pin the artifact HTTP port to a free port we own so the runner's serve
-      // URL is deterministic (the server default is GRPC_PORT+1, which we do not
-      // control here).
-      ARTIFACT_HTTP_PORT: String(artifactHttpPort),
+      // An explicit 0 keeps the artifact lane ephemeral even beside a fixed
+      // gRPC port, where the server's default would be GRPC_PORT+1; the ready
+      // line reports it, and the runner's serve URL is built from that.
+      ARTIFACT_HTTP_PORT: "0",
+      STIGMER_READY_LINE: "stdout",
       TEMPORAL_HOST_PORT: temporalHostPort,
       ENV: "local",
       LOG_LEVEL: "warn",
@@ -159,13 +176,11 @@ export async function spawnServer(
     file:
       opts.logFile ??
       (process.env.STIGMER_CONFORMANCE_LOG_DIR
-        ? join(process.env.STIGMER_CONFORMANCE_LOG_DIR, `server-${port}-${Date.now()}.log`)
+        ? join(
+            process.env.STIGMER_CONFORMANCE_LOG_DIR,
+            `server-${process.pid}-${spawnCount}-${Date.now()}.log`,
+          )
         : undefined),
-  });
-
-  let exit: { code: number | null; signal: NodeJS.Signals | null } | null = null;
-  child.on("exit", (code, signal) => {
-    exit = { code, signal };
   });
 
   const stop = async (): Promise<void> => {
@@ -178,52 +193,125 @@ export async function spawnServer(
     await rm(stateDir, { recursive: true, force: true });
   };
 
+  let ready: ReadyPorts;
   try {
-    await waitForTcp(port, () => exit, () => output.tail());
+    ready = await waitForReadyLine(child, opts.readyTimeoutMs ?? READY_TIMEOUT_MS, () => output.tail());
+    if (opts.port !== undefined && ready.grpcPort !== opts.port) {
+      throw new Error(
+        `stigmer-server was asked for gRPC port ${opts.port} but reported ${ready.grpcPort} on its ready line\n` +
+          `--- server log tail ---\n${output.tail()}`,
+      );
+    }
   } catch (err) {
     await stop();
     throw err;
   }
 
   return {
-    baseUrl: `http://127.0.0.1:${port}`,
-    port,
+    baseUrl: `http://127.0.0.1:${ready.grpcPort}`,
+    port: ready.grpcPort,
     artifactBaseDir,
-    artifactServeUrl,
+    artifactServeUrl: `http://127.0.0.1:${ready.artifactHttpPort}`,
     logTail: () => output.tail(),
     stop,
   };
 }
 
-async function waitForTcp(
-  port: number,
-  getExit: () => { code: number | null; signal: NodeJS.Signals | null } | null,
-  getLog: () => string,
-): Promise<void> {
-  const deadline = Date.now() + TCP_READY_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    const exit = getExit();
-    if (exit !== null) {
-      throw new Error(
-        `stigmer-server exited before becoming ready (code=${exit.code}, signal=${exit.signal})\n--- server log tail ---\n${getLog()}`,
+// Resolves with the ports from the child's ready line: the first whole stdout
+// line that carries READY_LINE_KEY. stdout is read here, apart from the tee's
+// merged stream, so a stderr chunk can never land in the middle of the line;
+// any other stdout line is not the report and is skipped (it still reaches
+// the tee). Rejects when the child closes first, prints a report naming no
+// bound port, or stays silent past the deadline.
+function waitForReadyLine(child: ChildProcess, timeoutMs: number, getLog: () => string): Promise<ReadyPorts> {
+  return new Promise((resolveReady, rejectReady) => {
+    let buffered = "";
+
+    const settle = (outcome: () => void): void => {
+      clearTimeout(deadline);
+      child.stdout?.off("data", onData);
+      child.off("close", onClose);
+      outcome();
+    };
+
+    const onData = (chunk: Buffer): void => {
+      buffered += chunk.toString("utf8");
+      let newline = buffered.indexOf("\n");
+      while (newline !== -1) {
+        const line = buffered.slice(0, newline);
+        buffered = buffered.slice(newline + 1);
+        const parsed = parseReadyLine(line);
+        if (parsed !== undefined) {
+          settle(() =>
+            "problem" in parsed
+              ? rejectReady(
+                  new Error(
+                    `stigmer-server printed a ready line naming no bound port (${parsed.problem}): ${line}\n` +
+                      `--- server log tail ---\n${getLog()}`,
+                  ),
+                )
+              : resolveReady(parsed.ports),
+          );
+          return;
+        }
+        newline = buffered.indexOf("\n");
+      }
+    };
+
+    // `close`, not `exit`: it fires once the child's pipes have drained, so
+    // the tail quoted below holds the child's last words.
+    const onClose = (code: number | null, signal: NodeJS.Signals | null): void => {
+      settle(() =>
+        rejectReady(
+          new Error(
+            `stigmer-server exited before becoming ready (code=${code}, signal=${signal})\n` +
+              `--- server log tail ---\n${getLog()}`,
+          ),
+        ),
       );
-    }
-    if (await tcpConnects(port)) return;
-    await delay(TCP_READY_POLL_MS);
-  }
-  throw new Error(
-    `stigmer-server did not open port ${port} within ${TCP_READY_TIMEOUT_MS}ms\n--- server log tail ---\n${getLog()}`,
-  );
+    };
+
+    // Silence has two causes, and the error names both: a server still booting
+    // on a saturated machine, and a build from before the ready line existed,
+    // which both entry helpers reuse (ts-build.ts, the e2e server manager) and
+    // which prints none.
+    const deadline = setTimeout(() => {
+      settle(() =>
+        rejectReady(
+          new Error(
+            `stigmer-server did not print its ready line within ${timeoutMs}ms. ` +
+              "Either it is still booting on a heavily loaded machine, or it is a build from before " +
+              "the ready line existed, which prints none: rebuild it (make build-server).\n" +
+              `--- server log tail ---\n${getLog()}`,
+          ),
+        ),
+      );
+    }, timeoutMs);
+
+    child.stdout?.on("data", onData);
+    child.once("close", onClose);
+  });
 }
 
-function tcpConnects(port: number): Promise<boolean> {
-  return new Promise((resolveConnected) => {
-    const socket = connect({ port, host: "127.0.0.1" });
-    const settle = (connected: boolean): void => {
-      socket.destroy();
-      resolveConnected(connected);
-    };
-    socket.once("connect", () => settle(true));
-    socket.once("error", () => settle(false));
-  });
+// The report a stdout line carries, a sentence saying what is wrong with a
+// report, or undefined for a line that is not the ready line at all.
+function parseReadyLine(line: string): { ports: ReadyPorts } | { problem: string } | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    return undefined;
+  }
+  if (typeof parsed !== "object" || parsed === null || !(READY_LINE_KEY in parsed)) return undefined;
+  const report: unknown = (parsed as Record<string, unknown>)[READY_LINE_KEY];
+  if (typeof report !== "object" || report === null) return { problem: "the report is not an object" };
+  const { grpcPort, artifactHttpPort } = report as Record<string, unknown>;
+  if (!isBoundPort(grpcPort)) return { problem: "grpcPort" };
+  // The harness always runs local artifact storage, so the lane always binds.
+  if (!isBoundPort(artifactHttpPort)) return { problem: "artifactHttpPort" };
+  return { ports: { grpcPort, artifactHttpPort } };
+}
+
+function isBoundPort(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 && value < 65_536;
 }

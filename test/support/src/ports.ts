@@ -1,25 +1,26 @@
-// Allocates an ephemeral TCP port by binding to :0 and reading the assignment.
+// The run's one address nothing can listen on, and the law for every port a
+// harness needs.
 // Domain: test support (stack spawns).
 //
-// There is an inherent TOCTOU window between releasing the port here and the
-// server binding it, but it is acceptable for ephemeral test servers and is the
-// same approach the Go integration harness uses. The port is for a process
-// about to bind it, never for an address that must stay dead: once released it
-// is free for anyone (server-process.ts, ENGINELESS_TEMPORAL_HOST_PORT).
-import { createServer } from "node:net";
+// The law: a listener binds port 0 and reports the port it got, and no
+// harness hands a listener a port it probed and released. Between the
+// release and the child's bind, any other listener in the run can take that
+// port; the child then fails to boot, or the harness talks to the thief
+// (stigmer#1469; the same shape failed the server's composed tests in #1353
+// and #1362). In-process fakes read `address()` after `listen(0)`
+// (mock-llm.ts, fake-llm-upstream.ts); a spawned server prints the ports it
+// bound on its ready line (server-process.ts). The Temporal dev server is the
+// one exception, because its CLI cannot be told 0; temporal.ts survives the
+// loss instead.
+//
+// UNREACHABLE_HOST_PORT is for the opposite need: an address that must stay
+// dead for the whole run. Temporal's client counts any gRPC listener as a
+// live frontend (its connect probe tolerates UNIMPLEMENTED), so a sibling
+// server landing on an engineless server's Temporal address would flip its
+// engine to connected (stigmer#1221), and a client meant to fail would reach
+// a real server. Port 1 lies below every operating system's ephemeral range
+// and is privileged on Linux, so no listen(0) and no sibling this run spawns
+// can ever take it; a connect there is refused at once. The server's composed
+// tests use the same address.
 
-export function getFreePort(): Promise<number> {
-  return new Promise((resolvePort, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (address === null || typeof address === "string") {
-        server.close(() => reject(new Error("failed to acquire a free port")));
-        return;
-      }
-      const { port } = address;
-      server.close(() => resolvePort(port));
-    });
-  });
-}
+export const UNREACHABLE_HOST_PORT = "127.0.0.1:1";

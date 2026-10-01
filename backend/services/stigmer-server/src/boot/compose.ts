@@ -303,8 +303,25 @@ export interface ComposedServer {
   routes: (router: ConnectRouter) => void;
   /** Completes wiring, flips SERVING, binds the port; returns the bound port. */
   start(): Promise<number>;
+  /**
+   * The ports the listeners actually bound, once start() has resolved;
+   * undefined before. An ephemeral bind (`GRPC_PORT=0`, `ARTIFACT_HTTP_PORT=0`)
+   * is known only here, and the process entry announces it on request
+   * (boot/ready-line.ts).
+   */
+  boundPorts(): BoundPorts | undefined;
   /** NOT_SERVING first, stop background work, drain connections. */
   shutdown(): Promise<void>;
+}
+
+export interface BoundPorts {
+  /** The unified transport listener's port. */
+  readonly grpc: number;
+  /**
+   * The artifact download lane's port; undefined when artifact storage is
+   * not local and the lane never binds (domain/artifact/file-server.ts).
+   */
+  readonly artifactHttp: number | undefined;
 }
 
 export interface ComposeOptions {
@@ -947,6 +964,10 @@ export async function composeServer(
         // hooks, and the broadcast reach the workflow's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
+        // The run-end delete of the run's ExecutionContext rides the same
+        // lane: the context's own delete chain (stigmer#1647).
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
         temporalConfig,
       }),
       newWorkflowExecutionWorkerFactory({
@@ -955,6 +976,8 @@ export async function composeServer(
         broker: workflowExecutionStreamBroker,
         temporalConfig: workflowExecutionTemporalConfig,
         sandboxTerminalObserver: workflowSandboxTerminalObserver,
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
       }),
       newScheduleWorkerFactory({
         store,
@@ -1568,6 +1591,8 @@ export async function composeServer(
         environmentResolution,
         executionContextCreator: () =>
           requireInProcess().executionContextCreator,
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
         managedEnvService,
         // The minting client's environment layer reads the client through
         // the port, which a composition's driver may serve (#1256).
@@ -1619,6 +1644,8 @@ export async function composeServer(
         environmentResolution,
         executionContextCreator: () =>
           requireInProcess().workflowExecutionContextCreator,
+        executionContextDeleter: () =>
+          requireInProcess().executionContextDeleter,
       },
     });
     // The whole surface: the CRUD slice (D4 #9) plus the connect/OAuth
@@ -1931,6 +1958,13 @@ export async function composeServer(
     inProcessTransport: inProcessWiring.transport,
     identityVerifiers,
     routes,
+
+    boundPorts(): BoundPorts | undefined {
+      // Both are recorded inside start(): the lane binds before the
+      // unified port, so a unified port means start() got past both.
+      if (unifiedBoundPort === undefined) return undefined;
+      return { grpc: unifiedBoundPort, artifactHttp: artifactLaneBoundPort };
+    },
 
     async start(): Promise<number> {
       // The units' own boot work first, in unit order, before any worker,

@@ -46,11 +46,17 @@
 // execution-scoped token lane, stigmer#535) is the set_vars proof test below:
 // a workflow task emits a declared secret env var into its observable output,
 // which only works if the runner-side EC read decrypted it.
+//
+// The context's end is pinned here too: once a run settles, the run-end
+// activity has deleted its context through the context's own delete chain
+// (stigmer#1647), so getByExecutionId answers NotFound.
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { type EnvVarDeclarationInit, type EnvironmentValueInit, makeEnvironment } from "../support/environments";
+import { pollUntil } from "../support/execution-poll";
 import { type ExecutionValueInit } from "../support/executioncontexts";
 import { uniqueName } from "../support/naming";
 import { makeEnvMergeWorkflow, makeWorkflow } from "../support/workflows";
@@ -254,6 +260,58 @@ describe("envmerge conformance — Workflow precedence", () => {
     const taskOutput = taskByName(final, "setVars")?.output as Record<string, unknown> | undefined;
     expect(taskOutput?.proof, "the runner received the decrypted secret, not the marker or ciphertext").toBe(
       secretValue,
+    );
+  });
+
+  it("[rpc:ExecutionContextQueryController.getByExecutionId] a workflow run's ExecutionContext is deleted once the run ends", async () => {
+    // The run's set_vars task reads `$env`, so its output proves the runner
+    // read the context; after the run settles, the context must be gone.
+    const { org } = await target.provisionTenancy();
+    const refs = await seedEnvironments(org, [{ data: { END_KEY: { value: "end-value" } } }]);
+
+    const workflow = await clients.workflowCommand.create(
+      makeWorkflow({
+        org,
+        name: uniqueName("wf-ctxend"),
+        variables: { seen: "${ $env.END_KEY }" },
+        env: { END_KEY: {} },
+      }),
+    );
+    fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
+
+    const instance = await clients.workflowInstanceCommand.create(
+      makeWorkflowInstance({ org, name: uniqueName("wfi"), workflowId: workflow.metadata!.id, environmentRefs: refs }),
+    );
+    fixtures.defer(() => clients.workflowInstanceCommand.delete({ value: instance.metadata!.id }));
+
+    const execution = await clients.workflowExecutionCommand.create(
+      makeWorkflowExecution({ org, name: uniqueName("wfx"), workflowInstanceId: instance.metadata!.id }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: executionId }));
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const taskOutput = taskByName(final, "setVars")?.output as Record<string, unknown> | undefined;
+    expect(taskOutput?.seen, "the runner read the run's context").toBe("end-value");
+
+    const readContext = async (): Promise<"present" | "gone"> => {
+      try {
+        await clients.executionContextQuery.getByExecutionId({ executionId });
+        return "present";
+      } catch (error) {
+        if (ConnectError.from(error).code === Code.NotFound) {
+          return "gone";
+        }
+        throw error;
+      }
+    };
+    await pollUntil(
+      readContext,
+      (state) => state === "gone",
+      (_, timeoutMs) =>
+        `workflow execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after the run reached ${ExecutionPhase[final.status!.phase]}`,
+      { timeoutMs: 30_000 },
     );
   });
 

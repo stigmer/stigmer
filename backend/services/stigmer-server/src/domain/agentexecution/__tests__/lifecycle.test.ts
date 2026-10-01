@@ -9,7 +9,9 @@
  *   - the five pipelines over a real SQLite store with a stub engine:
  *     phase refusals, idempotent already-in-target, NotFound, the
  *     disconnected-engine refusal, warn-and-proceed on workflow-not-found,
- *     and recover's full terminate → EC-recreate → fresh-start chain;
+ *     and recover's full terminate → EC-recreate → fresh-start chain,
+ *     the run's stale context deleted through the server's own delete
+ *     edge before the new one is created (stigmer#1647);
  *   - the pause/decision-append race: the lifecycle persist rides
  *     store.updateResource under the write lock, so a concurrent approval
  *     append is never clobbered (the Go 50-iteration regression).
@@ -53,6 +55,7 @@ import {
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -387,6 +390,7 @@ async function seedExecution(init: {
  */
 function stubBuilderDeps(overrides?: {
   onEcCreate?: (ec: ExecutionContext) => void;
+  onEcDelete?: (contextId: string) => void;
 }): ExecutionContextBuilderDeps {
   const agent: Agent = create(AgentSchema, {
     metadata: { id: "agt_lc", org: "acme", slug: "lc-agent" },
@@ -428,6 +432,11 @@ function stubBuilderDeps(overrides?: {
       create: async (ec) => {
         overrides?.onEcCreate?.(ec);
         return ec;
+      },
+    }),
+    executionContextDeleter: () => ({
+      delete: async (contextId) => {
+        overrides?.onEcDelete?.(contextId);
       },
     }),
     managedEnvService: {
@@ -849,6 +858,91 @@ describe("lifecycle pipelines", () => {
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
     expect(result.status?.error).toBe("");
     expect(result.status?.completedAt).toBe("");
+  });
+
+  it("recover deletes the run's stale context through the server's delete edge before recreating it", async () => {
+    const order: string[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {},
+            startInvokeWorkflow: async () => {},
+          }),
+        ),
+      ),
+      executionContextBuilder: stubBuilderDeps({
+        onEcDelete: (contextId) => order.push(`delete ${contextId}`),
+        onEcCreate: () => order.push("create"),
+      }),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+      error: "runner exploded",
+    });
+    const staleId = `ectx_stale_${id}`;
+    await store.saveResource(
+      ApiResourceKind.execution_context,
+      staleId,
+      ExecutionContextSchema,
+      create(ExecutionContextSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "ExecutionContext",
+        metadata: { id: staleId, name: `stale-${id}`, org: "acme" },
+        spec: { executionId: id },
+      }),
+    );
+
+    await recoverExecution(deps, recoverInput(id), testCallerIdentity());
+
+    expect(order).toEqual([`delete ${staleId}`, "create"]);
+  });
+
+  it("recover proceeds when the stale context's delete fails (best-effort)", async () => {
+    const createdEcs: ExecutionContext[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {},
+            startInvokeWorkflow: async () => {},
+          }),
+        ),
+      ),
+      executionContextBuilder: stubBuilderDeps({
+        onEcDelete: () => {
+          throw new Error("the delete chain is down");
+        },
+        onEcCreate: (ec) => createdEcs.push(ec),
+      }),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+      error: "runner exploded",
+    });
+    const staleId = `ectx_stale_${id}`;
+    await store.saveResource(
+      ApiResourceKind.execution_context,
+      staleId,
+      ExecutionContextSchema,
+      create(ExecutionContextSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "ExecutionContext",
+        metadata: { id: staleId, name: `stale-${id}`, org: "acme" },
+        spec: { executionId: id },
+      }),
+    );
+
+    const result = await recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
+
+    expect(createdEcs).toHaveLength(1);
+    expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
   });
 
   it("recover proceeds when the previous workflow is already gone (NotFound = success)", async () => {
