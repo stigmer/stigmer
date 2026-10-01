@@ -1,6 +1,6 @@
 // Boots a stigmer-server child process against throwaway state and waits for its
 // TCP port to accept connections.
-// Domain: conformance harness (server lifecycle).
+// Domain: test support (stack spawns).
 //
 // Each instance owns a temp dir (SQLite DB + storage) and a free port, so suite
 // files can boot servers concurrently without colliding. TCP-readiness only
@@ -41,7 +41,7 @@ export const HERMETIC_OAUTH_REDIRECT_URI = "http://127.0.0.1:8234/auth/oauth/cal
 // it each get their own store by the same call. The sqlite shape is the
 // spawn's own temp `DB_PATH` (below), so its env is empty and its release a
 // no-op; the Postgres shape provisions a throwaway database and drops it
-// (harness/postgres.ts `provisionPostgresStorage`). DD-011: the driver is
+// (the conformance harness's `provisionPostgresStorage`). The driver is
 // wire-invisible, so nothing but this env may differ between the two.
 export interface ProvisionedStorage {
   // Layered over the spawn's base env; `DATABASE_URL` here wins over the

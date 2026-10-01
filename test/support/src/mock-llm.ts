@@ -1,5 +1,5 @@
 // A long-lived, programmable mock LLM proxy for the execution suites.
-// Domain: conformance harness (execution engine).
+// Domain: test support (model fakes).
 //
 // An AgentExecution runs a real LLM loop in the runner, so unlike the data-only
 // WorkflowExecution fixtures it cannot be driven offline by jq alone. This mock
@@ -47,8 +47,8 @@
 // (cancel/terminate close the socket mid-delay), so the handler no-ops cleanly
 // once the connection is gone rather than throwing.
 //
-// One OPT-IN carve-out from the provider fence: embeddings (entry
-// 20260910.02, the memory-selection arms). The runner's memory retriever
+// One OPT-IN carve-out from the provider fence: embeddings (the
+// memory-selection arms). The runner's memory retriever
 // posts one batched call to the OpenAI embeddings path when it has more
 // candidates than its threshold (shared/memory-retrieval.ts). The fence
 // refusing that call IS the no-embedder posture the memory-retrieval suite
@@ -292,7 +292,7 @@ export class MockLlmProxy {
   // Append a turn that responds with an HTTP error instead of a body — the
   // lever for driving an execution to EXECUTION_FAILED deterministically. Lands now
   // to keep the deferred AgentExecution-recover end-to-end slice cheap to add later
-  // (that slice is blocked on the recovery-mechanism redesign, see DD-013).
+  // (that slice is blocked on the recovery-mechanism redesign).
   //
   // Status choice matters: the runner's agent loop wraps the LLM call in
   // LangChain's AsyncCaller, which retries 6x with exponential backoff for 429 and

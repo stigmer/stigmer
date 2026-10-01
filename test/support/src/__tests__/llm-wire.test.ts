@@ -1,6 +1,6 @@
 // Unit arms for the wire reader the request-shape suite uses to find where a
 // turn's own payload rides: the text of a captured request's last user message.
-// Domain: conformance harness (execution engine).
+// Domain: test support (model fakes).
 //
 // Pinned: a string content is read as it is; a block content joins its text
 // blocks and skips an image; an earlier user message (a previous turn's) is

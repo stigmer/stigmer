@@ -1,5 +1,5 @@
 // LLM provider wire shapes shared by the two fakes that speak them.
-// Domain: conformance harness (LLM fixtures).
+// Domain: test support (model fakes).
 //
 // Two fixtures emit provider responses: MockLlmProxy (mock-llm.ts) stands in
 // for the PROXY the runner dials, and FakeLlmUpstream (fake-llm-upstream.ts)

@@ -1,7 +1,7 @@
-// Unit arms for the hermetic local OIDC issuer (test/support/src/local-oidc-issuer.ts;
-// 20260911.11 Q-IA-10) — lifted from the server's oidc-verifier unit test so
-// one suite file can boot an OSS server in the OIDC posture against it.
-// Domain: conformance harness.
+// Unit arms for the hermetic local OIDC issuer (test/support/src/local-oidc-issuer.ts)
+// — lifted from the server's oidc-verifier unit test so one suite file can
+// boot an OSS server in the OIDC posture against it.
+// Domain: test support (identity fixtures).
 //
 // Pins the three documents a real issuer publishes and the server reads:
 // discovery (issuer, jwks_uri, userinfo_endpoint), JWKS (a key the minted
@@ -12,7 +12,7 @@
 // direct-login tenant's mint (harness/direct-login-tenant.ts) — the
 // conformance package deliberately carries no JOSE dependency.
 //
-// 20260913.02 (sp.console-login, Q-CL-7): the issuer also drives a BROWSER
+// The issuer also drives a BROWSER
 // through the Authorization Code + PKCE flow the console runs — /authorize
 // auto-consents as its configured person and redirects with a single-use
 // code; /token verifies the PKCE verifier against the stored challenge and
@@ -99,7 +99,7 @@ async function exchange(
   });
 }
 
-describe("local OIDC issuer: the browser's code flow (20260913.02)", () => {
+describe("local OIDC issuer: the browser's code flow", () => {
   it("publishes the code-flow endpoints and PKCE S256, and no end_session_endpoint unless asked", async () => {
     const document = (await (
       await fetch(`${issuer.issuer}/.well-known/openid-configuration`)

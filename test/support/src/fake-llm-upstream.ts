@@ -1,5 +1,5 @@
 // A programmable fake LLM PROVIDER behind the server's side-channel proxy.
-// Domain: conformance harness (cloud-capability fixtures, E1).
+// Domain: test support (model fakes).
 //
 // MockLlmProxy stands in for the proxy the runner dials. This fixture stands
 // in for the provider the PROXY dials: the server under test is booted with

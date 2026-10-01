@@ -1,11 +1,11 @@
 // One discipline for the two things every harness child process needs at the
 // end of its life: being stopped, and having its output kept for diagnosis.
-// Domain: conformance harness (process lifecycle).
+// Domain: test support (stack spawns).
 //
 // The harness spawns four kinds of child — the TS server (server-process.ts),
 // the runner (runner-process.ts), the Temporal dev server (temporal.ts) and
-// the cloud launcher (cloud-env.ts) — and until entry 20260908.01 each stopped
-// its child its own way. Two of the four were wrong in ways that only showed
+// the conformance cloud launcher — and each once stopped its child its own
+// way. Two of the four were wrong in ways that only showed
 // under CI's STIGMER_CONFORMANCE_LOG_DIR tee: the runner's stop() ended the
 // log sink and deleted the workspace the instant it sent SIGTERM, while the
 // runner was still writing its shutdown lines — `ERR_STREAM_WRITE_AFTER_END`

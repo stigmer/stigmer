@@ -4,7 +4,7 @@
 // state, so a browser-driven sign-in completes against the mock; off, the
 // static login page the server's pre-flight probe expects stands; `reset()`
 // turns it off. Driven over loopback; no target.
-// Domain: conformance harness.
+// Domain: test support (identity fixtures).
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { MockOAuthAuthorizationServer } from "../oauth-authorization-server.ts";
 

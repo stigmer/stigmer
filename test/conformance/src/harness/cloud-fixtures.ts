@@ -15,13 +15,14 @@
 //
 // A new pattern in this harness (every earlier fake was per-file and
 // in-process), named so it is recognized: "run-scoped fixture + control API".
-// The readout boots them through cloud-fixtures-standalone.ts (`npm run
-// fixtures:serve`), which prints the CLOUD_ENV lines to export.
+// The readout boots them through scripts/cloud-fixtures-serve.ts (`npm run
+// fixtures:serve`), which prints cloudFixturesExportLines on stdout.
 import { randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { CLOUD_ENV } from "./cloud-env";
 import { FakeDiscordWebhook } from "./fake-discord-webhook";
-import { FakeLlmUpstream, readBody, type UpstreamScript } from "@stigmer/test-support/fake-llm-upstream";
+import { DEFAULT_REPLY_TEXT, FakeLlmUpstream, readBody, type UpstreamScript } from "@stigmer/test-support/fake-llm-upstream";
 import { FakeStripeApi, type StripeFailure } from "./fake-stripe";
 import { writeJson } from "@stigmer/test-support/llm-wire";
 
@@ -47,6 +48,30 @@ export interface CloudFixturesOptions {
    * agent runs, never the suites.
    */
   readonly llmDefaultReply?: boolean;
+}
+
+/** The stdout name of the fake LLM's default reply, printed only in default-reply mode. */
+export const FAKE_LLM_DEFAULT_REPLY_EXPORT = "STIGMER_CONFORMANCE_CLOUD_FAKE_LLM_DEFAULT_REPLY";
+
+/** A value quoted for a POSIX shell: single quotes, each embedded one written as '\''. */
+export function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+/**
+ * The `export NAME=value` lines fixtures:serve prints on stdout: the values
+ * the conformance shell needs and, in default-reply mode, the text the fake
+ * answers with. stigmer-cloud's `make cloud-journey` reads that last line by
+ * name and expects the agent's answer to carry it, so its name and quoting
+ * are a contract with that repository.
+ */
+export function cloudFixturesExportLines(addresses: CloudFixtureAddresses, options: CloudFixturesOptions = {}): string[] {
+  const lines = [
+    `export ${CLOUD_ENV.stripeWebhookSecret}=${addresses.stripeWebhookSecret}`,
+    `export ${CLOUD_ENV.fixturesControlUrl}=${addresses.controlUrl}`,
+  ];
+  if (options.llmDefaultReply === true) lines.push(`export ${FAKE_LLM_DEFAULT_REPLY_EXPORT}=${shellQuote(DEFAULT_REPLY_TEXT)}`);
+  return lines;
 }
 
 export async function startCloudFixtures(options: CloudFixturesOptions = {}): Promise<CloudFixtures> {

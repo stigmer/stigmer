@@ -1,6 +1,6 @@
 // Builds the TypeScript server from source so the suite always tests HEAD —
 // used by the local targets and the MCP bridge suite.
-// Domain: conformance harness (server lifecycle).
+// Domain: test support (stack spawns).
 //
 // The build compiles in place (backend/services/stigmer-server/dist):
 // tsc is deterministic and the dist path is stable, so workers locate the
@@ -17,7 +17,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-// Repo root is four levels up from test/conformance/src/harness/.
+// Repo root is three levels up from test/support/src/.
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const SERVER_DIR = join(REPO_ROOT, "backend", "services", "stigmer-server");

@@ -1,11 +1,10 @@
-// The hermetic OIDC issuer as a PROCESS (20260913.02 sp.console-login,
-// Q-CL-7). Domain: conformance harness.
+// The hermetic OIDC issuer as a PROCESS.
+// Domain: test support (identity fixtures).
 //
-// The e2e package needs the same issuer the conformance suite uses, but it
-// never imports across test packages: this package has no `exports` map,
-// the e2e package does not depend on it, and Playwright's transpiler is not
-// this package's. So the e2e global setup spawns this script the way it
-// spawns `temporal` and the server, and reads the issuer URL from stdout.
+// The e2e package needs the same issuer the conformance suite uses, in a
+// process that outlives its global setup and serves every Playwright worker.
+// So the e2e global setup spawns this script the way it spawns `temporal`
+// and the server, and reads the issuer URL from stdout.
 //
 //   npx tsx test/support/src/local-oidc-issuer-main.ts \
 //     --port 7299 --audience https://e2e.stigmer.test/api --end-session

@@ -1,8 +1,8 @@
 // Unit arms for the mock LLM proxy's wire behavior — the surfaces the
 // execution suites script and observe, driven over loopback with no runner.
-// Domain: conformance harness (execution engine).
+// Domain: test support (model fakes).
 //
-// Pinned here (entry 20260910.02): the opt-in embeddings carve-out keeps the
+// Pinned here: the opt-in embeddings carve-out keeps the
 // default (fenced) posture the memory-retrieval suite relies on and, when
 // enabled, answers by computation with the ordering property the
 // memory-selection arms assert on; an injected error carries the scripted

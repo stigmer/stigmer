@@ -1,5 +1,5 @@
 // RS256 compact JWS over node:crypto — the ONE signer the harness's issuers
-// share. Domain: conformance harness.
+// share. Domain: test support (identity fixtures).
 //
 // Two fixtures mint tokens a server under test must verify: the platform
 // tenant's mint for the direct-login suite (direct-login-tenant.ts) and the

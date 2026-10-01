@@ -1,6 +1,6 @@
 // Boots the TypeScript unified runner in static mode and waits for it to begin
 // polling its Temporal task queue.
-// Domain: conformance harness (execution engine).
+// Domain: test support (stack spawns).
 //
 // The runner is the execution engine: the server dispatches the real work to
 // it over Temporal (queue `stigmer_runner`). We run the compiled entry
@@ -10,8 +10,8 @@
 // Temporal connection is up and the worker is about to poll) — the execution
 // analogue of server-process.ts waiting for a TCP listener.
 //
-// The runner runs in its PRODUCTION OSS POSTURE, not a test-only one (entry
-// 20260910.02, DD-002). Two things follow:
+// The runner runs in its PRODUCTION OSS POSTURE, not a test-only one. Two
+// things follow:
 //
 // - The model registry comes from the control plane. The runner resolves a
 //   registry id (`claude-haiku-4.5`) to the provider's api id by fetching
@@ -245,7 +245,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       //   presign-capable endpoint (stigmer#803).
       // STIGMER_CHECKPOINTER_TYPE is deliberately NOT set: MODE=local makes the
       // runner pick its production default, the durable SQLite saver under the
-      // harness-owned HOME above (header; entry 20260910.02 ruling 2).
+      // harness-owned HOME above (header).
       ...(opts.proxy !== undefined
         ? {
             STIGMER_PROXY_ENDPOINT: opts.proxy.endpoint,

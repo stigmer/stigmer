@@ -1,5 +1,5 @@
-// A hermetic OIDC issuer for the OSS server's OIDC posture (20260911.11
-// Q-IA-10). Domain: conformance harness.
+// A hermetic OIDC issuer for the OSS server's OIDC posture.
+// Domain: test support (identity fixtures).
 //
 // The multi-user self-host story is `STIGMER_OIDC_ISSUER` pointed at an
 // identity provider the operator chose; the identityaccount suite boots a
@@ -10,8 +10,7 @@
 //   - discovery (`/.well-known/openid-configuration`): `issuer` exactly as
 //     configured (the server refuses a document naming anyone else),
 //     `jwks_uri`, and `userinfo_endpoint` — the provisioning lane reads the
-//     endpoint from here and never guesses `<issuer>/userinfo`
-//     (T01_1_review.md A8);
+//     endpoint from here and never guesses `<issuer>/userinfo`;
 //   - JWKS (`/jwks`): the one RS256 key the minted tokens verify against;
 //   - userinfo (`/userinfo`): the profile a first login is built from. An
 //     access token carries no profile, so `provisionMyAccount` asks here;
@@ -24,8 +23,7 @@
 // is the one lever: 503 for that subject until cleared, so the suite can
 // drive the UNAVAILABLE arm of provisioning against a live outage.
 //
-// Since 20260913.02 (sp.console-login, Q-CL-7) the issuer also drives a
-// BROWSER through the Authorization Code + PKCE flow the web console runs,
+// The issuer also drives a BROWSER through the Authorization Code + PKCE flow the web console runs,
 // so a Playwright spec can sign in to a real server end to end:
 //   - `/authorize` validates the request (response_type=code, S256 PKCE —
 //     the console never sends less, and a fixture that accepted less would

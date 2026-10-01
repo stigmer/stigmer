@@ -117,8 +117,8 @@ summary line in the final message. Never report unverified work as done.
 - `crates/**`:
   `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`
   in the crate.
-- `test/conformance/**`:
-  `npm run typecheck -w @stigmer/conformance && make check-conformance-inventory`;
+- `test/conformance/**`, `test/support/**`:
+  `npm run typecheck -w @stigmer/conformance -w @stigmer/test-support && make check-conformance-inventory`;
   suites under `test/conformance/src/suites/` also `make test-conformance`.
 - `plugins/**`: `make test-plugins-static`. `deploy/helm/**`:
   `make lint-helm test-helm`.

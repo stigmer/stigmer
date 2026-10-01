@@ -1,5 +1,5 @@
 // Allocates an ephemeral TCP port by binding to :0 and reading the assignment.
-// Domain: conformance harness (server lifecycle).
+// Domain: test support (stack spawns).
 //
 // There is an inherent TOCTOU window between releasing the port here and the
 // server binding it, but it is acceptable for ephemeral test servers and is the

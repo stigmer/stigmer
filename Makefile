@@ -1217,9 +1217,10 @@ report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (
 check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
 	$(MAKE) -C site check-docs-inventory
 
-check-conformance-inventory: ## Verify every conformance row of test/conformance/inventory/cloud-capabilities.yaml has a test and every tag names a row (CI)
+check-conformance-inventory: ## Verify every conformance row of test/conformance/inventory/cloud-capabilities.yaml has a test and every tag names a row, and run the conformance and test-support unit tests (CI)
 	npm run inventory:check -w @stigmer/conformance
 	npm run test:unit -w @stigmer/conformance
+	npm test -w @stigmer/test-support
 
 check-links: ## Check for broken links in documentation
 	@command -v lychee >/dev/null 2>&1 || { \

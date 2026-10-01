@@ -3,13 +3,12 @@
 // must say on its own whether the Temporal worker had stopped (the
 // stigmer#1008 shape) or never finished draining (a hang of a new shape), and
 // quote the runner's last output so the verdict can be checked without the log
-// file CI discards on a green run (stigmer#1010; entry 20260908.01's
-// wrong-assumption of 2026-09-08). The slow-exit line: when a runner leaves
+// file CI discards on a green run (stigmer#1010). The slow-exit line: when a runner leaves
 // inside the grace but seconds late, the job log must still carry the
 // number — the fallback is silent on that case, which is how #1008's 29 s
 // exits hid in green runs.
 // Pure: a string (or a number) in, a string out. No target, no spawn.
-// Domain: conformance harness (execution engine).
+// Domain: test support (stack spawns).
 import { describe, expect, it } from "vitest";
 import { describeRunnerForceKill, describeRunnerSlowExit, runnerHomeEnv } from "../runner-process.ts";
 
@@ -146,7 +145,7 @@ describe("describeRunnerForceKill", () => {
   });
 });
 
-// The runner's home relocation (entry 20260910.02, ruling 2): the runner reads
+// The runner's home relocation: the runner reads
 // HOME then USERPROFILE for its `~/.stigmer` (shared/workspace/platform-dir.ts),
 // and Node's homedir() — behind its workspace-root and artifact defaults —
 // reads the same pair, so both must point at the harness-owned directory.

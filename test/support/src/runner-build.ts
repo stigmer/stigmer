@@ -1,6 +1,6 @@
 // Builds the TypeScript unified runner (@stigmer/runner) from source so the
 // execution harness always tests HEAD.
-// Domain: conformance harness (execution engine).
+// Domain: test support (stack spawns).
 //
 // We delegate to `make build-runner` rather than re-encode
 // the npm ordering here: that target is the maintained single entry that builds
@@ -16,7 +16,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-// Repo root is four levels up from test/conformance/src/harness/.
+// Repo root is three levels up from test/support/src/.
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const RUNNER_DIR = join(REPO_ROOT, "backend", "services", "runner");

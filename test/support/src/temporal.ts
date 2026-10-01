@@ -1,6 +1,6 @@
 // Boots an ephemeral Temporal dev server via the `temporal` CLI and waits until
 // the whole service is serving — not merely until its frontend port accepts.
-// Domain: conformance harness (execution engine).
+// Domain: test support (stack spawns).
 //
 // The execution target (Class B) needs a real Temporal so the Go server's
 // workflowCreator is injected and the TS runner has a rendezvous to poll. Each
@@ -9,7 +9,7 @@
 // the `temporal` CLI on PATH — the same dependency the Go integration harness
 // assumes; the execution globalSetup asserts it before any suite runs. Patterns
 // (free port, poll-don't-sleep readiness, log-tail-on-failure) are borrowed
-// from server-process.ts and the Go harness, not imported (DD-002 TS-purity).
+// from server-process.ts and the Go harness, not imported.
 //
 // Readiness is deliberately a two-stage gate. Only `--port` (the frontend gRPC
 // port) is fixed; the dev server also binds several *dynamically chosen*

@@ -1,6 +1,6 @@
 // A programmable mock OAuth 2.0 authorization server for the McpServer
-// connect/OAuth conformance suites (CW-1).
-// Domain: conformance harness.
+// connect/OAuth conformance suites and the e2e OAuth posture.
+// Domain: test support (identity fixtures).
 //
 // The Go server's OAuth Connect flow makes four kinds of server-side HTTP
 // calls, and this fixture is the counterparty for all of them:

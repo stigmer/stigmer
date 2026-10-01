@@ -23,18 +23,9 @@
 // With `--default-reply`, stdout also carries the text the fake answers with
 // (`FAKE_LLM_DEFAULT_REPLY_EXPORT`, single-quoted as a shell would need it), so
 // a stack that runs an agent against this fake can expect that exact answer
-// from the running fixture rather than from this repository's source.
-import { CLOUD_ENV } from "../src/harness/cloud-env";
-import { startCloudFixtures } from "../src/harness/cloud-fixtures";
-import { DEFAULT_REPLY_TEXT } from "@stigmer/test-support/fake-llm-upstream";
-
-/** The stdout name of the fake LLM's default reply, printed only under `--default-reply`. */
-const FAKE_LLM_DEFAULT_REPLY_EXPORT = "STIGMER_CONFORMANCE_CLOUD_FAKE_LLM_DEFAULT_REPLY";
-
-/** A value quoted for a POSIX shell: single quotes, each embedded one written as '\''. */
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", "'\\''")}'`;
-}
+// from the running fixture rather than from this repository's source. The
+// lines are cloudFixturesExportLines, pinned by the harness's unit tests.
+import { cloudFixturesExportLines, startCloudFixtures } from "../src/harness/cloud-fixtures";
 
 const KNOWN_FLAGS = new Set(["--default-reply"]);
 
@@ -57,9 +48,7 @@ async function main(): Promise<void> {
   console.error(`  STIGMER_LEADS_DISCORD_WEBHOOK_URL=${a.discordWebhookUrl}`);
   if (llmDefaultReply) console.error("the fake LLM answers every unscripted request with its default reply (--default-reply)");
   console.error("and export these into the conformance shell:");
-  console.log(`export ${CLOUD_ENV.stripeWebhookSecret}=${a.stripeWebhookSecret}`);
-  console.log(`export ${CLOUD_ENV.fixturesControlUrl}=${a.controlUrl}`);
-  if (llmDefaultReply) console.log(`export ${FAKE_LLM_DEFAULT_REPLY_EXPORT}=${shellQuote(DEFAULT_REPLY_TEXT)}`);
+  for (const line of cloudFixturesExportLines(a, { llmDefaultReply })) console.log(line);
 
   const stop = (): void => {
     void fixtures.stop().finally(() => process.exit(0));

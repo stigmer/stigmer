@@ -2,9 +2,9 @@
 // only on exit and escalates to SIGKILL on a bounded grace; the output tee
 // ends its file sink only after the child's stdio has closed, so a chunk
 // emitted during the child's shutdown lands in the file instead of throwing
-// `ERR_STREAM_WRITE_AFTER_END` (the Class B teardown red of entry 20260908.01).
+// `ERR_STREAM_WRITE_AFTER_END` (a Class B teardown red).
 // Pure: a fake child, a temp file, fake timers. No target.
-// Domain: conformance harness (process lifecycle).
+// Domain: test support (stack spawns).
 import { EventEmitter } from "node:events";
 import { readFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
