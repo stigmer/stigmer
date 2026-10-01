@@ -1123,6 +1123,7 @@ export {
   useOrg,
   useActiveOrgSlug,
   useActiveOrgId,
+  useFollowSessionOrganization,
   useOrgGate,
   useOrganization,
   useCreateOrganization,

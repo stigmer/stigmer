@@ -67,7 +67,14 @@ export async function runAgent(
     const execution = createMessage(AgentExecutionSchema, {
       apiVersion: API_VERSION,
       kind: "AgentExecution",
-      metadata: createMessage(ApiResourceMetadataSchema, { name: executionName(), org: args.org }),
+      // `org` names the agent's organization. A follow-up in an existing
+      // session belongs to the session's organization, which the server
+      // fills in when none is sent (stigmer/stigmer#1580); sending the
+      // agent's would refuse a session started with another org's agent.
+      metadata: createMessage(ApiResourceMetadataSchema, {
+        name: executionName(),
+        org: (args.sessionId ?? "") === "" ? args.org : "",
+      }),
       spec: createMessage(AgentExecutionSpecSchema, {
         // Empty message means "just run" — the CLI applies the same default.
         message: args.message === "" ? "execute" : args.message,

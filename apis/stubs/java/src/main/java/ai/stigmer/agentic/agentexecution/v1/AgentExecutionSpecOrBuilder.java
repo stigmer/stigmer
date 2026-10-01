@@ -25,6 +25,13 @@ public interface AgentExecutionSpecOrBuilder extends
    * is used for session resolution and agent_id is preserved as metadata for
    * downstream consumers (e.g., session subject generation). session_id and
    * session_spec are mutually exclusive.
+   *
+   * An execution in an existing session belongs to that session's
+   * organization: metadata.org, when set, must be the session's
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
+   * session. An execution stays in the session it was created in: update
+   * refuses a different session_id (FAILED_PRECONDITION), and an empty one
+   * keeps the stored session.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -46,6 +53,13 @@ public interface AgentExecutionSpecOrBuilder extends
    * is used for session resolution and agent_id is preserved as metadata for
    * downstream consumers (e.g., session subject generation). session_id and
    * session_spec are mutually exclusive.
+   *
+   * An execution in an existing session belongs to that session's
+   * organization: metadata.org, when set, must be the session's
+   * (FAILED_PRECONDITION otherwise), and when left empty it is taken from the
+   * session. An execution stays in the session it was created in: update
+   * refuses a different session_id (FAILED_PRECONDITION), and an empty one
+   * keeps the stored session.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>

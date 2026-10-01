@@ -9,6 +9,8 @@ import {
   useWorkspaceSources,
   useActiveOrgSlug,
   useActiveOrgId,
+  useFollowSessionOrganization,
+  useSession,
   ManageAccessButton,
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -22,6 +24,12 @@ export default function SessionPage() {
 }
 
 export function SessionPageInner({ id }: { id: string }) {
+  // A link can open a conversation from an organization other than the
+  // active one: the shell follows it there, so the org menu, the sidebar,
+  // the share dialog and the viewer all name the conversation's organization
+  // (stigmer/stigmer#1580).
+  const { session } = useSession(id);
+  useFollowSessionOrganization(session);
   const org = useActiveOrgSlug();
   const orgId = useActiveOrgId();
   const gitHubConnection = useGitHubConnection(org);

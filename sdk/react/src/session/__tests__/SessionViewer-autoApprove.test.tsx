@@ -50,6 +50,7 @@ const stubWorkspace = {
 };
 
 const stubConv = {
+  org: "acme",
   session: { spec: {} } as Record<string, unknown>,
   isLoading: false,
   loadError: null,

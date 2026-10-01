@@ -298,6 +298,51 @@ describe("AgentExecution conformance — queries", () => {
     ));
 });
 
+describe("AgentExecution conformance — a turn belongs to its session and its session's organization (#1580, #1588)", () => {
+  it("[rpc:AgentExecutionCommandController.create] a turn naming no organization in an existing session is filed under the session's organization (#1580)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+    const first = await createExecution(org, agentId);
+    const sessionId = first.spec?.sessionId;
+    expect(sessionId, "create auto-creates and records a session id").toBeTruthy();
+
+    mock.enqueue(anthropicText("Done."));
+    const second = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org: "", name: uniqueName("aex-no-org"), sessionId }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second.metadata!.id }));
+
+    expect(second.metadata?.org).toBe(org);
+    await awaitTerminal(clients, first.metadata!.id);
+    await awaitTerminal(clients, second.metadata!.id);
+    const listed = await clients.agentExecutionQuery.listBySession({ sessionId: sessionId! });
+    expect(listed.entries.map((e) => e.metadata?.id)).toContain(second.metadata?.id);
+  });
+
+  it("[rpc:AgentExecutionCommandController.update] refuses moving an execution to another session (FailedPrecondition, #1588)", async () => {
+    const { org } = await target.provisionTenancy();
+    const moved = await createExecution(org, await provisionAgent(org));
+    const elsewhere = await createExecution(org, await provisionAgent(org));
+    await awaitTerminal(clients, moved.metadata!.id);
+    await awaitTerminal(clients, elsewhere.metadata!.id);
+    const firstSessionId = moved.spec!.sessionId;
+
+    const current = await clients.agentExecutionQuery.get({ value: moved.metadata!.id });
+    current.spec!.sessionId = elsewhere.spec!.sessionId;
+    const refused = await expectGrpcCode(
+      () => clients.agentExecutionCommand.update(current),
+      Code.FailedPrecondition,
+      "update to another session",
+    );
+    expect(refused.rawMessage).toBe(
+      `session_id cannot be changed — an execution belongs to the session it was created in ('${firstSessionId}')`,
+    );
+
+    const after = await clients.agentExecutionQuery.get({ value: moved.metadata!.id });
+    expect(after.spec?.sessionId).toBe(firstSessionId);
+  });
+});
+
 describe("AgentExecution conformance — lifecycle (running execution)", () => {
   it("observes EXECUTION_IN_PROGRESS once the runner picks the execution up", async () => {
     const { org } = await target.provisionTenancy();

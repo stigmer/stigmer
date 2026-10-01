@@ -4,10 +4,9 @@
 // text/0-arg would open the session picker (a separate, not-yet-wired task).
 
 import type { Command } from "commander";
-import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
+import { ensureAuthenticated } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
-import { globalOrg } from "./shared.js";
 
 interface ResumeFlags {
   verbose?: boolean;
@@ -22,12 +21,10 @@ export function registerResume(program: Command): void {
     .option("-v, --verbose", "show all execution events")
     .option("--mode <mode>", 'follow-up interaction mode: "agent" (default) or "plan" (read-only)')
     .option("--json", "stream events as newline-delimited JSON")
-    .action((reference: string | undefined, options: ResumeFlags, command: Command) =>
-      runResume(reference, options, command),
-    );
+    .action((reference: string | undefined, options: ResumeFlags) => runResume(reference, options));
 }
 
-async function runResume(reference: string | undefined, options: ResumeFlags, command: Command): Promise<void> {
+async function runResume(reference: string | undefined, options: ResumeFlags): Promise<void> {
   const { validateMode } = await import("../resources/run/prepare.js");
   // Call through a plain signature: TS forbids assertion functions reached via a
   // destructured dynamic-import binding (TS2775); we only need the throw-on-invalid
@@ -37,19 +34,17 @@ async function runResume(reference: string | undefined, options: ResumeFlags, co
   const { connectBackend } = await import("../backend.js");
   const client = connectBackend();
   ensureAuthenticated(client.config);
-  const org = resolveOrganization(client.config, globalOrg(command));
-  if (org === "") {
-    throw new UsageError(
-      "organization not set\n\nSet it with:\n  stigmer config context set --org <org>\n  stigmer resume --org <org> ...",
-    );
-  }
+  // No organization is resolved here: a session names its own, and every
+  // turn resumed in it is filed there (stigmer/stigmer#1580), whatever the
+  // context organization is. The picker lists the caller's sessions across
+  // organizations.
 
   const outputMode = options.json === true ? "json" : "inline";
   const mode = (options.mode ?? "") as import("../resources/run/prepare.js").RunMode;
 
   if (reference === undefined) {
     if (interactiveBrowseEnabled(outputMode)) {
-      await browseAndResumeSession("", client, org, mode, outputMode);
+      await browseAndResumeSession("", client, mode, outputMode);
       return;
     }
     throw browseUnavailableError();
@@ -78,7 +73,7 @@ async function runResume(reference: string | undefined, options: ResumeFlags, co
       );
     }
     const { openSession } = await import("../resources/run/resume.js");
-    await openSession({ client, sessionId: reference, org, mode, outputMode });
+    await openSession({ client, sessionId: reference, mode, outputMode });
     return;
   }
 
@@ -94,7 +89,7 @@ async function runResume(reference: string | undefined, options: ResumeFlags, co
   // Bare text → interactive session picker (pre-filtered by the text) on a TTY;
   // otherwise actionable guidance.
   if (interactiveBrowseEnabled(outputMode)) {
-    await browseAndResumeSession(reference, client, org, mode, outputMode);
+    await browseAndResumeSession(reference, client, mode, outputMode);
     return;
   }
   throw browseUnavailableError(reference);
@@ -106,7 +101,6 @@ async function runResume(reference: string | undefined, options: ResumeFlags, co
 async function browseAndResumeSession(
   initialQuery: string,
   client: import("../client/index.js").BackendClient,
-  org: string,
   mode: import("../resources/run/prepare.js").RunMode,
   outputMode: "inline" | "json",
 ): Promise<void> {
@@ -116,7 +110,7 @@ async function browseAndResumeSession(
   const sessionId = selected.metadata?.id ?? "";
   if (sessionId === "") return;
   const { openSession } = await import("../resources/run/resume.js");
-  await openSession({ client, sessionId, org, mode, outputMode });
+  await openSession({ client, sessionId, mode, outputMode });
 }
 
 function browseUnavailableError(query?: string): UsageError {

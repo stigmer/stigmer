@@ -207,7 +207,7 @@
       "slug": "organization",
       "title": "Organization",
       "description": "Hooks and components for organization creation and management.",
-      "hooks": 7,
+      "hooks": 8,
       "components": 5
     },
     {

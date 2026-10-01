@@ -356,6 +356,44 @@ describe("useSessionConversation", () => {
     );
   });
 
+  it("sendFollowUp files the turn under the session's organization, not the org argument (#1580)", async () => {
+    const session = makeSession("session-1");
+    session.metadata!.org = "acme";
+    methods.sessionGet.mockResolvedValue(session);
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    methods.executionCreate.mockResolvedValue(newExec);
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "personal"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.org).toBe("acme");
+
+    await act(async () => {
+      await result.current.sendFollowUp("Deploy it");
+    });
+
+    expect(methods.executionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ org: "acme", sessionId: "session-1" }),
+    );
+  });
+
+  it("org is the argument until the session names one", async () => {
+    methods.sessionGet.mockReturnValue(new Promise(() => {}));
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "personal"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    expect(result.current.org).toBe("personal");
+  });
+
   it("pendingUserMessage clears when stream delivers first snapshot", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
 

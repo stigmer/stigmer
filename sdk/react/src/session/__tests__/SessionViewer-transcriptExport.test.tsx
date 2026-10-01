@@ -37,6 +37,7 @@ const stubWorkspace = {
 };
 
 const stubConv = {
+  org: "acme",
   session: { metadata: { id: "ses_1", org: "acme" }, spec: {} },
   isLoading: false,
   loadError: null,

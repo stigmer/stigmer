@@ -24,11 +24,6 @@
 # test-integrity.mjs), which reads this block form line by line: keep each
 # entry as `  - rpc:` then `    kind:`.
 waivers:
-  - rpc: AgentExecutionCommandController.update
-    kind: gap
-    issue: 1551
-    reason: >-
-      What an update may change on a started or terminal run is undecided; the contract is decided before an arm pins it.
   - rpc: ApiKeyQueryController.getByKeyHash
     kind: proven-elsewhere
     proven_by: backend/services/stigmer-server/src/domain/apikey/__tests__/apikey.test.ts
