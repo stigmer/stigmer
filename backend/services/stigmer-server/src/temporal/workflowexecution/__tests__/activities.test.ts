@@ -11,7 +11,9 @@
  *   - a missing execution is a wrapped ordinary error with Go's
  *     "workflow execution not found:" text, not a NotFound RPC error;
  *   - the persist rides the atomic updateResource and broadcasts through
- *     the domain broker after commit.
+ *     the domain broker after commit;
+ *   - DeleteExecutionContext hands the run's context to the server's own
+ *     delete edge (stigmer#1647), idempotently.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,6 +31,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { WorkflowExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -40,6 +43,7 @@ import {
   createWorkflowExecutionActivities,
 } from "../activities.js";
 import { UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME } from "../names.js";
+import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../../domain/executioncontext/temporal/delete-execution-context.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -165,6 +169,9 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
       logger: silentLogger,
       broker,
       sandboxTerminalObserver: () => {},
+      executionContextDeleter: () => ({
+        delete: () => Promise.reject(new Error("unused in this suite")),
+      }),
     });
     return activities[UPDATE_WORKFLOW_EXECUTION_STATUS_ACTIVITY_NAME] as (
       executionId: string,
@@ -258,5 +265,57 @@ describe("UpdateWorkflowExecutionStatus activity (real store)", () => {
         ),
       ),
     ).rejects.toThrowError(/^workflow execution not found: /);
+  });
+});
+
+describe("DeleteExecutionContext activity (real store)", () => {
+  let dir: string;
+  let store: Store;
+
+  beforeAll(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "wfexec-ec-activity-"));
+    store = SqliteStore.open(path.join(dir, "test.db"));
+  });
+
+  afterAll(async () => {
+    await store.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("hands the execution's ExecutionContext to the server's delete edge, idempotently", async () => {
+    await store.saveResource(
+      ApiResourceKind.execution_context,
+      "ectx_wf_1",
+      ExecutionContextSchema,
+      create(ExecutionContextSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "ExecutionContext",
+        metadata: { id: "ectx_wf_1", name: "ec", org: "o" },
+        spec: { executionId: "wfe_del_1" },
+      }),
+    );
+    // The edge as a recording fake that removes the row the way the delete
+    // chain does (the chain itself: extension-composition.test.ts's C2 arm).
+    const deleted: string[] = [];
+    const activities = createWorkflowExecutionActivities({
+      store,
+      logger: silentLogger,
+      broker: new StreamBroker(silentLogger),
+      sandboxTerminalObserver: () => {},
+      executionContextDeleter: () => ({
+        delete: async (contextId) => {
+          deleted.push(contextId);
+          await store.deleteResource(ApiResourceKind.execution_context, contextId);
+        },
+      }),
+    });
+    const remove = activities[DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME] as (
+      executionId: string,
+    ) => Promise<void>;
+
+    await remove("wfe_del_1");
+    await expect(remove("wfe_del_1")).resolves.toBeUndefined();
+
+    expect(deleted, "one delete, through the edge").toEqual(["ectx_wf_1"]);
   });
 });
