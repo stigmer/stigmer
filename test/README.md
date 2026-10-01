@@ -8,6 +8,8 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 | **E2E (Playwright)** | `e2e/` | Browser UI tests — smoke, functional, and interactive tiers | see `e2e/` |
 | **Extension consumer** | `extension-consumer/` | A clean-room consumer of the `@stigmer/server` extension registry | `make test-extension-consumer` |
 
+There is no Go test harness any more. The five Go suites under `test/integration*` booted the retired Java service and retired with it on 2026-09-10: the four Java-only suites in stigmer#1024, their coverage accounted for row by row in the conformance suite; the offline runner suite in stigmer#1022, ported arm for arm into the conformance execution class; and the shared harness deleted with it in stigmer#1031. The follow-ups that retirement left open are tracked on stigmer#988.
+
 ## The rules every test keeps
 
 A green run must mean the tests ran. Every test in this repository keeps five rules:
@@ -20,12 +22,11 @@ A green run must mean the tests ran. Every test in this repository keeps five ru
 
 What holds them:
 
-- `scripts/test-integrity.mjs`, as the required `Test integrity` check, refuses the ways a suite goes quiet without going red. On every tree: a focused `.only`, a valueless `return` in a test body, a config that retries or passes with no tests. On a pull request, against its base: a deleted case and a new skip. Its header has the full rules. Its run-report rule, which refuses a run-time skip nothing explains, is not yet run by this repository's gate (#1610).
+- `scripts/test-integrity.mjs`, as the required `Test integrity` check, refuses the ways a suite goes quiet without going red. On every tree: a focused `.only`, a valueless `return` in a test body, a config that retries, passes with no tests or allows `.only`. On a pull request, against its base: a deleted case, a new skip, and a weakened RPC waiver. Its header has the full rules. Its run-report rule, which refuses a run-time skip nothing explains, is not yet run by this repository's gate (#1610).
 - An exception is declared in the pull request's body, one line each: `Test-removal: <case or file> -- <reason>`, `Quarantine: <case or file> -- <repo>#<issue>`, `Skip: <case or file> -- <why it does not apply there>`, `RPC-waiver: <Service>.<method> -- <why no conformance test pins it>`. A declaration makes the exception loud; it does not make it right.
 - `Gate` (every lane the change needs, with `STIGMER_TEST_GATE=1`), `Test integrity` and `Review verdict` are required checks on `main`, through the merge queue, with no bypass.
-- A reviewer that did not write the pull request reads the change and every declaration, and `Review verdict` waits for its current approve (`.agents/skills/review-pull-request/SKILL.md`). Rules 4 and 5 are held by that review alone: the brief judges the tests a change carries, and reads a change to a required check's workflow, the verdict script or the brief itself as a change to what every later pull request must pass, where an unjustified weakening is a blocking finding.
-
-There is no Go test harness any more. The five Go suites under `test/integration*` booted the retired Java service and retired with it on 2026-09-10: the four Java-only suites in stigmer#1024, their coverage accounted for row by row in the conformance suite; the offline runner suite in stigmer#1022, ported arm for arm into the conformance execution class; and the shared harness deleted with it in stigmer#1031. The follow-ups that retirement left open are tracked on stigmer#988.
+- A reviewer that did not write the pull request reads the change and every declaration, and `Review verdict` waits for its current approve (`.agents/skills/review-pull-request/SKILL.md`). Rule 4 is held by that review: the brief judges the tests a change carries.
+- Rule 5 is held only in part. The review treats an unjustified weakening of a required check's workflow, `scripts/review-verdict.mjs` or the brief as blocking, and the integrity tool refuses the config settings above. Nothing yet asks for a maintainer's approval on the other files it lists (#1611).
 
 ## The conformance suite
 
