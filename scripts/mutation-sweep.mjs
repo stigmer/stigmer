@@ -329,23 +329,38 @@ export function applyChange(source, location, replacement) {
  *   - "green": tests ran, none failed, and vitest exited 0;
  *   - "inconclusive": anything else (no report, no test ran, a file that
  *     failed to load, a crash), which proves nothing either way.
- * Only "green" and "red" become verdicts. A file that failed to load is not
- * counted as a catch, because an engine that went down fails the same way.
+ *   - "timeout": the run outlived its time limit and was stopped; a change
+ *     that makes the tests hang is noticed, as Stryker counts a timeout.
+ * Only "green", "red" and "timeout" become verdicts. A test file that failed
+ * to load, or a `beforeAll` that failed, is red only right after a green run
+ * of the same tests with no change (`afterGreen`): that is how a change to
+ * code that runs while a module loads shows, and an engine that went down
+ * would have failed the unchanged run too.
  */
-export function relatedOutcome(result, report) {
+export function relatedOutcome(result, report, { afterGreen = false } = {}) {
+  if (result.error?.code === "ETIMEDOUT") return "timeout";
   // vitest catches SIGINT and SIGTERM itself and exits 128 plus the signal's number.
   if (result.signal || result.status === 130 || result.status === 143) return "interrupted";
   if (!report || !(report.numTotalTests > 0)) return "inconclusive";
   if (report.numFailedTests > 0) return "red";
-  if (result.status === 0 && !(report.numFailedTestSuites > 0)) return "green";
+  if (report.numFailedTestSuites > 0) return afterGreen ? "red" : "inconclusive";
+  if (result.status === 0) return "green";
   return "inconclusive";
+}
+
+/** How long a run of a file's related tests may take: three times its unchanged run, and at least two minutes. */
+export function confirmTimeout(baselineMs) {
+  return Math.max(120_000, 3 * baselineMs);
 }
 
 /**
  * Applies each finding's change to the real file, runs every test that
  * imports it with the package's own config, and restores the file byte for
  * byte. `runRelated(relativePath)` returns `{ outcome, tests }`: the outcome
- * above and the package-relative test files that ran.
+ * above and the package-relative test files that ran; it is told the time
+ * limit for a changed run (three times the unchanged run, at least two
+ * minutes, so a change that hangs cannot stall the sweep) and whether a green
+ * run of the same tests came just before.
  *
  * The related tests first run once per file with no change: a file whose
  * tests are not green before any change (a flaky or failing test, an engine
@@ -373,7 +388,9 @@ export function confirmFindings(findings, packageDir, { runRelated, isClean, has
     for (const [relativePath, group] of byFile) {
       const file = join(packageDir, relativePath);
       if (!isClean(file)) throw new Error(`${group[0].path} has uncommitted changes; the confirm step edits it and must be able to restore it from git`);
-      const baseline = runRelated(relativePath);
+      const started = Date.now();
+      const baseline = runRelated(relativePath, { timeoutMs: undefined, afterGreen: false });
+      const timeoutMs = confirmTimeout(Date.now() - started);
       if (baseline.outcome === "interrupted") {
         interrupted = true;
         break;
@@ -387,7 +404,7 @@ export function confirmFindings(findings, packageDir, { runRelated, isClean, has
         let run;
         try {
           writeFileSync(file, applyChange(original, f.location, f.replacement));
-          run = runRelated(relativePath);
+          run = runRelated(relativePath, { timeoutMs, afterGreen: true });
         } finally {
           writeFileSync(file, original);
         }
@@ -401,7 +418,7 @@ export function confirmFindings(findings, packageDir, { runRelated, isClean, has
         }
         const tests = [...new Set([...baseline.tests, ...run.tests])].sort();
         verdicts[f.confirmKey] = { verdict: run.outcome === "green", tests: Object.fromEntries(tests.map((t) => [t, hashFile(t)])) };
-        log(`${run.outcome === "green" ? "confirmed" : "refuted  "}  ${f.path}:${f.line} ${f.mutator}`);
+        log(`${run.outcome === "green" ? "confirmed" : "refuted  "}  ${f.path}:${f.line} ${f.mutator}${run.outcome === "timeout" ? " (the tests hung)" : ""}`);
       }
       if (interrupted) break;
     }
@@ -473,10 +490,22 @@ export function keysFromBody(body) {
   return match && match[1] ? match[1].split(",") : [];
 }
 
+/**
+ * `text` as a Markdown code span, fenced by one more backtick than its
+ * longest run, so a template literal stays one span and a test name such as
+ * "(#776)" is shown, not turned into a link to an unrelated issue.
+ */
+export function codeSpan(text) {
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = "`".repeat(longest + 1);
+  const pad = text.startsWith("`") || text.endsWith("`") ? " " : "";
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
 function findingLine(f) {
-  const ran = f.tests.length === 0 ? "" : ` -- ran by: "${oneLine(f.tests[0], 70)}"${f.tests.length > 1 ? ` and ${f.tests.length - 1} more` : ""}`;
+  const ran = f.tests.length === 0 ? "" : ` -- ran by: ${codeSpan(oneLine(f.tests[0], 70))}${f.tests.length > 1 ? ` and ${f.tests.length - 1} more` : ""}`;
   const unchecked = f.status === "Survived" && !f.harmless && !f.confirmed ? " (not re-checked)" : "";
-  return `- L${f.line} \`${oneLine(f.original, 60)}\` -> \`${oneLine(f.replacement, 60)}\` (${f.mutator})${ran}${unchecked}`;
+  return `- L${f.line} ${codeSpan(oneLine(f.original, 60))} -> ${codeSpan(oneLine(f.replacement, 60))} (${f.mutator})${ran}${unchecked}`;
 }
 
 /**
@@ -502,7 +531,7 @@ function takeWithin(entries, budget) {
 function byFileEntries(findings) {
   let file;
   return findings.map((f) => {
-    const add = f.path === file ? [] : ["", `**\`${f.path}\`**`];
+    const add = f.path === file ? [] : ["", `**${codeSpan(f.path)}**`];
     file = f.path;
     return [...add, findingLine(f)];
   });
@@ -549,7 +578,7 @@ export function renderIssue({ name, target, summary, change, commit, runUrl }) {
     if (taken < group.length) body.push("", `…and ${group.length - taken} more in the run's \`mutation.json\`.`);
   }
   if (summary.reasonless.length > 0) {
-    const { lines, taken } = takeWithin(summary.reasonless.map((r) => [`- \`${r.path}:${r.line}\` \`${oneLine(r.text, 100)}\``]), budget);
+    const { lines, taken } = takeWithin(summary.reasonless.map((r) => [`- ${codeSpan(`${r.path}:${r.line}`)} ${codeSpan(oneLine(r.text, 100))}`]), budget);
     body.push("", `### Disable comments without a reason (${summary.reasonless.length})`, "", ...lines);
     if (taken < summary.reasonless.length) body.push("", `…and ${summary.reasonless.length - taken} more.`);
   }
@@ -675,10 +704,14 @@ function runTarget(opts) {
   const configPath = join(outDir, "stryker.config.json");
   writeFileSync(configPath, `${JSON.stringify(strykerConfig(target, outDir, { only }), null, 2)}\n`);
   const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
-  writeFileSync(join(outDir, "target.json"), `${JSON.stringify({ target: opts.run, package: target.package, commit, only: only ?? null }, null, 2)}\n`);
+  // The record names this run's commit only once this run's report exists: a
+  // failed run must not leave an earlier report under the new commit.
+  rmSync(join(outDir, "target.json"), { force: true });
+  rmSync(join(outDir, "mutation.json"), { force: true });
   const result = spawnSync("npx", ["--no-install", "stryker", "run", configPath], { cwd: packageDir, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) return result.status ?? 2;
+  writeFileSync(join(outDir, "target.json"), `${JSON.stringify({ target: opts.run, package: target.package, commit, only: only ?? null }, null, 2)}\n`);
 
   // The confirm step. The cache holds the earlier runs' verdicts (restored
   // beside the incremental file); one is kept only while its finding is still
@@ -695,10 +728,10 @@ function runTarget(opts) {
   console.log(`mutation-sweep: confirming ${pending.length} not-noticed change(s) against every test that imports each file`);
   const vitestReport = join(outDir, "related.json");
   const { verdicts, interrupted } = confirmFindings(pending, packageDir, {
-    runRelated: (file) => {
+    runRelated: (file, { timeoutMs, afterGreen }) => {
       rmSync(vitestReport, { force: true });
-      const run = spawnSync("npx", ["--no-install", "vitest", "related", "--run", file, "--reporter=json", `--outputFile=${vitestReport}`], { cwd: packageDir, stdio: "ignore" });
-      if (run.error) throw run.error;
+      const run = spawnSync("npx", ["--no-install", "vitest", "related", "--run", file, "--reporter=json", `--outputFile=${vitestReport}`], { cwd: packageDir, stdio: "ignore", timeout: timeoutMs });
+      if (run.error && run.error.code !== "ETIMEDOUT") throw run.error;
       let json;
       try {
         json = JSON.parse(readFileSync(vitestReport, "utf8"));
@@ -706,7 +739,7 @@ function runTarget(opts) {
         json = undefined;
       }
       const tests = (json?.testResults ?? []).map((t) => relative(packageDir, t.name).split("\\").join("/"));
-      return { outcome: relatedOutcome(run, json), tests };
+      return { outcome: relatedOutcome(run, json, { afterGreen }), tests };
     },
     isClean: (file) => execFileSync("git", ["status", "--porcelain", "--", file], { cwd: repo, encoding: "utf8" }).trim() === "",
     hashFile,

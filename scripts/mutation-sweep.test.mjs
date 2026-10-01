@@ -23,7 +23,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -31,8 +31,10 @@ import { fileURLToPath } from "node:url";
 
 import {
   applyChange,
+  codeSpan,
   compareRuns,
   confirmFindings,
+  confirmTimeout,
   findingKey,
   hasWork,
   keepVerdicts,
@@ -244,6 +246,8 @@ test("a related run is red only when a test failed, green only when tests ran an
   assert.equal(relatedOutcome({ status: null, signal: "SIGINT" }, report(5, 2)), "interrupted");
   assert.equal(relatedOutcome({ status: 130, signal: null }, undefined), "interrupted", "vitest catches SIGINT and exits 130 with no report");
   assert.equal(relatedOutcome({ status: 143, signal: null }, undefined), "interrupted", "and SIGTERM, 143");
+  assert.equal(relatedOutcome({ status: null, signal: "SIGTERM", error: Object.assign(new Error("spawnSync npx ETIMEDOUT"), { code: "ETIMEDOUT" }) }, undefined), "timeout");
+  assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0, 1), { afterGreen: true }), "red", "a test file that fails to load right after a green run: the change broke it");
   assert.equal(relatedOutcome({ status: 1, signal: null }, undefined), "inconclusive", "no report: a crash proves nothing");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0)), "inconclusive", "no test ran");
   assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0, 1)), "inconclusive", "a file that failed to load, as when an engine is down");
@@ -317,6 +321,39 @@ test("an interrupted or unclear run gives no verdict, and tests not green before
   }
 });
 
+test("a change that makes the tests hang is caught, and a changed run is limited to three times the unchanged one", () => {
+  const { dir, findings } = confirmFixture();
+  try {
+    const seen = [];
+    const { verdicts } = confirmFindings(findings, dir, {
+      isClean: () => true,
+      hashFile: () => "h",
+      runRelated: (p, options) => {
+        seen.push(options);
+        return { outcome: readFileSync(join(dir, p), "utf8") === SOURCE ? "green" : "timeout", tests: [] };
+      },
+    });
+    assert.deepEqual(Object.values(verdicts).map((v) => v.verdict), [false, false]);
+    assert.deepEqual(seen[0], { timeoutMs: undefined, afterGreen: false }, "the unchanged run has no limit");
+    assert.equal(seen[1].afterGreen, true);
+    assert.ok(seen[1].timeoutMs >= 120_000);
+    assert.equal(confirmTimeout(60_000), 180_000);
+    assert.equal(confirmTimeout(1_000), 120_000);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a code span survives backticks in its text, and keeps an issue number from becoming a link", () => {
+  assert.equal(codeSpan("cap > 0"), "`cap > 0`");
+  assert.equal(codeSpan("`${a}` b"), "`` `${a}` b ``");
+  assert.equal(codeSpan("a ``b`` c"), "```a ``b`` c```");
+  const summary = summarize(report([mutant("1", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t9"])]), "pkg");
+  summary.findings[0].tests = ["keeps the grant (#776) and cloud #226"];
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, summary });
+  assert.match(body, /ran by: `keeps the grant \(#776\) and cloud #226`/);
+});
+
 test("a cached verdict is kept only while its finding is reported and the tests that judged it are unchanged", () => {
   const cached = {
     "a@1": { verdict: false, tests: { "t/x.test.ts": "h1" } },
@@ -352,7 +389,7 @@ test("the body names its target and carries this run's keys back to the next run
   assert.deepEqual(keysFromBody(body), summary.findings.map((f) => f.key));
   assert.match(body, /### Not noticed \(1\)/);
   assert.match(body, /### Never run by any test \(1\)/);
-  assert.match(body, /- L2 `cap > 0` -> `cap >= 0` \(EqualityOperator\) -- ran by: "allows a run under the cap" and 1 more/);
+  assert.match(body, /- L2 `cap > 0` -> `cap >= 0` \(EqualityOperator\) -- ran by: `allows a run under the cap` and 1 more/);
   assert.match(body, /`0123456789`|`012345678`/);
   assert.match(body, /1 new and 0 gone since the last run/);
   assert.match(body, /--run credit-gate --out <dir> --only <file>/);
@@ -601,7 +638,9 @@ test("a usage error exits 2 and names the problem", () => {
  * on PATH that plays Stryker (it writes `FAKE_REPORT` where the config asks)
  * and vitest (red when the file under test contains `FAKE_RED_TEXT`; on a
  * changed file, interrupted as vitest is, exiting 130 with no report, when
- * `FAKE_VITEST=signal`, or killed by SIGINT when `FAKE_VITEST=killed`; no
+ * `FAKE_VITEST=signal`, or killed by SIGINT when `FAKE_VITEST=killed`; on
+ * the unchanged run too when `FAKE_VITEST=signal-first`; a failed Stryker
+ * when `FAKE_STRYKER_STATUS` is set; no
  * tests run when `FAKE_VITEST=none`; red on the unchanged file when
  * `FAKE_VITEST=red`). Every vitest call is logged, one line each.
  */
@@ -631,6 +670,7 @@ const { appendFileSync, copyFileSync, readFileSync, writeFileSync } = require("n
 const { join, resolve } = require("node:path");
 const args = process.argv.slice(2);
 if (args[1] === "stryker") {
+  if (process.env.FAKE_STRYKER_STATUS) process.exit(Number(process.env.FAKE_STRYKER_STATUS));
   const config = JSON.parse(readFileSync(args[3], "utf8"));
   copyFileSync(process.env.FAKE_REPORT, config.jsonReporter.fileName);
   process.exit(0);
@@ -642,6 +682,7 @@ const changed = !text.includes("used < cap && cap > 0");
 appendFileSync(process.env.FAKE_LOG, (changed ? "changed " : "unchanged ") + file + "\\n");
 const mode = process.env.FAKE_VITEST ?? "";
 if (mode === "signal" && changed) process.exit(130);
+if (mode === "signal-first") process.exit(130);
 if (mode === "killed" && changed) process.kill(process.pid, "SIGINT");
 const red = (mode === "red" && !changed) || (process.env.FAKE_RED_TEXT && changed && text.includes(process.env.FAKE_RED_TEXT));
 const tests = mode === "none" ? [] : [resolve("src/gate/__tests__/allowed.test.ts")];
@@ -721,6 +762,32 @@ test("--run interrupted mid-confirm exits 130, records no verdict for the interr
     } finally {
       rmSync(f.dir, { recursive: true, force: true });
     }
+  }
+});
+
+test("--run interrupted on the unchanged run stops there, exits 130 and records nothing", () => {
+  const f = runFixture();
+  try {
+    const out = f.run({ FAKE_VITEST: "signal-first" });
+    assert.equal(out.status, 130, out.stderr);
+    assert.deepEqual(f.calls().map((c) => c.split(" ")[0]), ["unchanged"], "no change is applied after the interruption");
+    assert.deepEqual(f.confirmed(), {});
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("a failed Stryker run leaves no record that names its commit beside an earlier report", () => {
+  const f = runFixture();
+  try {
+    assert.equal(f.run().status, 0);
+    const out = f.run({ FAKE_STRYKER_STATUS: "1" });
+    assert.equal(out.status, 1);
+    assert.equal(existsSync(join(f.dir, "out/credit-gate/target.json")), false);
+    assert.equal(existsSync(join(f.dir, "out/credit-gate/mutation.json")), false);
+    assert.ok(existsSync(join(f.dir, "out/credit-gate/confirmed.json")), "the verdict cache stays for the next run");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
   }
 });
 
