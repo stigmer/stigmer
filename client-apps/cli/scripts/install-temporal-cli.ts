@@ -21,6 +21,7 @@
 // install and nothing else: the CI action keys its cache by it, so the key is
 // exactly what is cached.
 
+import { realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CliExitError } from "../src/errors/cli-exit-error.js";
@@ -109,6 +110,9 @@ async function install(binDir: string, cacheDir: string | undefined): Promise<vo
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+// Node gives the entry module its real path, while argv[1] keeps the path as
+// typed; comparing real paths keeps a run through a symlinked checkout from
+// silently doing nothing.
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(resolve(process.argv[1]))) {
   await main(process.argv.slice(2));
 }
