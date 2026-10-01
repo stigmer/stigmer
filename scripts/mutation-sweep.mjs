@@ -8,10 +8,11 @@
  * says a test checked what the line does. A test can call the code that
  * decides whether an organization has credits left, assert only that nothing
  * threw, and pass for ever, including after someone turns `<` into `<=`. This
- * script drives StrykerJS, which plants one small change at a time in a
- * sandbox copy of a package (a flipped comparison, `&&` for `||`, an emptied
- * function body, a blanked string) and runs the tests that cover it. A change
- * no test notices is a finding: the line is run, and nothing checks it.
+ * script drives StrykerJS, which plants small changes in a package's files (a
+ * flipped comparison, `&&` for `||`, an emptied function body, a blanked
+ * string), switches them on one at a time, and runs the tests that cover
+ * each. A change no test notices is a finding: the line is run, and nothing
+ * checks it.
  *
  * The areas swept are a committed targets file:
  *   {
@@ -34,17 +35,21 @@
  *   - `--run <target>` writes the target's Stryker config into `--out`, runs
  *     Stryker in the package, and leaves `mutation.json` (Stryker's report)
  *     and `target.json` (which target, package and commit) in
- *     `<out>/<target>/`. Nothing is written into the tree but Stryker's own
- *     sandbox, which it removes. `--only <file>` sweeps one file, which is how
- *     a fix is checked locally in minutes.
+ *     `<out>/<target>/`. Stryker edits the package's own files while it runs
+ *     and restores them when it ends, keeping its copies of the originals in
+ *     the package's `.stryker-tmp`, which it removes; so `--run` refuses a
+ *     package with uncommitted changes. `--only <file>` sweeps one file, which
+ *     is how a fix is checked locally in minutes.
  *     Then the confirm step applies each not-noticed change to the real file,
  *     runs every test that imports it with the package's own config, and
  *     restores the file: Stryker switches its changes on at run time, so code
  *     that runs while a module loads is never really changed, and about one
  *     finding in ten read as not noticed although a test would fail (the
- *     server's authorization code, 2026-10-01). Its verdicts are written to
- *     `confirmed.json` and cached between runs, keyed by the finding and its
- *     file's content.
+ *     server's authorization code, 2026-10-01). Only a run in which a test
+ *     failed refutes a finding, and only a green one confirms it. Its
+ *     verdicts are written to `confirmed.json` and cached between runs: each
+ *     is keyed by the finding and its file's content, and records the content
+ *     of the tests that judged it, so it is judged again when they change.
  *   - `--report` reads every `target.json` under the `--input` directories
  *     and prints, per target: the changes no test noticed (Stryker's
  *     `Survived`, less the ones the confirm step refuted), the blanked strings
@@ -312,39 +317,114 @@ export function applyChange(source, location, replacement) {
 }
 
 /**
- * Applies each finding's change to the real file, runs every test that
- * imports it with the package's own config (`runRelated` returns true when
- * they all pass), and restores the file byte for byte, also when the run is
- * interrupted. A file with uncommitted changes is refused, so `git checkout`
- * undoes whatever a killed process left. Returns the verdicts by confirm key.
+ * What one run of the related tests says, read from vitest's JSON report
+ * (`report`, undefined when none was written) and the process result:
+ *   - "interrupted": the run was killed by a signal (a Ctrl-C reaches the
+ *     whole process group, vitest included);
+ *   - "red": at least one test ran and failed;
+ *   - "green": tests ran, none failed, and vitest exited 0;
+ *   - "inconclusive": anything else (no report, no test ran, a file that
+ *     failed to load, a crash), which proves nothing either way.
+ * Only "green" and "red" become verdicts. A file that failed to load is not
+ * counted as a catch, because an engine that went down fails the same way.
  */
-export function confirmFindings(findings, packageDir, { runRelated, isClean, log = () => {} }) {
+export function relatedOutcome(result, report) {
+  if (result.signal) return "interrupted";
+  if (!report || !(report.numTotalTests > 0)) return "inconclusive";
+  if (report.numFailedTests > 0) return "red";
+  if (result.status === 0 && !(report.numFailedTestSuites > 0)) return "green";
+  return "inconclusive";
+}
+
+/**
+ * Applies each finding's change to the real file, runs every test that
+ * imports it with the package's own config, and restores the file byte for
+ * byte. `runRelated(relativePath)` returns `{ outcome, tests }`: the outcome
+ * above and the package-relative test files that ran.
+ *
+ * The related tests first run once per file with no change: a file whose
+ * tests are not green before any change (a flaky or failing test, an engine
+ * that went down) gets no verdicts this run, since a red there would read as
+ * a catch. A verdict records the content of every test file that ran
+ * (`hashFile`), so it is dropped when one of them changes or goes away: a
+ * catch that a later edit to the tests undid must be judged again.
+ *
+ * The loop is synchronous, so a signal cannot be handled between steps. The
+ * listeners only keep Node from dying mid-change, which would leave the
+ * change in the file; an interrupted run is seen in the child's result,
+ * restores the file, and stops with no verdict for that finding. A file with
+ * uncommitted changes is refused, so `git checkout` undoes whatever a killed
+ * process left.
+ */
+export function confirmFindings(findings, packageDir, { runRelated, isClean, hashFile, log = () => {} }) {
   const verdicts = {};
   let interrupted = false;
-  const stop = () => {
-    interrupted = true;
-  };
-  process.on("SIGINT", stop);
-  process.on("SIGTERM", stop);
+  const ignore = () => {};
+  process.on("SIGINT", ignore);
+  process.on("SIGTERM", ignore);
+  const byFile = new Map();
+  for (const f of findings) byFile.set(f.relativePath, [...(byFile.get(f.relativePath) ?? []), f]);
   try {
-    for (const f of findings) {
-      if (interrupted) break;
-      const file = join(packageDir, f.relativePath);
-      if (!isClean(file)) throw new Error(`${f.path} has uncommitted changes; the confirm step edits it and must be able to restore it from git`);
-      const original = readFileSync(file, "utf8");
-      try {
-        writeFileSync(file, applyChange(original, f.location, f.replacement));
-        verdicts[f.confirmKey] = runRelated(f.relativePath);
-      } finally {
-        writeFileSync(file, original);
+    for (const [relativePath, group] of byFile) {
+      const file = join(packageDir, relativePath);
+      if (!isClean(file)) throw new Error(`${group[0].path} has uncommitted changes; the confirm step edits it and must be able to restore it from git`);
+      const baseline = runRelated(relativePath);
+      if (baseline.outcome === "interrupted") {
+        interrupted = true;
+        break;
       }
-      log(`${verdicts[f.confirmKey] ? "confirmed" : "refuted  "}  ${f.path}:${f.line} ${f.mutator}`);
+      if (baseline.outcome !== "green") {
+        log(`skipped    ${group[0].path}: its related tests are ${baseline.outcome} before any change, so ${group.length} finding(s) stay not re-checked`);
+        continue;
+      }
+      const original = readFileSync(file, "utf8");
+      for (const f of group) {
+        let run;
+        try {
+          writeFileSync(file, applyChange(original, f.location, f.replacement));
+          run = runRelated(relativePath);
+        } finally {
+          writeFileSync(file, original);
+        }
+        if (run.outcome === "interrupted") {
+          interrupted = true;
+          break;
+        }
+        if (run.outcome === "inconclusive") {
+          log(`unclear    ${f.path}:${f.line} ${f.mutator} (no test failed, but the run did not pass)`);
+          continue;
+        }
+        const tests = [...new Set([...baseline.tests, ...run.tests])].sort();
+        verdicts[f.confirmKey] = { verdict: run.outcome === "green", tests: Object.fromEntries(tests.map((t) => [t, hashFile(t)])) };
+        log(`${run.outcome === "green" ? "confirmed" : "refuted  "}  ${f.path}:${f.line} ${f.mutator}`);
+      }
+      if (interrupted) break;
     }
   } finally {
-    process.off("SIGINT", stop);
-    process.off("SIGTERM", stop);
+    process.off("SIGINT", ignore);
+    process.off("SIGTERM", ignore);
   }
   return { verdicts, interrupted };
+}
+
+/**
+ * The cached verdicts still worth keeping: the finding is still reported
+ * (its key, which carries the file's content, is in `liveKeys`), and every
+ * test file that ran for it has the same content now (`hashFile` returns
+ * undefined for a file that is gone).
+ */
+export function keepVerdicts(cached, liveKeys, hashFile) {
+  const kept = {};
+  for (const [key, entry] of Object.entries(cached)) {
+    if (!liveKeys.has(key) || typeof entry?.verdict !== "boolean") continue;
+    if (Object.entries(entry.tests ?? {}).every(([test, hash]) => hashFile(test) === hash)) kept[key] = entry;
+  }
+  return kept;
+}
+
+/** The verdicts `summarize` reads: true (confirmed) or false (refuted), by confirm key. */
+export function verdictsOf(entries) {
+  return Object.fromEntries(Object.entries(entries).map(([key, entry]) => [key, entry.verdict]));
 }
 
 /** What changed since the previous run's list: keys new this run, and keys gone from it. */
@@ -356,8 +436,16 @@ export function compareRuns(previousKeys, currentKeys) {
 
 // ─── The issue ──────────────────────────────────────────────────────────
 
-/** GitHub refuses an issue body over 65,536 characters; the list stops well short of it. */
+/** The most findings an issue lists; the rest are counted. */
 const MAX_LISTED = 200;
+
+/**
+ * The longest body the script writes. GitHub refuses one over 65,536
+ * characters, and the hidden list of finding keys grows with the findings, not
+ * with what is listed: past this, the keys are left out and marked partial,
+ * and the next run reports no week-to-week change rather than a wrong one.
+ */
+export const MAX_BODY = 60_000;
 
 const MARKER = "mutation-sweep";
 
@@ -366,8 +454,13 @@ export function targetMarker(name) {
   return `<!-- ${MARKER}:target=${name} -->`;
 }
 
-/** The finding keys a previous body recorded, or none. */
+/**
+ * The finding keys a previous body recorded: none for a body without the
+ * marker (a new issue), undefined when the body recorded too many to keep, so
+ * no change can be computed against it.
+ */
 export function keysFromBody(body) {
+  if ((body ?? "").includes(`<!-- ${MARKER}:keys-partial -->`)) return undefined;
   const match = new RegExp(`<!-- ${MARKER}:keys=([0-9a-f,]*) -->`).exec(body ?? "");
   return match && match[1] ? match[1].split(",") : [];
 }
@@ -413,7 +506,7 @@ export function renderIssue({ name, target, summary, change, commit, runUrl }) {
   ].filter(Boolean);
   const body = [
     targetMarker(name),
-    `The weekly mutation sweep planted ${c.total} small changes, one at a time, in ${target.title} (\`${target.package}\`: ${target.mutate.map((g) => `\`${g}\``).join(", ")}), and ran every test that imports the file. The changes below were **not noticed**: each was applied for real and every one of those tests still passed.`,
+    `The weekly mutation sweep planted ${c.total} small changes, one at a time, in ${target.title} (\`${target.package}\`: ${target.mutate.map((g) => `\`${g}\``).join(", ")}), and ran every test that imports the file. The changes under "Not noticed" were **not noticed**: every one of those tests still passed with the change in place. Each was applied again for real, outside Stryker, with the same result, except those marked "(not re-checked)", which are Stryker's verdict alone.`,
     "",
     "A finding is closed by a test that fails when the code is changed that way. When the change truly makes no difference (two ways of writing the same thing), the line above it carries `// Stryker disable next-line <rule>: <why it makes no difference>`, and the reviewer judges the reason. To check a fix locally:",
     "",
@@ -426,7 +519,7 @@ export function renderIssue({ name, target, summary, change, commit, runUrl }) {
   let budget = MAX_LISTED;
   for (const [heading, group, note] of [
     [`Not noticed (${notNoticed.length})`, notNoticed, undefined],
-    [`Never run by any test (${neverRun.length})`, neverRun, undefined],
+    [`Never run by any test (${neverRun.length})`, neverRun, "No test runs these lines at all, so no change to them can be noticed."],
     [`Probably harmless: messages and payloads (${harmless.length})`, harmless, "A blanked string or an emptied object that no test noticed: mostly error messages and log or event payloads, listed so the few that matter (an error name a caller compares) are seen. Not re-checked."],
   ]) {
     if (group.length === 0) continue;
@@ -440,8 +533,10 @@ export function renderIssue({ name, target, summary, change, commit, runUrl }) {
     for (const r of summary.reasonless) body.push(`- \`${r.path}:${r.line}\` \`${oneLine(r.text, 100)}\``);
   }
   if (summary.findings.length === 0 && summary.reasonless.length === 0) body.push("", "Every change was caught. This issue closes itself, and reopens if a finding returns.");
-  body.push("", `<!-- ${MARKER}:keys=${summary.findings.map((f) => f.key).join(",")} -->`);
-  return { title, body: `${body.join("\n")}\n` };
+  const keys = `<!-- ${MARKER}:keys=${summary.findings.map((f) => f.key).join(",")} -->`;
+  const text = body.join("\n");
+  const fits = text.length + keys.length + 3 <= MAX_BODY;
+  return { title, body: `${text}\n\n${fits ? keys : `<!-- ${MARKER}:keys-partial -->`}\n` };
 }
 
 /** Whether a target's run left anything for a person to do. */
@@ -492,7 +587,7 @@ export function readRuns(dirs) {
         const meta = JSON.parse(readFileSync(path, "utf8"));
         const reportPath = join(dir, "mutation.json");
         const confirmedPath = join(dir, CONFIRMED_FILE);
-        const confirmed = existsSync(confirmedPath) ? JSON.parse(readFileSync(confirmedPath, "utf8")) : {};
+        const confirmed = existsSync(confirmedPath) ? verdictsOf(JSON.parse(readFileSync(confirmedPath, "utf8"))) : {};
         runs.push({ ...meta, report: JSON.parse(readFileSync(reportPath, "utf8")), confirmed });
       }
     }
@@ -559,25 +654,41 @@ function runTarget(opts) {
   if (result.error) throw result.error;
   if (result.status !== 0) return result.status ?? 2;
 
-  // The confirm step: the cache holds last week's verdicts (restored beside the
-  // incremental file); a verdict whose file changed has another key and is
-  // checked again, and verdicts no finding uses any more are dropped.
+  // The confirm step. The cache holds the earlier runs' verdicts (restored
+  // beside the incremental file); one is kept only while its finding is still
+  // reported and the tests that judged it are unchanged.
   const confirmedPath = join(outDir, CONFIRMED_FILE);
-  const cached = existsSync(confirmedPath) ? JSON.parse(readFileSync(confirmedPath, "utf8")) : {};
+  const hashFile = (test) => {
+    const path = join(packageDir, test);
+    return existsSync(path) ? contentHash(readFileSync(path, "utf8")) : undefined;
+  };
   const report = JSON.parse(readFileSync(join(outDir, "mutation.json"), "utf8"));
-  const summary = summarize(report, target.package, { confirmed: cached });
-  const pending = toConfirm(summary);
+  const unjudged = summarize(report, target.package);
+  const cached = keepVerdicts(existsSync(confirmedPath) ? JSON.parse(readFileSync(confirmedPath, "utf8")) : {}, new Set(unjudged.survivedKeys), hashFile);
+  const pending = toConfirm(summarize(report, target.package, { confirmed: verdictsOf(cached) }));
   console.log(`mutation-sweep: confirming ${pending.length} not-noticed change(s) against every test that imports each file`);
+  const vitestReport = join(outDir, "related.json");
   const { verdicts, interrupted } = confirmFindings(pending, packageDir, {
-    runRelated: (file) => spawnSync("npx", ["--no-install", "vitest", "related", "--run", file, "--reporter=dot"], { cwd: packageDir, stdio: "ignore" }).status === 0,
+    runRelated: (file) => {
+      rmSync(vitestReport, { force: true });
+      const run = spawnSync("npx", ["--no-install", "vitest", "related", "--run", file, "--reporter=json", `--outputFile=${vitestReport}`], { cwd: packageDir, stdio: "ignore" });
+      if (run.error) throw run.error;
+      let json;
+      try {
+        json = JSON.parse(readFileSync(vitestReport, "utf8"));
+      } catch {
+        json = undefined;
+      }
+      const tests = (json?.testResults ?? []).map((t) => relative(packageDir, t.name).split("\\").join("/"));
+      return { outcome: relatedOutcome(run, json), tests };
+    },
     isClean: (file) => execFileSync("git", ["status", "--porcelain", "--", file], { cwd: repo, encoding: "utf8" }).trim() === "",
+    hashFile,
     log: (line) => console.log(`mutation-sweep: ${line}`),
   });
-  const live = new Set(summary.survivedKeys);
-  for (const [key, verdict] of Object.entries(cached)) {
-    if (live.has(key)) verdicts[key] ??= verdict;
-  }
-  writeFileSync(confirmedPath, `${JSON.stringify(verdicts, null, 2)}\n`);
+  rmSync(vitestReport, { force: true });
+  writeFileSync(confirmedPath, `${JSON.stringify({ ...cached, ...verdicts }, null, 2)}\n`);
+  if (interrupted) console.error("mutation-sweep: interrupted; the file being checked was restored, and the verdicts so far are saved");
   return interrupted ? 130 : 0;
 }
 
@@ -604,15 +715,16 @@ function report(opts) {
     const target = targets[run.target];
     const summary = summarize(run.report, target.package, { confirmed: run.confirmed });
     const existing = issues.find((i) => (i.body ?? "").includes(targetMarker(run.target)));
-    const change = compareRuns(keysFromBody(existing?.body), summary.findings.map((f) => f.key));
-    const rendered = renderIssue({ name: run.target, target, summary, change: existing ? change : undefined, commit: run.commit, runUrl: opts.runUrl });
+    const previousKeys = keysFromBody(existing?.body);
+    const change = existing && previousKeys ? compareRuns(previousKeys, summary.findings.map((f) => f.key)) : undefined;
+    const rendered = renderIssue({ name: run.target, target, summary, change, commit: run.commit, runUrl: opts.runUrl });
     out.push({ target: run.target, summary, rendered });
     if (opts.publish && !run.only) {
       const bodyDir = mkdtempSync(join(tmpdir(), "mutation-sweep-"));
       try {
         const bodyFile = join(bodyDir, "body.md");
         writeFileSync(bodyFile, rendered.body);
-        for (const call of publishPlan({ repo: opts.repo, existing, rendered, work: hasWork(summary), change })) {
+        for (const call of publishPlan({ repo: opts.repo, existing, rendered, work: hasWork(summary), change: change ?? { added: [], gone: [] } })) {
           gh(call.map((a) => (a === "{body}" ? bodyFile : a)));
         }
       } finally {

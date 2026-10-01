@@ -16,7 +16,10 @@
 // drop a refuted finding; blanked strings and emptied objects are listed apart
 // as probably harmless; and the publish plan creates, rewrites, comments,
 // closes and reopens exactly when it should. Through a fake `gh` on PATH, the
-// command's `--report --publish` and `--failed` end to end.
+// command's `--report --publish` and `--failed` end to end; through a fake
+// `npx` in a throwaway repository, `--run` end to end: its record, the
+// confirm step's verdicts and their cache, an interrupted run, and the
+// refusals of a dirty package and of a file outside it.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -32,17 +35,21 @@ import {
   confirmFindings,
   findingKey,
   hasWork,
+  keepVerdicts,
   keysFromBody,
+  MAX_BODY,
   oneLine,
   publishPlan,
   readTargets,
   reasonlessDisables,
+  relatedOutcome,
   renderIssue,
   sliceSource,
   strykerConfig,
   summarize,
   targetMarker,
   toConfirm,
+  verdictsOf,
 } from "./mutation-sweep.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mutation-sweep.mjs");
@@ -230,39 +237,95 @@ test("a change is applied by its exact location", () => {
   assert.equal(applyChange("ab\ncd\nef", { start: { line: 1, column: 2 }, end: { line: 3, column: 2 } }, "X"), "aXf");
 });
 
-test("the confirm step keeps a finding only when the related tests stay green, and always restores the file", () => {
+test("a related run is red only when a test failed, green only when tests ran and passed, and interrupted when killed", () => {
+  const report = (total, failed, failedSuites = 0) => ({ numTotalTests: total, numFailedTests: failed, numFailedTestSuites: failedSuites, testResults: [] });
+  assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 2)), "red");
+  assert.equal(relatedOutcome({ status: 0, signal: null }, report(5, 0)), "green");
+  assert.equal(relatedOutcome({ status: null, signal: "SIGINT" }, report(5, 2)), "interrupted");
+  assert.equal(relatedOutcome({ status: 1, signal: null }, undefined), "inconclusive", "no report: a crash proves nothing");
+  assert.equal(relatedOutcome({ status: 1, signal: null }, report(0, 0)), "inconclusive", "no test ran");
+  assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0, 1)), "inconclusive", "a file that failed to load, as when an engine is down");
+  assert.equal(relatedOutcome({ status: 1, signal: null }, report(5, 0)), "inconclusive", "red exit with no failed test");
+});
+
+/** A package directory holding SOURCE as src/gate/allowed.ts, and the two findings on its line 2. */
+function confirmFixture() {
   const dir = mkdtempSync(join(tmpdir(), "mutation-sweep-confirm-"));
+  mkdirSync(join(dir, "src/gate"), { recursive: true });
+  writeFileSync(join(dir, "src/gate/allowed.ts"), SOURCE);
+  const summary = summarize(
+    report([mutant("1", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0"), mutant("2", "Survived", "LogicalOperator", 2, 7, 28, "used < cap || cap > 0")]),
+    "pkg",
+  );
+  return { dir, file: join(dir, "src/gate/allowed.ts"), findings: toConfirm(summary) };
+}
+
+test("the confirm step keeps a finding only when the related tests stay green, and always restores the file", () => {
+  const { dir, file, findings } = confirmFixture();
   try {
-    mkdirSync(join(dir, "src/gate"), { recursive: true });
-    const file = join(dir, "src/gate/allowed.ts");
-    writeFileSync(file, SOURCE);
-    const summary = summarize(
-      report([mutant("1", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0"), mutant("2", "Survived", "LogicalOperator", 2, 7, 28, "used < cap || cap > 0")]),
-      "pkg",
-    );
     const seen = [];
-    const { verdicts, interrupted } = confirmFindings(toConfirm(summary), dir, {
+    const { verdicts, interrupted } = confirmFindings(findings, dir, {
       isClean: () => true,
+      hashFile: (test) => `hash-of-${test}`,
       runRelated: (relativePath) => {
         const text = readFileSync(join(dir, relativePath), "utf8");
         seen.push(text.split("\n")[1]);
-        return text.includes("cap >= 0");
+        return { outcome: text.includes("||") ? "red" : "green", tests: ["src/gate/__tests__/allowed.test.ts"] };
       },
     });
     assert.equal(interrupted, false);
-    assert.deepEqual(seen, ["  if (used < cap || cap > 0) return true;", "  if (used < cap && cap >= 0) return true;"]);
-    assert.deepEqual(Object.values(verdicts), [false, true]);
+    assert.deepEqual(seen, [SOURCE.split("\n")[1], "  if (used < cap || cap > 0) return true;", "  if (used < cap && cap >= 0) return true;"], "one unchanged run first, then each change");
+    assert.deepEqual(Object.values(verdicts).map((v) => v.verdict), [false, true]);
+    assert.deepEqual(Object.values(verdicts)[0].tests, { "src/gate/__tests__/allowed.test.ts": "hash-of-src/gate/__tests__/allowed.test.ts" });
     assert.equal(readFileSync(file, "utf8"), SOURCE);
 
     assert.throws(
-      () => confirmFindings(toConfirm(summary), dir, { isClean: () => true, runRelated: () => { throw new Error("vitest crashed"); } }),
+      () => confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated: (p) => { if (readFileSync(join(dir, p), "utf8") !== SOURCE) throw new Error("vitest crashed"); return { outcome: "green", tests: [] }; } }),
       /vitest crashed/,
     );
     assert.equal(readFileSync(file, "utf8"), SOURCE, "a crash mid-run still restores the file");
-    assert.throws(() => confirmFindings(toConfirm(summary), dir, { isClean: () => false, runRelated: () => true }), /uncommitted changes/);
+    assert.throws(() => confirmFindings(findings, dir, { isClean: () => false, hashFile: () => "h", runRelated: () => ({ outcome: "green", tests: [] }) }), /uncommitted changes/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("an interrupted or unclear run gives no verdict, and tests not green before any change skip the file", () => {
+  const { dir, file, findings } = confirmFixture();
+  try {
+    let calls = 0;
+    const interruptedRun = confirmFindings(findings, dir, {
+      isClean: () => true,
+      hashFile: () => "h",
+      runRelated: () => (++calls === 1 ? { outcome: "green", tests: [] } : { outcome: "interrupted", tests: [] }),
+    });
+    assert.deepEqual(interruptedRun, { verdicts: {}, interrupted: true });
+    assert.equal(calls, 2, "it stops at the interruption");
+    assert.equal(readFileSync(file, "utf8"), SOURCE);
+
+    const unclear = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated: (p) => ({ outcome: readFileSync(join(dir, p), "utf8") === SOURCE ? "green" : "inconclusive", tests: [] }) });
+    assert.deepEqual(unclear.verdicts, {});
+
+    const logged = [];
+    const redFirst = confirmFindings(findings, dir, { isClean: () => true, hashFile: () => "h", runRelated: () => ({ outcome: "red", tests: [] }), log: (l) => logged.push(l) });
+    assert.deepEqual(redFirst.verdicts, {}, "a red run before any change would read as a catch");
+    assert.match(logged[0], /red before any change, so 2 finding\(s\) stay not re-checked/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a cached verdict is kept only while its finding is reported and the tests that judged it are unchanged", () => {
+  const cached = {
+    "a@1": { verdict: false, tests: { "t/x.test.ts": "h1" } },
+    "b@1": { verdict: true, tests: { "t/x.test.ts": "h1", "t/y.test.ts": "h2" } },
+    "c@1": { verdict: true, tests: {} },
+    "d@1": { verdict: false, tests: { "t/gone.test.ts": "h3" } },
+  };
+  const hashes = { "t/x.test.ts": "h1", "t/y.test.ts": "changed" };
+  const kept = keepVerdicts(cached, new Set(["a@1", "b@1", "d@1"]), (t) => hashes[t]);
+  assert.deepEqual(Object.keys(kept), ["a@1"], "b: a test changed; c: no longer reported; d: its test is gone");
+  assert.deepEqual(verdictsOf(kept), { "a@1": false });
 });
 
 test("a run with no mutants judged has no score", () => {
@@ -313,6 +376,17 @@ test("a body over the listing budget says how many more there are", () => {
   assert.match(body, /…and 30 more/);
   assert.equal(keysFromBody(body).length, 230);
   assert.ok(body.length < 65_536);
+});
+
+test("a body never passes GitHub's limit: too many keys are left out and marked partial", () => {
+  const many = Array.from({ length: 5000 }, (_, i) => mutant(String(i), i % 2 ? "Survived" : "NoCoverage", "ConditionalExpression", 1, 1, 2, `v${i}`));
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(report(many, "e\n"), "pkg") });
+  assert.ok(body.length <= MAX_BODY, `${body.length} characters`);
+  assert.equal(keysFromBody(body), undefined, "the next run cannot compare against a partial list");
+  const some = Array.from({ length: 1000 }, (_, i) => mutant(String(i), "Survived", "ConditionalExpression", 1, 1, 2, `v${i}`));
+  const full = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(report(some, "e\n"), "pkg") });
+  assert.ok(full.body.length <= MAX_BODY, `${full.body.length} characters`);
+  assert.equal(keysFromBody(full.body).length, 1000);
 });
 
 test("a body with no findings says the issue closes itself", () => {
@@ -467,4 +541,159 @@ test("a usage error exits 2 and names the problem", () => {
   const both = spawnSync(process.execPath, [SCRIPT, "--targets", "x", "--report", "--failed"], { encoding: "utf8" });
   assert.equal(both.status, 2);
   assert.match(both.stderr, /exactly one of/);
+});
+
+// ─── --run, through a fake npx in a throwaway repository ────────────────
+
+/**
+ * A git repository holding one package with SOURCE in it, and a fake `npx`
+ * on PATH that plays Stryker (it writes `FAKE_REPORT` where the config asks)
+ * and vitest (red when the file under test contains `FAKE_RED_TEXT`, killed
+ * by SIGINT on a changed file when `FAKE_VITEST=signal`, no tests run when
+ * `FAKE_VITEST=none`, red on the unchanged file when `FAKE_VITEST=red`). Every
+ * vitest call is logged, one line each.
+ */
+function runFixture() {
+  const dir = mkdtempSync(join(tmpdir(), "mutation-sweep-run-"));
+  const repo = join(dir, "repo");
+  const pkg = join(repo, "backend/services/example");
+  mkdirSync(join(pkg, "src/gate/__tests__"), { recursive: true });
+  writeFileSync(join(pkg, "package.json"), "{}\n");
+  writeFileSync(join(pkg, "src/gate/allowed.ts"), SOURCE);
+  writeFileSync(join(pkg, "src/gate/__tests__/allowed.test.ts"), "// the gate's tests\n");
+  writeFileSync(join(dir, "targets.json"), JSON.stringify({ targets: { "credit-gate": TARGET } }));
+  const git = (...args) => spawnSync("git", args, { cwd: repo, encoding: "utf8" });
+  git("init", "-q");
+  git("add", "-A");
+  git("-c", "user.name=t", "-c", "user.email=t@example.test", "commit", "-q", "-m", "fixture");
+  writeFileSync(
+    join(dir, "report.json"),
+    JSON.stringify(report([mutant("1", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0"), mutant("2", "Survived", "LogicalOperator", 2, 7, 28, "used < cap || cap > 0")])),
+  );
+  const bin = join(dir, "bin");
+  mkdirSync(bin);
+  writeFileSync(
+    join(bin, "npx"),
+    `#!${process.execPath}
+const { appendFileSync, copyFileSync, readFileSync, writeFileSync } = require("node:fs");
+const { join, resolve } = require("node:path");
+const args = process.argv.slice(2);
+if (args[1] === "stryker") {
+  const config = JSON.parse(readFileSync(args[3], "utf8"));
+  copyFileSync(process.env.FAKE_REPORT, config.jsonReporter.fileName);
+  process.exit(0);
+}
+const file = args[4];
+const out = args.find((a) => a.startsWith("--outputFile=")).slice("--outputFile=".length);
+const text = readFileSync(file, "utf8");
+const changed = !text.includes("used < cap && cap > 0");
+appendFileSync(process.env.FAKE_LOG, (changed ? "changed " : "unchanged ") + file + "\\n");
+const mode = process.env.FAKE_VITEST ?? "";
+if (mode === "signal" && changed) process.kill(process.pid, "SIGINT");
+const red = (mode === "red" && !changed) || (process.env.FAKE_RED_TEXT && changed && text.includes(process.env.FAKE_RED_TEXT));
+const tests = mode === "none" ? [] : [resolve("src/gate/__tests__/allowed.test.ts")];
+writeFileSync(out, JSON.stringify({ numTotalTests: tests.length, numFailedTests: red ? 1 : 0, numFailedTestSuites: 0, testResults: tests.map((name) => ({ name })) }));
+process.exit(red ? 1 : 0);
+`,
+  );
+  chmodSync(join(bin, "npx"), 0o755);
+  const log = join(dir, "vitest.log");
+  const run = (env = {}, extra = []) =>
+    spawnSync(process.execPath, [SCRIPT, "--targets", join(dir, "targets.json"), "--run", "credit-gate", "--out", join(dir, "out"), ...extra], {
+      cwd: repo,
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FAKE_REPORT: join(dir, "report.json"), FAKE_LOG: log, FAKE_RED_TEXT: "||", ...env },
+    });
+  const calls = () => {
+    try {
+      return readFileSync(log, "utf8").trim().split("\n").filter(Boolean);
+    } catch {
+      return [];
+    }
+  };
+  const confirmed = () => JSON.parse(readFileSync(join(dir, "out/credit-gate/confirmed.json"), "utf8"));
+  return { dir, repo, pkg, run, calls, confirmed, resetLog: () => rmSync(log, { force: true }) };
+}
+
+test("--run writes the target's record, confirms one finding, refutes the other, and leaves the tree clean", () => {
+  const f = runFixture();
+  try {
+    const out = f.run();
+    assert.equal(out.status, 0, out.stderr);
+    const meta = JSON.parse(readFileSync(join(f.dir, "out/credit-gate/target.json"), "utf8"));
+    assert.equal(meta.target, "credit-gate");
+    assert.equal(meta.package, TARGET.package);
+    assert.match(meta.commit, /^[0-9a-f]{40}$/);
+    const config = JSON.parse(readFileSync(join(f.dir, "out/credit-gate/stryker.config.json"), "utf8"));
+    assert.equal(config.jsonReporter.fileName, join(f.dir, "out/credit-gate/mutation.json"));
+    assert.deepEqual(f.calls().map((c) => c.split(" ")[0]), ["unchanged", "changed", "changed"]);
+    const verdicts = Object.values(f.confirmed());
+    assert.deepEqual(verdicts.map((v) => v.verdict).sort(), [false, true]);
+    assert.deepEqual(Object.keys(verdicts[0].tests), ["src/gate/__tests__/allowed.test.ts"]);
+    assert.equal(readFileSync(join(f.pkg, "src/gate/allowed.ts"), "utf8"), SOURCE);
+    assert.equal(spawnSync("git", ["status", "--porcelain"], { cwd: f.repo, encoding: "utf8" }).stdout, "");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run reuses cached verdicts, and judges again once a test that judged them changes", () => {
+  const f = runFixture();
+  try {
+    assert.equal(f.run().status, 0);
+    f.resetLog();
+    assert.equal(f.run().status, 0);
+    assert.deepEqual(f.calls(), [], "both findings were judged and nothing changed");
+    assert.equal(Object.keys(f.confirmed()).length, 2);
+    writeFileSync(join(f.pkg, "src/gate/__tests__/allowed.test.ts"), "// the gate's tests, weakened\n");
+    spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.test", "commit", "-q", "-am", "edit the test"], { cwd: f.repo });
+    f.resetLog();
+    assert.equal(f.run().status, 0);
+    assert.equal(f.calls().length, 3, "the edited test invalidates both verdicts");
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run interrupted mid-confirm exits 130, records no verdict for the run that was killed, and restores the file", () => {
+  const f = runFixture();
+  try {
+    const out = f.run({ FAKE_VITEST: "signal" });
+    assert.equal(out.status, 130, out.stderr);
+    assert.match(out.stderr, /interrupted/);
+    assert.deepEqual(f.confirmed(), {});
+    assert.equal(readFileSync(join(f.pkg, "src/gate/allowed.ts"), "utf8"), SOURCE);
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
+test("--run records nothing when no test ran, or when the tests are red before any change", () => {
+  for (const mode of ["none", "red"]) {
+    const f = runFixture();
+    try {
+      const out = f.run({ FAKE_VITEST: mode });
+      assert.equal(out.status, 0, out.stderr);
+      assert.deepEqual(f.confirmed(), {}, mode);
+    } finally {
+      rmSync(f.dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test("--run refuses a package with uncommitted changes, and an --only file outside the package", () => {
+  const f = runFixture();
+  try {
+    writeFileSync(join(f.pkg, "src/gate/allowed.ts"), `${SOURCE}// an edit\n`);
+    const dirty = f.run();
+    assert.equal(dirty.status, 2);
+    assert.match(dirty.stderr, /backend\/services\/example has uncommitted changes/);
+    spawnSync("git", ["checkout", "--", "."], { cwd: f.repo });
+    const outside = f.run({}, ["--only", join(f.repo, "elsewhere.ts")]);
+    assert.equal(outside.status, 2);
+    assert.match(outside.stderr, /is not inside backend\/services\/example/);
+    assert.deepEqual(f.calls(), []);
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
 });
