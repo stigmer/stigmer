@@ -33,12 +33,12 @@
  *   7. one AGENT RUN answered by a model: the stack is configured the way
  *      the guide tells a user to (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL
  *      in the env file), pointed at a fake Anthropic API on this host
- *      (scripts/lib/fake-model.mjs), and the run must complete with the
+ *      (test/install/lib/fake-model.mjs), and the run must complete with the
  *      fake's reply as its last message;
  *   8. clean teardown (`docker compose down --volumes`).
  *
  * Usage:
- *   node scripts/smoke-compose.mjs --build
+ *   node test/install/smoke-compose.mjs --build
  *       Builds both images from source via docker-compose.dev.yml. Both
  *       images COPY staged inputs: the server image a prebuilt slim tree
  *       (`make build-server build-web` and `node backend/services/
@@ -46,7 +46,7 @@
  *       tarballs it installs (`make stage-compose-runner-cli`). `make
  *       smoke-compose` does all of it.
  *
- *   node scripts/smoke-compose.mjs --published --version=vX.Y.Z
+ *   node test/install/smoke-compose.mjs --published --version=vX.Y.Z
  *       Pulls the published ghcr.io images at that tag (the release
  *       lane's mode; requires the tags to exist).
  *
@@ -56,7 +56,7 @@
  *             so step 7 must fail — the red-first check of that step.
  *
  * How the stack is brought up and torn down (the env file, the override,
- * the source build) is scripts/lib/install-compose.mjs, the one boot the
+ * the source build) is test/install/lib/install-compose.mjs, the one boot the
  * upgrade rehearsal shares. The stack publishes fixed host ports 7234/7235
  * (the product contract), so this smoke refuses to start if they are
  * occupied — stop any running `stigmer up` or compose stack first. Keys are
@@ -145,7 +145,7 @@ async function main() {
     log("health service: SERVING");
 
     // 2. The console lane (DD-012) through the compose topology: the one
-    // trusted-local /config.json document (scripts/lib/stigmer-smoke.mjs).
+    // trusted-local /config.json document (test/install/lib/stigmer-smoke.mjs).
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
 

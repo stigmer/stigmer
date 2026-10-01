@@ -27,7 +27,7 @@
  *      packages get, the shape a laptop's `stigmer up` acquires); then an
  *      agent answers: the container is started the way a user configures a
  *      model (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), pointed at a fake
- *      Anthropic API on this host (scripts/lib/fake-model.mjs), and the
+ *      Anthropic API on this host (test/install/lib/fake-model.mjs), and the
  *      run must complete with the fake's reply as its last message;
  *   6. the artifact file server answers on its published port;
  *   7. state survives `docker restart`, the agent's reply included;
@@ -44,7 +44,7 @@
  *      not execute — the words a first-time user reads.
  *
  * Usage:
- *   node scripts/smoke-all-in-one.mjs [--image=TAG] [--fake-model=error]
+ *   node test/install/smoke-all-in-one.mjs [--image=TAG] [--fake-model=error]
  *
  *   Without --image: builds a local image from deploy/all-in-one/stage
  *   (stage-all-in-one.mjs must have run; `make smoke-all-in-one` does both).
@@ -53,7 +53,7 @@
  *   step 5's agent run must fail — the red-first check of that step.
  *
  * How the container is built, run and read (its flags, its published ports,
- * its health, its diagnostics) is scripts/lib/install-all-in-one.mjs, the
+ * its health, its diagnostics) is test/install/lib/install-all-in-one.mjs, the
  * one boot the upgrade rehearsal shares.
  *
  * Plain node + docker CLI, no dependencies — runnable everywhere CI is.

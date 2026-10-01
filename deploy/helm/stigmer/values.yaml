@@ -329,5 +329,5 @@ licenseKeySecret: ""
 #   TLS inside the pod — terminate the API's at the Ingress, as behind
 #     Caddy or nginx with compose. (TLS to an external Temporal is
 #     externalTemporal.tls.)
-#   helm test hooks — the smoke (scripts/smoke-helm.mjs) is the proof and
+#   helm test hooks — the smoke (test/install/smoke-helm.mjs) is the proof and
 #     runs the same probes as the compose stack and the all-in-one.

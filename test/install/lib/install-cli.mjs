@@ -2,8 +2,8 @@
  * The CLI's `stigmer up` stack as an install a script can bring up, move to
  * another release, and take down, in an isolated home: the one place that
  * knows how the CLI is installed and started, shared by its smoke
- * (scripts/smoke-cli-cutover.mjs) and the upgrade rehearsal
- * (scripts/rehearse-upgrade.mjs).
+ * (test/install/smoke-cli-cutover.mjs) and the upgrade rehearsal
+ * (test/install/rehearse-upgrade.mjs).
  *
  * Two ways to have a `stigmer`:
  *   - a published release, installed by site/public/install.sh into the
@@ -42,10 +42,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { configuredRegistry, installGap, waitForRegistry } from "../publish-standalone.mjs";
+import { configuredRegistry, installGap, waitForRegistry } from "../../../scripts/publish-standalone.mjs";
 import { CLI_PACKAGES } from "./published-release.mjs";
 
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const cliEntry = join(repoRoot, "client-apps", "cli", "src", "cli", "stigmer.ts");
 // tsx is hoisted to the workspace root's bin by npm workspaces.
 const tsxBin = join(repoRoot, "node_modules", ".bin", "tsx");

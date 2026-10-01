@@ -5,7 +5,7 @@
  * first, and the images, the all-in-one image and the Helm chart later, each
  * after its own smokes. So while a release runs, and for good when one of its
  * later pushes is held, the newest version on npm has no image or chart yet.
- * The upgrade rehearsal (scripts/rehearse-upgrade.mjs) picks its base with
+ * The upgrade rehearsal (test/install/rehearse-upgrade.mjs) picks its base with
  * this rule, not from the npm version list alone.
  *
  * Read from the public registries without credentials: ghcr.io's anonymous
@@ -17,7 +17,7 @@
  * Plain node and fetch, no dependencies, like its neighbours.
  */
 
-import { configuredRegistry, installGap } from "../publish-standalone.mjs";
+import { configuredRegistry, installGap } from "../../../scripts/publish-standalone.mjs";
 import { ALL_IN_ONE_REPOSITORY } from "./install-all-in-one.mjs";
 import { PUBLISHED_CHART } from "./install-helm.mjs";
 

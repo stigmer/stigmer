@@ -33,8 +33,8 @@ import {
  *   Run via `make test-e2e-approval`.
  *
  * - **console-login**: the served console signing in to an authenticated
- *   self-hosted server (20260913.02, stigmer#924), against the conformance
- *   harness's hermetic OIDC issuer run as a process (opt-in via
+ *   self-hosted server (stigmer#924), against test/support's hermetic OIDC
+ *   issuer run as a process (opt-in via
  *   STIGMER_E2E_OIDC). One Playwright invocation boots exactly one stack, so
  *   this is its own invocation: `make test-e2e-console-login`. The spec skips
  *   visibly without the flag.

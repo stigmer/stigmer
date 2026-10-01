@@ -8,9 +8,9 @@
  * For --artifact=compose, all-in-one, helm or cli, one pass:
  *   1. installs --from (default: the newest stable release below --to whose
  *      artifacts for this install are all published,
- *      scripts/lib/published-release.mjs) the way its guide says, with the
+ *      test/install/lib/published-release.mjs) the way its guide says, with the
  *      model a user configures pointed at the fake on this host
- *      (scripts/lib/fake-model.mjs), and checks that the
+ *      (test/install/lib/fake-model.mjs), and checks that the
  *      server reports that release (getServerInfo);
  *   2. records state: a workflow run, and an agent run answered by the
  *      model, each in an organization of its own, every resource read back;
@@ -44,11 +44,11 @@
  * pushed. The base is always installed from the published chart.
  *
  * Each install is brought up by the same driver its smoke uses
- * (scripts/lib/install-*.mjs), so the rehearsal and the smoke can never boot
+ * (test/install/lib/install-*.mjs), so the rehearsal and the smoke can never boot
  * an artifact differently.
  *
  * Usage:
- *   node scripts/rehearse-upgrade.mjs --artifact=<compose|all-in-one|helm|cli>
+ *   node test/install/rehearse-upgrade.mjs --artifact=<compose|all-in-one|helm|cli>
  *       [--from=X.Y.Z] [--to=build|X.Y.Z[-pre]] [--chart=<dir|.tgz>] [--keep]
  *
  *   --keep   leave the upgraded install running for debugging (the fake
@@ -85,7 +85,7 @@ import {
   profileValues,
 } from "./lib/install-helm.mjs";
 import { PUBLISHED_IMAGES, unpublishedArtifact } from "./lib/published-release.mjs";
-import { sourceBuildVersion } from "./lib/source-version.mjs";
+import { sourceBuildVersion } from "../../scripts/lib/source-version.mjs";
 import {
   assertPortFree,
   assertStateSurvived,

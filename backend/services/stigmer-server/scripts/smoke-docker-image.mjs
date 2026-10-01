@@ -18,7 +18,7 @@
  *   2. the real health service answers SERVING over the Connect JSON lane
  *      (wiring-complete, not merely port-bound);
  *   3. the console is served: /config.json is the trusted-local document
- *      (the shared probe in scripts/lib/stigmer-smoke.mjs; #1087) and /
+ *      (the shared probe in test/install/lib/stigmer-smoke.mjs; #1087) and /
  *      answers HTML — DD-012's restoration must survive packaging;
  *   4. a CRUD round-trip (Organization create → get) through the Connect
  *      JSON lane;
@@ -48,7 +48,7 @@ import { fileURLToPath } from "node:url";
 import {
   assertConsoleServed,
   connectJson,
-} from "../../../../scripts/lib/stigmer-smoke.mjs";
+} from "../../../../test/install/lib/stigmer-smoke.mjs";
 
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -193,7 +193,7 @@ async function main() {
     log("health service: SERVING");
 
     // 3. The console lane (DD-012): the one trusted-local /config.json
-    // document and a real page (scripts/lib/stigmer-smoke.mjs).
+    // document and a real page (test/install/lib/stigmer-smoke.mjs).
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
 

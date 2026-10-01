@@ -22,7 +22,7 @@
  *      a model: the release is installed the way the chart's README tells a
  *      user to configure one (runner.llm.existingSecret for the key,
  *      runner.extraEnv for ANTHROPIC_BASE_URL), pointed at a fake Anthropic
- *      API on this host (scripts/lib/fake-model.mjs), which the pods reach
+ *      API on this host (test/install/lib/fake-model.mjs), which the pods reach
  *      by host.docker.internal where the kind node resolves it (Docker
  *      Desktop) and by the kind network's gateway otherwise (Linux);
  *   3. (bundled profile) the adversarial arms: the bundled Temporal admits
@@ -38,7 +38,7 @@
  * externalTemporal wiring against them.
  *
  * Usage:
- *   node scripts/smoke-helm.mjs --build
+ *   node test/install/smoke-helm.mjs --build
  *       Builds both images from source through docker-compose.dev.yml (the
  *       compose gate's own path; run `make build-server build-web
  *       stage-compose-runner-cli` and bundle-slim first — make smoke-helm
@@ -46,7 +46,7 @@
  *       `compose-dev`, loads them into kind and installs with pullPolicy
  *       Never.
  *
- *   node scripts/smoke-helm.mjs --published --version=vX.Y.Z
+ *   node test/install/smoke-helm.mjs --published --version=vX.Y.Z
  *       Installs the chart pointing at the published ghcr.io images at that
  *       tag (the release lane's mode).
  *
@@ -58,7 +58,7 @@
  *                            so the agent run must fail (its red-first check)
  *
  * How the cluster and each release are brought up, forwarded and torn down
- * is scripts/lib/install-helm.mjs, the one boot the upgrade rehearsal
+ * is test/install/lib/install-helm.mjs, the one boot the upgrade rehearsal
  * shares. The caller's kubeconfig and current context are never changed: a
  * cluster the smoke creates has a kubeconfig of its own, and --cluster is
  * addressed by --context. The port-forward uses the product's fixed ports

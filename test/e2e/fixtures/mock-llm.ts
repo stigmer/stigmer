@@ -29,7 +29,7 @@
 import { appendFileSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { MockLlmProxy, type AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
+import { MockLlmProxy, type AnthropicMessageBody, type CapturedLlmRequest } from "@stigmer/test-support/mock-llm";
 import { diagEnabled, diagLogPath } from "./diag";
 
 // The turn builders the helpers script with, from the one wire module the
@@ -55,7 +55,7 @@ export interface MockLlmEndpoints {
 type EnqueueRequest = AnthropicMessageBody | { body: AnthropicMessageBody; delayMs?: number };
 
 class MockLlmControl {
-  private readonly proxy = new MockLlmProxy();
+  private readonly proxy = new MockLlmProxy(diagEnabled() ? { onCapture: (request) => this.logRequest(request) } : {});
   private control: Server | undefined;
 
   async start(): Promise<MockLlmEndpoints> {
@@ -75,7 +75,6 @@ class MockLlmControl {
   }
 
   async close(): Promise<void> {
-    if (diagEnabled()) this.writeDiagLog();
     const control = this.control;
     this.control = undefined;
     if (control !== undefined) await new Promise<void>((resolve) => control.close(() => resolve()));
@@ -92,8 +91,8 @@ class MockLlmControl {
       return;
     }
     if (req.method === "POST" && path === "/__mock/reset") {
-      if (diagEnabled()) this.writeDiagLog();
       this.proxy.reset();
+      if (diagEnabled()) appendDiagLine(`${new Date().toISOString()} --- reset: the next test's script starts here\n`);
       writeJson(res, 200, { ok: true });
       return;
     }
@@ -108,24 +107,24 @@ class MockLlmControl {
     writeJson(res, 404, { error: `MockLlmProxy control: unknown path ${req.method} ${path}` });
   }
 
-  // STIGMER_E2E_DIAG (fixtures/diag.ts): every request the proxy answered since
-  // the last reset, in arrival order, one line each, appended before the reset
-  // drops them. The shared proxy records no arrival time, so each block is
-  // stamped once with the time it was flushed (a reset or the teardown), and
-  // the stream flag is read from the captured body.
-  private writeDiagLog(): void {
-    try {
-      const requests = this.proxy.requests();
-      if (requests.length === 0) return;
-      const lines = [`--- flushed ${new Date().toISOString()}: ${requests.length} request(s), ${this.proxy.remaining()} turn(s) still queued\n`];
-      for (const request of requests) {
-        const streaming = typeof request.body === "object" && request.body !== null && (request.body as { stream?: unknown }).stream === true;
-        lines.push(`LLM path=${request.path} streaming=${streaming} served=${request.disposition}\n`);
-      }
-      appendFileSync(diagLogPath("mock"), lines.join(""));
-    } catch {
-      // Diagnostics never fail the stack they observe.
-    }
+  // STIGMER_E2E_DIAG (fixtures/diag.ts): one line per model call as it
+  // arrives, stamped with its arrival time, so the log lines up with the
+  // runner's and the server's and survives a run killed before teardown.
+  private logRequest(request: CapturedLlmRequest): void {
+    const streaming = typeof request.body === "object" && request.body !== null && (request.body as { stream?: unknown }).stream === true;
+    appendDiagLine(
+      `${new Date(request.receivedAt).toISOString()} LLM path=${request.path} streaming=${streaming} served=${request.disposition} remaining=${this.proxy.remaining()}\n`,
+    );
+  }
+}
+
+// Appends one line to the STIGMER_E2E_DIAG mock log; diagnostics never fail
+// the stack they observe.
+function appendDiagLine(line: string): void {
+  try {
+    appendFileSync(diagLogPath("mock"), line);
+  } catch {
+    // Unwritable log: the run goes on without it.
   }
 }
 

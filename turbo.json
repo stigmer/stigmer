@@ -161,8 +161,9 @@
       "cache": false
     },
 
-    // The repository root's own suites: scripts/**, scripts/lib/** and the
-    // Helm chart's tests, the globs in the root `test:root` script, which
+    // The repository root's own suites: scripts/**, scripts/lib/**, the
+    // install layer's test/install/** and test/install/lib/**, and the Helm
+    // chart's tests, the globs in the root `test:root` script, which
     // `npm run test:scripts` reaches through scripts/turbo-set.mjs's root set.
     // A root suite that imports a workspace package's build output declares
     // that package's build here, so every caller gets it first:
