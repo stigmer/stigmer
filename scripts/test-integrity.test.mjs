@@ -459,6 +459,7 @@ it("reaching a service is a value use of its entry point; types, strings and an 
   // A module, as every test file is: in a script a top-level `await (...)` parses as a call.
   assert.deepEqual(services(`import { it } from "vitest";\nconst env = await (await import("@temporalio/testing")).TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
   assert.deepEqual(services(`const testing = await import("@temporalio/testing"); await testing.TestWorkflowEnvironment.createLocal();`), ["temporal"]);
+  assert.deepEqual(services(`import testing from "@temporalio/testing"; await testing.TestWorkflowEnvironment.createLocal();`), ["temporal"]);
   // A member of anything else is not the package's: an in-file fake reaches nothing.
   assert.deepEqual(services(`const fake = makeFake(); await fake.TestWorkflowEnvironment.createLocal();`), []);
   assert.deepEqual(services(`import { MockActivityEnvironment } from "@temporalio/testing"; new MockActivityEnvironment();`), []);

@@ -460,7 +460,8 @@ export function scanModule(ts, path, text) {
   // `const { TestWorkflowEnvironment: TWE } = await import("@temporalio/testing")`.
   const local = new Map([...POSTGRES_CALLS, "gateDependency", TEMPORAL_ENVIRONMENT].map((name) => [name, name]));
   // Names bound to the package itself: `import * as testing from "@temporalio/testing"`,
-  // `const testing = await import("@temporalio/testing")`.
+  // `import testing from "@temporalio/testing"`, `const testing = await import("@temporalio/testing")`.
+  // A test file is a module (it imports its runner), so a top-level `await (...)` parses as an await.
   const temporalPackage = new Set();
   const isTemporalImport = (expr) => {
     let e = expr;
@@ -472,6 +473,8 @@ export function scanModule(ts, path, text) {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === TEMPORAL_TESTING) {
       const bindings = node.importClause?.namedBindings;
       if (bindings && ts.isNamespaceImport(bindings)) temporalPackage.add(bindings.name.text);
+      // A default import of the CommonJS package is the package too.
+      if (node.importClause?.name && !node.importClause.isTypeOnly) temporalPackage.add(node.importClause.name.text);
     }
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && isTemporalImport(node.initializer)) temporalPackage.add(node.name.text);
     if (ts.isImportSpecifier(node) && node.propertyName && local.has(node.propertyName.text)) local.set(node.name.text, node.propertyName.text);
