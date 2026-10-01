@@ -65,4 +65,6 @@ never empty:
 
 - `none found`, followed in parentheses by the questions the change was read
   against, so a reader can tell a clean reading from one that never looked;
+- `none found (no question applies)`, exactly, when the change touches none of
+  them, a change to prose alone for one;
 - otherwise, the concern in one sentence. The finding carries the detail.
