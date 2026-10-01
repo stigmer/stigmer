@@ -1,8 +1,8 @@
 /**
  * What a list read costs at production's shape, measured on both drivers.
- * Gated on `STORE_MEASURE=1` and SKIPPED otherwise (the
- * `AUTHORIZATION_MEASURE` idiom of authorization/__tests__/
- * list-read-scope.measure.test.ts): seeding tens of megabytes takes a
+ * It is the load class, like authorization/__tests__/
+ * list-read-scope.load.test.ts: only `vitest.load.config.ts` collects it
+ * (`npm run test:load`, by hand), because seeding tens of megabytes takes a
  * while, and the numbers are recorded beside the change that moves them,
  * not asserted — no budget is ruled for open source.
  *
@@ -44,7 +44,6 @@ import {
 import type { TestDatabase } from "../postgres/__tests__/support.js";
 import { tempStore } from "../sqlite/__tests__/support.js";
 
-const MEASURE = process.env["STORE_MEASURE"] === "1";
 
 const ORGS = 12;
 const EXECUTIONS = 1_279;
@@ -259,7 +258,7 @@ afterAll(async () => {
   await postgresDatabase?.drop();
 });
 
-describe.skipIf(!MEASURE)("list reads at production's shape", () => {
+describe("list reads at production's shape", () => {
   describe.each(DRIVERS)("$name", (driver) => {
     it.skipIf(driver.skip)(
       "times every shape",

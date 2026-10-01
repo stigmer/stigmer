@@ -41,7 +41,7 @@
  * propagates — an outage must never read as "no grant".
  *
  * The port's contract is proven by store-contract.ts, run over this
- * adapter on both drivers in __tests__/resource-store.test.ts, which also
+ * adapter on both drivers in __tests__/resource-store.postgres.test.ts, which also
  * pins the derived-id refusal that is this adapter's own.
  */
 import { fromBinary } from "@bufbuild/protobuf";

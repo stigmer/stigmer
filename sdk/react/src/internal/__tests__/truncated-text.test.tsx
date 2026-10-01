@@ -2,7 +2,7 @@
 // truncation replacement, stigmer-cloud#268). Happy-dom can honestly pin
 // the STRUCTURE — full text in the DOM, zero native titles, zero new tab
 // stops; the overflow-gated REVEAL needs real layout and lives in
-// truncated-text.layout.test.tsx.
+// truncated-text.layout.browser.test.tsx.
 
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/react";

@@ -2,7 +2,7 @@
 // Domain: agentic / workflowexecution — proves the engine is wired, not the
 // domain contract.
 //
-// This is deliberately a `.smoke.test.ts`, not a `.conformance.test.ts`: it is
+// This is deliberately a `.harness.test.ts`, not a `.conformance.test.ts`: it is
 // the cheap, permanent guard that the local-execution target (server +
 // Temporal + runner) actually runs an execution end-to-end. The whole
 // WorkflowExecution domain contract lives in workflowexecution.conformance.test.ts.

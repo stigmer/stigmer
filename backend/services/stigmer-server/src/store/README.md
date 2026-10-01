@@ -40,7 +40,7 @@ its index, because a freshly written table has no planner statistics.
 ## Contract and continuity
 
 The behavioral contract both drivers must satisfy identically is
-`__tests__/store-contract.ts`, invoked by each driver's `store-contract.test.ts`
+`__tests__/store-contract.ts`, invoked by each driver's store-contract test (`sqlite/__tests__/store-contract.test.ts`, `postgres/__tests__/store-contract.postgres.test.ts`)
 (sqlite always; Postgres under `TEST_DATABASE_URL` — visible skips locally, a
 real service container in CI). Driver-physical behavior stays in each driver's
 own tests. One deliberate semantic difference is recorded in DD-010: sqlite

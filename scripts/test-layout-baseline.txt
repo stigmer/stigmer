@@ -3,36 +3,6 @@
 # listed finding instead of refusing it, refuses a line whose finding is gone
 # (remove it in the change that fixes the file), and refuses a line the base's
 # list did not carry: the list only shrinks. It is deleted when it is empty.
-layout-service-unnamed backend/services/runner/src/__tests__/dispatch-surface-e2e.test.ts temporal
-layout-service-unnamed backend/services/runner/src/__tests__/golden-e2e.test.ts temporal
-layout-service-unnamed backend/services/runner/src/__tests__/history-encryption-e2e.test.ts temporal
-layout-service-unnamed backend/services/runner/src/__tests__/run-credential-e2e.test.ts temporal
-layout-retired-word backend/services/runner/src/shared/workspace/__tests__/writeback-coordinator.integration.test.ts integration
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/authorizer.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/derived-tuples.test.ts postgres
-layout-retired-word backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.measure.test.ts measure
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.measure.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/list-read-scope.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/organization-directory.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/schedule-fire-caller.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/trusted-local-authorizer.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/authorization/__tests__/unit-owned-kinds.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/domain/iampolicy/__tests__/resource-store.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/domain/identityaccount/__tests__/resource-store.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/domain/platformclient/__tests__/resource-store.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/runnerauth/__tests__/runner-subject-verifier.test.ts postgres
-layout-retired-word backend/services/stigmer-server/src/sandbox/__tests__/docker.integration.test.ts integration
-layout-retired-word backend/services/stigmer-server/src/sandbox/__tests__/local-process.integration.test.ts integration
-layout-retired-word backend/services/stigmer-server/src/store/__tests__/list-index.measure.test.ts measure
-layout-service-unnamed backend/services/stigmer-server/src/store/__tests__/list-index.measure.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/list-index-repair.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/migrations.test.ts postgres
-layout-service-unnamed backend/services/stigmer-server/src/store/postgres/__tests__/store-contract.test.ts postgres
-layout-retired-word backend/services/stigmer-server/src/temporal/__tests__/sdk-logger.e2e.test.ts e2e
-layout-service-unnamed backend/services/stigmer-server/src/temporal/__tests__/sdk-logger.e2e.test.ts temporal
-layout-service-unnamed backend/services/stigmer-server/src/temporal/agentexecution/__tests__/invoke-workflow.test.ts temporal
-layout-service-unnamed backend/services/stigmer-server/src/temporal/schedule/__tests__/tick-workflow.test.ts temporal
-layout-service-unnamed backend/services/stigmer-server/src/temporal/workflowexecution/__tests__/invoke-workflow.test.ts temporal
 layout-placement client-apps/cli/scripts/gen-cli-docs.test.ts
 layout-placement client-apps/cli/src/auth/pkce.test.ts
 layout-placement client-apps/cli/src/auth/token.test.ts
@@ -55,8 +25,7 @@ layout-placement client-apps/cli/src/errors/clierr.test.ts
 layout-placement client-apps/cli/src/local/artifact.test.ts
 layout-placement client-apps/cli/src/local/bootstrap.test.ts
 layout-placement client-apps/cli/src/local/daemon/components.test.ts
-layout-placement client-apps/cli/src/local/daemon/daemon.integration.test.ts
-layout-retired-word client-apps/cli/src/local/daemon/daemon.integration.test.ts integration
+layout-placement client-apps/cli/src/local/daemon/daemon.test.ts
 layout-placement client-apps/cli/src/local/daemon/env.test.ts
 layout-placement client-apps/cli/src/local/daemon/launch.test.ts
 layout-placement client-apps/cli/src/local/daemon/supervisor.test.ts
@@ -89,38 +58,29 @@ layout-placement client-apps/cli/src/output/table.test.ts
 layout-placement client-apps/cli/src/program.test.ts
 layout-placement client-apps/cli/src/registry/aliases.test.ts
 layout-placement client-apps/cli/src/registry/registry.test.ts
-layout-placement client-apps/cli/src/resources/apply/apply.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/apply/apply.integration.test.ts integration
+layout-placement client-apps/cli/src/resources/apply/apply-backend.test.ts
 layout-placement client-apps/cli/src/resources/apply/apply.test.ts
-layout-placement client-apps/cli/src/resources/apply/discovery.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/apply/discovery.integration.test.ts integration
-layout-placement client-apps/cli/src/resources/connect/connect.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/connect/connect.integration.test.ts integration
+layout-placement client-apps/cli/src/resources/apply/discovery.test.ts
+layout-placement client-apps/cli/src/resources/connect/connect.test.ts
 layout-placement client-apps/cli/src/resources/connect/discover.test.ts
 layout-placement client-apps/cli/src/resources/connect/oauth.test.ts
 layout-placement client-apps/cli/src/resources/cursor-pages.test.ts
-layout-placement client-apps/cli/src/resources/diff.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/diff.integration.test.ts integration
+layout-placement client-apps/cli/src/resources/diff-backend.test.ts
 layout-placement client-apps/cli/src/resources/diff.test.ts
 layout-placement client-apps/cli/src/resources/documents.test.ts
 layout-placement client-apps/cli/src/resources/execution-approve.test.ts
+layout-placement client-apps/cli/src/resources/execution-backend.test.ts
 layout-placement client-apps/cli/src/resources/execution-format.test.ts
-layout-placement client-apps/cli/src/resources/execution.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/execution.integration.test.ts integration
 layout-placement client-apps/cli/src/resources/execution.test.ts
 layout-placement client-apps/cli/src/resources/ignore/ignore.test.ts
 layout-placement client-apps/cli/src/resources/mcp/placeholder-resolver.test.ts
 layout-placement client-apps/cli/src/resources/mcp/runtime-env.test.ts
-layout-placement client-apps/cli/src/resources/mutate-verbs.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/mutate-verbs.integration.test.ts integration
+layout-placement client-apps/cli/src/resources/mutate-verbs.test.ts
 layout-placement client-apps/cli/src/resources/picker/tty.test.ts
 layout-placement client-apps/cli/src/resources/plugin.test.ts
-layout-placement client-apps/cli/src/resources/push-download.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/push-download.integration.test.ts integration
-layout-placement client-apps/cli/src/resources/read-completion.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/read-completion.integration.test.ts integration
-layout-placement client-apps/cli/src/resources/read-verbs.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/read-verbs.integration.test.ts integration
+layout-placement client-apps/cli/src/resources/push-download.test.ts
+layout-placement client-apps/cli/src/resources/read-completion.test.ts
+layout-placement client-apps/cli/src/resources/read-verbs.test.ts
 layout-placement client-apps/cli/src/resources/reference.test.ts
 layout-placement client-apps/cli/src/resources/run/agent-exec.test.ts
 layout-placement client-apps/cli/src/resources/run/attachments.test.ts
@@ -129,8 +89,7 @@ layout-placement client-apps/cli/src/resources/run/env.test.ts
 layout-placement client-apps/cli/src/resources/run/header.test.ts
 layout-placement client-apps/cli/src/resources/run/prepare.test.ts
 layout-placement client-apps/cli/src/resources/run/resume.test.ts
-layout-placement client-apps/cli/src/resources/run/workflow-stream.integration.test.ts
-layout-retired-word client-apps/cli/src/resources/run/workflow-stream.integration.test.ts integration
+layout-placement client-apps/cli/src/resources/run/workflow-stream.test.ts
 layout-placement client-apps/cli/src/resources/run/workspace.test.ts
 layout-placement client-apps/cli/src/resources/share.test.ts
 layout-placement client-apps/cli/src/resources/skill.test.ts
@@ -149,69 +108,28 @@ layout-placement client-apps/cli/src/resources/validate.test.ts
 layout-placement mcp-server/spikes/apply-schema.test.ts
 layout-placement mcp-server/spikes/bearer-passthrough.test.ts
 layout-placement mcp-server/src/config.test.ts
-layout-placement mcp-server/src/domains/apply.integration.test.ts
-layout-retired-word mcp-server/src/domains/apply.integration.test.ts integration
-layout-placement mcp-server/src/domains/channels/channels.integration.test.ts
-layout-retired-word mcp-server/src/domains/channels/channels.integration.test.ts integration
+layout-placement mcp-server/src/domains/apply.test.ts
+layout-placement mcp-server/src/domains/channels/channels.test.ts
 layout-placement mcp-server/src/domains/channels/errors.test.ts
-layout-placement mcp-server/src/domains/conversation/conversation.integration.test.ts
-layout-retired-word mcp-server/src/domains/conversation/conversation.integration.test.ts integration
-layout-placement mcp-server/src/domains/deletes.integration.test.ts
-layout-retired-word mcp-server/src/domains/deletes.integration.test.ts integration
-layout-placement mcp-server/src/domains/executions.integration.test.ts
-layout-retired-word mcp-server/src/domains/executions.integration.test.ts integration
+layout-placement mcp-server/src/domains/conversation/conversation.test.ts
+layout-placement mcp-server/src/domains/deletes.test.ts
+layout-placement mcp-server/src/domains/executions.test.ts
 layout-placement mcp-server/src/domains/memory/context.test.ts
 layout-placement mcp-server/src/domains/memory/errors.test.ts
-layout-placement mcp-server/src/domains/memory/memory.integration.test.ts
-layout-retired-word mcp-server/src/domains/memory/memory.integration.test.ts integration
-layout-placement mcp-server/src/domains/reads.integration.test.ts
-layout-retired-word mcp-server/src/domains/reads.integration.test.ts integration
-layout-placement mcp-server/src/domains/resources.integration.test.ts
-layout-retired-word mcp-server/src/domains/resources.integration.test.ts integration
+layout-placement mcp-server/src/domains/memory/memory.test.ts
+layout-placement mcp-server/src/domains/reads.test.ts
+layout-placement mcp-server/src/domains/resources.test.ts
 layout-placement mcp-server/src/domains/resourceuri.test.ts
 layout-placement mcp-server/src/domains/rpcerr.test.ts
-layout-placement mcp-server/src/domains/search/search.integration.test.ts
-layout-retired-word mcp-server/src/domains/search/search.integration.test.ts integration
-layout-placement mcp-server/src/domains/versions.integration.test.ts
-layout-retired-word mcp-server/src/domains/versions.integration.test.ts integration
-layout-placement mcp-server/src/domains/workflows/validate.integration.test.ts
-layout-retired-word mcp-server/src/domains/workflows/validate.integration.test.ts integration
-layout-placement mcp-server/src/domains/workflows/workflow-tools.integration.test.ts
-layout-retired-word mcp-server/src/domains/workflows/workflow-tools.integration.test.ts integration
-layout-placement mcp-server/src/http.integration.test.ts
-layout-retired-word mcp-server/src/http.integration.test.ts integration
+layout-placement mcp-server/src/domains/search/search.test.ts
+layout-placement mcp-server/src/domains/versions.test.ts
+layout-placement mcp-server/src/domains/workflows/validate.test.ts
+layout-placement mcp-server/src/domains/workflows/workflow-tools.test.ts
+layout-placement mcp-server/src/http.test.ts
 layout-placement mcp-server/src/readiness.test.ts
-layout-placement mcp-server/src/server.integration.test.ts
-layout-retired-word mcp-server/src/server.integration.test.ts integration
+layout-placement mcp-server/src/server.test.ts
 layout-placement mcp-server/src/trim.test.ts
-layout-retired-word sdk/react/src/__tests__/bare-host-resets.layout.test.tsx layout
-layout-retired-word sdk/react/src/__tests__/preflight-parity.layout.test.tsx layout
-layout-retired-word sdk/react/src/__tests__/provider-color-scheme.layout.test.tsx layout
-layout-retired-word sdk/react/src/__tests__/provider-container.layout.test.tsx layout
-layout-retired-word sdk/react/src/__tests__/styles-host-isolation.layout.test.tsx layout
-layout-retired-word sdk/react/src/billing/__tests__/plan-section.a11y.test.tsx a11y
-layout-retired-word sdk/react/src/conversation/__tests__/ConversationTimelineView.layout.test.tsx layout
-layout-retired-word sdk/react/src/conversation/__tests__/a11y/conversation-surfaces.a11y.test.tsx a11y
-layout-retired-word sdk/react/src/conversation/__tests__/conversation-tooltips.layout.test.tsx layout
-layout-retired-word sdk/react/src/cursor-accounts/__tests__/MemberCoverageTable.layout.test.tsx layout
-layout-retired-word sdk/react/src/execution/__tests__/artifact-row-tooltips.layout.test.tsx layout
-layout-retired-word sdk/react/src/internal/__tests__/ResizableSplit.layout.test.tsx layout
-layout-retired-word sdk/react/src/internal/__tests__/a11y/mermaid-theme.a11y.test.tsx a11y
-layout-retired-word sdk/react/src/internal/__tests__/dialog-popups.layout.test.tsx layout
-layout-retired-word sdk/react/src/internal/__tests__/truncated-text.layout.test.tsx layout
-layout-retired-word sdk/react/src/internal/__tests__/useAutoScroll.layout.test.tsx layout
-layout-retired-word sdk/react/src/licenses/__tests__/LicensesConsole.layout.test.tsx layout
-layout-retired-word sdk/react/src/licenses/__tests__/licenses-console.a11y.test.tsx a11y
-layout-retired-word sdk/react/src/schedule/__tests__/cadence-tooltips.layout.test.tsx layout
-layout-retired-word sdk/react/src/workspace/__tests__/a11y/workspace-editor.a11y.test.tsx a11y
-layout-retired-word sdk/react/src/workspace/__tests__/a11y/workspace-explorer-search.a11y.test.tsx a11y
-layout-retired-word sdk/react/src/workspace/__tests__/a11y/workspace-viewer-tabs.a11y.test.tsx a11y
 layout-placement sdk/typescript/src/node.test.ts
-layout-retired-word test/conformance/src/suites-execution/agent.harness.smoke.test.ts smoke
-layout-retired-word test/conformance/src/suites-execution/benchmark-readers.harness.smoke.test.ts smoke
-layout-retired-word test/conformance/src/suites-execution/harness.smoke.test.ts smoke
-layout-retired-word test/conformance/src/suites-execution/mcp.harness.smoke.test.ts smoke
-layout-retired-word test/conformance/src/suites-execution/runner-ipc.harness.smoke.test.ts smoke
 layout-placement tools/codegen/src/authorization-model/canonical.test.ts
 layout-placement tools/codegen/src/authorization-model/compile.test.ts
 layout-placement tools/codegen/src/generator/lang-names.test.ts

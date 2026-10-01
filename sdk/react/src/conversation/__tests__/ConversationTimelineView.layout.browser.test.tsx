@@ -4,7 +4,7 @@
 // content wrapper inside the loading branch, so the auto-scroll machinery
 // must attach to a wrapper that does not exist on first render. The
 // hook-level mechanics are pinned in
-// `internal/__tests__/useAutoScroll.layout.test.tsx`; this suite proves the
+// `internal/__tests__/useAutoScroll.layout.browser.test.tsx`; this suite proves the
 // component wiring delivers them: a conversation OPENS at the newest
 // message with "Jump to latest" hidden, and stays pinned as messages land.
 

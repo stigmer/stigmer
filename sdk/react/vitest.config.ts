@@ -38,15 +38,13 @@ const FORKS_ONLY = [
 
 export default defineConfig({
   test: {
-    // The `*.a11y.test.tsx`, `*.layout.test.tsx`, and `*.browser.test.ts(x)`
-    // suites run in a real browser (contrast/layout rules and pixel APIs —
-    // canvas 2D, createImageBitmap — that happy-dom cannot evaluate) via
-    // `vitest.a11y.config.ts`. Exclude them here so the fast, browser-free
-    // default suite never tries to load them.
+    // The `*.browser.test.ts(x)` suites (accessibility audits, layout
+    // contracts, pixel APIs — canvas 2D, createImageBitmap — that happy-dom
+    // cannot evaluate) run in a real browser via `vitest.a11y.config.ts`.
+    // Exclude them here so the fast, browser-free default suite never tries
+    // to load them.
     exclude: [
       "**/node_modules/**",
-      "**/*.a11y.test.tsx",
-      "**/*.layout.test.tsx",
       "**/*.browser.test.ts",
       "**/*.browser.test.tsx",
     ],

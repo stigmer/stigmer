@@ -36,7 +36,7 @@
  * exist is NOT_FOUND with the copy a `get` would answer.
  *
  * Written failing on 2026-09-16; the verifier that follows turns it green. The per-arm
- * proofs live in runner-subject-verifier.test.ts and
+ * proofs live in runner-subject-verifier.postgres.test.ts and
  * built-in-runner-credential-provider.test.ts; this file is the entry's
  * definition of done at the composition root.
  */

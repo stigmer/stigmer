@@ -162,9 +162,10 @@ npm run build       # tsc -p tsconfig.build.json
 npm test            # vitest run
 ```
 
-Tests live next to the code as `*.test.ts` (unit) and `*.integration.test.ts`
-(in-process: a `connectNodeAdapter` backend + an in-memory MCP client, asserting
-protojson parity). A live-server slice that boots the real Go `stigmer-server`
+Tests live next to the code as `*.test.ts`. Many run in-process against a
+`connectNodeAdapter` backend and an in-memory MCP client, asserting protojson
+parity: unit tests by the standard in `test/README.md`, which admits an
+in-process loopback server. A live-server slice that boots the real Go `stigmer-server`
 lives in `test/conformance/src/suites/mcp.conformance.test.ts`.
 
 ## Code generation

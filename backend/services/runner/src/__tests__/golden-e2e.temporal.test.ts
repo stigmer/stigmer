@@ -23,7 +23,7 @@
  * early from each test, which vitest counts as a pass, so it reported
  * sixteen passes without running a golden (stigmer#1300).
  *
- * Run with: npx vitest run src/__tests__/golden-e2e.test.ts
+ * Run with: npx vitest run src/__tests__/golden-e2e.temporal.test.ts
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";

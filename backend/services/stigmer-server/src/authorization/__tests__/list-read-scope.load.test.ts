@@ -1,9 +1,8 @@
 /**
  * The built-in evaluator's cost, measured — the plan's storage-impact line
  * ("a measurement, not an assumption, decides whether a driver needs
- * anything"). Gated on `AUTHORIZATION_MEASURE=1` and SKIPPED otherwise
- * (the `TEST_DATABASE_URL` idiom: an environment variable read once,
- * `describe.skipIf`), because ten thousand rows on Postgres take a while
+ * anything"). It is the load class: only `vitest.load.config.ts`
+ * collects it (`npm run test:load`, by hand), because ten thousand rows on Postgres take a while
  * and the numbers are recorded in a project log, not asserted: timing on
  * a shared machine is noise in a unit suite. No budget is ruled for open
  * source, and the cloud's 300 ms is a different engine's; an edition that
@@ -88,7 +87,6 @@ import { builtInModel } from "../model/index.js";
 import { fixtureRow, storedDeclaration } from "./support.js";
 import type { FixtureRowFacts } from "./support.js";
 
-const MEASURE = process.env["AUTHORIZATION_MEASURE"] === "1";
 const SIZES = [1_000, 10_000];
 
 const FOUNDER = accountIdFor("auth0|founder");
@@ -434,7 +432,6 @@ function populationPolicies(n: number): IamPolicySpec[] {
 afterAll(dropPostgresFixture);
 
 describe
-  .skipIf(!MEASURE)
   .each(
     driverFixtures([
       ApiResourceKind.iam_policy,

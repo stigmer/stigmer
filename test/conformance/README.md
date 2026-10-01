@@ -240,7 +240,7 @@ never published on the docs site (`.agents/skills/docs-writing/SKILL.md`
 carries the rule and its reason under "What to refuse"). The instrument's
 wiring (the readers, the working agent through review, its prompt stability
 across sessions, the judge) is proven hermetically by
-`benchmark-readers.harness.smoke.test.ts` on the execution lane, which
+`benchmark-readers.harness.test.ts` on the execution lane, which
 asserts presence and shape and never a number.
 
 ### Cloud targets (Class A and the execution class vs the cloud composition)
@@ -587,7 +587,7 @@ so it is not a `CapabilityFlag`. Instead it is a heavier **target**:
 server is a pure orchestrator: on create it persists an execution then starts a
 Temporal workflow that dispatches the real work to the runner on `stigmer_runner`.
 
-A `*.smoke.test.ts` here proves the harness is wired (the engine runs an
+A `*.harness.test.ts` here proves the harness is wired (the engine runs an
 execution); a `*.conformance.test.ts` asserts a domain's full contract. They are
 distinct on purpose: the smoke test is a permanent, cheap liveness guard, and
 per DD-006 an execution **domain** enters the suite whole on this same harness.
@@ -762,7 +762,7 @@ src/
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ *.harness.smoke.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers)
+  suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers)
                     + workflowexecution*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval)
                     + agentexecution*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,

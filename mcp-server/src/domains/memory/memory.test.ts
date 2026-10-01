@@ -1,5 +1,5 @@
 // In-process integration test for the memory roster (the
-// channels.integration.test.ts pattern: real Connect backend with a
+// channels.test.ts pattern: real Connect backend with a
 // stubbed memory service, real MCP client over an in-memory transport).
 //
 // Verifies the DD-005 D1/D2 contract surface:

@@ -2,7 +2,7 @@
 // injected, so caching, in-flight dedupe, and verdict propagation are pinned
 // without a live gRPC server; the /ready route's wiring (including the real
 // checkBackendHealth against a dead backend) is covered by
-// http.integration.test.ts.
+// http.test.ts.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

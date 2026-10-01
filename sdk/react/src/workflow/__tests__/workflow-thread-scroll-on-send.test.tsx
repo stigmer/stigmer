@@ -3,7 +3,7 @@
 // submitting pins the thread (default-ON, opt-out via
 // `scrollOnSend={false}`) BEFORE delegating, so the unblocked run's
 // continuation lands in view. The real scroll mechanics are pinned in
-// `internal/__tests__/useAutoScroll.layout.test.tsx`; this file pins the
+// `internal/__tests__/useAutoScroll.layout.browser.test.tsx`; this file pins the
 // hitl-wrapper wiring through a spied `jumpToLatest`.
 
 import { describe, it, expect, vi, afterEach } from "vitest";

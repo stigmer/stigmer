@@ -13,7 +13,7 @@
 //
 // Layout is driven by inline styles (not the shipped stylesheet): this
 // suite pins the hook's observer mechanics, not CSS — the real component's
-// rendering is covered by ConversationTimelineView.layout.test.tsx.
+// rendering is covered by ConversationTimelineView.layout.browser.test.tsx.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";

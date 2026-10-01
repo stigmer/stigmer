@@ -1,5 +1,5 @@
-// In-process integration test for the channels roster (the
-// records.integration.test.ts pattern: real Connect backend with a
+// In-process test for the channels roster (the pattern of this tree's
+// domain tests: real Connect backend with a
 // stubbed messaging service, real MCP client over an in-memory
 // transport).
 //

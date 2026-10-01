@@ -37,7 +37,7 @@
  * driver's guard: an outage is never softened into a refusal of a
  * different kind, and the driver never throws.
  *
- * Proven by __tests__/trusted-local-authorizer.test.ts (the arms, on both
+ * Proven by __tests__/trusted-local-authorizer.postgres.test.ts (the arms, on both
  * store drivers) and extensions/__tests__/built-in-authorization-
  * composed.test.ts (the wire, beside the same sentence under sign-in).
  */

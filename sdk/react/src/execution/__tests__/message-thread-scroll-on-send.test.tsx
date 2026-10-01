@@ -3,7 +3,7 @@
 // must pin the thread exactly once — default-ON, opt-out via
 // `scrollOnSend={false}` (the ratified DD-011 divergence). The REAL scroll
 // mechanics (pin + follow re-engagement under real layout) are pinned in
-// `internal/__tests__/useAutoScroll.layout.test.tsx`; this file pins the
+// `internal/__tests__/useAutoScroll.layout.browser.test.tsx`; this file pins the
 // surface's signal derivation through a spied `jumpToLatest`, with the real
 // `usePinToLatestOnSignal` connecting them.
 

@@ -2,7 +2,7 @@
 // Domain: agentic / agentexecution — proves the agent engine is wired, not the
 // domain contract.
 //
-// This is the AgentExecution counterpart to harness.smoke.test.ts (which uses a
+// This is the AgentExecution counterpart to harness.test.ts (which uses a
 // data-only set_vars WorkflowExecution). Where that one needs no LLM, an agent
 // run does — so this is the cheap, permanent guard that the local-execution
 // target's LLM machinery works end-to-end: Go server -> Temporal dispatch ->

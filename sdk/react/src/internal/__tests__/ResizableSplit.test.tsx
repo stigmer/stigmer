@@ -73,7 +73,7 @@ describe("ResizableSplit", () => {
   });
 
   // Class-name pins only; the collapse behavior itself is a container query
-  // that needs a real layout engine, proven by ResizableSplit.layout.test.tsx
+  // that needs a real layout engine, proven by ResizableSplit.layout.browser.test.tsx
   // (stigmer/stigmer#301).
   describe("responsiveCollapse", () => {
     it("marks the root as a named CSS container only while a collapse is requested", () => {

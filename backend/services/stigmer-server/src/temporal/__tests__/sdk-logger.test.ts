@@ -14,7 +14,7 @@
  *     other install failure through.
  *
  * Every bridge here is built over a fake install, so nothing creates the
- * native Runtime; the real path is sdk-logger.e2e.test.ts.
+ * native Runtime; the real path is sdk-logger.temporal.test.ts.
  */
 import { IllegalStateError, SdkComponent } from "@temporalio/common";
 import type { RuntimeOptions } from "@temporalio/worker";

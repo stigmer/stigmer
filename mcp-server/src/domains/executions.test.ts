@@ -2,7 +2,7 @@
 // run_workflow, get_agent_execution, the two approval tools,
 // list_pending_approvals, and cancel_execution.
 //
-// Same harness as reads.integration.test.ts: a real Connect backend serving
+// Same harness as reads.test.ts: a real Connect backend serving
 // stubbed controllers, the MCP server driven through an in-memory client. The
 // stubs capture requests so the tests assert the exact protos the tools send
 // (slug→ID resolution, runtime-env conversion, approval enum mapping) and

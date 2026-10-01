@@ -77,7 +77,7 @@ afterEach(() => {
   for (const el of injectedStyles.splice(0)) el.remove();
 });
 
-/** See provider-container.layout.test.tsx — non-blocking, network-free. */
+/** See provider-container.layout.browser.test.tsx — non-blocking, network-free. */
 function makeClient(): Stigmer {
   return {
     baseUrl: "https://example.test",

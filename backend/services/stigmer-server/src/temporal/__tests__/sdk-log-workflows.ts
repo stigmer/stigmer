@@ -1,5 +1,5 @@
 /**
- * Test-only workflow for sdk-logger.e2e.test.ts: one `log.warn` from the
+ * Test-only workflow for sdk-logger.temporal.test.ts: one `log.warn` from the
  * workflow body carrying a scalar and a nested field (a line our code
  * wrote), then one activity that fails on its only attempt (the SDK's own
  * `Activity failed` line).

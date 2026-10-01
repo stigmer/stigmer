@@ -11,7 +11,7 @@
 // carry the `UNSTYLED_LIST`/`UNSTYLED_FIELDSET` per-component resets
 // (`internal/element-resets.ts` records why this class of reset cannot live
 // in styles.css), and the markdown map declares its own top/inline margins.
-// Like the sibling #374 suite (preflight-parity.layout.test.tsx), this
+// Like the sibling #374 suite (preflight-parity.layout.browser.test.tsx), this
 // renders against the SHIPPED stylesheet (`dist/styles.css`, rebuilt by
 // `npm run build:css`) and nothing else — the page IS the bare host.
 //

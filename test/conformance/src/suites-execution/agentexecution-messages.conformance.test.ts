@@ -9,7 +9,7 @@
 // offline_test.go, plain_chat_offline_test.go and the agent half of
 // model_resolution_offline_test.go (the accounting is the entry's
 // T01_1_arm-disposition.md). The MCP echo round-trip itself is the harness
-// smoke (mcp.harness.smoke.test.ts); this file asserts what the transcript
+// smoke (mcp.harness.test.ts); this file asserts what the transcript
 // says about it and about a tool that fails.
 //
 // Two contracts here are easy to get wrong and are stated on purpose:
