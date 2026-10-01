@@ -1,5 +1,5 @@
 /**
- * Real-git integration tests for the session-scoped write-back lifecycle.
+ * Real-git tests for the session-scoped write-back lifecycle.
  *
  * A hermetic origin (local bare repo) and a working clone stand in for
  * GitHub + the session workspace; only the PR API is mocked. These prove the

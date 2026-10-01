@@ -1,4 +1,4 @@
-// In-process integration test for `diff` against a workflow's remote state.
+// In-process test for `diff` against a workflow's remote state.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";

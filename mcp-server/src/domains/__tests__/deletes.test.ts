@@ -1,4 +1,4 @@
-// In-process integration test for the delete tools. Verifies the two-step
+// In-process test for the delete tools. Verifies the two-step
 // resolve→delete flow forwards the resolved id into the correct per-domain
 // delete-input shape: typed {value} for agent/skill/workflow, and
 // ApiResourceDeleteInput {resource_id} for mcp_server and environment.

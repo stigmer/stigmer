@@ -1,4 +1,4 @@
-// In-process integration test for the MCP server (the tester gate).
+// In-process test for the MCP server (the tester gate).
 //
 // Stands up a real in-process Connect server for AgentQueryController, points
 // the MCP server at it, drives it through an in-memory MCP client, and asserts:

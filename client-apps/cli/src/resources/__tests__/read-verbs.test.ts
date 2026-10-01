@@ -1,4 +1,4 @@
-// In-process integration test for the read verbs (get/list).
+// In-process test for the read verbs (get/list).
 //
 // Stands up a real Connect backend over h2c serving the query controllers the
 // CLI calls, points an SDK node client at it, and drives the resource layer

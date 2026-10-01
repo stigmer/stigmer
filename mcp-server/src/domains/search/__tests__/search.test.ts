@@ -1,4 +1,4 @@
-// In-process integration test for the search tool. Verifies resource_uri
+// In-process test for the search tool. Verifies resource_uri
 // enrichment for every searchable kind, the empty-response short-circuit,
 // the unknown-kind validation error, and pagination passthrough.
 

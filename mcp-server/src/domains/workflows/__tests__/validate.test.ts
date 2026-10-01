@@ -1,4 +1,4 @@
-// In-process integration test for validate_workflow_yaml. Verifies the
+// In-process test for validate_workflow_yaml. Verifies the
 // required-yaml and parse errors, that every registry task kind (including
 // `eval`, which the Go map omits) is accepted, and that the parsed Workflow is
 // forwarded to validateSpec.

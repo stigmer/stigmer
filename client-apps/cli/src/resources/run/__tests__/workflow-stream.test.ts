@@ -1,4 +1,4 @@
-// In-process integration test for live `run workflow` streaming.
+// In-process test for live `run workflow` streaming.
 //
 // Stands up a real Connect backend serving workflowExecution.subscribeEvents
 // (the canonical event stream) plus get + submitApproval, points an SDK node

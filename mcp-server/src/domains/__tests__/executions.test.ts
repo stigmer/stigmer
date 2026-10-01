@@ -1,4 +1,4 @@
-// In-process integration test for the execution-loop tools: run_agent,
+// In-process test for the execution-loop tools: run_agent,
 // run_workflow, get_agent_execution, the two approval tools,
 // list_pending_approvals, and cancel_execution.
 //

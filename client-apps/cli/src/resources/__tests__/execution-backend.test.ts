@@ -1,4 +1,4 @@
-// In-process integration test for the `execution` group resources.
+// In-process test for the `execution` group resources.
 //
 // Stands up a real Connect backend over h2c serving the agent + workflow
 // execution query and command controllers (including the server-streaming

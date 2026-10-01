@@ -1,4 +1,4 @@
-// In-process integration test for the conversation roster (the
+// In-process test for the conversation roster (the
 // channels.test.ts pattern: real Connect backend with a
 // stubbed conversation service, real MCP client over an in-memory
 // transport).

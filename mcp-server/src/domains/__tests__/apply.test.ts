@@ -1,4 +1,4 @@
-// In-process integration test for the apply tools. Drives apply_agent,
+// In-process test for the apply tools. Drives apply_agent,
 // apply_mcp_server, apply_workflow, and apply_environment through the
 // full MCP boundary and asserts the codegen projection (src/gen/*)
 // reconstitutes the proto correctly: metadata hoist + slug generation,

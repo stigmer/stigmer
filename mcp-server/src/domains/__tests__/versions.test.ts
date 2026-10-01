@@ -1,4 +1,4 @@
-// In-process integration test for the versioning tools: list_workflow_versions
+// In-process test for the versioning tools: list_workflow_versions
 // (timeline projection — validated_yaml stripped), get_workflow's version
 // argument (slug→ID two-step into getVersion), tag_workflow_version, and
 // list_skill_versions. Same harness as reads.test.ts.

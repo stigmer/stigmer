@@ -431,19 +431,18 @@ function populationPolicies(n: number): IamPolicySpec[] {
 
 afterAll(dropPostgresFixture);
 
-describe
-  .each(
-    driverFixtures([
-      ApiResourceKind.iam_policy,
-      ApiResourceKind.identity_account,
-      ApiResourceKind.organization,
-      ApiResourceKind.team,
-      ApiResourceKind.agent,
-      ApiResourceKind.session,
-      ApiResourceKind.agent_execution,
-      ApiResourceKind.agent_instance,
-    ]),
-  )("the built-in evaluator's cost on $name", (fixture) => {
+describe.each(
+  driverFixtures([
+    ApiResourceKind.iam_policy,
+    ApiResourceKind.identity_account,
+    ApiResourceKind.organization,
+    ApiResourceKind.team,
+    ApiResourceKind.agent,
+    ApiResourceKind.session,
+    ApiResourceKind.agent_execution,
+    ApiResourceKind.agent_instance,
+  ]),
+)("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {
     let opened: OpenedStore;
     let policies: IamPolicyStore;

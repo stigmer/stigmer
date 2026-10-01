@@ -1,4 +1,4 @@
-// In-process integration test for the workflow query tools: the task-kind
+// In-process test for the workflow query tools: the task-kind
 // registry pair (get_task_kind_registry, get_task_kind) and the execution pair
 // (get_workflow_execution, get_workflow_execution_events). Verifies registry
 // selection (case-insensitive), the required-field and not-found errors, and

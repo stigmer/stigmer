@@ -1,4 +1,4 @@
-// In-process integration test for `connect mcp-server` orchestration.
+// In-process test for `connect mcp-server` orchestration.
 //
 // Stands up a Connect backend serving the McpServer query + command controllers,
 // points an SDK node client at it, and drives connectMcpServer end to end: the

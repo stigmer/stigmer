@@ -1,4 +1,4 @@
-// In-process integration test for the memory roster (the
+// In-process test for the memory roster (the
 // channels.test.ts pattern: real Connect backend with a
 // stubbed memory service, real MCP client over an in-memory transport).
 //

@@ -76,7 +76,8 @@ export function outOfPackageReads(pkgDir) {
 // The browser suite's files: the collection globs sdk/react/vitest.a11y.config.ts
 // declares, and that config itself. A test-side file matching runs under
 // `test:a11y`; every other test-side file runs under `test`.
-const BROWSER_SUITE_FILE = /(\.browser\.test\.tsx?|vitest\.a11y\.config\.[cm]?[jt]s)$/;
+const BROWSER_SUITE_FILE =
+  /(\.browser\.test\.tsx?|vitest\.a11y\.config\.[cm]?[jt]s)$/;
 
 /** The turbo task that runs a given test-side file of a package. */
 export function suiteTaskFor(file) {
@@ -129,7 +130,10 @@ test("the browser suite is scheduled for react alone and waits on react's own bu
 });
 
 test("suiteTaskFor sends browser-mode files to test:a11y and the rest to test", () => {
-  assert.equal(suiteTaskFor("src/__tests__/x.layout.browser.test.tsx"), "test:a11y");
+  assert.equal(
+    suiteTaskFor("src/__tests__/x.layout.browser.test.tsx"),
+    "test:a11y",
+  );
   assert.equal(
     suiteTaskFor("src/a/__tests__/a11y/y.a11y.browser.test.tsx"),
     "test:a11y",

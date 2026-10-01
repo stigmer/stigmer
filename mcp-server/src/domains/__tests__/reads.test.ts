@@ -1,4 +1,4 @@
-// In-process integration test for the read tools (get_mcp_server, get_skill,
+// In-process test for the read tools (get_mcp_server, get_skill,
 // get_workflow, get_environment). Stands up a real Connect
 // backend serving the query controllers, drives the MCP server through an
 // in-memory client, and asserts each tool returns the backend's protojson

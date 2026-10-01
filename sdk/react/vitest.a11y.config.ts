@@ -34,10 +34,7 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
-    include: [
-      "src/**/*.browser.test.ts",
-      "src/**/*.browser.test.tsx",
-    ],
+    include: ["src/**/*.browser.test.ts", "src/**/*.browser.test.tsx"],
     // One file at a time: these tests measure REAL layout, paint, rAF
     // timing, and (since the F-18 tooltip suite) real pointer movement.
     // Parallel files in one headless Chromium contend for the same

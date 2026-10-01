@@ -1,4 +1,4 @@
-// In-process integration test for the resource templates. Verifies template
+// In-process test for the resource templates. Verifies template
 // discovery, that each read returns the backend protojson as a single
 // application/json entry, and that the skill templates resolve latest (empty
 // version) vs a pinned version.

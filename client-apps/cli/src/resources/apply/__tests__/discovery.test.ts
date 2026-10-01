@@ -1,4 +1,4 @@
-// In-process integration test for post-apply MCP discovery.
+// In-process test for post-apply MCP discovery.
 //
 // Stands up a Connect backend serving McpServerCommandController.connect, points
 // an SDK node client at it, and drives discoverAppliedMcpServers. The mock

@@ -1,5 +1,5 @@
 /**
- * Integration smoke for the local-process driver (§6d, O6): real child
+ * Smoke test for the local-process driver (§6d, O6): real child
  * processes, the full ensure → fast-path → probe → deprovision cycle,
  * and the env contract the runner reads (config.ts's variables) —
  * proven by a stand-in script that dumps its environment where the test

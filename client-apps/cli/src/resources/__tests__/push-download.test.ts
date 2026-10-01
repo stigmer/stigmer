@@ -1,4 +1,4 @@
-// In-process integration test for `push skill` and `download execution`.
+// In-process test for `push skill` and `download execution`.
 //
 // Stands up a Connect backend (skill push + execution query/artifact-URL) plus a
 // plain HTTP server standing in for object storage, then drives the resource

@@ -1,4 +1,4 @@
-// In-process integration test for the mutating verbs (delete / tag).
+// In-process test for the mutating verbs (delete / tag).
 //
 // Stands up a real Connect backend over h2c serving the query *and* command
 // controllers these verbs call, points an SDK node client at it, and drives the

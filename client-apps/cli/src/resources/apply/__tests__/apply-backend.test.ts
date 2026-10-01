@@ -1,4 +1,4 @@
-// In-process integration test for file-mode apply.
+// In-process test for file-mode apply.
 //
 // The keystone assertion (the reason this wave drives the raw command
 // controllers instead of the high-level SDK `apply(input)`): a resource carrying
