@@ -69,41 +69,26 @@ jobs:
         with:
           node-version-file: ".nvmrc"
 
-      # Only the parser, at the version, tarball and hash the root lockfile
-      # pins: the script imports no module of the repository, so a full
-      # `npm ci` would only cost minutes. The manifest and lockfile are written
-      # from the root lockfile's own entry, so the version has one definition
-      # and `npm ci` refuses a tarball whose hash differs. On a pull request
-      # the entry is the base branch's, like the script, so the pull request
-      # cannot choose the parser that judges it; the queue reads its commit's.
-      - name: Install the TypeScript parser
+      # Only the parser, at the version, tarball and hash a root lockfile pins
+      # (.github/actions/typescript-parser says why not a full `npm ci`). On
+      # a pull request the lockfile is the base branch's, like the script, so
+      # the pull request cannot choose the parser that judges it; the queue
+      # reads its commit's.
+      - name: Choose the lockfile that pins the parser
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          mkdir -p "$RUNNER_TEMP/ts"
           if [ -n "$BASE_REF" ]; then
             git show "origin/$BASE_REF:package-lock.json" > "$RUNNER_TEMP/root-lock.json"
           else
             cp package-lock.json "$RUNNER_TEMP/root-lock.json"
           fi
-          node - "$RUNNER_TEMP/ts" "$RUNNER_TEMP/root-lock.json" <<'JS'
-          const { readFileSync, writeFileSync } = require("node:fs");
-          const [dir, lock] = process.argv.slice(2);
-          const entry = JSON.parse(readFileSync(lock, "utf8")).packages["node_modules/typescript"];
-          const { version, resolved, integrity } = entry ?? {};
-          if (!version || !resolved || !integrity) throw new Error("package-lock.json has no pinned typescript entry");
-          const dependencies = { typescript: version };
-          writeFileSync(`${dir}/package.json`, JSON.stringify({ private: true, dependencies }));
-          writeFileSync(`${dir}/package-lock.json`, JSON.stringify({
-            lockfileVersion: 3,
-            requires: true,
-            packages: {
-              "": { dependencies },
-              "node_modules/typescript": { version, resolved, integrity, license: entry.license, bin: entry.bin, engines: entry.engines },
-            },
-          }));
-          JS
-          npm ci --prefix "$RUNNER_TEMP/ts" --ignore-scripts --no-audit --no-fund
+
+      - name: Install the TypeScript parser
+        uses: ./.github/actions/typescript-parser
+        with:
+          lockfile: ${{ runner.temp }}/root-lock.json
+          directory: ${{ runner.temp }}/ts
 
       # The body reaches the script through a file written from `env`, never
       # through `${{ }}` inside `run`: a pull request's body is untrusted text.

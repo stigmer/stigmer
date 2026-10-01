@@ -502,3 +502,39 @@ test("the command: a drop below a floor is refused without a base; no coverage, 
     rmSync(r.dir, { recursive: true, force: true });
   }
 });
+
+test("the command: with a base and no coverage, the change alone is judged; a floored package's changed source is refused as unmeasured", () => {
+  const r = repo();
+  try {
+    r.write("pkg/package.json", "{}");
+    r.write("pkg/src/a.ts", "export const a = 1;\n");
+    r.write("tools/run.mjs", "export const run = 1;\n");
+    r.write("floors.json", JSON.stringify({ margin: { lines: 0, branches: 0, cases: 0 }, packages: { pkg: { lines: 90, branches: 0, cases: 0 } } }));
+    r.write(".gitignore", "empty/\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+    r.write("empty/.keep", "");
+
+    // A change outside every package ran no package's tests: nothing to measure, nothing refused.
+    r.write("tools/run.mjs", "export const run = 2;\n");
+    r.git("commit", "-qam", "tools");
+    const outside = r.run("--floors", "floors.json", "--input", "empty", "--base", "main");
+    assert.equal(outside.status, 0, outside.stdout + outside.stderr);
+    assert.match(outside.stdout, /^• not measured  tools\/run\.mjs$/m);
+    assert.match(outside.stdout, /^test-coverage: 0 package\(s\) measured, 1 changed file\(s\) checked against main \([0-9a-f]{9}\); clean$/m);
+
+    // A floored package's source changed and no lane measured it: the change cannot pass unjudged.
+    r.write("pkg/src/a.ts", "export const a = 2;\n");
+    r.git("commit", "-qam", "pkg");
+    const inside = r.run("--floors", "floors.json", "--input", "empty", "--base", "main");
+    assert.equal(inside.status, 1, inside.stdout + inside.stderr);
+    assert.match(inside.stdout, /^✗ unmeasured  pkg\/src\/a\.ts  changed, but pkg's coverage was not collected in this run/m);
+
+    // Without a base, or for a raise, no coverage still measured nothing.
+    assert.equal(r.run("--floors", "floors.json", "--input", "empty").status, 2);
+    assert.equal(r.run("--floors", "floors.json", "--input", "empty", "--base", "main", "--raise").status, 2);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});

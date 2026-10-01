@@ -53,6 +53,12 @@
  * package's coverage (scripts, other languages, files a config excludes) is
  * listed as not measured and refused nowhere.
  *
+ * A change can run no package's tests at all (a pull request that edits only
+ * a workflow), so with --base a run with no coverage is still judged: every
+ * changed source file in a floored package is then `unmeasured`, and nothing
+ * else is. Without --base (a full run, a raise) no coverage means the run
+ * measured nothing, which cannot be judged.
+ *
  * The floors file:
  *   {
  *     "margin": { "lines": 0.5, "branches": 0.5, "cases": 0 },
@@ -69,8 +75,8 @@
  *   node scripts/test-coverage.mjs --floors <file> --input <dir> ... --raise
  *   node scripts/test-coverage.mjs --floors <file> --from-run <run id> --raise
  * Exit: 0 clean (or floors written), 1 findings, 2 the script could not judge
- * (a usage or git error, unreadable input, no coverage at all, or coverage
- * that matches no tracked file).
+ * (a usage or git error, unreadable input, no coverage at all without --base,
+ * or coverage that matches no tracked file).
  */
 
 import { execFileSync } from "node:child_process";
@@ -552,7 +558,9 @@ function main(argv) {
   const downloaded = opts.fromRun ? downloadRun(root, opts.fromRun) : undefined;
   try {
     const inputs = readInputs(downloaded ? [downloaded] : opts.inputs.map((d) => resolve(d)));
-    if (inputs.coverage.length === 0) {
+    // A change that ran no package's tests is still judged against its base; anything else with no coverage measured nothing.
+    const changeOnly = inputs.coverage.length === 0 && opts.base !== undefined && !opts.raise;
+    if (inputs.coverage.length === 0 && !changeOnly) {
       console.error("test-coverage: no coverage-final.json under the inputs; the run measured nothing, so nothing can be judged");
       return 2;
     }
@@ -561,7 +569,7 @@ function main(argv) {
     const relativize = makeRelativizer(tracked);
     const merged = mergeCoverage(inputs.coverage, relativize);
     const measured = measure(merged.files, casesByPackage(inputs.reports, relativize, packageDirs), packageDirs);
-    if (measured.size === 0) {
+    if (measured.size === 0 && !changeOnly) {
       console.error(`test-coverage: none of the ${merged.unmatched.length} measured file(s) matches a tracked file (first: ${merged.unmatched[0] ?? "none"}); nothing can be judged`);
       return 2;
     }

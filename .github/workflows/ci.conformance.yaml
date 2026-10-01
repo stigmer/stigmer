@@ -61,7 +61,19 @@ jobs:
       # `make check-conformance-inventory` runs them locally; this is the same
       # gate in CI, before any target boots.
       - name: Run the harness unit arms
-        run: npm run test:unit -w @stigmer/conformance
+        run: npm run test:unit -w @stigmer/conformance -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-conformance-conformance-local
+          path: |
+            test/conformance/coverage/
+          if-no-files-found: error
+          retention-days: 14
 
       # The shared test machinery's own cases (test/support: the stack spawns,
       # the model fakes, the identity fixtures the suites import).

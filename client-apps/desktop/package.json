@@ -13,7 +13,7 @@
     "lint:fix": "eslint --fix",
     "tauri": "tauri",
     "generate:icons": "tsx scripts/generate-icons.ts",
-    "test": "vitest run && npm run test:scripts",
+    "test": "npm run test:scripts && vitest run",
     "test:scripts": "node --test scripts/*.test.mjs",
     "test:watch": "vitest"
   },

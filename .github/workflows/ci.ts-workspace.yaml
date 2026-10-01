@@ -185,8 +185,36 @@ jobs:
       - name: Verify Node-ESM output
         run: node scripts/verify-esm-node.mjs --only="$AFFECTED"
 
+      # Coverage on, written per package under coverage/ (the flags after `--`
+      # reach each package's `vitest run`; scripts/ci-coverage.test.mjs holds
+      # them to one shape in every lane).
       - name: Tests
-        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED"
+        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED" -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      # `ignore`: the affected set can hold only packages with no tests
+      # (apis/stubs/ts), and scripts/ci-coverage.test.mjs holds the paths.
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-ts-workspace-libs
+          path: |
+            backend/libs/ts/temporal-codecs/coverage/
+            backend/libs/ts/zip-structure/coverage/
+            backend/libs/ts/plugin-package/coverage/
+            backend/libs/ts/outbound/coverage/
+            sdk/typescript/coverage/
+            sdk/theme/coverage/
+            sdk/react/coverage/
+            sdk/embed/coverage/
+            sdk/ink/coverage/
+            mcp-server/coverage/
+            plugins/coverage/
+            client-apps/cli/coverage/
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Every affected package's tsconfig.json pass (the one config that includes
   # its test files), eslint where a package has one, and TypeDoc's strict
@@ -298,7 +326,19 @@ jobs:
         run: npm ci
 
       - name: Run web console tests
-        run: node scripts/turbo-set.mjs workspace test --only=web
+        run: node scripts/turbo-set.mjs workspace test --only=web -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-ts-workspace-web-tests
+          path: |
+            client-apps/web/coverage/
+          if-no-files-found: error
+          retention-days: 14
 
   desktop-tests:
     name: Desktop App Tests
@@ -324,7 +364,19 @@ jobs:
         run: npm ci
 
       - name: Run desktop app tests
-        run: node scripts/turbo-set.mjs workspace test --only=desktop
+        run: node scripts/turbo-set.mjs workspace test --only=desktop -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-ts-workspace-desktop-tests
+          path: |
+            client-apps/desktop/coverage/
+          if-no-files-found: error
+          retention-days: 14
 
   # The Tauri shell's Rust crate, compiled and tested for real: it needs the
   # Rust toolchain and the system libraries Tauri links (the shared

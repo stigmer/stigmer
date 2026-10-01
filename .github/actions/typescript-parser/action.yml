@@ -1,0 +1,53 @@
+# The one installer of the parser scripts/test-integrity.mjs reads test files
+# with, for a job that has no `npm ci`: `Test integrity` (ci.integrity.yaml)
+# and the gate's Coverage job (ci.gate.yaml), so the guarantee lives in one
+# place.
+#
+# Only `typescript`, at the version, tarball and hash a root package-lock.json
+# pins: the script imports no module of the repository, so a full `npm ci`
+# would only cost minutes. The manifest and lockfile are written from that
+# lock's own entry, so the version has one definition and `npm ci` refuses a
+# tarball whose hash differs. The caller chooses the lock: `Test integrity`
+# hands over the base branch's on a pull request, so a pull request cannot
+# choose the parser that judges it (ci.integrity.yaml's header).
+#
+# The directory it installs into is what the caller passes as --typescript.
+name: Install the TypeScript parser
+description: >-
+  Install only the typescript package a root package-lock.json pins, by its
+  version, tarball and hash, into a directory for test-integrity's --typescript.
+inputs:
+  lockfile:
+    description: The root package-lock.json whose typescript entry is installed.
+    required: true
+  directory:
+    description: The directory to install into.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install the pinned typescript entry
+      shell: bash
+      env:
+        LOCKFILE: ${{ inputs.lockfile }}
+        DIRECTORY: ${{ inputs.directory }}
+      run: |
+        mkdir -p "$DIRECTORY"
+        node - "$DIRECTORY" "$LOCKFILE" <<'JS'
+        const { readFileSync, writeFileSync } = require("node:fs");
+        const [dir, lock] = process.argv.slice(2);
+        const entry = JSON.parse(readFileSync(lock, "utf8")).packages["node_modules/typescript"];
+        const { version, resolved, integrity } = entry ?? {};
+        if (!version || !resolved || !integrity) throw new Error("package-lock.json has no pinned typescript entry");
+        const dependencies = { typescript: version };
+        writeFileSync(`${dir}/package.json`, JSON.stringify({ private: true, dependencies }));
+        writeFileSync(`${dir}/package-lock.json`, JSON.stringify({
+          lockfileVersion: 3,
+          requires: true,
+          packages: {
+            "": { dependencies },
+            "node_modules/typescript": { version, resolved, integrity, license: entry.license, bin: entry.bin, engines: entry.engines },
+          },
+        }));
+        JS
+        npm ci --prefix "$DIRECTORY" --ignore-scripts --no-audit --no-fund

@@ -740,6 +740,47 @@ it("the command: a run report's unexplained skip fails, a quarantined one passes
   }
 });
 
+it("the command: --run-report repeats and takes a directory, whose reports are found by shape at any depth and judged together", () => {
+  const r = repo();
+  try {
+    const B_TEST = "pkg/src/__tests__/b.test.ts";
+    r.write(A_TEST, `it.skip("a", () => {});`);
+    r.write(B_TEST, `// quarantined: stigmer#1322 -- flaky\nit.skip("b", () => {});`);
+    r.write(".gitignore", "reports/\nloose.json\nnot-a-report.json\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    const report = (path, title) => JSON.stringify({ testResults: [{ name: join(r.dir, path), assertionResults: [{ ancestorTitles: [], title, status: "skipped" }] }] });
+    // Two jobs' uploads: each a report beside its coverage output, which is JSON but never a report.
+    r.write("reports/coverage-lane-a/pkg/coverage/report.json", report(A_TEST, "a"));
+    r.write("reports/coverage-lane-a/pkg/coverage/v8/coverage-final.json", "{}");
+    r.write("reports/coverage-lane-a/pkg/coverage/v8/coverage-summary.json", "{}");
+    r.write("reports/coverage-lane-b/deep/er/report.json", report(B_TEST, "b"));
+    r.write("reports/coverage-lane-b/notes.json", JSON.stringify({ other: true }));
+
+    const both = r.run("--run-report", join(r.dir, "reports"));
+    assert.equal(both.status, 1, both.stdout + both.stderr);
+    assert.match(both.stdout, /unexplained-skip +pkg\/src\/__tests__\/a\.test\.ts:1/);
+    assert.match(both.stdout, /• skipped  pkg\/src\/__tests__\/b\.test\.ts:2  "b" \(quarantined on stigmer#1322\)/);
+    assert.match(both.stdout, /^• run reports  2 read$/m);
+    assert.match(both.stdout, /2 case\(s\) skipped in the run; 1 finding\(s\)$/m);
+
+    // A file and a directory together; an empty directory holds no report and judges nothing.
+    r.write("loose.json", report(A_TEST, "a"));
+    r.write("reports/empty/.keep", "");
+    const mixed = r.run("--run-report", join(r.dir, "reports", "empty"), "--run-report", join(r.dir, "loose.json"));
+    assert.equal(mixed.status, 1, mixed.stdout + mixed.stderr);
+    assert.match(mixed.stdout, /^• run reports  1 read$/m);
+
+    // A named file must be a report: one without testResults cannot be judged.
+    r.write("not-a-report.json", JSON.stringify({ other: true }));
+    const named = r.run("--run-report", join(r.dir, "not-a-report.json"));
+    assert.equal(named.status, 2, named.stdout);
+    assert.match(named.stderr, /is not a vitest JSON report \(no testResults\)/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
 it("the command: a new RPC waiver is refused until declared; a tree without the file has no such rule", () => {
   const r = repo();
   try {
