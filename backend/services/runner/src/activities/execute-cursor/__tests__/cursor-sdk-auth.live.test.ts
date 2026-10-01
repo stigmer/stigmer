@@ -7,8 +7,14 @@
  *  3. `Agent.create()` with no model named succeeds — the catalog default
  *     resolves.
  *
- * Skipped without `CURSOR_API_KEY`; the suite never runs it. Run it by hand:
- *   CURSOR_API_KEY=<key> npx vitest run src/activities/execute-cursor/__tests__/cursor-sdk-auth-smoke.test.ts
+ * The model is `composer-2.5`, the one the other live instruments and the
+ * hermetic fixture pin: these arms prove the key and the transport, which no
+ * model choice changes, so they run on the cheaper model.
+ *
+ * Live class (`*.live.test.ts`): runs only through `npm run test:live`, by
+ * hand or in the live lane; skips without `CURSOR_API_KEY` outside the lane
+ * (`src/__test-utils__/live-gate.ts`). Each arm is one short turn with no
+ * product cost cap (the SDK is driven directly, not through an execution).
  * Last run green 3/3 on 2026-09-16 at SDK 1.0.31 (#1097's live run).
  */
 
@@ -19,13 +25,11 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const CURSOR_API_KEY = process.env.CURSOR_API_KEY ?? "";
+import { liveSecret } from "../../../__test-utils__/live-gate.js";
 
-// Live smoke test: requires a real Cursor API key. Skipped when none is set
-// (e.g. local `make check` / CI without provider credentials).
-const describeWithCursorKey = CURSOR_API_KEY ? describe : describe.skip;
+const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
 
-describeWithCursorKey("Cursor SDK Authentication Smoke Test", () => {
+describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor SDK Authentication Smoke Test", () => {
 
   it("Agent.create() succeeds with a valid API key", async () => {
     const stateRoot = join(tmpdir(), `cursor-auth-test-${Date.now()}`);
@@ -33,7 +37,7 @@ describeWithCursorKey("Cursor SDK Authentication Smoke Test", () => {
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
-      model: { id: "claude-sonnet-4" },
+      model: { id: "composer-2.5" },
       local: {
         cwd: stateRoot,
         // 1.0.31: the store is caller-owned (`session-store.ts` in production).
@@ -52,7 +56,7 @@ describeWithCursorKey("Cursor SDK Authentication Smoke Test", () => {
 
     const agent = await Agent.create({
       apiKey: CURSOR_API_KEY,
-      model: { id: "claude-sonnet-4" },
+      model: { id: "composer-2.5" },
       local: {
         cwd: stateRoot,
         // 1.0.31: the store is caller-owned (`session-store.ts` in production).

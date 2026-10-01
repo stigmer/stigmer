@@ -1,4 +1,4 @@
-import { coverageConfigDefaults, defineConfig } from "vitest/config";
+import { configDefaults, coverageConfigDefaults, defineConfig } from "vitest/config";
 
 // GitHub Actions (and other CI) sets CI=true. See the poolOptions note below.
 const ci = !!process.env.CI;
@@ -19,6 +19,11 @@ export default defineConfig({
     },
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
+    // The live class (`*.live.test.ts`) calls real providers with real keys
+    // and spends money, so it runs only through vitest.live.config.ts
+    // (`npm run test:live`), by hand or in the live lane: never a variable a
+    // default run could flip.
+    exclude: [...configDefaults.exclude, "**/*.live.test.ts"],
     // Fail fast (before collection) on a Node that cannot run the runner —
     // without this, the sqlite-importing files die mid-collection with a raw
     // ERR_UNKNOWN_BUILTIN_MODULE (oss#257). See the setup file's header.
