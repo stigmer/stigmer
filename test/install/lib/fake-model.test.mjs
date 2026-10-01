@@ -19,8 +19,11 @@ import {
   startFakeModel,
 } from "./fake-model.mjs";
 
-test("a live run is handed the shell's key and no base URL, and refuses without the key", () => {
-  assert.deepEqual(liveModelEnv({ ANTHROPIC_API_KEY: "k-live", ANTHROPIC_BASE_URL: "http://elsewhere" }), { ANTHROPIC_API_KEY: "k-live" });
+test("a live run is handed the shell's key and a blank base URL over the shell's gateway, and refuses without the key", () => {
+  const shell = { ANTHROPIC_API_KEY: "k-live", ANTHROPIC_BASE_URL: "http://elsewhere" };
+  assert.deepEqual(liveModelEnv(shell), { ANTHROPIC_API_KEY: "k-live", ANTHROPIC_BASE_URL: "" });
+  // The install's environment is the shell's with the model settings laid over it (install-cli.mjs).
+  assert.equal({ ...shell, ...liveModelEnv(shell) }.ANTHROPIC_BASE_URL, "");
   assert.throws(() => liveModelEnv({}), /--live-model needs ANTHROPIC_API_KEY/);
   assert.throws(() => liveModelEnv({ ANTHROPIC_API_KEY: "" }), /--live-model needs ANTHROPIC_API_KEY/);
 });

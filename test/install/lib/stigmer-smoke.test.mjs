@@ -844,6 +844,15 @@ test("reads a CLI run's stream: the done phase and the last top-level reply, ski
     line("done", { phase: "completed" }),
   ].join("\n");
   assert.deepEqual(streamedRunOutcome(stream), { phase: "completed", reply: "Hello there." });
+  // A streamed reply carries no ai_message: its text is ai_stream_end's.
+  const streamed = [
+    line("ai_stream_start", { content: "" }),
+    line("ai_stream_delta", { content: "Hel" }),
+    line("ai_stream_end", { content: "Hello, streamed.", tool_calls: [] }),
+    line("ai_stream_end", { content: "a sub-agent's streamed words", sub_agent_id: "sub_1" }),
+    line("done", { phase: "completed" }),
+  ].join("\n");
+  assert.deepEqual(streamedRunOutcome(streamed), { phase: "completed", reply: "Hello, streamed." });
   assert.deepEqual(streamedRunOutcome(line("done", { phase: "failed", error: "boom" })), { phase: "failed", reply: "" });
   assert.deepEqual(streamedRunOutcome(""), { phase: "", reply: "" });
 });

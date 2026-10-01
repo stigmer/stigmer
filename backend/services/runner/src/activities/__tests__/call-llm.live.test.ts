@@ -93,7 +93,8 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("callLlmAction live — Claude
     );
     recordLiveSpend("workflow llm_call schema (claude-haiku-4.5)", estimatedCostUsd(result));
 
-    expect(result.parse_error, "the answer parsed against the schema").toBeUndefined();
+    // With no `on_invalid`, an answer that misses the schema throws (LLM_SCHEMA_VALIDATION),
+    // so reaching here means it validated; the fields are read to show what came back.
     const value = result.result as { status?: unknown; count?: unknown };
     expect(typeof value.status).toBe("string");
     expect(Number.isInteger(value.count)).toBe(true);

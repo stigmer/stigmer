@@ -64,14 +64,16 @@ export const LIVE_MODEL = "claude-haiku-4.5";
 
 /**
  * The model settings an install is started with for a `--live-model` run: the
- * key from `env` (the shell's ANTHROPIC_API_KEY) and no base URL, so the
- * install talks to Anthropic as a user's does. Throws when the key is missing,
- * naming the variable and never a value.
+ * key from `env` (the shell's ANTHROPIC_API_KEY) and ANTHROPIC_BASE_URL set
+ * blank, so the install talks to Anthropic itself even when the shell exports
+ * a gateway (the install's environment is the shell's with these laid over
+ * it, and the runner reads a blank base URL as Anthropic's own). Throws when
+ * the key is missing, naming the variable and never a value.
  */
 export function liveModelEnv(env) {
   const key = env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("--live-model needs ANTHROPIC_API_KEY in the environment (the run calls the real provider and spends money)");
-  return { ANTHROPIC_API_KEY: key };
+  return { ANTHROPIC_API_KEY: key, ANTHROPIC_BASE_URL: "" };
 }
 
 /**

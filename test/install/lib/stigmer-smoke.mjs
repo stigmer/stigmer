@@ -513,10 +513,13 @@ export function lastAiReply(execution) {
 
 /**
  * What a `stigmer run <agent> --json` stream says happened: the phase of its
- * `done` event and the content of its last top-level `ai_message` (the CLI
- * writes one `{type, ts, payload}` line per event; a line that is not JSON is
- * not the stream's and is skipped). A real model's words are never compared;
- * the caller asks only that the run completed with a reply.
+ * `done` event and the content of its last top-level reply (the CLI writes
+ * one `{type, ts, payload}` line per event; a line that is not JSON is not the
+ * stream's and is skipped). A reply arrives whole as `ai_message`, or, when
+ * the provider streamed it, as `ai_stream_start` / `_delta` / `_end`, whose
+ * `ai_stream_end` carries the full text; the last of either kind is the reply.
+ * A real model's words are never compared; the caller asks only that the run
+ * completed with a reply.
  */
 export function streamedRunOutcome(ndjson) {
   let phase = "";
@@ -529,7 +532,8 @@ export function streamedRunOutcome(ndjson) {
       continue;
     }
     if (event?.type === "done") phase = String(event.payload?.phase ?? "");
-    if (event?.type === "ai_message" && !event.payload?.sub_agent_id) reply = String(event.payload?.content ?? "");
+    const isReply = event?.type === "ai_message" || event?.type === "ai_stream_end";
+    if (isReply && !event.payload?.sub_agent_id) reply = String(event.payload?.content ?? "");
   }
   return { phase, reply };
 }

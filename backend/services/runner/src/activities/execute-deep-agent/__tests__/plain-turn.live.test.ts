@@ -19,7 +19,7 @@
  * the prices are the ones users get.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -54,14 +54,14 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
   });
 
   it("completes with a reply, its usage and an estimated cost under the cap", async () => {
-    // A real model may still reach for a built-in tool (a live run did, and paused on
-    // its approval); approvals are not this case's subject, so they are granted, and
-    // the cap bounds what a stray tool call can spend.
+    // Approvals stay required: a gated tool a real model reaches for must never run
+    // unreviewed on the machine running the live check, whose environment holds the
+    // provider keys. The prompt asks for no tool (a live run once paused on a gated
+    // call); a model that still reaches for one fails the case, naming the row.
     const record = deepAgentExecutionRecord({
       message: "Without calling any tool, reply with one short sentence saying the live check ran.",
       modelName: LIVE_MODEL,
       maxCostUsd: MAX_COST_USD,
-      autoApproveAll: true,
     });
     const invocation = await runDeepAgentTurn(beginLiveDeepAgentScenario({ env, record }));
 
@@ -69,8 +69,9 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
     const cost = final?.streamingUsage?.estimatedCostUsd ?? 0;
     recordLiveSpend("native plain turn (claude-haiku-4.5)", cost);
 
+    const rows = record.toolCalls().map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
     expect(invocation.outcome.kind, final?.error).toBe("returned");
-    expect(record.persistedPhases.at(-1), final?.error).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1), `${final?.error ?? ""} tool rows: [${rows}]`).toBe(ExecutionPhase.EXECUTION_COMPLETED);
     const ai = (final?.messages ?? []).filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.length, "at least one assistant message").toBeGreaterThan(0);
     expect(ai.at(-1)?.content.trim().length, "the last assistant message carries text").toBeGreaterThan(0);
