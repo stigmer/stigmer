@@ -27,6 +27,7 @@ import {
   fileTotals,
   floorTo1,
   formatReport,
+  headerPath,
   lineHits,
   makeRelativizer,
   measure,
@@ -150,6 +151,15 @@ test("a floor rounds down to one decimal place and never up", () => {
   assert.equal(floorTo1(100), 100);
 });
 
+test("a floor raised from a run, at no margin, never refuses that same run; a hand-set floor is met at its own precision", () => {
+  // 814 of 1000 is 81.39999999999999 in binary; 23 of 40 is 57.49999999999999.
+  const run = new Map([["p", { lines: percent(814, 1000), branches: percent(23, 40), cases: 3 }]]);
+  const raised = raiseFloors(run, floorsOf({}));
+  assert.deepEqual(raised.floors.packages.p, { lines: 81.4, branches: 57.5, cases: 3 });
+  assert.deepEqual(checkFloors(run, floorsOf(raised.floors.packages)), []);
+  assert.deepEqual(checkFloors(run, floorsOf({ p: { lines: 81.5, branches: 57.5, cases: 3 } })).map((f) => f.message), ["lines 81.4% is below its floor of 81.5%"]);
+});
+
 test("a measured package below any of its floors, or with none, is refused; one with no report cannot prove its cases", () => {
   const measured = new Map([
     ["above", { lines: 81.5, branches: 70, cases: 10 }],
@@ -165,8 +175,8 @@ test("a measured package below any of its floors, or with none, is refused; one 
   });
   const findings = checkFloors(measured, floors).map((f) => `${f.rule} ${f.path} ${f.message}`);
   assert.deepEqual(findings, [
-    "floor low lines 79.99% is below its floor of 80%",
-    "floor low branches 69.90% is below its floor of 70%",
+    "floor low lines 79.9% is below its floor of 80%",
+    "floor low branches 69.9% is below its floor of 70%",
     "floor low 9 cases passed, below its floor of 10",
     "no-floor new measured (lines 50.0%, branches 50.0%, 3 cases) but has no floor; add it to the floors file",
     "floor silent has a floor of 4 cases but no run report was given, so its cases cannot be counted",
@@ -225,6 +235,31 @@ test("added lines are read from a zero-context diff: hunks, a new file, a rename
   assert.deepEqual([...added.keys()], ["p/a.ts", "p/new.ts"]);
   assert.deepEqual([...added.get("p/a.ts")], [4, 5, 12]);
   assert.deepEqual([...added.get("p/new.ts")], [1, 2, 3]);
+});
+
+test("an added line whose text starts `++ ` is a line, not a file header; quoted and spaced paths are read as git wrote them", () => {
+  const diff = [
+    "diff --git a/p/a.ts b/p/a.ts",
+    "--- a/p/a.ts",
+    "+++ b/p/a.ts",
+    "@@ -1,0 +2,1 @@",
+    "+++ counter;",
+    "@@ -10,0 +11,1 @@",
+    "+x();",
+    'diff --git "a/p/q\\"uo.ts" "b/p/q\\"uo.ts"',
+    '--- "a/p/q\\"uo.ts"',
+    '+++ "b/p/q\\"uo.ts"',
+    "@@ -0,0 +1 @@",
+    "diff --git a/p/sp ace.ts b/p/sp ace.ts",
+    "--- a/p/sp ace.ts\t",
+    "+++ b/p/sp ace.ts\t",
+    "@@ -0,0 +4 @@",
+  ].join("\n");
+  const added = addedLines(diff);
+  assert.deepEqual([...added.keys()], ["p/a.ts", 'p/q"uo.ts', "p/sp ace.ts"]);
+  assert.deepEqual([...added.get("p/a.ts")], [2, 11]);
+  assert.equal(headerPath('"b/caf\\303\\251 \\360\\237\\247\\252.ts"'), "b/café 🧪.ts");
+  assert.equal(headerPath("/dev/null"), "/dev/null");
 });
 
 test("an unrun statement is found on any added line of its range, once, and a statement that ran never is", () => {
@@ -355,6 +390,39 @@ test("the command: an unrun added line is refused and named, a test that runs it
   }
 });
 
+test("the command: a changed file with a space in its name is judged; a raise reads a run through gh, and a failed download cannot be judged", () => {
+  const r = repo();
+  try {
+    r.write("pkg/package.json", "{}");
+    r.write("pkg/src/sp ace.ts", "export const a = 1;\n");
+    r.write("floors.json", JSON.stringify({ margin: { lines: 0, branches: 0, cases: 0 }, packages: { pkg: { lines: 0, branches: 0, cases: 0 } } }));
+    r.write(".gitignore", "in/\nbin/\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+    r.write("pkg/src/sp ace.ts", "export const a = 1;\nexport const b = () => 2;\n");
+    r.git("commit", "-qam", "b");
+    const spaced = "/m/pkg/src/sp ace.ts";
+    r.write("in/coverage-final.json", JSON.stringify({ [spaced]: entry(spaced, [[1, 1, 1], [2, 2, 0]]) }));
+    const judged = r.run("--floors", "floors.json", "--input", "in", "--base", "main");
+    assert.equal(judged.status, 1, judged.stdout + judged.stderr);
+    assert.match(judged.stdout, /✗ unrun  pkg\/src\/sp ace\.ts:2  is never run by a test/);
+
+    // A stand-in for gh on PATH: it copies the run's artifacts into --dir, or fails.
+    r.write("bin/gh", `#!/bin/sh\nif [ "$3" = "404" ]; then echo "no such run" >&2; exit 1; fi\nwhile [ "$1" != "--dir" ]; do shift; done\nmkdir -p "$2/coverage-lane" && cp "${join(r.dir, "in", "coverage-final.json")}" "$2/coverage-lane/"\n`);
+    execFileSync("chmod", ["+x", join(r.dir, "bin", "gh")]);
+    const env = { ...process.env, PATH: `${join(r.dir, "bin")}:${process.env.PATH}` };
+    const fromRun = spawnSync(process.execPath, [SCRIPT, "--floors", "floors.json", "--from-run", "7", "--raise"], { cwd: r.dir, encoding: "utf8", env });
+    assert.equal(fromRun.status, 0, fromRun.stderr);
+    assert.deepEqual(JSON.parse(readFileSync(join(r.dir, "floors.json"), "utf8")).packages, { pkg: { lines: 50, branches: 100, cases: 0 } });
+    const failed = spawnSync(process.execPath, [SCRIPT, "--floors", "floors.json", "--from-run", "404", "--raise"], { cwd: r.dir, encoding: "utf8", env });
+    assert.equal(failed.status, 2);
+    assert.match(failed.stderr, /could not download run 404's coverage artifacts with gh/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
 test("the command: a drop below a floor is refused without a base; no coverage, a bad floors file or a bad flag cannot be judged", () => {
   const r = repo();
   try {
@@ -368,7 +436,7 @@ test("the command: a drop below a floor is refused without a base; no coverage, 
     runOutput(r, [[1, 1, 1], [2, 2, 0]]);
     const low = r.run("--floors", "floors.json", "--input", "in");
     assert.equal(low.status, 1);
-    assert.match(low.stdout, /✗ floor  pkg  lines 50\.00% is below its floor of 90%/);
+    assert.match(low.stdout, /✗ floor  pkg  lines 50% is below its floor of 90%/);
 
     r.write("empty/note.txt", "nothing measured");
     const nothing = r.run("--floors", "floors.json", "--input", "empty");

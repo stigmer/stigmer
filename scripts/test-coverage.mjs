@@ -306,7 +306,12 @@ export function readFloors(text) {
   return { margin, packages, problems };
 }
 
-/** One decimal place, rounded down: a floor never rounds up past what was measured. */
+/**
+ * One decimal place, rounded down: a floor never rounds up past what was
+ * measured. The small epsilon absorbs binary representation (814/1000 as a
+ * percent is 81.39999999999999), and the floors are compared at this same
+ * precision, so a floor raised from a run never refuses that run.
+ */
 export function floorTo1(value) {
   return Math.floor(value * 10 + 1e-9) / 10;
 }
@@ -320,8 +325,11 @@ export function checkFloors(measured, floors) {
       findings.push({ rule: "no-floor", path: pkg, message: `measured (lines ${figures.lines.toFixed(1)}%, branches ${figures.branches.toFixed(1)}%${figures.cases === undefined ? "" : `, ${figures.cases} cases`}) but has no floor; add it to the floors file` });
       continue;
     }
-    if (figures.lines < floor.lines) findings.push({ rule: "floor", path: pkg, message: `lines ${figures.lines.toFixed(2)}% is below its floor of ${floor.lines}%` });
-    if (figures.branches < floor.branches) findings.push({ rule: "floor", path: pkg, message: `branches ${figures.branches.toFixed(2)}% is below its floor of ${floor.branches}%` });
+    // Compared at the floor's own precision (floorTo1), never at the raw float.
+    const lines = floorTo1(figures.lines);
+    const branches = floorTo1(figures.branches);
+    if (lines < floor.lines) findings.push({ rule: "floor", path: pkg, message: `lines ${lines}% is below its floor of ${floor.lines}%` });
+    if (branches < floor.branches) findings.push({ rule: "floor", path: pkg, message: `branches ${branches}% is below its floor of ${floor.branches}%` });
     if (figures.cases === undefined) {
       if (floor.cases > 0) findings.push({ rule: "floor", path: pkg, message: `has a floor of ${floor.cases} cases but no run report was given, so its cases cannot be counted` });
     } else if (figures.cases < floor.cases) {
@@ -352,17 +360,56 @@ export function raiseFloors(measured, floors) {
 
 // ─── The change ─────────────────────────────────────────────────────────
 
-/** The lines each file gained, from `git diff -U0` output: `Map<path, Set<line>>`. */
+/**
+ * A path as git prints it in a diff header: C-quoted when it holds a quote, a
+ * backslash or a control character (`core.quotePath=false` still quotes
+ * those), and followed by a tab when it holds a space.
+ */
+export function headerPath(text) {
+  const raw = text.replace(/\t$/, "");
+  if (!raw.startsWith('"')) return raw;
+  const named = { a: "\x07", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t", v: "\v", '"': '"', "\\": "\\" };
+  const bytes = [];
+  // By code point, so a character outside the basic plane is never split in two.
+  const body = Array.from(raw.slice(1, raw.endsWith('"') ? -1 : undefined));
+  for (let i = 0; i < body.length; i++) {
+    if (body[i] !== "\\") {
+      bytes.push(...Buffer.from(body[i], "utf8"));
+      continue;
+    }
+    const next = body[++i];
+    if (/[0-7]/.test(next)) {
+      bytes.push(Number.parseInt(body.slice(i, i + 3).join(""), 8));
+      i += 2;
+    } else {
+      bytes.push(...Buffer.from(named[next] ?? next, "utf8"));
+    }
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
+
+/**
+ * The lines each file gained, from `git diff -U0` output: `Map<path, Set<line>>`.
+ * A `+++ ` line is a file header only between a file's `diff --git` line and
+ * its first hunk; inside a hunk it is an added line whose text starts `++ `.
+ */
 export function addedLines(diff) {
   const added = new Map();
   let path;
+  let inHeader = false;
   for (const line of diff.split("\n")) {
-    if (line.startsWith("+++ ")) {
-      const target = line.slice(4);
+    if (line.startsWith("diff --git ")) {
+      inHeader = true;
+      path = undefined;
+      continue;
+    }
+    if (inHeader && line.startsWith("+++ ")) {
+      const target = headerPath(line.slice(4));
       path = target === "/dev/null" ? undefined : target.replace(/^b\//, "");
       continue;
     }
     const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
+    if (hunk) inHeader = false;
     if (hunk && path) {
       const start = Number(hunk[1]);
       const count = hunk[2] === undefined ? 1 : Number(hunk[2]);
@@ -466,10 +513,15 @@ function parseArgs(argv) {
   return opts;
 }
 
-/** Downloads a workflow run's coverage artifacts into a temporary directory (the caller removes it). */
+/** Downloads a workflow run's coverage artifacts into a temporary directory (the caller removes it; a failed download removes it here). */
 function downloadRun(root, runId) {
   const dir = mkdtempSync(join(tmpdir(), "test-coverage-run-"));
-  execFileSync("gh", ["run", "download", String(runId), "--pattern", "coverage-*", "--dir", dir], { cwd: root, stdio: ["ignore", "ignore", "inherit"] });
+  try {
+    execFileSync("gh", ["run", "download", String(runId), "--pattern", "coverage-*", "--dir", dir], { cwd: root, stdio: ["ignore", "ignore", "inherit"] });
+  } catch (error) {
+    rmSync(dir, { recursive: true, force: true });
+    throw new Error(`could not download run ${runId}'s coverage artifacts with gh: ${error instanceof Error ? error.message : String(error)}`);
+  }
   return dir;
 }
 
