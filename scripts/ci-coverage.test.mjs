@@ -8,13 +8,17 @@
 // and uploaded as a `coverage-*` artifact that holds its coverage directory.
 // Without that, the Coverage job (ci.gate.yaml) would judge a package that
 // was never measured as one the change did not reach, and a floor would hold
-// nothing up. A package script that ran something after vitest would swallow
+// nothing up. A package that runs vitest but is neither a subject nor named
+// with its reason would never be measured, so the tool's refusal of a measured
+// package with no floor could never fire for it. A package script that ran
+// something after vitest would swallow
 // the flags (npm appends them to the script's last command). The Coverage
 // job must need every lane that uploads coverage, or it could run before one
 // finished. And the coverage provider peers on one exact vitest, so the two
 // are pinned together wherever the provider is declared.
 
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -59,6 +63,14 @@ const SUBJECTS = {
   "tools/codegen": { script: "test", jobs: [["ci.go-sdk.yaml", "go-sdk"], ["ci.authorization-model.yaml", "model"]] },
 };
 
+/** Packages that run vitest and are not coverage subjects, each with the reason. */
+const NOT_SUBJECTS = new Map([
+  [
+    "test/support",
+    "the suites' shared machinery, not a product package: its layout rule (test-integrity.mjs `layout-support-import`) lets it import only `node:*` and its own files, so it cannot carry a vitest config and its coverage block",
+  ],
+]);
+
 const isUpload = (step) => String(step.uses ?? "").startsWith("actions/upload-artifact@");
 const isCoverageUpload = (step) => isUpload(step) && String(step.with?.name ?? "").startsWith("coverage-");
 const uploadPaths = (step) => String(step.with?.path ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
@@ -67,6 +79,24 @@ test("every package with a floor is a subject here, and every subject has a floo
   const floors = readFloors(readFileSync(join(root, "test/coverage-floors.json"), "utf8"));
   assert.deepEqual(floors.problems, []);
   assert.deepEqual(Object.keys(SUBJECTS).sort(), Object.keys(floors.packages).sort());
+});
+
+test("every package that runs vitest is a subject, or is named with the reason it is not", () => {
+  const manifests = execFileSync("git", ["ls-files", "*package.json"], { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((path) => path.endsWith("package.json"));
+  const vitest = [];
+  for (const manifest of manifests) {
+    const scripts = readJson(manifest).scripts ?? {};
+    const runs = Object.entries(scripts).some(([name, command]) => !/watch/.test(name) && /(^|&&\s*)vitest run\b/.test(command));
+    if (runs) vitest.push(manifest === "package.json" ? "." : dirname(manifest));
+  }
+  const unmeasured = vitest.filter((pkg) => !(pkg in SUBJECTS) && !NOT_SUBJECTS.has(pkg));
+  assert.deepEqual(unmeasured, [], "each runs vitest with no floor and no wiring: give it a floor and a row in SUBJECTS, or a reason in NOT_SUBJECTS");
+  for (const pkg of NOT_SUBJECTS.keys()) {
+    assert.ok(vitest.includes(pkg), `NOT_SUBJECTS names ${pkg}, which runs no vitest suite`);
+    assert.ok(!(pkg in SUBJECTS), `${pkg} is both a subject and named as not one`);
+  }
 });
 
 test("each subject's job runs its tests with the coverage flags and uploads its coverage directory", () => {
