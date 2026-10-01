@@ -698,6 +698,12 @@ export interface TargetProfile {
   // Valid only after setup().
   runnerHomeDir?(): string;
 
+  // The public endpoint the target's runner was launched with, the value its
+  // launcher sets as STIGMER_MCP_PUBLIC_ENDPOINT: the address the runner fills
+  // a declared, unsaved STIGMER_SERVER_ADDRESS from. Present only on targets
+  // that spawn the runner. Valid only after setup().
+  runnerPublicEndpoint?(): string;
+
   // The file the target's runner tees its whole combined output to — the one
   // place a `stigmer_timing` line (the runtime's `turn_phases` timeline, the
   // adapters' `execution_setup`) can be read for an execution after it ran,

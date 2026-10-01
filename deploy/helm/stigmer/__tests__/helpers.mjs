@@ -11,8 +11,17 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  copyFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parse, parseAllDocuments } from "yaml";
@@ -78,6 +87,67 @@ export function renderProfile(profile, options) {
   return parseAllDocuments(result.stdout)
     .map((doc) => doc.toJS())
     .filter((doc) => doc !== null && typeof doc === "object");
+}
+
+// The probe that renders the chart's NOTES.txt: `helm template` never renders
+// notes, and `helm install --dry-run` needs a cluster even in client mode
+// (Helm 3.16). A copy of the chart gains one ConfigMap whose data is the
+// shipped NOTES.txt evaluated with `tpl` in the release's root context, so the
+// real file runs through the chart's own helpers and values. Proven byte for
+// byte equal to `helm install --dry-run=server`'s NOTES for the bundled and
+// ingress-oidc profiles when it was introduced (stigmer/stigmer#1597).
+const NOTES_PROBE_COPY = "notes-probe/NOTES.txt";
+const NOTES_PROBE_TEMPLATE = "templates/zz-notes-probe.yaml";
+const NOTES_PROBE = `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notes-probe
+data:
+  notes: {{ tpl (.Files.Get "${NOTES_PROBE_COPY}") . | toJson }}
+`;
+
+/**
+ * The text `helm install` prints as NOTES for a profile, plus the same
+ * overrides `helmTemplate` takes. Throws on a failed render.
+ */
+export function renderNotes(profile, { sets = [], valuesFiles = [] } = {}) {
+  const scratch = mkdtempSync(join(tmpdir(), "stigmer-chart-notes-"));
+  try {
+    const chart = join(scratch, "stigmer");
+    cpSync(CHART_DIR, chart, {
+      recursive: true,
+      filter: (source) => !relative(CHART_DIR, source).startsWith("__tests__"),
+    });
+    mkdirSync(join(chart, dirname(NOTES_PROBE_COPY)));
+    copyFileSync(
+      join(CHART_DIR, "templates", "NOTES.txt"),
+      join(chart, NOTES_PROBE_COPY),
+    );
+    writeFileSync(join(chart, NOTES_PROBE_TEMPLATE), NOTES_PROBE);
+
+    const args = ["template", RELEASE, chart, "-f", profileValuesPath(profile)];
+    for (const file of valuesFiles) {
+      args.push("-f", file);
+    }
+    for (const set of sets) {
+      args.push("--set", set);
+    }
+    args.push("--show-only", NOTES_PROBE_TEMPLATE);
+    const result = spawnSync("helm", args, { encoding: "utf8" });
+    if (result.error) {
+      throw new Error(
+        `helm is required to run the chart tests: ${result.error.message}`,
+      );
+    }
+    if (result.status !== 0) {
+      throw new Error(
+        `helm template failed rendering the notes for profile '${profile}':\n${result.stderr}`,
+      );
+    }
+    return parse(result.stdout).data.notes;
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
 }
 
 /** The rendered documents of one kind, optionally one name. */

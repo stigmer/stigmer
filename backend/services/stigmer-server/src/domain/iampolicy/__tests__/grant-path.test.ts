@@ -1187,6 +1187,7 @@ describe("who and why: every access row reaches the store with its change record
         "iam policy revoked",
         expect.objectContaining({
           actorId: ALICE,
+          actorClass: "user",
           cause: "revoke",
           organizationId: "acme",
         }),

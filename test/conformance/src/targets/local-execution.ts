@@ -294,6 +294,13 @@ export class LocalExecutionTarget implements TargetProfile {
     return this.runner.homeDir;
   }
 
+  runnerPublicEndpoint(): string {
+    if (this.runner === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before runnerPublicEndpoint()");
+    }
+    return this.runner.publicEndpoint;
+  }
+
   runnerLogFile(): string {
     if (this.runner === undefined) {
       throw new Error("LocalExecutionTarget.setup() must be called before runnerLogFile()");

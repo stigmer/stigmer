@@ -56,11 +56,16 @@
 // agent DB-projection gate, this gate resolves via a fire-and-forget Temporal
 // signal the handler does not dedupe, so a re-submit is timing-dependent (it
 // either races into FailedPrecondition once terminal, or sends a duplicate signal
-// a resolved gate ignores) — not a clean black-box guarantee. The task.output
-// (outcome / form_data / reviewer) is likewise left unasserted; outcome-honoring
-// is proven behaviorally via routing, and the outcome, reviewer and comment on
-// the event log, instead of coupling the contract to that runner-produced
-// projection.
+// a resolved gate ignores) — not a clean black-box guarantee.
+//
+// The gate task's output is asserted where it is the contract a workflow reads
+// (human_input.proto: the response "becomes the task output, accessible via
+// export", and `reviewer` is "the stable audit key (use it in switch conditions
+// and audit joins)"): a reviewer's decision lands there as the outcome, the
+// approving caller as `reviewer`, and the same principal as `reviewer_actor.id`
+// (#1422); a timeout policy that resolves the gate writes its outcome and no
+// reviewer at all. Left unasserted: form_data (no form here) and responded_at
+// (a clock).
 import { Code } from "@connectrpc/connect";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalResolvedPayload } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
@@ -158,6 +163,22 @@ async function expectTimeoutResolution(executionId: string, outcome: string): Pr
   expect(resolved.resolvedByActor, `execution ${executionId}: a timeout decision has no reviewer snapshot`).toBeUndefined();
 }
 
+// The fields of the gate task's output this suite reads (human_input.proto's
+// export shape); the output is a Struct, so each value arrives as JSON.
+interface GateOutput {
+  readonly outcome?: unknown;
+  readonly reviewer?: unknown;
+  readonly reviewer_actor?: { readonly id?: unknown };
+}
+
+// The gate task's output, asserted present: a gate that resolved with no output
+// would leave a workflow nothing to branch on.
+function gateOutputOf(exec: WorkflowExecution): GateOutput {
+  const output = taskByName(exec, HUMAN_INPUT_TASK_NAME)?.output;
+  expect(output, `execution ${exec.metadata?.id}: the gate task records an output`).toBeDefined();
+  return output as GateOutput;
+}
+
 describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", () => {
   it("[rpc:WorkflowExecutionQueryController.listPendingApprovals] gates at the task level (WAITING_APPROVAL / APPROVAL) while the execution stays IN_PROGRESS", async () => {
     const { org } = await target.provisionTenancy();
@@ -244,6 +265,17 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
     expect(
       resolved.resolvedByActor?.id,
       `execution ${executionId}: the event's reviewer snapshot names the approving caller`,
+    ).toBe(creator);
+
+    // The same decision is the gate task's output, the value a workflow branches
+    // on: the outcome, and the approving caller as reviewer, never the
+    // client-sent "conformance" (#1422).
+    const output = gateOutputOf(final);
+    expect(output.outcome, `execution ${executionId}: the gate's output carries the outcome`).toBe("approve");
+    expect(output.reviewer, `execution ${executionId}: the gate's output names the approving caller`).toBe(creator);
+    expect(
+      output.reviewer_actor?.id,
+      `execution ${executionId}: the gate's output reviewer snapshot names the approving caller`,
     ).toBe(creator);
   });
 
@@ -350,6 +382,16 @@ describe("WorkflowExecution submitWorkflowTaskApproval — timeout policy", () =
     ).toBe(WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED);
     // The fixture declares approve/deny, so auto-approval is the first: "approve".
     await expectTimeoutResolution(executionId, "approve");
+    // No one decided, so the gate's output names no reviewer (human_input.proto:
+    // both reviewer fields are absent when a timeout policy resolves the gate).
+    const output = gateOutputOf(final);
+    expect(output.outcome, `execution ${executionId}: the auto-approved gate's output carries the outcome`).toBe(
+      "approve",
+    );
+    expect(output, `execution ${executionId}: an auto-approved gate names no reviewer`).not.toHaveProperty("reviewer");
+    expect(output, `execution ${executionId}: an auto-approved gate has no reviewer snapshot`).not.toHaveProperty(
+      "reviewer_actor",
+    );
   });
 
   it("on_timeout=DENY resolves to the last declared outcome and completes", async () => {
