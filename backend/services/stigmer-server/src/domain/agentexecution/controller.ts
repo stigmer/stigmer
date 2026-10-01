@@ -47,6 +47,7 @@ import type {
 } from "../../extensions/status-hooks.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
+import type { KeyedSerializer } from "../../pipeline/keyed-serializer.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
@@ -184,6 +185,12 @@ export interface AgentExecutionControllerDeps {
    */
   readonly broker: StreamBroker;
   /**
+   * Recover's per-execution turn (pipeline/keyed-serializer.ts). ONE
+   * instance spans both routers, as the broker does; the composition root
+   * owns it, so a recover over either router waits for the other.
+   */
+  readonly recoverSerializer: KeyedSerializer;
+  /**
    * The execution-engine seam (engine.ts): permanently disconnected until
    * #18's TemporalManager flips it. Consumed by the engine gate, the
    * lifecycle RPCs, the create/recover workflow starts, and the two HITL
@@ -244,6 +251,7 @@ export function registerAgentExecutionServices(
     store: deps.store,
     logger: deps.logger,
     authorizer: deps.authorizer,
+    recoverSerializer: deps.recoverSerializer,
     broker: deps.broker,
     engineState: deps.engineState,
     executionContextBuilder: deps.executionContextBuilder,

@@ -1213,7 +1213,11 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
       error: "runner exploded",
     });
 
-    const first = recoverExecution(deps, recoverInput(id), testCallerIdentity());
+    const first = recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
     await firstAtEngine.promise;
     const second = recoverExecution(
       deps,
@@ -1285,7 +1289,11 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
       error: "runner exploded",
     });
 
-    const first = recoverExecution(deps, recoverInput(id), testCallerIdentity());
+    const first = recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
     await firstAtEngine.promise;
     const second = recoverExecution(
       deps,
