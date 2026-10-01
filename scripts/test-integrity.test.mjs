@@ -713,6 +713,7 @@ it("the command: a misplaced test is refused until listed; the list refuses a st
 
     r.git("checkout", "-q", "main");
     r.git("checkout", "-q", "-b", "fix");
+    mkdirSync(join(r.dir, "pkg/src/__tests__"), { recursive: true });
     r.git("mv", "pkg/src/run.test.ts", "pkg/src/__tests__/run.test.ts");
     r.git("commit", "-q", "-m", "move it, keep the line");
     const stale = r.run("--base", "main");
