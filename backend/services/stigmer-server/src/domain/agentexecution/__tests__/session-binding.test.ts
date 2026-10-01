@@ -7,7 +7,8 @@
  *   taken from the session; no session id, or a dangling one, is left to
  *   the steps that own those shapes; a store fault is Internal.
  * - update (stigmer/stigmer#1588): a changed session id is refused; an
- *   empty one keeps the stored session; the same one passes.
+ *   empty one, or no spec at all, keeps the stored session; the same one
+ *   passes; an execution stored with no session is not judged.
  *
  * A real SQLite store holds the sessions, as in the thinking-mode tests.
  */
@@ -49,7 +50,9 @@ afterEach(() => {
 
 type ExecutionInit = MessageInitShape<typeof AgentExecutionSchema>;
 
-function contextFor(init: ExecutionInit): RequestContext<typeof AgentExecutionSchema> {
+function contextFor(
+  init: ExecutionInit,
+): RequestContext<typeof AgentExecutionSchema> {
   return new RequestContext(
     AgentExecutionSchema,
     create(AgentExecutionSchema, init),
@@ -67,7 +70,9 @@ async function storeSession(id: string, org: string): Promise<void> {
   );
 }
 
-async function refusalOf(run: () => Promise<void> | void): Promise<ConnectError> {
+async function refusalOf(
+  run: () => Promise<void> | void,
+): Promise<ConnectError> {
   try {
     await run();
   } catch (error) {
@@ -92,7 +97,10 @@ function untouchable(): Store {
 describe("ValidateSessionOrganization (create)", () => {
   it("a turn under the session's organization passes unchanged", async () => {
     await storeSession("ses_acme", "acme");
-    const ctx = contextFor({ metadata: { org: "acme" }, spec: { sessionId: "ses_acme" } });
+    const ctx = contextFor({
+      metadata: { org: "acme" },
+      spec: { sessionId: "ses_acme" },
+    });
 
     await newValidateSessionOrganizationStep(store).execute(ctx);
 
@@ -101,9 +109,14 @@ describe("ValidateSessionOrganization (create)", () => {
 
   it("a turn under another organization is refused with FailedPrecondition naming both", async () => {
     await storeSession("ses_acme", "acme");
-    const ctx = contextFor({ metadata: { org: "personal" }, spec: { sessionId: "ses_acme" } });
+    const ctx = contextFor({
+      metadata: { org: "personal" },
+      spec: { sessionId: "ses_acme" },
+    });
 
-    const err = await refusalOf(() => newValidateSessionOrganizationStep(store).execute(ctx));
+    const err = await refusalOf(() =>
+      newValidateSessionOrganizationStep(store).execute(ctx),
+    );
 
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
@@ -113,7 +126,10 @@ describe("ValidateSessionOrganization (create)", () => {
 
   it("an empty organization is taken from the session", async () => {
     await storeSession("ses_acme", "acme");
-    const withMetadata = contextFor({ metadata: { org: "" }, spec: { sessionId: "ses_acme" } });
+    const withMetadata = contextFor({
+      metadata: { org: "" },
+      spec: { sessionId: "ses_acme" },
+    });
     const withoutMetadata = contextFor({ spec: { sessionId: "ses_acme" } });
 
     await newValidateSessionOrganizationStep(store).execute(withMetadata);
@@ -124,7 +140,10 @@ describe("ValidateSessionOrganization (create)", () => {
   });
 
   it("a turn with no session id is not judged and never reads the store", async () => {
-    const ctx = contextFor({ metadata: { org: "personal" }, spec: { agentId: "agt_x" } });
+    const ctx = contextFor({
+      metadata: { org: "personal" },
+      spec: { agentId: "agt_x" },
+    });
 
     await newValidateSessionOrganizationStep(untouchable()).execute(ctx);
 
@@ -132,9 +151,14 @@ describe("ValidateSessionOrganization (create)", () => {
   });
 
   it("a dangling session id passes, leaving the NotFound to the loading steps", async () => {
-    const ctx = contextFor({ metadata: { org: "personal" }, spec: { sessionId: "ses_missing" } });
+    const ctx = contextFor({
+      metadata: { org: "personal" },
+      spec: { sessionId: "ses_missing" },
+    });
 
-    await expect(newValidateSessionOrganizationStep(store).execute(ctx)).resolves.toBeUndefined();
+    await expect(
+      newValidateSessionOrganizationStep(store).execute(ctx),
+    ).resolves.toBeUndefined();
     expect(ctx.newState.metadata?.org).toBe("personal");
   });
 
@@ -149,17 +173,28 @@ describe("ValidateSessionOrganization (create)", () => {
         return Reflect.get(target, prop, receiver);
       },
     });
-    const ctx = contextFor({ metadata: { org: "acme" }, spec: { sessionId: "ses_any" } });
+    const ctx = contextFor({
+      metadata: { org: "acme" },
+      spec: { sessionId: "ses_any" },
+    });
 
-    const err = await refusalOf(() => newValidateSessionOrganizationStep(faulty).execute(ctx));
+    const err = await refusalOf(() =>
+      newValidateSessionOrganizationStep(faulty).execute(ctx),
+    );
 
     expect(err.code).toBe(Code.Internal);
   });
 });
 
 describe("ValidateSessionImmutability (update)", () => {
-  function mergedFor(sessionId: string, stored: AgentExecution | undefined): RequestContext<typeof AgentExecutionSchema> {
-    const ctx = contextFor({ metadata: { id: "aex_1", org: "acme" }, spec: { sessionId, message: "edited" } });
+  function mergedFor(
+    sessionId: string,
+    stored: AgentExecution | undefined,
+  ): RequestContext<typeof AgentExecutionSchema> {
+    const ctx = contextFor({
+      metadata: { id: "aex_1", org: "acme" },
+      spec: { sessionId, message: "edited" },
+    });
     if (stored !== undefined) ctx.set(EXISTING_RESOURCE_KEY, stored);
     return ctx;
   }
@@ -180,12 +215,35 @@ describe("ValidateSessionImmutability (update)", () => {
   it("a changed session id is refused with FailedPrecondition naming the stored session", async () => {
     const ctx = mergedFor("ses_other_org", stored);
 
-    const err = await refusalOf(() => newValidateSessionImmutabilityStep().execute(ctx));
+    const err = await refusalOf(() =>
+      newValidateSessionImmutabilityStep().execute(ctx),
+    );
 
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
       "session_id cannot be changed — an execution belongs to the session it was created in ('ses_first')",
     );
+  });
+
+  it("an update with no spec at all keeps the stored session", () => {
+    const ctx = contextFor({ metadata: { id: "aex_1", org: "acme" } });
+    ctx.set(EXISTING_RESOURCE_KEY, stored);
+
+    newValidateSessionImmutabilityStep().execute(ctx);
+
+    expect(ctx.newState.spec?.sessionId).toBe("ses_first");
+  });
+
+  it("a stored execution with no session is not judged", () => {
+    const sessionless = create(AgentExecutionSchema, {
+      metadata: { id: "aex_1", org: "acme" },
+      spec: { message: "original" },
+    });
+    const ctx = mergedFor("ses_any", sessionless);
+
+    newValidateSessionImmutabilityStep().execute(ctx);
+
+    expect(ctx.newState.spec?.sessionId).toBe("ses_any");
   });
 
   it("an empty session id keeps the stored session", () => {

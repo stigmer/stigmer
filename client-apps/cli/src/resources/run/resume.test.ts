@@ -30,11 +30,16 @@ import { openSession } from "./resume.js";
 const client = { stigmer: {} } as unknown as BackendClient;
 
 function executionIn(phase: ExecutionPhase) {
-  return create(AgentExecutionSchema, { metadata: { id: "aex_1", org: "acme" }, status: { phase } });
+  return create(AgentExecutionSchema, {
+    metadata: { id: "aex_1", org: "acme" },
+    status: { phase },
+  });
 }
 
 beforeEach(() => {
-  session.get.mockResolvedValue(create(SessionSchema, { metadata: { id: "ses_1", org: "acme" } }));
+  session.get.mockResolvedValue(
+    create(SessionSchema, { metadata: { id: "ses_1", org: "acme" } }),
+  );
   tty.supported = false;
 });
 
@@ -44,19 +49,37 @@ afterEach(() => {
 
 describe("openSession", () => {
   it("re-attaches a live turn in the session's organization", async () => {
-    session.executions.mockResolvedValue([executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS)]);
+    session.executions.mockResolvedValue([
+      executionIn(ExecutionPhase.EXECUTION_IN_PROGRESS),
+    ]);
 
-    await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "json" });
+    await openSession({
+      client,
+      sessionId: "ses_1",
+      mode: "",
+      outputMode: "json",
+    });
 
-    expect(stream).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "ses_1", org: "acme" }));
+    expect(stream).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "ses_1", org: "acme" }),
+    );
   });
 
   it("opens the interactive composer in the session's organization", async () => {
-    session.executions.mockResolvedValue([executionIn(ExecutionPhase.EXECUTION_COMPLETED)]);
+    session.executions.mockResolvedValue([
+      executionIn(ExecutionPhase.EXECUTION_COMPLETED),
+    ]);
     tty.supported = true;
 
-    await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "inline" });
+    await openSession({
+      client,
+      sessionId: "ses_1",
+      mode: "",
+      outputMode: "inline",
+    });
 
-    expect(ink).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "ses_1", org: "acme" }));
+    expect(ink).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "ses_1", org: "acme" }),
+    );
   });
 });

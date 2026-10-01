@@ -124,7 +124,10 @@ export function useRefineWorkflowFlow(
   // The flow's session and the organization it was created in: every turn
   // continues there, since a turn in a session belongs to that session's
   // organization (stigmer/stigmer#1580), even if `org` changes meanwhile.
-  const sessionRef = useRef<{ readonly id: string; readonly org: string } | null>(null);
+  const sessionRef = useRef<{
+    readonly id: string;
+    readonly org: string;
+  } | null>(null);
   const lastSentYamlRef = useRef<string | null>(null);
   const prevTerminalRef = useRef(false);
 

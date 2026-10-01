@@ -13,9 +13,11 @@
  * organization menu, the sidebar and every host control keyed on the
  * active organization name the conversation's.
  *
- * It aligns once per session, when that session and the organization list
- * have both loaded. A choice the person makes afterwards stands, so the
- * hook never fights the organization menu. A session in an organization
+ * It aligns once per visit to a conversation, when that session and the
+ * organization list have both loaded. A choice the person makes while the
+ * conversation stays open stands, so the hook never fights the
+ * organization menu; opening a conversation again is a new visit, and it
+ * follows that conversation again, as a link to it would. A session in an organization
  * the person does not belong to (a guest's view of a share) switches
  * nothing. The switch goes through OrgProvider's `setActiveOrg`, the
  * programmatic path: it persists the choice and clears the fetch cache
@@ -27,8 +29,8 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { useOrg } from "./OrgProvider.js";
 
 /**
- * Makes the loaded session's organization the active one, once per
- * session, when the person belongs to it.
+ * Makes the loaded session's organization the active one, once per visit
+ * to the conversation, when the person belongs to it.
  *
  * @param session - The session the page shows, or null while it loads.
  */
@@ -41,7 +43,8 @@ export function useFollowSessionOrganization(session: Session | null): void {
   const activeSlug = activeOrg?.metadata?.slug ?? "";
 
   useEffect(() => {
-    if (sessionId === "" || sessionOrg === "" || isLoading || activeSlug === "") return;
+    if (sessionId === "" || sessionOrg === "" || isLoading || activeSlug === "")
+      return;
     if (followedSessionRef.current === sessionId) return;
     followedSessionRef.current = sessionId;
     if (sessionOrg === activeSlug) return;

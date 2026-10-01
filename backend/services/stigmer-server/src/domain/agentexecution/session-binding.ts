@@ -34,20 +34,27 @@
  * execution could point it at another session, past the run gate, while
  * its `session` tuple kept naming the first. A changed `session_id` is
  * refused with FailedPrecondition, as a session refuses a changed harness
- * (ValidateHarnessImmutability); an empty one keeps the stored session,
- * since every execution has one after create, so a replacement that leaves
- * the field out stays valid. It runs after BuildUpdateState, on the merged
+ * (ValidateHarnessImmutability); an empty one, or an update with no spec
+ * at all, keeps the stored session, since every execution has one after
+ * create, so a replacement that leaves the field out stays valid. It runs after BuildUpdateState, on the merged
  * state, because that is where the stored value can be carried over.
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { AgentExecution, AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type {
+  AgentExecution,
+  AgentExecutionSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { failedPreconditionError, internalError } from "../../pipeline/errors.js";
+import {
+  failedPreconditionError,
+  internalError,
+} from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { ResourceNotFoundError, type Store } from "../../store/interface.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
@@ -89,35 +96,54 @@ export function newValidateSessionOrganizationStep(
   };
 }
 
-export function newValidateSessionImmutabilityStep(): PipelineStep<typeof AgentExecutionSchema> {
+export function newValidateSessionImmutabilityStep(): PipelineStep<
+  typeof AgentExecutionSchema
+> {
   return {
     name: "ValidateSessionImmutability",
     execute(ctx) {
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as AgentExecution | undefined;
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as
+        | AgentExecution
+        | undefined;
       const storedSessionId = existing?.spec?.sessionId ?? "";
-      const merged = ctx.newState;
-      if (storedSessionId === "" || merged.spec === undefined) {
+      if (storedSessionId === "") {
         return;
       }
+      // An update that leaves the spec out replaces it with nothing; the
+      // session is carried over all the same, as for an empty session_id.
+      const merged = ctx.newState;
+      merged.spec ??= create(AgentExecutionSpecSchema);
       if (merged.spec.sessionId === "") {
         merged.spec.sessionId = storedSessionId;
         return;
       }
       if (merged.spec.sessionId !== storedSessionId) {
-        throw failedPreconditionError(sessionIdImmutableMessage(storedSessionId));
+        throw failedPreconditionError(
+          sessionIdImmutableMessage(storedSessionId),
+        );
       }
     },
   };
 }
 
 /** The stored session, or undefined when the id names none. */
-async function loadSession(store: Store, sessionId: string): Promise<Session | undefined> {
+async function loadSession(
+  store: Store,
+  sessionId: string,
+): Promise<Session | undefined> {
   try {
-    return await store.getResource(ApiResourceKind.session, sessionId, SessionSchema);
+    return await store.getResource(
+      ApiResourceKind.session,
+      sessionId,
+      SessionSchema,
+    );
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       return undefined;
     }
-    throw internalError(error, "failed to load session for organization validation");
+    throw internalError(
+      error,
+      "failed to load session for organization validation",
+    );
   }
 }
