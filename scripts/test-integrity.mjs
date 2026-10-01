@@ -76,8 +76,10 @@
  * (the detail is the word, service or specifier a finding is about): a listed
  * finding is counted, not refused; a line whose finding is gone is refused as
  * stale; and with --base, a line the base's list did not carry is refused, so
- * the list only shrinks. A base without the list (the change that introduces
- * it) has nothing to compare with.
+ * the list only shrinks. A line that follows its file through a rename (git's
+ * rename detection, the same rule and detail) is the base's line. A base
+ * without the list (the change that introduces it) has nothing to compare
+ * with.
  *
  * Three skips carry their reason by construction and are never "new": a
  * condition on a target capability (`capabilities.x`, the conformance guide's
@@ -482,7 +484,10 @@ export function scanModule(ts, path, text) {
         const named = ts.isIdentifier(node.expression) ? node.expression.text : ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : undefined;
         const callee = named && ts.isIdentifier(node.expression) ? local.get(named) ?? named : named;
         if (callee && POSTGRES_CALLS.has(callee)) services.add("postgres");
-        const receiver = ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression) ? local.get(node.expression.expression.text) : undefined;
+        // The receiver is a name bound to TestWorkflowEnvironment, or a member of
+        // that name (`testing.TestWorkflowEnvironment`, `(await import(...)).TestWorkflowEnvironment`).
+        const object = ts.isPropertyAccessExpression(node.expression) ? node.expression.expression : undefined;
+        const receiver = object && ts.isIdentifier(object) ? local.get(object.text) : object && ts.isPropertyAccessExpression(object) ? object.name.text : undefined;
         if (callee && TEMPORAL_CALLS.has(callee) && receiver === TEMPORAL_ENVIRONMENT) services.add("temporal");
         if (callee === "gateDependency" && literal !== undefined && GATE_VARIABLES.has(literal)) services.add(GATE_VARIABLES.get(literal));
       }
@@ -535,13 +540,27 @@ export function makeReach(ts, files, read) {
   return { reach, scan };
 }
 
-/** The globs a config's `include` arrays name; an `exclude` or a comment collects nothing. */
+/**
+ * The globs a config's `include` arrays name, written inline or through a
+ * module-level `const` array (`include: BROWSER_GLOBS`); an `exclude` or a
+ * comment collects nothing.
+ */
 export function configIncludes(ts, path, text) {
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const constants = new Map();
+  for (const statement of sf.statements) {
+    if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
+    for (const d of statement.declarationList.declarations) {
+      if (ts.isIdentifier(d.name) && d.initializer && ts.isArrayLiteralExpression(d.initializer)) constants.set(d.name.text, d.initializer);
+    }
+  }
   const globs = [];
   const walk = (node) => {
-    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === "include" && ts.isArrayLiteralExpression(node.initializer)) {
-      for (const e of node.initializer.elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) globs.push(e.text);
+    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === "include") {
+      const value = ts.isIdentifier(node.initializer) ? constants.get(node.initializer.text) : node.initializer;
+      if (value && ts.isArrayLiteralExpression(value)) {
+        for (const e of value.elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) globs.push(e.text);
+      }
     }
     ts.forEachChild(node, walk);
   };
@@ -558,7 +577,8 @@ export function configIncludes(ts, path, text) {
 export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
   const findings = [];
   const { reach, scan } = makeReach(ts, files, read);
-  const configsIn = (pkg) => configs.filter((c) => pkg === "." || c.path.startsWith(`${pkg}/`));
+  // A config collects for its own package: the nearest package.json above it, not a parent's.
+  const configsIn = (pkg) => configs.filter((c) => packageOf(c.path, packageDirs) === pkg);
   // `detail` (the word, the service, the specifier) keys a baseline line with the rule and the path,
   // so one listed finding never covers a second of the same rule in the same file.
   const find = (rule, path, line, message, detail) => findings.push({ rule, path, line, message, ...(detail ? { detail } : {}) });
@@ -642,10 +662,13 @@ export function readLayoutBaseline(text) {
 /**
  * Splits the layout findings by the baseline. `head` is the list's entries in
  * the tree, `base` the base's (undefined when there is no base to compare
- * with, or the base had no list). Returns what is refused, how many findings
- * the list covers, and the list's own refusals: a stale line, a grown one.
+ * with, or the base had no list), and `renamed` maps a file's head path to its
+ * base path for the files the change renamed. Returns what is refused, how
+ * many findings the list covers, and the list's own refusals: a stale line, a
+ * grown one. A line that follows its file through a rename, with the same rule
+ * and detail, is the base's line, not a new one.
  */
-export function applyLayoutBaseline(findings, head, base) {
+export function applyLayoutBaseline(findings, head, base, renamed = new Map()) {
   const listed = new Set((head ?? []).map((e) => e.key));
   const refused = findings.filter((f) => !listed.has(layoutKey(f)));
   const baselined = findings.length - refused.length;
@@ -654,7 +677,7 @@ export function applyLayoutBaseline(findings, head, base) {
   for (const e of head ?? []) {
     if (!found.has(e.key)) {
       refused.push({ rule: "layout-baseline-stale", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` no longer applies; remove the line` });
-    } else if (was && !was.has(e.key)) {
+    } else if (was && !was.has(e.key) && !(renamed.has(e.path) && was.has(layoutKey({ rule: e.rule, path: renamed.get(e.path), detail: e.key.split(" ")[2] })))) {
       refused.push({ rule: "layout-baseline-grown", path: LAYOUT_BASELINE, line: e.line, message: `\`${e.key}\` was added; the list only shrinks, so make the file follow the standard instead` });
     }
   }
@@ -977,6 +1000,7 @@ function main(argv) {
   const headBaseline = existsSync(join(root, LAYOUT_BASELINE)) ? readLayoutBaseline(read(LAYOUT_BASELINE)) : undefined;
   for (const p of headBaseline?.problems ?? []) findings.push({ rule: "layout-baseline-shape", path: LAYOUT_BASELINE, line: p.line, message: p.message });
   let baseBaseline;
+  const renamed = new Map();
 
   let comparison;
   let declared = [];
@@ -991,6 +1015,7 @@ function main(argv) {
     for (const row of status) {
       const [code, a, b] = row.split("\t");
       if (code.startsWith("R")) {
+        renamed.set(b, a);
         if (isTest(a) || isTest(b)) lineages.push({ base: isTest(a) ? readBase(a) : undefined, head: isTest(b) ? head.get(b) : undefined });
       } else if (code === "D") {
         if (isTest(a)) lineages.push({ base: readBase(a), head: undefined });
@@ -1022,7 +1047,7 @@ function main(argv) {
     declared = applied.declared;
   }
 
-  const appliedLayout = applyLayoutBaseline(layout, headBaseline?.entries, baseBaseline?.entries);
+  const appliedLayout = applyLayoutBaseline(layout, headBaseline?.entries, baseBaseline?.entries, renamed);
   findings.push(...appliedLayout.refused);
 
   if (opts.checkIssues) {

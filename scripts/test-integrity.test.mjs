@@ -455,6 +455,8 @@ it("reaching a service is a value use of its entry point; types, strings and an 
   assert.deepEqual(services(`env = await TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
   assert.deepEqual(services(`import { TestWorkflowEnvironment as Env } from "@temporalio/testing"; await Env.createLocal();`), ["temporal"]);
   assert.deepEqual(services(`const store = open(); await store.createLocal(); await createLocal();`), []);
+  assert.deepEqual(services(`import * as testing from "@temporalio/testing"; await testing.TestWorkflowEnvironment.createLocal();`), ["temporal"]);
+  assert.deepEqual(services(`const env = await (await import("@temporalio/testing")).TestWorkflowEnvironment.createTimeSkipping();`), ["temporal"]);
   assert.deepEqual(services(`import { MockActivityEnvironment } from "@temporalio/testing"; new MockActivityEnvironment();`), []);
   assert.deepEqual(services(`import type { TestWorkflowEnvironment } from "@temporalio/testing"; type E = import("@temporalio/testing").TestWorkflowEnvironment;`), []);
   assert.deepEqual(services(`const why = "needs TEST_DATABASE_URL and createTestDatabase()"; gateDependency(name, "x");`), []);
@@ -551,6 +553,12 @@ it("a layer word goes only where its layer lives", () => {
   // A config that only excludes the browser files, or names them in a comment, collects none of them.
   const excluding = { "pkg/vitest.config.ts": `// *.browser.test.tsx run elsewhere\nexport default { test: { exclude: ["**/*.browser.test.tsx"] } };` };
   assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }, { configs: excluding }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx browser"]);
+  // A nested package's config collects for that package, not for its parent.
+  const nested = { "pkg/sub/vitest.config.ts": `export default { test: { include: ["src/**/*.browser.test.tsx"] } };` };
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }, { packages: ["pkg", "pkg/sub"], configs: nested }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx browser"]);
+  // An include given as a module-level const array is read.
+  const named = { "pkg/vitest.a11y.config.ts": `const GLOBS = ["src/**/*.browser.test.tsx"];\nexport default { test: { include: GLOBS } };` };
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": ok }, { configs: named }), []);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }), ["layout-word-place pkg/src/__tests__/scope.load.test.ts load"]);
   assert.deepEqual(layout({ "pkg/src/__tests__/scope.load.test.ts": ok }, { configs: { "pkg/vitest.load.config.ts": "" } }), []);
   assert.deepEqual(layout({ "pkg/src/__tests__/agent.conformance.test.ts": ok }), ["layout-word-place pkg/src/__tests__/agent.conformance.test.ts conformance"]);
@@ -591,6 +599,26 @@ it("a listed finding is counted, an unlisted one refused, a stale line refused, 
   const grown = applyLayoutBaseline(findings, head, base);
   assert.deepEqual(grown.refused.map((f) => f.rule), ["layout-retired-word", "layout-baseline-grown", "layout-baseline-stale"]);
   assert.equal(applyLayoutBaseline(findings, undefined, undefined).refused.length, 2);
+});
+
+it("a line that follows its file through a rename is the base's line; a line for any other file is new", () => {
+  const finding = { rule: "layout-placement", path: "pkg/src/new.test.ts", line: 1, message: "m" };
+  const head = readLayoutBaseline("layout-placement pkg/src/new.test.ts\n").entries;
+  const base = readLayoutBaseline("layout-placement pkg/src/old.test.ts\n").entries;
+  assert.deepEqual(applyLayoutBaseline([finding], head, base, new Map([["pkg/src/new.test.ts", "pkg/src/old.test.ts"]])).refused, []);
+  assert.deepEqual(applyLayoutBaseline([finding], head, base, new Map()).refused.map((f) => f.rule), ["layout-baseline-grown"]);
+  assert.deepEqual(applyLayoutBaseline([finding], head, base, new Map([["pkg/src/new.test.ts", "pkg/src/other.test.ts"]])).refused.map((f) => f.rule), ["layout-baseline-grown"]);
+});
+
+it("a detailed line follows its rename only with the same detail", () => {
+  const unnamed = { rule: "layout-service-unnamed", path: "pkg/src/__tests__/new.test.ts", line: 1, message: "m", detail: "postgres" };
+  const renamed = new Map([["pkg/src/__tests__/new.test.ts", "pkg/src/__tests__/old.test.ts"]]);
+  const base = readLayoutBaseline("layout-service-unnamed pkg/src/__tests__/old.test.ts postgres\n").entries;
+  const same = readLayoutBaseline("layout-service-unnamed pkg/src/__tests__/new.test.ts postgres\n").entries;
+  assert.deepEqual(applyLayoutBaseline([unnamed], same, base, renamed).refused, []);
+  const other = { ...unnamed, detail: "temporal" };
+  const changed = readLayoutBaseline("layout-service-unnamed pkg/src/__tests__/new.test.ts temporal\n").entries;
+  assert.deepEqual(applyLayoutBaseline([other], changed, base, renamed).refused.map((f) => f.rule), ["layout-baseline-grown"]);
 });
 
 it("a listed finding covers only itself: a second service on a listed file is refused", () => {
@@ -752,6 +780,14 @@ it("the command: a misplaced test is refused until listed; the list refuses a st
     const grown = r.run("--base", "main");
     assert.equal(grown.status, 1, grown.stdout);
     assert.match(grown.stdout, /layout-baseline-grown +scripts\/test-layout-baseline\.txt:2/);
+
+    r.git("checkout", "-q", "main");
+    r.git("checkout", "-q", "-b", "rename");
+    r.git("mv", "pkg/src/run.test.ts", "pkg/src/runs.test.ts");
+    r.write(LAYOUT_BASELINE, "# listed\nlayout-placement pkg/src/runs.test.ts\n");
+    r.git("commit", "-qam", "rename a listed file, its line follows it");
+    const followed = r.run("--base", "main");
+    assert.equal(followed.status, 0, followed.stdout);
 
     r.git("checkout", "-q", "main");
     r.git("checkout", "-q", "-b", "fix");
