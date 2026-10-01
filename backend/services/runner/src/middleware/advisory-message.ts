@@ -29,6 +29,14 @@
  * hands its handler and nowhere else, so the checkpoint, the transcript and
  * every later turn see the conversation exactly as the user and the model had
  * it. A stale "8 of 10 tool rounds used" never reaches a later turn.
+ *
+ * What it costs: the system prompt's cache breakpoint is untouched, but the
+ * conversation-tail breakpoint (deepagents' Anthropic prompt-caching
+ * middleware runs inside this stack, and the client marks the last message)
+ * lands on the advisory. The advised call therefore writes a cache entry no
+ * later request extends, and the next call reads its last round uncached:
+ * one partial miss per advisory, where a system-prompt change would re-write
+ * the whole conversation.
  */
 
 import { HumanMessage } from "@langchain/core/messages";
