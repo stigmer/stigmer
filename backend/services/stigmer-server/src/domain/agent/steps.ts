@@ -457,11 +457,12 @@ export function newUpdateAgentStatusWithDefaultInstanceStep(
 // composed driver hears the child's own delete event right after the row
 // (cleanUpDeletedResource, best-effort as every delete chain's cleanup),
 // while the agent and its organization still hold the links the child
-// reaches its organization through (stigmer#1603). What deliberately SURVIVES an agent delete,
-// and must never be swept into this cascade: sessions and agent executions
-// (historical record, the #582 posture — they reference agent and instance
-// by immutable IDs) and resource_audit rows (surviving sessions and
-// executions render their historical state from them).
+// reaches its organization through (stigmer#1603). What deliberately
+// SURVIVES an agent delete, and must never be swept into this cascade:
+// sessions and agent executions (historical record, the #582 posture —
+// they reference agent and instance by immutable IDs) and resource_audit
+// rows (surviving sessions and executions render their historical state
+// from them).
 // ---------------------------------------------------------------------------
 
 /**

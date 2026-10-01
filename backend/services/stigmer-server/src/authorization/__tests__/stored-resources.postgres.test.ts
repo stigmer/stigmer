@@ -10,6 +10,9 @@
  *     no organization's resource.
  *   - creatorOf answers the row's recorded creator, the removal sweep's
  *     authorship read, and undefined on the same misses.
+ *   - A store fault is neither: both reads raise it, so a grant or revoke
+ *     that needed the row fails as the fault it is, and never records an
+ *     organization it could not read.
  *
  * Postgres is skipped without `TEST_DATABASE_URL` (drivers.ts); the gate
  * provides it.
@@ -22,6 +25,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
+import type { Store } from "../../store/interface.js";
 import { newStoredResources } from "../stored-resources.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
@@ -116,5 +120,17 @@ describe.each(
     expect(
       await resources.creatorOf("identity_account", ACCOUNT),
     ).toBeUndefined();
+  });
+});
+
+describe("StoredResources over a failing store", () => {
+  it("raises a store fault from both reads instead of answering a miss", async () => {
+    const fault = new Error("the store is unreachable");
+    const failing = {
+      getResource: () => Promise.reject(fault),
+    } as unknown as Store;
+    const resources = newStoredResources(failing);
+    await expect(resources.organizationOf("agent", AGENT)).rejects.toBe(fault);
+    await expect(resources.creatorOf("agent", AGENT)).rejects.toBe(fault);
   });
 });

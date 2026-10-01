@@ -1,17 +1,16 @@
 /**
- * Pins the composed extension surface end to end (sub-project
- * 20260826.09/O1, DD-006 §2a): a fake extension unit registering a
- * cloud-family service the OSS server never serves
+ * Pins the composed extension surface end to end: a fake extension unit
+ * registering a cloud-family service the OSS server never serves
  * (BillingQueryController) is visible through BOTH routers — the bound
  * port and the in-process transport — with the full interceptor chain
- * running on each lane (the SP-B parity doctrine extended to extension
- * services), and the registry-declared edition answers on getServerInfo.
- * Later entries add their own composed arms below: caller guards
- * (20260902.02), the require-authentication posture (20260904.02), the
- * O5 drivers, the O4 slots and hooks, the C2 tuple lifecycle (a parent's
- * cascade included: every child it deletes is cleaned as its own delete
- * would clean it, before the parent, stigmer#1603), and the
- * organization directory's external-id lookup: scoped to the identity
+ * running on each lane (extension services held to the same parity as the
+ * server's own), and the registry-declared edition answers on
+ * getServerInfo. Later arms below compose the rest of the extension
+ * surface: caller guards, the require-authentication posture, the driver
+ * substitutions, the gate slots and status hooks, the authorization-tuple
+ * lifecycle (a parent's cascade included: every child it deletes is
+ * cleaned as its own delete would clean it, before the parent,
+ * stigmer#1603), and the organization directory's external-id lookup: scoped to the identity
  * provider the request names, and answered only to a caller who may view
  * that provider, with one NotFound for every miss.
  *

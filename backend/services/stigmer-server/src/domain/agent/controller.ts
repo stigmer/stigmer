@@ -276,7 +276,8 @@ async function apply(
 /**
  * Delete — cascades children before the parent (delete_cascade.go):
  * ALL instances, then same-org shares, each child's access cleaned with
- * its row, then the agent row, its access and its index entry. Returns the deleted agent (the audit-trail convention).
+ * its row, then the agent row, its access and its index entry. Returns
+ * the deleted agent (the audit-trail convention).
  */
 async function deleteAgent(
   deps: AgentControllerDeps,
