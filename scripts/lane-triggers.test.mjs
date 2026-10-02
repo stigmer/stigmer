@@ -1045,8 +1045,8 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
   );
   assert.deepEqual(
     readers("scripts/lib/source-version.mjs"),
-    ["all-in-one", "upgrade-rehearsal"],
-    "named through a variable's $(CURDIR) in the rehearsals, imported by scripts/stage-all-in-one.mjs in all-in-one",
+    ["all-in-one", "compose-stack", "helm-chart", "upgrade-rehearsal"],
+    "named through a variable's $(CURDIR) in the rehearsals, imported by scripts/stage-all-in-one.mjs and scripts/stage-compose-runner-cli.mjs",
   );
   assert.deepEqual(readers("client-apps/cli/scripts/gen-cli-docs.ts"), ["docs"], "a script placed by its subshell's cd");
 });
