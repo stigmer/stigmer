@@ -6,14 +6,22 @@
  *  - `buildFileChangeProgress` (pure) — secret zeroing, entry cap with honest
  *    totals, aggregate sums.
  *  - `shouldCaptureProgress` (pure) — the debounce floor.
+ *  - `captureFileChangeProgress` — a capture that fails is skipped, never
+ *    thrown: the snapshot already attached stands, the floor is spent, one
+ *    warning names the change set and the cause, and the next capture
+ *    converges (over a fake substrate and over real git).
+ *  - `createHybridProgressSubstrate` — the slice merge, and a slice's change
+ *    carried across a capture its sibling failed.
  */
 
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { beforeEach, afterEach, describe, expect, it } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { create } from "@bufbuild/protobuf";
+import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { FileChangeKind, FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   captureProgressDelta,
@@ -24,8 +32,10 @@ import {
 } from "../git-substrate.js";
 import {
   buildFileChangeProgress,
+  captureFileChangeProgress,
   createGitProgressSubstrate,
   createHybridProgressSubstrate,
+  newProgressCaptureState,
   PROGRESS_MAX_ENTRIES,
   shouldCaptureProgress,
   type ProgressCapture,
@@ -289,6 +299,17 @@ function progressEntry(path: string): ProgressEntry {
   return { pathBefore: "", pathAfter: path, kind: FileChangeKind.ADD, linesAdded: 1, linesRemoved: 0 };
 }
 
+/** A fake substrate answering one scripted step per capture: a capture, or a failure. */
+function scriptedSubstrate(steps: Array<ProgressCapture | Error>): ProgressSubstrate {
+  return {
+    capture: () => {
+      const step = steps.shift();
+      if (step === undefined) throw new Error("scriptedSubstrate: more captures than scripted steps");
+      return step instanceof Error ? Promise.reject(step) : Promise.resolve(step);
+    },
+  };
+}
+
 describe("createHybridProgressSubstrate", () => {
   it("concatenates disjoint git + cas slices and sums the honest totals", async () => {
     const git = fakeSubstrate({
@@ -334,5 +355,103 @@ describe("createHybridProgressSubstrate", () => {
 
     const { changed } = await hybrid.capture();
     expect(changed).toBe(false);
+  });
+
+  it("delivers the CAS slice's change on the next capture when the git slice failed the one that consumed it, once", async () => {
+    // The CAS slice advances its own cache whenever it answers, so the change it
+    // reported beside a failed git slice is "changed: false" from then on. The
+    // tracked tree is back where it was, so git says "changed: false" too.
+    const tracked = { delta: { entries: [progressEntry("tracked.ts")] }, changed: false };
+    const git = scriptedSubstrate([new Error("git add failed"), tracked, tracked]);
+    const cas = scriptedSubstrate([
+      { delta: { entries: [progressEntry("cache/data.txt")], totalFilesChanged: 1 }, changed: true },
+      { delta: { entries: [progressEntry("cache/data.txt")], totalFilesChanged: 1 }, changed: false },
+      { delta: { entries: [progressEntry("cache/data.txt")], totalFilesChanged: 1 }, changed: false },
+    ]);
+    const hybrid = createHybridProgressSubstrate(git, cas);
+
+    await expect(hybrid.capture(), "the failed slice fails the capture").rejects.toThrow("git add failed");
+    const next = await hybrid.capture();
+    expect(next.changed, "the change the failed capture consumed is delivered now").toBe(true);
+    expect(next.delta.entries.map((e) => e.pathAfter)).toEqual(["tracked.ts", "cache/data.txt"]);
+    const after = await hybrid.capture();
+    expect(after.changed, "delivered once, then quiet again").toBe(false);
+  });
+
+  it("delivers the git slice's change on the next capture when the CAS slice failed the one that consumed it, once", async () => {
+    const tracked = { delta: { entries: [progressEntry("tracked.ts")] } };
+    const git = scriptedSubstrate([{ ...tracked, changed: true }, { ...tracked, changed: false }, { ...tracked, changed: false }]);
+    const quiet = { delta: { entries: [], totalFilesChanged: 0 }, changed: false };
+    const cas = scriptedSubstrate([new Error("observations unreadable"), quiet, quiet]);
+    const hybrid = createHybridProgressSubstrate(git, cas);
+
+    await expect(hybrid.capture()).rejects.toThrow("observations unreadable");
+    const next = await hybrid.capture();
+    expect(next.changed, "the change the failed capture consumed is delivered now").toBe(true);
+    expect(next.delta.entries.map((e) => e.pathAfter)).toEqual(["tracked.ts"]);
+    expect((await hybrid.capture()).changed, "delivered once, then quiet again").toBe(false);
+  });
+});
+
+describe("captureFileChangeProgress: a failed capture is skipped, never thrown", () => {
+  it("leaves the attached snapshot in place, spends the floor, and warns once with the change set and the cause", async () => {
+    const status = create(AgentExecutionStatusSchema, {});
+    const state = newProgressCaptureState();
+    const substrate = scriptedSubstrate([
+      { delta: { entries: [progressEntry("a.ts")] }, changed: true },
+      new Error("Command failed: git add -A -- .\nerror: short read while indexing a.ts"),
+    ]);
+    await captureFileChangeProgress({ status, changeSetId: CHANGE_SET_ID, substrate, state, nowMs: 10_000 });
+    const attached = status.fileChangeProgress;
+    expect(attached?.filesChanged).toBe(1);
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(
+        captureFileChangeProgress({ status, changeSetId: CHANGE_SET_ID, substrate, state, nowMs: 20_000 }),
+        "a failed capture resolves: the persist it rides must not fail",
+      ).resolves.toBeUndefined();
+      expect(status.fileChangeProgress, "the snapshot already attached stands").toBe(attached);
+      expect(state.lastAtMs, "a failed capture spends the floor, so a persistent failure costs one attempt per interval").toBe(20_000);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const line = String(warn.mock.calls[0]![0]);
+      expect(line).toContain(`changeSet=${CHANGE_SET_ID}`);
+      expect(line).toContain("short read while indexing a.ts");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("over real git, a file git cannot read fails the substrate; the capture is skipped and the next one converges", async () => {
+    // Root reads a mode-000 file, so git add would succeed and this case would
+    // prove nothing: it refuses to run as root rather than pass vacuously.
+    expect(process.getuid?.(), "this case needs a non-root user (root can read a mode-000 file)").not.toBe(0);
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    const substrate = createGitProgressSubstrate({ workspaceRoot: repo, executionId: EXEC_ID, baselineTree: baseline });
+    const status = create(AgentExecutionStatusSchema, {});
+    const state = newProgressCaptureState();
+    await write("src/new.ts", "a\nb\n");
+    await write("keep.txt", "line1\nLINE2\nline3\n");
+    const keep = join(repo, "keep.txt");
+    await chmod(keep, 0o000);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await captureFileChangeProgress({ status, changeSetId: CHANGE_SET_ID, substrate, state, nowMs: 10_000 });
+      expect(status.fileChangeProgress, "nothing is attached from a capture that failed").toBeUndefined();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]![0]), "the warning carries git's own reason").toContain("unable to index file");
+
+      await chmod(keep, 0o644);
+      await captureFileChangeProgress({ status, changeSetId: CHANGE_SET_ID, substrate, state, nowMs: 20_000 });
+      const entries = status.fileChangeProgress?.entries.map((e) => [e.pathAfter, e.kind, e.linesAdded, e.linesRemoved]);
+      expect(entries, "the next capture converges to both edits").toEqual([
+        ["keep.txt", FileChangeKind.MODIFY, 1, 1],
+        ["src/new.ts", FileChangeKind.ADD, 2, 0],
+      ]);
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      await chmod(keep, 0o644);
+      warn.mockRestore();
+    }
   });
 });

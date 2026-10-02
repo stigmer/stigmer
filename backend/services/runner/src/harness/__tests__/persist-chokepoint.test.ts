@@ -1,6 +1,7 @@
 /**
  * The persist chokepoint's two contracts: what one write does (the secret
- * backstop, the usage summary, the heartbeat, the STOP), and how requests
+ * backstop, the usage summary, the heartbeat, the STOP; a failed progress
+ * capture never fails a write), and how requests
  * coalesce (one write in flight, one follow-up at most, every request's
  * promise resolving only once its state is on the wire).
  */
@@ -124,6 +125,30 @@ describe("PersistChokepoint: one write", () => {
     expect(status.fileChangeProgress?.capturedAt).toBe(attachedAt);
     gates[1]!.open();
     await second;
+  });
+
+  it("never fails a write over a progress capture that fails: the status still goes out and the heartbeat pulses", async () => {
+    const { client, gates } = heldClient();
+    const substrate: ProgressSubstrate = {
+      capture: () => Promise.reject(new Error("Command failed: git add -A -- .\nerror: short read while indexing a.md")),
+    };
+    const { chokepoint, status, heartbeat } = chokepointOver(client, {
+      progress: { changeSetId: "aex_test:0", substrate, state: newProgressCaptureState() },
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const outcome = chokepoint.request().then(
+        () => "resolved",
+        (err: unknown) => err,
+      );
+      await vi.waitFor(() => expect(gates, "the write reached the control plane").toHaveLength(1));
+      gates[0]!.open();
+      expect(await outcome, "requestPersist never rejects").toBe("resolved");
+      expect(status.fileChangeProgress).toBeUndefined();
+      expect(heartbeat).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("writes no streaming_usage when no turn was reported", async () => {
