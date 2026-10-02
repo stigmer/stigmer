@@ -15,7 +15,8 @@
 # What the script does:
 #   - installs Chromium from Playwright's download host (about 10 s);
 #   - proves it with a headless screenshot of about:blank, a real launch;
-#   - bounds both at 5 minutes, killing whatever the CLI started.
+#   - bounds both at 5 minutes, killing the CLI's process group; the browser,
+#     which Playwright runs in a group of its own, exits when the CLI is gone.
 #
 # A failure says which phase and why:
 #   - a missing `npm ci`;

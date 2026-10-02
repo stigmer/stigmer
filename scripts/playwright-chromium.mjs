@@ -39,8 +39,12 @@
  *     never stalls one, so the deadline is the only bound.
  *   - The process group, killed whole. Each phase runs in its own group, and
  *     the group is killed when the phase ends or the deadline passes. That
- *     takes Playwright's out-of-process downloader with it, and anything a
- *     phase left behind.
+ *     takes Playwright's out-of-process downloader with it. The browser the
+ *     probe launches is not in it: Playwright starts Chromium in a group of
+ *     its own and drives it over a pipe, and Chromium exits when that pipe
+ *     closes, which killing the CLI does. Measured on Ubuntu 24.04 and macOS
+ *     with Playwright 1.60: no browser process was left 1.5 s after a SIGKILL
+ *     of the CLI's group during a held-open launch.
  *   - No apt fallback. A missing library means the runner image changed: it
  *     fails here, named, once, and is fixed by installing the package that
  *     provides it in .github/actions/playwright-chromium, not by bringing
