@@ -1024,7 +1024,7 @@ describe("DeleteExecutionContext activity seam", () => {
             logger,
           },
           "aex_delfail",
-          "recover",
+          "run-end",
         ),
       ).resolves.toBeUndefined();
 
@@ -1040,7 +1040,10 @@ describe("DeleteExecutionContext activity seam", () => {
         line.includes("Failed to delete ExecutionContext"),
       );
       expect(warning, "the operator's signal").toContain('"level":"warn"');
-      expect(warning).toContain('"reason":"recover"');
+      expect(
+        warning,
+        "the reason it was given (the lookup-failure case passes the other one)",
+      ).toContain('"reason":"run-end"');
       expect(warning, "the fault that stopped the delete").toContain(
         '"error":"simulated delete failure"',
       );
