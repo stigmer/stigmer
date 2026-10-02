@@ -50,6 +50,14 @@ function staticValue(attr) {
 /** Roles under which an element takes no name, so a label on it is as prohibited as on no role at all. */
 const NAMELESS_ROLES = new Set(["generic", "presentation", "none"]);
 
+/**
+ * Elements whose own role takes no name (generic, paragraph and the
+ * text-level roles), so with no explicit role a label on them is refused. An
+ * element whose own role permits a name (a button, a labelled section, a list)
+ * is left alone.
+ */
+const NAMELESS_ELEMENTS = new Set(["div", "span", "p", "b", "i", "u", "s", "small", "strong", "em", "code", "pre"]);
+
 module.exports = {
   meta: {
     type: "problem",
@@ -80,6 +88,7 @@ module.exports = {
         // aria-labelledby names a generic element no more legally than aria-label.
         if (attribute(node, "aria-label") === undefined && attribute(node, "aria-labelledby") === undefined) return;
         const role = attribute(node, "role");
+        if (role === undefined && !NAMELESS_ELEMENTS.has(node.name.name)) return;
         if (role !== undefined) {
           const roleValue = staticValue(role);
           // A computed role is the author's to justify; a fixed one that can
