@@ -983,8 +983,9 @@ export function readCoverageFloors(text) {
   } catch (error) {
     return { entries, problems: [{ line: 1, message: `not JSON: ${error.message}` }] };
   }
-  const packages = data?.packages;
-  if (packages === null || typeof packages !== "object" || Array.isArray(packages)) {
+  // As `readFloors` reads it: no `packages` (or null) is an empty file, anything else that is not an object is not one.
+  const packages = data?.packages ?? {};
+  if (typeof packages !== "object" || Array.isArray(packages)) {
     return { entries, problems: [{ line: 1, message: "`packages` must be an object keyed by package directory" }] };
   }
   const lines = text.split("\n");

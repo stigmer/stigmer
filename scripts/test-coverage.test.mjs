@@ -328,6 +328,14 @@ test("an ignore hint says why, and in TypeScript an AST-read hint is a legal com
   refused("p/a.mts", "/* v8 ignore else -- the platform branch */", /without `@preserve` is stripped/);
   ok("p/a.ts", "/* v8 ignore start -- read from the source, so it survives the transform */");
   ok("p/a.ts", "const doc = 'no hint here: ignore next';");
+  // The provider reads `start` and `stop` on any line, and the other hints at the start of a block comment's later line.
+  refused("p/a.ts", " * v8 ignore start", /says no reason/);
+  refused("p/a.ts", "  v8 ignore next -- @preserve */", /says no reason/);
+  refused("p/a.ts", " * c8 ignore file", /ignore file/);
+  refused("p/a.ts", "<!-- /* istanbul ignore start */ -->", /says no reason/);
+  ok("p/a.ts", " * v8 ignore start -- the generated table");
+  ok("p/a.ts", "  v8 ignore next -- @preserve: the platform branch */");
+  refused("p/a.ts", "const words = 'v8 ignore next';", /says no reason/);
 });
 
 test("the hints a change adds are judged in every code file outside the tests; an existing hint is not read", () => {
@@ -490,6 +498,38 @@ test("the command: a hint without its reason is refused, and a floor moved for a
     assert.equal(clean.status, 0, clean.stdout + clean.stderr);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+test("the command: a base floors file it cannot read, or a floors file outside the repository, makes every entry new", () => {
+  const r = repo();
+  const outside = mkdtempSync(join(tmpdir(), "test-coverage-floors-"));
+  try {
+    const floors = JSON.stringify({ margin: { lines: 0, branches: 0, cases: 0 }, packages: { pkg: { lines: 0, branches: 0, cases: 0 }, other: { lines: 10, branches: 10, cases: 1 } } });
+    r.write("pkg/package.json", "{}");
+    r.write("other/package.json", "{}");
+    r.write("pkg/src/a.ts", "export const a = 1;\n");
+    // `other` is the same at the base, so only the fallback (an unreadable base is no base) asks for its measurement.
+    r.write("floors.json", JSON.stringify({ packages: { pkg: { lines: "0" }, other: { lines: 10, branches: 10, cases: 1 } } }));
+    r.write(".gitignore", "in/\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+    r.write("floors.json", floors);
+    r.git("commit", "-qam", "mend the floors");
+    runOutput(r, [[1, 1, 1]]);
+    const unreadable = r.run("--floors", "floors.json", "--input", "in", "--base", "main");
+    assert.equal(unreadable.status, 1, unreadable.stdout + unreadable.stderr);
+    assert.match(unreadable.stdout, /^✗ floor-unmeasured  other  /m);
+    assert.doesNotMatch(unreadable.stdout, /floor-unmeasured  pkg/, "pkg was measured");
+
+    writeFileSync(join(outside, "floors.json"), floors);
+    const elsewhere = r.run("--floors", join(outside, "floors.json"), "--input", "in", "--base", "main");
+    assert.equal(elsewhere.status, 1, elsewhere.stdout + elsewhere.stderr);
+    assert.match(elsewhere.stdout, /^✗ floor-unmeasured  other  /m);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   }
 });
 

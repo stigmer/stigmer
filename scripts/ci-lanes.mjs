@@ -545,6 +545,23 @@ function parseFlags(argv) {
   return flags;
 }
 
+/**
+ * The selection's step summary: the range, then the lanes it needs and why,
+ * the reason every coverage lane runs included, so a reader sees why a change
+ * to the floors alone ran them.
+ */
+export function selectionSummary({ range, changedFiles, lanes, every, measure }) {
+  const needed = Object.entries(lanes).filter(([, run]) => run).map(([id]) => `\`${id}\``);
+  return [
+    "### Lanes this change needs",
+    "",
+    `Base \`${range.base ?? "(none)"}\` (${range.source}), head \`${range.head}\`, ${changedFiles?.length ?? "?"} changed file(s).`,
+    "",
+    every ? `**Every lane**: ${every}.` : `${needed.length} lane(s): ${needed.join(", ") || "none"}.`,
+    ...(measure && !every ? ["", `**Every coverage lane**: ${measure}.`] : []),
+  ].join("\n");
+}
+
 function select(flags, env) {
   const range = resolveRange(env, flags);
   const changedFiles =
@@ -556,15 +573,7 @@ function select(flags, env) {
   const lines = Object.entries(lanes).map(([id, run]) => `${id}=${run}`);
   console.log(lines.join("\n"));
   if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, lines.join("\n") + "\n");
-  const needed = Object.entries(lanes).filter(([, run]) => run).map(([id]) => `\`${id}\``);
-  const summary = [
-    "### Lanes this change needs",
-    "",
-    `Base \`${range.base ?? "(none)"}\` (${range.source}), head \`${range.head}\`, ${changedFiles?.length ?? "?"} changed file(s).`,
-    "",
-    every ? `**Every lane**: ${every}.` : `${needed.length} lane(s): ${needed.join(", ") || "none"}.`,
-    ...(measure && !every ? ["", `**Every coverage lane**: ${measure}.`] : []),
-  ].join("\n");
+  const summary = selectionSummary({ range, changedFiles, lanes, every, measure });
   if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, summary + "\n");
   else console.log("\n" + summary);
   return 0;

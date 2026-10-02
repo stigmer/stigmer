@@ -124,12 +124,15 @@ const FIGURES = ["lines", "branches", "cases"];
 /**
  * A coverage ignore hint on a line: the provider's own prefixes and directives
  * (ast-v8-to-istanbul 0.3.12, `IGNORE_PATTERN` and `IGNORE_LINES_PATTERN` in
- * its ignore-hints module), after a comment opener anywhere earlier on the
- * line. The provider wants the hint to open its comment; this matches wider,
- * so a hint it would not honour is also asked for its reason, which hides
+ * its ignore-hints module), anywhere on the line. The provider reads `start`
+ * and `stop` as plain text on any line, a JSDoc continuation line included,
+ * and `if`, `else`, `next` and `file` at the start of a comment's text, which
+ * can be a later line of a block comment; so no comment opener is required
+ * here. This matches wider than the provider, so a hint it would not honour
+ * (or the words in a string) is also asked for its reason, which hides
  * nothing.
  */
-const IGNORE_HINT = /(\/\*|\/\/).*?\b(?:istanbul|[cv]8|node:coverage)\s+ignore\s+(if|else|next|file|start|stop)(?=\W|$)/;
+const IGNORE_HINT = /\b(?:istanbul|[cv]8|node:coverage)\s+ignore\s+(if|else|next|file|start|stop)(?=\W|$)/;
 
 /** The separators a declaration accepts (test-integrity.mjs `DECLARATION`), before a hint's reason. */
 const REASON = /(?:--|—|–)(.*)$/;
@@ -536,13 +539,13 @@ export function checkChange(added, files, measuredPackages, floors, packageDirs)
 export function hintProblem(path, text) {
   const match = IGNORE_HINT.exec(text);
   if (!match) return undefined;
-  const directive = match[2];
+  const directive = match[1];
   if (directive === "file") return "`ignore file` takes a whole module out of its package's figures; exclude it in the package's vitest config instead";
-  // The comment the hint sits in: up to its close for a block comment, the rest of the line for a line comment.
-  const after = text.slice(match.index + match[0].length);
-  const comment = match[1] === "/*" ? after.split("*/")[0] : after;
+  // The hint's own text: up to the close of its block comment when the line has one, else the rest of the line.
+  const comment = text.slice(match.index + match[0].length).split("*/")[0];
   const reason = (REASON.exec(comment)?.[1] ?? "").replace(/@preserve\s*:?/g, "").trim();
-  const legal = /@preserve\b/.test(text.slice(match.index, match.index + match[0].length) + comment);
+  // A legal comment is one the line marks `@preserve`; a hint whose marker sits on another line of its comment is asked to carry it on its own.
+  const legal = /@preserve\b/.test(text);
   if (directive !== "stop" && !/\w/.test(reason)) return `\`ignore ${directive}\` says no reason; write it after \`--\`, as \`/* v8 ignore next -- @preserve: <why no test can reach it> */\``;
   if (TRANSFORMED.test(path) && AST_HINTS.has(directive) && !legal) return `\`ignore ${directive}\` without \`@preserve\` is stripped by the TypeScript transform, so it ignores nothing; write \`/* v8 ignore ${directive} -- @preserve: <reason> */\``;
   return undefined;

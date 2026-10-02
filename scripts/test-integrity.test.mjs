@@ -381,11 +381,14 @@ it("a floors file is read as its packages' figures, each at the line of its key"
   ]);
 });
 
-it("a floors file it cannot read as packages of numbers is a problem, never an empty file", () => {
+it("a floors file it cannot read as packages of numbers is a problem; one with no packages is empty, as the coverage tool reads it", () => {
   const problems = (text) => readCoverageFloors(text).problems.map((p) => [p.line, p.message]);
   assert.match(problems("{ nope")[0][1], /^not JSON/);
   assert.deepEqual(problems(JSON.stringify({ packages: [] })), [[1, "`packages` must be an object keyed by package directory"]]);
-  assert.deepEqual(problems(JSON.stringify({ margin: {} })), [[1, "`packages` must be an object keyed by package directory"]]);
+  assert.deepEqual(problems(JSON.stringify({ packages: "all" })), [[1, "`packages` must be an object keyed by package directory"]]);
+  // No `packages`, or null, reads as an empty file, as the coverage tool's own reader has it; its entries were then all removed.
+  assert.deepEqual(readCoverageFloors(JSON.stringify({ margin: {} })), { entries: new Map(), problems: [] });
+  assert.deepEqual(readCoverageFloors(JSON.stringify({ packages: null })), { entries: new Map(), problems: [] });
   assert.deepEqual(problems(floors({ a: { lines: "81", branches: 72 } })), [[8, "a: lines, cases must be a number"]]);
 });
 
