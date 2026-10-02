@@ -305,7 +305,8 @@ export function parseMakeArguments(words, dir) {
  * left out. A target that still holds a reference this reader could not
  * expand reaches every rule its literal prefix starts
  * (`rehearse-upgrade-$(ARTIFACT)` reaches each `rehearse-upgrade-*`), so a
- * lane can only be held to more files, never fewer.
+ * lane can only be held to more files, never fewer; one named wholly by such
+ * a reference (`$(TARGET)`) has no prefix to match on and is refused.
  */
 export function targetClosure({ read, dir, targets, overrides = new Map() }) {
   const parsed = new Map();
@@ -341,7 +342,12 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
     let names = [target];
     if (target.includes("$")) {
       const prefix = target.slice(0, target.indexOf("$"));
-      names = prefix === "" ? [] : [...file.byName.keys()].filter((name) => name.startsWith(prefix));
+      if (prefix === "") {
+        // Nothing to match on: it could name any rule, so the lane cannot be held to the right ones.
+        refusals.push(`${makefile}: ${target} is named wholly by a reference this reader could not expand`);
+        return;
+      }
+      names = [...file.byName.keys()].filter((name) => name.startsWith(prefix));
       // A prerequisite that matches no rule is a file; a target a command asks for must name one.
       if (names.length === 0 && explicit) refusals.push(`${makefile}: ${target} matches no target this reader can name`);
     }
@@ -395,8 +401,12 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
 export function placeWords(text, dir, pattern) {
   const words = [];
   const refusals = [];
+  // A `cd` to an absolute path (`$(CURDIR)/...`) is rooted at the checkout, as a word is; one to a
+  // directory still holding a reference cannot be named.
+  const into = (from, target) =>
+    target.includes("$") ? null : target.startsWith("/") ? posix.normalize(target).slice(1) || "." : posix.normalize(posix.join(from, target));
   const leading = /^cd\s+([^\s;&|()]+)\s*&&/.exec(text);
-  const base = leading ? posix.normalize(posix.join(dir, leading[1])) : dir;
+  const base = leading ? into(dir, leading[1]) : dir;
   // Quoted text is blanked to its length, so a parenthesis in a message neither opens nor closes a subshell.
   const plain = unquoted(text);
   const subshells = [];
@@ -410,7 +420,7 @@ export function placeWords(text, dir, pattern) {
         break;
       }
     }
-    subshells.push({ start: open.index, end, dir: posix.normalize(posix.join(base, open[1])) });
+    subshells.push({ start: open.index, end, dir: base === null ? null : into(base, open[1]) });
   }
   // A change this reader cannot place: any `cd`, `pushd` or `popd` left once both shapes above are taken out.
   const others = plain
@@ -433,7 +443,12 @@ export function placeWords(text, dir, pattern) {
       continue;
     }
     const subshell = subshells.find(({ start, end }) => match.index > start && match.index < end);
-    words.push({ word, path: posix.normalize(posix.join(subshell?.dir ?? base, word)) });
+    const at = subshell ? subshell.dir : base;
+    if (at === null) {
+      refusals.push(`"${word}" runs in a directory named by a reference this reader could not expand`);
+      continue;
+    }
+    words.push({ word, path: posix.normalize(posix.join(at, word)) });
   }
   return { words, refusals };
 }

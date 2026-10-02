@@ -229,7 +229,8 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
   assert.deepEqual(closure.targets.map(({ target }) => target), ["rehearse", "rehearse-compose", "rehearse-helm"]);
   const refused = (makefile, targets = ["t"]) => targetClosure({ read: files({ Makefile: makefile }), dir: ".", targets }).refusals;
   assert.deepEqual(refused(mk("t:", ">echo"), ["missing"]), ["Makefile defines no target missing"]);
-  assert.deepEqual(refused(mk("t:", ">$(MAKE) $(ANY)")), ["Makefile: $(ANY) matches no target this reader can name"]);
+  assert.deepEqual(refused(mk("t:", ">$(MAKE) $(ANY)")), ["Makefile: $(ANY) is named wholly by a reference this reader could not expand"]);
+  assert.deepEqual(refused(mk("t: $(ANY)", ">echo")), ["Makefile: $(ANY) is named wholly by a reference this reader could not expand"], "a prerequisite too");
   assert.deepEqual(refused(mk("t:", ">$(MAKE) gone-$(ANY)")), ["Makefile: gone-$(ANY) matches no target this reader can name"]);
   assert.deepEqual(refused(mk("t: gone-$(ANY)", ">echo")), [], "a prerequisite that matches no rule is a file");
   assert.deepEqual(refused(mk("t:", ">cd sub && $(MAKE) all")), ["Makefile:2 (t) runs `$(MAKE)` after changing directory; pass `-C <dir>` instead"]);
@@ -269,6 +270,17 @@ test("placeWords places a recipe line's words where they run", () => {
     "a subshell's cd places only the words inside it",
   );
   assert.deepEqual(paths("cd .. && node tools/gen.ts", "mcp-server").words.map(({ path }) => path), ["tools/gen.ts"]);
+  assert.deepEqual(
+    paths("cd /sdk/go/tools && node gen.mjs && (cd / && node root.mjs)", "sdk/go").words.map(({ path }) => path),
+    ["sdk/go/tools/gen.mjs", "root.mjs"],
+    "a cd to a $(CURDIR) path is rooted at the checkout, not joined onto the line's directory",
+  );
+  assert.deepEqual(paths("(cd $DIR && node gen.mjs)").refusals, ['"gen.mjs" runs in a directory named by a reference this reader could not expand']);
+  assert.deepEqual(paths("cd ${DIR} && node a.mjs; (cd $$X && node b.mjs)").refusals, [
+    '"a.mjs" runs in a directory named by a reference this reader could not expand',
+    '"b.mjs" runs in a directory named by a reference this reader could not expand',
+  ]);
+  assert.deepEqual(paths("cd $(TOOLS) && node gen.mjs").refusals, ['"gen.mjs" runs after a directory change this reader cannot place']);
   for (const text of ["node a.mjs; cd sub; node b.mjs", "pushd sub && node b.mjs", "echo && cd sub && node b.mjs"]) {
     const { words, refusals } = paths(text);
     assert.deepEqual(words, [], text);
