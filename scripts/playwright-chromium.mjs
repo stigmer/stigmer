@@ -290,23 +290,123 @@ function* stepsOf({ doc }) {
     yield { where: `step "${label(step)}"`, step };
 }
 
+// make's options that take the next word as their argument.
+const MAKE_OPTION_ARGS = new Set([
+  "-f",
+  "--file",
+  "--makefile",
+  "-I",
+  "--include-dir",
+  "-j",
+  "-l",
+  "-o",
+  "-W",
+]);
+
+/**
+ * The `make` targets a shell line runs from the repository's Makefile.
+ *
+ * `make` counts only as the command word of a command (after any leading
+ * `VAR=value`), so `echo make x` runs nothing. `make -C <dir>` runs another
+ * directory's Makefile and is left out.
+ */
+function makeTargetsRun(line) {
+  const targets = [];
+  for (const command of line.split(/&&|\|\||[;|&]/)) {
+    const words = command.trim().split(/\s+/).filter(Boolean);
+    while (words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[0]))
+      words.shift();
+    if (words[0] !== "make" && words[0] !== "$(MAKE)") continue;
+    if (words.some((word) => word === "-C" || word.startsWith("--directory")))
+      continue;
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i];
+      if (MAKE_OPTION_ARGS.has(word)) {
+        i++;
+        continue;
+      }
+      if (word.startsWith("-") || word.includes("=")) continue;
+      targets.push(word);
+    }
+  }
+  return targets;
+}
+
+/**
+ * The Makefile's targets whose recipes install Playwright's browsers,
+ * directly or through a `$(MAKE) <target>` that does: a workflow that runs one
+ * of them brings the install back the long way round.
+ */
+export function makeInstallTargets(makefile) {
+  const direct = new Set();
+  const calls = new Map();
+  let current = [];
+  const recipe = [];
+  const close = () => {
+    for (const line of commandLines(recipe.splice(0).join("\n"))) {
+      for (const target of current) {
+        if (INSTALLS.test(line)) direct.add(target);
+        for (const called of makeTargetsRun(line.trim())) {
+          if (!calls.has(target)) calls.set(target, new Set());
+          calls.get(target).add(called);
+        }
+      }
+    }
+  };
+  for (const line of makefile.split("\n")) {
+    if (line.startsWith("\t")) {
+      recipe.push(line.slice(1));
+      continue;
+    }
+    const rule = /^([A-Za-z0-9][\w.%/ -]*?)\s*::?(?!=)/.exec(line);
+    if (!rule) continue;
+    close();
+    current = rule[1].split(/\s+/).filter((target) => !target.startsWith("."));
+  }
+  close();
+  const installing = new Set(direct);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const [target, called] of calls) {
+      if (installing.has(target) || ![...called].some((c) => installing.has(c)))
+        continue;
+      installing.add(target);
+      grew = true;
+    }
+  }
+  return installing;
+}
+
 /**
  * The guard: one sentence per `run:` line that installs Playwright's browsers
- * outside the action, and one per exemption whose file no longer does.
- * `sources` are `{ file, doc }`, the file relative to the repository root.
+ * outside the action, itself or through one of `makeTargets` (the Makefile
+ * targets that do, from makeInstallTargets), and one per exemption whose file
+ * no longer installs any. `sources` are `{ file, doc }`, the file relative to
+ * the repository root.
  */
-export function installFindings(sources, exempt = EXEMPT) {
+export function installFindings(
+  sources,
+  exempt = EXEMPT,
+  makeTargets = new Set(),
+) {
   const findings = [];
   const installing = new Set();
   for (const source of sources) {
     for (const { where, step } of stepsOf(source)) {
       if (typeof step?.run !== "string") continue;
       for (const line of commandLines(step.run)) {
-        if (!INSTALLS.test(line)) continue;
+        const viaMake = makeTargetsRun(line.trim()).find((target) =>
+          makeTargets.has(target),
+        );
+        if (!INSTALLS.test(line) && viaMake === undefined) continue;
         installing.add(source.file);
         if (exempt.has(source.file)) continue;
+        const how =
+          viaMake === undefined
+            ? "which installs Playwright's browsers itself"
+            : `and its target \`${viaMake}\` installs Playwright's browsers in the Makefile`;
         findings.push(
-          `${source.file}: ${where} runs \`${line.trim()}\`, which installs Playwright's browsers itself; ` +
+          `${source.file}: ${where} runs ${viaMake === undefined ? `\`${line.trim()}\`, ` : "`make`, "}${how}; ` +
             `use ${ACTION}, which installs Chromium without apt and proves it launches (#1663)`,
         );
       }

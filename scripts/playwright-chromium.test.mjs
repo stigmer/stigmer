@@ -45,6 +45,7 @@ import {
   EXEMPT,
   installChromium,
   installFindings,
+  makeInstallTargets,
   playwrightCli,
   readSources,
   verdictMessage,
@@ -499,7 +500,73 @@ test("no workflow or composite action installs Playwright's browsers except thro
     ),
     "the composite actions are read",
   );
-  assert.deepEqual(installFindings(sources), []);
+  const targets = makeInstallTargets(
+    readFileSync(join(root, "Makefile"), "utf8"),
+  );
+  assert.ok(
+    targets.has("test-e2e"),
+    "the Makefile's installing targets are found",
+  );
+  assert.deepEqual(installFindings(sources, EXEMPT, targets), []);
+});
+
+const MAKEFILE = [
+  ".PHONY: test-e2e check-e2e build-server lint",
+  "test-e2e: ## the functional suite",
+  "\tnpm ci",
+  "\tcd test/e2e && npx playwright install --with-deps chromium && \\",
+  "\t  npx playwright test --project=functional",
+  "check-e2e: build-server",
+  "\t$(MAKE) lint",
+  "\t$(MAKE) test-e2e",
+  "build-server:",
+  "\tnpm run build -w server",
+  "lint:",
+  "\tnpx eslint .",
+  "",
+].join("\n");
+
+test("the Makefile targets that install Playwright's browsers are found, through $(MAKE) too", () => {
+  assert.deepEqual([...makeInstallTargets(MAKEFILE)].sort(), [
+    "check-e2e",
+    "test-e2e",
+  ]);
+});
+
+test("a workflow that runs an installing make target is refused, and other targets are not", () => {
+  const targets = makeInstallTargets(MAKEFILE);
+  const refused = [
+    "make test-e2e",
+    "make -j4 check-e2e",
+    "cd x && make build-server test-e2e",
+    "CI=1 make test-e2e",
+  ];
+  for (const run of refused) {
+    const findings = installFindings(
+      [workflow(".github/workflows/ci.fixture.yaml", run)],
+      new Map(),
+      targets,
+    );
+    assert.equal(findings.length, 1, `refused: ${run}`);
+    assert.match(
+      findings[0],
+      /runs `make`, and its target `(test|check)-e2e` installs Playwright's browsers in the Makefile/,
+    );
+  }
+  const allowed = [
+    "make build-server",
+    "make lint build-server",
+    "make -C site test-e2e",
+    "echo make test-e2e later",
+  ];
+  for (const run of allowed) {
+    const findings = installFindings(
+      [workflow(".github/workflows/ci.fixture.yaml", run)],
+      new Map(),
+      targets,
+    );
+    assert.deepEqual(findings, [], `allowed: ${run}`);
+  }
 });
 
 test("every form an install can take is refused", () => {
