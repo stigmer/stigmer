@@ -78,13 +78,20 @@
 // upgrade merge without the lanes that run on it (#1719, #1734). So for
 // every lane in the map, each such file must select the lane, and on the
 // always-on lane run every package, the same two questions as the action
-// rule. Only `npm ci` as a step's first command is placed; any other npm
-// install it sees, an expression for a directory or version file, an
-// untracked file, and a setup or install inside a composite action are
-// refused. It sees npm by its command word, so an install run through
-// another program is not traced: a yarn install (site/, the one yarn
-// project, is in its lane's list), `npx npm@10 ci`, or what a `make` target
-// installs or runs (#1733).
+// rule. It reads npm's `ci` and `install` commands in each of their
+// spellings: `npm ci` as a step's first command is placed, and a top-level
+// `npm install --no-package-lock` counts its manifest. Any other `ci` or
+// `install` it sees (after another command, quoted, moved by a directory
+// change, `--prefix` or `-C`), an expression for a directory or version
+// file, an untracked file, and a setup or install inside a composite action
+// are refused. Like the action rule's script words, this reads the
+// spellings the lanes use, not everything npm can do. Not traced: other
+// commands that change node_modules (`npm update`, `dedupe`, `audit fix`,
+// `link`), an install redirected by `npm_config_*` in a step's env (the
+// lanes set only the fetch-retry ones), an install run through another
+// program (`npx npm@10 ci`; yarn, whose one project, site/, is in its
+// lane's list), and what a `make` target installs or runs (#1733). No gate
+// lane does any of these.
 //
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.
@@ -429,14 +436,13 @@ export function laneActions(workflow) {
  * job's or the workflow's `defaults.run.working-directory`, else the root.
  * Only `npm ci` as a step's first command is placed, and an install that
  * says `--no-package-lock`, as a top-level command, counts its directory's
- * manifest alone. Any other npm install the guard sees is refused, so a
- * moved install cannot hide: an `npm ci` after another command, in a quote
+ * manifest alone. Any other `ci` or `install` the guard sees is refused, so
+ * a moved install cannot hide: an `npm ci` after another command, in a quote
  * or a subshell; any install in a step that changes directory or passes
  * `--prefix` or `-C`; every other spelling of `ci` or `install`; a flag
  * before an install's verb. So are a directory or version file holding an
- * expression, and a file git does not track. npm is seen by its command
- * word, as the action rule sees a script by its extension: an install run
- * through another program (`npx npm@10 ci`, a `make` target) is not traced.
+ * expression, and a file git does not track. Only `ci` and `install` are
+ * read; the file header lists what is not traced.
  * `tracked` is passed in, as `actionRuns` takes it, so a fixture needs no git.
  */
 export function laneInputs(workflow, tracked) {
