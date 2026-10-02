@@ -956,9 +956,7 @@ describe("lifecycle pipelines", () => {
       testCallerIdentity(),
     );
 
-    expect(attempted, "the delete was tried, and it failed").toEqual([
-      staleId,
-    ]);
+    expect(attempted, "the delete was tried, and it failed").toEqual([staleId]);
     expect(createdEcs).toHaveLength(1);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
   });

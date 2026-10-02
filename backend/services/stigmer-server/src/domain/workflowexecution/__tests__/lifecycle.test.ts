@@ -641,9 +641,7 @@ describe("connected-engine transitions", () => {
       recoverInput({ id }),
       testCallerIdentity(),
     );
-    expect(attempted, "the delete was tried, and it failed").toEqual([
-      staleId,
-    ]);
+    expect(attempted, "the delete was tried, and it failed").toEqual([staleId]);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
   });
 
