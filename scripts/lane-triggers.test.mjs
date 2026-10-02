@@ -41,8 +41,9 @@
 // installer's body, scripts/playwright-chromium.mjs, ran none of the seven
 // interactive e2e jobs that call it). So for every lane in that map, every
 // action it calls and every file of that action (its own folder, each file a
-// `run:` step names as "$GITHUB_WORKSPACE/<path>", and what those import by
-// relative path), a change to the file must select the lane. `selectLanes` is
+// `run:` step names as "$GITHUB_WORKSPACE/<path>", each .mjs or .ts body in
+// its folder it names as "$GITHUB_ACTION_PATH/<path>", and what those import
+// by relative path), a change to the file must select the lane. `selectLanes` is
 // asked, so the gate's own answer is the one checked. The always-on lane
 // decides job by job inside, so there the file must also run every package
 // (`everythingBecause` in scripts/turbo-affected.mjs), or the job that calls
@@ -51,10 +52,12 @@
 // $GITHUB_ACTION_PATH/ (a composite step runs in the caller's working
 // directory, so `node scripts/x.mjs` would work unseen), a body that is not
 // .mjs or .ts (the forms whose imports extractRelativeSpecifiers follows), an
-// untracked path, an action inside an action, a lane calling a local
-// workflow. It sees a script by its extension: a step that runs repository
-// code without naming such a file (a `make` target, an `npm run` script, a
-// script with no extension) is not traced, and none of today's actions does.
+// untracked path, a $GITHUB_ACTION_PATH/ path that leaves the action's folder,
+// an action inside an action, a lane calling a local workflow. It sees a
+// script by its extension: a step that runs repository code without naming
+// such a file (a `make` target, an `npm run` script, a script with no
+// extension) is not traced, nor what a shell script in the action's folder
+// sources, and none of today's actions does either.
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.
 
@@ -84,8 +87,8 @@ const REACHED_FIELDS = [
 ];
 /** Pattern syntax the three readers of a trigger list do not agree on. */
 const REFUSED_SYNTAX = /[{}[\]!?+]/;
-/** A repository file a `run:` step names, captured after the checkout's root. */
-const WORKSPACE_PATH = /\$GITHUB_WORKSPACE\/([^\s"'`()=;|&<>]+)/g;
+/** A file a `run:` step names under the checkout's root or the action's own folder: the variable, then the path. */
+const PLACED_PATH = /\$(GITHUB_WORKSPACE|GITHUB_ACTION_PATH)\/([^\s"'`()=;|&<>]+)/g;
 /** A word in a `run:` step that names a script, however it is spelled. */
 const SCRIPT_WORD = /[^\s"'`()=;|&<>]+\.(?:mjs|cjs|js|ts|sh|py)\b/g;
 /** The prefixes under which a script word is placed: the checkout, or the action's own folder. */
@@ -240,13 +243,16 @@ export function watches(patterns, dir) {
 }
 
 /**
- * The repository files one parsed composite action runs: `{ files, refusals }`.
- * `files` are the paths its `run:` steps name as "$GITHUB_WORKSPACE/<path>",
- * less node_modules/ (the installed toolchain, judged by the lanes that watch
- * the lockfile). `tracked` is the set of tracked paths, passed in as
+ * The bodies one parsed composite action runs: `{ files, refusals }`. `files`
+ * are the paths its `run:` steps name as "$GITHUB_WORKSPACE/<path>", less
+ * node_modules/ (the installed toolchain, judged by the lanes that watch the
+ * lockfile), and the .mjs and .ts files they name as
+ * "$GITHUB_ACTION_PATH/<path>" in `folder`, the action's own, whose imports can
+ * reach outside it. Another file of the action's folder is already one of its
+ * files and is not read. `tracked` is the set of tracked paths, passed in as
  * `triggerLists` takes `gatePaths`, so a fixture needs no git.
  */
-export function actionRuns(action, tracked) {
+export function actionRuns(action, tracked, folder) {
   const files = [];
   const refusals = [];
   const using = action?.runs?.using;
@@ -272,17 +278,26 @@ export function actionRuns(action, tracked) {
         );
       }
     }
-    for (const [, path] of step.run.matchAll(WORKSPACE_PATH)) {
-      if (path.startsWith("node_modules/") || files.includes(path)) continue;
+    for (const [, variable, named] of step.run.matchAll(PLACED_PATH)) {
+      const own = variable === "GITHUB_ACTION_PATH";
+      const path = posix.normalize(own ? posix.join(folder, named) : named);
+      if (own && !path.startsWith(`${folder}/`)) {
+        refusals.push(
+          `${label}: "$${variable}/${named}" leaves ${folder}; name a file outside it as $GITHUB_WORKSPACE/<path>`,
+        );
+        continue;
+      }
+      if ((!own && path.startsWith("node_modules/")) || files.includes(path)) continue;
+      const followed = BODY_EXTENSIONS.some((extension) => path.endsWith(extension));
       if (!tracked.has(path)) {
         refusals.push(`${label}: runs ${path}, which git does not track`);
-      } else if (!BODY_EXTENSIONS.some((extension) => path.endsWith(extension))) {
+      } else if (followed) {
+        files.push(path);
+      } else if (!own) {
         refusals.push(
           `${label}: runs ${path}; this guard follows the imports of ` +
             `${BODY_EXTENSIONS.join(" and ")} bodies only, so teach it this kind first`,
         );
-      } else {
-        files.push(path);
       }
     }
   }
@@ -373,7 +388,7 @@ function readActions(tracked, rootDir = root) {
       actions.set(name, { files: own, bodies: [], refusals: ["has no action.yml, the one name this guard reads"] });
       continue;
     }
-    const runs = actionRuns(parse(readFileSync(manifest, "utf8")), tracked);
+    const runs = actionRuns(parse(readFileSync(manifest, "utf8")), tracked, `.github/actions/${name}`);
     const closure = bodyClosure(runs.files, tracked, (file) => readFileSync(join(rootDir, file), "utf8"));
     actions.set(name, {
       files: [...new Set([...own, ...closure.files])].sort(),
@@ -597,8 +612,11 @@ const composite = (...runs) => ({
   runs: { using: "composite", steps: runs.map((run, i) => ({ name: `s${i}`, shell: "bash", run })) },
 });
 
-test("actionRuns reads the files a composite action runs from the checkout, once each, without the toolchain", () => {
-  const tracked = new Set(["scripts/a.mjs", "cli/scripts/b.ts"]);
+/** The folder of the fixture action, as readActions passes it. */
+const FOLDER = ".github/actions/x";
+
+test("actionRuns reads the bodies a composite action runs, from the checkout and its own folder, once each, without the toolchain", () => {
+  const tracked = new Set(["scripts/a.mjs", "cli/scripts/b.ts", `${FOLDER}/own.sh`, `${FOLDER}/lib/run.mjs`]);
   const { files, refusals } = actionRuns(
     composite(
       'node "$GITHUB_WORKSPACE/scripts/a.mjs"',
@@ -606,21 +624,32 @@ test("actionRuns reads the files a composite action runs from the checkout, once
         'echo "$out" >> "$GITHUB_OUTPUT"',
       'node "$GITHUB_WORKSPACE/scripts/a.mjs" again',
       '"$GITHUB_ACTION_PATH/own.sh" resolve',
+      'node "$GITHUB_ACTION_PATH/lib/run.mjs"',
     ),
     tracked,
+    FOLDER,
   );
-  assert.deepEqual(files, ["scripts/a.mjs", "cli/scripts/b.ts"]);
-  assert.deepEqual(refusals, [], "a script in the action's own folder is placed, and is EVERY_LANE's");
   assert.deepEqual(
-    actionRuns({ runs: { using: "composite", steps: [{ uses: "actions/cache/restore@abc" }] } }, tracked),
+    files,
+    ["scripts/a.mjs", "cli/scripts/b.ts", `${FOLDER}/lib/run.mjs`],
+    "an .mjs in the action's folder is read for its imports; a shell script there is one of the folder's files",
+  );
+  assert.deepEqual(refusals, []);
+  assert.deepEqual(
+    actionRuns({ runs: { using: "composite", steps: [{ uses: "actions/cache/restore@abc" }] } }, tracked, FOLDER),
     { files: [], refusals: [] },
     "a remote action is not this repository's to read",
   );
 });
 
-test("actionRuns refuses what it cannot place: another runtime, a nested action, an unprefixed script, an untracked or unfollowable body", () => {
+test("actionRuns refuses what it cannot place: another runtime, a nested action, an unprefixed script, an escape from its folder, an untracked or unfollowable body", () => {
   const tracked = new Set(["scripts/a.mjs", "scripts/b.sh", "scripts/c.cjs"]);
-  const refused = (action) => actionRuns(action, tracked).refusals;
+  const refused = (action) => actionRuns(action, tracked, FOLDER).refusals;
+  assert.match(
+    refused(composite('node "$GITHUB_ACTION_PATH/../../../scripts/a.mjs"'))[0],
+    /leaves \.github\/actions\/x; name a file outside it as \$GITHUB_WORKSPACE\/<path>/,
+  );
+  assert.match(refused(composite('"$GITHUB_ACTION_PATH/gone.sh"'))[0], /\.github\/actions\/x\/gone\.sh, which git does not track/);
   assert.match(refused({ runs: { using: "node20", main: "index.js" } })[0], /composite actions only/);
   assert.match(
     refused({ runs: { using: "composite", steps: [{ uses: "./.github/actions/other" }] } })[0],
