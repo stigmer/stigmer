@@ -247,7 +247,7 @@ function payloadStart(
   return localHeaderOffset + LOCAL_HEADER_SIZE + localNameLength + localExtraLength;
 }
 
-/* c8 ignore next -- @preserve */
+/* c8 ignore next -- @preserve: scratch proof that a reasoned hint passes */
 export function scratchHintWithoutReason(): number {
   return 1;
 }
