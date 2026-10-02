@@ -149,7 +149,9 @@ stop at the first finding.
   code through other paths, code no test can reach), and is the new floor the
   `• measured` figure in the `Coverage` report less the floors file's margin,
   and no lower? The report rounds that figure to the nearest tenth while a floor
-  rounds down, so a floor up to 0.1 below it is the same figure. An unjustified
+  rounds down, so a floor up to 0.1 below it is the same figure. A floor removed
+  with its package (deleted, or renamed, when the new directory enters with its
+  own entry) has no new figure, and its reason names the move. An unjustified
   declaration is a blocking finding.
 - **Each line switched off.** A comment the diff adds that turns a check off for
   a line (above all a coverage ignore hint: `v8 ignore`, `c8 ignore`,
