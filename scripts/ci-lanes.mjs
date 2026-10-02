@@ -39,10 +39,24 @@
  * counts as passed, so `Gate` itself runs under `if: always()` and this is
  * where the decision is made. One job besides the lanes is judged too:
  * `coverage` (ci.gate.yaml's header says what it refuses), which must succeed
- * whenever the selection did, whichever lanes ran.
+ * whenever the selection did, whichever lanes ran, unless the run is reused.
+ *
+ * A merge-queue entry that only repeats a pull-request run which already
+ * passed runs no lane (`queueReuse`, #1708). That holds when the queue's base
+ * is an ancestor of the pull request's head, the queue commit's tree is the
+ * head's tree, and the head's newest `Gate` passed: the head then contains
+ * every `main` its run could have merged onto, so the merge ref that run
+ * checked out was the head's tree, the very tree the queue would test. The
+ * selection then selects nothing and names the run it reuses, `coverage`
+ * skips, and the verdict passes only if every lane and `coverage` skipped.
+ * Anything the selection cannot read runs the lanes as usual, so a failed
+ * read never turns `Gate` green. An entry queued behind another has that
+ * entry's commit as its base and fails the first condition; a pull request
+ * that has moved fails the second.
  *
  * Outputs of the selection (stdout; appended to GITHUB_OUTPUT when set):
  *   <lane id>=true|false      one per lane in LANES, e.g. runner=true
+ *   reused=<run url>          the run a queue entry reuses; empty otherwise
  * A summary goes to GITHUB_STEP_SUMMARY when set, for both commands.
  *
  * Usage:
@@ -53,11 +67,12 @@
  * judge (a usage or git error).
  */
 
+import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { matchesGlob } from "./agents-check.mjs";
-import { COVERAGE_FLOORS, changedFilesSince, resolveRange } from "./turbo-affected.mjs";
+import { COVERAGE_FLOORS, changedFilesSince, readEventPayload, resolveRange } from "./turbo-affected.mjs";
 
 /**
  * The lanes, keyed by workflow file under .github/workflows. `paths` are the
@@ -451,12 +466,55 @@ export function laneId(file) {
   return file.replace(/^ci\./, "").replace(/\.ya?ml$/, "");
 }
 
+/** The check `Gate` reports: the name the ruleset requires, and the one a queue entry reuses. */
+export const GATE_CHECK = "Gate";
+
+/** The pull request a merge-queue ref names (`gh-readonly-queue/<base>/pr-<n>-<sha>`), or null. */
+export function queuePullNumber(headRef) {
+  const match = /^(?:refs\/heads\/)?gh-readonly-queue\/.+\/pr-(\d+)-[0-9a-f]{40}$/.exec(headRef ?? "");
+  return match === null ? null : Number(match[1]);
+}
+
 /**
- * Which lanes run. `changedFiles` is null when no base could be read.
- * Returns `{ lanes: { <id>: boolean }, every: <reason> | null, measure:
- * <reason> | null }`, `measure` saying why every coverage lane runs.
+ * Whether a merge-queue entry repeats a pull-request run that already passed
+ * (the header says why the three conditions suffice). `facts` is what GitHub
+ * answered, each field null when it could not be read: `groupTree` (the queue
+ * commit's tree), `headTree` (the pull request head's), `compareStatus`
+ * (`compare/<queue base>...<head>`: `ahead` or `identical` when the base is
+ * an ancestor of the head) and `checkRuns` (the head's `Gate` check runs:
+ * `{ app, status, conclusion, startedAt, url }`). Returns `{ reused: <run
+ * url> | null, reason }`.
  */
-export function selectLanes({ event, changedFiles }) {
+export function queueReuse({ groupTree, headTree, compareStatus, checkRuns }) {
+  const no = (reason) => ({ reused: null, reason });
+  if (compareStatus === null) return no("the queue's base could not be compared with the pull request's head");
+  if (compareStatus !== "ahead" && compareStatus !== "identical") {
+    return no(`the pull request's head does not contain the queue's base (compare: ${compareStatus})`);
+  }
+  if (groupTree === null || headTree === null) return no("a tree could not be read");
+  if (groupTree !== headTree) return no(`the queue commit's tree ${groupTree.slice(0, 12)} is not the pull request head's ${headTree.slice(0, 12)}`);
+  if (checkRuns === null) return no(`the pull request head's \`${GATE_CHECK}\` runs could not be read`);
+  const newest = checkRuns
+    .filter((run) => run.app === "github-actions")
+    .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))[0];
+  if (newest === undefined) return no(`the pull request's head has no \`${GATE_CHECK}\` run`);
+  if (newest.status !== "completed" || newest.conclusion !== "success") {
+    return no(`the head's newest \`${GATE_CHECK}\` is ${newest.status === "completed" ? newest.conclusion : newest.status} (${newest.url})`);
+  }
+  return { reused: newest.url, reason: `the queue commit's tree is the pull request head's, which contains the queue's base, and its newest \`${GATE_CHECK}\` passed: ${newest.url}` };
+}
+
+/**
+ * Which lanes run. `changedFiles` is null when no base could be read;
+ * `reused` is the run a queue entry reuses (`queueReuse`), which selects no
+ * lane, the always-run one included. Returns `{ lanes: { <id>: boolean },
+ * every: <reason> | null, measure: <reason> | null, reused: <run url> | null
+ * }`, `measure` saying why every coverage lane runs.
+ */
+export function selectLanes({ event, changedFiles, reused = null }) {
+  if (reused !== null) {
+    return { lanes: Object.fromEntries(Object.keys(LANES).map((file) => [laneId(file), false])), every: null, measure: null, reused };
+  }
   let every = null;
   const measure = changedFiles?.includes(COVERAGE_FLOORS)
     ? `the coverage floors changed (${COVERAGE_FLOORS}): every lane that measures a package runs, so each moved floor is judged`
@@ -481,7 +539,7 @@ export function selectLanes({ event, changedFiles }) {
         lane.paths.some((glob) => matchesGlob(glob, changed)),
       );
   }
-  return { lanes, every, measure };
+  return { lanes, every, measure, reused: null };
 }
 
 /**
@@ -500,7 +558,8 @@ export function verdict(needs) {
     fail(`lanes: the selection did not succeed (${selection?.result ?? "absent"})`);
     return { ok, lines };
   }
-  lines.push("ok   lanes: selection succeeded");
+  const reused = selection.outputs?.reused || null;
+  lines.push(reused === null ? "ok   lanes: selection succeeded" : `ok   lanes: selection succeeded, reusing ${reused}`);
   for (const file of Object.keys(LANES)) {
     const id = laneId(file);
     const selected = selection.outputs?.[id];
@@ -509,18 +568,23 @@ export function verdict(needs) {
       fail(`${id}: the selection gave no answer (${JSON.stringify(selected)})`);
     } else if (result === undefined) {
       fail(`${id}: not among Gate's needs`);
+    } else if (reused !== null && (selected !== "false" || result !== "skipped")) {
+      fail(`${id}: the run is reused, yet the lane was ${selected === "true" ? "needed" : "not needed"} and ${result}`);
     } else if (selected === "true" && result !== "success") {
       fail(`${id}: needed, and ${result}`);
     } else if (selected === "false" && result !== "skipped") {
       fail(`${id}: not needed, yet ${result}`);
     } else {
-      lines.push(`ok   ${id}: ${selected === "true" ? "needed, passed" : "not needed"}`);
+      lines.push(`ok   ${id}: ${reused !== null ? "reused" : selected === "true" ? "needed, passed" : "not needed"}`);
     }
   }
   for (const id of GATE_JOBS) {
     const result = needs[id]?.result;
     if (result === undefined) fail(`${id}: not among Gate's needs`);
-    else if (result !== "success") fail(`${id}: ${result}`);
+    else if (reused !== null) {
+      if (result !== "skipped") fail(`${id}: the run is reused, yet ${result}`);
+      else lines.push(`ok   ${id}: reused`);
+    } else if (result !== "success") fail(`${id}: ${result}`);
     else lines.push(`ok   ${id}: passed`);
   }
   return { ok, lines };
@@ -550,16 +614,45 @@ function parseFlags(argv) {
  * the reason every coverage lane runs included, so a reader sees why a change
  * to the floors alone ran them.
  */
-export function selectionSummary({ range, changedFiles, lanes, every, measure }) {
+export function selectionSummary({ range, changedFiles, lanes, every, measure, reuse = null }) {
   const needed = Object.entries(lanes).filter(([, run]) => run).map(([id]) => `\`${id}\``);
   return [
     "### Lanes this change needs",
     "",
     `Base \`${range.base ?? "(none)"}\` (${range.source}), head \`${range.head}\`, ${changedFiles?.length ?? "?"} changed file(s).`,
+    ...(reuse === null ? [] : ["", reuse.reused === null ? `Not reused: ${reuse.reason}.` : `**Reused**: ${reuse.reason}.`]),
     "",
     every ? `**Every lane**: ${every}.` : `${needed.length} lane(s): ${needed.join(", ") || "none"}.`,
     ...(measure && !every ? ["", `**Every coverage lane**: ${measure}.`] : []),
   ].join("\n");
+}
+
+/**
+ * What GitHub says about a merge-queue entry and the pull request it names,
+ * for `queueReuse`: each field null when it could not be read, never thrown,
+ * so a failed read runs the lanes. Reads through `gh` with the job's token.
+ */
+function queueFacts(env, group) {
+  const repo = env.GITHUB_REPOSITORY;
+  const gh = (args) => execFileSync("gh", ["api", ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60_000 }).trim();
+  const read = (args) => {
+    try {
+      return gh(args);
+    } catch {
+      return null;
+    }
+  };
+  const pull = queuePullNumber(group?.head_ref);
+  const headSha = pull === null ? null : read([`repos/${repo}/pulls/${pull}`, "--jq", ".head.sha"]);
+  if (headSha === null || !group?.base_sha || !group?.head_sha) return { groupTree: null, headTree: null, compareStatus: null, checkRuns: null };
+  const tree = (sha) => read([`repos/${repo}/git/commits/${sha}`, "--jq", ".tree.sha"]);
+  const runs = read([`repos/${repo}/commits/${headSha}/check-runs?check_name=${GATE_CHECK}&per_page=100`, "--jq", "[.check_runs[] | {app: .app.slug, status, conclusion, startedAt: .started_at, url: .html_url}]"]);
+  return {
+    groupTree: tree(group.head_sha),
+    headTree: tree(headSha),
+    compareStatus: read([`repos/${repo}/compare/${group.base_sha}...${headSha}`, "--jq", ".status"]),
+    checkRuns: runs === null ? null : JSON.parse(runs),
+  };
 }
 
 function select(flags, env) {
@@ -569,11 +662,12 @@ function select(flags, env) {
   if (range.base !== null && changedFiles === null) {
     throw new Error(`ci-lanes: git could not compare ${range.base} with ${range.head}`);
   }
-  const { lanes, every, measure } = selectLanes({ event: env.GITHUB_EVENT_NAME, changedFiles });
-  const lines = Object.entries(lanes).map(([id, run]) => `${id}=${run}`);
+  const reuse = env.GITHUB_EVENT_NAME === "merge_group" ? queueReuse(queueFacts(env, readEventPayload(env)?.merge_group)) : null;
+  const { lanes, every, measure, reused } = selectLanes({ event: env.GITHUB_EVENT_NAME, changedFiles, reused: reuse?.reused ?? null });
+  const lines = [...Object.entries(lanes).map(([id, run]) => `${id}=${run}`), `reused=${reused ?? ""}`];
   console.log(lines.join("\n"));
   if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, lines.join("\n") + "\n");
-  const summary = selectionSummary({ range, changedFiles, lanes, every, measure });
+  const summary = selectionSummary({ range, changedFiles, lanes, every, measure, reuse });
   if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, summary + "\n");
   else console.log("\n" + summary);
   return 0;

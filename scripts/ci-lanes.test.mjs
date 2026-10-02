@@ -7,7 +7,11 @@
 // gate's own files and a dispatch select every lane, no base selects every
 // lane, the coverage floors select every lane that measures), the verdict (a needed lane that did not pass, a lane that ran
 // without being needed, a selection that gave no answer, a coverage job that
-// did not pass: each is red), and
+// did not pass: each is red), the merge-queue reuse (a queue entry repeats a
+// passed pull-request run only when the queue's base is in the head, the
+// trees match and the head's newest `Gate` passed; anything unread or
+// otherwise runs the lanes; a reused verdict passes only when every lane and
+// coverage skipped), and
 // the structure, read from the workflow files as they are. A lane that left
 // the gate, a gate job whose condition drifted from the map, a lane that
 // kept its own trigger or concurrency, or a lane without the gate's test
@@ -22,7 +26,19 @@ import { fileURLToPath } from "node:url";
 
 import { parse } from "yaml";
 
-import { COVERAGE_LANES, EVERY_LANE, GATE_JOBS, LANES, laneId, selectionSummary, selectLanes, verdict } from "./ci-lanes.mjs";
+import {
+  COVERAGE_LANES,
+  EVERY_LANE,
+  GATE_CHECK,
+  GATE_JOBS,
+  LANES,
+  laneId,
+  queuePullNumber,
+  queueReuse,
+  selectionSummary,
+  selectLanes,
+  verdict,
+} from "./ci-lanes.mjs";
 import { COVERAGE_FLOORS } from "./turbo-affected.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -35,9 +51,9 @@ const selected = (changedFiles, event = "pull_request") =>
     .filter(([, run]) => run)
     .map(([id]) => id);
 
-/** A `needs` context as ci.gate.yaml's `Gate` job sees it. */
-function needsFor(chosen, resultOf = () => undefined) {
-  const outputs = Object.fromEntries(IDS.map((id) => [id, String(chosen.includes(id))]));
+/** A `needs` context as ci.gate.yaml's `Gate` job sees it; `reused` is the selection's `reused` output. */
+function needsFor(chosen, resultOf = () => undefined, reused = "") {
+  const outputs = { ...Object.fromEntries(IDS.map((id) => [id, String(chosen.includes(id))])), reused };
   const needs = { lanes: { result: "success", outputs } };
   for (const id of IDS) {
     needs[id] = { result: resultOf(id) ?? (chosen.includes(id) ? "success" : "skipped"), outputs: {} };
@@ -169,7 +185,7 @@ test("the verdict is red when the selection failed or gave no answer for a lane"
   assert.deepEqual(verdict(missing).lines.filter((l) => l.startsWith("FAIL")), ["FAIL crate: not among Gate's needs"]);
 });
 
-test("the verdict is red unless the coverage job passed, whichever lanes ran", () => {
+test("the verdict is red unless the coverage job passed, whichever lanes ran, unless the run is reused", () => {
   for (const result of ["failure", "cancelled", "skipped"]) {
     const judged = verdict(needsFor(["runner"], (id) => (id === "coverage" ? result : undefined)));
     assert.equal(judged.ok, false, result);
@@ -179,6 +195,91 @@ test("the verdict is red unless the coverage job passed, whichever lanes ran", (
   delete absent.coverage;
   assert.deepEqual(verdict(absent).lines.filter((l) => l.startsWith("FAIL")), ["FAIL coverage: not among Gate's needs"]);
   assert.equal(verdict(needsFor([])).ok, true, "a change no lane judged still needs coverage, and it passed");
+});
+
+// ─── The merge-queue reuse ──────────────────────────────────────────────
+
+const RUN = "https://github.com/stigmer/stigmer/actions/runs/1/job/2";
+const TREE = "a".repeat(40);
+const passed = { app: "github-actions", status: "completed", conclusion: "success", startedAt: "2026-10-02T10:00:00Z", url: RUN };
+const repeat = { groupTree: TREE, headTree: TREE, compareStatus: "ahead", checkRuns: [passed] };
+
+test("the queue ref names its pull request, and nothing else does", () => {
+  const sha = "f5079c1738b510e92150fadd2881fcaa04e7ec16";
+  assert.equal(queuePullNumber(`gh-readonly-queue/main/pr-1696-${sha}`), 1696);
+  assert.equal(queuePullNumber(`refs/heads/gh-readonly-queue/main/pr-1696-${sha}`), 1696);
+  for (const ref of [undefined, null, "", "main", `gh-readonly-queue/main/pr-x-${sha}`, "gh-readonly-queue/main/pr-1696-abc", `feature/pr-1696-${sha}`]) {
+    assert.equal(queuePullNumber(ref), null, String(ref));
+  }
+});
+
+test("a queue entry reuses its pull request's run only when the base is in the head, the trees match and the newest Gate passed", () => {
+  assert.equal(GATE_CHECK, "Gate", "the ruleset's required check");
+  const reused = queueReuse(repeat);
+  assert.equal(reused.reused, RUN);
+  assert.match(reused.reason, /tree is the pull request head's, which contains the queue's base, and its newest `Gate` passed/);
+  assert.equal(queueReuse({ ...repeat, compareStatus: "identical" }).reused, RUN, "a head that is the base itself");
+});
+
+test("an entry behind another, a moved head, a red or unfinished Gate, or anything unread runs the lanes", () => {
+  const cases = [
+    [{ compareStatus: "diverged" }, /does not contain the queue's base \(compare: diverged\)/],
+    [{ compareStatus: "behind" }, /does not contain the queue's base/],
+    [{ groupTree: "b".repeat(40) }, /tree bbbbbbbbbbbb is not the pull request head's aaaaaaaaaaaa/],
+    [{ checkRuns: [] }, /has no `Gate` run/],
+    [{ checkRuns: [{ ...passed, conclusion: "failure" }] }, /newest `Gate` is failure/],
+    [{ checkRuns: [{ ...passed, status: "in_progress", conclusion: null }] }, /newest `Gate` is in_progress/],
+    [{ checkRuns: [passed, { ...passed, conclusion: "failure", startedAt: "2026-10-02T11:00:00Z" }] }, /newest `Gate` is failure/],
+    [{ checkRuns: [passed, { ...passed, status: "queued", conclusion: null, startedAt: null }] }, /newest `Gate` is queued/],
+    [{ checkRuns: [{ ...passed, app: "someone-else" }] }, /has no `Gate` run/],
+    [{ compareStatus: null }, /could not be compared/],
+    [{ groupTree: null }, /a tree could not be read/],
+    [{ headTree: null }, /a tree could not be read/],
+    [{ checkRuns: null }, /`Gate` runs could not be read/],
+  ];
+  for (const [change, reason] of cases) {
+    const verdictOf = queueReuse({ ...repeat, ...change });
+    assert.equal(verdictOf.reused, null, JSON.stringify(change));
+    assert.match(verdictOf.reason, reason, JSON.stringify(change));
+  }
+  const olderRed = queueReuse({ ...repeat, checkRuns: [{ ...passed, conclusion: "failure", startedAt: "2026-10-02T09:00:00Z" }, passed] });
+  assert.equal(olderRed.reused, RUN, "the newest run decides, as a rerun's green does");
+});
+
+test("a reused selection runs no lane, the always-run lane included, whatever changed", () => {
+  const { lanes, every, measure, reused } = selectLanes({ event: "merge_group", changedFiles: [COVERAGE_FLOORS, "scripts/ci-lanes.mjs"], reused: RUN });
+  assert.deepEqual(Object.entries(lanes).filter(([, run]) => run), []);
+  assert.deepEqual(Object.keys(lanes).sort(), [...IDS].sort());
+  assert.equal(every, null);
+  assert.equal(measure, null);
+  assert.equal(reused, RUN);
+  assert.equal(selectLanes({ event: "merge_group", changedFiles: ["test/README.md"] }).reused, null);
+});
+
+test("a reused verdict passes only when every lane and coverage skipped, and names the run", () => {
+  const green = verdict(needsFor([], (id) => (id === "coverage" ? "skipped" : undefined), RUN));
+  assert.equal(green.ok, true);
+  assert.equal(green.lines[0], `ok   lanes: selection succeeded, reusing ${RUN}`);
+  assert.ok(green.lines.includes("ok   coverage: reused"));
+
+  const ranCoverage = verdict(needsFor([], () => undefined, RUN));
+  assert.deepEqual(ranCoverage.lines.filter((l) => l.startsWith("FAIL")), ["FAIL coverage: the run is reused, yet success"]);
+
+  const ranLane = verdict(needsFor(["runner"], (id) => (id === "coverage" ? "skipped" : undefined), RUN));
+  assert.deepEqual(ranLane.lines.filter((l) => l.startsWith("FAIL")), ["FAIL runner: the run is reused, yet the lane was needed and success"]);
+
+  const strayLane = verdict(needsFor([], (id) => (id === "coverage" ? "skipped" : id === "docs" ? "failure" : undefined), RUN));
+  assert.deepEqual(strayLane.lines.filter((l) => l.startsWith("FAIL")), ["FAIL docs: the run is reused, yet the lane was not needed and failure"]);
+});
+
+test("the summary says whether a queue entry was reused, and why", () => {
+  const range = { base: "abc", head: "HEAD", source: "merge_group base commit" };
+  const reuse = queueReuse(repeat);
+  const reused = selectionSummary({ range, changedFiles: ["a"], ...selectLanes({ event: "merge_group", changedFiles: ["a"], reused: reuse.reused }), reuse });
+  assert.match(reused, /\n\n\*\*Reused\*\*: the queue commit's tree is the pull request head's, .*\.\n\n0 lane\(s\): none\.$/);
+  const fresh = queueReuse({ ...repeat, compareStatus: "diverged" });
+  const ran = selectionSummary({ range, changedFiles: ["test/README.md"], ...selectLanes({ event: "merge_group", changedFiles: ["test/README.md"] }), reuse: fresh });
+  assert.match(ran, /\n\nNot reused: the pull request's head does not contain the queue's base \(compare: diverged\)\.\n\n/);
 });
 
 // ─── The shape, read from the workflow files ────────────────────────────
@@ -210,6 +311,16 @@ test("each lane job runs exactly when the selection says so, and Gate needs them
   assert.deepEqual([...judge.needs].sort(), ["lanes", ...IDS, ...GATE_JOBS].sort());
   assert.match(judge.steps.at(-1).run, /ci-lanes\.mjs verdict/);
   assert.equal(judge.steps.at(-1).env.GATE_NEEDS, "${{ toJSON(needs) }}");
+});
+
+test("only the selection reads GitHub, read-only, and it hands Gate the run it reused", () => {
+  const lanes = gate.jobs.lanes;
+  assert.equal(lanes.outputs.reused, "${{ steps.select.outputs.reused }}");
+  assert.deepEqual(lanes.permissions, { contents: "read", checks: "read", "pull-requests": "read" });
+  assert.deepEqual(gate.permissions, { contents: "read" }, "every other job keeps the workflow's read-only contents");
+  const tokened = Object.entries(gate.jobs).flatMap(([id, job]) => (job.steps ?? []).filter((step) => step.env?.GH_TOKEN !== undefined).map((step) => `${id}/${step.id ?? step.name}`));
+  assert.deepEqual(tokened, ["lanes/select"], "the token reaches the selection's step alone");
+  assert.equal(lanes.steps.find((step) => step.id === "select").run, "node scripts/ci-lanes.mjs");
 });
 
 test("the lanes run only through the gate, and each sets the gate's test variable itself", () => {

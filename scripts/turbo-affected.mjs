@@ -144,7 +144,8 @@ export function resolveRange(env, flags = {}, readEvent = readEventPayload) {
   return { base: "origin/main", head, source: "default" };
 }
 
-function readEventPayload(env) {
+/** The event GitHub delivered (GITHUB_EVENT_PATH), or null outside CI. */
+export function readEventPayload(env) {
   if (!env.GITHUB_EVENT_PATH) return null;
   return JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
 }

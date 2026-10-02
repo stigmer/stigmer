@@ -29,8 +29,22 @@
 # test/coverage-floors.json). `Gate` needs it like a lane and fails unless it
 # passed. It runs under `!cancelled()`, not
 # `always()`: it is not a required check itself, and `Gate` reads a skipped or
-# cancelled `coverage` as a failure. scripts/ci-coverage.test.mjs holds the
-# uploads and this job's needs to one shape.
+# cancelled `coverage` as a failure, except on a reused run (below).
+# scripts/ci-coverage.test.mjs holds the uploads and this job's needs to one
+# shape.
+#
+# A merge-queue entry may reuse its pull request's run (#1708). When the
+# queue's base is an ancestor of the pull request's head, the queue commit's
+# tree is the head's, and the head's newest `Gate` passed, the queue would
+# test the very tree that run tested: the head contained every `main` the run
+# could have merged onto, so its merge ref was the head's tree. The same tree
+# is the same input, these workflow files included, and nothing here reads
+# the pull request's body (`Test integrity` does, and runs again in the
+# queue). The selection then needs no lane and outputs `reused`, `coverage`
+# skips, and `Gate` passes only if every lane and `coverage` skipped, naming
+# the run it reused. The selection reads GitHub with a read-only token in its
+# own job; a read that fails runs the lanes. scripts/ci-lanes.mjs says why the
+# conditions suffice.
 #
 # Called lanes do not inherit this workflow's `env` (GitHub does not pass a
 # caller's workflow-level env down), so each lane sets STIGMER_TEST_GATE=1
@@ -90,6 +104,13 @@ jobs:
       ts-workspace: ${{ steps.select.outputs.ts-workspace }}
       upgrade-rehearsal: ${{ steps.select.outputs.upgrade-rehearsal }}
       workflows: ${{ steps.select.outputs.workflows }}
+      reused: ${{ steps.select.outputs.reused }}
+    # Only a merge-queue entry reads GitHub: the pull request's head, the two
+    # trees, the compare and the head's `Gate` check runs.
+    permissions:
+      contents: read
+      checks: read
+      pull-requests: read
     steps:
       # Full commit graph, no blobs: the selection diffs trees against the
       # range's base (the ci.ts-workspace `changes` job's checkout).
@@ -107,6 +128,8 @@ jobs:
 
       - name: Select the lanes
         id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-lanes.mjs
 
   all-in-one:
@@ -217,7 +240,7 @@ jobs:
   coverage:
     name: Coverage
     needs: [lanes, authorization-model, conformance, docs, go-sdk, runner, stigmer-server, ts-workspace]
-    if: ${{ !cancelled() && needs.lanes.result == 'success' }}
+    if: ${{ !cancelled() && needs.lanes.result == 'success' && needs.lanes.outputs.reused == '' }}
     runs-on: ubuntu-latest
     steps:
       # Full commit graph, no blobs: the changed-lines rule diffs the change

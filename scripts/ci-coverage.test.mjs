@@ -154,7 +154,11 @@ test("the Coverage job needs exactly the lanes that upload coverage, and Gate ne
   assert.ok(GATE_JOBS.includes("coverage"));
   assert.deepEqual([...coverage.needs].sort(), ["lanes", ...uploading].sort());
   assert.deepEqual(COVERAGE_LANES.map(laneId).sort(), [...uploading].sort(), "a floors change selects exactly the lanes that measure");
-  assert.equal(coverage.if, "${{ !cancelled() && needs.lanes.result == 'success' }}", "it runs whichever lanes were needed, and never on a cancelled run");
+  assert.equal(
+    coverage.if,
+    "${{ !cancelled() && needs.lanes.result == 'success' && needs.lanes.outputs.reused == '' }}",
+    "it runs whichever lanes were needed, never on a cancelled run, and not on a queue entry that reuses its pull request's run (nothing was measured, and the verdict requires it skipped)",
+  );
   assert.ok(gate.jobs.gate.needs.includes("coverage"));
   const download = coverage.steps.find((step) => String(step.uses ?? "").startsWith("actions/download-artifact@"));
   assert.equal(download.with.pattern, "coverage-*");
