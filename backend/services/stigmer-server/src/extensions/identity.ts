@@ -72,10 +72,13 @@ export interface CallerIdentity {
   readonly rawToken: string;
   /**
    * Optional display identity for the audit-actor seam (O2 ruling Q5, the
-   * ratified DD-007 amendment): OIDC-class verifiers carry the caller's
-   * email/name claims here; the trusted-local identity carries the #400
-   * operator identity. Absent on identities whose issuer provides no
-   * display claims — the audit actor then falls back to identityId alone.
+   * ratified DD-007 amendment). A verifier that resolved its caller to an
+   * identity account carries the email and display name the account row
+   * holds, its credential's own claims filling only what the row leaves
+   * empty (domain/identityaccount/actor.ts `principalOf`); an
+   * unprovisioned caller carries its claims; the trusted-local identity
+   * carries the #400 operator identity. Absent when nothing names the
+   * caller — the audit actor then falls back to identityId alone.
    */
   readonly email?: string;
   readonly displayName?: string;

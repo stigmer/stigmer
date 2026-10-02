@@ -33,6 +33,33 @@
  * through `accountForCaller`, which resolves this identity by its id
  * first and never asks the token. The same holds for the runner lane:
  * our token carries no `sub`, and nothing downstream needs one.
+ *
+ * The same row answers for a person a VERIFIER has resolved: the
+ * platform's sign-in lane (identity/oidc-verifier.ts, through
+ * `principalForSubject` in resolve.ts) and the API-key lane
+ * (domain/apikey/verifier.ts, through `accountForStamp`) build their
+ * caller's principal with `principalOf`, so a resource a person creates
+ * names them the same way whichever credential they presented
+ * (stigmer/stigmer#1226). Those lanes also hold what the credential
+ * asserted (a token's `email` and `name` claims, the key's creator
+ * stamp), and the row wins field by field: the account is the platform's
+ * record and survives a profile change at the identity provider, while a
+ * claim is one token's snapshot, and many providers mint access tokens
+ * with no profile claims at all (Auth0's carry none by default). A claim
+ * fills only a field the row leaves empty.
+ *
+ * `accountDisplayName` is the one rule for what a person is called:
+ * first and last name, then either alone, then the account's own name,
+ * then its email. The account's name comes before the email because the
+ * trusted-local operator account carries its configured display name
+ * there with empty first and last names (operator.ts), while a
+ * provisioned account is named by its email and gets first and last
+ * names from the provider's userinfo (provisioning.ts), so on a hosted
+ * install the name arm and the email arm answer the same string. Every
+ * audit actor built from a row, getActorInfo's answer and the access
+ * listings (domain/iampolicy/display-resolver.ts) share it, so a person
+ * reads the same on a stamp, in the actor lookup a console renders the
+ * stamp with, and in a member list.
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
@@ -64,9 +91,19 @@ export function accountAsRunnerCaller(
   };
 }
 
-/** The account id as principal, with the display identity the row knows. */
-function principalOf(
+/** The display identity a credential asserted: a token's claims, a key's creator stamp. */
+export interface DisplayClaims {
+  readonly email?: string;
+  readonly displayName?: string;
+}
+
+/**
+ * The account id as principal, with the display identity the row knows;
+ * `claims` fill only the fields the row leaves empty.
+ */
+export function principalOf(
   account: IdentityAccount,
+  claims: DisplayClaims = {},
 ): Pick<CallerIdentity, "identityId" | "email" | "displayName"> {
   const accountId = account.metadata?.id ?? "";
   if (accountId === "") {
@@ -74,11 +111,33 @@ function principalOf(
       "identity account carries no id — refusing to build a caller for an empty principal",
     );
   }
-  const email = account.spec?.email ?? "";
-  const displayName = account.metadata?.name ?? "";
+  const email = firstNonEmpty(account.spec?.email, claims.email);
+  const displayName = firstNonEmpty(
+    accountDisplayName(account),
+    claims.displayName,
+  );
   return {
     identityId: accountId,
     ...(email !== "" ? { email } : {}),
     ...(displayName !== "" ? { displayName } : {}),
   };
+}
+
+/** What a person is called: first + last > first > last > the account's name > email. */
+export function accountDisplayName(account: IdentityAccount): string {
+  const firstName = account.spec?.firstName ?? "";
+  const lastName = account.spec?.lastName ?? "";
+  if (firstName !== "" && lastName !== "") {
+    return `${firstName} ${lastName}`;
+  }
+  return firstNonEmpty(
+    firstName,
+    lastName,
+    account.metadata?.name,
+    account.spec?.email,
+  );
+}
+
+function firstNonEmpty(...values: ReadonlyArray<string | undefined>): string {
+  return values.find((value) => value !== undefined && value !== "") ?? "";
 }

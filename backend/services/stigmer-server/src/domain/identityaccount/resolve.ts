@@ -1,9 +1,16 @@
 /**
  * Subject → identity resolution (20260911.11; T01_0_plan.md Q-IA-2,
- * T01_1_review.md A1 and A6): the ONE statement of "what identityId does
- * this subject get stamped with", called by every verifier after its own
- * credential checks pass — the OIDC lane with the token's `sub`, the
- * API-key lane with the key's creator stamp.
+ * T01_1_review.md A1 and A6): the ONE statement of "which principal does
+ * this subject get stamped as", `principalForSubject`, called by a
+ * verifier after its own credential checks pass with the subject its
+ * credential names (the OIDC lane with the token's `sub`). The principal
+ * is the account id with the email and display name the account row
+ * carries (actor.ts `principalOf`: the row wins, the credential's own
+ * claims fill only what it leaves empty), so a resource a person creates
+ * names them, not just their id, however few profile claims their
+ * provider puts in an access token (stigmer/stigmer#1226).
+ * `identityIdForSubject` is the same read answering the id alone, kept
+ * for compositions that call it until they adopt the principal.
  *
  * The rule is the cloud's direct-login posture (iam/direct/verifier.ts):
  * one primary-key read of the DIRECT account for the subject; a hit
@@ -15,12 +22,13 @@
  * (Q5's liveness posture): a row that appears is seen by the very next
  * request, a row that is deleted stops resolving on the next.
  *
- * It lives in the domain, not in either verifier, because it is the
- * domain's knowledge that a subject and an account are two names for one
+ * It lives in the domain, not in a verifier, because it is the domain's
+ * knowledge that a subject and an account are two names for one
  * principal; a verifier only knows which string it was handed. Stated
- * once, both lanes cannot drift, and a stamp that is already an account
- * id needs no special case: no account carries an `ida_` as its subject,
- * so the read is a miss and the stamp is kept.
+ * once, the platform's own sign-in lane and a composition's cannot drift.
+ * An account id is never resolved through it: no account carries an
+ * `ida_` as its subject, so the read could only miss. A stamp that may
+ * be an account id is the third reading's, below.
  *
  * Faults: a store failure propagates as the error it is — the chassis
  * maps a non-ConnectError to INTERNAL (pipeline/interceptors/auth.ts),
@@ -46,14 +54,16 @@
  * account a `created_by.id` names, read the two ways a stamp has been
  * written — as an account id (rows stamped since 3.15.0) and as the raw
  * issuer subject (rows the 3.14.x verifiers stamped) — in
- * `accountForCaller`'s order. Two lanes make the server act as the
+ * `accountForCaller`'s order. Three lanes make the server act as the
  * person a row names: the built-in schedule fire caller (a fire acts as
- * the schedule's creator) and the runner-subject verifier (a run
- * credential admits its bearer as the execution's creator). Stated here
- * so they cannot resolve one stamp two ways; each decides for itself
- * what "nobody" means (the fire caller's deterministic refusal, the
- * verifier's liveness sentence), so this function answers `undefined`
- * and never throws for it. The empty stamp is `undefined` with no read.
+ * the schedule's creator), the runner-subject verifier (a run credential
+ * admits its bearer as the execution's creator) and the API-key verifier
+ * (a key authenticates as its creator). Stated here so they cannot
+ * resolve one stamp two ways; each decides for itself what "nobody"
+ * means (the fire caller's deterministic refusal, the runner verifier's
+ * liveness sentence, the key verifier's refusal of a deleted owner), so
+ * this function answers `undefined` and never throws for it. The empty
+ * stamp is `undefined` with no read.
  *
  * The fourth reading asks of a stamp that named nobody whether it is the
  * operator's from before sign-in was turned on:
@@ -92,6 +102,8 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { SYSTEM_OPERATOR_IDENTITY_ID } from "../../pipeline/interceptors/auth.js";
+import { principalOf } from "./actor.js";
+import type { DisplayClaims } from "./actor.js";
 import { idpIdOf, isAccountIdShaped, localIdpIdFor } from "./constants.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -104,21 +116,60 @@ export type AccountsByCaller = Pick<
   "findById" | "findDirectByIdpId"
 >;
 
-export async function identityIdForSubject(
+/** The principal a verifier stamps: who the caller is, and what they are called. */
+export type SubjectPrincipal = Pick<
+  CallerIdentity,
+  "identityId" | "email" | "displayName"
+>;
+
+/**
+ * The principal `subject` stands for. A subject with a direct account is
+ * that account, with the row's email and display name (`claims` filling
+ * only the fields the row leaves empty); a subject without one is
+ * admitted idp-shaped, as itself with its `claims`. One primary-key read,
+ * no cache; faults propagate as they are.
+ */
+export async function principalForSubject(
   accounts: AccountsBySubject,
   subject: string,
-): Promise<string> {
+  claims: DisplayClaims = {},
+): Promise<SubjectPrincipal> {
   const account = await accounts.findDirectByIdpId(subject);
   if (account === undefined) {
-    return subject;
+    return { identityId: subject, ...presentClaims(claims) };
   }
-  const id = account.metadata?.id ?? "";
-  if (id === "") {
+  if ((account.metadata?.id ?? "") === "") {
     throw new Error(
       `identity account for subject '${subject}' carries no id — refusing to stamp an empty principal`,
     );
   }
-  return id;
+  return principalOf(account, claims);
+}
+
+/**
+ * The id `principalForSubject` answers, alone: the same read and the
+ * same faults.
+ *
+ * @deprecated Use `principalForSubject`, which also carries the account's
+ * email and display name, so the caller's audit stamp names the person.
+ */
+export async function identityIdForSubject(
+  accounts: AccountsBySubject,
+  subject: string,
+): Promise<string> {
+  return (await principalForSubject(accounts, subject)).identityId;
+}
+
+/** The claims a credential asserted, with an empty field left out, as a verifier stamps them. */
+function presentClaims(claims: DisplayClaims): DisplayClaims {
+  return {
+    ...(claims.email !== undefined && claims.email !== ""
+      ? { email: claims.email }
+      : {}),
+    ...(claims.displayName !== undefined && claims.displayName !== ""
+      ? { displayName: claims.displayName }
+      : {}),
+  };
 }
 
 /**

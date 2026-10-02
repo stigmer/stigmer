@@ -77,7 +77,6 @@ import {
   EncryptionUnavailableError,
   iamPolicyStoreContract,
   identityAccountStoreContract,
-  identityIdForSubject,
   InvalidTokenError,
   isRunGateCheck,
   loadConfig,
@@ -102,6 +101,7 @@ import {
   PLATFORM_TOKEN_ISSUER,
   platformClientStoreContract,
   portContractCases,
+  principalForSubject,
   platformTokenKeyRingFromPem,
   platformTokenRefusalError,
   signPlatformToken,
@@ -640,11 +640,12 @@ const consumerPrincipalDisplay: PrincipalDisplay = {
 
 /**
  * A claim-or-pass verifier (the O2 chain-entry shape) that resolves its
- * subject the way both OSS verifiers do — through the exported
- * identityIdForSubject over the composition's own driver, so a provisioned
- * subject is stamped with its account id and an unprovisioned one stays
- * idp-shaped. This is the convergence a composition's own verifier makes
- * instead of restating the rule (20260911.11 S2 slice 3 ruling).
+ * subject the way the OSS sign-in lane does — through the exported
+ * principalForSubject over the composition's own driver, so a provisioned
+ * subject is stamped with its account id and the name its row carries,
+ * and an unprovisioned one stays idp-shaped. This is the convergence a
+ * composition's own verifier makes instead of restating the rule
+ * (20260911.11 S2 slice 3 ruling).
  */
 const verifier: IdentityVerifier = {
   name: "consumer-fake",
@@ -654,10 +655,7 @@ const verifier: IdentityVerifier = {
     }
     const subject = token.slice("fake_".length);
     return {
-      identityId: await identityIdForSubject(
-        consumerIdentityAccountStore,
-        subject,
-      ),
+      ...(await principalForSubject(consumerIdentityAccountStore, subject)),
       callerClass: "user",
       issuer: "https://issuer.invalid",
       rawToken: token,
