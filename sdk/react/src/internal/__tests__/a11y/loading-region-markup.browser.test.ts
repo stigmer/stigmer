@@ -1,20 +1,17 @@
-// Agreement: the markup data the `stigmer/require-loading-region` lint rule
+// Agreement: the element list the `stigmer/require-loading-region` lint rule
 // reads (`internal/loading-region-markup.json`) is what axe-core decides, not
 // a reading of it.
 //
-// The rule reports a busy, labelled element that axe's `aria-prohibited-attr`
-// refuses (stigmer#1653) from four lists: the elements that take no name, the
-// roles that take none, the roles axe sets aside for the element's own when a
-// label is present, and the widget roles under which a role-less element may
-// be named. This suite renders every HTML element and every ARIA role axe
-// knows through that axe rule in a real Chromium, and fails, printing what axe
-// measured, when a list and axe disagree in either direction. An axe upgrade
-// that moves the line turns it red; the fix is to copy the printed list into
-// the data file.
-//
-// What the rule leaves to axe's audits is listed in the data file with a
-// reason, and each entry is shown here to be context-dependent: refused alone,
-// accepted in the context its reason names.
+// The rule reports a busy, labelled element with no role written when its
+// tag is one axe's `aria-prohibited-attr` refuses a name on (stigmer#1653).
+// This suite renders every HTML element that way, empty and alone, through
+// that axe rule in a real Chromium, and fails, printing what axe measured,
+// when the list and axe disagree in either direction. An axe upgrade that
+// moves the line turns it red; the fix is to copy the printed list into the
+// data file. Every element is accounted for: refused (the rule's list),
+// refused alone but accepted in a context the rule cannot see (left to axe,
+// each shown accepted in its context), not judged by axe at all (skipped,
+// each with its reason), or accepted.
 // Domain: SDK accessibility (lint fence).
 
 import axe from "axe-core";
@@ -34,13 +31,14 @@ const ELEMENTS = [
   "time", "tr", "u", "ul", "var", "video", "wbr",
 ];
 
-type Outcome = "violation" | "incomplete" | "pass" | "inapplicable";
+type Outcome = "violation" | "incomplete" | "pass" | "skipped";
 
 /**
  * What axe's aria-prohibited-attr says about the element `#probe`, rendered as
  * the body's only content: markup is parsed, an element is appended as built
- * (the parser would drop a `td` or a `caption` outside its table). An element
- * axe keeps out of its tree (a `slot`) is inapplicable.
+ * (the parser would drop a `td` or a `caption` outside its table). "skipped"
+ * is axe judging nothing: an element it keeps out of its tree, or one hidden.
+ * Any other axe error fails the test.
  */
 async function judge(content: string | Element): Promise<Outcome> {
   document.body.innerHTML = typeof content === "string" ? content : "";
@@ -48,15 +46,16 @@ async function judge(content: string | Element): Promise<Outcome> {
   let result: axe.AxeResults;
   try {
     result = await axe.run("#probe", { runOnly: { type: "rule", values: ["aria-prohibited-attr"] } });
-  } catch {
-    return "inapplicable";
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("No elements found")) return "skipped";
+    throw error;
   }
   if (result.violations.length > 0) return "violation";
   if (result.incomplete.length > 0) return "incomplete";
-  return result.passes.length > 0 ? "pass" : "inapplicable";
+  return result.passes.length > 0 ? "pass" : "skipped";
 }
 
-/** An empty, busy, labelled `tag`, optionally with a role: the skeleton shape the rule fences. */
+/** An empty, busy, labelled `tag`, optionally with a role attribute: the skeleton shape the rule fences. */
 function busy(tag: string, role?: string): Element {
   const element = document.createElement(tag);
   element.id = "probe";
@@ -64,12 +63,6 @@ function busy(tag: string, role?: string): Element {
   element.setAttribute("aria-busy", "true");
   element.setAttribute("aria-label", "Loading");
   return element;
-}
-
-/** The roles axe knows, by type. */
-function axeRoles(): Record<string, { type: string; prohibitedAttrs?: string[] }> {
-  return (axe as unknown as { _audit: { standards: { ariaRoles: Record<string, { type: string; prohibitedAttrs?: string[] }> } } })
-    ._audit.standards.ariaRoles;
 }
 
 function sorted(values: Iterable<string>): string[] {
@@ -85,83 +78,30 @@ describe("loading-region-markup.json agrees with axe-core", () => {
     expect(axe.version).toBe(markup.axeCore);
   });
 
-  it("names exactly the elements axe refuses a label on, alone and empty, apart from those it leaves to axe", async () => {
+  it("accounts for every element exactly as axe judges it", async () => {
     const leftToAxe = new Set(Object.keys(markup.elementsLeftToAxe));
     const refused: string[] = [];
+    const skipped: string[] = [];
     for (const tag of ELEMENTS) {
       const outcome = await judge(busy(tag));
-      if (outcome === "violation" || (outcome === "incomplete" && !leftToAxe.has(tag))) refused.push(tag);
+      if (outcome === "skipped") skipped.push(tag);
+      else if (outcome !== "pass" && !leftToAxe.has(tag)) refused.push(tag);
+      if (leftToAxe.has(tag)) expect(["violation", "incomplete"], `${tag} alone, left to axe`).toContain(outcome);
     }
-    expect(sorted(refused.filter((tag) => !leftToAxe.has(tag))), "copy into namelessElements").toEqual(
-      sorted(markup.namelessElements),
-    );
+    expect(sorted(refused), "copy into namelessElements").toEqual(sorted(markup.namelessElements));
+    expect(sorted(skipped), "copy into elementsAxeSkips").toEqual(sorted(Object.keys(markup.elementsAxeSkips)));
   });
 
-  it("leaves to axe only elements whose verdict depends on their context", async () => {
+  it("leaves to axe only elements it accepts in a context the rule cannot see", async () => {
     for (const [tag, entry] of Object.entries(markup.elementsLeftToAxe)) {
-      expect(await judge(busy(tag)), `${tag} alone`).not.toBe("pass");
       expect(await judge(entry.accepted), `${tag}: ${entry.reason}`).toBe("pass");
     }
   });
 
-  it("knows every role axe does, abstract ones aside", () => {
-    const concrete = Object.entries(axeRoles()).filter(([, spec]) => spec.type !== "abstract").map(([role]) => role);
-    expect(sorted(markup.knownRoles), "copy into knownRoles").toEqual(sorted(concrete));
-  });
-
-  it("names exactly the roles axe prohibits a name under, and refuses each on any element", async () => {
-    const prohibiting = Object.entries(axeRoles())
-      .filter(([, spec]) => spec.prohibitedAttrs?.includes("aria-label"))
-      .map(([role]) => role)
-      .filter((role) => !markup.fallbackRoles.includes(role));
-    expect(sorted(markup.namelessRoles), "copy into namelessRoles").toEqual(sorted(prohibiting));
-    for (const role of markup.namelessRoles) {
-      expect(await judge(busy("div", role)), `${role} on a div`).toBe("violation");
-      expect(await judge(busy("section", role)), `${role} on a section`).toBe("violation");
-    }
-  });
-
-  it("sets each fallback role aside for the element's own role", async () => {
-    for (const role of markup.fallbackRoles) {
-      expect(await judge(busy("div", role)), `${role} on a div`).toBe("violation");
-      expect(await judge(busy("section", role)), `${role} on a section`).toBe("pass");
-    }
-  });
-
-  it("sets a role axe does not know aside like a fallback role", async () => {
-    for (const role of ["generic", "skeleton"]) {
-      expect(markup.knownRoles).not.toContain(role);
-      expect(await judge(busy("div", role)), `${role} on a div`).toBe("violation");
-      expect(await judge(busy("section", role)), `${role} on a section`).toBe("pass");
-    }
-  });
-
-  it("names exactly the widget roles, under which a role-less element may be named", async () => {
-    const widgets = Object.entries(axeRoles()).filter(([, spec]) => spec.type === "widget").map(([role]) => role);
-    expect(sorted(markup.widgetRoles), "copy into widgetRoles").toEqual(sorted(widgets));
-    for (const role of markup.widgetRoles) {
-      const html = `<div role="${role}"><span id="probe" aria-busy="true" aria-label="Loading"></span></div>`;
-      expect(await judge(html), `a span under role ${role}`).toBe("pass");
-    }
-    const underButton = `<button type="button"><span id="probe" aria-busy="true" aria-label="Saving"></span></button>`;
-    expect(await judge(underButton), "a span under a button").toBe("pass");
-    const underLink = `<a href="#x"><span id="probe" aria-busy="true" aria-label="Loading"></span></a>`;
-    expect(await judge(underLink), "a span under a link").toBe("pass");
-    const throughParagraph = `<button type="button"><p><span id="probe" aria-busy="true" aria-label="Saving"></span></p></button>`;
-    expect(await judge(throughParagraph), "a span under a paragraph under a button").toBe("pass");
-    for (const role of markup.fallbackRoles) {
-      const throughFallback = `<button type="button"><div role="${role}"><span id="probe" aria-busy="true" aria-label="Saving"></span></div></button>`;
-      expect(await judge(throughFallback), `a span under role ${role} under a button`).toBe("pass");
-    }
-    const throughList = `<button type="button"><ul><span id="probe" aria-busy="true" aria-label="Saving"></span></ul></button>`;
-    expect(await judge(throughList), "a span under a list under a button").toBe("violation");
-    const underRegion = `<section aria-label="Plan"><span id="probe" aria-busy="true" aria-label="Loading"></span></section>`;
-    expect(await judge(underRegion), "a span under a region").toBe("violation");
-  });
-
-  it("accepts the console's reserved roles, which the rule reports by choice, not axe's", async () => {
-    for (const role of markup.consoleReservedRoles) {
-      expect(await judge(busy("div", role)), role).toBe("pass");
+  it("refuses an empty role as no role", async () => {
+    for (const tag of ["div", "span"]) {
+      expect(await judge(busy(tag, "")), `${tag} with role=""`).toBe("violation");
+      expect(await judge(busy(tag, "  ")), `${tag} with a blank role`).toBe("violation");
     }
   });
 
