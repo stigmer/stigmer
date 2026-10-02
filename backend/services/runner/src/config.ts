@@ -160,10 +160,12 @@ export interface Config {
   readonly artifactProxyEndpoint: string | null;
   readonly primaryModel: string;
   /**
-   * No-progress bound for every harness's engine stream (milliseconds), from
-   * CURSOR_STREAM_STALL_TIMEOUT_MS; the name is the Cursor harness's, its
-   * first user. If the engine reports no activity for this long, the turn
-   * runtime's stall watchdog (harness/run-turn.ts over
+   * No-progress bound for every harness's engine stream (milliseconds); the
+   * name is the Cursor harness's, its first user. The roots set it from the
+   * `cursorStreamStallTimeoutMs` option; `loadConfig` also reads
+   * CURSOR_STREAM_STALL_TIMEOUT_MS, which no boot path in `main.ts` forwards
+   * yet (stigmer/stigmer#1731). If the engine reports no activity for this
+   * long, the turn runtime's stall watchdog (harness/run-turn.ts over
    * shared/stall-watchdog.ts) cancels the run and fails the execution with a
    * StallTimeoutError rather than hanging at EXECUTION_IN_PROGRESS forever.
    *

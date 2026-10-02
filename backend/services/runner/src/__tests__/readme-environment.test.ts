@@ -20,7 +20,8 @@
  * which errs toward a loud failure, never a silent miss. An env object passed
  * under another name (a call's argument, a property) is not followed.
  *
- *  1. `E.NAME`, `E["NAME"]` or `const { NAME } = E` on an env object.
+ *  1. `E.NAME`, `E["NAME"]` or `const { NAME } = E` on an env object (a
+ *     computed key in the destructure is judged by rules 2 and 4).
  *  2. `E[K]`, where `K` is a string-literal `const` of the same file, or one
  *     imported by its own name from a relative module that exports it as a
  *     literal (an aliased import is not followed).
@@ -31,8 +32,9 @@
  *     functions `COMPUTED_READS_ALLOWED` names, each with its reason. A
  *     dynamic read added later fails loudly instead of escaping the check.
  *
- * Writes are never reads: an assignment target, a `delete` operand, a spread,
- * an object-literal key, `Object.entries` over an env object.
+ * Writes are never reads: a plain assignment target (a compound one such as
+ * `??=` reads the value first), a `delete` operand, a spread, an
+ * object-literal key, `Object.entries` over an env object.
  *
  * The shape is `config-boundary.test.ts`'s: the checker lives beside the
  * fixtures that pin it, over the syntax-tree primitives in
@@ -159,13 +161,11 @@ function functionName(node: ts.Node): string | undefined {
   return undefined;
 }
 
+/** A plain assignment target or a `delete` operand; a compound assignment (`??=`, `+=`) reads the value first. */
 function isWrite(node: ts.Node): boolean {
   const parent = node.parent;
   if (ts.isDeleteExpression(parent)) return true;
-  return ts.isBinaryExpression(parent)
-    && parent.left === node
-    && parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment
-    && parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment;
+  return ts.isBinaryExpression(parent) && parent.left === node && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken;
 }
 
 /**
@@ -232,7 +232,13 @@ function settingsReadIn(
       for (const element of node.name.elements) {
         if (element.dotDotDotToken !== undefined) continue;
         const property = element.propertyName ?? element.name;
-        if (ts.isIdentifier(property)) names.add(property.text);
+        if (ts.isIdentifier(property) || ts.isStringLiteral(property)) {
+          names.add(property.text);
+        } else if (ts.isComputedPropertyName(property)) {
+          const key = keyOf(property.expression);
+          if (key !== undefined) names.add(key);
+          else unresolved(element, here, `destructures ${property.getText(sourceFile)}, whose setting cannot be told`);
+        }
       }
     } else if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && READERS.has(node.expression.text)) {
       const key = keyOf(node.arguments[0]);
@@ -260,6 +266,8 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a property read on an injected env parameter", "function f(env: NodeJS.ProcessEnv = process.env) { return env.STIGMER_A?.trim(); }"],
     ["a constant key on an injected env parameter", 'const K = "STIGMER_A"; function f(env: NodeJS.ProcessEnv) { return env[K]; }'],
     ["a destructured read, its rest element not a setting", "const { STIGMER_A, ...rest } = process.env;"],
+    ["a destructure through a constant key", 'const K = "STIGMER_A"; const { [K]: v } = process.env;'],
+    ["a compound assignment, which reads the value first", 'process.env.STIGMER_A ??= "x";'],
     ["a read through an unannotated alias", "const env = process.env; const v = env.STIGMER_A;"],
     [
       "a read on a parameter of another type that defaults to process.env",
@@ -280,8 +288,7 @@ describe("settingsReadIn (the checker itself)", () => {
   });
 
   it.each([
-    ["an assignment", 'process.env.STIGMER_A = "x";'],
-    ["a compound assignment", 'process.env.STIGMER_A ??= "x";'],
+    ["a plain assignment", 'process.env.STIGMER_A = "x";'],
     ["a delete", 'delete process.env["STIGMER_A"];'],
     ["a write through a computed key", 'function f(name: string) { process.env[name] = "x"; }'],
     ["a spread", "const copy = { ...process.env };"],
@@ -299,6 +306,7 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a computed key", "function f(name: string) { return process.env[name]; }"],
     ["a computed key on an injected env parameter", "function f(env: NodeJS.ProcessEnv, name: string) { return env[name]; }"],
     ["a computed key through an unannotated alias", "const env = process.env; export const g = (name: string) => env[name];"],
+    ["a destructure through a computed key", "export function f(k: string) { const { [k]: v } = process.env; return v; }"],
     ["a reader call with a computed name", "function f(n: string) { return getRunnerSecret(n); }"],
   ])("refuses %s", (_label, source) => {
     const result = read(source);
