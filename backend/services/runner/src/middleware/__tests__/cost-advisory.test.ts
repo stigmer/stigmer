@@ -1,11 +1,11 @@
 /**
  * The cost advisory: prices each model call off `usage_metadata`, keeps one
  * running total the sub-agent views share, and warns each conversation ONCE
- * after the run reaches the configured share of `max_cost_usd`. Nothing here caps: the enforcement is
- * the turn runtime's (`shared/__tests__/cost-guard.test.ts`,
- * `harness/__tests__/run-turn.test.ts`'s cost-cap arm). Until #1096 this
- * file was `cost-cap.test.ts` and also pinned the in-graph tool block and
- * the "exceeded" message — retired with that half.
+ * after the run reaches the configured share of `max_cost_usd`. Nothing here
+ * caps: the enforcement is the turn runtime's
+ * (`shared/__tests__/cost-guard.test.ts`, `harness/__tests__/run-turn.test.ts`'s
+ * cost-cap arm). Until #1096 this file was `cost-cap.test.ts` and also pinned
+ * the in-graph tool block and the "exceeded" message — retired with that half.
  *
  * How the warning travels (stigmer/stigmer#1354): the call that takes the
  * total past the threshold marks the run crossed, and each conversation's
@@ -14,8 +14,7 @@
  * following call carries none, no hook writes the graph's state, and the
  * parent's `beforeAgent` starts the run over (the total, the crossing, the
  * call count and the parent's own told flag), so a new message has nothing
- * to say. The
- * request through the real Anthropic conversion is
+ * to say. The request through the real Anthropic conversion is
  * `shared/__tests__/advisory-anthropic-payload.test.ts`.
  *
  * Who is told (stigmer/stigmer#1679, the `forSubAgent` cases): the parent and

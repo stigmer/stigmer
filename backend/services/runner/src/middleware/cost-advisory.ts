@@ -55,7 +55,7 @@
  *   at once, usually only the first to call is told; and when the second
  *   starts after the first was told, its start resets the shared flag, so the
  *   first may be told again and the second not at all. The parent is told
- *   either way.
+ *   either way. The shared instance is stigmer/stigmer#1699.
  *
  * Only built when `max_cost_usd > 0` is explicitly configured.
  */
@@ -204,7 +204,7 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
         : 0;
       console.log(
         `[CostAdvisory] Summary: $${runningCost.toFixed(4)} of $${maxCostUsd.toFixed(2)} ` +
-        `(~${pctUsed.toFixed(0)}%) across ${modelCallCount} calls, warned=${crossed}`,
+        `(~${pctUsed.toFixed(0)}%) across ${modelCallCount} calls, crossed=${crossed}`,
       );
     },
 
