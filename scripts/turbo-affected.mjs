@@ -33,12 +33,14 @@
  *
  *   - `workflow_dispatch`: a manual run is "run it" (the ci.docs convention).
  *   - the lane's own workflow file, or the workspace's own tooling
- *     (WORKSPACE_TOOLING: the root manifests, scripts/** and the coverage
- *     floors), changed. Turbo attributes these to the root package and no
- *     task; but a root devDependency bump (tsx, @tailwindcss/cli) is what
- *     several build scripts run, a change to this lane must exercise this
- *     lane, and a moved coverage floor is judged against a run that measured
- *     every package it names (the gate's Coverage job, ci.gate.yaml). The lane runs
+ *     (WORKSPACE_TOOLING: the root manifests, scripts/**, the composite
+ *     actions and the coverage floors), changed. Turbo attributes these to
+ *     the root package and no task; but a root devDependency bump (tsx,
+ *     @tailwindcss/cli) is what several build scripts run, a change to this
+ *     lane must exercise this lane, a job here that calls a composite action
+ *     must run when the action changes (#1715), and a moved coverage floor is
+ *     judged against a run that measured every package it names (the gate's
+ *     Coverage job, ci.gate.yaml). The lane runs
  *     as a workflow ci.gate.yaml calls, whose GITHUB_WORKFLOW_REF names the
  *     caller, so the lane passes its own file with --lane-file; the caller's
  *     file counts too, since a change to the orchestrator is a change to how
@@ -96,6 +98,9 @@ export const WORKSPACE_TOOLING = [
   "package.json",
   "package-lock.json",
   "scripts/",
+  // A composite action runs every lane (EVERY_LANE in ci-lanes.mjs); here it
+  // runs every package, so each job of this lane that calls the action runs.
+  ".github/actions/",
   // A floor is judged only against a run that measured its package (scripts/test-coverage.mjs).
   COVERAGE_FLOORS,
 ];

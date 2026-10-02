@@ -198,6 +198,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package.json",
     "package-lock.json",
     "scripts/turbo-set.mjs",
+    ".github/actions/playwright-chromium/action.yml",
     COVERAGE_FLOORS,
   ]) {
     assert.match(everythingBecause(CI_PR, [file]), /workspace tooling/, file);
@@ -222,6 +223,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package.json",
     "package-lock.json",
     "scripts/",
+    ".github/actions/",
     "test/coverage-floors.json",
   ]);
 });
