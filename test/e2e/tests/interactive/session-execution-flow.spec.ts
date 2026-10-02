@@ -28,20 +28,28 @@ const HAS_LLM_KEY = !!(
 const TURN_DELAY_MS = 2_000;
 
 /**
- * How long one turn may take to settle on a loaded runner: every wait for a
- * response, a response count or a settled response uses it.
+ * How long one wait on a turn may take on a loaded runner: every wait for a
+ * response, a response count or a settled response passes it. Note that
+ * `waitForAIResponse` (helpers/session.ts) spends it twice, once for the
+ * response to appear and once for it to settle, so one call is two turn
+ * waits.
  */
 const TURN_BUDGET_MS = 90_000;
 
+/** `startNewSession`'s own waits: the composer (15 s), then the session's URL (30 s). */
+const SESSION_START_MS = 45_000;
+
 /**
  * The case budget, derived from the waits so the two cannot disagree again
- * (#1563: four cases waited 90 s under Playwright's 30 s default, so a slow
- * second turn failed as a test timeout while its own wait was in budget).
- * Three turn waits is the most any case here makes (the follow-up case);
- * the 30 s covers the short waits and navigation around them. A case that
- * adds a turn wait raises the multiplier.
+ * (#1563: every case waited up to 90 s under Playwright's 30 s default, so a
+ * slow turn failed as a test timeout while its own wait was in budget). The
+ * follow-up case waits longest: a session start, four turn waits (one
+ * `waitForAIResponse`, then the response count and the settled response),
+ * and about 25 s of short waits, which the 30 s covers. The pasted-screenshot
+ * case makes three turn waits and about 50 s of short waits, inside the same
+ * budget. A case that adds a turn wait raises the count.
  */
-const CASE_BUDGET_MS = 3 * TURN_BUDGET_MS + 30_000;
+const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 30_000;
 
 /**
  * Agent execution through the session surface, anchored to the signals the
