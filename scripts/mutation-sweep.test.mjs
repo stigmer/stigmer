@@ -45,6 +45,7 @@ import {
   defaultCheck,
   findingKey,
   hasWork,
+  issueTargetsPath,
   keepVerdicts,
   keysFromBody,
   MAX_BODY,
@@ -493,6 +494,14 @@ test("the body names its target and carries this run's keys back to the next run
   assert.match(body, /\(not re-checked\)/);
 });
 
+test("the default command names the targets file from the repository root, never by a path of the machine that ran it", () => {
+  const repo = join(tmpdir(), "repo");
+  assert.equal(issueTargetsPath(join(repo, "test", "mutation-targets.json"), repo), "test/mutation-targets.json");
+  assert.equal(issueTargetsPath(join(repo, "test", ".", "mutation-targets.json"), repo), "test/mutation-targets.json");
+  assert.equal(issueTargetsPath(join(tmpdir(), "elsewhere.json"), repo), join(tmpdir(), "elsewhere.json"));
+  assert.equal(issueTargetsPath(repo, repo), repo);
+});
+
 test("the body gives the targets file's own command for checking a fix, with the target's name in it", () => {
   const summary = summarize(report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]), TARGET.package);
   const { body } = renderIssue({ name: "credit-gate", target: TARGET, check: "make sweep TARGET={target} ONLY=<file> # {target}", summary });
@@ -731,6 +740,20 @@ test("--report --publish files nothing for a one-file check, and closes no orpha
     const out = spawnSync(process.execPath, [SCRIPT, "--targets", join(gh.dir, "targets.json"), "--report", "--input", join(gh.dir, "runs"), "--publish", "--repo", "o/r"], { env: gh.env, encoding: "utf8" });
     assert.equal(out.status, 0, out.stderr);
     assert.deepEqual(gh.calls().map((c) => c.split(" ").slice(0, 2).join(" ")), ["issue list"]);
+  } finally {
+    rmSync(gh.dir, { recursive: true, force: true });
+  }
+});
+
+test("--report given the repository's targets file by an absolute path prints it from the root in the body", () => {
+  const gh = fakeGh([]);
+  try {
+    const repoTargets = join(dirname(fileURLToPath(import.meta.url)), "..", "test", "mutation-targets.json");
+    const name = Object.keys(readTargets(readFileSync(repoTargets, "utf8")).targets)[0];
+    writeRun(gh.dir, name, [mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]);
+    const out = spawnSync(process.execPath, [SCRIPT, "--targets", repoTargets, "--report", "--input", join(gh.dir, "runs")], { env: gh.env, encoding: "utf8" });
+    assert.equal(out.status, 0, out.stderr);
+    assert.ok(out.stdout.includes(`\nSTIGMER_TEST_GATE=1 node scripts/mutation-sweep.mjs --targets test/mutation-targets.json --run ${name} --out <dir> --only <file>\n`), out.stdout);
   } finally {
     rmSync(gh.dir, { recursive: true, force: true });
   }

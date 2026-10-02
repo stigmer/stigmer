@@ -110,7 +110,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, posix, relative, resolve } from "node:path";
+import { isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ─── The targets file ───────────────────────────────────────────────────
@@ -169,6 +169,18 @@ export function readTargets(text) {
  */
 export function defaultCheck(targetsPath) {
   return `STIGMER_TEST_GATE=1 node scripts/mutation-sweep.mjs --targets ${targetsPath} --run ${TARGET_PLACEHOLDER} --out <dir> --only <file>`;
+}
+
+/**
+ * The targets path an issue's default command names: relative to the
+ * repository root, as the command is run from there, so a run given an
+ * absolute or `./` path never prints its own machine's path in an issue. A
+ * file outside the repository keeps the path it was given.
+ */
+export function issueTargetsPath(targetsPath, repoRoot) {
+  const fromRoot = relative(repoRoot, resolve(targetsPath));
+  if (fromRoot === "" || fromRoot.startsWith("..") || isAbsolute(fromRoot)) return targetsPath;
+  return fromRoot.split(sep).join(posix.sep);
 }
 
 /**
@@ -784,11 +796,11 @@ function root() {
   return execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 }
 
-/** The targets file at `path`, validated: its targets, and the `check` its issues give (its own, or the default). */
+/** The targets file at `path`, validated: its targets, and the `check` it names, if any. */
 function loadTargets(path) {
   const { targets, check, problems } = readTargets(readFileSync(resolve(path), "utf8"));
   if (problems.length > 0) throw new Error(`${path}: ${problems.join("; ")}`);
-  return { targets, check: check ?? defaultCheck(path) };
+  return { targets, check };
 }
 
 /**
@@ -935,7 +947,8 @@ function previousIssues(repo) {
 }
 
 function report(opts) {
-  const { targets, check } = loadTargets(opts.targets);
+  const { targets, check: named } = loadTargets(opts.targets);
+  const check = named ?? defaultCheck(issueTargetsPath(opts.targets, root()));
   const runs = readRuns(opts.inputs.map((d) => resolve(d)));
   if (runs.length === 0) {
     console.error("mutation-sweep: no target.json under the inputs; nothing ran, so nothing can be reported");
