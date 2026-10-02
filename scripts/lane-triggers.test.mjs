@@ -57,10 +57,11 @@
 // script by its extension: a step that runs repository code without naming
 // such a file (a `make` target, an `npm run` script, a script with no
 // extension) is not traced, nor what a shell script in the action's folder
-// sources, and none of today's actions does either. Dependencies are not
-// traced: an installed package an action runs (node_modules/) or a body
-// imports by name moves with the lockfile, which these lanes do not watch
-// (#1719).
+// sources, and none of today's actions does either. Packages are not traced:
+// what an action runs from node_modules/ and what a body imports by name,
+// whether a dependency (which moves with the lockfile these lanes do not
+// watch, #1719) or a workspace package (whose source a lane would have to
+// list itself). Today's bodies import no workspace package.
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.
 
