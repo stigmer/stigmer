@@ -11,11 +11,12 @@
  * servers, among others. An operator cannot set, or harden, what they cannot
  * learn exists.
  *
- * What counts as reading a setting. An env object is `process.env`, or an
- * identifier whose declaration (a parameter or a variable) is annotated
- * `NodeJS.ProcessEnv`, the injection seam `shared/runner-credential-store.ts`
- * describes, or is initialised or defaulted to `process.env` whatever its
- * type. Identifiers are matched by name within the file, not by scope: once
+ * What counts as reading a setting. An env object is `process.env` (also
+ * through a default or namespace import of `node:process`), `env` imported or
+ * destructured from `process`, or an identifier whose declaration (a
+ * parameter or a variable) is annotated `NodeJS.ProcessEnv`, the injection
+ * seam `shared/runner-credential-store.ts` describes, or is initialised or
+ * defaulted to `process.env` whatever its type. Identifiers are matched by name within the file, not by scope: once
  * one `env` in a file is an env object, every `env` there is read as one,
  * which errs toward a loud failure, never a silent miss. An env object passed
  * under another name (a call's argument, a property) is not followed.
@@ -57,7 +58,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
-import { importedBindings, readSource, typeScriptFilesUnder } from "../__test-utils__/module-specifiers.js";
+import { readSource, typeScriptFilesUnder } from "../__test-utils__/module-specifiers.js";
 
 const SRC_ROOT = fileURLToPath(new URL("../", import.meta.url));
 const README_PATH = join(SRC_ROOT, "..", "README.md");
@@ -181,20 +182,38 @@ function settingsReadIn(
 ): SettingsRead {
   const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, /* setParentNodes */ true);
   const constants = stringConstants(sourceFile, false);
-  for (const binding of importedBindings(fileName, source)) {
-    if (!binding.specifier.startsWith(".") || binding.name === "default" || binding.name === "*") continue;
-    if (constants.has(binding.name)) continue;
-    const text = resolveImport(binding.specifier, binding.name);
-    if (text !== undefined) constants.set(binding.name, text);
+  /** The names `process` is bound to: the global, and a default or namespace import of the module. */
+  const processNames = new Set(["process"]);
+  const envIdentifiers = new Set<string>();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    const specifier = statement.moduleSpecifier.text;
+    const clause = statement.importClause;
+    if (clause === undefined) continue;
+    if (specifier === "node:process" || specifier === "process") {
+      if (clause.name !== undefined) processNames.add(clause.name.text);
+      const named = clause.namedBindings;
+      if (named !== undefined && ts.isNamespaceImport(named)) processNames.add(named.name.text);
+      if (named !== undefined && ts.isNamedImports(named)) {
+        for (const element of named.elements) {
+          if ((element.propertyName ?? element.name).text === "env") envIdentifiers.add(element.name.text);
+        }
+      }
+    } else if (specifier.startsWith(".") && clause.namedBindings !== undefined && ts.isNamedImports(clause.namedBindings)) {
+      for (const element of clause.namedBindings.elements) {
+        if (element.propertyName !== undefined || constants.has(element.name.text)) continue;
+        const text = resolveImport(specifier, element.name.text);
+        if (text !== undefined) constants.set(element.name.text, text);
+      }
+    }
   }
 
   const isProcessEnv = (node: ts.Node | undefined): boolean =>
     node !== undefined
     && ts.isPropertyAccessExpression(node)
     && ts.isIdentifier(node.expression)
-    && node.expression.text === "process"
+    && processNames.has(node.expression.text)
     && node.name.text === "env";
-  const envIdentifiers = new Set<string>();
   const collectEnvIdentifiers = (node: ts.Node): void => {
     if (
       (ts.isParameter(node) || ts.isVariableDeclaration(node))
@@ -202,6 +221,17 @@ function settingsReadIn(
       && (node.type?.getText(sourceFile) === "NodeJS.ProcessEnv" || isProcessEnv(node.initializer))
     ) {
       envIdentifiers.add(node.name.text);
+    } else if (
+      ts.isVariableDeclaration(node)
+      && ts.isObjectBindingPattern(node.name)
+      && node.initializer !== undefined
+      && ts.isIdentifier(node.initializer)
+      && processNames.has(node.initializer.text)
+    ) {
+      for (const element of node.name.elements) {
+        const property = element.propertyName ?? element.name;
+        if (ts.isIdentifier(property) && property.text === "env" && ts.isIdentifier(element.name)) envIdentifiers.add(element.name.text);
+      }
     }
     ts.forEachChild(node, collectEnvIdentifiers);
   };
@@ -269,6 +299,9 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a destructure through a constant key", 'const K = "STIGMER_A"; const { [K]: v } = process.env;'],
     ["a compound assignment, which reads the value first", 'process.env.STIGMER_A ??= "x";'],
     ["a read through an unannotated alias", "const env = process.env; const v = env.STIGMER_A;"],
+    ["a read on env destructured from process", "const { env } = process; const v = env.STIGMER_A;"],
+    ["a read on env imported from node:process", 'import { env } from "node:process"; const v = env.STIGMER_A;'],
+    ["a read through a namespace import of node:process", 'import * as proc from "node:process"; const v = proc.env.STIGMER_A;'],
     [
       "a read on a parameter of another type that defaults to process.env",
       "function f(env: Record<string, string | undefined> = process.env) { return env.STIGMER_A; }",
@@ -318,6 +351,12 @@ describe("settingsReadIn (the checker itself)", () => {
     const result = read('import { K as R } from "./other.js";\nconst v = process.env[R];', otherModule);
     expect(result.names).toEqual([]);
     expect(result.refused).toEqual([{ line: 2, how: "reads process.env[R], whose setting cannot be told" }]);
+  });
+
+  it("never files an aliased import under its exported name, so a later local of that name is refused, not misread", () => {
+    const result = read('import { K as R } from "./other.js";\nfunction f(K: string) { return process.env[K]; }', otherModule);
+    expect(result.names).toEqual([]);
+    expect(result.refused).toEqual([{ line: 2, how: "reads process.env[K], whose setting cannot be told" }]);
   });
 
   it("allows a computed read inside a named function, and reports where it saw one", () => {
