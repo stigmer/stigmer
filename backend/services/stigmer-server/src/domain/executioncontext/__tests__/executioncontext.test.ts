@@ -1044,6 +1044,12 @@ describe("DeleteExecutionContext activity seam", () => {
         warning,
         "the reason it was given (the lookup-failure case passes the other one)",
       ).toContain('"reason":"run-end"');
+      expect(warning, "which run's context is left behind").toContain(
+        '"executionId":"aex_delfail"',
+      );
+      expect(warning, "the operator's handle on the row").toContain(
+        '"contextId":"ectx_delfail"',
+      );
       expect(warning, "the fault that stopped the delete").toContain(
         '"error":"simulated delete failure"',
       );
