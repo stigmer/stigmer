@@ -35,18 +35,19 @@
 #
 # A merge-queue entry may reuse its pull request's run (#1708). When the
 # queue's base is an ancestor of the pull request's head, the queue commit's
-# tree is the head's, the pull request was never retargeted, and the newest
-# `Gate` of this workflow's pull-request runs on the head passed, the queue
-# would test the very tree that run tested: the head contained every `main`
-# the run could have merged onto, so its merge ref was the head's tree. A
-# `Gate` check another workflow reports is never reused. The same tree
-# is the same input, these workflow files included, and nothing here reads
-# the pull request's body (`Test integrity` does, and runs again in the
-# queue). The selection then needs no lane and outputs `reused`, `coverage`
-# skips, and `Gate` passes only if every lane and `coverage` skipped, naming
-# the run it reused. The selection reads GitHub with a read-only token in its
-# own job; a read that fails runs the lanes. scripts/ci-lanes.mjs says why the
-# conditions suffice.
+# tree is the head's, the pull request was never retargeted (by hand, or by
+# GitHub after a stacked pull request's base branch is deleted), and the
+# newest `Gate` of this workflow's runs for that pull request against the
+# queue's base branch passed on the head, the queue would test the very tree
+# that run tested: the head contained every `main` the run could have merged
+# onto, so its merge ref was the head's tree. A `Gate` check another workflow
+# reports is never reused. The same tree is the same input, these workflow
+# files included, and nothing here reads the pull request's body
+# (`Test integrity` does, and runs again in the queue). The selection then
+# needs no lane and outputs `reused`, `coverage` skips, and `Gate` passes only
+# if every lane and `coverage` skipped, naming the run it reused. The
+# selection reads GitHub with a read-only token in its own job; a read that
+# fails runs the lanes. scripts/ci-lanes.mjs says why the conditions suffice.
 #
 # Called lanes do not inherit this workflow's `env` (GitHub does not pass a
 # caller's workflow-level env down), so each lane sets STIGMER_TEST_GATE=1

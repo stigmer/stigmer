@@ -44,18 +44,19 @@
  * A merge-queue entry that only repeats a pull-request run which already
  * passed runs no lane (`queueReuse`, #1708). That holds when the queue's base
  * is an ancestor of the pull request's head, the queue commit's tree is the
- * head's tree, the pull request's base was never changed, and the head's
- * newest `Gate` from this workflow's pull-request runs passed: the head then
- * contains every `main` its run could have merged onto, so the merge ref that
- * run checked out was the head's tree, the very tree the queue would test. A
- * `Gate` check from any other workflow is not this gate's verdict, and a run
- * from before a retarget merged onto another base, so neither is reused. The
- * selection then selects nothing and names the run it reuses, `coverage`
- * skips, and the verdict passes only if every lane and `coverage` skipped.
- * Anything the selection cannot read runs the lanes as usual, so a failed
- * read never turns `Gate` green. An entry queued behind another has that
- * entry's commit as its base and fails the first condition; a pull request
- * that has moved fails the second.
+ * head's tree, the pull request's base was never changed (by hand, or by
+ * GitHub when a stacked pull request's base branch is deleted), and the newest
+ * `Gate` of this workflow's runs for that pull request, against the queue's
+ * base branch, passed on the head: the head then contains every `main` its run
+ * could have merged onto, so the merge ref that run checked out was the head's
+ * tree, the very tree the queue would test. A `Gate` check from any other
+ * workflow is not this gate's verdict, and a run from before a retarget merged
+ * onto another base, so neither is reused. The selection then selects nothing
+ * and names the run it reuses, `coverage` skips, and the verdict passes only
+ * if every lane and `coverage` skipped. Anything the selection cannot read
+ * runs the lanes as usual, so a failed read never turns `Gate` green. An entry
+ * queued behind another has that entry's commit as its base and fails the
+ * first condition; a pull request that has moved fails the second.
  *
  * Outputs of the selection (stdout; appended to GITHUB_OUTPUT when set):
  *   <lane id>=true|false      one per lane in LANES, e.g. runner=true
@@ -472,11 +473,18 @@ export function laneId(file) {
 /** The check `Gate` reports: the name the ruleset requires, and the one a queue entry reuses. */
 export const GATE_CHECK = "Gate";
 
-/** The pull request a merge-queue ref names (`gh-readonly-queue/<base>/pr-<n>-<sha>`), or null. */
-export function queuePullNumber(headRef) {
-  const match = /^(?:refs\/heads\/)?gh-readonly-queue\/.+\/pr-(\d+)-[0-9a-f]{40}$/.exec(headRef ?? "");
-  return match === null ? null : Number(match[1]);
+/** The pull request and base branch a merge-queue ref names (`gh-readonly-queue/<base>/pr-<n>-<sha>`), or null. */
+export function queueRef(headRef) {
+  const match = /^(?:refs\/heads\/)?gh-readonly-queue\/(.+)\/pr-(\d+)-[0-9a-f]{40}$/.exec(headRef ?? "");
+  return match === null ? null : { pull: Number(match[2]), base: match[1] };
 }
+
+/**
+ * The timeline events that change a pull request's base: a retarget by hand,
+ * and GitHub's own when the base branch is deleted under a stacked pull
+ * request (which records only the second).
+ */
+export const RETARGET_EVENTS = ["base_ref_changed", "automatic_base_change_succeeded"];
 
 /** The workflow whose `Gate` a queue entry may reuse: this gate's, as its own runs report their path. */
 export const GATE_WORKFLOW = ".github/workflows/ci.gate.yaml";
@@ -489,9 +497,10 @@ export const GATE_WORKFLOW = ".github/workflows/ci.gate.yaml";
  *     head's;
  *   - `compareStatus`: `compare/<queue base>...<head>`, `ahead` or
  *     `identical` when the base is an ancestor of the head;
- *   - `retargeted`: whether the pull request's base was ever changed;
- *   - `gateSuites`: the check suites of this workflow's pull-request runs on
- *     the head;
+ *   - `retargeted`: whether the pull request's base was ever changed
+ *     (`RETARGET_EVENTS`);
+ *   - `gateSuites`: the check suites of this workflow's runs for this pull
+ *     request, against the queue's base branch, on the head;
  *   - `checkRuns`: the head's `Gate` check runs, `{ app, suite, status,
  *     conclusion, startedAt, url }`.
  * Returns `{ reused: <run url> | null, reason }`.
@@ -510,11 +519,11 @@ export function queueReuse({ groupTree, headTree, compareStatus, retargeted, gat
   const newest = checkRuns
     .filter((run) => run.app === "github-actions" && gateSuites.includes(run.suite))
     .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))[0];
-  if (newest === undefined) return no(`the pull request's head has no \`${GATE_CHECK}\` from ${GATE_WORKFLOW}'s pull-request runs`);
+  if (newest === undefined) return no(`the pull request's head has no \`${GATE_CHECK}\` from ${GATE_WORKFLOW}'s runs for this pull request against the queue's base`);
   if (newest.status !== "completed" || newest.conclusion !== "success") {
     return no(`the head's newest \`${GATE_CHECK}\` is ${newest.status === "completed" ? newest.conclusion : newest.status} (${newest.url})`);
   }
-  return { reused: newest.url, reason: `the queue commit's tree is the pull request head's, which contains the queue's base; the pull request was never retargeted; and the newest \`${GATE_CHECK}\` of ${GATE_WORKFLOW}'s pull-request runs on it passed: ${newest.url}` };
+  return { reused: newest.url, reason: `the queue commit's tree is the pull request head's, which contains the queue's base; the pull request was never retargeted; and the newest \`${GATE_CHECK}\` of ${GATE_WORKFLOW}'s runs for it against the queue's base passed: ${newest.url}` };
 }
 
 /**
@@ -645,24 +654,33 @@ function ghApi(args) {
   return execFileSync("gh", ["api", ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60_000 }).trim();
 }
 
+/** The first line a failed command wrote to stderr, else its message. */
+function firstLine(error) {
+  const stderr = String(error?.stderr ?? "").trim();
+  return (stderr || String(error?.message ?? error)).split("\n")[0];
+}
+
 /**
  * What GitHub says about a merge-queue entry and the pull request it names,
  * for `queueReuse`. A read that fails, or answers what cannot be parsed,
- * leaves its field null rather than throwing, so it runs the lanes. `gh` runs
- * one `gh api` call (`ghApi` in CI, a fake in the tests).
+ * leaves its field null rather than throwing, so it runs the lanes, and says
+ * why through `warn` (stderr in CI), so reuse never stays off unexplained.
+ * `gh` runs one `gh api` call (`ghApi` in CI, a fake in the tests).
  */
-export function queueFacts(env, group, gh = ghApi) {
+export function queueFacts(env, group, gh = ghApi, warn = (line) => console.error(line)) {
   const repo = env.GITHUB_REPOSITORY;
   const read = (args, parse = (text) => text) => {
     try {
       return parse(gh(args));
-    } catch {
+    } catch (error) {
+      warn(`ci-lanes: queue reuse could not read ${args[0]}: ${firstLine(error)}`);
       return null;
     }
   };
   const unknown = { groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateSuites: null, checkRuns: null };
-  const pull = queuePullNumber(group?.head_ref);
-  if (pull === null || !group?.base_sha || !group?.head_sha) return unknown;
+  const ref = queueRef(group?.head_ref);
+  if (ref === null || !group?.base_sha || !group?.head_sha) return unknown;
+  const { pull, base } = ref;
   const headSha = read([`repos/${repo}/pulls/${pull}`, "--jq", ".head.sha"]);
   if (!headSha) return unknown;
   const tree = (sha) => read([`repos/${repo}/git/commits/${sha}`, "--jq", ".tree.sha"]) || null;
@@ -671,16 +689,15 @@ export function queueFacts(env, group, gh = ghApi) {
     if (!Array.isArray(value)) throw new Error("not a list");
     return value;
   };
+  const retargets = RETARGET_EVENTS.map((event) => JSON.stringify(event)).join(", ");
+  const ours = `.path == ${JSON.stringify(GATE_WORKFLOW)} and any(.pull_requests[]; .number == ${pull} and .base.ref == ${JSON.stringify(base)})`;
   return {
     groupTree: tree(group.head_sha),
     headTree: tree(headSha),
     compareStatus: read([`repos/${repo}/compare/${group.base_sha}...${headSha}`, "--jq", ".status"]) || null,
-    retargeted: read([`repos/${repo}/issues/${pull}/timeline?per_page=100`, "--paginate", "--jq", '[.[] | select(.event == "base_ref_changed")] | length'], (text) =>
+    retargeted: read([`repos/${repo}/issues/${pull}/timeline?per_page=100`, "--paginate", "--jq", `[.[] | select(.event | IN(${retargets}))] | length`], (text) =>
       text.split("\n").some((count) => Number(count) > 0)),
-    gateSuites: read(
-      [`repos/${repo}/actions/runs?head_sha=${headSha}&event=pull_request&per_page=100`, "--jq", `[.workflow_runs[] | select(.path == "${GATE_WORKFLOW}") | .check_suite_id]`],
-      list,
-    ),
+    gateSuites: read([`repos/${repo}/actions/runs?head_sha=${headSha}&event=pull_request&per_page=100`, "--jq", `[.workflow_runs[] | select(${ours}) | .check_suite_id]`], list),
     checkRuns: read(
       [`repos/${repo}/commits/${headSha}/check-runs?check_name=${GATE_CHECK}&per_page=100`, "--jq", "[.check_runs[] | {app: .app.slug, suite: .check_suite.id, status, conclusion, startedAt: .started_at, url: .html_url}]"],
       list,
