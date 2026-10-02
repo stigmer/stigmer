@@ -497,15 +497,20 @@ export const GATE_WORKFLOW = ".github/workflows/ci.gate.yaml";
  *     head's;
  *   - `compareStatus`: `compare/<queue base>...<head>`, `ahead` or
  *     `identical` when the base is an ancestor of the head;
+ *   - `pull`, `base`: the pull request and base branch the queue ref names;
  *   - `retargeted`: whether the pull request's base was ever changed
  *     (`RETARGET_EVENTS`);
- *   - `gateSuites`: the check suites of this workflow's runs for this pull
- *     request, against the queue's base branch, on the head;
+ *   - `gateRuns`: the head's pull-request workflow runs, `{ path, suite,
+ *     pullRequests: [{ number, base }] }`. GitHub lists every open pull
+ *     request whose head matches a run, not the one that started it, so a
+ *     run counts only when it is this workflow's, names this pull request,
+ *     and names no pull request against another base: otherwise it may have
+ *     merged onto that base;
  *   - `checkRuns`: the head's `Gate` check runs, `{ app, suite, status,
  *     conclusion, startedAt, url }`.
  * Returns `{ reused: <run url> | null, reason }`.
  */
-export function queueReuse({ groupTree, headTree, compareStatus, retargeted, gateSuites, checkRuns }) {
+export function queueReuse({ pull, base, groupTree, headTree, compareStatus, retargeted, gateRuns, checkRuns }) {
   const no = (reason) => ({ reused: null, reason });
   if (compareStatus === null) return no("the queue's base could not be compared with the pull request's head");
   if (compareStatus !== "ahead" && compareStatus !== "identical") {
@@ -515,7 +520,10 @@ export function queueReuse({ groupTree, headTree, compareStatus, retargeted, gat
   if (groupTree !== headTree) return no(`the queue commit's tree ${groupTree.slice(0, 12)} is not the pull request head's ${headTree.slice(0, 12)}`);
   if (retargeted === null) return no("the pull request's base changes could not be read");
   if (retargeted) return no("the pull request's base was changed, so a run before that merged onto another base");
-  if (gateSuites === null || checkRuns === null) return no(`the pull request head's \`${GATE_CHECK}\` runs could not be read`);
+  if (gateRuns === null || checkRuns === null) return no(`the pull request head's \`${GATE_CHECK}\` runs could not be read`);
+  const gateSuites = gateRuns
+    .filter((run) => run.path === GATE_WORKFLOW && run.pullRequests.some((pr) => pr.number === pull) && run.pullRequests.every((pr) => pr.base === base))
+    .map((run) => run.suite);
   const newest = checkRuns
     .filter((run) => run.app === "github-actions" && gateSuites.includes(run.suite))
     .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))[0];
@@ -669,7 +677,7 @@ function firstLine(error) {
  */
 export function queueFacts(env, group, gh = ghApi, warn = (line) => console.error(line)) {
   const repo = env.GITHUB_REPOSITORY;
-  const read = (args, parse = (text) => text) => {
+  const read = (args, parse) => {
     try {
       return parse(gh(args));
     } catch (error) {
@@ -677,27 +685,39 @@ export function queueFacts(env, group, gh = ghApi, warn = (line) => console.erro
       return null;
     }
   };
-  const unknown = { groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateSuites: null, checkRuns: null };
   const ref = queueRef(group?.head_ref);
+  const unknown = { pull: ref?.pull ?? null, base: ref?.base ?? null, groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateRuns: null, checkRuns: null };
   if (ref === null || !group?.base_sha || !group?.head_sha) return unknown;
   const { pull, base } = ref;
-  const headSha = read([`repos/${repo}/pulls/${pull}`, "--jq", ".head.sha"]);
-  if (!headSha) return unknown;
-  const tree = (sha) => read([`repos/${repo}/git/commits/${sha}`, "--jq", ".tree.sha"]) || null;
+  const word = (text) => {
+    if (!/^\S+$/.test(text)) throw new Error(`not one value: ${JSON.stringify(text)}`);
+    return text;
+  };
+  const headSha = read([`repos/${repo}/pulls/${pull}`, "--jq", ".head.sha"], word);
+  if (headSha === null) return unknown;
+  const tree = (sha) => read([`repos/${repo}/git/commits/${sha}`, "--jq", ".tree.sha"], word);
   const list = (text) => {
     const value = JSON.parse(text);
     if (!Array.isArray(value)) throw new Error("not a list");
     return value;
   };
+  const counts = (text) => {
+    const lines = text.split("\n").filter((line) => line.trim() !== "");
+    if (lines.length === 0 || !lines.every((line) => /^\d+$/.test(line.trim()))) throw new Error(`not a count per page: ${JSON.stringify(text)}`);
+    return lines.some((line) => Number(line) > 0);
+  };
   const retargets = RETARGET_EVENTS.map((event) => JSON.stringify(event)).join(", ");
-  const ours = `.path == ${JSON.stringify(GATE_WORKFLOW)} and any(.pull_requests[]; .number == ${pull} and .base.ref == ${JSON.stringify(base)})`;
   return {
+    pull,
+    base,
     groupTree: tree(group.head_sha),
     headTree: tree(headSha),
-    compareStatus: read([`repos/${repo}/compare/${group.base_sha}...${headSha}`, "--jq", ".status"]) || null,
-    retargeted: read([`repos/${repo}/issues/${pull}/timeline?per_page=100`, "--paginate", "--jq", `[.[] | select(.event | IN(${retargets}))] | length`], (text) =>
-      text.split("\n").some((count) => Number(count) > 0)),
-    gateSuites: read([`repos/${repo}/actions/runs?head_sha=${headSha}&event=pull_request&per_page=100`, "--jq", `[.workflow_runs[] | select(${ours}) | .check_suite_id]`], list),
+    compareStatus: read([`repos/${repo}/compare/${group.base_sha}...${headSha}`, "--jq", ".status"], word),
+    retargeted: read([`repos/${repo}/issues/${pull}/timeline?per_page=100`, "--paginate", "--jq", `[.[] | select(.event | IN(${retargets}))] | length`], counts),
+    gateRuns: read(
+      [`repos/${repo}/actions/runs?head_sha=${headSha}&event=pull_request&per_page=100`, "--jq", "[.workflow_runs[] | {path, suite: .check_suite_id, pullRequests: [.pull_requests[] | {number, base: .base.ref}]}]"],
+      list,
+    ),
     checkRuns: read(
       [`repos/${repo}/commits/${headSha}/check-runs?check_name=${GATE_CHECK}&per_page=100`, "--jq", "[.check_runs[] | {app: .app.slug, suite: .check_suite.id, status, conclusion, startedAt: .started_at, url: .html_url}]"],
       list,
