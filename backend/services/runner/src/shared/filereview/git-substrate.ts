@@ -357,9 +357,19 @@ export interface GitProgressDelta {
  *
  * Uses a dedicated temp-index label ("progress") so it never collides with the
  * `baseline`/`capture`/`approved` indexes. `--no-renames` matches
- * {@link captureChangeSet} (a rename surfaces as delete + create). A torn read of
- * a file being written mid-turn is acceptable — the snapshot is non-authoritative
- * and self-corrects on the next capture.
+ * {@link captureChangeSet} (a rename surfaces as delete + create).
+ *
+ * A file being written mid-turn can tear this read two ways. git may index the
+ * bytes it found, a half-written file, or it may refuse the whole `add`: "short
+ * read while indexing" when the file shrank between git's stat and its read (a
+ * write that truncates first), or "unable to index file" when it cannot read it.
+ * Both are acceptable for a non-authoritative snapshot, and this function rejects
+ * on the second; its caller skips that capture and the next one converges
+ * (`progress.ts`, "What a capture may see"). The turn-boundary snapshots
+ * ({@link snapshotBaseline}, {@link captureChangeSet}, {@link snapshotApproved})
+ * share {@link writeWorkingTree} and deliberately stay loud: the review and the
+ * reconcile are built from their trees, so a tree they could not write fails the
+ * turn rather than pinning a wrong one.
  */
 export async function captureProgressDelta(
   gitRoot: string,

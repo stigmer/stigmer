@@ -17,7 +17,9 @@
  *     changed nothing on disk carries the snapshot it already had. Before
  *     #1096 each adapter's stream loop did this before its own persists; the
  *     runtime owns the capture now, so the display field it derives is
- *     refreshed where every other runtime-owned field is — here.
+ *     refreshed where every other runtime-owned field is — here. A capture
+ *     that fails is skipped there, never thrown, so it never fails the write
+ *     and `request()` keeps its promise to the adapters.
  *  3. `streaming_usage` is refreshed from the accumulator when it has turns,
  *     so the summary the UI shows is the one the write carries.
  *  4. `persistStatus` (`shared/status.ts`): tool-output offload, the

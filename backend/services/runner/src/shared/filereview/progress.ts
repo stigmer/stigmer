@@ -37,6 +37,15 @@
  * A consumer — a console, a test — reads the strip for what it converges to
  * while the set is CAPTURING, never for what one capture happened to show.
  *
+ * A capture can also fail outright: git refuses to index a file it reads
+ * shorter than it stat'ed it ("short read while indexing", a tool's write
+ * caught between its truncate and its write), or one it cannot read at all.
+ * Such a capture is skipped, never thrown ({@link captureFileChangeProgress}):
+ * the snapshot already attached stands and the next capture converges it. A
+ * display field must never end the turn it describes, and the persist it rides
+ * promises its caller it never rejects. The turn-boundary captures that the
+ * review and the reconcile depend on stay loud (`git-substrate.ts`).
+ *
  * SECRET SAFETY
  * -------------
  * No file bodies are ever carried. A secret-like path ({@link isSecretLikePath})
@@ -110,7 +119,9 @@ export interface ProgressCapture {
  * A per-turn source of the mid-run delta. Implementations own their own
  * short-circuit cache and ALWAYS return the full cumulative delta (never a
  * bare "unchanged" sentinel), so {@link createHybridProgressSubstrate} can merge
- * a changed slice with an unchanged one without losing the latter.
+ * a changed slice with an unchanged one without losing the latter. `capture()`
+ * rejects when it cannot read the workspace, and then leaves its cache at the
+ * last capture that succeeded; {@link captureFileChangeProgress} skips it.
  */
 export interface ProgressSubstrate {
   capture(): Promise<ProgressCapture>;
@@ -227,6 +238,12 @@ export function newProgressCaptureState(): ProgressCaptureState {
  * edits) so the strip reflects the reversion (it hides at zero) rather than
  * showing a stale count — the server's presence-guarded merge would keep the
  * stale value if the runner omitted the field.
+ *
+ * Never rejects. A capture the substrate fails is skipped with a warning (the
+ * header's "What a capture may see"): the snapshot already attached stands, and
+ * the floor stays spent, so a failure that persists costs one attempt per
+ * interval, as a healthy capture does. The substrates leave their caches at the
+ * last capture that succeeded, so the next one converges.
  */
 export async function captureFileChangeProgress(opts: {
   readonly status: AgentExecutionStatus;
@@ -240,10 +257,18 @@ export async function captureFileChangeProgress(opts: {
   if (!shouldCaptureProgress(opts.state.lastAtMs, now)) return;
   opts.state.lastAtMs = now;
 
-  const { delta, changed } = await opts.substrate.capture();
-  if (!changed) return;
+  let capture: ProgressCapture;
+  try {
+    capture = await opts.substrate.capture();
+  } catch (err) {
+    console.warn(
+      `progress: capture skipped (non-fatal); the next capture retries: changeSet=${opts.changeSetId}, error=${err}`,
+    );
+    return;
+  }
+  if (!capture.changed) return;
 
-  opts.status.fileChangeProgress = buildFileChangeProgress(delta, opts.changeSetId);
+  opts.status.fileChangeProgress = buildFileChangeProgress(capture.delta, opts.changeSetId);
 }
 
 // ---------------------------------------------------------------------------
@@ -303,21 +328,36 @@ export function createGitProgressSubstrate(opts: {
  * only tracked paths, the observer only gitignored ones) and sums the honest
  * totals. `changed` is true when EITHER slice moved; because each child returns
  * its full cumulative delta, the merged delta always carries both slices.
+ *
+ * A slice that fails fails the capture, and the slice that answered beside it
+ * has already advanced its own cache: the change it reported would read
+ * `changed:false` from then on and never reach the strip. So the hybrid keeps
+ * that change `undelivered` and reports it on the next capture that succeeds.
  */
 export function createHybridProgressSubstrate(
   git: ProgressSubstrate,
   cas: ProgressSubstrate,
 ): ProgressSubstrate {
+  let undelivered = false;
   return {
     async capture(): Promise<ProgressCapture> {
-      const [g, c] = await Promise.all([git.capture(), cas.capture()]);
-      const delta: ProgressDelta = {
-        entries: [...g.delta.entries, ...c.delta.entries],
-        totalFilesChanged:
-          (g.delta.totalFilesChanged ?? g.delta.entries.length) +
-          (c.delta.totalFilesChanged ?? c.delta.entries.length),
-      };
-      return { delta, changed: g.changed || c.changed };
+      const slices = await Promise.allSettled([git.capture(), cas.capture()]);
+      const [gs, cs] = slices;
+      if (gs.status === "fulfilled" && cs.status === "fulfilled") {
+        const g = gs.value;
+        const c = cs.value;
+        const changed = g.changed || c.changed || undelivered;
+        undelivered = false;
+        const delta: ProgressDelta = {
+          entries: [...g.delta.entries, ...c.delta.entries],
+          totalFilesChanged:
+            (g.delta.totalFilesChanged ?? g.delta.entries.length) +
+            (c.delta.totalFilesChanged ?? c.delta.entries.length),
+        };
+        return { delta, changed };
+      }
+      if (slices.some((s) => s.status === "fulfilled" && s.value.changed)) undelivered = true;
+      throw slices.find((s): s is PromiseRejectedResult => s.status === "rejected")?.reason;
     },
   };
 }
