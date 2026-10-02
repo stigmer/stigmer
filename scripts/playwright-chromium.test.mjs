@@ -486,6 +486,10 @@ test("every form an install can take is refused", () => {
     "npx playwright install-deps chromium",
     "node node_modules/.bin/playwright install",
     "cd test/e2e && npx playwright install chromium",
+    "npx @playwright/test install chromium",
+    "npx @playwright/test@1.60.0 install --with-deps chromium",
+    'bash -c "npx playwright install --with-deps chromium"',
+    "sh -c 'npx playwright install'",
   ];
   for (const form of forms) {
     const findings = installFindings(

@@ -93,10 +93,11 @@ const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 ]);
 
-// `playwright install` or `install-deps`, however it is reached: npx, npm
-// exec, a pinned `playwright@<version>`, or the bin by its path.
+// `playwright install` or `install-deps`, however it is reached: npx or npm
+// exec of `playwright` or `@playwright/test`, either pinned to a version, the
+// bin by its path, or inside a quoted `bash -c "..."`.
 const INSTALLS =
-  /(?:^|[\s/])playwright(?:@\S+)?\s+install(?:-deps)?(?=$|[\s;&|])/;
+  /(?:^|[\s/"'])(?:@playwright\/test|playwright)(?:@[^\s"']+)?\s+install(?:-deps)?(?=$|[\s;&|"'])/;
 
 /** The checkout this runs in: GITHUB_WORKSPACE on a runner, and otherwise this repository. */
 export function workspaceRoot(env = process.env) {
