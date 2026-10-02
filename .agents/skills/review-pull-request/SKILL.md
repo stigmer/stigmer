@@ -148,7 +148,9 @@ stop at the first finding.
   floor: is its cause real (tests removed or moved, a library that reaches the
   code through other paths, code no test can reach), and is the new floor the
   `• measured` figure in the `Coverage` report less the floors file's margin,
-  and no lower? An unjustified declaration is a blocking finding.
+  and no lower? The report rounds that figure to the nearest tenth while a floor
+  rounds down, so a floor up to 0.1 below it is the same figure. An unjustified
+  declaration is a blocking finding.
 - **Each line switched off.** A comment the diff adds that turns a check off for
   a line (above all a coverage ignore hint: `v8 ignore`, `c8 ignore`,
   `istanbul ignore`) is judged like a skip, and its reason must be true. A hint
