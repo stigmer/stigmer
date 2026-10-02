@@ -1,10 +1,10 @@
-// Accessibility audit — the loading container every skeleton renders through.
+// Accessibility audit — the container every labelled skeleton renders through.
 //
 // Pins stigmer/stigmer#1653's class closed: a busy region named by hidden
 // text passes the same axe policy the console's e2e page audits apply, in
-// both color modes, both as the bare primitive and as a swept skeleton
-// (ThreadSkeleton). The negative control renders the markup the skeletons had
-// before the sweep and expects the audit to refuse it, so this suite cannot
+// both color modes, both as the bare primitive and as a skeleton built on it
+// (ThreadSkeleton). The negative control renders a role-less, aria-labelled
+// busy container and expects the audit to refuse it, so this suite cannot
 // pass by auditing nothing.
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -36,21 +36,21 @@ describe("LoadingRegion a11y", () => {
     await auditA11y(container, `loading region · ${mode}`);
   });
 
-  it.each(COLOR_MODES)("a swept skeleton: ThreadSkeleton (%s)", async (mode) => {
+  it.each(COLOR_MODES)("a skeleton built on it: ThreadSkeleton (%s)", async (mode) => {
     const container = renderAudited(<ThreadSkeleton />, mode, CANVAS);
     expect(screen.getByText("Loading conversation")).toBeTruthy();
     await auditA11y(container, `thread skeleton · ${mode}`);
   });
 
-  it("refuses the markup the skeletons had before the sweep", async () => {
+  it("refuses a role-less, aria-labelled busy container", async () => {
     const container = renderAudited(
-      // eslint-disable-next-line stigmer/require-loading-region -- the pre-#1653 markup, rendered so the audit is shown to refuse it
+      // eslint-disable-next-line stigmer/require-loading-region -- the markup this suite proves the audit refuses
       <div className="stg:space-y-2 stg:px-2" aria-busy="true" aria-label="Loading sessions">
         {placeholders()}
       </div>,
       "light",
       CANVAS,
     );
-    await expect(auditA11y(container, "pre-sweep skeleton")).rejects.toThrow(/aria-prohibited-attr/);
+    await expect(auditA11y(container, "aria-labelled busy div")).rejects.toThrow(/aria-prohibited-attr/);
   });
 });

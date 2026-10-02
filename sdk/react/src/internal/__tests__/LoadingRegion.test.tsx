@@ -1,5 +1,5 @@
 /**
- * LoadingRegion (stigmer#1653): the one loading container. Pins its markup:
+ * LoadingRegion (stigmer#1653): the container for a labelled loading region. Pins its markup:
  * busy, no role and no aria-label, a label given as visually hidden text that
  * comes first, and no hidden text when no label is given (the children say it
  * themselves). The axe audit of the same markup is

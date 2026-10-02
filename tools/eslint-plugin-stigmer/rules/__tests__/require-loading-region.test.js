@@ -5,7 +5,7 @@
 // reported, because a skeleton's name belongs to LoadingRegion's hidden text
 // (stigmer#1653). A labelled region or article that is busy while it streams
 // real content, a computed busy flag, a busy element with no label, a
-// component's props, and the primitive's own file are left alone. Run via
+// component's props are left alone. Run via
 // the root `npm run test:scripts` (the `test:root` globs in package.json).
 
 const { describe, it } = require("node:test");
@@ -38,10 +38,6 @@ tester.run("require-loading-region", rule, {
     { code: '<div role="region" aria-label="Plan being written" aria-busy="true"><p>Writing…</p></div>' },
     { code: '<div role="article" aria-label="Plan document" aria-busy="true" />' },
     { code: '<div role={roleFor(kind)} aria-busy="true" aria-label="Loading" />' },
-    {
-      code: '<div aria-busy="true" aria-label="anything" />',
-      filename: "/repo/sdk/react/src/internal/LoadingRegion.tsx",
-    },
   ],
   invalid: [
     { code: '<div className="stg:space-y-2" aria-busy="true" aria-label="Loading sessions" />', errors: reported },

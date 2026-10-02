@@ -1,15 +1,14 @@
 "use strict";
 
-// The SDK has one loading container: internal/LoadingRegion.tsx marks the
-// region a skeleton fills busy and names it with visually hidden text. Before
-// the stigmer#1653 sweep, 36 skeletons put `aria-busy="true"` and an
-// `aria-label` on a role-less <div>, which axe refuses (`aria-prohibited-attr`,
-// WCAG 4.1.2), so a page audit failed whenever one was on screen; two more had
-// taken role="status" to make the label legal, which is the role this
-// console's phase badges, empty states and notices carry. This fence keeps the
-// class dead: a DOM element that is busy and labelled, with no role or with
-// role="status", belongs inside LoadingRegion; everywhere else renders
-// <LoadingRegion label="...">.
+// The SDK has one container for a labelled loading region:
+// internal/LoadingRegion.tsx marks the region busy and names it with visually
+// hidden text. An `aria-label` on a role-less element is refused by axe
+// (`aria-prohibited-attr`, WCAG 4.1.2), so a labelled skeleton built that way
+// fails every page audit it is on screen for (stigmer#1653); role="status"
+// would make the label legal but is the role this console's phase badges,
+// empty states and notices carry. So a DOM element that is busy and labelled,
+// with no role or with role="status", is reported: it renders
+// <LoadingRegion label="..."> instead.
 //
 // "Busy" is aria-busy fixed true: `"true"`, `{true}`, or the bare attribute,
 // which JSX renders as "true". A role that takes no name (generic,
@@ -20,8 +19,6 @@
 // "status", such as a streaming plan's labelled region or article, which
 // holds real content and is no skeleton; a computed role, the author's to
 // justify; and a computed `aria-busy={isSubmitting}` (a button mid-request).
-
-const REGION_FILE_SUFFIX = "internal/LoadingRegion.tsx";
 
 /** The JSX attribute named `name` on `node`, or undefined. */
 function attribute(node, name) {
@@ -72,11 +69,6 @@ module.exports = {
   },
 
   create(context) {
-    const filename = context.filename ?? context.getFilename();
-    if (filename.replaceAll("\\", "/").endsWith(REGION_FILE_SUFFIX)) {
-      return {};
-    }
-
     return {
       JSXOpeningElement(node) {
         // DOM elements only: a component's props are its own business.
