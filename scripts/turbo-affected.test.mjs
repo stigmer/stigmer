@@ -188,15 +188,16 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     everythingBecause(CI_PR, [
       ".github/workflows/ci.docs.yaml",
       "docs/x.mdx",
-      "Makefile",
+      "sdk/go/Makefile",
     ]),
     null,
-    "another lane's file, docs and the Makefile are not this lane's tooling",
+    "another lane's file, docs and a package's own Makefile are not this lane's tooling",
   );
   for (const file of [
     "package.json",
     "package-lock.json",
     ".nvmrc",
+    "Makefile",
     "scripts/turbo-set.mjs",
     ".github/actions/playwright-chromium/action.yml",
     COVERAGE_FLOORS,
@@ -223,6 +224,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package.json",
     "package-lock.json",
     ".nvmrc",
+    "Makefile",
     "scripts/",
     ".github/actions/",
     "test/coverage-floors.json",

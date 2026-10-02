@@ -1,0 +1,273 @@
+// Tests for scripts/make-targets.mjs: reading a Makefile well enough to say
+// what a `make` call runs.
+// Run via `node --test scripts/make-targets.test.mjs` (wired into root `npm test`).
+//
+// What these guard: scripts/lane-triggers.test.mjs holds each gate lane to
+// the Makefiles and scripts its `make` calls reach, so a misread here holds a
+// lane to the wrong files and passes green. Fixtures pin each part of the
+// read:
+//   - the rules, prerequisites and recipes as make reads them;
+//   - each construct the reader refuses rather than guesses at;
+//   - variable expansion as text, with `$(CURDIR)` rooted at the checkout;
+//   - the closure across prerequisites and `$(MAKE) -C` hops;
+//   - where a recipe line's words run.
+
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import {
+  commandWords,
+  curdirOf,
+  expand,
+  makefileIn,
+  parseMakeArguments,
+  placeWords,
+  readMakefile,
+  targetClosure,
+} from "./make-targets.mjs";
+
+/** A script word, as scripts/lane-triggers.test.mjs spells it. */
+const SCRIPT = /[^\s"'`()=;|&<>]+\.(?:mjs|ts|sh)(?=$|[\s"'`()=;|&<>])/g;
+
+/** Makefile text from lines; a leading `>` marks a recipe line (a tab). */
+const mk = (...lines) => lines.map((line) => line.replace(/^>/, "\t")).join("\n");
+
+/** A `read` over a map of Makefile paths to text. */
+const files = (map) => (path) => map[path];
+
+test("readMakefile reads rules, prerequisites, recipes and variables as make does", () => {
+  const { rules, variables, refusals } = readMakefile(
+    mk(
+      "# a comment",
+      "RUNNER_DIR := backend/services/runner",
+      "FLAGS = -a",
+      "FLAGS += -b",
+      "MODE ?= fast",
+      "export STUBS_FORCE",
+      ".PHONY: build test",
+      "",
+      "build: deps | order ## Build it (needs: docker; tools)",
+      ">@echo build \\",
+      ">  --flag",
+      "# a comment inside a recipe does not end it",
+      "",
+      ">-rm -f out",
+      ">+$(MAKE) -C sub all",
+      "build: extra",
+      "a b: shared",
+      ">touch $@",
+    ),
+  );
+  assert.deepEqual(refusals, []);
+  assert.deepEqual(rules.get("build"), {
+    line: 9,
+    prerequisites: ["deps", "order", "extra"],
+    recipe: [
+      { line: 10, text: "echo build --flag" },
+      { line: 14, text: "rm -f out" },
+      { line: 15, text: "$(MAKE) -C sub all" },
+    ],
+  });
+  assert.deepEqual(rules.get("a").recipe, [{ line: 18, text: "touch $@" }], "a multi-target rule gives each target the recipe");
+  assert.deepEqual(rules.get("b").prerequisites, ["shared"]);
+  assert.deepEqual(Object.fromEntries(variables), {
+    RUNNER_DIR: "backend/services/runner",
+    FLAGS: "-a -b",
+    MODE: "fast",
+  });
+});
+
+test("readMakefile refuses every construct it does not model, wherever it sits", () => {
+  const cases = [
+    ["ifeq ($(X),1)", /`ifeq` is not read/],
+    ["ifdef X", /`ifdef` is not read/],
+    ["define BLOCK", /`define` is not read/],
+    ["include other.mk", /`include` is not read/],
+    ["-include other.mk", /`-include` is not read/],
+    ["vpath %.c src", /`vpath` is not read/],
+    ["FILES != ls", /runs a shell when the file is read/],
+    ["SHELL := /bin/zsh", /SHELL is \/bin\/zsh; this reader places words as sh and bash run them/],
+    [".ONESHELL:", /\.ONESHELL runs a recipe in one shell/],
+    ["%.o: %.c", /a pattern, static-pattern or double-colon rule/],
+    ["objs: %.o: %.c", /a pattern, static-pattern or double-colon rule/],
+    ["all:: one", /a pattern, static-pattern or double-colon rule/],
+    ["all: ; echo inline", /a recipe on the rule's own line/],
+    ["all: MODE = fast", /a target-specific variable/],
+    ["just some words", /is neither a rule nor an assignment/],
+    ["\techo orphan", /a recipe line outside any rule/],
+  ];
+  for (const [line, expected] of cases) {
+    const { refusals } = readMakefile(mk(line));
+    assert.equal(refusals.length, 1, line);
+    assert.match(refusals[0], expected, line);
+    assert.match(refusals[0], /^line 1: /, line);
+  }
+  for (const shell of ["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/env bash"]) {
+    assert.deepEqual(readMakefile(mk(`SHELL := ${shell}`)).refusals, [], shell);
+  }
+  const twice = readMakefile(mk("x:", ">echo one", "x: more", ">echo two", ">echo three"));
+  assert.deepEqual(twice.refusals, ["line 4: x gets a second recipe (its first is at line 1)"]);
+  assert.deepEqual(twice.rules.get("x").recipe, [{ line: 2, text: "echo one" }], "the second recipe is not merged in");
+});
+
+test("expand substitutes variables as text, recursively, and never evaluates a function", () => {
+  const variables = new Map([
+    ["SERVER_DIR", "backend/services/stigmer-server"],
+    ["VERSION", "$$(node $(CURDIR)/scripts/lib/source-version.mjs)"],
+    ["DOCS", "$(shell node scripts/agents-check.mjs --list)"],
+    ["LOOP", "$(LOOP) again"],
+    ["NESTED", "${SERVER_DIR}/x"],
+  ]);
+  assert.equal(expand("cd $(SERVER_DIR) && V=$(VERSION)", variables), "cd backend/services/stigmer-server && V=$(node /scripts/lib/source-version.mjs)");
+  assert.equal(expand("$(VERSION)", variables, { curdir: "/sdk/go" }), "$(node /sdk/go/scripts/lib/source-version.mjs)");
+  assert.equal(expand("$(DOCS)", variables), "$(shell node scripts/agents-check.mjs --list)", "a function stays as written");
+  assert.equal(expand("$(LOOP)", variables), "$(LOOP) again", "a self-reference is left as written instead of looping");
+  assert.equal(expand("$(NESTED) $(HOME)/bin $@ $$HOME", variables), "backend/services/stigmer-server/x $(HOME)/bin $@ $HOME");
+  const overrides = new Map([
+    ["SERVER_DIR", "elsewhere"],
+    ["ARTIFACT", null],
+  ]);
+  assert.equal(expand("$(SERVER_DIR) up-$(ARTIFACT)", variables, { overrides }), "elsewhere up-$(ARTIFACT)", "an override wins; an unknown one stays");
+  assert.equal(curdirOf("."), "");
+  assert.equal(curdirOf("sdk/go"), "/sdk/go");
+  assert.equal(makefileIn("."), "Makefile");
+  assert.equal(makefileIn("sdk/go"), "sdk/go/Makefile");
+});
+
+test("commandWords splits one shell command into words, keeping references and quotes whole", () => {
+  assert.deepEqual(commandWords(`make rehearse-$(ARTIFACT) STAMP=$(shell date | tr -d ' ') MSG="a b" && echo done`), [
+    "make",
+    "rehearse-$(ARTIFACT)",
+    "STAMP=$(shell date | tr -d ' ')",
+    'MSG="a b"',
+  ]);
+  assert.deepEqual(commandWords("x; make -C ${DIR} all)", 3), ["make", "-C", "${DIR}", "all"]);
+  assert.deepEqual(commandWords("make a\nmake b"), ["make", "a"], "a step's next line is the next command");
+  assert.deepEqual(commandWords("  "), []);
+});
+
+test("parseMakeArguments reads a make command's directory, targets and overrides, and refuses what moves the read", () => {
+  assert.deepEqual(parseMakeArguments(["-C", "sdk/go", "-s", "--no-print-directory", "codegen", "verify"], "."), {
+    dir: "sdk/go",
+    targets: ["codegen", "verify"],
+    overrides: new Map(),
+  });
+  assert.deepEqual(parseMakeArguments(["-C../../apis", "go-stubs-tools"], "sdk/go"), {
+    dir: "apis",
+    targets: ["go-stubs-tools"],
+    overrides: new Map(),
+  });
+  assert.deepEqual(parseMakeArguments(["rehearse", 'ARTIFACT="${ARTIFACT}"', "MODE='fast'"], "."), {
+    dir: ".",
+    targets: ["rehearse"],
+    overrides: new Map([
+      ["ARTIFACT", null],
+      ["MODE", "fast"],
+    ]),
+  });
+  assert.match(parseMakeArguments(["-C", "${{ inputs.dir }}", "x"], ".").refusal, /names its directory with an expression/);
+  assert.match(parseMakeArguments(["-C"], ".").refusal, /names its directory with an expression/);
+  for (const flag of ["-f", "--file=x.mk", "--makefile=x.mk", "-I", "--include-dir=d", "--directory=d"]) {
+    assert.match(parseMakeArguments([flag, "x"], ".").refusal, /reads a file or directory this reader does not follow/, flag);
+  }
+  assert.match(parseMakeArguments(["-s"], ".").refusal, /names no target/);
+});
+
+test("targetClosure follows prerequisites and $(MAKE) hops across Makefiles, expanding target names", () => {
+  const read = files({
+    Makefile: mk(
+      "RUNNER_DIR := backend/services/runner",
+      "build: stubs $(RUNNER_DIR)/node_modules some/file.txt",
+      ">cd $(RUNNER_DIR) && npm run build",
+      "stubs:",
+      "># a shell comment runs nothing",
+      ">$(MAKE) -C sdk/go codegen MODE=strict",
+      "$(RUNNER_DIR)/node_modules: $(RUNNER_DIR)/package-lock.json",
+      ">cd $(RUNNER_DIR) && npm ci",
+    ),
+    "sdk/go/Makefile": mk("codegen:", ">echo $(MODE) $(CURDIR)/gen.sh"),
+  });
+  const closure = targetClosure({ read, dir: ".", targets: ["build"] });
+  assert.deepEqual(closure.refusals, []);
+  assert.deepEqual(closure.makefiles, ["Makefile", "sdk/go/Makefile"]);
+  assert.deepEqual(
+    closure.targets.map(({ makefile, target }) => `${makefile} ${target}`),
+    ["Makefile build", "Makefile stubs", "sdk/go/Makefile codegen", "Makefile backend/services/runner/node_modules"],
+  );
+  assert.deepEqual(
+    closure.lines.map(({ dir, target, text }) => `${dir} ${target}: ${text}`),
+    [
+      ". stubs: $(MAKE) -C sdk/go codegen MODE=strict",
+      "sdk/go codegen: echo strict /sdk/go/gen.sh",
+      ". backend/services/runner/node_modules: cd backend/services/runner && npm ci",
+      ". build: cd backend/services/runner && npm run build",
+    ],
+    "an override reaches the recursion, and $(CURDIR) is the hop's directory",
+  );
+});
+
+test("targetClosure reaches every rule a variable target's prefix starts, and refuses what it cannot follow", () => {
+  const read = files({
+    Makefile: mk(
+      "rehearse:",
+      ">$(MAKE) rehearse-$(ARTIFACT) STAMP=$(shell date | tr -d ' ') && echo done",
+      "rehearse-compose:",
+      ">node test/compose.mjs",
+      "rehearse-helm:",
+      ">node test/helm.mjs",
+      "other:",
+      ">node test/other.mjs",
+    ),
+  });
+  const closure = targetClosure({ read, dir: ".", targets: ["rehearse"], overrides: new Map([["ARTIFACT", null]]) });
+  assert.deepEqual(closure.refusals, []);
+  assert.deepEqual(closure.targets.map(({ target }) => target), ["rehearse", "rehearse-compose", "rehearse-helm"]);
+  const refused = (makefile, targets = ["t"]) => targetClosure({ read: files({ Makefile: makefile }), dir: ".", targets }).refusals;
+  assert.deepEqual(refused(mk("t:", ">echo"), ["missing"]), ["Makefile defines no target missing"]);
+  assert.deepEqual(refused(mk("t:", ">$(MAKE) $(ANY)")), ["Makefile: $(ANY) matches no target this reader can name"]);
+  assert.deepEqual(refused(mk("t:", ">$(MAKE) gone-$(ANY)")), ["Makefile: gone-$(ANY) matches no target this reader can name"]);
+  assert.deepEqual(refused(mk("t: gone-$(ANY)", ">echo")), [], "a prerequisite that matches no rule is a file");
+  assert.deepEqual(refused(mk("t:", ">cd sub && $(MAKE) all")), ["Makefile:2 (t) runs `$(MAKE)` after changing directory; pass `-C <dir>` instead"]);
+  assert.deepEqual(refused(mk("t:", ">make all")), ["Makefile:2 (t) runs `make` directly; spell it `$(MAKE)` so this reader follows it"]);
+  assert.deepEqual(refused(mk("t:", ">test -f x || make all")), ["Makefile:2 (t) runs `make` directly; spell it `$(MAKE)` so this reader follows it"]);
+  assert.deepEqual(refused(mk("t:", ">if true; then make all; fi")), ["Makefile:2 (t) runs `make` directly; spell it `$(MAKE)` so this reader follows it"]);
+  assert.deepEqual(refused(mk("t:", `>echo "run 'make all' first"; echo 'cd elsewhere'`)), [], "a message naming make or cd runs neither");
+  assert.deepEqual(refused(mk("t:", ">$(MAKE) -f other.mk all")), ["Makefile:2 (t) make -f reads a file or directory this reader does not follow"]);
+  assert.deepEqual(refused(mk("ifdef X", "t:", ">echo")), ["Makefile line 1: `ifdef` is not read by this reader; teach it the construct first"]);
+  assert.deepEqual(
+    targetClosure({ read: files({ Makefile: mk("t:", ">$(MAKE) -C nowhere all") }), dir: ".", targets: ["t"] }).refusals,
+    ["nowhere/Makefile does not exist, yet a make call reads it for all"],
+  );
+  const cycle = targetClosure({ read: files({ Makefile: mk("a: b", ">echo a", "b: a", ">echo b") }), dir: ".", targets: ["a"] });
+  assert.deepEqual(cycle.targets.map(({ target }) => target), ["a", "b"], "a prerequisite cycle is visited once");
+});
+
+test("placeWords places a recipe line's words where they run", () => {
+  const paths = (text, dir = ".") => placeWords(text, dir, SCRIPT);
+  assert.deepEqual(paths("node scripts/a.mjs && bash ./tools/b.sh").words.map(({ path }) => path), ["scripts/a.mjs", "tools/b.sh"]);
+  assert.deepEqual(paths("node gen.mjs", "sdk/go").words.map(({ path }) => path), ["sdk/go/gen.mjs"], "a package Makefile's line runs in its directory");
+  assert.deepEqual(
+    paths("cd backend/svc && V=$(node /scripts/lib/v.mjs) node scripts/bundle.mjs").words,
+    [
+      { word: "/scripts/lib/v.mjs", path: "scripts/lib/v.mjs" },
+      { word: "scripts/bundle.mjs", path: "backend/svc/scripts/bundle.mjs" },
+    ],
+    "a leading cd places the line; a $(CURDIR) path stays rooted at the checkout",
+  );
+  assert.deepEqual(
+    paths(`tmp=$(mktemp -d) && (cd client-apps/cli && npx tsx scripts/gen.ts --out "$tmp" --note "a (b) c") && node scripts/after.mjs`).words.map(({ path }) => path),
+    ["client-apps/cli/scripts/gen.ts", "scripts/after.mjs"],
+    "a subshell's cd places only the words inside it",
+  );
+  assert.deepEqual(paths("cd .. && node tools/gen.ts", "mcp-server").words.map(({ path }) => path), ["tools/gen.ts"]);
+  for (const text of ["node a.mjs; cd sub; node b.mjs", "pushd sub && node b.mjs", "echo && cd sub && node b.mjs"]) {
+    const { words, refusals } = paths(text);
+    assert.deepEqual(words, [], text);
+    assert.ok(refusals.length > 0 && refusals.every((refusal) => /a directory change this reader cannot place/.test(refusal)), text);
+  }
+  assert.deepEqual(paths("echo 'cd elsewhere' && node a.mjs").words.map(({ path }) => path), ["a.mjs"], "a quoted cd changes nothing");
+  assert.deepEqual(paths("node $(TOOLS)/x.mjs ${DIR}/y.mjs").refusals, [
+    '"/x.mjs" follows a reference this reader could not expand, so its directory cannot be named',
+  ], "a brace reference stays inside the word, for the caller to judge");
+  assert.deepEqual(paths("cd sub && node /abs.mjs; cd other").words, [{ word: "/abs.mjs", path: "abs.mjs" }], "an absolute word needs no directory");
+});
