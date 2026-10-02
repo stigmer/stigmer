@@ -7,9 +7,20 @@
  * warn-and-proceed arms, terminate's reason/error quirk, and recover's
  * full choreography (terminate both tree members, the stale EC deleted
  * through the server's own delete edge (stigmer#1647), EC recreate
- * degrade-gracefully, fresh start with recovery_mode, error clear).
+ * degrade-gracefully, fresh start with recovery_mode, error clear), and
+ * recover one at a time per execution (stigmer#1672): a concurrent second
+ * recover waits for the first and then takes the idempotent arm, and a
+ * recover queued behind a failed one retries in full. The first recover is
+ * released on whichever comes first, the second entering the serializer or
+ * the second reaching the engine, so no timer decides either outcome.
  */
+import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import {
+  deferred,
+  SignallingSerializer,
+} from "../../../pipeline/__tests__/race-support.js";
+import type { Deferred } from "../../../pipeline/__tests__/race-support.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -44,6 +55,7 @@ import {
 import type { WorkflowExecutionContextBuilderDeps } from "../create-execution-context-step.js";
 import { newWorkflowExecutionConfigFromEnv } from "../temporal/config.js";
 import { ENGINE_DISCONNECTED, EngineWorkflowNotFoundError } from "../engine.js";
+import type { ConnectedWorkflowExecutionEngine } from "../engine.js";
 import type { LifecycleDeps } from "../lifecycle.js";
 import {
   applyLifecyclePhaseTransition,
@@ -144,11 +156,15 @@ async function seedStaleContext(executionId: string): Promise<string> {
   return contextId;
 }
 
-function deps(engineStub?: EngineStub): LifecycleDeps {
+function deps(
+  engineStub?: EngineStub,
+  recoverSerializer: KeyedSerializer = new KeyedSerializer(),
+): LifecycleDeps {
   return {
     store,
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
+    recoverSerializer,
     broker,
     engineState: () => engineStub?.state ?? ENGINE_DISCONNECTED,
     executionContextBuilder: builderDeps(),
@@ -161,6 +177,61 @@ function deps(engineStub?: EngineStub): LifecycleDeps {
     // sandbox-acquisition:gate splice contributes nothing here (C4).
     gateSteps: new Map(),
   };
+}
+
+/**
+ * Wraps the recording stub so the first `terminateWorkflow` call holds
+ * until the test releases it, while every call is still recorded on the
+ * stub. Any later terminate resolves `secondArrived`: before the release
+ * that can only be a second recover that raced ahead; after it, it is the
+ * first recover's own child terminate, which no longer matters. With
+ * `failFirstStart`, the first `startInvokeWorkflow` throws a plain error.
+ */
+function holdFirstTerminate(
+  recording: EngineStub,
+  options: { failFirstStart?: boolean } = {},
+): {
+  stub: EngineStub;
+  firstAtEngine: Deferred;
+  secondArrived: Deferred;
+  releaseFirst: Deferred;
+} {
+  const firstAtEngine = deferred();
+  const secondArrived = deferred();
+  const releaseFirst = deferred();
+  let terminates = 0;
+  let starts = 0;
+  const engine: ConnectedWorkflowExecutionEngine = {
+    ...recording.engine,
+    terminateWorkflow: async (workflowId, reason) => {
+      terminates += 1;
+      await recording.engine.terminateWorkflow(workflowId, reason);
+      if (terminates === 1) {
+        firstAtEngine.resolve();
+        await releaseFirst.promise;
+        return;
+      }
+      secondArrived.resolve();
+    },
+    startInvokeWorkflow: async (input) => {
+      starts += 1;
+      await recording.engine.startInvokeWorkflow(input);
+      if (options.failFirstStart === true && starts === 1) {
+        throw new Error("start exploded");
+      }
+    },
+  };
+  return {
+    stub: { ...recording, engine, state: { connected: true, engine } },
+    firstAtEngine,
+    secondArrived,
+    releaseFirst,
+  };
+}
+
+function terminateCalls(recording: EngineStub): number {
+  return recording.calls.filter((call) => call.method === "terminateWorkflow")
+    .length;
 }
 
 async function seed(
@@ -625,6 +696,99 @@ describe("connected-engine transitions", () => {
       ExecutionPhase.EXECUTION_FAILED,
     );
     expect(stored.status?.error).toBe("boom");
+  });
+
+  it("recover: two concurrent recovers of one FAILED execution run one after the other; the second finds it IN_PROGRESS and touches nothing (stigmer#1672)", async () => {
+    const id = await seed(ExecutionPhase.EXECUTION_FAILED, { error: "boom" });
+    const race = holdFirstTerminate(engine);
+    let runCalls = 0;
+    const lifecycle = deps(
+      race.stub,
+      new SignallingSerializer(() => {
+        runCalls += 1;
+        if (runCalls === 2) {
+          race.secondArrived.resolve();
+        }
+      }),
+    );
+
+    const first = recoverExecution(
+      lifecycle,
+      recoverInput({ id }),
+      testCallerIdentity(),
+    );
+    await race.firstAtEngine.promise;
+    const second = recoverExecution(
+      lifecycle,
+      recoverInput({ id }),
+      testCallerIdentity(),
+    );
+    await race.secondArrived.promise;
+    expect(
+      terminateCalls(engine),
+      "the second recover reached the engine while the first held its turn",
+    ).toBe(1);
+    race.releaseFirst.resolve();
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    expect(firstResult.status?.phase).toBe(
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+    );
+    expect(secondResult.status?.phase).toBe(
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+    );
+    expect(engine.calls.map((call) => call.method)).toEqual([
+      "terminateWorkflow",
+      "terminateWorkflow",
+      "startInvokeWorkflow",
+    ]);
+  });
+
+  it("recover: a recover that follows a failed one retries in full (stigmer#1672)", async () => {
+    const id = await seed(ExecutionPhase.EXECUTION_FAILED, { error: "boom" });
+    const race = holdFirstTerminate(engine, { failFirstStart: true });
+    let runCalls = 0;
+    const lifecycle = deps(
+      race.stub,
+      new SignallingSerializer(() => {
+        runCalls += 1;
+        if (runCalls === 2) {
+          race.secondArrived.resolve();
+        }
+      }),
+    );
+
+    const first = recoverExecution(
+      lifecycle,
+      recoverInput({ id }),
+      testCallerIdentity(),
+    );
+    await race.firstAtEngine.promise;
+    const second = recoverExecution(
+      lifecycle,
+      recoverInput({ id }),
+      testCallerIdentity(),
+    );
+    await race.secondArrived.promise;
+    race.releaseFirst.resolve();
+
+    const firstError = await expectCode(() => first, Code.Internal);
+    expect(firstError.rawMessage).toBe(
+      "failed to start fresh Temporal workflow for recovered execution",
+    );
+    const secondResult = await second;
+    expect(secondResult.status?.phase).toBe(
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+    );
+    expect(secondResult.status?.error).toBe("");
+    expect(engine.calls.map((call) => call.method)).toEqual([
+      "terminateWorkflow",
+      "terminateWorkflow",
+      "startInvokeWorkflow",
+      "terminateWorkflow",
+      "terminateWorkflow",
+      "startInvokeWorkflow",
+    ]);
   });
 
   it("lifecycle transitions broadcast the persisted state", async () => {

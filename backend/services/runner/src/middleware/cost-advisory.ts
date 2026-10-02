@@ -22,20 +22,36 @@
  * a summary round after the platform said stop. Both went when the runtime
  * became the one place a turn is stopped.
  *
- * afterModel — reads `usage_metadata` off the latest AIMessage, prices the
- *   call at the parent's rates (a sub-agent on its own model is priced the
- *   same way the enforcement prices it; per-sub-agent pricing is #1121),
- *   accumulates the running total, and injects the warning SystemMessage once
- *   at `warningPct` of the cap.
+ * wrapModelCall — after the model answers, reads `usage_metadata` off its
+ *   response, prices the call at the parent's rates (a sub-agent on its own
+ *   model is priced the same way the enforcement prices it; per-sub-agent
+ *   pricing is #1121), and accumulates the running total. Once the total
+ *   reaches `warningPct` of the cap, the stack that made the call advises the
+ *   model on its next call (`advisory-message.ts`): the warning rides that
+ *   one request and never enters the graph's state. Until
+ *   stigmer/stigmer#1354 the warning was a SystemMessage returned from
+ *   `afterModel`, which landed between the model's tool calls and their
+ *   results, failed the next Anthropic call, and was replayed into every
+ *   later turn of the session from its checkpoint.
  *
  * forSubAgent — a view that shares the running total, so a sub-agent's calls
- *   advance the same figure the parent's warning reads.
+ *   advance the same figure the parent's warning reads. The view keeps its
+ *   own pending advisory, delivered on that sub-agent's next model call. One
+ *   view serves every invocation of its sub-agent in the turn (the stack is
+ *   built once per sub-agent spec), so its `beforeAgent` drops a warning the
+ *   previous invocation left undelivered, and never resets the shared total.
+ *   The warning is given once per run, so when the crossing call is a
+ *   sub-agent's last, nobody is warned: the sub-agent makes no further call
+ *   and the parent's flag is already spent (#1679). Concurrent invocations of
+ *   one sub-agent share the view, as they share its loop and budget
+ *   middleware.
  *
  * Only built when `max_cost_usd > 0` is explicitly configured.
  */
 
-import { SystemMessage } from "@langchain/core/messages";
-import type { StigmerMiddleware, CostAdvisoryConfig } from "./types.js";
+import { AIMessage } from "@langchain/core/messages";
+import type { StigmerMiddleware, CostAdvisoryConfig, ModelCallRequest } from "./types.js";
+import { withAdvisories } from "./advisory-message.js";
 
 const DEFAULT_WARNING_PCT = 80;
 const MIN_WARNING_PCT = 50;
@@ -47,16 +63,12 @@ export interface CostAdvisoryMiddleware extends StigmerMiddleware {
   forSubAgent(): StigmerMiddleware;
 }
 
-interface UsageMetadata {
-  input_tokens?: number;
-  output_tokens?: number;
-  input_token_details?: { cache_read?: number } | null;
-}
+type WrapModelCall = NonNullable<StigmerMiddleware["wrapModelCall"]>;
 
-function extractUsage(aiMessage: Record<string, unknown>): {
+function extractUsage(response: AIMessage): {
   totalInput: number; output: number; cacheRead: number;
 } {
-  const usage = (aiMessage as { usage_metadata?: UsageMetadata }).usage_metadata;
+  const usage = response.usage_metadata;
   if (!usage) return { totalInput: 0, output: 0, cacheRead: 0 };
 
   const totalInput = usage.input_tokens ?? 0;
@@ -104,48 +116,63 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
     return (inputCost + cacheCost + outputCost) / 1_000_000;
   }
 
-  function createWarningMessage(): SystemMessage {
+  function createWarningText(): string {
     const pct = maxCostUsd > 0 ? (runningCost / maxCostUsd * 100) : 0;
     const remaining = Math.max(maxCostUsd - runningCost, 0);
-    return new SystemMessage({
-      content:
-        `Budget warning: This execution has consumed ` +
-        `$${runningCost.toFixed(4)} of the $${maxCostUsd.toFixed(2)} ` +
-        `budget (${pct.toFixed(0)}%). ` +
-        `Approximately $${remaining.toFixed(4)} remaining. ` +
-        `Prioritize completing your current task. Summarize results ` +
-        `and any remaining work so the user can continue in the next message.`,
-    });
+    return (
+      `Budget warning: This execution has consumed ` +
+      `$${runningCost.toFixed(4)} of the $${maxCostUsd.toFixed(2)} ` +
+      `budget (${pct.toFixed(0)}%). ` +
+      `Approximately $${remaining.toFixed(4)} remaining. ` +
+      `Prioritize completing your current task. Summarize results ` +
+      `and any remaining work so the user can continue in the next message.`
+    );
   }
 
-  function processAfterModel(state: Record<string, unknown>): { messages: SystemMessage[] } | void {
-    const messages = (state.messages ?? []) as unknown[];
-    let lastAi: Record<string, unknown> | null = null;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i] as { _getType?: () => string };
-      if (msg?._getType?.() === "ai") {
-        lastAi = msg as Record<string, unknown>;
-        break;
-      }
-    }
-    if (!lastAi) return;
+  /** Prices one model response; returns the warning when this call crossed the threshold, else null. */
+  function priceResponse(response: unknown): string | null {
+    if (!AIMessage.isInstance(response)) return null;
 
-    const { totalInput, output, cacheRead } = extractUsage(lastAi);
-    if (totalInput === 0 && output === 0) return;
+    const { totalInput, output, cacheRead } = extractUsage(response);
+    if (totalInput === 0 && output === 0) return null;
 
     runningCost += computeCallCost(totalInput, output, cacheRead);
     modelCallCount++;
 
     const warningThreshold = maxCostUsd * warningPct / 100;
-    if (!warned && runningCost >= warningThreshold) {
-      warned = true;
-      console.warn(
-        `[CostAdvisory] WARNING: $${runningCost.toFixed(4)} >= $${warningThreshold.toFixed(4)} ` +
-        `(${warningPct}% of $${maxCostUsd.toFixed(2)}) after ${modelCallCount} calls.`,
-      );
-      return { messages: [createWarningMessage()] };
-    }
+    if (warned || runningCost < warningThreshold) return null;
+    warned = true;
+    console.warn(
+      `[CostAdvisory] WARNING: $${runningCost.toFixed(4)} >= $${warningThreshold.toFixed(4)} ` +
+      `(${warningPct}% of $${maxCostUsd.toFixed(2)}) after ${modelCallCount} calls.`,
+    );
+    return createWarningText();
   }
+
+  /**
+   * One graph's model-call wrapper: delivers that graph's pending advisory,
+   * then prices the response. Each graph (the parent, each sub-agent view)
+   * holds its own pending slot over the one shared running total; a slot
+   * still pending when its graph stops calling the model is never delivered.
+   */
+  function advisingWrapper(): { wrapModelCall: WrapModelCall; clear(): void } {
+    let pending: string | null = null;
+    return {
+      async wrapModelCall(request: ModelCallRequest, handler) {
+        const advisories = pending !== null ? [pending] : [];
+        pending = null;
+        const response = await handler(withAdvisories(request, advisories));
+        const warning = priceResponse(response);
+        if (warning !== null) pending = warning;
+        return response;
+      },
+      clear() {
+        pending = null;
+      },
+    };
+  }
+
+  const parent = advisingWrapper();
 
   const middleware: CostAdvisoryMiddleware = {
     name: "CostAdvisoryMiddleware",
@@ -156,11 +183,10 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
       runningCost = 0;
       warned = false;
       modelCallCount = 0;
+      parent.clear();
     },
 
-    afterModel(state) {
-      return processAfterModel(state);
-    },
+    wrapModelCall: parent.wrapModelCall,
 
     afterAgent() {
       const pctUsed = maxCostUsd > 0
@@ -173,11 +199,15 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
     },
 
     forSubAgent(): StigmerMiddleware {
+      const view = advisingWrapper();
       return {
         name: "CostAdvisorySubAgentView",
-        // The view does NOT reset the running total on beforeAgent: a
-        // sub-agent's calls advance the parent's figure.
-        afterModel(state) { return processAfterModel(state); },
+        // Drops only this view's undelivered warning. The running total is the
+        // parent's and is never reset here: a sub-agent's calls advance it.
+        beforeAgent() {
+          view.clear();
+        },
+        wrapModelCall: view.wrapModelCall,
       };
     },
   };

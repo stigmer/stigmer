@@ -24,6 +24,12 @@
  *          against it goes red at its agent step with the provider's message
  *          instead of timing out (its default-error mode).
  * Any path that is no provider's answers 404 with a loud body.
+ *
+ * The one journey that swaps the far side for the real provider is the CLI
+ * smoke's `--live-model` (the live lane, after a release): `liveModelEnv`
+ * hands the install the user's own ANTHROPIC_API_KEY and no base URL, so it
+ * reaches Anthropic itself, and the agent runs on `LIVE_MODEL`. Everything
+ * else in that journey is the fake-model one.
  */
 
 import { DEFAULT_REPLY_TEXT, FakeLlmUpstream } from "../../support/src/fake-llm-upstream.ts";
@@ -51,6 +57,23 @@ const MODES = new Set(["reply", "error"]);
  */
 export function fakeModelEnv(fake, host = "127.0.0.1") {
   return { ANTHROPIC_API_KEY: FAKE_MODEL_API_KEY, ANTHROPIC_BASE_URL: `http://${host}:${fake.port}` };
+}
+
+/** The model a `--live-model` run pins: the cheapest native model in the registry. */
+export const LIVE_MODEL = "claude-haiku-4.5";
+
+/**
+ * The model settings an install is started with for a `--live-model` run: the
+ * key from `env` (the shell's ANTHROPIC_API_KEY) and ANTHROPIC_BASE_URL set
+ * blank, so the install talks to Anthropic itself even when the shell exports
+ * a gateway (the install's environment is the shell's with these laid over
+ * it, and the runner reads a blank base URL as Anthropic's own). Throws when
+ * the key is missing, naming the variable and never a value.
+ */
+export function liveModelEnv(env) {
+  const key = env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("--live-model needs ANTHROPIC_API_KEY in the environment (the run calls the real provider and spends money)");
+  return { ANTHROPIC_API_KEY: key, ANTHROPIC_BASE_URL: "" };
 }
 
 /**

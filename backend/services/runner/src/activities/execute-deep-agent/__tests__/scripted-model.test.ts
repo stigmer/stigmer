@@ -29,6 +29,10 @@
  *     measured one orphan for a forced mid-step abort of a WEDGED engine;
  *     an engine that honours its signal leaves none, and this arm is where
  *     that fact is pinned).
+ *  7. The double refuses a transcript a provider would refuse: a system
+ *     message anywhere but first, and a tool call not answered by its tool
+ *     message directly after it (parallel calls answered in any order are
+ *     fine). The refusal names the index, and the model call rejects with it.
  */
 
 import { describe, expect, it } from "vitest";
@@ -47,6 +51,7 @@ import { createDeepAgent, StateBackend } from "deepagents";
 
 import {
   ScriptedModel,
+  assertProviderTranscript,
   completedToolRounds,
   type RoleScript,
   type ScriptedTurnInfo,
@@ -63,6 +68,60 @@ function transcriptWithRounds(rounds: number): BaseMessage[] {
   }
   return out;
 }
+
+describe("ScriptedModel — refuses a transcript a provider would refuse", () => {
+  const parallel = new AIMessage({
+    content: "",
+    tool_calls: [
+      { ...CALL, id: "call_a", type: "tool_call" },
+      { ...CALL, id: "call_b", type: "tool_call" },
+    ],
+  });
+
+  it("accepts parallel calls answered in any order, and a user turn after the results", () => {
+    expect(() =>
+      assertProviderTranscript([
+        new SystemMessage("sys"),
+        new HumanMessage("go"),
+        parallel,
+        new ToolMessage({ content: "b", tool_call_id: "call_b" }),
+        new ToolMessage({ content: "a", tool_call_id: "call_a" }),
+        new HumanMessage("an advisory after the results"),
+      ]),
+    ).not.toThrow();
+  });
+
+  it("refuses a system message after the first message, naming its index", () => {
+    expect(() =>
+      assertProviderTranscript([...transcriptWithRounds(1), new SystemMessage("a mid-conversation warning")]),
+    ).toThrow(/message 4 is a system message/);
+  });
+
+  it("refuses a message between a tool call and its result", () => {
+    expect(() =>
+      assertProviderTranscript([
+        new HumanMessage("go"),
+        parallel,
+        new ToolMessage({ content: "a", tool_call_id: "call_a" }),
+        new HumanMessage("too early"),
+        new ToolMessage({ content: "b", tool_call_id: "call_b" }),
+      ]),
+    ).toThrow(/AI message at 1 proposed tool calls \[call_b\] and message 3 is a human message/);
+  });
+
+  it("refuses a tool call left unanswered at the end of the transcript", () => {
+    expect(() => assertProviderTranscript([new HumanMessage("go"), parallel])).toThrow(
+      /\[call_a, call_b\] and message 2 is the end of the transcript/,
+    );
+  });
+
+  it("rejects the model call itself with the refusal", async () => {
+    const model = new ScriptedModel(() => ({ toolCalls: [CALL], done: "finished" }));
+    await expect(model.invoke([...transcriptWithRounds(1), new SystemMessage("late")])).rejects.toThrow(
+      /a provider accepts one only as the first message/,
+    );
+  });
+});
 
 describe("ScriptedModel — the two-turn sugar", () => {
   it("proposes on round 0 and says done on every later round", async () => {

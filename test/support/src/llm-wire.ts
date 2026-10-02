@@ -433,6 +433,37 @@ export function readLastUserText(body: unknown): string {
     .join("\n");
 }
 
+// The shape of a captured request's conversation, one entry per message: its
+// role and its content block types in order (a string content reads as one
+// `text` block). No text is carried: a suite asks where a turn rides and what
+// kind it is, never what it says. It is the wire's own view of the order the
+// providers enforce (a `tool_use` answered by the next user turn's
+// `tool_result` blocks, text after them), which the transcript in status
+// cannot show for what never enters it, such as the runner's advisories.
+// Refuses by name when the body has no `messages` or a message is malformed.
+export interface TurnShape {
+  role: string;
+  blocks: string[];
+}
+
+export function readTurnShapes(body: unknown): TurnShape[] {
+  const messages = (body as { messages?: unknown } | null)?.messages;
+  if (!Array.isArray(messages)) {
+    throw new Error(`not an Anthropic messages body: found ${describeValue(body)}`);
+  }
+  return messages.map((message, index) => {
+    const { role, content } = (message ?? {}) as { role?: unknown; content?: unknown };
+    if (typeof role !== "string") {
+      throw new Error(`message ${index} has no string role: found ${describeValue(message)}`);
+    }
+    if (typeof content === "string") return { role, blocks: ["text"] };
+    if (!Array.isArray(content)) {
+      throw new Error(`message ${index}'s content must be a string or blocks, found ${describeValue(content)}`);
+    }
+    return { role, blocks: content.map((block) => String((block as { type?: unknown } | null)?.type)) };
+  });
+}
+
 // A short, safe description of a value for a refusal message: the type, and
 // for a small scalar its text, never a whole body.
 function describeValue(value: unknown): string {

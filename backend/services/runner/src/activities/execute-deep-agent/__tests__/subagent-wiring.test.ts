@@ -1,6 +1,18 @@
+/**
+ * The sub-agent middleware stack: its order, the parent's cost advisory view
+ * it shares, the periodic budget (advisories every 30 model calls, never a
+ * stop), a fresh loop detector per stack, and how the approval gate is
+ * inherited or stripped of its CAS routing. The periodic advisory is pinned
+ * as a user-role message on the 31st call: until stigmer/stigmer#1354 it was
+ * a system message, so every sub-agent on an Anthropic model failed there.
+ */
+
 import { describe, it, expect, vi } from "vitest";
+import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { buildSubAgentMiddleware } from "../subagent-wiring.js";
 import { createCostAdvisoryMiddleware } from "../../../middleware/cost-advisory.js";
+import { ADVISORY_LEAD_IN } from "../../../middleware/advisory-message.js";
+import type { ModelCallRequest } from "../../../middleware/types.js";
 import * as approvalGateModule from "../../../middleware/approval-gate.js";
 
 describe("buildSubAgentMiddleware", () => {
@@ -45,9 +57,11 @@ describe("buildSubAgentMiddleware", () => {
     expect(parentCostAdvisory.runningCost).toBe(0);
 
     const subView = stack[4];
-    expect(subView.afterModel).toBeDefined();
+    expect(subView.wrapModelCall, "the view prices each call as the model answers").toBeDefined();
+    expect(subView.afterModel, "no hook writes the sub-agent's state").toBeUndefined();
     expect(subView.wrapToolCall, "the advisory never blocks a tool; the runtime enforces the cap").toBeUndefined();
-    expect(subView.beforeAgent).toBeUndefined();
+    subView.beforeAgent!({}, {});
+    expect(parentCostAdvisory.runningCost, "a sub-agent starting never resets the shared total").toBe(0);
   });
 
   it("execution budget uses periodic mode (interval=30, max=4)", () => {
@@ -56,6 +70,26 @@ describe("buildSubAgentMiddleware", () => {
 
     expect(budgetMiddleware.name).toBe("ExecutionBudgetMiddleware");
     expect(budgetMiddleware.wrapModelCall).toBeDefined();
+  });
+
+  it("advises a sub-agent's 31st model call with a user-role message, not a system message (stigmer/stigmer#1354)", async () => {
+    const budgetMiddleware = buildSubAgentMiddleware()[1];
+    const history = [new HumanMessage("delegated task")];
+    const request: ModelCallRequest = { model: {}, messages: history, state: { messages: history }, runtime: {} };
+    const seen: ModelCallRequest[] = [];
+    for (let call = 0; call < 31; call++) {
+      await budgetMiddleware.wrapModelCall!(request, async (handed) => {
+        seen.push(handed);
+        return new AIMessage({ content: `call ${call}` });
+      });
+    }
+
+    expect(seen.slice(0, 30).every((handed) => handed === request), "the first 30 calls are handed on untouched").toBe(true);
+    const advisory = seen[30].messages[history.length];
+    expect(seen[30].messages).toHaveLength(history.length + 1);
+    expect(HumanMessage.isInstance(advisory)).toBe(true);
+    expect(SystemMessage.isInstance(advisory)).toBe(false);
+    expect(String((advisory as HumanMessage).content).startsWith(ADVISORY_LEAD_IN)).toBe(true);
   });
 
   it("loop detection is independent per sub-agent call", () => {

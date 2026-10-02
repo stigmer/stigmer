@@ -24,7 +24,8 @@
  * the shell `stigmer up` starts from carries the model settings a user
  * exports (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), pointed at a fake
  * Anthropic API on loopback (test/install/lib/fake-model.mjs), and the streamed
- * run must carry the fake's reply — what a CLI user sees as the answer.
+ * run must carry the fake's reply — what a CLI user sees as the answer (or,
+ * with `--live-model`, the real provider's; see Usage).
  * Then two workflow approval gates are run and decided the way a reviewer
  * does from the CLI: one times out under the fail policy, and
  * `stigmer execution logs` must say it decided nothing before its task
@@ -61,12 +62,19 @@
  *       on `up` — a user's install, end to end.
  *   --fake-model=error   the fake answers every model call with an error,
  *       so the agent run must fail (its red-first check).
+ *   --live-model   no fake: the install is handed the shell's ANTHROPIC_API_KEY
+ *       and no base URL, the agent runs on the cheapest native model
+ *       (`LIVE_MODEL`), and the stream's `done` event must report `completed`
+ *       with a non-empty reply; the words are never compared. The live lane runs it
+ *       against the published CLI after a release. It spends real money (one
+ *       short turn), and the CLI has no cost-limit flag, so the bound is the
+ *       one turn.
  */
 
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
+import { LIVE_MODEL, fakeModelEnv, liveModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall, whileRunning } from "./lib/install-cli.mjs";
 import {
   approvalResolutions,
@@ -75,6 +83,7 @@ import {
   connectJson,
   gateLogProblem,
   pollUntil,
+  streamedRunOutcome,
   waitForBootstrapOrganization,
   waitForPendingApproval,
   workflowExecutionCreator,
@@ -99,18 +108,20 @@ function log(step) {
 }
 
 function parseArgs() {
-  const parsed = { published: false, version: "", fakeModel: "reply" };
+  const parsed = { published: false, version: "", fakeModel: "reply", liveModel: false };
   for (const arg of process.argv.slice(2)) {
     let m;
     const fakeModelMode = parseFakeModelArg(arg);
     if (fakeModelMode !== undefined) parsed.fakeModel = fakeModelMode;
     else if (arg === "--published") parsed.published = true;
+    else if (arg === "--live-model") parsed.liveModel = true;
     else if ((m = arg.match(/^--version=(.+)$/)) !== null) parsed.version = m[1].replace(/^v/, "");
     else
       usage(
-        `unknown argument: ${arg} (usage: node test/install/smoke-cli-cutover.mjs [--published --version=X.Y.Z] [--fake-model=error])`,
+        `unknown argument: ${arg} (usage: node test/install/smoke-cli-cutover.mjs [--published --version=X.Y.Z] [--fake-model=error | --live-model])`,
       );
   }
+  if (parsed.liveModel && parsed.fakeModel !== "reply") usage("--live-model and --fake-model choose the same far side; pass one");
   if (parsed.published && parsed.version === "") usage("--published requires --version=X.Y.Z (the published @stigmer/cli)");
   if (!parsed.published && parsed.version !== "") usage("--version applies only with --published");
   return parsed;
@@ -133,9 +144,10 @@ try {
 }
 
 // The model the stack is started with: the fake on loopback, configured the
-// way a user exports a gateway for `stigmer up`.
-const fake = await startFakeModel({ mode: args.fakeModel });
-const stack = createCliInstall({ model: fakeModelEnv(fake), log });
+// way a user exports a gateway for `stigmer up`; or, with --live-model, the
+// real provider through the user's own key.
+const fake = args.liveModel ? undefined : await startFakeModel({ mode: args.fakeModel });
+const stack = createCliInstall({ model: fake === undefined ? liveModelEnv(process.env) : fakeModelEnv(fake), log });
 const { home, cli } = stack;
 let failed = false;
 
@@ -231,21 +243,34 @@ kind: Agent
 metadata:
   name: ${AGENT}
 spec:
-  description: A tool-less agent for the CLI smoke; its model is the smoke's fake.
+  description: A tool-less agent for the CLI smoke; its model is the one the smoke started the install with.
   instructions: Answer the message in one short sentence.
 `,
   );
   await cli(["--org", ORG, "apply", "-f", agentPath]);
-  const agentRun = await cli(["--org", ORG, "run", AGENT, "-m", "Say hello.", "--json"], {
+  const modelArgs = fake === undefined ? ["--model", LIVE_MODEL] : [];
+  const agentRun = await cli(["--org", ORG, "run", AGENT, "-m", "Say hello.", ...modelArgs, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
-  if (!agentRun.stdout.includes(fake.replyText)) {
-    throw new Error(
-      `the agent run's stream does not carry the model's reply (${fake.requests()} model calls)\n` +
-        `stdout:\n${agentRun.stdout}\nstderr:\n${agentRun.stderr}`,
-    );
+  if (fake === undefined) {
+    const outcome = streamedRunOutcome(agentRun.stdout);
+    // The CLI's stream names phases in its short words (`pending`, `in_progress`, `completed`).
+    if (outcome.phase !== "completed" || outcome.reply.trim() === "") {
+      throw new Error(
+        `the live agent run on ${LIVE_MODEL} did not complete with a reply (phase ${outcome.phase || "none"})\n` +
+          `stdout:\n${agentRun.stdout}\nstderr:\n${agentRun.stderr}`,
+      );
+    }
+    log(`agent run on ${LIVE_MODEL} completed with a reply from the real provider`);
+  } else {
+    if (!agentRun.stdout.includes(fake.replyText)) {
+      throw new Error(
+        `the agent run's stream does not carry the model's reply (${fake.requests()} model calls)\n` +
+          `stdout:\n${agentRun.stdout}\nstderr:\n${agentRun.stderr}`,
+      );
+    }
+    log(`agent run streamed the model's reply (${fake.requests()} model calls)`);
   }
-  log(`agent run streamed the model's reply (${fake.requests()} model calls)`);
 
   // 7. The approval gates, as a reviewer meets them from the CLI.
   const orgId = await waitForBootstrapOrganization(stack.baseUrl, RUN_TIMEOUT_MS, { slug: ORG });
@@ -348,7 +373,7 @@ spec:
   // Temporal binary (~100 MB) — keep failures around for debugging, never
   // successes.
   await stack.stop({ keepHome: failed });
-  await fake.close();
+  await fake?.close();
 }
 process.exit(failed ? 1 : 0);
 

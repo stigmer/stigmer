@@ -12,11 +12,21 @@
  *     and recover's full terminate → EC-recreate → fresh-start chain,
  *     the run's stale context deleted through the server's own delete
  *     edge before the new one is created (stigmer#1647);
+ *   - recover runs one at a time per execution (stigmer#1672): a second
+ *     concurrent recover waits for the first and then takes the idempotent
+ *     arm, a recover queued behind a failed one retries in full, and two
+ *     executions never wait on each other. The first recover is released
+ *     on whichever comes first, the second entering the serializer or the
+ *     second reaching the engine, so no timer decides either outcome;
  *   - the pause/decision-append race: the lifecycle persist rides
  *     store.updateResource under the write lock, so a concurrent approval
  *     append is never clobbered (the Go 50-iteration regression).
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import {
+  deferred,
+  SignallingSerializer,
+} from "../../../pipeline/__tests__/race-support.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -61,6 +71,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { createLogger } from "../../../boot/logger.js";
 import type { AgentExecutionStatusTransition } from "../../../extensions/status-hooks.js";
+import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-env.js";
@@ -458,6 +469,7 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     store,
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
+    recoverSerializer: new KeyedSerializer(),
     broker: new StreamBroker(silentLogger),
     engineState: () => engineState,
     executionContextBuilder: stubBuilderDeps(),
@@ -813,6 +825,7 @@ describe("lifecycle pipelines", () => {
       store,
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
+      recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
@@ -955,6 +968,7 @@ describe("lifecycle pipelines", () => {
       store,
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
+      recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
@@ -1000,6 +1014,7 @@ describe("lifecycle pipelines", () => {
       store,
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
+      recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
@@ -1052,6 +1067,7 @@ describe("lifecycle pipelines", () => {
       store,
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
+      recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
@@ -1097,6 +1113,7 @@ describe("lifecycle pipelines", () => {
       store,
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
+      recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
@@ -1148,6 +1165,203 @@ describe("lifecycle pipelines", () => {
       AgentExecutionSchema,
     );
     expect(persisted.status?.phase).toBe(ExecutionPhase.EXECUTION_FAILED);
+  });
+});
+
+describe("recover runs one at a time per execution (stigmer#1672)", () => {
+  it("two concurrent recovers of one FAILED execution run one after the other; the second finds it IN_PROGRESS and touches nothing", async () => {
+    let runCalls = 0;
+    const secondQueued = deferred();
+    const firstAtEngine = deferred();
+    const secondAtEngine = deferred();
+    const releaseFirst = deferred();
+    let terminations = 0;
+    const starts: string[] = [];
+    const createdEcs: ExecutionContext[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {
+              terminations += 1;
+              if (terminations === 1) {
+                firstAtEngine.resolve();
+                await releaseFirst.promise;
+                return;
+              }
+              secondAtEngine.resolve();
+            },
+            startInvokeWorkflow: async (params) => {
+              starts.push(params.executionId);
+            },
+          }),
+        ),
+      ),
+      recoverSerializer: new SignallingSerializer(() => {
+        runCalls += 1;
+        if (runCalls === 2) {
+          secondQueued.resolve();
+        }
+      }),
+      executionContextBuilder: stubBuilderDeps({
+        onEcCreate: (ec) => createdEcs.push(ec),
+      }),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+      error: "runner exploded",
+    });
+
+    const first = recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
+    await firstAtEngine.promise;
+    const second = recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
+    await Promise.race([secondQueued.promise, secondAtEngine.promise]);
+    expect(
+      terminations,
+      "the second recover reached the engine while the first held its turn",
+    ).toBe(1);
+    releaseFirst.resolve();
+
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    expect(firstResult.status?.phase).toBe(
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+    );
+    expect(secondResult.status?.phase).toBe(
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+    );
+    expect(terminations).toBe(1);
+    expect(createdEcs).toHaveLength(1);
+    expect(starts).toEqual([id]);
+  });
+
+  it("a recover that follows a failed one retries in full", async () => {
+    const order: string[] = [];
+    const firstAtEngine = deferred();
+    const secondQueuedOrAtEngine = deferred();
+    const releaseFirst = deferred();
+    let terminations = 0;
+    let startCalls = 0;
+    let runCalls = 0;
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {
+              terminations += 1;
+              order.push("terminate");
+              if (terminations === 1) {
+                firstAtEngine.resolve();
+                await releaseFirst.promise;
+                return;
+              }
+              secondQueuedOrAtEngine.resolve();
+            },
+            startInvokeWorkflow: async () => {
+              startCalls += 1;
+              if (startCalls === 1) {
+                order.push("start failed");
+                throw new Error("temporal start exploded");
+              }
+              order.push("start");
+            },
+          }),
+        ),
+      ),
+      recoverSerializer: new SignallingSerializer(() => {
+        runCalls += 1;
+        if (runCalls === 2) {
+          secondQueuedOrAtEngine.resolve();
+        }
+      }),
+    };
+    const id = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+      error: "runner exploded",
+    });
+
+    const first = recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
+    await firstAtEngine.promise;
+    const second = recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity(),
+    );
+    await secondQueuedOrAtEngine.promise;
+    releaseFirst.resolve();
+
+    const firstError = await expectCode(() => first, Code.Internal);
+    expect(firstError.rawMessage).toBe(
+      "failed to start fresh Temporal workflow for recovered execution",
+    );
+    const secondResult = await second;
+    expect(secondResult.status?.phase).toBe(
+      ExecutionPhase.EXECUTION_IN_PROGRESS,
+    );
+    expect(secondResult.status?.error).toBe("");
+    expect(order).toEqual(["terminate", "start failed", "terminate", "start"]);
+  });
+
+  it("recovers of two different executions do not wait on each other", async () => {
+    const firstAtEngine = deferred();
+    const otherAtEngine = deferred();
+    const releaseFirst = deferred();
+    const deps: LifecycleDeps = lifecycleDeps(
+      connected(
+        stubConnectedEngine({
+          terminateWorkflow: async (executionId) => {
+            if (executionId === held) {
+              firstAtEngine.resolve();
+              await releaseFirst.promise;
+              return;
+            }
+            otherAtEngine.resolve();
+          },
+        }),
+      ),
+    );
+    const held = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+    });
+    const other = await seedExecution({
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      sessionId: "ses_lc",
+    });
+
+    const first = recoverExecution(
+      deps,
+      recoverInput(held),
+      testCallerIdentity(),
+    );
+    await firstAtEngine.promise;
+    const second = recoverExecution(
+      deps,
+      recoverInput(other),
+      testCallerIdentity(),
+    );
+    // Reached only if the other execution's recover is not queued behind
+    // the held one; a shared queue would time the case out instead.
+    await otherAtEngine.promise;
+    releaseFirst.resolve();
+
+    const results = await Promise.all([first, second]);
+    for (const result of results) {
+      expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    }
   });
 });
 
@@ -1212,6 +1426,7 @@ describe("lifecycle persist uses the atomic updateResource", () => {
         store: countingStore,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
+        recoverSerializer: new KeyedSerializer(),
         broker: new StreamBroker(silentLogger),
         engineState: () => connected(stubConnectedEngine()),
         executionContextBuilder: stubBuilderDeps(),
