@@ -16,6 +16,12 @@ import {
 } from "../subagent-transformer.js";
 import { _resetRegistryCache } from "../../../shared/model-registry.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
+import * as subagentWiringModule from "../subagent-wiring.js";
+import { ScriptedModel } from "../__test-utils__/scripted-model.js";
+import { HumanMessage } from "@langchain/core/messages";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // =========================================================================
 // Test helpers
@@ -481,6 +487,70 @@ describe("compileSubagents", () => {
     expect(typeof result[0].runnable.invoke).toBe("function");
 
     logSpy.mockRestore();
+  });
+});
+
+// =========================================================================
+// Tests: compileSubagents builds a stack per invocation (stigmer/stigmer#1699)
+// =========================================================================
+
+// Loop detection, the periodic budget and the cost view keep one
+// conversation's state in their closures. A stack shared by two invocations
+// running at once pools that state, so every invocation builds its own; the
+// one build at compile is the setup-time validation and is never run. The
+// behaviour this protects is pinned end to end in
+// `hermetic/sub-agent-concurrent-invocations.test.ts`; this case pins the
+// property itself, for every middleware and every interleaving.
+describe("compileSubagents: one middleware stack per invocation", () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "subagent-per-invocation-"));
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("builds a fresh middleware stack for each of two concurrent invocations of one sub-agent", async () => {
+    const build = vi.spyOn(subagentWiringModule, "buildSubAgentMiddleware");
+    const [worker] = await compileSubagents(
+      [{ name: "worker", description: "test worker", systemPrompt: "work", tools: [] }],
+      {
+        parentModelName: "claude-sonnet-4-6",
+        workspaceRootDir: root,
+        modelFactory: async () => new ScriptedModel(() => ({ toolCalls: [], done: "ok" })),
+      },
+    );
+    expect(build, "one validation build at compile").toHaveBeenCalledTimes(1);
+
+    const invoke = (n: number) =>
+      worker.runnable.invoke(
+        { messages: [new HumanMessage({ content: `task ${n}` })] },
+        { configurable: { thread_id: `per-invocation-${n}` }, recursionLimit: 50 },
+      );
+    await Promise.all([invoke(1), invoke(2)]);
+
+    expect(build, "one more build per invocation").toHaveBeenCalledTimes(3);
+    const stacks = build.mock.results.map((r) => r.value as unknown);
+    expect(new Set(stacks).size, "no two invocations share a stack, and neither runs on the validation build").toBe(3);
+  });
+
+  it("still skips, at setup, a sub-agent deepagents refuses to build", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const compiled = await compileSubagents(
+      [
+        // A tool named like a deepagents built-in: createDeepAgent throws TOOL_NAME_COLLISION.
+        { name: "colliding", description: "refused", systemPrompt: "x", tools: [mockTool("read_file")] },
+        { name: "fine", description: "built", systemPrompt: "x", tools: [] },
+      ],
+      { parentModelName: "claude-sonnet-4-6", workspaceRootDir: root },
+    );
+
+    expect(compiled.map((c) => c.name), "the refused spec is skipped before any delegation").toEqual(["fine"]);
+    expect(errorSpy.mock.calls.some((args) => String(args[0]).includes("Failed to compile sub-agent 'colliding'"))).toBe(true);
   });
 });
 
