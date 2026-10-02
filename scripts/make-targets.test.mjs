@@ -277,7 +277,7 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
   const inherited = targetClosure({
     read: files({
       Makefile: mk("all:", ">$(MAKE) -C sub gen", ">$(MAKE) -C sub gen TOOL=b.mjs"),
-      "sub/Makefile": mk("TOOL = default.mjs", "gen:", ">node $(TOOL)"),
+      "sub/Makefile": mk("TOOL = default.mjs", "STAMP := $(shell node $(TOOL) --version)", "gen:", ">node $(TOOL)"),
     }),
     dir: ".",
     targets: ["all"],
@@ -288,6 +288,11 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
     inherited.lines.filter(({ target }) => target === "gen").map(({ text }) => text),
     ["node a.mjs", "node b.mjs"],
     "a caller's override reaches a sub-make, and one target is read once per override set",
+  );
+  assert.deepEqual(
+    inherited.lines.filter(({ target }) => target === "(read)").map(({ text }) => text),
+    ["$(shell node a.mjs --version)"],
+    "what the sub-make runs when it reads its file sees the override it inherited",
   );
   const onRead = targetClosure({
     read: files({ Makefile: mk("VERSION := $(shell node $(CURDIR)/scripts/version.mjs)", "LATER = $(shell node lazy.mjs)", "t:", ">echo") }),

@@ -406,7 +406,7 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
       makefiles.add(makefile);
       // What the file runs when it is read, before any target: each `:=` value's `$(shell ...)`.
       for (const { text } of file.onRead) {
-        lines.push({ makefile, dir: at, target: "(read)", text: expand(text, file.variables, { overrides, curdir: curdirOf(at) }) });
+        lines.push({ makefile, dir: at, target: "(read)", text: expand(text, file.variables, { overrides: passed, curdir: curdirOf(at) }) });
       }
     }
     let names = [target];
