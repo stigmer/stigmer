@@ -19,14 +19,18 @@
  * pattern), or an identifier whose declaration (a parameter or a variable)
  * is annotated `NodeJS.ProcessEnv`, the injection seam
  * `shared/runner-credential-store.ts` describes, or is initialised or
- * defaulted to `process.env` whatever its type. Parentheses and type
- * assertions (`as`, `satisfies`, `!`, `<T>`) are seen through. Identifiers
+ * defaulted to `process.env` whatever its type. A destructure follows the
+ * same path from the global object down, at any depth and by a name or a
+ * literal key alike: `const { process: { env: { NAME } } } = globalThis`
+ * reads `NAME`. Parentheses and type assertions (`as`, `satisfies`, `!`,
+ * `<T>`) are seen through. Identifiers
  * are matched by name within the file, not by scope: once one `env` in a file
  * is an env object, every `env` there is read as one, which errs toward a
  * loud failure, never a silent miss. An env object handed on is not
  * followed: a call's argument, a property, a spread copy (unless the copy's
  * declaration carries the annotation), or a variable or parameter holding
- * `process` itself, whatever its annotation.
+ * `process` itself, whatever its annotation or however it was taken from the
+ * global object.
  *
  *  1. `E.NAME`, `E["NAME"]`, `"NAME" in E`, or a destructure of an env object
  *     wherever the pattern stands: a variable's or parameter's pattern
@@ -80,6 +84,15 @@ const OUTSIDE_THE_SWEEP = new Set(["__tests__", "__test-utils__"]);
 
 /** The names the global object goes by, through which `process` is reached as a member. */
 const GLOBAL_OBJECTS = new Set(["globalThis", "global"]);
+
+/** What a destructure takes apart: the global object, `process`, or an env object. */
+type DestructureSource = "global" | "process" | "env";
+
+/** The member each source hands a level down, the path of `globalThis.process.env`. */
+const HANDED_DOWN: ReadonlyMap<DestructureSource, { readonly member: string; readonly source: DestructureSource }> = new Map([
+  ["global", { member: "process", source: "process" }],
+  ["process", { member: "env", source: "env" }],
+]);
 
 /** The functions whose first argument names the setting they read (rule 3). */
 const READERS = new Set(["requireEnv", "getRunnerSecret"]);
@@ -322,13 +335,17 @@ function settingsReadIn(
     }
   }
 
+  const isGlobalObject = (node: ts.Expression): boolean => {
+    const value = unwrapped(node);
+    return ts.isIdentifier(value) && GLOBAL_OBJECTS.has(value.text);
+  };
   /** `process` itself: a name it is bound to, or the global's member on `globalThis` or `global`. */
   const isProcess = (node: ts.Expression): boolean => {
     const value = unwrapped(node);
     if (ts.isIdentifier(value)) return processNames.has(value.text);
-    if (memberName(value) !== "process" || !(ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value))) return false;
-    const holder = unwrapped(value.expression);
-    return ts.isIdentifier(holder) && GLOBAL_OBJECTS.has(holder.text);
+    return (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value))
+      && memberName(value) === "process"
+      && isGlobalObject(value.expression);
   };
   const isProcessEnv = (node: ts.Expression | undefined): boolean => {
     if (node === undefined) return false;
@@ -344,33 +361,51 @@ function settingsReadIn(
   const isAnnotatedProcessEnv = (declaration: ts.ParameterDeclaration | ts.VariableDeclaration): boolean =>
     declaration.type?.getText(sourceFile) === "NodeJS.ProcessEnv";
 
-  /** The patterns nested under `env` in a destructure of `process`; each destructures an env object. */
-  const nestedEnvPatterns = new Set<ObjectPattern>();
+  const bound = bindingCounts(sourceFile);
+  const keyOf = (node: ts.Expression | undefined): string | undefined =>
+    stringLiteralText(node)
+    ?? (node !== undefined && ts.isIdentifier(node) && bound.get(node.text) === 1 ? constants.get(node.text) : undefined);
+  /** The key a destructured element takes, by a name or a string, or by a computed key rule 2 can tell. */
+  const elementKey = (property: ts.PropertyName): string | undefined =>
+    propertyText(property) ?? (ts.isComputedPropertyName(property) ? keyOf(property.expression) : undefined);
+  const sourceOf = (value: ts.Expression | undefined): DestructureSource | undefined => {
+    if (value === undefined) return undefined;
+    if (isEnvObject(value)) return "env";
+    if (isProcess(value)) return "process";
+    return isGlobalObject(value) ? "global" : undefined;
+  };
+
   /**
-   * The destructure a node starts, and what it destructures: a declaration's
-   * or parameter's pattern, or the object a plain `=` writes into. A pattern
-   * nested under `env` in a destructure of `process` is read through
-   * `nestedEnvPatterns`, from the element holding it, whatever default it
-   * carries.
+   * Patterns nested under a member `HANDED_DOWN` names, each with the source it
+   * takes apart. A nested pattern is read from the element holding it, never
+   * from its own parent node, so one with a default is read whatever that
+   * default is.
    */
-  const destructureAt = (node: ts.Node): { readonly pattern: ObjectPattern; readonly source: "env" | "process" } | undefined => {
+  const nestedPatterns = new Map<ObjectPattern, DestructureSource>();
+  /** The destructure a node is, and what it takes apart: a declaration's or parameter's pattern, the object a plain `=` writes into, or a nested pattern. */
+  const destructureAt = (node: ts.Node): { readonly pattern: ObjectPattern; readonly source: DestructureSource } | undefined => {
     let pattern: ObjectPattern;
-    let value: ts.Expression | undefined;
-    if ((ts.isVariableDeclaration(node) || ts.isParameter(node)) && ts.isObjectBindingPattern(node.name)) {
-      if (isAnnotatedProcessEnv(node)) return { pattern: node.name, source: "env" };
+    let source: DestructureSource | undefined;
+    if (isObjectPattern(node) && nestedPatterns.has(node)) {
+      pattern = node;
+      source = nestedPatterns.get(node);
+    } else if ((ts.isVariableDeclaration(node) || ts.isParameter(node)) && ts.isObjectBindingPattern(node.name)) {
       pattern = node.name;
-      value = node.initializer;
+      source = isAnnotatedProcessEnv(node) ? "env" : sourceOf(node.initializer);
     } else if (isPlainAssignment(node) && ts.isObjectLiteralExpression(node.left)) {
       pattern = node.left;
-      value = node.right;
+      source = sourceOf(node.right);
     } else {
       return undefined;
     }
-    if (value === undefined) return undefined;
-    if (isEnvObject(value)) return { pattern, source: "env" };
-    return isProcess(value) ? { pattern, source: "process" } : undefined;
+    return source === undefined ? undefined : { pattern, source };
   };
 
+  /**
+   * Env identifiers, and the patterns nested down the path. Source order is
+   * the walk's order, so a pattern is filed before the walk reaches the ones
+   * nested in it.
+   */
   const collectEnvIdentifiers = (node: ts.Node): void => {
     if (
       (ts.isParameter(node) || ts.isVariableDeclaration(node))
@@ -380,21 +415,18 @@ function settingsReadIn(
       envIdentifiers.add(node.name.text);
     }
     const destructure = destructureAt(node);
-    if (destructure?.source === "process") {
-      for (const element of destructuredElements(destructure.pattern)) {
-        if (propertyText(element.property) !== "env") continue;
-        if (ts.isIdentifier(element.target)) envIdentifiers.add(element.target.text);
-        else if (isObjectPattern(element.target)) nestedEnvPatterns.add(element.target);
+    const step = destructure === undefined ? undefined : HANDED_DOWN.get(destructure.source);
+    if (destructure !== undefined && step !== undefined) {
+      for (const { property, target } of destructuredElements(destructure.pattern)) {
+        if (elementKey(property) !== step.member) continue;
+        if (isObjectPattern(target)) nestedPatterns.set(target, step.source);
+        else if (step.source === "env" && ts.isIdentifier(target)) envIdentifiers.add(target.text);
       }
     }
     ts.forEachChild(node, collectEnvIdentifiers);
   };
   collectEnvIdentifiers(sourceFile);
 
-  const bound = bindingCounts(sourceFile);
-  const keyOf = (node: ts.Expression | undefined): string | undefined =>
-    stringLiteralText(node)
-    ?? (node !== undefined && ts.isIdentifier(node) && bound.get(node.text) === 1 ? constants.get(node.text) : undefined);
   const lineOf = (node: ts.Node): number => sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
 
   const names = new Set<string>();
@@ -435,8 +467,6 @@ function settingsReadIn(
       else unresolved(node, here, `tests ${node.getText(sourceFile)}, whose setting cannot be told`);
     } else if (destructure?.source === "env") {
       readDestructure(destructure.pattern, here);
-    } else if (isObjectPattern(node) && nestedEnvPatterns.has(node)) {
-      readDestructure(node, here);
     } else if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && READERS.has(node.expression.text)) {
       const key = keyOf(node.arguments[0]);
       if (key !== undefined) names.add(key);
@@ -486,6 +516,10 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a nested assignment destructure of env with a default", "let STIGMER_A; ({ env: { STIGMER_A } = {} } = process);"],
     ["a read on env destructured from process in a parameter", "function f({ env } = process) { return env.STIGMER_A; }"],
     ["a read on env destructured from process by assignment", "let env; ({ env } = process); const v = env.STIGMER_A;"],
+    ["env taken by a literal key in a destructure of process", 'const { ["env"]: { STIGMER_A } } = process;'],
+    ["a read on env destructured from process by a literal key", 'const { ["env"]: e } = process; const v = e.STIGMER_A;'],
+    ["a destructure down from the global object", "const { process: { env: { STIGMER_A } } } = globalThis;"],
+    ["a read on env destructured down from the global object", "const { process: { env } } = globalThis; const v = env.STIGMER_A;"],
     ["a property read through a type assertion", "const v = (process.env as Record<string, string>).STIGMER_A;"],
     ["a read through an alias initialised with a type assertion", "const env = process.env as Record<string, string>; const v = env.STIGMER_A;"],
     ["a destructure of a non-null assertion", "const { STIGMER_A } = process.env!;"],
