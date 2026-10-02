@@ -13,7 +13,8 @@
  * (stigmer/stigmer#1669: @aws-sdk/token-providers and baseline-browser-mapping
  * on 2026-10-01, each found on `latest` minutes later). npm's `--before <date>`
  * resolves only versions published by that date, so a margin of an hour skips
- * that window: the tree is the one a consumer installing an hour from now gets.
+ * that window: the tree is the one a consumer installing an hour ago got,
+ * which lags today's consumers by at most that hour's publishes.
  *
  * A release never passes it. publish-standalone.mjs runs the consumer check
  * over the @stigmer/* versions that very release published minutes earlier,

@@ -543,7 +543,12 @@ jobs:
       - name: Install dependencies (npm, fresh resolution)
         run: |
           rm package-lock.json
-          npm install --no-package-lock --no-audit --no-fund --before="$(node scripts/lib/resolve-before.mjs 1)"
+          # Its own assignment, so a failure stops the step (a failed
+          # substitution inside an argument would not, and npm would resolve
+          # live past an empty --before).
+          cutoff="$(node scripts/lib/resolve-before.mjs 1)"
+          echo "Resolving versions published before $cutoff"
+          npm install --no-package-lock --no-audit --no-fund --before="$cutoff"
 
       # The three dist-exporting libs a consumer package imports (see the
       # header): the CLI resolves each from its dist, so all are built before

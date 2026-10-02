@@ -96,6 +96,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { consumerInstallArgs, tarballInstallArgs } from "./lib/consumer-install-args.mjs";
 import { resolveBeforeFromArgv } from "./lib/resolve-before.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -256,23 +257,11 @@ try {
 // ─── Install the tarball the way a consumer does ─────────────────────────────
 
 const stagingDir = join(workDir, "staging");
+const tarballInstall = tarballInstallArgs(tarball, stagingDir, resolution);
 console.log(
-  `verify-consumer-install: fresh consumer install (registry resolution, --omit=dev${resolution.length > 0 ? `, ${resolution[0]}` : ""})...`,
+  `verify-consumer-install: fresh consumer install (registry resolution, ${tarballInstall.filter((arg) => arg === "--omit=dev" || arg.startsWith("--before=")).join(", ")})...`,
 );
-npm(
-  [
-    "install",
-    tarball,
-    "--prefix",
-    stagingDir,
-    "--omit=dev",
-    "--no-audit",
-    "--no-fund",
-    "--loglevel=error",
-    ...resolution,
-  ],
-  workDir,
-);
+npm(tarballInstall, workDir);
 
 // ─── Check 2: exactly one physical copy of each singleCopy package ──────────
 
@@ -363,7 +352,7 @@ if (check.typecheckConsumer) {
   console.log(
     `verify-consumer-install: typechecking ${consumerManifest.name} against the packed ${manifest.name}...`,
   );
-  npm(["install", "--no-audit", "--no-fund", "--loglevel=error", ...resolution], consumerDir);
+  npm(consumerInstallArgs(resolution), consumerDir);
   execFileSync("npm", ["run", "typecheck"], {
     cwd: consumerDir,
     stdio: "inherit",

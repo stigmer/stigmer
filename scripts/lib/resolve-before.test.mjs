@@ -46,6 +46,7 @@ test("a margin that is not a positive number of hours is refused", () => {
 test("as a command it prints the cutoff, and refuses a bad margin with exit 2", () => {
   const printed = execFileSync(process.execPath, [SCRIPT, "1"], { encoding: "utf8" }).trim();
   assert.match(printed, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  assert.ok(Date.now() - Date.parse(printed) >= 3_600_000 - 5_000, "about an hour before now");
+  const age = Date.now() - Date.parse(printed);
+  assert.ok(age >= 3_600_000 - 5_000 && age <= 3_600_000 + 5_000, `an hour before now, not ${age} ms`);
   assert.throws(() => execFileSync(process.execPath, [SCRIPT, "soon"], { stdio: "pipe" }), (error) => error.status === 2);
 });
