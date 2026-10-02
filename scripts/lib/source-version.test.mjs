@@ -1,10 +1,11 @@
 // Pins the from-source version's hash: the first 7 characters of HEAD's full
 // id, whatever the repository's object count, `core.abbrev` or a shared
-// prefix, so two reads of one HEAD in one run agree (stigmer#1748: the upgrade rehearsal's build stamped `1f866e8`
-// and its check wanted `1f866e89`). A scratch repository with `core.abbrev`
-// set to 12 stands in for a checkout whose object count has grown, since
-// git's automatic length is that setting's default. Run via
-// `node --test scripts/lib/*.test.mjs` (wired into the root `npm test`).
+// prefix, so two reads of one HEAD in one run agree (stigmer#1748: the
+// upgrade rehearsal's build stamped `1f866e8` and its check wanted
+// `1f866e89`). A scratch repository with `core.abbrev` set to 12 stands in
+// for a checkout whose object count has grown, since git's automatic length
+// is that setting's default. Run via `node --test scripts/lib/*.test.mjs`
+// (wired into the root `npm test`).
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
