@@ -1,27 +1,16 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { anthropicText } from "../fixtures/mock-llm";
 import type { AnthropicMessageBody } from "../fixtures/mock-llm";
+import { readStackState } from "../fixtures/stack-state";
 
 // The e2e state file global-setup writes; carries the mock LLM control URL when
 // the stack was booted with STIGMER_E2E_MOCK_LLM.
-const STATE_FILE = path.join(import.meta.dirname, "..", ".e2e-server-state.json");
-
 /**
  * Reads the deterministic mock LLM proxy's control URL from the e2e state file.
  * Returns `null` when the stack was not booted in mock mode — specs use this to
  * `test.skip` gracefully rather than hang against a real/absent model.
  */
 export function getMockControlUrl(): string | null {
-  if (!fs.existsSync(STATE_FILE)) return null;
-  try {
-    const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8")) as {
-      mockLlmControlUrl?: string;
-    };
-    return state.mockLlmControlUrl ?? null;
-  } catch {
-    return null;
-  }
+  return readStackState()?.mockLlmControlUrl ?? null;
 }
 
 /**
@@ -31,15 +20,7 @@ export function getMockControlUrl(): string | null {
  * capture-stack specs must skip under it. `false` when the state is absent.
  */
 export function isFileGateStack(): boolean {
-  if (!fs.existsSync(STATE_FILE)) return false;
-  try {
-    const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8")) as {
-      fileGateMode?: boolean;
-    };
-    return state.fileGateMode === true;
-  } catch {
-    return false;
-  }
+  return readStackState()?.fileGateMode === true;
 }
 
 /**

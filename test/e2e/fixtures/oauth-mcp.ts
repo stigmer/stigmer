@@ -13,8 +13,8 @@
  * dev server's origin needs, and the fixture's URLs are per run.
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import * as fs from "node:fs";
 import * as path from "node:path";
+import { readStackState } from "./stack-state";
 
 export const OAUTH_MCP_STACK =
   process.env.STIGMER_E2E_OAUTH_MCP === "1" ||
@@ -26,8 +26,6 @@ const FIXTURE_MAIN = path.join(
   "test/conformance/src/harness/oauth-mcp-fixture-main.ts",
 );
 const TSX = path.join(REPO_ROOT, "node_modules/.bin/tsx");
-const STATE_FILE = path.join(import.meta.dirname, "..", ".e2e-server-state.json");
-
 /** What the fixture process prints once both servers listen. */
 export interface OAuthMcpReady {
   /** The MCP server's URL: the one a plugin's `mcp.json` names, nothing else. */
@@ -81,13 +79,5 @@ export function startOAuthMcpFixture(): Promise<{
  * boots it.
  */
 export function getOAuthMcpFixture(): OAuthMcpReady | null {
-  if (!fs.existsSync(STATE_FILE)) return null;
-  try {
-    const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8")) as {
-      oauthMcp?: OAuthMcpReady;
-    };
-    return state.oauthMcp ?? null;
-  } catch {
-    return null;
-  }
+  return readStackState()?.oauthMcp ?? null;
 }

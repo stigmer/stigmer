@@ -17,10 +17,10 @@
 // file carries only what workers need.
 import type { ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
-import * as net from "node:net";
 import { runnerEntryPath } from "@stigmer/test-support/runner-build";
 import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
 import { spawnServer, type RunningServer } from "@stigmer/test-support/server-process";
+import { waitForPortRefusal } from "@stigmer/test-support/ports";
 import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
 import { tsServerEntryPath } from "@stigmer/test-support/ts-build";
 import { diagEnabled, diagLogPath } from "./diag";
@@ -44,23 +44,8 @@ export interface ServerState {
   oauthMcp?: { readonly mcpUrl: string; readonly authorizationServer: string };
 }
 
-export function isPortReachable(port: number, host = "127.0.0.1", timeoutMs = 200): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = net.connect({ port, host, timeout: timeoutMs });
-    socket.on("connect", () => {
-      socket.destroy();
-      resolve(true);
-    });
-    socket.on("error", () => {
-      socket.destroy();
-      resolve(false);
-    });
-    socket.on("timeout", () => {
-      socket.destroy();
-      resolve(false);
-    });
-  });
-}
+/** Whether something accepts connections on the port now (the shared probe: @stigmer/test-support/ports). */
+export { isPortReachable } from "@stigmer/test-support/ports";
 
 // The suite boots the built entries directly, bypassing the CLI, so the stack
 // is hermetic; building is the caller's step (the Make targets build first).
@@ -70,6 +55,9 @@ function builtEntry(entry: string, buildCommand: string, what: string): string {
 }
 
 interface RunningStack {
+  // The fixed port the stack's server took, handed to the next run once the
+  // stack is stopped and the port refuses connections.
+  readonly apiPort: number;
   readonly temporal: RunningTemporal;
   readonly server: RunningServer;
   readonly runner: RunningRunner;
@@ -148,7 +136,7 @@ export async function startBackendStack(opts: {
     });
     console.log("[e2e] Unified runner ready");
 
-    stack = { temporal, server, runner, fixtures: [] };
+    stack = { apiPort: opts.apiPort, temporal, server, runner, fixtures: [] };
   } catch (error) {
     await server?.stop();
     await temporal.stop();
@@ -163,11 +151,17 @@ export function adoptStackFixture(child: ChildProcess): void {
   stack.fixtures.push(child);
 }
 
-/** Stops the stack this process started, runner first, every process even when one fails. No-op when none was started. */
-export async function stopBackendStack(): Promise<void> {
+/**
+ * Stops the stack this process started, runner first, every process even when
+ * one fails, then waits until its API port refuses connections, so the next
+ * run can take the port (stigmer#1594). Throws, naming the port, if something
+ * still answers there after 15 s. Returns false when this process started no
+ * stack.
+ */
+export async function stopBackendStack(): Promise<boolean> {
   const running = stack;
   stack = undefined;
-  if (running === undefined) return;
+  if (running === undefined) return false;
   // Best effort, like the pid sweep it replaced: one process failing to stop
   // must not leave the rest running.
   try {
@@ -183,4 +177,13 @@ export async function stopBackendStack(): Promise<void> {
       }
     }
   }
+  try {
+    await waitForPortRefusal(running.apiPort, { timeoutMs: 15_000 });
+  } catch (error) {
+    throw new Error(
+      `[e2e] the backend stack's processes have stopped, but its API port is not free: ${(error as Error).message}. ` +
+        `A listener this stack does not know of holds it, or a stopped process has not released it yet (#1594).`,
+    );
+  }
+  return true;
 }
