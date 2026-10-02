@@ -57,7 +57,12 @@ tester.run("require-loading-region", rule, {
     { code: busy("div", "status alert") },
     { code: busy("section", "") },
     { code: '<div role={roleFor(kind)} aria-busy="true" aria-label="Loading" />' },
-    { code: '<div role={true} aria-busy="true" aria-label="Loading" />' },
+    // Not judged by axe: hidden by the element's own attribute.
+    { code: '<div hidden aria-busy="true" aria-label="Loading" />' },
+    { code: '<div aria-hidden="true" aria-busy="true" aria-label="Loading" />' },
+    { code: '<div aria-hidden={true} aria-busy="true" aria-label="Loading" />' },
+    // A label React does not render.
+    { code: '<div aria-busy="true" aria-label={null} />' },
     // Elements whose verdict depends on context, and elements axe skips.
     ...Object.keys(markup.elementsLeftToAxe).map((tag) => ({ code: busy(tag) })),
     ...Object.keys(markup.elementsAxeSkips).map((tag) => ({ code: busy(tag) })),
@@ -71,6 +76,14 @@ tester.run("require-loading-region", rule, {
     { code: busy("div", ""), errors: reported },
     { code: busy("span", "  "), errors: reported },
     { code: '<div role={""} aria-busy="true" aria-label="Loading" />', errors: reported },
+    // No role rendered: React drops a null or boolean role.
+    { code: '<div role={null} aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div role={false} aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div role={true} aria-busy="true" aria-label="Loading" />', errors: reported },
+    // Not hidden: a hidden React drops, or aria-hidden false.
+    { code: '<div hidden={false} aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div aria-hidden="false" aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div aria-busy="true" aria-label={null} aria-labelledby="loading-title" />', errors: reported },
     // The console's reserved role, written exactly, on any element.
     { code: busy("div", "status"), errors: reported },
     { code: busy("section", "status"), errors: reported },

@@ -105,6 +105,12 @@ describe("loading-region-markup.json agrees with axe-core", () => {
     }
   });
 
+  it("judges no element hidden by its own attribute, and refuses one aria-hidden false", async () => {
+    expect(await judge(`<div id="probe" hidden aria-busy="true" aria-label="Loading"></div>`)).toBe("skipped");
+    expect(await judge(`<div id="probe" aria-hidden="true" aria-busy="true" aria-label="Loading"></div>`)).toBe("skipped");
+    expect(await judge(`<div id="probe" aria-hidden="false" aria-busy="true" aria-label="Loading"></div>`)).toBe("violation");
+  });
+
   it("ignores an empty label", async () => {
     expect(await judge(`<div id="probe" aria-busy="true" aria-label=" "></div>`)).toBe("pass");
   });

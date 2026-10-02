@@ -9,10 +9,13 @@
 // empty states and notices carry.
 //
 // So a DOM element that is busy (aria-busy fixed true: `"true"`, `{true}`, or
-// the bare attribute) and labelled (a non-empty aria-label or
-// aria-labelledby) is reported, and renders <LoadingRegion label="...">
-// instead, in exactly two cases:
-//   - it has no role written (no attribute, or a fixed empty one), and its tag
+// the bare attribute), labelled (a non-empty aria-label or aria-labelledby;
+// `{null}`, which React does not render, is none) and not hidden by its own
+// `hidden` or `aria-hidden="true"` (axe judges no hidden element) is
+// reported, and renders <LoadingRegion label="..."> instead, in exactly two
+// cases:
+//   - it has no role written (no attribute, a fixed empty one, or `{null}` or
+//     a boolean, which React does not render), and its tag
 //     is one axe refuses a name on: the list in
 //     sdk/react/src/internal/loading-region-markup.json, which sdk/react's
 //     loading-region-markup.browser.test.ts proves equal to axe-core in a real
@@ -23,11 +26,15 @@
 // console's e2e page audits) are the complete check. Left to them: any other
 // written role, fixed or computed (axe resolves roles in ways a static read
 // cannot follow: unknown and ignored tokens, an element's own role behind a
-// presentational one); an element whose verdict depends on context (the data
-// file's elementsLeftToAxe); and a computed aria-busy (a button mid-request).
-// One shape is reported although axe accepts it: a role-less element inside a
-// widget (a spinner `span` in a `button`), which the widget names. Disable the
-// rule on that line, with the reason.
+// presentational one); an element whose verdict depends on its context,
+// either way: refused alone but accepted in place (the data file's
+// elementsLeftToAxe: an `a`, a table cell), or accepted alone but refused in
+// place (a `header` or `footer` inside `main`, `article` or `section`), which
+// the rule leaves legal; an element hidden by its styles; and a computed
+// aria-busy (a button mid-request). One shape is reported although axe
+// accepts it: a role-less element inside a widget (a spinner `span` in a
+// `button`), which the widget names. Disable the rule on that line, with the
+// reason.
 
 const MARKUP = require("../../../sdk/react/src/internal/loading-region-markup.json");
 
@@ -60,11 +67,25 @@ function staticValue(attr) {
   return undefined;
 }
 
-/** Whether the attribute is present and not a fixed empty or blank string, which axe ignores. */
+/** Whether the label attribute renders a name: present, not `{null}` (React drops it), and not a fixed blank string (axe ignores it). */
 function names(attr) {
   if (attr === undefined) return false;
   const value = staticValue(attr);
+  if (value === null) return false;
   return typeof value !== "string" || value.trim() !== "";
+}
+
+/** Whether the element hides itself: a `hidden` React renders (a computed one is the author's to justify), or aria-hidden fixed true. */
+function hidesItself(node) {
+  const hidden = attribute(node, "hidden");
+  if (hidden !== undefined) {
+    const value = staticValue(hidden);
+    if (value !== false && value !== null) return true;
+  }
+  const ariaHidden = attribute(node, "aria-hidden");
+  if (ariaHidden === undefined) return false;
+  const value = staticValue(ariaHidden);
+  return value === true || value === "true";
 }
 
 module.exports = {
@@ -94,17 +115,17 @@ module.exports = {
         const busyValue = staticValue(busy);
         if (busyValue !== true && busyValue !== "true") return;
         if (!names(attribute(node, "aria-label")) && !names(attribute(node, "aria-labelledby"))) return;
+        if (hidesItself(node)) return;
         const roleAttribute = attribute(node, "role");
-        if (roleAttribute === undefined) {
-          if (NAMELESS_ELEMENTS.has(node.name.name)) context.report({ node, messageId: "busyLabelledElement" });
-          return;
-        }
-        const role = staticValue(roleAttribute);
+        const role = roleAttribute === undefined ? null : staticValue(roleAttribute);
         if (role === "status") {
           context.report({ node, messageId: "busyLabelledElement" });
-        } else if (typeof role === "string" && role.trim() === "" && NAMELESS_ELEMENTS.has(node.name.name)) {
-          context.report({ node, messageId: "busyLabelledElement" });
+          return;
         }
+        // No role rendered: no attribute, {null} or a boolean (React drops
+        // both), or a fixed blank string.
+        const noRole = role === null || typeof role === "boolean" || (typeof role === "string" && role.trim() === "");
+        if (noRole && NAMELESS_ELEMENTS.has(node.name.name)) context.report({ node, messageId: "busyLabelledElement" });
       },
     };
   },
