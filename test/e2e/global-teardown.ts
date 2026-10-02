@@ -11,27 +11,26 @@ async function globalTeardown() {
   // global-setup created. No-op when no proxy was started.
   await stopMockLlmProxy();
 
-  if (!fs.existsSync(STATE_FILE)) return;
+  // Stop whatever stack this process started, whether or not setup got as far
+  // as the state file: Playwright runs this teardown after a failed setup too,
+  // and a setup that failed between the stack's start and the file would
+  // otherwise leave the stack holding the API port for the next run (#1594).
+  // The stop returns once the port refuses connections.
+  const stopped = await stopBackendStack();
+  if (stopped) console.log("[e2e] Backend stack stopped, and its API port refuses connections");
 
+  if (!fs.existsSync(STATE_FILE)) return;
   const state: ServerState = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
+  fs.unlinkSync(STATE_FILE);
 
   if (state.reused) {
     console.log("[e2e] Backend was reused — nothing to tear down");
-  } else {
-    console.log("[e2e] Stopping backend stack...");
-    // The state file says this run started a stack; a teardown that finds
-    // none to stop must say so, not report a stop it never made (#1594).
-    if (!(await stopBackendStack())) {
-      // The file goes first, so a stale one cannot fail every later teardown.
-      fs.unlinkSync(STATE_FILE);
-      throw new Error(
-        `[e2e] ${STATE_FILE} recorded a stack this run started, but this process holds none to stop; the file is removed`,
-      );
-    }
-    console.log("[e2e] Backend stack stopped, and its API port refuses connections");
+  } else if (!stopped) {
+    // The file recorded a stack this run started, yet this process held none:
+    // a "stopped" that stops nothing is what #1594 looked like. The file is
+    // already gone, so it cannot fail a later teardown too.
+    throw new Error(`[e2e] ${STATE_FILE} recorded a stack this run started, but this process held none to stop`);
   }
-
-  fs.unlinkSync(STATE_FILE);
 }
 
 export default globalTeardown;

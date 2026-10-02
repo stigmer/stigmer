@@ -5,10 +5,9 @@ import {
   adoptStackFixture,
   isPortReachable,
   startBackendStack,
-  stopBackendStack,
   type ServerState,
 } from "./fixtures/server-manager";
-import { startMockLlmProxy, stopMockLlmProxy } from "./fixtures/mock-llm";
+import { startMockLlmProxy } from "./fixtures/mock-llm";
 import { ensureDefaultOrg } from "./fixtures/seed-helpers";
 import {
   OIDC_AUDIENCE,
@@ -39,34 +38,6 @@ const MOCK_LLM =
 const FILE_GATES =
   process.env.STIGMER_E2E_FILE_GATES === "1" ||
   process.env.STIGMER_E2E_FILE_GATES === "true";
-
-/**
- * Runs the steps that follow a stack's start. When one throws, it stops the
- * stack and the mock proxy and removes the state file before rethrowing:
- * Playwright runs no global teardown after a failed setup, so a stack left
- * running would hold :API_PORT and the next run would find it (#1594).
- */
-async function stopStackOnFailure(steps: () => Promise<void>): Promise<void> {
-  try {
-    await steps();
-  } catch (error) {
-    // Each cleanup step reports its own failure and lets the next run, so the
-    // error thrown is always the setup's own.
-    const cleanups: Array<[string, () => Promise<unknown> | unknown]> = [
-      ["stopping the stack", () => stopBackendStack()],
-      ["closing the mock LLM proxy", () => stopMockLlmProxy()],
-      ["removing the state file", () => fs.rmSync(STATE_FILE, { force: true })],
-    ];
-    for (const [what, cleanup] of cleanups) {
-      try {
-        await cleanup();
-      } catch (cleanupError) {
-        console.error(`[e2e] ${what} after a failed setup failed too: ${String(cleanupError)}`);
-      }
-    }
-    throw error;
-  }
-}
 
 async function globalSetup() {
   if (process.env.STIGMER_E2E_BASE_URL) {
@@ -115,10 +86,8 @@ async function globalSetup() {
       issuer.kill();
       throw error;
     });
-    await stopStackOnFailure(async () => {
-      adoptStackFixture(issuer);
-      fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-    });
+    adoptStackFixture(issuer);
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
     console.log(
       "[e2e] Backend stack ready in the OIDC posture (no organization seeded on purpose)",
     );
@@ -154,16 +123,14 @@ async function globalSetup() {
       fixture.kill();
       throw error;
     });
-    await stopStackOnFailure(async () => {
-      adoptStackFixture(fixture);
-      state.oauthMcp = ready;
-      fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-      const client = createNodeClient({
-        baseUrl: `http://localhost:${API_PORT}`,
-        getAccessToken: () => null,
-      });
-      await ensureDefaultOrg(client);
+    adoptStackFixture(fixture);
+    state.oauthMcp = ready;
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    const client = createNodeClient({
+      baseUrl: `http://localhost:${API_PORT}`,
+      getAccessToken: () => null,
     });
+    await ensureDefaultOrg(client);
     console.log(`[e2e] Backend stack ready in the OAuth MCP shape; seeded "default" org`);
     return;
   }
@@ -206,20 +173,18 @@ async function globalSetup() {
       mockLlmEndpoint: mock.proxyUrl,
       fileGates: FILE_GATES,
     });
-    await stopStackOnFailure(async () => {
-      state.mockLlmControlUrl = mock.controlUrl;
-      state.fileGateMode = FILE_GATES;
-      fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    state.mockLlmControlUrl = mock.controlUrl;
+    state.fileGateMode = FILE_GATES;
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 
-      // A fresh OSS stack has no organizations, so the web's OrgGate would block
-      // every authenticated route on the onboarding screen. Seed the `default`
-      // org (mirroring a first-run OSS user) so seeded sessions are reachable.
-      const client = createNodeClient({
-        baseUrl: `http://localhost:${API_PORT}`,
-        getAccessToken: () => null,
-      });
-      await ensureDefaultOrg(client);
+    // A fresh OSS stack has no organizations, so the web's OrgGate would block
+    // every authenticated route on the onboarding screen. Seed the `default`
+    // org (mirroring a first-run OSS user) so seeded sessions are reachable.
+    const client = createNodeClient({
+      baseUrl: `http://localhost:${API_PORT}`,
+      getAccessToken: () => null,
     });
+    await ensureDefaultOrg(client);
 
     console.log(
       `[e2e] Mock LLM proxy ready (proxy: ${mock.proxyUrl}, control: ${mock.controlUrl}); seeded "default" org`,
@@ -231,19 +196,17 @@ async function globalSetup() {
     `[e2e] Backend not detected on :${API_PORT} — starting full stack`,
   );
   const state = await startBackendStack({ apiPort: API_PORT });
-  await stopStackOnFailure(async () => {
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 
-    // Same rationale as the mock-LLM path above: a fresh OSS stack has no
-    // organizations, so the web's OrgGate would park every functional spec
-    // on the onboarding screen. Seeding here makes the suite deterministic
-    // on fresh boots instead of depending on a long-lived dev backend.
-    const client = createNodeClient({
-      baseUrl: `http://localhost:${API_PORT}`,
-      getAccessToken: () => null,
-    });
-    await ensureDefaultOrg(client);
+  // Same rationale as the mock-LLM path above: a fresh OSS stack has no
+  // organizations, so the web's OrgGate would park every functional spec
+  // on the onboarding screen. Seeding here makes the suite deterministic
+  // on fresh boots instead of depending on a long-lived dev backend.
+  const client = createNodeClient({
+    baseUrl: `http://localhost:${API_PORT}`,
+    getAccessToken: () => null,
   });
+  await ensureDefaultOrg(client);
   console.log(`[e2e] Seeded "default" org on the fresh stack`);
 }
 
