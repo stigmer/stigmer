@@ -210,6 +210,15 @@ describe("CostAdvisoryMiddleware", () => {
       expect(String((advised.messages.at(-1) as HumanMessage).content).startsWith(ADVISORY_LEAD_IN)).toBe(true);
     });
 
+    it("the parent's own call crosses the line: a sub-agent invoked afterwards is told on its first call", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+      await callModel(parent, responseWithUsage(1000, 500));
+      const child = parent.forSubAgent();
+      child.beforeAgent!({}, {});
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "told before it spends").toContain("Budget warning");
+      expect(advisoryOf(await callModel(parent, NO_USAGE)), "the parent, whose call crossed").toContain("Budget warning");
+    });
+
     it("a second invocation starting while the first runs never takes the warning from the parent", async () => {
       const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
       const child = parent.forSubAgent();

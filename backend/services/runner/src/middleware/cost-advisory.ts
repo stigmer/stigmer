@@ -51,8 +51,10 @@
  *   sub-agent in the turn (the stack is built once per sub-agent spec), so
  *   its `beforeAgent` starts a conversation that has heard nothing, and never
  *   resets the shared total. Concurrent invocations of one sub-agent share
- *   the view, as they share its loop and budget middleware, so of two running
- *   at once usually only the first to call is told; the parent is told
+ *   the view, as they share its loop and budget middleware. Of two running
+ *   at once, usually only the first to call is told; and when the second
+ *   starts after the first was told, its start resets the shared flag, so the
+ *   first may be told again and the second not at all. The parent is told
  *   either way.
  *
  * Only built when `max_cost_usd > 0` is explicitly configured.
