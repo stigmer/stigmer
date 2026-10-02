@@ -46,10 +46,11 @@ const FORKS_ONLY = [
  * own and covers the same statements (the diff above), at the `forks` time.
  * CI runs the suite both ways, so the pool developers run is still checked
  * (ci.ts-workspace.yaml, `react-tests` and `react-vm-tests`).
+ * The flags are the CLI spellings vitest 3.2 reads as coverage on; it reads
+ * `--coverage.enabled true` as a file filter, with coverage left off.
  */
-const COVERAGE_RUN = process.argv.some(
-  (arg) => arg === "--coverage" || arg === "--coverage.enabled" || arg === "--coverage.enabled=true",
-);
+const COVERAGE_FLAGS = new Set(["--coverage", "--coverage=true", "--coverage.enabled", "--coverage.enabled=true"]);
+const COVERAGE_RUN = process.argv.some((arg) => COVERAGE_FLAGS.has(arg));
 
 export default defineConfig({
   test: {
