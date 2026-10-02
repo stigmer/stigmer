@@ -45,6 +45,7 @@ import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { sourceBuildVersion } from "./lib/source-version.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -78,19 +79,12 @@ function parseArgs() {
     else if (arg === "--skip-build") opts.skipBuild = true;
     else fail(`unknown argument: ${arg}`);
   }
-  if (opts.version === "") opts.version = devVersion();
+  // A from-source build's version (scripts/lib/source-version.mjs): npm-valid,
+  // unique per commit, and a prerelease no acquirer would download — fine,
+  // because the image bakes the packages and the CLI's version is
+  // informational inside a compose runner.
+  if (opts.version === "") opts.version = sourceBuildVersion();
   return opts;
-}
-
-// A from-source build's version: npm-valid, unique per commit, and a
-// prerelease no acquirer would download — fine, because the image bakes the
-// packages and the CLI's version is informational inside a compose runner.
-function devVersion() {
-  const sha = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  }).trim();
-  return `0.0.0-dev.${sha}`;
 }
 
 function main() {
