@@ -306,50 +306,60 @@ test("a launch that writes something other than a PNG fails", async () => {
   assert.match(verdictMessage(verdict), /wrote no PNG/);
 });
 
-test("an install past the deadline is stopped with its whole process group, and names the download", async () => {
-  const fake = fakeCli("install-hangs");
-  const { verdict, elapsedMs } = await run(fake, { deadlineMs: 1_500 });
-  assert.equal(verdict.ok, false);
-  assert.equal(verdict.phase, "install");
-  assert.equal(verdict.timedOut, true);
-  assert.ok(
-    elapsedMs < 1_500 + 5_000,
-    `stopped promptly after the deadline (took ${elapsedMs} ms)`,
-  );
-  assert.deepEqual(
-    fake.calls(),
-    ["install chromium"],
-    "the probe never runs after a timed-out install",
-  );
-  assert.ok(
-    await gone(fake.pids()),
-    "neither the CLI nor its grandchild is left running",
-  );
-  assert.match(
-    verdictMessage(verdict),
-    /the install did not finish within 1\.5 s and was stopped; Chromium downloads from cdn\.playwright\.dev/,
-  );
-});
+// A broken deadline would hang here, so the case has its own bound: it fails, never hangs.
+test(
+  "an install past the deadline is stopped with its whole process group, and names the download",
+  { timeout: 15_000 },
+  async () => {
+    const fake = fakeCli("install-hangs");
+    const { verdict, elapsedMs } = await run(fake, { deadlineMs: 1_500 });
+    assert.equal(verdict.ok, false);
+    assert.equal(verdict.phase, "install");
+    assert.equal(verdict.timedOut, true);
+    assert.ok(
+      elapsedMs < 1_500 + 5_000,
+      `stopped promptly after the deadline (took ${elapsedMs} ms)`,
+    );
+    assert.deepEqual(
+      fake.calls(),
+      ["install chromium"],
+      "the probe never runs after a timed-out install",
+    );
+    assert.ok(
+      await gone(fake.pids()),
+      "neither the CLI nor its grandchild is left running",
+    );
+    assert.match(
+      verdictMessage(verdict),
+      /the install did not finish within 1\.5 s and was stopped; Chromium downloads from cdn\.playwright\.dev/,
+    );
+  },
+);
 
-test("the deadline covers the launch too, not only the install", async () => {
-  const fake = fakeCli("probe-hangs");
-  const { verdict, elapsedMs } = await run(fake, { deadlineMs: 1_500 });
-  assert.equal(verdict.ok, false);
-  assert.equal(verdict.phase, "probe");
-  assert.equal(verdict.timedOut, true);
-  assert.ok(
-    elapsedMs < 1_500 + 5_000,
-    `stopped promptly after the deadline (took ${elapsedMs} ms)`,
-  );
-  assert.ok(
-    await gone(fake.pids()),
-    "neither the CLI nor its grandchild is left running",
-  );
-  assert.match(
-    verdictMessage(verdict),
-    /the launch did not finish within 1\.5 s and was stopped/,
-  );
-});
+// A broken deadline would hang here, so the case has its own bound: it fails, never hangs.
+test(
+  "the deadline covers the launch too, not only the install",
+  { timeout: 15_000 },
+  async () => {
+    const fake = fakeCli("probe-hangs");
+    const { verdict, elapsedMs } = await run(fake, { deadlineMs: 1_500 });
+    assert.equal(verdict.ok, false);
+    assert.equal(verdict.phase, "probe");
+    assert.equal(verdict.timedOut, true);
+    assert.ok(
+      elapsedMs < 1_500 + 5_000,
+      `stopped promptly after the deadline (took ${elapsedMs} ms)`,
+    );
+    assert.ok(
+      await gone(fake.pids()),
+      "neither the CLI nor its grandchild is left running",
+    );
+    assert.match(
+      verdictMessage(verdict),
+      /the launch did not finish within 1\.5 s and was stopped/,
+    );
+  },
+);
 
 test("the workspace is GITHUB_WORKSPACE on a runner, and this repository otherwise", () => {
   assert.equal(workspaceRoot({ GITHUB_WORKSPACE: "/w" }), "/w");
