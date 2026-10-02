@@ -81,7 +81,8 @@ test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer 
     "ts-workspace",
     "upgrade-rehearsal",
   ]);
-  assert.deepEqual(selected(["client-apps/cli/src/commands/run.ts"]), ["cli-up", "docs", "ts-workspace"]);
+  // conformance-execution runs the CLI from source (`make install-cli-shim`).
+  assert.deepEqual(selected(["client-apps/cli/src/commands/run.ts"]), ["cli-up", "conformance-execution", "docs", "ts-workspace"]);
   // An image's user and data paths decide whether the last release's volume is still readable.
   assert.ok(selected(["backend/services/stigmer-server/Dockerfile"]).includes("upgrade-rehearsal"));
   assert.ok(selected(["backend/services/runner/Dockerfile.sandbox"]).includes("upgrade-rehearsal"));
