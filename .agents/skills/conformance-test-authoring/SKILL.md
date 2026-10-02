@@ -112,8 +112,14 @@ never a silent return.
 ## Live vendors
 
 A test that needs a live vendor credential has no offline arm and says so in its
-header; the credentials are held by the maintainers outside this repository and
-no CI lane here exercises them.
+header. It is not a conformance test: it belongs to the live class
+(`*.live.test.ts`, `test/README.md`), which only a package with a
+`vitest.live.config.ts` may hold (`scripts/test-integrity.mjs` refuses one
+anywhere else). Today that is `backend/services/runner`, whose live suites run
+by hand and in `ci.live.yaml` after each release, with the keys from the
+`provider-integration` environment. A new vendor's key needs its name in
+`LiveSecretName` (`backend/services/runner/src/__test-utils__/live-gate.ts`), a
+secret in that environment, and a line in the live step's `env:`.
 
 ## The package's own gates
 

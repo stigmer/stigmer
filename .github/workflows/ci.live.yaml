@@ -26,11 +26,14 @@
 # runner-live's step summary lists the estimated spend of every case that has
 # an estimate (the native turns, the llm_call cases, the Cursor transcript).
 # The SDK-direct Cursor instruments and the CLI's one turn have no product cap
-# and no estimate; each is one short turn, and the summary names them.
+# and no estimate; each takes at most one short turn, and the summary names
+# them.
 #
 # Keys: ANTHROPIC_API_KEY and CURSOR_API_KEY from the `provider-integration`
-# environment, which deploys only to `main` (both triggers run on `main`; the
-# tag is only the commit checked out). They reach one step each through
+# environment, which deploys only to `main`. A release run runs on `main` and
+# checks out the tagged commit, which the release job admits only when `main`
+# carries it; a dispatch runs on its own ref, and the environment refuses
+# every ref but `main`. The keys reach one step each through
 # `env:` and are never printed. STIGMER_LIVE=1 makes a missing key fail the
 # run instead of skipping it (backend/services/runner/src/__test-utils__/live-gate.ts).
 #
@@ -82,7 +85,11 @@ jobs:
       ref: ${{ steps.resolve.outputs.ref }}
       version: ${{ steps.resolve.outputs.version }}
     steps:
-      # main's copy of the decision script (the default checkout here is main).
+      # The default checkout: main after a release (a workflow_run runs on the
+      # default branch), the dispatched ref on a dispatch. A dispatch from any
+      # other branch runs that branch's copy of the script, and the
+      # provider-integration environment, which deploys only to main, refuses
+      # the jobs that read the keys.
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -168,7 +175,7 @@ jobs:
         run: |
           {
             echo "### Runner live suites: estimated spend per case"
-            echo "- the five SDK-direct Cursor instruments: one short turn each, no product cap, no estimate"
+            echo "- the SDK-direct Cursor instruments: at most one short turn each, no product cap, no estimate"
           } >> "$GITHUB_STEP_SUMMARY"
           npm run test:live
 
