@@ -15,7 +15,9 @@
  * - Approval gate (so a mutating tool *inside* a sub-agent is gated, not
  *   bypassed) — installed only when the parent itself is gated
  *   (`approvalGate` present; absent under auto-approve-all)
- * - Shared cost cap view (parent's budget, no reset on sub-agent start)
+ * - Shared cost cap view (parent's budget, no reset on sub-agent start; once
+ *   the run nears the cap, each invocation is told on its next call, whichever
+ *   graph's spend crossed)
  * - Error hints (issue #255): a thrown tool error becomes a recoverable
  *   ToolMessage exactly as on the parent. Without it, any tool throw — a
  *   plan-mode permission denial, an MCP hiccup — propagated out of the
