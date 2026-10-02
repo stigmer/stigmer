@@ -14,7 +14,9 @@
 // something after vitest would swallow
 // the flags (npm appends them to the script's last command). The Coverage
 // job must need every lane that uploads coverage, or it could run before one
-// finished. And the coverage provider peers on one exact vitest, so the two
+// finished, and a change to the floors file must select exactly those lanes,
+// or a moved floor would be judged against a run that never measured its
+// package. And the coverage provider peers on one exact vitest, so the two
 // are pinned together wherever the provider is declared.
 
 import assert from "node:assert/strict";
@@ -26,8 +28,9 @@ import { fileURLToPath } from "node:url";
 
 import { parse } from "yaml";
 
-import { GATE_JOBS, laneId } from "./ci-lanes.mjs";
+import { COVERAGE_LANES, GATE_JOBS, laneId } from "./ci-lanes.mjs";
 import { readFloors } from "./test-coverage.mjs";
+import { COVERAGE_FLOORS } from "./turbo-affected.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workflowsDir = join(root, ".github/workflows");
@@ -150,12 +153,13 @@ test("the Coverage job needs exactly the lanes that upload coverage, and Gate ne
   const coverage = gate.jobs.coverage;
   assert.ok(GATE_JOBS.includes("coverage"));
   assert.deepEqual([...coverage.needs].sort(), ["lanes", ...uploading].sort());
+  assert.deepEqual(COVERAGE_LANES.map(laneId).sort(), [...uploading].sort(), "a floors change selects exactly the lanes that measure");
   assert.equal(coverage.if, "${{ !cancelled() && needs.lanes.result == 'success' }}", "it runs whichever lanes were needed, and never on a cancelled run");
   assert.ok(gate.jobs.gate.needs.includes("coverage"));
   const download = coverage.steps.find((step) => String(step.uses ?? "").startsWith("actions/download-artifact@"));
   assert.equal(download.with.pattern, "coverage-*");
   const judged = coverage.steps.map((step) => String(step.run ?? "")).join("\n");
-  assert.match(judged, /node scripts\/test-coverage\.mjs --floors test\/coverage-floors\.json --input "\$RUNNER_TEMP\/coverage"/);
+  assert.ok(judged.includes(`node scripts/test-coverage.mjs --floors ${COVERAGE_FLOORS} --input "$RUNNER_TEMP/coverage"`), "the job judges the floors file the selection and turbo's tooling list name");
 });
 
 test("the coverage provider and vitest are pinned to one exact version wherever the provider is declared", () => {

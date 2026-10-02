@@ -22,7 +22,11 @@
  * Every lane runs when the gate itself could have changed: this script, the
  * orchestrator, or a composite action the lanes use (`EVERY_LANE`); on a
  * manual dispatch; and when no base can be read. A lane's own workflow file
- * is in its own list, so editing one lane runs that lane.
+ * is in its own list, so editing one lane runs that lane. Every lane that
+ * measures a package (`COVERAGE_LANES`, the lanes the `coverage` job needs)
+ * runs when the coverage floors change, so a moved floor is judged against a
+ * run that measured its package; turbo-affected.mjs counts the same file as
+ * workspace tooling, so the always-run lane measures every package too.
  *
  * The comparison range is `resolveRange` from turbo-affected.mjs, so the gate
  * and the one lane that also reads a range (ci.ts-workspace) agree on the
@@ -53,7 +57,7 @@ import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { matchesGlob } from "./agents-check.mjs";
-import { changedFilesSince, resolveRange } from "./turbo-affected.mjs";
+import { COVERAGE_FLOORS, changedFilesSince, resolveRange } from "./turbo-affected.mjs";
 
 /**
  * The lanes, keyed by workflow file under .github/workflows. `paths` are the
@@ -427,6 +431,21 @@ export const EVERY_LANE = [
 /** The jobs in ci.gate.yaml that are not lanes and that `Gate` needs to have passed. */
 export const GATE_JOBS = ["coverage"];
 
+/**
+ * The lanes whose jobs run a package's own suite with coverage and upload it
+ * (`coverage-*` artifacts): exactly what the `coverage` job needs besides the
+ * selection, held to it by scripts/ci-coverage.test.mjs.
+ */
+export const COVERAGE_LANES = [
+  "ci.authorization-model.yaml",
+  "ci.conformance.yaml",
+  "ci.docs.yaml",
+  "ci.go-sdk.yaml",
+  "ci.runner.yaml",
+  "ci.stigmer-server.yaml",
+  "ci.ts-workspace.yaml",
+];
+
 /** `ci.runner.yaml` -> `runner`: the lane's job id in ci.gate.yaml and its output name. */
 export function laneId(file) {
   return file.replace(/^ci\./, "").replace(/\.ya?ml$/, "");
@@ -434,10 +453,14 @@ export function laneId(file) {
 
 /**
  * Which lanes run. `changedFiles` is null when no base could be read.
- * Returns `{ lanes: { <id>: boolean }, every: <reason> | null }`.
+ * Returns `{ lanes: { <id>: boolean }, every: <reason> | null, measure:
+ * <reason> | null }`, `measure` saying why every coverage lane runs.
  */
 export function selectLanes({ event, changedFiles }) {
   let every = null;
+  const measure = changedFiles?.includes(COVERAGE_FLOORS)
+    ? `the coverage floors changed (${COVERAGE_FLOORS}): every lane that measures a package runs, so each moved floor is judged`
+    : null;
   if (event === "workflow_dispatch") {
     every = "workflow_dispatch: a manual run runs every lane";
   } else if (changedFiles === null) {
@@ -453,11 +476,12 @@ export function selectLanes({ event, changedFiles }) {
     lanes[laneId(file)] =
       every !== null ||
       lane.always === true ||
+      (measure !== null && COVERAGE_LANES.includes(file)) ||
       changedFiles.some((changed) =>
         lane.paths.some((glob) => matchesGlob(glob, changed)),
       );
   }
-  return { lanes, every };
+  return { lanes, every, measure };
 }
 
 /**
@@ -528,7 +552,7 @@ function select(flags, env) {
   if (range.base !== null && changedFiles === null) {
     throw new Error(`ci-lanes: git could not compare ${range.base} with ${range.head}`);
   }
-  const { lanes, every } = selectLanes({ event: env.GITHUB_EVENT_NAME, changedFiles });
+  const { lanes, every, measure } = selectLanes({ event: env.GITHUB_EVENT_NAME, changedFiles });
   const lines = Object.entries(lanes).map(([id, run]) => `${id}=${run}`);
   console.log(lines.join("\n"));
   if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, lines.join("\n") + "\n");
@@ -539,6 +563,7 @@ function select(flags, env) {
     `Base \`${range.base ?? "(none)"}\` (${range.source}), head \`${range.head}\`, ${changedFiles?.length ?? "?"} changed file(s).`,
     "",
     every ? `**Every lane**: ${every}.` : `${needed.length} lane(s): ${needed.join(", ") || "none"}.`,
+    ...(measure && !every ? ["", `**Every coverage lane**: ${measure}.`] : []),
   ].join("\n");
   if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, summary + "\n");
   else console.log("\n" + summary);
