@@ -101,9 +101,12 @@ jobs:
       # staged dist. See the repo-root scripts/verify-consumer-install.mjs
       # (shared with @stigmer/server; the runner's checks are declared in
       # its package.json under stigmerPublish.consumerCheck).
+      # `--resolve-before=1` ignores versions published in the last hour, so a
+      # version the registry has not propagated yet cannot fail a gate
+      # (#1669; scripts/lib/resolve-before.mjs). A release resolves live.
       - name: Consumer-install smoke check
         working-directory: backend/services/runner
-        run: npm run verify:consumer
+        run: npm run verify:consumer -- --resolve-before=1
 
       # GitHub sets CI=true, so vitest.config.ts caps fork concurrency here.
       # `make test-runner` is the install above and then `npm test`; it is

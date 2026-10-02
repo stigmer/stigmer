@@ -537,10 +537,13 @@ jobs:
       #     still typechecks here (issue #1044 was exactly that class, and
       #     yarn's last catch on this job). Under npm that is each package's
       #     own devDependencies discipline.
+      # `--before` ignores versions published in the last hour: the registry
+      # can list a version before it serves its tarball, and that E404 says
+      # nothing about this change (#1669; scripts/lib/resolve-before.mjs).
       - name: Install dependencies (npm, fresh resolution)
         run: |
           rm package-lock.json
-          npm install --no-package-lock --no-audit --no-fund
+          npm install --no-package-lock --no-audit --no-fund --before="$(node scripts/lib/resolve-before.mjs 1)"
 
       # The three dist-exporting libs a consumer package imports (see the
       # header): the CLI resolves each from its dist, so all are built before

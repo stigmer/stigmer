@@ -72,6 +72,13 @@
  * or explicitly:
  *   node scripts/verify-consumer-install.mjs --package backend/services/runner
  *
+ * `--resolve-before <hours>` makes both installs ignore versions published in
+ * the last <hours> (npm's `--before`), so a version the registry has not
+ * propagated yet cannot fail the check (stigmer/stigmer#1669). The gate lanes
+ * pass it (ci.runner.yaml, ci.stigmer-server.yaml); a release never does,
+ * because its own @stigmer/* versions are minutes old. The rule and its
+ * reasons are scripts/lib/resolve-before.mjs.
+ *
  * Needs network (registry install) and a prior `npm run build` of the
  * package and of every file:-linked lib. Runs in a few minutes.
  */
@@ -88,6 +95,8 @@ import {
 import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { resolveBeforeArgs } from "./lib/resolve-before.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -119,6 +128,22 @@ const packageDir = packageArg
     ? packageArg
     : resolve(repoRoot, packageArg)
   : process.cwd();
+
+// `--resolve-before <hours>` or `--resolve-before=<hours>`; absent, both
+// installs resolve live (the header says who passes it and why).
+const resolveBeforeFlag = args.find((arg) => arg === "--resolve-before" || arg.startsWith("--resolve-before="));
+const resolveBeforeHours =
+  resolveBeforeFlag === undefined
+    ? undefined
+    : resolveBeforeFlag.includes("=")
+      ? resolveBeforeFlag.slice("--resolve-before=".length)
+      : args[args.indexOf(resolveBeforeFlag) + 1];
+let resolution;
+try {
+  resolution = resolveBeforeArgs(resolveBeforeHours);
+} catch (error) {
+  fail(error.message);
+}
 
 const manifestPath = join(packageDir, "package.json");
 if (!existsSync(manifestPath)) {
@@ -239,7 +264,7 @@ try {
 
 const stagingDir = join(workDir, "staging");
 console.log(
-  "verify-consumer-install: fresh consumer install (registry resolution, --omit=dev)...",
+  `verify-consumer-install: fresh consumer install (registry resolution, --omit=dev${resolution.length > 0 ? `, ${resolution[0]}` : ""})...`,
 );
 npm(
   [
@@ -251,6 +276,7 @@ npm(
     "--no-audit",
     "--no-fund",
     "--loglevel=error",
+    ...resolution,
   ],
   workDir,
 );
@@ -344,7 +370,7 @@ if (check.typecheckConsumer) {
   console.log(
     `verify-consumer-install: typechecking ${consumerManifest.name} against the packed ${manifest.name}...`,
   );
-  npm(["install", "--no-audit", "--no-fund", "--loglevel=error"], consumerDir);
+  npm(["install", "--no-audit", "--no-fund", "--loglevel=error", ...resolution], consumerDir);
   execFileSync("npm", ["run", "typecheck"], {
     cwd: consumerDir,
     stdio: "inherit",
