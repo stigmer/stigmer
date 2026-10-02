@@ -15,10 +15,10 @@ IdentityAccounts are created in one of three ways:
 | Mode | Description | `idp_id` format |
 |---|---|---|
 | `direct` | User signed up via Stigmer's Auth0 tenant | Auth0 subject ID (e.g., `auth0\|abc123`) |
-| `federated` | Created by the platform for federated authentication via an [IdentityProvider](../../identityprovider/docs/README.md) | Raw OIDC sub claim (e.g., `google-oauth2\|109876543210`), scoped by `identity_provider_ref` |
+| `federated` | Created by the platform, or by Stigmer on the first sign-in, for federated authentication via an [IdentityProvider](../../identityprovider/docs/README.md) | Raw OIDC sub claim (e.g., `google-oauth2\|109876543210`), scoped by `identity_provider_ref` |
 | `machine` | M2M client credentials for inter-service communication | Auth0 client ID with `@clients` suffix |
 
-Federated accounts have no credentials in Stigmer's Auth0 and cannot log in directly to Stigmer. They participate in FGA authorization through the token exchange flow managed by the owning IdentityProvider.
+Federated accounts have no credentials in Stigmer's Auth0 and cannot log in directly to Stigmer. They sign in with their IdentityProvider's own tokens, which Stigmer verifies on each request ([sign-in flow](../../identityprovider/docs/sign-in-flow.md)), and are authorized as their federated account.
 
 ## Key Concepts
 

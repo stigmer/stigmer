@@ -421,12 +421,6 @@ function ViewMode({
           hint="Share this URL with your team members to sign in via SSO"
         />
       )}
-      {(spec?.rateLimitBudget ?? 0) > 0 && (
-        <Field
-          label="Rate limit"
-          value={`${spec!.rateLimitBudget} req/min`}
-        />
-      )}
 
       {/* JIT provisioning fields */}
       {!spec?.isSsoProvider && spec?.autoProvisionAccounts && (

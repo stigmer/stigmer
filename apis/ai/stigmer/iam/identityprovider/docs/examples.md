@@ -41,10 +41,11 @@ spec:
     - "https://planton-staging.us.auth0.com/"
   expected_audience: "https://api.planton.ai/"
   userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
-  rate_limit_budget: 2000
 ```
 
-## Integration With Rate Limiting
+## Just-In-Time Provisioning
+
+Let Stigmer create each user's account on their first sign-in instead of creating accounts ahead of time, and grant every new account a role on the owning organization.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
@@ -60,7 +61,9 @@ spec:
     - "https://auth.partner.example.com/"
   expected_audience: "https://stigmer.partner.example.com/"
   userinfo_endpoint: "https://auth.partner.example.com/userinfo"
-  rate_limit_budget: 500
+  auto_provision_accounts: true
+  auto_grant_on_org: true
+  auto_grant_role: member
 ```
 
 ## CLI: Apply (Create or Update)

@@ -21,8 +21,8 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 - [ ] Each entry in `spec.allowed_issuers` exactly matches the `iss` claim in tokens from this provider (copy directly from the provider's OIDC discovery document)
 - [ ] `spec.expected_audience` exactly matches the `aud` claim in tokens (copy directly from the provider's configuration)
 - [ ] `spec.expected_audience` is your organization's own registration at the issuer (an API identifier or client ID), not a value shared with others
-- [ ] `spec.userinfo_endpoint` is an HTTPS URL pointing to the OIDC UserInfo endpoint
-- [ ] `spec.userinfo_endpoint` accepts a Bearer token and returns standard OIDC profile claims
+- [ ] `spec.userinfo_endpoint`, if set, is an HTTPS URL pointing to the OIDC UserInfo endpoint
+- [ ] `spec.userinfo_endpoint`, if set, accepts a Bearer token and returns standard OIDC profile claims
 
 ### Authorization
 
@@ -32,7 +32,7 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 
 ### Mismatched `allowed_issuers`
 
-The `iss` claim in the token must **exactly** match one of the values in `allowed_issuers`. A trailing slash mismatch will cause all token exchanges to fail.
+The `iss` claim in the token must **exactly** match one of the values in `allowed_issuers`. A trailing slash mismatch will cause every sign-in through this provider to fail.
 
 ```yaml
 # Wrong — missing trailing slash; Auth0 always includes one
@@ -80,7 +80,7 @@ jwks_uri: "https://auth.example.com/.well-known/jwks.json"
 
 ### Registering a Non-Public JWKS Endpoint
 
-The `jwks_uri` must be reachable from Stigmer's servers. Private network URLs (e.g., `https://internal.example.com/jwks`) will cause all token exchange attempts to fail with a key-fetch error.
+The `jwks_uri` must be reachable from Stigmer's servers. Private network URLs (e.g., `https://internal.example.com/jwks`) will cause every sign-in through this provider to fail with a key-fetch error.
 
 ### Using the Wrong Endpoint for `userinfo_endpoint`
 
@@ -92,8 +92,8 @@ For Auth0, the UserInfo endpoint is always `https://{tenant}.auth0.com/userinfo`
 
 Deleting an IdentityProvider that still has platform-managed organizations referencing it is blocked. Reassign or remove those references before deletion.
 
-If you delete an IdentityProvider while federated accounts exist for it, those accounts remain in the system but can no longer authenticate via token exchange (since the provider configuration is gone).
+If you delete an IdentityProvider while federated accounts exist for it, those accounts remain in the system but can no longer sign in (since the provider configuration is gone).
 
-### Setting `rate_limit_budget` Too Low
+### Expecting `rate_limit_budget` to Throttle
 
-The rate limit budget is shared across all organizations using the provider. If multiple high-traffic integrations share the same IdentityProvider, a low budget can cause token exchange failures under load. Set to `0` for no limit unless throttling is intentional.
+No server enforces `rate_limit_budget`. A value is accepted and stored, and it has no effect on sign-in or on request rates, so do not rely on it to protect a downstream service.
