@@ -67,15 +67,17 @@ The presence of a `feat` commit is not a minor bump. Judge the change:
   used it; the release notes name every removed surface under Upgrading so a
   consumer who did use it learns at the release, not the build. The Project
   kind's removal set the precedent.
-- **minor, with an Upgrading section, before launch** (ruled 2026-10-03; ends
-  the day the platform launches): a proto field, message or RPC is renamed, or a
-  field removed, to reshape the contract while no consumer outside Stigmer's
-  maintainers builds on it. The Upgrading section names every renamed field with
-  its new name and every removed one, and the Go module keeps its major. The
-  contract is being remade in several steps before launch, and grading each as a
-  major would move every Go import path once per step for no consumer's benefit.
-  A release that renames a surface a known outside consumer uses is a major, as
-  above.
+- **minor, with an Upgrading section, before launch** (ruled 2026-10-03): a
+  proto field, message or RPC is renamed, or a field removed, to reshape the
+  contract, and no consumer outside Stigmer's maintainers is known to use the
+  renamed or removed surface. The Upgrading section names every renamed field,
+  message and RPC with its new name, and every removed field, and the Go module
+  keeps its major. The contract is being remade in several steps before launch,
+  and grading each as a major would move every Go import path once per step for
+  no consumer's benefit. A release that renames or removes a surface a known
+  outside consumer uses is a major, as above. The rule ends with the first
+  release whose notes announce general availability; that release's pull request
+  deletes this bullet.
 - **minor**: a new capability that expands what users or platform builders can
   do: a new API resource, a new CLI command, a new SDK domain, a product-level
   feature. The bar: would this earn a section in release notes that makes
