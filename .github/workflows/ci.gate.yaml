@@ -35,9 +35,11 @@
 #
 # A merge-queue entry may reuse its pull request's run (#1708). When the
 # queue's base is an ancestor of the pull request's head, the queue commit's
-# tree is the head's, and the head's newest `Gate` passed, the queue would
-# test the very tree that run tested: the head contained every `main` the run
-# could have merged onto, so its merge ref was the head's tree. The same tree
+# tree is the head's, the pull request was never retargeted, and the newest
+# `Gate` of this workflow's pull-request runs on the head passed, the queue
+# would test the very tree that run tested: the head contained every `main`
+# the run could have merged onto, so its merge ref was the head's tree. A
+# `Gate` check another workflow reports is never reused. The same tree
 # is the same input, these workflow files included, and nothing here reads
 # the pull request's body (`Test integrity` does, and runs again in the
 # queue). The selection then needs no lane and outputs `reused`, `coverage`
@@ -105,11 +107,14 @@ jobs:
       upgrade-rehearsal: ${{ steps.select.outputs.upgrade-rehearsal }}
       workflows: ${{ steps.select.outputs.workflows }}
       reused: ${{ steps.select.outputs.reused }}
-    # Only a merge-queue entry reads GitHub: the pull request's head, the two
-    # trees, the compare and the head's `Gate` check runs.
+    # Only a merge-queue entry reads GitHub: the pull request's head and
+    # timeline, the two trees, the compare, this workflow's runs on the head
+    # and the head's `Gate` check runs.
     permissions:
-      contents: read
+      actions: read
       checks: read
+      contents: read
+      issues: read
       pull-requests: read
     steps:
       # Full commit graph, no blobs: the selection diffs trees against the

@@ -10,8 +10,10 @@
 // did not pass: each is red), the merge-queue reuse (a queue entry repeats a
 // passed pull-request run only when the queue's base is in the head, the
 // trees match and the head's newest `Gate` passed; anything unread or
-// otherwise runs the lanes; a reused verdict passes only when every lane and
-// coverage skipped), and
+// otherwise runs the lanes, as do a retargeted pull request and a `Gate`
+// check from another workflow; the reads map GitHub's answers and turn a
+// failed or unparsable one into null; a reused verdict passes only when every
+// lane and coverage skipped), and
 // the structure, read from the workflow files as they are. A lane that left
 // the gate, a gate job whose condition drifted from the map, a lane that
 // kept its own trigger or concurrency, or a lane without the gate's test
@@ -31,8 +33,10 @@ import {
   EVERY_LANE,
   GATE_CHECK,
   GATE_JOBS,
+  GATE_WORKFLOW,
   LANES,
   laneId,
+  queueFacts,
   queuePullNumber,
   queueReuse,
   selectionSummary,
@@ -201,8 +205,9 @@ test("the verdict is red unless the coverage job passed, whichever lanes ran, un
 
 const RUN = "https://github.com/stigmer/stigmer/actions/runs/1/job/2";
 const TREE = "a".repeat(40);
-const passed = { app: "github-actions", status: "completed", conclusion: "success", startedAt: "2026-10-02T10:00:00Z", url: RUN };
-const repeat = { groupTree: TREE, headTree: TREE, compareStatus: "ahead", checkRuns: [passed] };
+const SUITE = 100222223371;
+const passed = { app: "github-actions", suite: SUITE, status: "completed", conclusion: "success", startedAt: "2026-10-02T10:00:00Z", url: RUN };
+const repeat = { groupTree: TREE, headTree: TREE, compareStatus: "ahead", retargeted: false, gateSuites: [SUITE], checkRuns: [passed] };
 
 test("the queue ref names its pull request, and nothing else does", () => {
   const sha = "f5079c1738b510e92150fadd2881fcaa04e7ec16";
@@ -213,11 +218,12 @@ test("the queue ref names its pull request, and nothing else does", () => {
   }
 });
 
-test("a queue entry reuses its pull request's run only when the base is in the head, the trees match and the newest Gate passed", () => {
+test("a queue entry reuses its pull request's run only when the base is in the head, the trees match, the base never moved and this gate's newest Gate passed", () => {
   assert.equal(GATE_CHECK, "Gate", "the ruleset's required check");
+  assert.equal(GATE_WORKFLOW, ".github/workflows/ci.gate.yaml");
   const reused = queueReuse(repeat);
   assert.equal(reused.reused, RUN);
-  assert.match(reused.reason, /tree is the pull request head's, which contains the queue's base, and its newest `Gate` passed/);
+  assert.match(reused.reason, /tree is the pull request head's, which contains the queue's base; the pull request was never retargeted; and the newest `Gate` of \.github\/workflows\/ci\.gate\.yaml's pull-request runs on it passed/);
   assert.equal(queueReuse({ ...repeat, compareStatus: "identical" }).reused, RUN, "a head that is the base itself");
 });
 
@@ -226,12 +232,17 @@ test("an entry behind another, a moved head, a red or unfinished Gate, or anythi
     [{ compareStatus: "diverged" }, /does not contain the queue's base \(compare: diverged\)/],
     [{ compareStatus: "behind" }, /does not contain the queue's base/],
     [{ groupTree: "b".repeat(40) }, /tree bbbbbbbbbbbb is not the pull request head's aaaaaaaaaaaa/],
-    [{ checkRuns: [] }, /has no `Gate` run/],
+    [{ checkRuns: [] }, /has no `Gate` from/],
     [{ checkRuns: [{ ...passed, conclusion: "failure" }] }, /newest `Gate` is failure/],
     [{ checkRuns: [{ ...passed, status: "in_progress", conclusion: null }] }, /newest `Gate` is in_progress/],
     [{ checkRuns: [passed, { ...passed, conclusion: "failure", startedAt: "2026-10-02T11:00:00Z" }] }, /newest `Gate` is failure/],
     [{ checkRuns: [passed, { ...passed, status: "queued", conclusion: null, startedAt: null }] }, /newest `Gate` is queued/],
-    [{ checkRuns: [{ ...passed, app: "someone-else" }] }, /has no `Gate` run/],
+    [{ checkRuns: [{ ...passed, app: "someone-else" }] }, /has no `Gate` from \.github\/workflows\/ci\.gate\.yaml's pull-request runs/],
+    [{ checkRuns: [{ ...passed, suite: 7 }] }, /has no `Gate` from/],
+    [{ checkRuns: [{ ...passed, conclusion: "failure" }, { ...passed, suite: 7, startedAt: "2026-10-02T12:00:00Z" }] }, /newest `Gate` is failure/],
+    [{ retargeted: true }, /base was changed, so a run before that merged onto another base/],
+    [{ retargeted: null }, /base changes could not be read/],
+    [{ gateSuites: null }, /`Gate` runs could not be read/],
     [{ compareStatus: null }, /could not be compared/],
     [{ groupTree: null }, /a tree could not be read/],
     [{ headTree: null }, /a tree could not be read/],
@@ -244,6 +255,72 @@ test("an entry behind another, a moved head, a red or unfinished Gate, or anythi
   }
   const olderRed = queueReuse({ ...repeat, checkRuns: [{ ...passed, conclusion: "failure", startedAt: "2026-10-02T09:00:00Z" }, passed] });
   assert.equal(olderRed.reused, RUN, "the newest run decides, as a rerun's green does");
+});
+
+test("a Gate job of another workflow on the head, newer and green, is never the run reused", () => {
+  const impostor = { ...passed, suite: 7, startedAt: "2026-10-02T12:00:00Z", url: "https://example.invalid/impostor" };
+  assert.equal(queueReuse({ ...repeat, checkRuns: [passed, impostor] }).reused, RUN);
+  assert.equal(queueReuse({ ...repeat, checkRuns: [impostor] }).reused, null);
+});
+
+/** A fake `gh api` answering each call by its first argument's path, or throwing for an unknown one. */
+function fakeGh(answers) {
+  const calls = [];
+  const gh = (args) => {
+    calls.push(args);
+    const path = args[0].split("?")[0];
+    const answer = answers[path];
+    if (answer === undefined || answer instanceof Error) throw answer ?? new Error(`no answer for ${path}`);
+    return answer;
+  };
+  return { gh, calls };
+}
+
+const HEAD = "4845fb4a6f746ff16cdc27cad8c82e9abb20475c";
+const BASE = "aeb33121c" + "0".repeat(31);
+const GROUP = { head_ref: `refs/heads/gh-readonly-queue/main/pr-1695-${BASE}`, base_sha: BASE, head_sha: "c".repeat(40) };
+const ENV = { GITHUB_REPOSITORY: "stigmer/stigmer" };
+const ANSWERS = {
+  "repos/stigmer/stigmer/pulls/1695": HEAD,
+  [`repos/stigmer/stigmer/git/commits/${"c".repeat(40)}`]: TREE,
+  [`repos/stigmer/stigmer/git/commits/${HEAD}`]: TREE,
+  [`repos/stigmer/stigmer/compare/${BASE}...${HEAD}`]: "ahead",
+  "repos/stigmer/stigmer/issues/1695/timeline": "0\n0",
+  "repos/stigmer/stigmer/actions/runs": JSON.stringify([SUITE]),
+  [`repos/stigmer/stigmer/commits/${HEAD}/check-runs`]: JSON.stringify([passed]),
+};
+
+test("the reads ask GitHub for each fact and hand the rule exactly what it judges", () => {
+  const { gh, calls } = fakeGh(ANSWERS);
+  const facts = queueFacts(ENV, GROUP, gh);
+  assert.deepEqual(facts, repeat);
+  assert.equal(queueReuse(facts).reused, RUN);
+  const byPath = Object.fromEntries(calls.map((args) => [args[0].split("?")[0], args]));
+  assert.match(byPath["repos/stigmer/stigmer/actions/runs"][0], new RegExp(`head_sha=${HEAD}&event=pull_request`));
+  assert.match(byPath["repos/stigmer/stigmer/actions/runs"].at(-1), /select\(\.path == "\.github\/workflows\/ci\.gate\.yaml"\) \| \.check_suite_id/);
+  assert.match(byPath[`repos/stigmer/stigmer/commits/${HEAD}/check-runs`][0], /check_name=Gate/);
+  assert.match(byPath[`repos/stigmer/stigmer/commits/${HEAD}/check-runs`].at(-1), /suite: \.check_suite\.id/);
+  assert.ok(byPath["repos/stigmer/stigmer/issues/1695/timeline"].includes("--paginate"), "a long timeline is read whole");
+});
+
+test("a failed or unparsable read leaves its fact null, and a missing pull request leaves every fact null", () => {
+  const nulls = { groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateSuites: null, checkRuns: null };
+  for (const [path, answer, field] of [
+    [`repos/stigmer/stigmer/compare/${BASE}...${HEAD}`, new Error("HTTP 404"), "compareStatus"],
+    ["repos/stigmer/stigmer/issues/1695/timeline", new Error("HTTP 403"), "retargeted"],
+    ["repos/stigmer/stigmer/actions/runs", "not json", "gateSuites"],
+    ["repos/stigmer/stigmer/actions/runs", "{}", "gateSuites"],
+    [`repos/stigmer/stigmer/commits/${HEAD}/check-runs`, new Error("HTTP 403"), "checkRuns"],
+    [`repos/stigmer/stigmer/git/commits/${HEAD}`, "", "headTree"],
+  ]) {
+    const facts = queueFacts(ENV, GROUP, fakeGh({ ...ANSWERS, [path]: answer }).gh);
+    assert.equal(facts[field], null, `${path} -> ${field}`);
+    assert.equal(queueReuse(facts).reused, null, `${path}: an unread fact never reuses`);
+  }
+  assert.deepEqual(queueFacts(ENV, GROUP, fakeGh({ ...ANSWERS, "repos/stigmer/stigmer/pulls/1695": new Error("HTTP 404") }).gh), nulls);
+  assert.deepEqual(queueFacts(ENV, { ...GROUP, head_ref: "main" }, fakeGh(ANSWERS).gh), nulls);
+  assert.deepEqual(queueFacts(ENV, undefined, fakeGh(ANSWERS).gh), nulls);
+  assert.equal(queueFacts(ENV, GROUP, fakeGh({ ...ANSWERS, "repos/stigmer/stigmer/issues/1695/timeline": "0\n1" }).gh).retargeted, true, "a retarget on a later page counts");
 });
 
 test("a reused selection runs no lane, the always-run lane included, whatever changed", () => {
@@ -316,7 +393,7 @@ test("each lane job runs exactly when the selection says so, and Gate needs them
 test("only the selection reads GitHub, read-only, and it hands Gate the run it reused", () => {
   const lanes = gate.jobs.lanes;
   assert.equal(lanes.outputs.reused, "${{ steps.select.outputs.reused }}");
-  assert.deepEqual(lanes.permissions, { contents: "read", checks: "read", "pull-requests": "read" });
+  assert.deepEqual(lanes.permissions, { actions: "read", checks: "read", contents: "read", issues: "read", "pull-requests": "read" });
   assert.deepEqual(gate.permissions, { contents: "read" }, "every other job keeps the workflow's read-only contents");
   const tokened = Object.entries(gate.jobs).flatMap(([id, job]) => (job.steps ?? []).filter((step) => step.env?.GH_TOKEN !== undefined).map((step) => `${id}/${step.id ?? step.name}`));
   assert.deepEqual(tokened, ["lanes/select"], "the token reaches the selection's step alone");
