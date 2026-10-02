@@ -151,7 +151,7 @@ Feature requests are welcome! Please include:
 1. **Automated checks** run on all PRs. Three are required: `Gate` (every lane your change needs: tests, linting, build), `Test integrity` and `Review verdict`; CodeQL's high-severity security alerts and errors also block a merge. Your tests must keep the rules in [`test/README.md`](test/README.md#the-rules-every-test-keeps); a removed, skipped or quarantined test is declared in the PR body, as that section shows.
 2. **Review** (usually within 2-3 business days). The review verdict is a comment, posted by an account with write access, for a reviewer who did not write the PR, and bound to the change and the declarations it read; a push that changes the change, or an edited declaration, needs a new verdict.
 3. **Address feedback** if requested
-4. **Merge** through the merge queue: it runs `Gate` and the tree rules of `Test integrity` again on the exact commit it lands, and merges only when they pass. The verdict and the change rules are read on the PR itself.
+4. **Merge** through the merge queue: it runs `Gate` and the tree rules of `Test integrity` again on the exact commit it lands, and merges only when they pass. When that commit's tree is the PR head's and the head's own `Gate` passed against the same base, the queue reuses that verdict instead of running every lane again ([`scripts/ci-lanes.mjs`](scripts/ci-lanes.mjs) has the conditions). The verdict and the change rules are read on the PR itself.
 
 ### Working with coding agents
 

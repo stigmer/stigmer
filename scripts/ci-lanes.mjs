@@ -498,19 +498,22 @@ export const GATE_WORKFLOW = ".github/workflows/ci.gate.yaml";
  *   - `compareStatus`: `compare/<queue base>...<head>`, `ahead` or
  *     `identical` when the base is an ancestor of the head;
  *   - `pull`, `base`: the pull request and base branch the queue ref names;
+ *   - `pullCreatedAt`: when that pull request was opened;
  *   - `retargeted`: whether the pull request's base was ever changed
  *     (`RETARGET_EVENTS`);
  *   - `gateRuns`: the head's pull-request workflow runs, `{ path, suite,
- *     pullRequests: [{ number, base }] }`. GitHub lists every open pull
- *     request whose head matches a run, not the one that started it, so a
- *     run counts only when it is this workflow's, names this pull request,
- *     and names no pull request against another base: otherwise it may have
- *     merged onto that base;
+ *     createdAt, pullRequests: [{ number, base }] }`. GitHub lists every
+ *     open pull request whose head matches a run, not the one that started
+ *     it, and drops a closed one, so a run counts only when it is this
+ *     workflow's, names this pull request, names no pull request against
+ *     another base, and started after this pull request was opened:
+ *     otherwise another pull request, perhaps against another base and since
+ *     closed, may have started it;
  *   - `checkRuns`: the head's `Gate` check runs, `{ app, suite, status,
  *     conclusion, startedAt, url }`.
  * Returns `{ reused: <run url> | null, reason }`.
  */
-export function queueReuse({ pull, base, groupTree, headTree, compareStatus, retargeted, gateRuns, checkRuns }) {
+export function queueReuse({ pull, base, pullCreatedAt, groupTree, headTree, compareStatus, retargeted, gateRuns, checkRuns }) {
   const no = (reason) => ({ reused: null, reason });
   if (compareStatus === null) return no("the queue's base could not be compared with the pull request's head");
   if (compareStatus !== "ahead" && compareStatus !== "identical") {
@@ -522,7 +525,14 @@ export function queueReuse({ pull, base, groupTree, headTree, compareStatus, ret
   if (retargeted) return no("the pull request's base was changed, so a run before that merged onto another base");
   if (gateRuns === null || checkRuns === null) return no(`the pull request head's \`${GATE_CHECK}\` runs could not be read`);
   const gateSuites = gateRuns
-    .filter((run) => run.path === GATE_WORKFLOW && run.pullRequests.some((pr) => pr.number === pull) && run.pullRequests.every((pr) => pr.base === base))
+    .filter(
+      (run) =>
+        run.path === GATE_WORKFLOW &&
+        run.pullRequests.some((pr) => pr.number === pull) &&
+        run.pullRequests.every((pr) => pr.base === base) &&
+        typeof pullCreatedAt === "string" &&
+        String(run.createdAt) >= pullCreatedAt,
+    )
     .map((run) => run.suite);
   const newest = checkRuns
     .filter((run) => run.app === "github-actions" && gateSuites.includes(run.suite))
@@ -686,15 +696,20 @@ export function queueFacts(env, group, gh = ghApi, warn = (line) => console.erro
     }
   };
   const ref = queueRef(group?.head_ref);
-  const unknown = { pull: ref?.pull ?? null, base: ref?.base ?? null, groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateRuns: null, checkRuns: null };
+  const unknown = { pull: ref?.pull ?? null, base: ref?.base ?? null, pullCreatedAt: null, groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateRuns: null, checkRuns: null };
   if (ref === null || !group?.base_sha || !group?.head_sha) return unknown;
   const { pull, base } = ref;
   const word = (text) => {
     if (!/^\S+$/.test(text)) throw new Error(`not one value: ${JSON.stringify(text)}`);
     return text;
   };
-  const headSha = read([`repos/${repo}/pulls/${pull}`, "--jq", ".head.sha"], word);
-  if (headSha === null) return unknown;
+  const opened = read([`repos/${repo}/pulls/${pull}`, "--jq", '.head.sha + " " + .created_at'], (text) => {
+    const [sha, createdAt, ...rest] = text.split(" ");
+    if (rest.length > 0 || !/^[0-9a-f]{40}$/.test(sha ?? "") || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(createdAt ?? "")) throw new Error(`not a head and a time: ${JSON.stringify(text)}`);
+    return { sha, createdAt };
+  });
+  if (opened === null) return unknown;
+  const headSha = opened.sha;
   const tree = (sha) => read([`repos/${repo}/git/commits/${sha}`, "--jq", ".tree.sha"], word);
   const list = (text) => {
     const value = JSON.parse(text);
@@ -710,12 +725,13 @@ export function queueFacts(env, group, gh = ghApi, warn = (line) => console.erro
   return {
     pull,
     base,
+    pullCreatedAt: opened.createdAt,
     groupTree: tree(group.head_sha),
     headTree: tree(headSha),
     compareStatus: read([`repos/${repo}/compare/${group.base_sha}...${headSha}`, "--jq", ".status"], word),
     retargeted: read([`repos/${repo}/issues/${pull}/timeline?per_page=100`, "--paginate", "--jq", `[.[] | select(.event | IN(${retargets}))] | length`], counts),
     gateRuns: read(
-      [`repos/${repo}/actions/runs?head_sha=${headSha}&event=pull_request&per_page=100`, "--jq", "[.workflow_runs[] | {path, suite: .check_suite_id, pullRequests: [.pull_requests[] | {number, base: .base.ref}]}]"],
+      [`repos/${repo}/actions/runs?head_sha=${headSha}&event=pull_request&per_page=100`, "--jq", "[.workflow_runs[] | {path, suite: .check_suite_id, createdAt: .created_at, pullRequests: [.pull_requests[] | {number, base: .base.ref}]}]"],
       list,
     ),
     checkRuns: read(

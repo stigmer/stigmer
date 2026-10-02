@@ -9,7 +9,9 @@
 # `Review verdict` (ci.review.yaml) are the required checks on `main`, for
 # everyone, through the merge queue: the queue runs this workflow again on the
 # exact commit it will land, on top of `main` and every entry ahead of it, and
-# lands that commit only if `Gate` passed there.
+# lands that commit only if `Gate` passed there. When that commit's tree is one
+# its pull request's `Gate` already passed, the run reuses that verdict
+# instead of running the lanes again (below).
 #
 # Why one workflow. A lane that decided for itself whether to run could not be
 # required: a lane whose filter did not match never created its check, and a
@@ -135,7 +137,8 @@ jobs:
       - name: Select the lanes
         id: select
         env:
-          GH_TOKEN: ${{ github.token }}
+          # A pull-request run reads nothing, so it gets no token.
+          GH_TOKEN: ${{ github.event_name == 'merge_group' && github.token || '' }}
         run: node scripts/ci-lanes.mjs
 
   all-in-one:

@@ -208,8 +208,9 @@ const RUN = "https://github.com/stigmer/stigmer/actions/runs/1/job/2";
 const TREE = "a".repeat(40);
 const SUITE = 100222223371;
 const passed = { app: "github-actions", suite: SUITE, status: "completed", conclusion: "success", startedAt: "2026-10-02T10:00:00Z", url: RUN };
-const ourRun = { path: ".github/workflows/ci.gate.yaml", suite: SUITE, pullRequests: [{ number: 1695, base: "main" }] };
-const repeat = { pull: 1695, base: "main", groupTree: TREE, headTree: TREE, compareStatus: "ahead", retargeted: false, gateRuns: [ourRun], checkRuns: [passed] };
+const OPENED = "2026-10-01T08:00:00Z";
+const ourRun = { path: ".github/workflows/ci.gate.yaml", suite: SUITE, createdAt: "2026-10-02T09:59:00Z", pullRequests: [{ number: 1695, base: "main" }] };
+const repeat = { pull: 1695, base: "main", pullCreatedAt: OPENED, groupTree: TREE, headTree: TREE, compareStatus: "ahead", retargeted: false, gateRuns: [ourRun], checkRuns: [passed] };
 
 test("the queue ref names its pull request and base branch, and nothing else does", () => {
   const sha = "f5079c1738b510e92150fadd2881fcaa04e7ec16";
@@ -251,6 +252,8 @@ test("an entry behind another, a moved head, a red or unfinished Gate, or anythi
     [{ gateRuns: [{ ...ourRun, pullRequests: [{ number: 1700, base: "main" }] }] }, /has no `Gate` from/],
     [{ gateRuns: [{ ...ourRun, pullRequests: [{ number: 1695, base: "main" }, { number: 1701, base: "release" }] }] }, /has no `Gate` from/],
     [{ gateRuns: [{ ...ourRun, pullRequests: [{ number: 1695, base: "release" }] }] }, /has no `Gate` from/],
+    [{ gateRuns: [{ ...ourRun, createdAt: "2026-10-01T07:59:59Z" }] }, /has no `Gate` from/],
+    [{ pullCreatedAt: null }, /has no `Gate` from/],
     [{ compareStatus: null }, /could not be compared/],
     [{ groupTree: null }, /a tree could not be read/],
     [{ headTree: null }, /a tree could not be read/],
@@ -270,6 +273,12 @@ test("a run GitHub lists for this pull request and others against the same base 
   assert.equal(queueReuse({ ...repeat, gateRuns: [shared] }).reused, RUN, "every listed pull request merges onto main, so the run's merge ref was the head's tree");
   const mixed = { ...ourRun, pullRequests: [{ number: 1702, base: "release" }, { number: 1695, base: "main" }] };
   assert.equal(queueReuse({ ...repeat, gateRuns: [mixed] }).reused, null, "the run may have been the other pull request's, merged onto another base");
+});
+
+test("a run started before this pull request was opened is never reused: GitHub drops a closed pull request from a run's list", () => {
+  const before = { ...ourRun, createdAt: "2026-09-30T12:00:00Z" };
+  assert.equal(queueReuse({ ...repeat, gateRuns: [before] }).reused, null, "a stacked pull request against another base, closed and reopened against main with no push, left this run");
+  assert.equal(queueReuse({ ...repeat, gateRuns: [{ ...ourRun, createdAt: OPENED }] }).reused, RUN, "a run started the moment it was opened is its own");
 });
 
 test("a Gate job of another workflow on the head, newer and green, is never the run reused", () => {
@@ -296,7 +305,7 @@ const BASE = "aeb33121c" + "0".repeat(31);
 const GROUP = { head_ref: `refs/heads/gh-readonly-queue/main/pr-1695-${BASE}`, base_sha: BASE, head_sha: "c".repeat(40) };
 const ENV = { GITHUB_REPOSITORY: "stigmer/stigmer" };
 const ANSWERS = {
-  "repos/stigmer/stigmer/pulls/1695": HEAD,
+  "repos/stigmer/stigmer/pulls/1695": `${HEAD} ${OPENED}`,
   [`repos/stigmer/stigmer/git/commits/${"c".repeat(40)}`]: TREE,
   [`repos/stigmer/stigmer/git/commits/${HEAD}`]: TREE,
   [`repos/stigmer/stigmer/compare/${BASE}...${HEAD}`]: "ahead",
@@ -316,7 +325,7 @@ test("the reads ask GitHub for each fact and hand the rule exactly what it judge
   assert.match(byPath["repos/stigmer/stigmer/actions/runs"][0], new RegExp(`head_sha=${HEAD}&event=pull_request`));
   assert.equal(
     byPath["repos/stigmer/stigmer/actions/runs"].at(-1),
-    "[.workflow_runs[] | {path, suite: .check_suite_id, pullRequests: [.pull_requests[] | {number, base: .base.ref}]}]",
+    "[.workflow_runs[] | {path, suite: .check_suite_id, createdAt: .created_at, pullRequests: [.pull_requests[] | {number, base: .base.ref}]}]",
     "every run comes back with its path and the pull requests GitHub lists for it; the rule, not the query, decides which count",
   );
   assert.deepEqual(RETARGET_EVENTS, ["base_ref_changed", "automatic_base_change_succeeded"], "GitHub's own retarget after a base branch is deleted records only the second");
@@ -327,7 +336,7 @@ test("the reads ask GitHub for each fact and hand the rule exactly what it judge
 });
 
 test("a failed or unparsable read leaves its fact null, and a missing pull request leaves every fact null", () => {
-  const nulls = { pull: 1695, base: "main", groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateRuns: null, checkRuns: null };
+  const nulls = { pull: 1695, base: "main", pullCreatedAt: null, groupTree: null, headTree: null, compareStatus: null, retargeted: null, gateRuns: null, checkRuns: null };
   for (const [path, answer, field] of [
     [`repos/stigmer/stigmer/compare/${BASE}...${HEAD}`, new Error("HTTP 404"), "compareStatus"],
     ["repos/stigmer/stigmer/issues/1695/timeline", new Error("HTTP 403"), "retargeted"],
@@ -351,7 +360,9 @@ test("a failed or unparsable read leaves its fact null, and a missing pull reque
   queueFacts(ENV, GROUP, fakeGh({ ...ANSWERS, "repos/stigmer/stigmer/actions/runs": denied }).gh, (line) => warnings.push(line));
   assert.deepEqual(warnings, ["ci-lanes: queue reuse could not read repos/stigmer/stigmer/actions/runs?head_sha=" + HEAD + "&event=pull_request&per_page=100: gh: Resource not accessible by integration (HTTP 403)"], "the warning carries gh's own first line");
   assert.deepEqual(queueFacts(ENV, GROUP, fakeGh({ ...ANSWERS, "repos/stigmer/stigmer/pulls/1695": new Error("HTTP 404") }).gh, quiet), nulls);
-  assert.deepEqual(queueFacts(ENV, GROUP, fakeGh({ ...ANSWERS, "repos/stigmer/stigmer/pulls/1695": "" }).gh, quiet), nulls, "an empty head is no head");
+  for (const answer of ["", HEAD, `${HEAD} yesterday`, `abc ${OPENED}`, `${HEAD} ${OPENED} extra`]) {
+    assert.deepEqual(queueFacts(ENV, GROUP, fakeGh({ ...ANSWERS, "repos/stigmer/stigmer/pulls/1695": answer }).gh, quiet), nulls, `a pull request read as ${JSON.stringify(answer)} is unread`);
+  }
   const noRef = { ...nulls, pull: null, base: null };
   assert.deepEqual(queueFacts(ENV, { ...GROUP, head_ref: "main" }, fakeGh(ANSWERS).gh, quiet), noRef);
   assert.deepEqual(queueFacts(ENV, undefined, fakeGh(ANSWERS).gh, quiet), noRef);
@@ -432,6 +443,7 @@ test("only the selection reads GitHub, read-only, and it hands Gate the run it r
   assert.deepEqual(gate.permissions, { contents: "read" }, "every other job keeps the workflow's read-only contents");
   const tokened = Object.entries(gate.jobs).flatMap(([id, job]) => (job.steps ?? []).filter((step) => step.env?.GH_TOKEN !== undefined).map((step) => `${id}/${step.id ?? step.name}`));
   assert.deepEqual(tokened, ["lanes/select"], "the token reaches the selection's step alone");
+  assert.equal(lanes.steps.find((step) => step.id === "select").env.GH_TOKEN, "${{ github.event_name == 'merge_group' && github.token || '' }}", "and only on a merge-queue entry: a pull-request run reads nothing, and its code gets no token");
   assert.equal(lanes.steps.find((step) => step.id === "select").run, "node scripts/ci-lanes.mjs");
 });
 
