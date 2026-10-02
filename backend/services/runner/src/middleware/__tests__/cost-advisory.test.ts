@@ -12,7 +12,9 @@
  * NEXT model call carries the warning, as a user-role advisory after that
  * request's last message. It rides that one call: the conversation's
  * following call carries none, no hook writes the graph's state, and the
- * parent's `beforeAgent` starts a new message with nothing to say. The
+ * parent's `beforeAgent` starts the run over (the total, the crossing, the
+ * call count and the parent's own told flag), so a new message has nothing
+ * to say. The
  * request through the real Anthropic conversion is
  * `shared/__tests__/advisory-anthropic-payload.test.ts`.
  *
@@ -219,7 +221,7 @@ describe("CostAdvisoryMiddleware", () => {
       expect(advisoryOf(await callModel(parent, NO_USAGE)), "the parent, whose call crossed").toContain("Budget warning");
     });
 
-    it("a second invocation starting while the first runs never takes the warning from the parent", async () => {
+    it("a later invocation's start does not drop the warning, and the parent is still told", async () => {
       const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
       const child = parent.forSubAgent();
       // Two invocations of one sub-agent run at once, sharing its view: the
@@ -242,6 +244,21 @@ describe("CostAdvisoryMiddleware", () => {
       expect(spentIn(childCopy)).toBe("0.0900");
       expect(spentIn(parentCopy), "the parent's copy, read later, quotes the later total").toBe("0.0930");
       expect(spentIn(parentCopy)).toBe(parent.runningCost.toFixed(4));
+    });
+
+    it("two different sub-agents running at once are each told once after either crosses", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+      const reader = parent.forSubAgent();
+      const writer = parent.forSubAgent();
+      // The parent delegates to both in one message: both start, then the reader's call crosses.
+      reader.beforeAgent!({}, {});
+      writer.beforeAgent!({}, {});
+      await callModel(reader, responseWithUsage(1000, 500));
+      expect(advisoryOf(await callModel(reader, NO_USAGE)), "the sub-agent that crossed").toContain("Budget warning");
+      expect(advisoryOf(await callModel(writer, NO_USAGE)), "its sibling, which has its own view").toContain("Budget warning");
+      expect(advisoryOf(await callModel(reader, NO_USAGE)), "each once").toBeUndefined();
+      expect(advisoryOf(await callModel(writer, NO_USAGE)), "each once").toBeUndefined();
+      expect(advisoryOf(await callModel(parent, NO_USAGE)), "and the parent").toContain("Budget warning");
     });
   });
 
