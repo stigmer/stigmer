@@ -32,27 +32,39 @@ import * as net from "node:net";
 export const UNREACHABLE_HOST_PORT = "127.0.0.1:1";
 
 /**
- * Whether something accepts a TCP connection on `port` at `host` right now: a
- * connect that succeeds within `timeoutMs` is a listener; a refusal, an error
- * or a timeout is none.
+ * What one TCP connect to `port` at `host` met: `open` (something accepted
+ * it), `refused` (the host answered that nothing listens there), or
+ * `unanswered` (a timeout or any other error, which says nothing about the
+ * port either way).
  */
-export function isPortReachable(port: number, host = "127.0.0.1", timeoutMs = 200): Promise<boolean> {
+type PortProbe = "open" | "refused" | "unanswered";
+
+function probePort(port: number, host: string, timeoutMs: number): Promise<PortProbe> {
   return new Promise((resolve) => {
     const socket = net.connect({ port, host, timeout: timeoutMs });
-    const done = (reachable: boolean) => {
+    const done = (probe: PortProbe) => {
       socket.destroy();
-      resolve(reachable);
+      resolve(probe);
     };
-    socket.on("connect", () => done(true));
-    socket.on("error", () => done(false));
-    socket.on("timeout", () => done(false));
+    socket.on("connect", () => done("open"));
+    socket.on("error", (error: NodeJS.ErrnoException) => done(error.code === "ECONNREFUSED" ? "refused" : "unanswered"));
+    socket.on("timeout", () => done("unanswered"));
   });
 }
 
 /**
- * Resolves once nothing accepts connections on `port` at `host`, with how long
- * that took; rejects, naming the port, if something still does after
- * `timeoutMs`. For a harness that hands a fixed port to the next run (the e2e
+ * Whether something accepts a TCP connection on `port` at `host` right now: a
+ * connect that succeeds within `timeoutMs` is a listener; a refusal, an error
+ * or a timeout is none.
+ */
+export async function isPortReachable(port: number, host = "127.0.0.1", timeoutMs = 200): Promise<boolean> {
+  return (await probePort(port, host, timeoutMs)) === "open";
+}
+
+/**
+ * Resolves once `port` at `host` refuses a connection, with how long that
+ * took; rejects, naming the port, if it has not after `timeoutMs` (a probe
+ * that times out is not a refusal). For a harness that hands a fixed port to the next run (the e2e
  * stack's API port), "stopped" then means the port is free, not only that the
  * processes it knew of exited: on 2026-09-30 an e2e teardown reported its
  * stack stopped while `:7234` still answered 4.5 s later, and the next
@@ -67,10 +79,15 @@ export async function waitForPortRefusal(
   const intervalMs = opts.intervalMs ?? 200;
   const started = Date.now();
   for (;;) {
-    if (!(await isPortReachable(port, host))) return Date.now() - started;
+    // Only a refusal proves the port free: a probe that timed out may have met
+    // a listener too busy to accept, so it waits like an open port does.
+    const probe = await probePort(port, host, 200);
+    if (probe === "refused") return Date.now() - started;
     if (Date.now() - started >= timeoutMs) {
       throw new Error(
-        `${host}:${port} still accepts connections after ${timeoutMs} ms`,
+        probe === "open"
+          ? `${host}:${port} still accepts connections after ${timeoutMs} ms`
+          : `${host}:${port} did not refuse a connection within ${timeoutMs} ms (the last probe went unanswered)`,
       );
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));

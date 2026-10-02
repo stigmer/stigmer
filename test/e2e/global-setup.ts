@@ -1,5 +1,3 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
 import { createNodeClient } from "@stigmer/sdk/node";
 import {
   adoptStackFixture,
@@ -17,8 +15,8 @@ import {
   startIssuerProcess,
 } from "./fixtures/oidc";
 import { OAUTH_MCP_STACK, startOAuthMcpFixture } from "./fixtures/oauth-mcp";
+import { writeStackState } from "./fixtures/stack-state";
 
-const STATE_FILE = path.join(import.meta.dirname, ".e2e-server-state.json");
 const API_PORT = Number(process.env.STIGMER_E2E_API_PORT ?? "7234");
 
 // Opt-in deterministic LLM mode for the interactive-approval project. When set,
@@ -87,7 +85,7 @@ async function globalSetup() {
       throw error;
     });
     adoptStackFixture(issuer);
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    writeStackState(state);
     console.log(
       "[e2e] Backend stack ready in the OIDC posture (no organization seeded on purpose)",
     );
@@ -125,7 +123,7 @@ async function globalSetup() {
     });
     adoptStackFixture(fixture);
     state.oauthMcp = ready;
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    writeStackState(state);
     const client = createNodeClient({
       baseUrl: `http://localhost:${API_PORT}`,
       getAccessToken: () => null,
@@ -149,7 +147,7 @@ async function globalSetup() {
   if (!MOCK_LLM && alreadyRunning) {
     console.log(`[e2e] Backend already running on :${API_PORT} — reusing`);
     const state: ServerState = { reused: true };
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    writeStackState(state);
     return;
   }
 
@@ -175,7 +173,7 @@ async function globalSetup() {
     });
     state.mockLlmControlUrl = mock.controlUrl;
     state.fileGateMode = FILE_GATES;
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    writeStackState(state);
 
     // A fresh OSS stack has no organizations, so the web's OrgGate would block
     // every authenticated route on the onboarding screen. Seed the `default`
@@ -196,7 +194,7 @@ async function globalSetup() {
     `[e2e] Backend not detected on :${API_PORT} — starting full stack`,
   );
   const state = await startBackendStack({ apiPort: API_PORT });
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+  writeStackState(state);
 
   // Same rationale as the mock-LLM path above: a fresh OSS stack has no
   // organizations, so the web's OrgGate would park every functional spec
