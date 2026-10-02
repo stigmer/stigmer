@@ -14,7 +14,9 @@
  * What counts as reading a setting. An env object is `process.env`, or an
  * identifier whose declaration (a parameter or a variable) is annotated
  * `NodeJS.ProcessEnv`, the injection seam `shared/runner-credential-store.ts`
- * describes.
+ * describes, or is initialised or defaulted to `process.env` whatever its
+ * type. An env object passed under another name (a call's argument, a
+ * property) is not followed.
  *
  *  1. `E.NAME`, `E["NAME"]` or `const { NAME } = E` on an env object.
  *  2. `E[K]`, where `K` is a string-literal `const` of the same file, or one
@@ -184,18 +186,26 @@ function settingsReadIn(
     if (text !== undefined) constants.set(binding.name, text);
   }
 
+  const isProcessEnv = (node: ts.Node | undefined): boolean =>
+    node !== undefined
+    && ts.isPropertyAccessExpression(node)
+    && ts.isIdentifier(node.expression)
+    && node.expression.text === "process"
+    && node.name.text === "env";
   const envIdentifiers = new Set<string>();
   const collectEnvIdentifiers = (node: ts.Node): void => {
-    if ((ts.isParameter(node) || ts.isVariableDeclaration(node)) && ts.isIdentifier(node.name) && node.type?.getText(sourceFile) === "NodeJS.ProcessEnv") {
+    if (
+      (ts.isParameter(node) || ts.isVariableDeclaration(node))
+      && ts.isIdentifier(node.name)
+      && (node.type?.getText(sourceFile) === "NodeJS.ProcessEnv" || isProcessEnv(node.initializer))
+    ) {
       envIdentifiers.add(node.name.text);
     }
     ts.forEachChild(node, collectEnvIdentifiers);
   };
   collectEnvIdentifiers(sourceFile);
 
-  const isEnvObject = (node: ts.Expression): boolean =>
-    (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "process" && node.name.text === "env")
-    || (ts.isIdentifier(node) && envIdentifiers.has(node.text));
+  const isEnvObject = (node: ts.Expression): boolean => isProcessEnv(node) || (ts.isIdentifier(node) && envIdentifiers.has(node.text));
   const keyOf = (node: ts.Expression | undefined): string | undefined =>
     stringLiteralText(node) ?? (node !== undefined && ts.isIdentifier(node) ? constants.get(node.text) : undefined);
   const lineOf = (node: ts.Node): number => sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
@@ -247,6 +257,11 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a property read on an injected env parameter", "function f(env: NodeJS.ProcessEnv = process.env) { return env.STIGMER_A?.trim(); }"],
     ["a constant key on an injected env parameter", 'const K = "STIGMER_A"; function f(env: NodeJS.ProcessEnv) { return env[K]; }'],
     ["a destructured read", "const { STIGMER_A } = process.env;"],
+    ["a read through an unannotated alias", "const env = process.env; const v = env.STIGMER_A;"],
+    [
+      "a read on a parameter of another type that defaults to process.env",
+      "function f(env: Record<string, string | undefined> = process.env) { return env.STIGMER_A; }",
+    ],
     ["a reader call with a literal", 'const v = getRunnerSecret("STIGMER_A");'],
     ["a reader call with a constant", 'const ENV_VAR = "STIGMER_A"; const v = requireEnv(ENV_VAR);'],
   ])("reads %s", (_label, source) => {
@@ -272,7 +287,7 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a name in a comment", "// process.env.STIGMER_A\nconst v = 1;"],
     ["a name in a string", 'const hint = "process.env.STIGMER_A";'],
     ["a property of an object that is not an env object", "const config = { STIGMER_A: 1 }; const v = config.STIGMER_A;"],
-    ["a parameter typed as a plain record", "function f(env: Record<string, string>) { return env.STIGMER_A; }"],
+    ["a plain-record parameter with no process.env default", "function f(env: Record<string, string>) { return env.STIGMER_A; }"],
   ])("does not read %s", (_label, source) => {
     expect(read(source)).toEqual({ names: [], refused: [], computedIn: [] });
   });
@@ -280,6 +295,7 @@ describe("settingsReadIn (the checker itself)", () => {
   it.each([
     ["a computed key", "function f(name: string) { return process.env[name]; }"],
     ["a computed key on an injected env parameter", "function f(env: NodeJS.ProcessEnv, name: string) { return env[name]; }"],
+    ["a computed key through an unannotated alias", "const env = process.env; export const g = (name: string) => env[name];"],
     ["a reader call with a computed name", "function f(n: string) { return getRunnerSecret(n); }"],
   ])("refuses %s", (_label, source) => {
     const result = read(source);
