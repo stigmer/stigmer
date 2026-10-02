@@ -29,8 +29,10 @@
 # and no estimate; each is one short turn, and the summary names them.
 #
 # Keys: ANTHROPIC_API_KEY and CURSOR_API_KEY from the `provider-integration`
-# environment, which deploys only to `main` (both triggers run on `main`; the
-# tag is only the commit checked out). They reach one step each through
+# environment, which deploys only to `main`. A release run runs on `main` and
+# checks out the tagged commit, which the release job admits only when `main`
+# carries it; a dispatch runs on its own ref, and the environment refuses
+# every ref but `main`. They reach one step each through
 # `env:` and are never printed. STIGMER_LIVE=1 makes a missing key fail the
 # run instead of skipping it (backend/services/runner/src/__test-utils__/live-gate.ts).
 #
