@@ -155,9 +155,10 @@ stop at the first finding.
   declaration is a blocking finding.
 - **Each line switched off.** A comment the diff adds that turns a check off for
   a line (above all a coverage ignore hint: `v8 ignore`, `c8 ignore`,
-  `istanbul ignore`) is judged like a skip, and its reason must be true. A hint
-  over a line a test could reach is a blocking finding, and so is one whose
-  reason describes something other than the line it hides.
+  `istanbul ignore`; or a `// Stryker disable` comment, which takes a line out
+  of the weekly mutation sweep) is judged like a skip, and its reason must be
+  true. A hint over a line a test could reach is a blocking finding, and so is
+  one whose reason describes something other than the line it hides.
 - **The claims.** Does the diff do what the body says, and does the test plan
   quote checks that cover the changed paths?
 - **The guides.** Does the change keep the laws of the root `AGENTS.md` and of

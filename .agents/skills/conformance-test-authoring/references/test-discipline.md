@@ -41,6 +41,8 @@ report states what was tested so others can judge the coverage.
 - Behaviour that differs between the first run and the second.
 - An ignore hint whose reason is not true: a line a test could reach, hidden
   from coverage.
+- A target removed from a mutation sweep's targets file, or its files
+  narrowed, without a reason that is true.
 
 ## The two tests to consider every time
 
