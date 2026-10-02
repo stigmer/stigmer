@@ -17,11 +17,14 @@
  * to do (#662 merged over a red docs lane that way, #688). Here the lane set
  * is explicit: a lane the change needs either passes or fails `Gate`, and the
  * lists live in one place, guarded by scripts/lane-triggers.test.mjs (a list
- * that watches a standalone package must watch everything it links).
+ * that watches a standalone package must watch everything it links, and a
+ * lane must watch every file an action it calls runs).
  *
  * Every lane runs when the gate itself could have changed: this script, the
  * orchestrator, or a composite action the lanes use (`EVERY_LANE`); on a
- * manual dispatch; and when no base can be read. A lane's own workflow file
+ * manual dispatch; and when no base can be read. turbo-affected.mjs counts an
+ * action's folder as workspace tooling, so in the always-run lane every job
+ * that calls the action runs too. A lane's own workflow file
  * is in its own list, so editing one lane runs that lane. Every lane that
  * measures a package (`COVERAGE_LANES`, the lanes the `coverage` job needs)
  * runs when the coverage floors change, so a moved floor is judged against a
@@ -193,10 +196,14 @@ export const LANES = {
       "test/conformance/**",
       "test/support/**",
       "apis/**",
-      // The Temporal CLI the suites run against: its pin, downloader and installer.
+      // The Temporal CLI the suites run against: its pin, downloader, installer
+      // and the errors it exits with (scripts/lane-triggers.test.mjs fails when
+      // one is missing).
       "client-apps/cli/src/local/artifact.ts",
       "client-apps/cli/src/local/temporal/download.ts",
       "client-apps/cli/scripts/install-temporal-cli.ts",
+      "client-apps/cli/src/errors/cli-exit-error.ts",
+      "client-apps/cli/src/errors/exit-codes.ts",
       ".github/workflows/ci.conformance-execution.yaml",
     ],
   },
@@ -258,10 +265,17 @@ export const LANES = {
       "client-apps/web/**",
       "sdk/**",
       "apis/**",
-      // The Temporal CLI the suites run against: its pin, downloader and installer.
+      // The Temporal CLI the suites run against: its pin, downloader, installer
+      // and the errors it exits with (scripts/lane-triggers.test.mjs fails when
+      // one is missing).
       "client-apps/cli/src/local/artifact.ts",
       "client-apps/cli/src/local/temporal/download.ts",
       "client-apps/cli/scripts/install-temporal-cli.ts",
+      "client-apps/cli/src/errors/cli-exit-error.ts",
+      "client-apps/cli/src/errors/exit-codes.ts",
+      // The Chromium every job here installs: .github/actions/playwright-chromium
+      // runs it (scripts/lane-triggers.test.mjs fails when it is missing).
+      "scripts/playwright-chromium.mjs",
       ".nvmrc",
       ".github/workflows/ci.e2e-interactive.yaml",
     ],

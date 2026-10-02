@@ -122,7 +122,8 @@ stop at the first finding.
    are to be checked, not trusted. The test plan quotes each check's summary
    line; `Verify at train` lists what only production can show.
 3. Each declaration in the body (`Test-removal:`, `Quarantine:`, `Skip:`,
-   `RPC-waiver:`), and the integrity tool's report of the change:
+   `RPC-waiver:`, `Coverage-drop:`), and the integrity tool's report of the
+   change:
    `node scripts/test-integrity.mjs --base origin/<base> --pr-body-file <the body saved to a file>`.
    Its `retitled` lines are cases whose titles changed. A retitle is also how a
    real case gets swapped for a trivial one, so read each pair.
@@ -143,18 +144,33 @@ stop at the first finding.
   the change touches, and report as that file says. The `security` field of your
   answer is never empty.
 - **Each declaration.** Is the removal, quarantine or skip justified by its
-  reason, and does a quarantine name an open issue? An unjustified declaration
-  is a blocking finding.
+  reason, and does a quarantine name an open issue? For a lowered coverage
+  floor: is its cause real (tests removed or moved, a library that reaches the
+  code through other paths, code no test can reach), and is the new floor the
+  `• measured` figure in the `Coverage` report less the floors file's margin,
+  and no lower? The report rounds that figure to the nearest tenth while a floor
+  rounds down, so a floor up to 0.1 below it is the same figure. A floor removed
+  with its package (deleted, or renamed, when the new directory enters with its
+  own entry) has no new figure, and its reason names the move. An unjustified
+  declaration is a blocking finding.
+- **Each line switched off.** A comment the diff adds that turns a check off for
+  a line (above all a coverage ignore hint: `v8 ignore`, `c8 ignore`,
+  `istanbul ignore`) is judged like a skip, and its reason must be true. A hint
+  over a line a test could reach is a blocking finding, and so is one whose
+  reason describes something other than the line it hides.
 - **The claims.** Does the diff do what the body says, and does the test plan
   quote checks that cover the changed paths?
 - **The guides.** Does the change keep the laws of the root `AGENTS.md` and of
   each touched package's guide?
 - **The gate itself.** A change to `.github/workflows/ci.review.yaml`,
-  `scripts/review-verdict.mjs`, this brief, the security questions it links, or
-  any other required check's workflow judges its own pull request with the
-  edited copy, since GitHub takes a pull request's workflow from its merge
-  commit. Read it as a change to what every later pull request must pass. A
-  weakening the body does not name and justify is a blocking finding.
+  `scripts/review-verdict.mjs`, this brief, the security questions it links, any
+  other required check's workflow, or the scripts and data `Gate` runs from the
+  pull request's own tree (`scripts/test-coverage.mjs` and
+  `test/coverage-floors.json` among them) judges its own pull request with the
+  edited copy: GitHub takes a pull request's workflow from its merge commit, and
+  that workflow runs the pull request's checkout. Read it as a change to what
+  every later pull request must pass. A weakening the body does not name and
+  justify is a blocking finding.
 - **Nothing private in a public repository.** In stigmer, a diff, a comment or
   the body that names a private planning record, its folder or its task,
   decision, ruling or milestone ids is a blocking finding. A maintainer reads
