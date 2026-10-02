@@ -6,15 +6,23 @@
 // (`aria-prohibited-attr`, WCAG 4.1.2), so a labelled skeleton built that way
 // fails every page audit it is on screen for (stigmer#1653); role="status"
 // would make the label legal but is the role this console's phase badges,
-// empty states and notices carry. So a DOM element that is busy and labelled,
-// with role="status" or with no role it may be named under (a div, span, p or
-// text-level element, whose own role takes no name), is reported: it renders
-// <LoadingRegion label="..."> instead.
+// empty states and notices carry. So a DOM element that is busy and labelled
+// is reported, and renders <LoadingRegion label="..."> instead, when:
+//   - its fixed role is "status", or one under which an element takes no name
+//     (NAMELESS_ROLES); or
+//   - it has no role (an empty attribute included) and is one of the elements
+//     whose own role takes no name (NAMELESS_ELEMENTS).
 //
 // "Busy" is aria-busy fixed true: `"true"`, `{true}`, or the bare attribute,
-// which JSX renders as "true". A role that takes no name (generic,
-// presentation, none) counts as no role, and a fixed role is read however it
-// is written (`"status"`, `{"status"}`, `{`status`}`).
+// which JSX renders as "true". A fixed role is read however it is written
+// (`"status"`, `{"status"}`, `{`status`}`), by its first token, in any case.
+//
+// This is a fence for the shapes a skeleton takes, not a second axe. The
+// complete check is axe's own `aria-prohibited-attr`, which the SDK's a11y
+// browser suites and the console's e2e page audits run. Left to axe: a first
+// role token this rule does not know (a browser skips it for the next), and an
+// element whose role depends on what surrounds it or on attributes this rule
+// does not read (an `a` with no href, a `header` or `footer` inside `main`).
 //
 // Left legal: a busy element whose role, fixed or its own, permits a name and
 // is not "status", such as a streaming plan's labelled region or article, a
@@ -49,29 +57,40 @@ function staticValue(attr) {
   return undefined;
 }
 
-/** Roles under which an element takes no name, so a label on it is as prohibited as on no role at all. */
-const NAMELESS_ROLES = new Set(["generic", "presentation", "none"]);
-
 /**
- * Elements whose own role takes no name, so with no explicit role a label on
- * them is refused: those HTML-AAM maps to generic (div, span, b, i, u, s,
- * small, pre, bdi, bdo, data, samp, kbd, var), to paragraph (p), and to the
- * text-level roles (strong, emphasis, code, subscript, superscript, deletion,
- * insertion, time). An element whose own role permits a name (a button, a
- * labelled section, a list) is left alone.
+ * Roles under which an element takes no name, so a label on it is refused as
+ * on no role at all: generic, and the roles axe-core 4.11 lists with
+ * aria-label and aria-labelledby prohibited.
  */
-const NAMELESS_ELEMENTS = new Set([
-  "div", "span", "b", "i", "u", "s", "small", "pre", "bdi", "bdo", "data", "samp", "kbd", "var",
-  "p", "strong", "em", "code", "sub", "sup", "del", "ins", "time",
+const NAMELESS_ROLES = new Set([
+  "generic", "presentation", "none",
+  "caption", "code", "deletion", "emphasis", "insertion", "mark", "paragraph",
+  "strong", "subscript", "superscript", "suggestion",
 ]);
 
 /**
- * The role a fixed role attribute gives: its first token, lowercased, or
- * undefined for an empty attribute, which gives no role at all. (A browser
- * takes the first token it knows; the first is the one an author means.)
+ * Elements whose own role takes no name whatever surrounds them, so with no
+ * explicit role a label on them is refused: those with a generic role or none
+ * (div, span, b, i, u, s, small, pre, bdi, bdo, data, samp, kbd, var, abbr,
+ * cite, q, figcaption, legend, blockquote, address, hgroup), and those whose
+ * role is one of the nameless text roles (p, strong, em, code, sub, sup, del,
+ * ins, mark). An element whose own role permits a name (a button, a labelled
+ * section, a list, a time) is left alone.
+ */
+const NAMELESS_ELEMENTS = new Set([
+  "div", "span", "b", "i", "u", "s", "small", "pre", "bdi", "bdo", "data", "samp", "kbd", "var",
+  "abbr", "cite", "q", "figcaption", "legend", "blockquote", "address", "hgroup",
+  "p", "strong", "em", "code", "sub", "sup", "del", "ins", "mark",
+]);
+
+/**
+ * The role a fixed role attribute names: its first token, lowercased, or
+ * undefined when it names none (an empty string, or a value that is not a
+ * string, such as `role={true}`), so the element's own role decides.
  */
 function fixedRole(value) {
-  const first = String(value).trim().toLowerCase().split(/\s+/)[0];
+  if (typeof value !== "string") return undefined;
+  const first = value.trim().toLowerCase().split(/\s+/)[0];
   return first === "" ? undefined : first;
 }
 

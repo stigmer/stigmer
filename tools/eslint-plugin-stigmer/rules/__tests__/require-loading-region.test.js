@@ -8,8 +8,10 @@
 // article that is busy while it streams real content, an element whose own
 // role takes a name, a computed role or busy flag, a busy element with no
 // label, and a component's props. Each valid case differs from a reported one
-// in that one respect, so none passes for an unrelated reason. Run via the
-// root `npm run test:scripts` (the `test:root` globs in package.json).
+// in that one respect, so none passes for an unrelated reason. A first role
+// token the rule does not know is left legal, as its header says: axe's audits
+// are the complete check. Run via the root `npm run test:scripts` (the
+// `test:root` globs in package.json).
 
 const { describe, it } = require("node:test");
 const { RuleTester } = require("eslint");
@@ -46,6 +48,8 @@ tester.run("require-loading-region", rule, {
     { code: '<ul aria-busy="true" aria-label="Sessions" />' },
     { code: '<section role="" aria-busy="true" aria-label="Plan" />' },
     { code: '<div role="region status" aria-busy="true" aria-label="Plan" />' },
+    { code: '<time aria-busy="true" aria-label="Updated" />' },
+    { code: '<div role="tooltip-like" aria-busy="true" aria-label="Loading" />' },
   ],
   invalid: [
     { code: '<div className="stg:space-y-2" aria-busy="true" aria-label="Loading sessions" />', errors: reported },
@@ -61,12 +65,18 @@ tester.run("require-loading-region", rule, {
     { code: '<div role="presentation" aria-busy="true" aria-label="Loading" />', errors: reported },
     { code: '<div role="none" aria-busy="true" aria-label="Loading" />', errors: reported },
     { code: '<div aria-busy="true" aria-labelledby="loading-title" />', errors: reported },
-    ...["strong", "code", "sub", "ins", "time"].map((tag) => ({
+    ...["strong", "code", "sub", "ins", "mark", "cite", "blockquote"].map((tag) => ({
       code: `<${tag} aria-busy="true" aria-label="Loading" />`,
       errors: reported,
     })),
     { code: '<div role="" aria-busy="true" aria-label="Loading" />', errors: reported },
     { code: '<div role="Status" aria-busy="true" aria-label="Loading" />', errors: reported },
     { code: '<div role="status alert" aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<section role=" status" aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div role={true} aria-busy="true" aria-label="Loading" />', errors: reported },
+    ...["paragraph", "strong", "code", "caption", "suggestion"].map((role) => ({
+      code: `<div role="${role}" aria-busy="true" aria-label="Loading" />`,
+      errors: reported,
+    })),
   ],
 });
