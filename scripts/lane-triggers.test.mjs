@@ -51,13 +51,16 @@
 // trigger syntax is above: a script word under neither $GITHUB_WORKSPACE/ nor
 // $GITHUB_ACTION_PATH/ (a composite step runs in the caller's working
 // directory, so `node scripts/x.mjs` would work unseen), a body that is not
-// .mjs or .ts (the forms whose imports extractRelativeSpecifiers follows), an
-// untracked path, a $GITHUB_ACTION_PATH/ path that leaves the action's folder,
-// an action inside an action, a lane calling a local workflow. It sees a
-// script by its extension: a step that runs repository code without naming
-// such a file (a `make` target, an `npm run` script, a script with no
-// extension) is not traced, nor what a shell script in the action's folder
-// sources, and none of today's actions does either. Packages are not traced:
+// .mjs or .ts (the forms whose imports extractRelativeSpecifiers follows),
+// except a shell script in the action's own folder, which is one of its
+// files; an untracked path, a $GITHUB_ACTION_PATH/ path that leaves the
+// action's folder, an action inside an action, a lane calling a local
+// workflow. It sees a script by its extension: a step that runs repository
+// code without naming such a file (a `make` target, an `npm run` script, a
+// script with no extension) is not traced, nor what a shell script in the
+// action's folder sources, nor a relative `require()` in a body (only
+// import, export and `import()` are read), and none of today's actions or
+// bodies does any of these. Packages are not traced:
 // what an action runs from node_modules/ and what a body imports by name,
 // whether a dependency (which moves with the lockfile these lanes do not
 // watch, #1719) or a workspace package (whose source a lane would have to
@@ -252,8 +255,9 @@ export function watches(patterns, dir) {
  * node_modules/ (installed packages, whose versions the lockfile holds; this
  * rule traces repository files, not dependencies: #1719), and the .mjs and
  * .ts files they name as "$GITHUB_ACTION_PATH/<path>" in `folder`, the
- * action's own, whose imports can reach outside it. Another file of the
- * action's folder is already one of its files and is not read. `tracked` is the set of tracked paths, passed in as
+ * action's own, whose imports can reach outside it. A shell script in the
+ * action's folder is already one of its files and is not read; any other
+ * body the guard cannot follow is refused, wherever it lives. `tracked` is the set of tracked paths, passed in as
  * `triggerLists` takes `gatePaths`, so a fixture needs no git.
  */
 export function actionRuns(action, tracked, folder) {
@@ -297,7 +301,7 @@ export function actionRuns(action, tracked, folder) {
         refusals.push(`${label}: runs ${path}, which git does not track`);
       } else if (followed) {
         files.push(path);
-      } else if (!own) {
+      } else if (!(own && path.endsWith(".sh"))) {
         refusals.push(
           `${label}: runs ${path}; this guard follows the imports of ` +
             `${BODY_EXTENSIONS.join(" and ")} bodies only, so teach it this kind first`,
@@ -647,8 +651,13 @@ test("actionRuns reads the bodies a composite action runs, from the checkout and
 });
 
 test("actionRuns refuses what it cannot place: another runtime, a nested action, an unprefixed script, an escape from its folder, an untracked or unfollowable body", () => {
-  const tracked = new Set(["scripts/a.mjs", "scripts/b.sh", "scripts/c.cjs"]);
+  const tracked = new Set(["scripts/a.mjs", "scripts/b.sh", "scripts/c.cjs", `${FOLDER}/tool.cjs`]);
   const refused = (action) => actionRuns(action, tracked, FOLDER).refusals;
+  assert.match(
+    refused(composite('node "$GITHUB_ACTION_PATH/tool.cjs"'))[0],
+    /\.github\/actions\/x\/tool\.cjs; this guard follows the imports of \.mjs and \.ts bodies only/,
+    "a body in the action's folder it cannot follow is refused as one in the checkout is",
+  );
   assert.match(
     refused(composite('node "$GITHUB_ACTION_PATH/../../../scripts/a.mjs"'))[0],
     /leaves \.github\/actions\/x; name a file outside it as \$GITHUB_WORKSPACE\/<path>/,
