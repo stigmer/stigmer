@@ -43,6 +43,7 @@ test("readMakefile reads rules, prerequisites, recipes and variables as make doe
       "FLAGS = -a",
       "FLAGS += -b",
       "MODE ?= fast",
+      "FLAGS ?= -c",
       "export STUBS_FORCE",
       ".PHONY: build test",
       "",
@@ -60,15 +61,15 @@ test("readMakefile reads rules, prerequisites, recipes and variables as make doe
   );
   assert.deepEqual(refusals, []);
   assert.deepEqual(rules.get("build"), {
-    line: 9,
+    line: 10,
     prerequisites: ["deps", "order", "extra"],
     recipe: [
-      { line: 10, text: "echo build --flag" },
-      { line: 14, text: "rm -f out" },
-      { line: 15, text: "$(MAKE) -C sub all" },
+      { line: 11, text: "echo build --flag" },
+      { line: 15, text: "rm -f out" },
+      { line: 16, text: "$(MAKE) -C sub all" },
     ],
   });
-  assert.deepEqual(rules.get("a").recipe, [{ line: 18, text: "touch $@" }], "a multi-target rule gives each target the recipe");
+  assert.deepEqual(rules.get("a").recipe, [{ line: 19, text: "touch $@" }], "a multi-target rule gives each target the recipe");
   assert.deepEqual(rules.get("b").prerequisites, ["shared"]);
   assert.deepEqual(Object.fromEntries(variables), {
     RUNNER_DIR: "backend/services/runner",
@@ -230,7 +231,10 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
   assert.deepEqual(refused(mk("t:", ">cd sub && $(MAKE) all")), ["Makefile:2 (t) runs `$(MAKE)` after changing directory; pass `-C <dir>` instead"]);
   assert.deepEqual(refused(mk("t:", ">make all")), ["Makefile:2 (t) runs `make` directly; spell it `$(MAKE)` so this reader follows it"]);
   assert.deepEqual(refused(mk("t:", ">test -f x || make all")), ["Makefile:2 (t) runs `make` directly; spell it `$(MAKE)` so this reader follows it"]);
-  assert.deepEqual(refused(mk("t:", ">if true; then make all; fi")), ["Makefile:2 (t) runs `make` directly; spell it `$(MAKE)` so this reader follows it"]);
+  for (const recipe of [">if true; then make all; fi", ">FOO=1 make other", ">timeout 5 make all"]) {
+    assert.deepEqual(refused(mk("t:", recipe)), ["Makefile:2 (t) runs `make` directly; spell it `$(MAKE)` so this reader follows it"], recipe);
+  }
+  assert.deepEqual(refused(mk("t:", ">cmake --build . && node scripts/make-targets.mjs")), [], "cmake and a file named make-… are not make");
   assert.deepEqual(refused(mk("t:", `>echo "run 'make all' first"; echo 'cd elsewhere'`)), [], "a message naming make or cd runs neither");
   assert.deepEqual(refused(mk("t:", ">$(MAKE) -f other.mk all")), ["Makefile:2 (t) make -f reads a file or directory this reader does not follow"]);
   assert.deepEqual(refused(mk("ifdef X", "t:", ">echo")), ["Makefile line 1: `ifdef` is not read by this reader; teach it the construct first"]);

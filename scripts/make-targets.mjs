@@ -37,8 +37,9 @@
  * whose line changes directory is placed by that change: a leading
  * `cd <dir> &&` places the line, and a `(cd <dir> && ...)` subshell places
  * the words inside it. Any other directory change leaves the line's words
- * unplaceable, and a `$(MAKE)` after a `cd`, or a bare `make` in command
- * position, is refused: a recursion it cannot follow.
+ * unplaceable, and a `$(MAKE)` after a `cd`, or a bare `make` word anywhere
+ * outside quotes (after `NAME=value`, behind `timeout`), is refused: a
+ * recursion it cannot follow.
  *
  * Pure: `read` is passed in, so fixtures need no files on disk.
  */
@@ -55,6 +56,8 @@ const REFUSED_DIRECTIVE = /^(ifeq|ifneq|ifdef|ifndef|else|endif|define|endef|inc
 const REFERENCE = /\$\$|\$\(([A-Za-z0-9_.-]+)\)|\$\{([A-Za-z0-9_.-]+)\}/g;
 /** The shells whose `cd` and subshells this reader places: sh and bash, by path or through env. */
 const POSIX_SHELL = /^(?:\/usr)?\/bin\/(?:ba)?sh$|^\/usr\/bin\/env\s+(?:ba)?sh$/;
+/** `make` as a word of its own: not `cmake`, not `make-targets.mjs`. */
+const MAKE_WORD = /(^|[\s;&|(`])make(?=[\s;&|)`]|$)/;
 /** A directory change at a command's start: `cd`, `pushd`, `popd`. */
 const DIRECTORY_CHANGE = /(^|[\s;&|(])(cd|pushd|popd)\b/;
 
@@ -123,6 +126,8 @@ export function readMakefile(text) {
       } else if (name === "SHELL" && !POSIX_SHELL.test(value.trim())) {
         refusals.push(`line ${number}: SHELL is ${value.trim()}; this reader places words as sh and bash run them`);
       } else {
+        // `?=` sets only a name not yet defined; `+=` appends to one that is.
+        if (operator === "?=" && variables.has(name)) continue;
         variables.set(name, operator === "+=" && variables.has(name) ? `${variables.get(name)} ${value}` : value);
       }
       continue;
@@ -193,7 +198,7 @@ function unquoted(text) {
 function recursions(text, dir) {
   const found = [];
   const plain = unquoted(text);
-  if (/(^|[;&|(]\s*|\b(then|do|else)\s+)make\s/.test(plain)) {
+  if (MAKE_WORD.test(plain)) {
     found.push({ refusal: "runs `make` directly; spell it `$(MAKE)` so this reader follows it" });
   }
   for (const match of text.matchAll(/\$[({]MAKE[)}]/g)) {

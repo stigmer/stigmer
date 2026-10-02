@@ -568,8 +568,15 @@ export function actionSetups(action, tracked) {
   ];
 }
 
-/** A `make` in command position in a step: at a line's start, after an operator or a subshell's `(`, or after `then`, `do` or `else`. */
-const MAKE_COMMAND = /(^|[;&|(]|\b(?:then|do|else)\b)[ \t]*make(?=[ \t]|$)/gm;
+/**
+ * A `make` in command position in a step: at a line's start, after an
+ * operator or a subshell's `(`, or after `then`, `do` or `else`, behind any
+ * `NAME=value` environment assignments (which make reads as environment
+ * variables, below the file's own).
+ */
+const MAKE_COMMAND = /(^|[;&|(]|\b(?:then|do|else)\b)[ \t]*(?:[A-Za-z_][A-Za-z0-9_]*=\S*[ \t]+)*make(?=[ \t]|$)/gm;
+/** Every `make` word of its own in a step: not `cmake`, not `make-targets.mjs`. */
+const MAKE_WORD = /(^|[\s;&|(`])make(?=[\s;&|)`]|$)/gm;
 
 /** `text` with its quoted strings blanked to their length, so a word in a message is not read as a command. */
 const blankQuotes = (text) => text.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (quoted) => " ".repeat(quoted.length));
@@ -580,8 +587,10 @@ const blankQuotes = (text) => text.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (quoted
  * `parseMakeArguments`). The directory is the step's working-directory chain,
  * as `laneInputs` reads it, then `-C`. Refused, as a moved install is: a
  * `make` in a step that changes directory, a directory holding an
- * expression, and what `parseMakeArguments` refuses (another file, an
- * include directory, no target).
+ * expression, a `make` word it cannot read as a command (behind a wrapper
+ * such as `timeout`, or an argument of another command), and what
+ * `parseMakeArguments` refuses (another file, an include directory, no
+ * target).
  */
 export function laneMakeCalls(workflow) {
   const calls = [];
@@ -595,7 +604,9 @@ export function laneMakeCalls(workflow) {
       const dir = String(
         step["working-directory"] ?? job.defaults?.run?.["working-directory"] ?? workflow.defaults?.run?.["working-directory"] ?? ".",
       );
+      const placed = new Set();
       for (const match of plain.matchAll(MAKE_COMMAND)) {
+        placed.add(match.index + match[0].length - "make".length);
         const words = commandWords(run, match.index + match[0].length);
         const command = `make ${words.join(" ")}`.trim();
         if (CHANGES_DIRECTORY.test(plain)) {
@@ -607,6 +618,14 @@ export function laneMakeCalls(workflow) {
           if (call.refusal) refusals.push(`${label}: "${command}": ${call.refusal}`);
           else calls.push({ label, ...call });
         }
+      }
+      for (const match of plain.matchAll(MAKE_WORD)) {
+        const at = match.index + match[1].length;
+        if (placed.has(at)) continue;
+        refusals.push(
+          `${label}: "${plain.slice(Math.max(0, at - 20), at + 24).trim()}" names make where this guard cannot read it as a command ` +
+            "(behind a wrapper such as timeout, or as an argument); call make at a command's start, after NAME=value assignments at most",
+        );
       }
     }
   }
@@ -1025,7 +1044,7 @@ test("laneMakeCalls reads each make command in a step, in the step's, job's or w
       { name: "a", run: "make build-runner\nmake -C sdk/go -s codegen MODE=strict && echo done" },
       { name: "b", run: "if [ -n x ]; then make test; fi", "working-directory": "svc" },
       { name: "c", run: 'echo "run make all first" && make \\\n  lint ARTIFACT="${ARTIFACT}"' },
-      { name: "d", run: "cmake --build . && npm run make" },
+      { name: "d", run: "cmake --build . && STUBS_FORCE=1 FLAG='a b' make -C apis ts-stubs" },
     ]),
   );
   assert.deepEqual(refusals, []);
@@ -1036,8 +1055,9 @@ test("laneMakeCalls reads each make command in a step, in the step's, job's or w
       ['jobs.j "a"', "sdk/go", ["codegen"], { MODE: "strict" }],
       ['jobs.j "b"', "svc", ["test"], {}],
       ['jobs.j "c"', ".", ["lint"], { ARTIFACT: null }],
+      ['jobs.j "d"', "apis", ["ts-stubs"], {}],
     ],
-    "a quoted make, cmake and an npm script named make are not calls",
+    "a quoted make and cmake are not calls; environment assignments before make are read past",
   );
   assert.deepEqual(laneMakeCalls(lane([{ run: "make check" }], { jobDir: "job", workflowDir: "wf" })).calls[0].dir, "job");
   const refused = (step) => laneMakeCalls(lane([step])).refusals;
@@ -1045,6 +1065,9 @@ test("laneMakeCalls reads each make command in a step, in the step's, job's or w
   assert.match(refused({ run: "make all", "working-directory": "${{ inputs.dir }}" })[0], /working-directory is an expression/);
   assert.match(refused({ run: "make -f other.mk all" })[0], /reads a file or directory this reader does not follow/);
   assert.match(refused({ run: "make" })[0], /names no target/);
+  for (const run of ["timeout 20m make build-runner", "npm run make", "nice -n 5 make lint"]) {
+    assert.match(refused({ run }).join("\n"), /names make where this guard cannot read it as a command/, run);
+  }
 });
 
 test("makeReach holds a lane to the Makefiles and scripts its calls reach, and refuses a script it cannot place", () => {
