@@ -10,7 +10,8 @@
 // /etc/os-release are the system's own. The hung fake backgrounds a child,
 // so the case proves the deadline takes the whole process group, the way it
 // must take apt's fetch methods. The kill-after mapping (exit 137) uses a fake
-// `timeout` instead of waiting the script's real 15 s: this suite runs in the
+// `timeout`, which records the arguments it was given, so `--kill-after`
+// is pinned, instead of waiting the script's real 15 s: this suite runs in the
 // job every other ts-workspace job waits on, so no case may cost more than
 // about a second. Coreutils' own TERM-then-KILL is not this suite's subject.
 //
@@ -120,7 +121,10 @@ function resolve(mode, { timeoutExit } = {}) {
   mkdirSync(join(dir, "tmp"));
   executable(join(bin, "sudo"), '#!/bin/sh\nexec "$@"\n');
   executable(join(bin, "apt-get"), FAKE_APT);
-  if (timeoutExit !== undefined) executable(join(bin, "timeout"), `#!/bin/sh\nexit ${timeoutExit}\n`);
+  const timeoutArgs = join(dir, "timeout-args");
+  if (timeoutExit !== undefined) {
+    executable(join(bin, "timeout"), `#!/bin/sh\nprintf '%s\\n' "$@" > "$FAKE_TIMEOUT_ARGS"\nexit ${timeoutExit}\n`);
+  }
   const pids = join(dir, "pids");
   pidFiles.push(pids);
   const output = join(dir, "github-output");
@@ -140,6 +144,7 @@ function resolve(mode, { timeoutExit } = {}) {
       TAURI_APT_UPDATE_DEADLINE_S: "1",
       FAKE_APT: mode,
       FAKE_APT_PIDS: pids,
+      FAKE_TIMEOUT_ARGS: timeoutArgs,
     },
   });
   return {
@@ -148,6 +153,7 @@ function resolve(mode, { timeoutExit } = {}) {
     manifest: join(dir, "tmp", "tauri-apt", "manifest"),
     outputs: () => readFileSync(output, "utf8"),
     pids: () => readFileSync(pids, "utf8").trim().split(" ").map(Number),
+    timeoutArgs: () => readFileSync(timeoutArgs, "utf8").trim().split("\n"),
   };
 }
 
@@ -167,6 +173,8 @@ test("a hung index refresh is stopped at the deadline with its whole process gro
 
 test("a refresh KILLed after outliving the TERM (timeout's 137) gets the same message", NEEDS_LINUX, () => {
   const run = resolve("ok", { timeoutExit: 137 });
+  // The KILL is what stops a fetch method that ignores TERM, so its flag is pinned here.
+  assert.deepEqual(run.timeoutArgs(), ["--kill-after=15", "1", "apt-get", "update"]);
   assert.equal(run.status, 1);
   assert.match(run.stderr, STALLED);
   assert.equal(run.outputs(), "");
