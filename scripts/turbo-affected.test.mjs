@@ -7,9 +7,8 @@
 // run-everything rules (dispatch, the lane's own tooling, an SCM fallback),
 // the base ref derived from each GitHub event, and the exact lines the
 // workflow's `if:` conditions read. Turbo itself is not run here; the query
-// JSON is the shape recorded on 2026-09-11 (T01_6 in stigmer-cloud project
-// 20260904.04), so a change in turbo's output would fail the one live probe
-// in the lane, not these.
+// JSON is the shape turbo printed on 2026-09-11, so a change in turbo's
+// output would fail the one live probe in the lane, not these.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -198,6 +197,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package.json",
     "package-lock.json",
     "scripts/turbo-set.mjs",
+    ".github/actions/playwright-chromium/action.yml",
     COVERAGE_FLOORS,
   ]) {
     assert.match(everythingBecause(CI_PR, [file]), /workspace tooling/, file);
@@ -222,6 +222,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package.json",
     "package-lock.json",
     "scripts/",
+    ".github/actions/",
     "test/coverage-floors.json",
   ]);
 });
