@@ -28,7 +28,7 @@ Every test in this repository and in stigmer-cloud belongs to one layer. The lay
 
 Make targets and CI lanes keep the names they have (by package, artifact or cadence); the "Run by" column is the map from layer to entry point.
 
-Coverage is measured from three layers: unit, integration and composed, which is the package's own `npm test`, whose vitest config collects it. The other layers do not count. Contract, e2e and install tests drive a spawned server or a shipped artifact. Browser, load and live tests run under configs of their own. A tooling test runs a repository script, which is not a package. So a server line that only the conformance suite reaches counts as never run. The test that would count it is a composed one (`*.composed.test.ts`). The rules are under "What holds them" below.
+Coverage is measured from three layers: unit, integration and composed, which is the package's own vitest suite (`npm test`, or `test:unit` in the two packages named below), whose config collects it. The other layers do not count. Contract, e2e and install tests drive a spawned server or a shipped artifact. Browser, load and live tests run under configs of their own. A tooling test runs a repository script, which is not a package. So a server line that only the conformance suite reaches counts as never run. The test that would count it is a composed one (`*.composed.test.ts`). The rules are under "What holds them" below.
 
 ### Names
 

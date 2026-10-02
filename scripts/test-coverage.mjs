@@ -22,8 +22,9 @@
  *   - each package against its floor: the share of its lines and of its
  *     branches its tests ran, and how many of its cases passed, must not fall
  *     below the committed floor (--floors). A floor is the lowest a package
- *     may fall to, not its last measurement, so an ordinary pull request
- *     never edits the file; `--raise` lifts the floors from a full run, and
+ *     may fall to, not its last measurement, so a pull request edits the
+ *     file only to add a new package, to lower a floor it declares, or to
+ *     raise its own early; `--raise` lifts the floors from a full run, and
  *     never lowers one.
  *
  * Inputs are found under each --input directory, at any depth: every
