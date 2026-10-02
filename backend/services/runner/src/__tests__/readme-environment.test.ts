@@ -14,23 +14,27 @@
  * What counts as reading a setting. An env object is `process.env` (also
  * through a default or namespace import of `node:process`, through
  * `globalThis` or `global`, and with either member written as a literal key,
- * `process["env"]`), `env` taken from `process` (imported, or
- * destructured in a declaration, a parameter, an assignment or a nested
- * pattern), or an identifier whose declaration (a parameter or a variable)
- * is annotated `NodeJS.ProcessEnv`, the injection seam
- * `shared/runner-credential-store.ts` describes, or is initialised or
- * defaulted to `process.env` whatever its type. A destructure follows the
- * same path from the global object down, at any depth and by a name or a
- * literal key alike: `const { process: { env: { NAME } } } = globalThis`
- * reads `NAME`. Parentheses and type assertions (`as`, `satisfies`, `!`,
- * `<T>`) are seen through. Identifiers
- * are matched by name within the file, not by scope: once one `env` in a file
- * is an env object, every `env` there is read as one, which errs toward a
- * loud failure, never a silent miss. An env object handed on is not
- * followed: a call's argument, a property, a spread copy (unless the copy's
- * declaration carries the annotation), or a variable or parameter holding
- * `process` itself, whatever its annotation or however it was taken from the
- * global object.
+ * `process["env"]`), `env` taken from `process` (imported, or destructured in
+ * a declaration, a parameter, an assignment or a nested pattern), or an
+ * identifier whose declaration (a parameter or a variable) is annotated
+ * `NodeJS.ProcessEnv`, the injection seam `shared/runner-credential-store.ts`
+ * describes, or is initialised or defaulted to `process.env` whatever its
+ * type. A destructure follows the same path from the global object down, at
+ * any depth, each member by a name or a key rule 2 can tell:
+ * `const { process: { env: { NAME } } } = globalThis` reads `NAME`.
+ * Parentheses and type assertions (`as`, `satisfies`, `!`, `<T>`) are seen
+ * through. Identifiers are matched by name within the file, not by scope:
+ * once one `env` in a file is an env object, every `env` there is read as
+ * one, which errs toward a loud failure, never a silent miss.
+ *
+ * Not followed, so a setting read past one of these is not seen: an env
+ * object handed on as a call's argument or a property; a spread copy (unless
+ * the copy's declaration carries the annotation); a variable or parameter
+ * holding `process` itself, whatever its annotation or however it was taken
+ * from the global object; and a member of `process` or the global object
+ * taken by a key rule 2 cannot tell (`process[k]`, `const { [k]: e } =
+ * process`). Refusing that last one would refuse ordinary use of the global
+ * object (`globalThis[name]`), which reads no setting.
  *
  *  1. `E.NAME`, `E["NAME"]`, `"NAME" in E`, or a destructure of an env object
  *     wherever the pattern stands: a variable's or parameter's pattern
