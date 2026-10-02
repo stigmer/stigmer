@@ -15,6 +15,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  COVERAGE_FLOORS,
   LANE_TASKS,
   WORKSPACE_TOOLING,
   decide,
@@ -197,9 +198,16 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package.json",
     "package-lock.json",
     "scripts/turbo-set.mjs",
+    COVERAGE_FLOORS,
   ]) {
     assert.match(everythingBecause(CI_PR, [file]), /workspace tooling/, file);
   }
+  assert.equal(COVERAGE_FLOORS, "test/coverage-floors.json");
+  assert.equal(
+    everythingBecause(CI_PR, ["test/README.md"]),
+    null,
+    "only the floors file under test/ is tooling",
+  );
   assert.equal(
     everythingBecause(CI_PR, ["sdk/react/package.json"]),
     null,
@@ -214,6 +222,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
     "package.json",
     "package-lock.json",
     "scripts/",
+    "test/coverage-floors.json",
   ]);
 });
 

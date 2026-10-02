@@ -23,7 +23,8 @@
  *     refuses, the server's own delete removes every one);
  *   - the server's own delete of a run's context (the DeleteExecutionContext
  *     activity and both recover steps): found by run id, handed to the
- *     in-process delete edge, idempotent, best-effort, never throws (the
+ *     in-process delete edge, idempotent, best-effort, never throws, and a
+ *     failed read or delete leaves the operator's WARN with its cause (the
  *     edge's real chain is pinned in extension-composition.test.ts's C2
  *     arm, stigmer#1647).
  *
@@ -963,10 +964,11 @@ describe("DeleteExecutionContext activity seam", () => {
     }
   });
 
-  it("swallows QUERY failures (closed store: findByField throws before the delete is reached)", async () => {
+  it("swallows QUERY failures (closed store: the lookup throws before the delete is reached → WARN, nothing deleted, no throw)", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "ectx-activity-closed-"));
     const store = SqliteStore.open(path.join(dir, "stigmer.db"), silentLogger);
     await store.close();
+    const { logger, lines } = recordingLogger();
     const deleted: string[] = [];
     try {
       await expect(
@@ -978,13 +980,27 @@ describe("DeleteExecutionContext activity seam", () => {
                 deleted.push(contextId);
               },
             }),
-            logger: silentLogger,
+            logger,
           },
           "aex_whatever",
-          "run-end",
+          "recover",
         ),
       ).resolves.toBeUndefined();
+
       expect(deleted, "a failed read deletes nothing").toEqual([]);
+      const warning = lines.find((line) =>
+        line.includes("Failed to query ExecutionContext"),
+      );
+      expect(warning, "the operator's signal").toContain('"level":"warn"');
+      expect(warning, "why the server was deleting").toContain(
+        '"reason":"recover"',
+      );
+      expect(warning, "which run's context is left behind").toContain(
+        '"executionId":"aex_whatever"',
+      );
+      expect(warning, "the fault that stopped the read").toContain(
+        '"error":"store is closed"',
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -1008,7 +1024,7 @@ describe("DeleteExecutionContext activity seam", () => {
             logger,
           },
           "aex_delfail",
-          "recover",
+          "run-end",
         ),
       ).resolves.toBeUndefined();
 
@@ -1024,7 +1040,19 @@ describe("DeleteExecutionContext activity seam", () => {
         line.includes("Failed to delete ExecutionContext"),
       );
       expect(warning, "the operator's signal").toContain('"level":"warn"');
-      expect(warning).toContain('"reason":"recover"');
+      expect(
+        warning,
+        "the reason it was given (the lookup-failure case passes the other one)",
+      ).toContain('"reason":"run-end"');
+      expect(warning, "which run's context is left behind").toContain(
+        '"executionId":"aex_delfail"',
+      );
+      expect(warning, "the operator's handle on the row").toContain(
+        '"contextId":"ectx_delfail"',
+      );
+      expect(warning, "the fault that stopped the delete").toContain(
+        '"error":"simulated delete failure"',
+      );
     } finally {
       await store.close();
       rmSync(dir, { recursive: true, force: true });

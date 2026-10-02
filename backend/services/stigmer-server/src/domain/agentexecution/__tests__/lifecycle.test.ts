@@ -913,6 +913,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover proceeds when the stale context's delete fails (best-effort)", async () => {
+    const attempted: string[] = [];
     const createdEcs: ExecutionContext[] = [];
     const deps: LifecycleDeps = {
       ...lifecycleDeps(
@@ -924,7 +925,8 @@ describe("lifecycle pipelines", () => {
         ),
       ),
       executionContextBuilder: stubBuilderDeps({
-        onEcDelete: () => {
+        onEcDelete: (contextId) => {
+          attempted.push(contextId);
           throw new Error("the delete chain is down");
         },
         onEcCreate: (ec) => createdEcs.push(ec),
@@ -954,6 +956,7 @@ describe("lifecycle pipelines", () => {
       testCallerIdentity(),
     );
 
+    expect(attempted, "the delete was tried, and it failed").toEqual([staleId]);
     expect(createdEcs).toHaveLength(1);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
   });

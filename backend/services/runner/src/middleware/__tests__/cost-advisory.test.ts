@@ -1,23 +1,32 @@
 /**
  * The cost advisory: prices each model call off `usage_metadata`, keeps one
- * running total the sub-agent views share, and warns the model ONCE at the
- * configured share of `max_cost_usd`. Nothing here caps: the enforcement is
- * the turn runtime's (`shared/__tests__/cost-guard.test.ts`,
- * `harness/__tests__/run-turn.test.ts`'s cost-cap arm). Until #1096 this
- * file was `cost-cap.test.ts` and also pinned the in-graph tool block and
- * the "exceeded" message — retired with that half.
+ * running total the sub-agent views share, and warns each conversation ONCE
+ * after the run reaches the configured share of `max_cost_usd`. Nothing here
+ * caps: the enforcement is the turn runtime's
+ * (`shared/__tests__/cost-guard.test.ts`, `harness/__tests__/run-turn.test.ts`'s
+ * cost-cap arm). Until #1096 this file was `cost-cap.test.ts` and also pinned
+ * the in-graph tool block and the "exceeded" message — retired with that half.
  *
- * How the warning travels (stigmer/stigmer#1354): it is priced as the model
- * answers and delivered on the NEXT model call of the graph that crossed the
- * threshold, as a user-role advisory after that request's last message. It
- * rides that one call: the following call carries none, no hook writes the
- * graph's state, and `beforeAgent` drops one still pending. The request
- * through the real Anthropic conversion is
+ * How the warning travels (stigmer/stigmer#1354): the call that takes the
+ * total past the threshold marks the run crossed, and each conversation's
+ * NEXT model call carries the warning, as a user-role advisory after that
+ * request's last message. It rides that one call: the conversation's
+ * following call carries none, no hook writes the graph's state, and the
+ * parent's `beforeAgent` starts the run over (the total, the crossing, the
+ * call count and the parent's own told flag), so a new message has nothing
+ * to say. The request through the real Anthropic conversion is
  * `shared/__tests__/advisory-anthropic-payload.test.ts`.
+ *
+ * Who is told (stigmer/stigmer#1679, the `forSubAgent` cases): the parent and
+ * every sub-agent conversation, once each, whichever graph's spend crossed.
+ * Until then only the graph that crossed was told, so a sub-agent whose last
+ * call crossed told nobody, and a parent never heard of a sub-agent's
+ * crossing. The end-to-end arm is `hermetic/cost-advisory.test.ts`.
  */
 
 import { describe, it, expect } from "vitest";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { Command } from "@langchain/langgraph";
 import { createCostAdvisoryMiddleware } from "../cost-advisory.js";
 import { ADVISORY_LEAD_IN } from "../advisory-message.js";
 import type { ModelCallRequest, StigmerMiddleware } from "../types.js";
@@ -56,6 +65,11 @@ function advisoryOf(request: ModelCallRequest): string | undefined {
 }
 
 const NO_USAGE = new AIMessage({ content: "no usage" });
+
+/** The spend an advisory quotes: its first four-place dollar amount (`createWarningText`'s "consumed $…"). */
+function spentIn(advisory: string | undefined): string | undefined {
+  return advisory?.match(/\$(\d+\.\d{4})/)?.[1];
+}
 
 const BASE_CONFIG = {
   maxCostUsd: 1.0,
@@ -158,24 +172,101 @@ describe("CostAdvisoryMiddleware", () => {
       expect(parent.runningCost, "the view's beforeAgent leaves the parent's total alone").toBeCloseTo(0.0105, 4);
     });
 
-    it("drops a warning the sub-agent's previous invocation left undelivered when it is invoked again", async () => {
+    it("a sub-agent invoked after the crossing is told on its first call", async () => {
       const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
       const child = parent.forSubAgent();
-      // One invocation's last call crosses the threshold; the invocation ends there.
+      // One invocation crosses the threshold and is told on its next call, then ends.
       child.beforeAgent!({}, {});
       await callModel(child, responseWithUsage(1000, 500));
-      // The same view serves the sub-agent's next invocation in the turn.
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "the invocation that crossed").toContain("Budget warning");
+      // The same view serves the sub-agent's next invocation in the turn: a new conversation, told nothing yet.
       child.beforeAgent!({}, {});
-      expect(advisoryOf(await callModel(child, NO_USAGE)), "no stale warning from the earlier invocation").toBeUndefined();
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "the new invocation hears it before it spends").toContain("Budget warning");
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "and only once").toBeUndefined();
       expect(parent.runningCost).toBeCloseTo(0.0105, 4);
     });
 
-    it("warns inside the sub-agent when its call crosses the parent's threshold", async () => {
+    it("a sub-agent's call crosses mid-task: its next call and the parent's next call each carry the warning once, and no later call does", async () => {
       const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
       const child = parent.forSubAgent();
-      await callModel(child, responseWithUsage(1000, 500));
-      expect(advisoryOf(await callModel(parent, NO_USAGE)), "the parent did not cross it").toBeUndefined();
+      expect(advisoryOf(await callModel(child, responseWithUsage(1000, 500))), "the crossing call itself").toBeUndefined();
       expect(advisoryOf(await callModel(child, NO_USAGE))).toContain("Budget warning");
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "the sub-agent is told once").toBeUndefined();
+      expect(
+        advisoryOf(await callModel(parent, NO_USAGE)),
+        "the parent, which decides whether to delegate again, is told too",
+      ).toContain("Budget warning");
+      expect(advisoryOf(await callModel(parent, NO_USAGE)), "the parent is told once").toBeUndefined();
     });
+
+    it("a sub-agent's last call crosses the line: the parent's next call carries the warning", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+      const child = parent.forSubAgent();
+      expect(advisoryOf(await callModel(parent, NO_USAGE)), "the parent delegates before the crossing").toBeUndefined();
+      // The sub-agent answers in one call that crosses the threshold, and makes no further call.
+      child.beforeAgent!({}, {});
+      await callModel(child, responseWithUsage(1000, 500));
+      const advised = await callModel(parent, NO_USAGE);
+      expect(advisoryOf(advised)).toContain("Budget warning");
+      expect(String((advised.messages.at(-1) as HumanMessage).content).startsWith(ADVISORY_LEAD_IN)).toBe(true);
+    });
+
+    it("the parent's own call crosses the line: a sub-agent invoked afterwards is told on its first call", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+      await callModel(parent, responseWithUsage(1000, 500));
+      const child = parent.forSubAgent();
+      child.beforeAgent!({}, {});
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "told before it spends").toContain("Budget warning");
+      expect(advisoryOf(await callModel(parent, NO_USAGE)), "the parent, whose call crossed").toContain("Budget warning");
+    });
+
+    it("a later invocation's start does not drop the warning, and the parent is still told", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+      const child = parent.forSubAgent();
+      // Two invocations of one sub-agent run at once, sharing its view: the
+      // first starts and crosses, then the second starts.
+      child.beforeAgent!({}, {});
+      await callModel(child, responseWithUsage(1000, 500));
+      child.beforeAgent!({}, {});
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "the second start does not drop the warning").toContain("Budget warning");
+      expect(advisoryOf(await callModel(parent, NO_USAGE)), "the parent is told whatever its sub-agents did").toContain("Budget warning");
+    });
+
+    it("every copy names the spend when it is read", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.1 });
+      const child = parent.forSubAgent();
+      // (10,000 * 3 + 4,000 * 15) / 1M = $0.09: past 80% of $0.10.
+      await callModel(child, responseWithUsage(10_000, 4_000));
+      // Read at $0.09; the call then spends (1,000 * 3) / 1M = $0.003 more.
+      const childCopy = advisoryOf(await callModel(child, responseWithUsage(1_000, 0)));
+      const parentCopy = advisoryOf(await callModel(parent, NO_USAGE));
+      expect(spentIn(childCopy)).toBe("0.0900");
+      expect(spentIn(parentCopy), "the parent's copy, read later, quotes the later total").toBe("0.0930");
+      expect(spentIn(parentCopy)).toBe(parent.runningCost.toFixed(4));
+    });
+
+    it("two different sub-agents running at once are each told once after either crosses", async () => {
+      const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+      const reader = parent.forSubAgent();
+      const writer = parent.forSubAgent();
+      // The parent delegates to both in one message: both start, then the reader's call crosses.
+      reader.beforeAgent!({}, {});
+      writer.beforeAgent!({}, {});
+      await callModel(reader, responseWithUsage(1000, 500));
+      expect(advisoryOf(await callModel(reader, NO_USAGE)), "the sub-agent that crossed").toContain("Budget warning");
+      expect(advisoryOf(await callModel(writer, NO_USAGE)), "its sibling, which has its own view").toContain("Budget warning");
+      expect(advisoryOf(await callModel(reader, NO_USAGE)), "each once").toBeUndefined();
+      expect(advisoryOf(await callModel(writer, NO_USAGE)), "each once").toBeUndefined();
+      expect(advisoryOf(await callModel(parent, NO_USAGE)), "and the parent").toContain("Budget warning");
+    });
+  });
+
+  it("prices nothing and advises no one when a call answers with a Command instead of a message", async () => {
+    const mw = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+    const jump = new Command({ goto: "__end__" });
+    const answered = await mw.wrapModelCall!(REQUEST, async () => jump);
+    expect(answered, "the Command is handed back untouched").toBe(jump);
+    expect(mw.runningCost).toBe(0);
+    expect(advisoryOf(await callModel(mw, NO_USAGE)), "nothing was crossed").toBeUndefined();
   });
 });

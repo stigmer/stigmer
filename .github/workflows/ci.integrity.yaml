@@ -4,9 +4,10 @@
 # Runs scripts/test-integrity.mjs, which reads every test file with the
 # TypeScript parser and refuses a focused `.only`, a test body that returns
 # before it asserts, a config that retries or passes with no tests, and, on a
-# pull request, a deleted case, a new skip or a new RPC waiver the pull
-# request does not declare (`Test-removal:`, `Quarantine:`, `Skip:` or
-# `RPC-waiver:` lines in its body; the script's header has the rules).
+# pull request, a deleted case, a new skip, a new RPC waiver or a lowered
+# coverage floor the pull request does not declare (`Test-removal:`,
+# `Quarantine:`, `Skip:`, `RPC-waiver:` or `Coverage-drop:` lines in its body;
+# the script's header has the rules).
 # `Test integrity` is a required check on `main`, beside `Gate`
 # (ci.gate.yaml) and `Review verdict` (ci.review.yaml).
 #

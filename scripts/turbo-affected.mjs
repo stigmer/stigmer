@@ -33,10 +33,12 @@
  *
  *   - `workflow_dispatch`: a manual run is "run it" (the ci.docs convention).
  *   - the lane's own workflow file, or the workspace's own tooling
- *     (WORKSPACE_TOOLING: the root manifests and scripts/**), changed. Turbo
- *     attributes these to the root package and no task; but a root
- *     devDependency bump (tsx, @tailwindcss/cli) is what several build scripts
- *     run, and a change to this lane must exercise this lane. The lane runs
+ *     (WORKSPACE_TOOLING: the root manifests, scripts/** and the coverage
+ *     floors), changed. Turbo attributes these to the root package and no
+ *     task; but a root devDependency bump (tsx, @tailwindcss/cli) is what
+ *     several build scripts run, a change to this lane must exercise this
+ *     lane, and a moved coverage floor is judged against a run that measured
+ *     every package it names (the gate's Coverage job, ci.gate.yaml). The lane runs
  *     as a workflow ci.gate.yaml calls, whose GITHUB_WORKFLOW_REF names the
  *     caller, so the lane passes its own file with --lane-file; the caller's
  *     file counts too, since a change to the orchestrator is a change to how
@@ -79,6 +81,13 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const LANE_TASKS = ["build", "typecheck", "lint", "tsdoc:check", "test", "test:a11y"];
 
 /**
+ * The committed coverage floors the gate's Coverage job judges every package
+ * suite against (scripts/test-coverage.mjs). ci-lanes.mjs selects every lane
+ * that measures a package when it changes; here it runs every package.
+ */
+export const COVERAGE_FLOORS = "test/coverage-floors.json";
+
+/**
  * Root-level paths whose change means every package must run. Turbo sees
  * these as the root package `//` with no task of its own. Prefix match on
  * the directory entry.
@@ -87,6 +96,8 @@ export const WORKSPACE_TOOLING = [
   "package.json",
   "package-lock.json",
   "scripts/",
+  // A floor is judged only against a run that measured its package (scripts/test-coverage.mjs).
+  COVERAGE_FLOORS,
 ];
 
 /** Turbo's word for "an upstream task the run pulls in", not a changed task. */

@@ -5,7 +5,7 @@
 //
 // What these guard: the selection (a path in a lane's list selects it, the
 // gate's own files and a dispatch select every lane, no base selects every
-// lane), the verdict (a needed lane that did not pass, a lane that ran
+// lane, the coverage floors select every lane that measures), the verdict (a needed lane that did not pass, a lane that ran
 // without being needed, a selection that gave no answer, a coverage job that
 // did not pass: each is red), and
 // the structure, read from the workflow files as they are. A lane that left
@@ -22,7 +22,8 @@ import { fileURLToPath } from "node:url";
 
 import { parse } from "yaml";
 
-import { EVERY_LANE, GATE_JOBS, LANES, laneId, selectLanes, verdict } from "./ci-lanes.mjs";
+import { COVERAGE_LANES, EVERY_LANE, GATE_JOBS, LANES, laneId, selectionSummary, selectLanes, verdict } from "./ci-lanes.mjs";
+import { COVERAGE_FLOORS } from "./turbo-affected.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workflowsDir = join(root, ".github/workflows");
@@ -104,6 +105,32 @@ test("the gate's own files, a dispatch and a missing base run every lane", () =>
   assert.match(selectLanes({ event: "workflow_dispatch", changedFiles: [] }).every, /manual run/);
   assert.match(selectLanes({ event: "merge_group", changedFiles: null }).every, /no base/);
   assert.deepEqual(EVERY_LANE, [".github/workflows/ci.gate.yaml", "scripts/ci-lanes.mjs", ".github/actions/**"]);
+});
+
+test("a change to the coverage floors selects every lane that measures a package, and says so; nothing else does", () => {
+  const always = Object.entries(LANES).filter(([, lane]) => lane.always).map(([file]) => laneId(file));
+  const expected = [...new Set([...always, ...COVERAGE_LANES.map(laneId)])].sort();
+  const { lanes, every, measure } = selectLanes({ event: "pull_request", changedFiles: [COVERAGE_FLOORS] });
+  assert.deepEqual(Object.entries(lanes).filter(([, run]) => run).map(([id]) => id).sort(), expected);
+  assert.equal(every, null);
+  assert.match(measure, /the coverage floors changed \(test\/coverage-floors\.json\): every lane that measures a package runs/);
+  assert.equal(selectLanes({ event: "pull_request", changedFiles: ["test/README.md"] }).measure, null);
+  assert.equal(selectLanes({ event: "merge_group", changedFiles: null }).measure, null);
+  for (const file of COVERAGE_LANES) assert.ok(LANES[file], `${file} is a lane`);
+});
+
+test("the selection's summary names the lanes and why every coverage lane ran; every lane's reason stands alone", () => {
+  const range = { base: "origin/main", head: "HEAD", source: "pull_request base branch" };
+  const floors = selectLanes({ event: "pull_request", changedFiles: [COVERAGE_FLOORS] });
+  const text = selectionSummary({ range, changedFiles: [COVERAGE_FLOORS], ...floors });
+  assert.match(text, /^### Lanes this change needs\n\nBase `origin\/main` \(pull_request base branch\), head `HEAD`, 1 changed file\(s\)\.\n\n7 lane\(s\): /);
+  assert.match(text, /\n\n\*\*Every coverage lane\*\*: the coverage floors changed \(test\/coverage-floors\.json\): every lane that measures a package runs, so each moved floor is judged\.$/);
+  const plain = selectLanes({ event: "pull_request", changedFiles: ["test/README.md"] });
+  assert.doesNotMatch(selectionSummary({ range, changedFiles: ["test/README.md"], ...plain }), /Every coverage lane/);
+  const every = selectLanes({ event: "pull_request", changedFiles: [COVERAGE_FLOORS, "scripts/ci-lanes.mjs"] });
+  const all = selectionSummary({ range, changedFiles: [COVERAGE_FLOORS, "scripts/ci-lanes.mjs"], ...every });
+  assert.match(all, /\*\*Every lane\*\*: the gate itself changed: scripts\/ci-lanes\.mjs\.$/);
+  assert.doesNotMatch(all, /Every coverage lane/, "every lane already says it all");
 });
 
 test("the verdict passes only when every needed lane passed and every other lane was skipped", () => {
