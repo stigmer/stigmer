@@ -13,33 +13,34 @@
  *
  * What it models, and what it refuses. Make is read as these Makefiles use it:
  * plain rules (`target: prerequisites`, with order-only prerequisites after
- * `|`), recipes of tab-prefixed lines with backslash continuations, `=`,
- * `:=`, `::=`, `?=` and `+=` variables, `export NAME`, comments. A file that
- * uses anything else is refused whole, wherever in the file the construct
- * sits, because a reader that guessed at a conditional's branch or an
- * included file's rules would hold a lane to the wrong files and pass green:
- * a conditional, `define`, `include`, `vpath`, a pattern or double-colon
- * rule, a recipe on the rule's own line, a target-specific variable, a shell
- * assignment (`!=`), `.ONESHELL`, and a `SHELL` other than sh or bash (both
- * run `cd` and subshells as this reader places them; site/Makefile names
- * bash). None of the Makefiles a gate lane reaches used one on 2026-10-03;
- * a new one is taught here first.
+ * `|`), recipes of tab-prefixed lines with backslash continuations, `=`, `:=`,
+ * `::=`, `?=` and `+=` variables, `export NAME`, comments. A file that uses
+ * anything else is refused whole, wherever in the file the construct sits,
+ * because a reader that guessed at a conditional's branch or an included file's
+ * rules would hold a lane to the wrong files and pass green: a conditional,
+ * `define`, `include`, `vpath`, a pattern or double-colon rule, a recipe on the
+ * rule's own line, a target-specific variable, a shell assignment (`!=`), a
+ * special target other than those that change nothing it reads (`.PHONY`,
+ * `.SILENT` and the like; `.ONESHELL`, `.SECONDEXPANSION`, `.POSIX` and a
+ * suffix rule are refused), and a `SHELL` other than sh or bash (both run `cd`
+ * and subshells as this reader places them; site/Makefile names bash). None of
+ * the Makefiles a gate lane reaches used one on 2026-10-03; a new one is taught
+ * here first.
  *
- * Variables are expanded as text, never evaluated: `$(NAME)` and `${NAME}`
- * take their value, recursively; `$$` becomes `$`; a function such as
- * `$(shell node scripts/x.mjs)` stays as written, so the words inside it are
- * still read; a name no file defines (`$(HOME)`, a variable the caller passes)
- * stays as written. `$(CURDIR)`, the directory make runs in, expands to that
- * directory as an absolute path whose root is the checkout's (`/` for the
- * root Makefile, `/sdk/go` for `make -C sdk/go`), so a word built on it is
- * placed from the checkout's root whatever directory its line changed to.
- * Since every recipe line runs in its own shell (no `.ONESHELL`), a word
- * whose line changes directory is placed by that change: a leading
- * `cd <dir> &&` places the line, and a `(cd <dir> && ...)` subshell places
- * the words inside it. Any other directory change leaves the line's words
- * unplaceable, and a `$(MAKE)` after a `cd`, or a bare `make` word anywhere
- * outside quotes (after `NAME=value`, behind `timeout`), is refused: a
- * recursion it cannot follow.
+ * Variables are expanded as text, never evaluated: `$(NAME)` and `${NAME}` take
+ * their value, recursively; `$$` becomes `$`; a function such as `$(shell node
+ * scripts/x.mjs)` stays as written, so the words inside it are still read; a
+ * name no file defines (`$(HOME)`, a variable the caller passes) stays as
+ * written. `$(CURDIR)`, the directory make runs in, expands to that directory
+ * as an absolute path whose root is the checkout's (`$(CURDIR)/x` reads `/x` in
+ * the root Makefile, `/sdk/go/x` under `make -C sdk/go`), so a word built on it
+ * is placed from the checkout's root whatever directory its line changed to.
+ * Since every recipe line runs in its own shell (no `.ONESHELL`), a word whose
+ * line changes directory is placed by that change: a leading `cd <dir> &&`
+ * places the line, and a `(cd <dir> && ...)` subshell places the words inside
+ * it. Any other directory change leaves the line's words unplaceable, and a
+ * `$(MAKE)` after a `cd`, or a bare `make` word anywhere outside quotes (after
+ * `NAME=value`, behind `timeout`), is refused: a recursion it cannot follow.
  *
  * Pure: `read` is passed in, so fixtures need no files on disk.
  */
@@ -56,6 +57,18 @@ const REFUSED_DIRECTIVE = /^(ifeq|ifneq|ifdef|ifndef|else|endif|define|endef|inc
 const REFERENCE = /\$\$|\$\(([A-Za-z0-9_.-]+)\)|\$\{([A-Za-z0-9_.-]+)\}/g;
 /** The shells whose `cd` and subshells this reader places: sh and bash, by path or through env. */
 const POSIX_SHELL = /^(?:\/usr)?\/bin\/(?:ba)?sh$|^\/usr\/bin\/env\s+(?:ba)?sh$/;
+/** The special targets that change nothing this reader reads: which targets are files, what is echoed, kept or run in parallel. */
+const INERT_SPECIAL_TARGETS = new Set([
+  ".PHONY",
+  ".SILENT",
+  ".IGNORE",
+  ".PRECIOUS",
+  ".INTERMEDIATE",
+  ".SECONDARY",
+  ".DELETE_ON_ERROR",
+  ".NOTPARALLEL",
+  ".EXPORT_ALL_VARIABLES",
+]);
 /** `make` as a word of its own: not `cmake`, not `make-targets.mjs`. */
 const MAKE_WORD = /(^|[\s;&|(`])make(?=[\s;&|)`]|$)/;
 /** A directory change at a command's start: `cd`, `pushd`, `popd`. */
@@ -143,7 +156,12 @@ export function readMakefile(text) {
       refusals.push(`line ${number}: .ONESHELL runs a recipe in one shell; this reader places each line in its own`);
       continue;
     }
-    if (targets.every((target) => target.startsWith("."))) continue; // .PHONY and the other special targets
+    const special = targets.filter((target) => target.startsWith("."));
+    if (special.some((target) => !INERT_SPECIAL_TARGETS.has(target))) {
+      refusals.push(`line ${number}: the special target ${special.find((target) => !INERT_SPECIAL_TARGETS.has(target))} is not read by this reader`);
+      continue;
+    }
+    if (special.length > 0) continue;
     if (colons === "::" || targets.some((target) => target.includes("%")) || rest.includes(":")) {
       refusals.push(`line ${number}: a pattern, static-pattern or double-colon rule is not read by this reader`);
       continue;

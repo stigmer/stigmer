@@ -113,8 +113,10 @@
 // a script word it cannot place or that names nothing tracked. Not traced:
 // what an `npm run`, `npx` or `cargo` call in a recipe runs (the action
 // rule's `npm run` again), configuration a recipe reads (a tsconfig, a
-// chart's values), `MAKEFLAGS` in a step's env, and what a body imports by
-// package name. The one configuration file a recipe hands its tool,
+// chart's values), `MAKEFLAGS` in a step's env, an environment variable (a
+// step's `env:`, or `NAME=value` before make) that a `?=` default yields to,
+// a `make` inside a quoted string run by another shell (`bash -c "make x"`),
+// and what a body imports by package name. The one configuration file a recipe hands its tool,
 // `tsconfig.tsx.json` (the CLI shim's), is in its lane's list by hand.
 //
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
@@ -571,8 +573,9 @@ export function actionSetups(action, tracked) {
 /**
  * A `make` in command position in a step: at a line's start, after an
  * operator or a subshell's `(`, or after `then`, `do` or `else`, behind any
- * `NAME=value` environment assignments (which make reads as environment
- * variables, below the file's own).
+ * `NAME=value` environment assignments. Make reads those as environment
+ * variables: below the file's own assignments, but above a `?=` default,
+ * which this guard does not model (the header lists it as not traced).
  */
 const MAKE_COMMAND = /(^|[;&|(]|\b(?:then|do|else)\b)[ \t]*(?:[A-Za-z_][A-Za-z0-9_]*=\S*[ \t]+)*make(?=[ \t]|$)/gm;
 /** Every `make` word of its own in a step: not `cmake`, not `make-targets.mjs`. */

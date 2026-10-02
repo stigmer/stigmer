@@ -46,6 +46,7 @@ test("readMakefile reads rules, prerequisites, recipes and variables as make doe
       "FLAGS ?= -c",
       "export STUBS_FORCE",
       ".PHONY: build test",
+      ".DELETE_ON_ERROR:",
       "",
       "build: deps | order ## Build it (needs: docker; tools)",
       ">@echo build \\",
@@ -61,15 +62,15 @@ test("readMakefile reads rules, prerequisites, recipes and variables as make doe
   );
   assert.deepEqual(refusals, []);
   assert.deepEqual(rules.get("build"), {
-    line: 10,
+    line: 11,
     prerequisites: ["deps", "order", "extra"],
     recipe: [
-      { line: 11, text: "echo build --flag" },
-      { line: 15, text: "rm -f out" },
-      { line: 16, text: "$(MAKE) -C sub all" },
+      { line: 12, text: "echo build --flag" },
+      { line: 16, text: "rm -f out" },
+      { line: 17, text: "$(MAKE) -C sub all" },
     ],
   });
-  assert.deepEqual(rules.get("a").recipe, [{ line: 19, text: "touch $@" }], "a multi-target rule gives each target the recipe");
+  assert.deepEqual(rules.get("a").recipe, [{ line: 20, text: "touch $@" }], "a multi-target rule gives each target the recipe");
   assert.deepEqual(rules.get("b").prerequisites, ["shared"]);
   assert.deepEqual(Object.fromEntries(variables), {
     RUNNER_DIR: "backend/services/runner",
@@ -89,6 +90,9 @@ test("readMakefile refuses every construct it does not model, wherever it sits",
     ["FILES != ls", /runs a shell when the file is read/],
     ["SHELL := /bin/zsh", /SHELL is \/bin\/zsh; this reader places words as sh and bash run them/],
     [".ONESHELL:", /\.ONESHELL runs a recipe in one shell/],
+    [".SECONDEXPANSION:", /the special target \.SECONDEXPANSION is not read/],
+    [".POSIX:", /the special target \.POSIX is not read/],
+    [".c.o:", /the special target \.c\.o is not read/],
     ["%.o: %.c", /a pattern, static-pattern or double-colon rule/],
     ["objs: %.o: %.c", /a pattern, static-pattern or double-colon rule/],
     ["all:: one", /a pattern, static-pattern or double-colon rule/],
