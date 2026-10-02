@@ -12,29 +12,39 @@
  * learn exists.
  *
  * What counts as reading a setting. An env object is `process.env` (also
- * through a default or namespace import of `node:process`), `env` imported or
- * destructured from `process`, or an identifier whose declaration (a
- * parameter or a variable) is annotated `NodeJS.ProcessEnv`, the injection
- * seam `shared/runner-credential-store.ts` describes, or is initialised or
- * defaulted to `process.env` whatever its type. Identifiers are matched by
- * name within the file, not by scope: once one `env` in a file is an env
- * object, every `env` there is read as one, which errs toward a loud failure,
- * never a silent miss. An env object passed under another name (a call's
- * argument, a property) is not followed.
+ * through a default or namespace import of `node:process`, and as
+ * `globalThis.process.env`), `env` taken from `process` (imported, or
+ * destructured in a declaration, a parameter, an assignment or a nested
+ * pattern), or an identifier whose declaration (a parameter or a variable)
+ * is annotated `NodeJS.ProcessEnv`, the injection seam
+ * `shared/runner-credential-store.ts` describes, or is initialised or
+ * defaulted to `process.env` whatever its type. Parentheses and type
+ * assertions (`as`, `satisfies`, `!`, `<T>`) are seen through. Identifiers
+ * are matched by name within the file, not by scope: once one `env` in a file
+ * is an env object, every `env` there is read as one, which errs toward a
+ * loud failure, never a silent miss. An env object handed on is not
+ * followed: a call's argument, a property, a spread copy (unless the copy's
+ * declaration carries the annotation), or a variable or parameter holding
+ * `process` itself, whatever its annotation.
  *
- *  1. `E.NAME`, `E["NAME"]` or `const { NAME } = E` on an env object (a
- *     computed key in the destructure is judged by rules 2 and 4).
- *  2. `E[K]`, where `K` is a string-literal `const` of the same file, or one
- *     imported by its own name from a relative module that exports it as a
- *     literal (an aliased import is not followed), and `K` is bound nowhere
- *     else in the file: a parameter or a second declaration of the same name
- *     makes the key ambiguous, so it is refused rather than guessed.
+ *  1. `E.NAME`, `E["NAME"]`, `"NAME" in E`, or a destructure of an env object
+ *     wherever the pattern stands: a variable's or parameter's pattern
+ *     initialised, defaulted or annotated as one, the object on the left of a
+ *     plain `=` whose right side is one, and `{ env: { NAME } }` from
+ *     `process` (a computed key in a destructure is judged by rules 2 and 4).
+ *  2. `E[K]` or `K in E`, where `K` is a string-literal `const` of the same
+ *     file, or one imported by its own name from a relative module that
+ *     exports it as a literal (an aliased import is not followed), and `K` is
+ *     bound nowhere else in the file: a parameter or a second declaration of
+ *     the same name makes the key ambiguous, so it is refused rather than
+ *     guessed.
  *  3. The first argument of `requireEnv(...)` or `getRunnerSecret(...)`, a
  *     literal or a `K` as in rule 2.
- *  4. Any other computed-key read of an env object, or reader call, is
- *     refused ("cannot tell which setting this reads"), except inside the
- *     functions `COMPUTED_READS_ALLOWED` names, each with its reason. A
- *     dynamic read added later fails loudly instead of escaping the check.
+ *  4. Any other computed-key read of an env object, `in` test, destructured
+ *     key of another kind (a number, say) or reader call is refused ("cannot
+ *     tell which setting this reads"), except inside the functions
+ *     `COMPUTED_READS_ALLOWED` names, each with its reason. A dynamic read
+ *     added later fails loudly instead of escaping the check.
  *
  * Writes are never reads: a plain assignment target (a compound one such as
  * `??=` reads the value first), a `delete` operand, a spread, an
@@ -80,7 +90,10 @@ const NOT_SETTINGS: ReadonlyMap<string, string> = new Map([
   ],
 ]);
 
-/** Where a computed-key read is expected, as `<file under src>#<function>`, each with its reason. */
+/**
+ * Where a computed-key read is expected, as `<file under src>#<function>`, each with its reason. A
+ * function goes by its own name, or by the variable, object property or class field holding it.
+ */
 const COMPUTED_READS_ALLOWED: ReadonlyMap<string, string> = new Map([
   ["config.ts#requireEnv", "its callers name the setting, and rule 3 reads it there"],
   [
@@ -116,6 +129,18 @@ interface SettingsRead {
 
 function stringLiteralText(node: ts.Node | undefined): string | undefined {
   return node !== undefined && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : undefined;
+}
+
+/** The expression inside parentheses and type assertions (`as`, `satisfies`, `!`, `<T>`), which change no value. */
+function unwrapped(node: ts.Expression): ts.Expression {
+  let current = node;
+  while (
+    ts.isParenthesizedExpression(current) || ts.isAsExpression(current) || ts.isSatisfiesExpression(current)
+    || ts.isNonNullExpression(current) || ts.isTypeAssertionExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
 }
 
 /** The file's string-literal `const` declarations, by name; `exportedOnly` keeps the exported top-level ones. */
@@ -178,13 +203,16 @@ function resolveFromTree(fromFile: string): ImportResolver {
   };
 }
 
-/** The name a function-like node goes by: its own, or the variable or property it is assigned to. */
+/** The name a function-like node goes by: its own, or the variable, object property or class field holding it. */
 function functionName(node: ts.Node): string | undefined {
   if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) && node.name !== undefined && ts.isIdentifier(node.name)) {
     return node.name.text;
   }
-  if ((ts.isArrowFunction(node) || ts.isFunctionExpression(node)) && ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)) {
-    return node.parent.name.text;
+  if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node)) return undefined;
+  const holder = node.parent;
+  if (ts.isVariableDeclaration(holder) && ts.isIdentifier(holder.name)) return holder.name.text;
+  if ((ts.isPropertyAssignment(holder) || ts.isPropertyDeclaration(holder)) && (ts.isIdentifier(holder.name) || ts.isStringLiteral(holder.name))) {
+    return holder.name.text;
   }
   return undefined;
 }
@@ -194,6 +222,55 @@ function isWrite(node: ts.Node): boolean {
   const parent = node.parent;
   if (ts.isDeleteExpression(parent)) return true;
   return ts.isBinaryExpression(parent) && parent.left === node && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken;
+}
+
+/** An object destructure in either syntax: a binding pattern, or an object literal that an assignment writes into. */
+type ObjectPattern = ts.ObjectBindingPattern | ts.ObjectLiteralExpression;
+
+/** One element of an object destructure: the property it takes and where that value goes. */
+interface DestructuredElement {
+  readonly node: ts.Node;
+  readonly property: ts.PropertyName;
+  readonly target: ts.Node;
+}
+
+function isObjectPattern(node: ts.Node): node is ObjectPattern {
+  return ts.isObjectBindingPattern(node) || ts.isObjectLiteralExpression(node);
+}
+
+/** A plain `=` (a compound one such as `??=` cannot destructure). */
+function isPlainAssignment(node: ts.Node): node is ts.BinaryExpression {
+  return ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken;
+}
+
+/**
+ * The elements of a destructure, in either syntax, with a rest element left
+ * out: it copies the remainder and names no setting. An assignment element's
+ * default (`{ NAME: v = "d" }`) is stripped, so its target is `v`.
+ */
+function destructuredElements(pattern: ObjectPattern): DestructuredElement[] {
+  const elements: DestructuredElement[] = [];
+  if (ts.isObjectBindingPattern(pattern)) {
+    for (const element of pattern.elements) {
+      const property = element.propertyName ?? (ts.isIdentifier(element.name) ? element.name : undefined);
+      if (element.dotDotDotToken === undefined && property !== undefined) elements.push({ node: element, property, target: element.name });
+    }
+    return elements;
+  }
+  for (const element of pattern.properties) {
+    if (ts.isShorthandPropertyAssignment(element)) {
+      elements.push({ node: element, property: element.name, target: element.name });
+    } else if (ts.isPropertyAssignment(element)) {
+      const target = isPlainAssignment(element.initializer) ? element.initializer.left : element.initializer;
+      elements.push({ node: element, property: element.name, target });
+    }
+  }
+  return elements;
+}
+
+/** A property's name when it is written as a name or a string, the only forms a setting is named by. */
+function propertyText(property: ts.PropertyName): string | undefined {
+  return ts.isIdentifier(property) || ts.isStringLiteral(property) ? property.text : undefined;
 }
 
 /**
@@ -235,36 +312,74 @@ function settingsReadIn(
     }
   }
 
-  const isProcessEnv = (node: ts.Node | undefined): boolean =>
-    node !== undefined
-    && ts.isPropertyAccessExpression(node)
-    && ts.isIdentifier(node.expression)
-    && processNames.has(node.expression.text)
-    && node.name.text === "env";
+  /** `process` itself: a name it is bound to, or `globalThis.process`. */
+  const isProcess = (node: ts.Expression): boolean => {
+    const value = unwrapped(node);
+    if (ts.isIdentifier(value)) return processNames.has(value.text);
+    return ts.isPropertyAccessExpression(value)
+      && ts.isIdentifier(value.expression)
+      && value.expression.text === "globalThis"
+      && value.name.text === "process";
+  };
+  const isProcessEnv = (node: ts.Expression | undefined): boolean => {
+    if (node === undefined) return false;
+    const value = unwrapped(node);
+    return ts.isPropertyAccessExpression(value) && value.name.text === "env" && isProcess(value.expression);
+  };
+  const isEnvObject = (node: ts.Expression): boolean => {
+    const value = unwrapped(node);
+    return isProcessEnv(value) || (ts.isIdentifier(value) && envIdentifiers.has(value.text));
+  };
+  const isAnnotatedProcessEnv = (declaration: ts.ParameterDeclaration | ts.VariableDeclaration): boolean =>
+    declaration.type?.getText(sourceFile) === "NodeJS.ProcessEnv";
+
+  /** The patterns nested under `env` in a destructure of `process`; each destructures an env object. */
+  const nestedEnvPatterns = new Set<ObjectPattern>();
+  /**
+   * The destructure a node starts, and what it destructures: a declaration's
+   * or parameter's pattern, or the object a plain `=` writes into. A pattern
+   * nested under `env` is not a start (its source is the element holding it),
+   * so a nested one with a default is never read as an assignment from that
+   * default.
+   */
+  const destructureAt = (node: ts.Node): { readonly pattern: ObjectPattern; readonly source: "env" | "process" } | undefined => {
+    let pattern: ObjectPattern;
+    let value: ts.Expression | undefined;
+    if ((ts.isVariableDeclaration(node) || ts.isParameter(node)) && ts.isObjectBindingPattern(node.name)) {
+      if (isAnnotatedProcessEnv(node)) return { pattern: node.name, source: "env" };
+      pattern = node.name;
+      value = node.initializer;
+    } else if (isPlainAssignment(node) && ts.isObjectLiteralExpression(node.left) && !nestedEnvPatterns.has(node.left)) {
+      pattern = node.left;
+      value = node.right;
+    } else {
+      return undefined;
+    }
+    if (value === undefined) return undefined;
+    if (isEnvObject(value)) return { pattern, source: "env" };
+    return isProcess(value) ? { pattern, source: "process" } : undefined;
+  };
+
   const collectEnvIdentifiers = (node: ts.Node): void => {
     if (
       (ts.isParameter(node) || ts.isVariableDeclaration(node))
       && ts.isIdentifier(node.name)
-      && (node.type?.getText(sourceFile) === "NodeJS.ProcessEnv" || isProcessEnv(node.initializer))
+      && (isAnnotatedProcessEnv(node) || isProcessEnv(node.initializer))
     ) {
       envIdentifiers.add(node.name.text);
-    } else if (
-      ts.isVariableDeclaration(node)
-      && ts.isObjectBindingPattern(node.name)
-      && node.initializer !== undefined
-      && ts.isIdentifier(node.initializer)
-      && processNames.has(node.initializer.text)
-    ) {
-      for (const element of node.name.elements) {
-        const property = element.propertyName ?? element.name;
-        if (ts.isIdentifier(property) && property.text === "env" && ts.isIdentifier(element.name)) envIdentifiers.add(element.name.text);
+    }
+    const destructure = destructureAt(node);
+    if (destructure?.source === "process") {
+      for (const element of destructuredElements(destructure.pattern)) {
+        if (propertyText(element.property) !== "env") continue;
+        if (ts.isIdentifier(element.target)) envIdentifiers.add(element.target.text);
+        else if (isObjectPattern(element.target)) nestedEnvPatterns.add(element.target);
       }
     }
     ts.forEachChild(node, collectEnvIdentifiers);
   };
   collectEnvIdentifiers(sourceFile);
 
-  const isEnvObject = (node: ts.Expression): boolean => isProcessEnv(node) || (ts.isIdentifier(node) && envIdentifiers.has(node.text));
   const bound = bindingCounts(sourceFile);
   const keyOf = (node: ts.Expression | undefined): string | undefined =>
     stringLiteralText(node)
@@ -278,27 +393,39 @@ function settingsReadIn(
     if (enclosing !== undefined && allowedFunctions.has(enclosing)) computedIn.add(enclosing);
     else refused.push({ line: lineOf(node), how });
   };
+  /** Rule 1 for a destructure of an env object, its computed keys by rules 2 and 4, any other key kind refused. */
+  const readDestructure = (pattern: ObjectPattern, enclosing: string | undefined): void => {
+    for (const { node, property } of destructuredElements(pattern)) {
+      const text = propertyText(property);
+      if (text !== undefined) {
+        names.add(text);
+      } else if (ts.isComputedPropertyName(property)) {
+        const key = keyOf(property.expression);
+        if (key !== undefined) names.add(key);
+        else unresolved(node, enclosing, `destructures ${property.getText(sourceFile)}, whose setting cannot be told`);
+      } else {
+        unresolved(node, enclosing, `destructures ${property.getText(sourceFile)}, a key the checker does not read`);
+      }
+    }
+  };
 
   const visit = (node: ts.Node, enclosing: string | undefined): void => {
     const here = functionName(node) ?? enclosing;
+    const destructure = destructureAt(node);
     if (ts.isPropertyAccessExpression(node) && isEnvObject(node.expression) && !isWrite(node)) {
       names.add(node.name.text);
     } else if (ts.isElementAccessExpression(node) && isEnvObject(node.expression) && !isWrite(node)) {
       const key = keyOf(node.argumentExpression);
       if (key !== undefined) names.add(key);
       else unresolved(node, here, `reads ${node.getText(sourceFile)}, whose setting cannot be told`);
-    } else if (ts.isVariableDeclaration(node) && ts.isObjectBindingPattern(node.name) && node.initializer !== undefined && isEnvObject(node.initializer)) {
-      for (const element of node.name.elements) {
-        if (element.dotDotDotToken !== undefined) continue;
-        const property = element.propertyName ?? element.name;
-        if (ts.isIdentifier(property) || ts.isStringLiteral(property)) {
-          names.add(property.text);
-        } else if (ts.isComputedPropertyName(property)) {
-          const key = keyOf(property.expression);
-          if (key !== undefined) names.add(key);
-          else unresolved(element, here, `destructures ${property.getText(sourceFile)}, whose setting cannot be told`);
-        }
-      }
+    } else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.InKeyword && isEnvObject(node.right)) {
+      const key = keyOf(node.left);
+      if (key !== undefined) names.add(key);
+      else unresolved(node, here, `tests ${node.getText(sourceFile)}, whose setting cannot be told`);
+    } else if (destructure?.source === "env") {
+      readDestructure(destructure.pattern, here);
+    } else if (isObjectPattern(node) && nestedEnvPatterns.has(node)) {
+      readDestructure(node, here);
     } else if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && READERS.has(node.expression.text)) {
       const key = keyOf(node.arguments[0]);
       if (key !== undefined) names.add(key);
@@ -337,6 +464,24 @@ describe("settingsReadIn (the checker itself)", () => {
     ],
     ["a reader call with a literal", 'const v = getRunnerSecret("STIGMER_A");'],
     ["a reader call with a constant", 'const ENV_VAR = "STIGMER_A"; const v = requireEnv(ENV_VAR);'],
+    ["a parameter's destructure defaulted to process.env", "function f({ STIGMER_A } = process.env) { return STIGMER_A; }"],
+    ["a parameter's destructure annotated NodeJS.ProcessEnv", "function f({ STIGMER_A }: NodeJS.ProcessEnv) { return STIGMER_A; }"],
+    ["an assignment destructure into a renamed target", "let v; ({ STIGMER_A: v } = process.env);"],
+    ["a shorthand assignment destructure with a default", 'let STIGMER_A; ({ STIGMER_A = "x" } = process.env);'],
+    ["an assignment destructure through a constant key", 'const K = "STIGMER_A"; let v; ({ [K]: v } = process.env);'],
+    ["an assignment destructure, its rest element not a setting", "let STIGMER_A, rest; ({ STIGMER_A, ...rest } = process.env);"],
+    ["a destructure of env nested in a destructure of process", "const { env: { STIGMER_A } } = process;"],
+    ["a nested destructure of env with a default", "const { env: { STIGMER_A } = {} } = process;"],
+    ["a nested assignment destructure of env with a default", "let STIGMER_A; ({ env: { STIGMER_A } = {} } = process);"],
+    ["a read on env destructured from process in a parameter", "function f({ env } = process) { return env.STIGMER_A; }"],
+    ["a read on env destructured from process by assignment", "let env; ({ env } = process); const v = env.STIGMER_A;"],
+    ["a property read through a type assertion", "const v = (process.env as Record<string, string>).STIGMER_A;"],
+    ["a read through an alias initialised with a type assertion", "const env = process.env as Record<string, string>; const v = env.STIGMER_A;"],
+    ["a destructure of a non-null assertion", "const { STIGMER_A } = process.env!;"],
+    ["a read through satisfies", "const v = (process.env satisfies NodeJS.ProcessEnv).STIGMER_A;"],
+    ["a read through globalThis.process", "const v = globalThis.process.env.STIGMER_A;"],
+    ["an in test with a literal key", 'const set = "STIGMER_A" in process.env;'],
+    ["an in test with a constant key", 'const K = "STIGMER_A"; const set = K in process.env;'],
   ])("reads %s", (_label, source) => {
     expect(read(source)).toEqual({ names: ["STIGMER_A"], refused: [], computedIn: [] });
   });
@@ -360,6 +505,9 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a name in a string", 'const hint = "process.env.STIGMER_A";'],
     ["a property of an object that is not an env object", "const config = { STIGMER_A: 1 }; const v = config.STIGMER_A;"],
     ["a plain-record parameter with no process.env default", "function f(env: Record<string, string>) { return env.STIGMER_A; }"],
+    ["an assignment destructure of an object that is not an env object", "let v; ({ STIGMER_A: v } = config);"],
+    ["a parameter's destructure whose default is not an env object", "function f({ STIGMER_A } = defaults) { return STIGMER_A; }"],
+    ["a for-in over process.env", "for (const name in process.env) console.log(name);"],
   ])("does not read %s", (_label, source) => {
     expect(read(source)).toEqual({ names: [], refused: [], computedIn: [] });
   });
@@ -370,6 +518,10 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a computed key through an unannotated alias", "const env = process.env; export const g = (name: string) => env[name];"],
     ["a destructure through a computed key", "export function f(k: string) { const { [k]: v } = process.env; return v; }"],
     ["a reader call with a computed name", "function f(n: string) { return getRunnerSecret(n); }"],
+    ["a parameter's destructure through a computed key", "function f(k: string, { [k]: v } = process.env) { return v; }"],
+    ["an assignment destructure through a computed key", "function f(k: string) { let v; ({ [k]: v } = process.env); return v; }"],
+    ["an in test with a computed key", "function f(k: string) { return k in process.env; }"],
+    ["a destructure through a numeric key", "const { 0: v } = process.env;"],
   ])("refuses %s", (_label, source) => {
     const result = read(source);
     expect(result.names).toEqual([]);
@@ -401,6 +553,13 @@ describe("settingsReadIn (the checker itself)", () => {
       refused: [{ line: 2, how: "reads process.env[n], whose setting cannot be told" }],
       computedIn: ["requireEnv"],
     });
+  });
+
+  it.each([
+    ["an object property", "const reader = { readSetting: (name: string) => process.env[name] };"],
+    ["a class field", "class Reader { readSetting = (name: string) => process.env[name]; }"],
+  ])("allows a computed read in an arrow held by %s, under the property's name", (_label, source) => {
+    expect(read(source, noImports, new Set(["readSetting"]))).toEqual({ names: [], refused: [], computedIn: ["readSetting"] });
   });
 });
 
