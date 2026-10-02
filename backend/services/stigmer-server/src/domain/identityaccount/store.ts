@@ -21,6 +21,16 @@
  *     DuplicateAccountError, never a silent overwrite; a direct account
  *     with an empty `idp_id` is refused, since no lookup could reach it;
  *   - `update` replaces, never creates: an unknown id writes nothing;
+ *   - an account carries an identity_provider_ref if and only if its mode
+ *     is `federated`, and `save` and `update` refuse either mixed shape.
+ *     It is what "federated" means to every lookup below: while it holds,
+ *     a driver may classify a row by either field and agree with every
+ *     other driver. A ref under another mode split a person's sign-in
+ *     (stigmer#1190), and mode `federated` without a ref is a provider's
+ *     subject that a driver keyed on the ref would answer as a platform
+ *     person's.
+ *     A row with neither (direct, platform-client, a composition's
+ *     system account) is unaffected;
  *   - `deleteById` of an unknown id resolves;
  *   - `findDirectByIdpId` answers only the platform's own subjects —
  *     never a federated account (a customer's federated IdP may mint the
@@ -52,9 +62,9 @@ export class DuplicateAccountError extends Error {
 }
 
 export interface IdentityAccountStore {
-  /** Insert; a held id raises DuplicateAccountError; a direct account with no idp_id is refused. */
+  /** Insert; a held id raises DuplicateAccountError; a direct account with no idp_id, or a mixed shape, is refused. */
   save(account: IdentityAccount): Promise<void>;
-  /** Full-row replace by id (profile updates, preference writes); an unknown id writes nothing. */
+  /** Full-row replace by id (profile updates, preference writes); an unknown id writes nothing; a mixed shape is refused. */
   update(account: IdentityAccount): Promise<void>;
   /** Removes the row; no error when it does not exist. */
   deleteById(id: string): Promise<void>;

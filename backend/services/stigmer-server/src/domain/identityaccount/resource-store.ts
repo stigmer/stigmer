@@ -27,7 +27,9 @@
  * the posture every chain on the platform has today (CheckDuplicate then
  * upsert); conditional store writes are a platform-wide follow-up, not
  * this adapter's to invent. The primary key still guarantees ONE row per
- * subject, which is the invariant that matters.
+ * subject, which is the invariant that matters. Before either reads, both
+ * refuse an account whose provider ref and federated mode disagree (the
+ * port's shape line), so a refused write costs no store round trip.
  *
  * Store faults follow the ratified mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
@@ -76,6 +78,7 @@ export function newResourceIdentityAccountStore(
 
   return {
     async save(account): Promise<void> {
+      refuseMixedShape(account);
       const id = account.metadata?.id ?? "";
       const idpId = account.spec?.idpId ?? "";
       if (isDirect(account) && id !== accountIdFor(idpId)) {
@@ -90,6 +93,7 @@ export function newResourceIdentityAccountStore(
     },
 
     async update(account): Promise<void> {
+      refuseMixedShape(account);
       const id = account.metadata?.id ?? "";
       if ((await readById(id)) === undefined) {
         return;
@@ -149,13 +153,27 @@ export function newResourceIdentityAccountStore(
 }
 
 /**
- * The platform's own subject: neither federated nor a platform-client end
- * user. A federated account carries its identity_provider_ref (open source
- * never writes one, so that arm is the port's contract stated); a
- * platform-client account is the mint's, whose email and name the platform
- * asserted, so no direct lookup — a verifier's subject resolve, getByEmail —
- * may answer it.
+ * The port's shape line (store.ts): an account carries an
+ * identity_provider_ref if and only if its mode is `federated`. Both mixed
+ * shapes are refused before any read, on `save` and on `update` alike. A ref
+ * under another mode is the row that split a person's sign-in (stigmer#1190):
+ * every direct lookup skipped it, so the subject looked new. Mode `federated`
+ * with no ref is a provider's subject that a driver which classifies by the
+ * ref alone would answer for a platform person. With both refused, the two
+ * readings below agree on every stored row.
  */
+function refuseMixedShape(account: IdentityAccount): void {
+  const hasProviderRef = account.spec?.identityProviderRef !== undefined;
+  const isFederatedMode =
+    account.spec?.provisioningMode ===
+    IdentityAccountProvisioningMode.federated;
+  if (hasProviderRef !== isFederatedMode) {
+    throw new Error(
+      `identity account '${account.metadata?.id ?? ""}' mixes shapes: an identity provider ref is carried exactly by a federated account`,
+    );
+  }
+}
+
 /** A row an identity provider vouches for: its subject is the provider's, reached only by the natural key. */
 function isFederated(account: IdentityAccount): boolean {
   return (
@@ -164,6 +182,14 @@ function isFederated(account: IdentityAccount): boolean {
   );
 }
 
+/**
+ * The platform's own subject: neither federated nor a platform-client end
+ * user. A federated account carries its identity_provider_ref (open source
+ * never writes one, so that arm is the port's contract stated); a
+ * platform-client account is the mint's, whose email and name the platform
+ * asserted, so no direct lookup — a verifier's subject resolve, getByEmail —
+ * may answer it.
+ */
 function isDirect(account: IdentityAccount): boolean {
   const mode = account.spec?.provisioningMode;
   return (

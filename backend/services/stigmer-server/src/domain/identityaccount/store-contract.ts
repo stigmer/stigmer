@@ -147,6 +147,49 @@ function subjectlessDirectAccount(): IdentityAccount {
   });
 }
 
+/**
+ * The two shapes the port refuses, under one subject's derived id: a
+ * provider ref with no mode (the row that split a person's sign-in), and
+ * mode `federated` with no provider ref. Each is labelled for the
+ * assertion that names it.
+ */
+function mixedShapeAccounts(idpId: string): ReadonlyArray<{
+  readonly shape: string;
+  readonly account: IdentityAccount;
+}> {
+  const id = accountIdFor(idpId);
+  return [
+    {
+      shape: "a provider ref with no mode",
+      account: create(IdentityAccountSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "IdentityAccount",
+        metadata: { id, name: idpId },
+        spec: {
+          idpId,
+          identityProviderRef: {
+            org: "acme",
+            kind: ApiResourceKind.identity_provider,
+            slug: "acme-okta",
+          },
+        },
+      }),
+    },
+    {
+      shape: "mode federated with no provider ref",
+      account: create(IdentityAccountSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "IdentityAccount",
+        metadata: { id, name: idpId },
+        spec: {
+          idpId,
+          provisioningMode: IdentityAccountProvisioningMode.federated,
+        },
+      }),
+    },
+  ];
+}
+
 /** The id of the account, asserted present so a message names the row, not `undefined`. */
 function idOf(account: IdentityAccount): string {
   const id = account.metadata?.id ?? "";
@@ -461,6 +504,55 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       await assert.rejects(
         store.save(subjectlessDirectAccount()),
         "a direct account with no subject has no principal and must be refused, never stored",
+      );
+    },
+  ],
+  [
+    "save and update refuse an account whose provider ref and federated mode disagree; a row with neither saves",
+    async ({ store }) => {
+      for (const { shape, account } of mixedShapeAccounts("auth0|mixed")) {
+        await assert.rejects(
+          store.save(account),
+          `save must refuse ${shape}: every lookup reads "federated" from these two fields`,
+        );
+        assert.equal(
+          await store.findById(idOf(account)),
+          undefined,
+          `a refused save of ${shape} must leave no row`,
+        );
+      }
+
+      const standing = directAccount({ idpId: "auth0|mixed" });
+      await store.save(standing);
+      for (const { shape, account } of mixedShapeAccounts("auth0|mixed")) {
+        await assert.rejects(
+          store.update(account),
+          `update must refuse turning a stored account into ${shape}`,
+        );
+      }
+      const after = await store.findById(idOf(standing));
+      assert.equal(
+        after?.spec?.provisioningMode,
+        IdentityAccountProvisioningMode.direct,
+        "a refused update must leave the stored row's mode as it was",
+      );
+      assert.equal(
+        after?.spec?.identityProviderRef,
+        undefined,
+        "a refused update must leave the stored row with no provider ref",
+      );
+
+      const unmarked = create(IdentityAccountSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "IdentityAccount",
+        metadata: { id: accountIdFor("stgm_guest|acme"), name: "system-guest" },
+        spec: { idpId: "stgm_guest|acme" },
+      });
+      await store.save(unmarked);
+      assert.equal(
+        (await store.findDirectByIdpId("stgm_guest|acme"))?.metadata?.id,
+        idOf(unmarked),
+        "a row with neither a provider ref nor a mode (a composition's system account) must save and read as direct",
       );
     },
   ],
