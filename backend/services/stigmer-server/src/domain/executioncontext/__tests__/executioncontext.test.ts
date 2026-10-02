@@ -1041,6 +1041,9 @@ describe("DeleteExecutionContext activity seam", () => {
       );
       expect(warning, "the operator's signal").toContain('"level":"warn"');
       expect(warning).toContain('"reason":"recover"');
+      expect(warning, "the fault that stopped the delete").toContain(
+        '"error":"simulated delete failure"',
+      );
     } finally {
       await store.close();
       rmSync(dir, { recursive: true, force: true });
