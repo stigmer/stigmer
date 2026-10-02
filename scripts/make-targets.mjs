@@ -20,6 +20,8 @@
  * rules would hold a lane to the wrong files and pass green: a conditional,
  * `define`, `include`, `vpath`, a pattern or double-colon rule, a recipe on the
  * rule's own line, a target-specific variable, a shell assignment (`!=`), a
+ * variable assigned a second time (make expands a `:=` value when it is
+ * assigned, so a later reassignment would change what this reader reads), a
  * special target other than those that change nothing it reads (`.PHONY`,
  * `.SILENT` and the like; `.ONESHELL`, `.SECONDEXPANSION`, `.POSIX` and a
  * suffix rule are refused), and a `SHELL` other than sh or bash (both run `cd`
@@ -98,6 +100,8 @@ export function readMakefile(text) {
   const lines = text.split("\n");
   const rules = new Map();
   const variables = new Map();
+  // The line each variable was first assigned on, so a second assignment is refused rather than guessed at.
+  const assigned = new Map();
   const refusals = [];
   // The rule line whose recipe the next tab-prefixed lines belong to: its entries, and whether a recipe may follow.
   let current = null;
@@ -141,6 +145,11 @@ export function readMakefile(text) {
       } else {
         // `?=` sets only a name not yet defined; `+=` appends to one that is.
         if (operator === "?=" && variables.has(name)) continue;
+        if (operator !== "+=" && assigned.has(name)) {
+          refusals.push(`line ${number}: ${name} is assigned again (first at line ${assigned.get(name)}); this reader expands each name with one value`);
+          continue;
+        }
+        if (!assigned.has(name)) assigned.set(name, number);
         variables.set(name, operator === "+=" && variables.has(name) ? `${variables.get(name)} ${value}` : value);
       }
       continue;
@@ -420,7 +429,10 @@ export function placeWords(text, dir, pattern) {
         break;
       }
     }
-    subshells.push({ start: open.index, end, dir: base === null ? null : into(base, open[1]) });
+    // A nested subshell's cd starts from the directory of the subshell around it.
+    const outer = subshells.findLast((shell) => open.index > shell.start && open.index < shell.end);
+    const from = outer ? outer.dir : base;
+    subshells.push({ start: open.index, end, dir: from === null ? null : into(from, open[1]) });
   }
   // A change this reader cannot place: any `cd`, `pushd` or `popd` left once both shapes above are taken out.
   const others = plain
@@ -442,7 +454,8 @@ export function placeWords(text, dir, pattern) {
       refusals.push(`"${word}" runs after a directory change this reader cannot place`);
       continue;
     }
-    const subshell = subshells.find(({ start, end }) => match.index > start && match.index < end);
+    // The innermost subshell holding the word: subshells open in order, so the last that holds it.
+    const subshell = subshells.findLast(({ start, end }) => match.index > start && match.index < end);
     const at = subshell ? subshell.dir : base;
     if (at === null) {
       refusals.push(`"${word}" runs in a directory named by a reference this reader could not expand`);

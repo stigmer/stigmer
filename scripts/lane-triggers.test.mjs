@@ -1033,6 +1033,11 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "upgrade-rehearsal",
   ]);
   assert.deepEqual(readers("client-apps/cli/src/cli/stigmer.ts"), ["conformance-execution"]);
+  // The tsconfig the shim hands tsx is configuration, which the rule does not trace; its entry is kept by hand.
+  assert.ok(
+    selectLanes({ event: "pull_request", changedFiles: ["tsconfig.tsx.json"] }).lanes["conformance-execution"],
+    "the CLI shim's tsconfig selects the lane that runs the shim",
+  );
   assert.deepEqual(
     readers("scripts/lib/source-version.mjs"),
     ["all-in-one", "upgrade-rehearsal"],

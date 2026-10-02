@@ -110,6 +110,9 @@ test("readMakefile refuses every construct it does not model, wherever it sits",
   for (const shell of ["/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/env bash"]) {
     assert.deepEqual(readMakefile(mk(`SHELL := ${shell}`)).refusals, [], shell);
   }
+  const again = readMakefile(mk("A := one.mjs", "B := $(A)", "A := two.mjs", "C = x", "C += y"));
+  assert.deepEqual(again.refusals, ["line 3: A is assigned again (first at line 1); this reader expands each name with one value"]);
+  assert.equal(again.variables.get("C"), "x y", "+= appends and is not a second assignment");
   const twice = readMakefile(mk("x:", ">echo one", "x: more", ">echo two", ">echo three"));
   assert.deepEqual(twice.refusals, ["line 4: x gets a second recipe (its first is at line 1)"]);
   assert.deepEqual(twice.rules.get("x").recipe, [{ line: 2, text: "echo one" }], "the second recipe is not merged in");
@@ -270,6 +273,11 @@ test("placeWords places a recipe line's words where they run", () => {
     "a subshell's cd places only the words inside it",
   );
   assert.deepEqual(paths("cd .. && node tools/gen.ts", "mcp-server").words.map(({ path }) => path), ["tools/gen.ts"]);
+  assert.deepEqual(
+    paths("(cd a && (cd b && node x.mjs) && node y.mjs) && node z.mjs").words.map(({ path }) => path),
+    ["a/b/x.mjs", "a/y.mjs", "z.mjs"],
+    "a word runs in its innermost subshell, whose cd starts from the one around it",
+  );
   assert.deepEqual(
     paths("cd /sdk/go/tools && node gen.mjs && (cd / && node root.mjs)", "sdk/go").words.map(({ path }) => path),
     ["sdk/go/tools/gen.mjs", "root.mjs"],
