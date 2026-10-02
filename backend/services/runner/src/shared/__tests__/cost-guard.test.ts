@@ -1,11 +1,14 @@
 /**
- * Unit tests for the max_cost_usd hard-stop guard (cost-guard.ts), which the
- * Cursor activity called until the turn runtime took it over in #1070.
+ * Unit tests for the max_cost_usd hard-stop guard (cost-guard.ts), the one
+ * enforcement of the cap for every harness since the turn runtime took it
+ * over in #1070 (the Cursor activity called it before).
  *
- * The guard is the cursor-side analog of the native cost-cap middleware
- * (middleware/cost-cap.ts): same proto semantics (0/unset = no cap), same
- * inclusive boundary (`>=`), same estimation basis. These tests pin those
- * semantics so the two harnesses cannot silently diverge.
+ * They pin the proto's semantics (0/unset = no cap, a negative value too),
+ * the inclusive boundary (`>=`: reaching the cap exactly stops the run), and
+ * the terminal copy's stable prefix, which consumers match because the status
+ * carries no structured termination reason. That the runtime stops a turn on
+ * an overrun is the contract kit's arm (`assertCostCapTerminates`), run for
+ * every harness.
  */
 
 import { describe, it, expect } from "vitest";
@@ -29,7 +32,7 @@ describe("costCapExceeded", () => {
     expect(costCapExceeded(0.5, 0.4999)).toBe(false);
   });
 
-  it("fires exactly at the cap (inclusive boundary, matching the native middleware)", () => {
+  it("fires exactly at the cap (inclusive boundary: reaching the cap stops the run)", () => {
     expect(costCapExceeded(0.5, 0.5)).toBe(true);
   });
 

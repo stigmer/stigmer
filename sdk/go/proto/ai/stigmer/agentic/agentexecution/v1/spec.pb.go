@@ -384,15 +384,22 @@ type ExecutionConfig struct {
 	// Does not apply to built-in tools that already manage their output size.
 	MaxToolResultChars int32 `protobuf:"varint,4,opt,name=max_tool_result_chars,json=maxToolResultChars,proto3" json:"max_tool_result_chars,omitempty"`
 	// Maximum estimated cost in USD for this execution.
-	// When the running cost exceeds this limit, the agent receives a
-	// "budget exhausted" message and the execution transitions to TERMINATED.
+	//
+	// When the execution's estimated spend reaches this limit, the run stops
+	// with a "send another message to continue" prompt and the execution ends
+	// TERMINATED; the work done so far is kept. The limit is checked each time
+	// the engine reports its spend, so a run can end somewhat above it. The
+	// native harness reports after every model call, counts a sub-agent's spend
+	// toward the limit, and advises the agent to wrap up at about 80% of the
+	// budget; the Cursor harness gives no warning.
 	//
 	// 0.0 = no cost cap (default, unlimited).
 	// Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows.
 	//
-	// Cost is checked after each LLM call using the running total from
-	// UsageMetrics.estimated_cost_usd. When approaching the cap (>80%),
-	// a budget warning is injected into the conversation.
+	// The budget is per message: a follow-up message, or a run resuming after
+	// an approval, starts a fresh count. The spend is the runner's estimate,
+	// reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not
+	// the billed amount.
 	MaxCostUsd float64 `protobuf:"fixed64,5,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
 	// Interaction mode for this execution.
 	//

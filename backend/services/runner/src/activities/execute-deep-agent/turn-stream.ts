@@ -6,8 +6,9 @@
  *
  * What the loop asks of the runtime, through the sink (`harness/types.ts`):
  * `recordActivity()` per event (with the tool name on a tool start), so the
- * runtime's stall watchdog measures the engine; `reportUsage()` per parent
- * `message_finish`, priced here at the registry's rates for the model the
+ * runtime's stall watchdog measures the engine; `reportUsage()` per
+ * `message_finish`, a sub-agent's included (`usageOf`, translator.ts), priced
+ * here at the registry's rates for the model the
  * turn runs on (`shared/model-pricing.ts`), so the runtime accounts and
  * enforces the cost cap and writes `streamingUsage`; `requestPersist()`
  * where a discrete change or the streaming cadence says so

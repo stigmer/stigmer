@@ -110,15 +110,22 @@ public interface ExecutionConfigOrBuilder extends
   /**
    * <pre>
    * Maximum estimated cost in USD for this execution.
-   * When the running cost exceeds this limit, the agent receives a
-   * "budget exhausted" message and the execution transitions to TERMINATED.
+   *
+   * When the execution's estimated spend reaches this limit, the run stops
+   * with a "send another message to continue" prompt and the execution ends
+   * TERMINATED; the work done so far is kept. The limit is checked each time
+   * the engine reports its spend, so a run can end somewhat above it. The
+   * native harness reports after every model call, counts a sub-agent's spend
+   * toward the limit, and advises the agent to wrap up at about 80% of the
+   * budget; the Cursor harness gives no warning.
    *
    * 0.0 = no cost cap (default, unlimited).
    * Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows.
    *
-   * Cost is checked after each LLM call using the running total from
-   * UsageMetrics.estimated_cost_usd. When approaching the cap (&gt;80%),
-   * a budget warning is injected into the conversation.
+   * The budget is per message: a follow-up message, or a run resuming after
+   * an approval, starts a fresh count. The spend is the runner's estimate,
+   * reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not
+   * the billed amount.
    * </pre>
    *
    * <code>double max_cost_usd = 5 [json_name = "maxCostUsd"];</code>
