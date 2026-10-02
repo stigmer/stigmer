@@ -173,9 +173,10 @@ describe("CostAdvisoryMiddleware", () => {
     it("a sub-agent invoked after the crossing is told on its first call", async () => {
       const parent = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
       const child = parent.forSubAgent();
-      // One invocation's last call crosses the threshold; the invocation ends there.
+      // One invocation crosses the threshold and is told on its next call, then ends.
       child.beforeAgent!({}, {});
       await callModel(child, responseWithUsage(1000, 500));
+      expect(advisoryOf(await callModel(child, NO_USAGE)), "the invocation that crossed").toContain("Budget warning");
       // The same view serves the sub-agent's next invocation in the turn: a new conversation, told nothing yet.
       child.beforeAgent!({}, {});
       expect(advisoryOf(await callModel(child, NO_USAGE)), "the new invocation hears it before it spends").toContain("Budget warning");
