@@ -16,10 +16,11 @@
  * destructured from `process`, or an identifier whose declaration (a
  * parameter or a variable) is annotated `NodeJS.ProcessEnv`, the injection
  * seam `shared/runner-credential-store.ts` describes, or is initialised or
- * defaulted to `process.env` whatever its type. Identifiers are matched by name within the file, not by scope: once
- * one `env` in a file is an env object, every `env` there is read as one,
- * which errs toward a loud failure, never a silent miss. An env object passed
- * under another name (a call's argument, a property) is not followed.
+ * defaulted to `process.env` whatever its type. Identifiers are matched by
+ * name within the file, not by scope: once one `env` in a file is an env
+ * object, every `env` there is read as one, which errs toward a loud failure,
+ * never a silent miss. An env object passed under another name (a call's
+ * argument, a property) is not followed.
  *
  *  1. `E.NAME`, `E["NAME"]` or `const { NAME } = E` on an env object (a
  *     computed key in the destructure is judged by rules 2 and 4).
