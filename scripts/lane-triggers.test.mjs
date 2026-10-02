@@ -57,7 +57,10 @@
 // script by its extension: a step that runs repository code without naming
 // such a file (a `make` target, an `npm run` script, a script with no
 // extension) is not traced, nor what a shell script in the action's folder
-// sources, and none of today's actions does either.
+// sources, and none of today's actions does either. Dependencies are not
+// traced: an installed package an action runs (node_modules/) or a body
+// imports by name moves with the lockfile, which these lanes do not watch
+// (#1719).
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.
 
@@ -245,11 +248,11 @@ export function watches(patterns, dir) {
 /**
  * The bodies one parsed composite action runs: `{ files, refusals }`. `files`
  * are the paths its `run:` steps name as "$GITHUB_WORKSPACE/<path>", less
- * node_modules/ (the installed toolchain, judged by the lanes that watch the
- * lockfile), and the .mjs and .ts files they name as
- * "$GITHUB_ACTION_PATH/<path>" in `folder`, the action's own, whose imports can
- * reach outside it. Another file of the action's folder is already one of its
- * files and is not read. `tracked` is the set of tracked paths, passed in as
+ * node_modules/ (installed packages, whose versions the lockfile holds; this
+ * rule traces repository files, not dependencies: #1719), and the .mjs and
+ * .ts files they name as "$GITHUB_ACTION_PATH/<path>" in `folder`, the
+ * action's own, whose imports can reach outside it. Another file of the
+ * action's folder is already one of its files and is not read. `tracked` is the set of tracked paths, passed in as
  * `triggerLists` takes `gatePaths`, so a fixture needs no git.
  */
 export function actionRuns(action, tracked, folder) {
