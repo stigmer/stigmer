@@ -130,12 +130,35 @@ const LOCAL_ACTION = /^\.\/\.github\/actions\/([^/]+)$/;
 const VERSION_FILE = /-version-file$/;
 /** One npm command in a `run:` step, bare, quoted or in a subshell: its first word (the verb, unless a flag comes first), then its arguments up to the next command. */
 const NPM_COMMAND = /(^|[\s;&|(`'"])npm\s+([^\s;&|)`'"]+)([^\n;&|)`'"]*)/g;
-/** A `cd` in a `run:` step, which moves what follows out of the step's working-directory. */
-const CHANGES_DIRECTORY = /(^|[\s;&|(])cd\s/;
-/** The spellings npm accepts for `ci` (`npm ci --help`); the lanes use the first. */
-const NPM_CI = new Set(["ci", "clean-install", "ic", "install-clean", "isntall-clean"]);
-/** The spellings npm accepts for `install` (`npm install --help`), which also reads the lockfile and may rewrite it. */
-const NPM_INSTALL = new Set(["install", "add", "i", "in", "ins", "inst", "insta", "instal", "isnt", "isnta", "isntal", "isntall"]);
+/** A directory change in a `run:` step, which moves what follows out of the step's working-directory. */
+const CHANGES_DIRECTORY = /(^|[\s;&|(])(cd|pushd|popd)(\s|$)/m;
+/**
+ * The spellings npm accepts for `ci` and for `install-ci-test`, its `ci`
+ * then `test` (`npm ci --help`, `npm install-ci-test --help`); the lanes use
+ * the first.
+ */
+const NPM_CI = new Set(["ci", "clean-install", "ic", "install-clean", "isntall-clean", "install-ci-test", "cit", "clean-install-test", "sit"]);
+/**
+ * The spellings npm accepts for `install` and for `install-test` (`npm
+ * install --help`, `npm install-test --help`), which also read the lockfile
+ * and may rewrite it.
+ */
+const NPM_INSTALL = new Set([
+  "install",
+  "add",
+  "i",
+  "in",
+  "ins",
+  "inst",
+  "insta",
+  "instal",
+  "isnt",
+  "isnta",
+  "isntal",
+  "isntall",
+  "install-test",
+  "it",
+]);
 
 /** Every tracked manifest below the root, as repo-relative POSIX directory -> manifest. */
 export function trackedManifests(rootDir = root) {
@@ -1065,13 +1088,14 @@ test("laneInputs refuses an install or setup it cannot place: a moved or prefixe
     'bash -c "npm ci"',
     "npm ci \\\n  --prefix svc",
     "cd svc\nnpm ci",
+    "npm cit",
+    "npm it",
   ]) {
     assert.match(refused({ run }).join("\n"), /installs from a lockfile this guard cannot place/, run);
   }
-  assert.match(
-    refused({ run: "cd svc && npm install --no-package-lock" })[0],
-    /runs outside the step's working-directory/,
-  );
+  for (const run of ["cd svc && npm install --no-package-lock", "pushd svc && npm install --no-package-lock"]) {
+    assert.match(refused({ run })[0], /runs outside the step's working-directory/, run);
+  }
   for (const run of ["npm --prefix svc ci", "npm -w @stigmer/sdk install left-pad"]) {
     assert.match(refused({ run }).join("\n"), /puts a flag before an install/, run);
   }
