@@ -86,13 +86,24 @@ after(() => {
   rmSync(scratch, { recursive: true, force: true });
 });
 
-/** Whether a pid still names a live process. */
+/**
+ * Whether a pid still names a live process. A killed process answers signal 0
+ * until its parent reaps it, and an orphan's parent is whatever init the host
+ * runs: a container started without one never reaps, so a zombie (state `Z` in
+ * /proc/<pid>/stat) counts as gone.
+ */
 function alive(pid) {
   try {
     process.kill(pid, 0);
-    return true;
   } catch {
     return false;
+  }
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    // The command name sits in parentheses and may hold either; the state follows the last one.
+    return stat.slice(stat.lastIndexOf(")") + 2, stat.lastIndexOf(")") + 3) !== "Z";
+  } catch {
+    return true;
   }
 }
 
