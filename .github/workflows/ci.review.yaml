@@ -54,13 +54,13 @@ on:
 # No concurrency group, so no run is ever cancelled on its own head. GitHub
 # judges a required check by the newest run created for the head, and a
 # cancelled one blocks the merge however many runs beside it passed, with no
-# red check to say why. A group that cancels in progress let the rerun
-# --write makes cancel a body edit's newer run (#1704), and of two events
-# seconds apart the run GitHub judges can be the one cancelled (#1670); a
-# group that does not cancel still replaces its one pending run with the next
-# (#1524, ci.gate.yaml). A run on a head that has since moved is left to
-# finish, and ends in seconds: the script refuses a head that is no longer
-# the pull request's (`--expect-head`).
+# red check to say why. With a group that cancels in progress, the rerun that
+# --write starts cancelled a newer run started by a body edit (#1704), and of
+# two runs started seconds apart the one GitHub judges could be the one
+# cancelled (#1670). A group that does not cancel still replaces its one
+# pending run with the next (#1524, ci.gate.yaml). A run on a head that has
+# since moved is left to finish, and ends in seconds: the script refuses a
+# head that is no longer the pull request's (`--expect-head`).
 
 permissions: {}
 
