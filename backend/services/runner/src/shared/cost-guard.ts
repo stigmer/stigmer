@@ -20,8 +20,9 @@
  *
  * The running figure is the runtime usage accumulator's local pricing-table
  * estimate (`harness/usage-accumulator.ts`; authoritative billing is the
- * BiDi proxy), the same figure the cost advisory warns from — acceptable for
- * a safety net.
+ * BiDi proxy) — acceptable for a safety net. The cost advisory warns from
+ * its own tally on the same estimation basis, which can differ slightly: it
+ * prices cache writes at the input rate.
  */
 
 /**

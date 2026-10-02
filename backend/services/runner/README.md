@@ -145,7 +145,7 @@ The check is skipped gracefully when the fingerprint file is absent — for exam
 
 ## Environment variable reference
 
-All configuration is environment-driven. Every variable the runner's source reads is named here: `src/__tests__/readme-environment.test.ts` fails when one is not, so a new setting lands with its row. Defaults are checked by hand against the module each row cites or that reads the variable. "Applies to" indicates the run mode, execution location, or credential mode a variable is relevant to.
+All configuration is environment-driven. Every variable the runner's source reads is named here, except the few `src/__tests__/readme-environment.test.ts` lists as deliberate exceptions, each with its reason (the operating system's home directory, a backend value not yet supported); the test fails when any other is missing, so a new setting lands with its row. Defaults are checked by hand against the module each row cites or that reads the variable. "Applies to" indicates the run mode, execution location, or credential mode a variable is relevant to.
 
 ### Core configuration
 
