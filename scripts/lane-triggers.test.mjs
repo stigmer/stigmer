@@ -155,9 +155,11 @@ const PLACED_PATH = /\$(GITHUB_WORKSPACE|GITHUB_ACTION_PATH)\/([^\s"'`()=;|&<>]+
 /**
  * A word in a `run:` step or a recipe that names a script, however it is
  * spelled. It ends where a shell word ends (whitespace, a quote, an operator,
- * the line's end), so `tsconfig.tsx.json` is not read as `tsconfig.tsx`.
+ * the line's end) or where punctuation follows it (`:`, `,`, `}`, `]`), so
+ * `tsconfig.tsx.json` is not read as `tsconfig.tsx`, and
+ * `${X:-scripts/a.mjs}` is read, holding its `$`.
  */
-const SCRIPT_WORD = /[^\s"'`()=;|&<>]+\.(?:mjs|cjs|js|jsx|mts|cts|ts|tsx|sh|bash|py)(?=$|[\s"'`()=;|&<>])/g;
+const SCRIPT_WORD = /[^\s"'`()=;|&<>]+\.(?:mjs|cjs|js|jsx|mts|cts|ts|tsx|sh|bash|py)(?=$|[\s"'`()=;|&<>:,}\]])/g;
 /** The prefixes under which a script word is placed: the checkout, or the action's own folder. */
 const PLACED = ["$GITHUB_WORKSPACE/", "$GITHUB_ACTION_PATH/"];
 /** The bodies whose imports extractRelativeSpecifiers can follow. */
@@ -1133,6 +1135,12 @@ test("makeReach holds a lane to the Makefiles and scripts its calls reach, and r
 test("SCRIPT_WORD ends a word where the shell does, so a dotted config name is not a script", () => {
   const words = (text) => [...text.matchAll(SCRIPT_WORD)].map(([word]) => word);
   assert.deepEqual(words('tsx --tsconfig "tsconfig.tsx.json" "src/cli.ts" a.mjs;b.sh|c.py)'), ["src/cli.ts", "a.mjs", "b.sh", "c.py"]);
+  assert.deepEqual(words("node scripts/a.mjs: [x.ts] ${X:-scripts/b.mjs} y.sh, z.py"), ["scripts/a.mjs", "[x.ts", "${X:-scripts/b.mjs", "y.sh", "z.py"]);
+  assert.match(
+    actionRuns(composite("node ${X:-scripts/a.mjs}"), new Set(), ".github/actions/x").refusals.join("\n"),
+    /names a script under neither/,
+    "a script behind a default expansion is still refused in an action",
+  );
 });
 
 test("linkClosure follows file: and workspace links, and stops at a reached package's devDependencies", () => {

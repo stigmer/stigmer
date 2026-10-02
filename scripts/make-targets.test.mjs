@@ -99,6 +99,8 @@ test("readMakefile refuses every construct it does not model, wherever it sits",
     ["all: ; echo inline", /a recipe on the rule's own line/],
     ["all: MODE = fast", /a target-specific variable/],
     ["just some words", /is neither a rule nor an assignment/],
+    ["$(info hello: world)", /a function call at the top level/],
+    ["$(eval $(call TPL,a:b))", /a function call at the top level/],
     ["\techo orphan", /a recipe line outside any rule/],
   ];
   for (const [line, expected] of cases) {
@@ -250,6 +252,20 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
     targetClosure({ read: files({ Makefile: mk("t:", ">$(MAKE) -C nowhere all") }), dir: ".", targets: ["t"] }).refusals,
     ["nowhere/Makefile does not exist, yet a make call reads it for all"],
   );
+  const automatic = targetClosure({
+    read: files({ Makefile: mk("gen: scripts/gen.mjs lib.mjs", ">node $< --all $^ --out $@ && echo $$@ $(@)", "bare:", ">echo [$<]") }),
+    dir: ".",
+    targets: ["gen", "bare"],
+  });
+  assert.deepEqual(automatic.refusals, []);
+  assert.deepEqual(
+    automatic.lines.map(({ text }) => text),
+    ["node scripts/gen.mjs --all scripts/gen.mjs lib.mjs --out gen && echo $@ gen", "echo []"],
+    "automatic variables come from the rule; $$@ stays the shell's",
+  );
+  for (const recipe of [">node $*.mjs", ">node $(@D)/x.mjs", ">cp $< $(<F)"]) {
+    assert.match(refused(mk("t: a.mjs", recipe)).join("\n"), /uses the automatic variable .+, which this reader does not expand/, recipe);
+  }
   const cycle = targetClosure({ read: files({ Makefile: mk("a: b", ">echo a", "b: a", ">echo b") }), dir: ".", targets: ["a"] });
   assert.deepEqual(cycle.targets.map(({ target }) => target), ["a", "b"], "a prerequisite cycle is visited once");
 });

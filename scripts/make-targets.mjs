@@ -19,15 +19,19 @@
  * because a reader that guessed at a conditional's branch or an included file's
  * rules would hold a lane to the wrong files and pass green: a conditional,
  * `define`, `include`, `vpath`, a pattern or double-colon rule, a recipe on the
- * rule's own line, a target-specific variable, a shell assignment (`!=`), a
- * variable assigned a second time (make expands a `:=` value when it is
- * assigned, so a later reassignment would change what this reader reads), a
- * special target other than those that change nothing it reads (`.PHONY`,
- * `.SILENT` and the like; `.ONESHELL`, `.SECONDEXPANSION`, `.POSIX` and a
- * suffix rule are refused), and a `SHELL` other than sh or bash (both run `cd`
- * and subshells as this reader places them; site/Makefile names bash). None of
- * the Makefiles a gate lane reaches used one on 2026-10-03; a new one is taught
- * here first.
+ * rule's own line, a target-specific variable, a function call at the top level
+ * (`$(eval ...)`, `$(info ...)`), a shell assignment (`!=`), a variable
+ * assigned a second time (make expands a `:=` value when it is assigned, so a
+ * later reassignment would change what this reader reads), a special target
+ * other than those that change nothing it reads (`.PHONY`, `.SILENT` and the
+ * like; `.ONESHELL`, `.SECONDEXPANSION`, `.POSIX` and a suffix rule are
+ * refused), and a `SHELL` other than sh or bash (both run `cd` and subshells as
+ * this reader places them; site/Makefile names bash). None of the Makefiles a
+ * gate lane reaches used one on 2026-10-03; a new one is taught here first.
+ *
+ * A recipe's automatic variables are replaced from its own rule (`$@` the
+ * target, `$<` the first prerequisite, `$^`, `$+` and `$?` all of them); `$*`
+ * and the `D` and `F` forms are refused.
  *
  * Variables are expanded as text, never evaluated: `$(NAME)` and `${NAME}` take
  * their value, recursively; `$$` becomes `$`; a function such as `$(shell node
@@ -135,6 +139,10 @@ export function readMakefile(text) {
       continue;
     }
     if (/^(export|unexport)\s+[A-Za-z0-9_.-]+$/.test(content)) continue;
+    if (/^\$[({][A-Za-z-]+\s/.test(content)) {
+      refusals.push(`line ${number}: a function call at the top level (\`$(eval ...)\`, \`$(info ...)\`) is not read by this reader`);
+      continue;
+    }
     const assignment = ASSIGNMENT.exec(content);
     if (assignment) {
       const [, name, operator, value] = assignment;
@@ -214,6 +222,30 @@ export function expand(text, variables, { overrides = new Map(), curdir = "" } =
       return walk(variables.get(name), new Set([...seen, name]));
     });
   return walk(text, new Set());
+}
+
+/**
+ * A recipe line with make's automatic variables replaced, as make replaces
+ * them for this rule: `$@` the target, `$<` the first prerequisite, `$^`,
+ * `$+` and `$?` the prerequisites (`$?` names only the newer ones, so naming
+ * all of them can only hold a lane to more files). `$$` is left for
+ * `expand`. `$*` (a pattern rule's stem, and pattern rules are refused) and
+ * the `D` and `F` forms are refused: `{ text }` or `{ refusal }`.
+ */
+function automaticVariables(text, target, prerequisites) {
+  let refusal = null;
+  const replaced = text.replace(/\$\$|\$([@<^+?*])|\$\(([@<^+?*])([DF]?)\)/g, (whole, bare, paren, form) => {
+    if (whole === "$$") return whole;
+    const name = bare ?? paren;
+    if (name === "*" || form) {
+      refusal ??= `uses the automatic variable ${whole}, which this reader does not expand`;
+      return whole;
+    }
+    if (name === "@") return target;
+    if (name === "<") return prerequisites[0] ?? "";
+    return prerequisites.join(" ");
+  });
+  return refusal ? { refusal } : { text: replaced };
 }
 
 /** `text` with its quoted strings blanked, so a word inside a message is not read as a command. */
@@ -372,13 +404,17 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
       seen.add(key);
       reached.push({ makefile, target: name });
       const context = { overrides: passed, curdir: curdirOf(at) };
-      for (const prerequisite of rule.prerequisites) {
-        for (const each of expand(prerequisite, file.variables, context).split(/\s+/).filter(Boolean)) {
-          visit(at, each, passed, false);
-        }
-      }
+      const prerequisites = rule.prerequisites.flatMap((prerequisite) =>
+        expand(prerequisite, file.variables, context).split(/\s+/).filter(Boolean),
+      );
+      for (const each of prerequisites) visit(at, each, passed, false);
       for (const { line, text } of rule.recipe) {
-        const expanded = expand(text, file.variables, context);
+        const automatic = automaticVariables(text, name, prerequisites);
+        if (automatic.refusal) {
+          refusals.push(`${makefile}:${line} (${name}) ${automatic.refusal}`);
+          continue;
+        }
+        const expanded = expand(automatic.text, file.variables, context);
         if (expanded.startsWith("#")) continue; // a shell comment runs nothing
         lines.push({ makefile, dir: at, target: name, text: expanded });
         for (const call of recursions(expanded, at)) {
