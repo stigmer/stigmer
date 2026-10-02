@@ -64,6 +64,7 @@ tester.run("require-loading-region", rule, {
     { code: spanIn('<a href="#x">', "</a>") },
     { code: spanIn('<button type="button"><p>', "</p></button>") },
     { code: spanIn("<button><div><span>", "</span></div></button>") },
+    ...markup.fallbackRoles.map((role) => ({ code: spanIn(`<button><div role="${role}">`, "</div></button>") })),
     ...markup.widgetRoles.map((role) => ({ code: spanIn(`<div role="${role}">`, "</div>") })),
     // Left to axe: an element whose verdict depends on its context.
     ...Object.keys(markup.elementsLeftToAxe).map((tag) => ({ code: busy(tag) })),

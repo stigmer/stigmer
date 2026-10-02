@@ -22,8 +22,9 @@ import type { ReactNode } from "react";
  * screen reader does not read it twice. The hidden text comes first: the
  * containers space their children with `space-y-*` and `gap-*`, and an
  * absolutely positioned first child changes neither, where a trailing one
- * would give the last placeholder a margin it never had. The `stigmer/require-loading-region`
- * lint rule keeps every busy, labelled container on this component.
+ * would give the last placeholder a margin it never had. The
+ * `stigmer/require-loading-region` lint rule sends a busy element here when
+ * axe would refuse its name, or when it takes role="status".
  *
  * @internal Not part of the public API.
  */

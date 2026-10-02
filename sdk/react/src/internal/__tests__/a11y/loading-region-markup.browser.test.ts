@@ -149,6 +149,12 @@ describe("loading-region-markup.json agrees with axe-core", () => {
     expect(await judge(underLink), "a span under a link").toBe("pass");
     const throughParagraph = `<button type="button"><p><span id="probe" aria-busy="true" aria-label="Saving"></span></p></button>`;
     expect(await judge(throughParagraph), "a span under a paragraph under a button").toBe("pass");
+    for (const role of markup.fallbackRoles) {
+      const throughFallback = `<button type="button"><div role="${role}"><span id="probe" aria-busy="true" aria-label="Saving"></span></div></button>`;
+      expect(await judge(throughFallback), `a span under role ${role} under a button`).toBe("pass");
+    }
+    const throughList = `<button type="button"><ul><span id="probe" aria-busy="true" aria-label="Saving"></span></ul></button>`;
+    expect(await judge(throughList), "a span under a list under a button").toBe("violation");
     const underRegion = `<section aria-label="Plan"><span id="probe" aria-busy="true" aria-label="Loading"></span></section>`;
     expect(await judge(underRegion), "a span under a region").toBe("violation");
   });
