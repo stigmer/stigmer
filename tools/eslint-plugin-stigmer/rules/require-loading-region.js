@@ -7,7 +7,8 @@
 // fails every page audit it is on screen for (stigmer#1653); role="status"
 // would make the label legal but is the role this console's phase badges,
 // empty states and notices carry. So a DOM element that is busy and labelled,
-// with no role or with role="status", is reported: it renders
+// with role="status" or with no role it may be named under (a div, span, p or
+// text-level element, whose own role takes no name), is reported: it renders
 // <LoadingRegion label="..."> instead.
 //
 // "Busy" is aria-busy fixed true: `"true"`, `{true}`, or the bare attribute,
@@ -15,10 +16,11 @@
 // presentation, none) counts as no role, and a fixed role is read however it
 // is written (`"status"`, `{"status"}`, `{`status`}`).
 //
-// Left legal: a busy element whose fixed role permits a name and is not
-// "status", such as a streaming plan's labelled region or article, which
-// holds real content and is no skeleton; a computed role, the author's to
-// justify; and a computed `aria-busy={isSubmitting}` (a button mid-request).
+// Left legal: a busy element whose role, fixed or its own, permits a name and
+// is not "status", such as a streaming plan's labelled region or article, a
+// busy labelled button, section or list, which are no skeleton's markup; a
+// computed role, the author's to justify; and a computed
+// `aria-busy={isSubmitting}` (a button mid-request).
 
 /** The JSX attribute named `name` on `node`, or undefined. */
 function attribute(node, name) {
