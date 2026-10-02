@@ -149,24 +149,24 @@ stop at the first finding.
   code through other paths, code no test can reach), and is the new floor the
   `• measured` figure in the `Coverage` report less the floors file's margin,
   and no lower? An unjustified declaration is a blocking finding.
-- **Each line switched off.** A comment the diff adds that turns a check off
-  for a line (above all a coverage ignore hint: `v8 ignore`, `c8 ignore`,
-  `istanbul ignore`) is judged like a skip, and its reason must be true. A
-  hint over a line a test could reach is a blocking finding, and so is one
-  whose reason describes something other than the line it hides.
+- **Each line switched off.** A comment the diff adds that turns a check off for
+  a line (above all a coverage ignore hint: `v8 ignore`, `c8 ignore`,
+  `istanbul ignore`) is judged like a skip, and its reason must be true. A hint
+  over a line a test could reach is a blocking finding, and so is one whose
+  reason describes something other than the line it hides.
 - **The claims.** Does the diff do what the body says, and does the test plan
   quote checks that cover the changed paths?
 - **The guides.** Does the change keep the laws of the root `AGENTS.md` and of
   each touched package's guide?
 - **The gate itself.** A change to `.github/workflows/ci.review.yaml`,
-  `scripts/review-verdict.mjs`, this brief, the security questions it links,
-  any other required check's workflow, or the scripts and data `Gate` runs
-  from the pull request's own tree (`scripts/test-coverage.mjs` and
+  `scripts/review-verdict.mjs`, this brief, the security questions it links, any
+  other required check's workflow, or the scripts and data `Gate` runs from the
+  pull request's own tree (`scripts/test-coverage.mjs` and
   `test/coverage-floors.json` among them) judges its own pull request with the
-  edited copy: GitHub takes a pull request's workflow from its merge commit,
-  and that workflow runs the pull request's checkout. Read it as a change to
-  what every later pull request must pass. A weakening the body does not name
-  and justify is a blocking finding.
+  edited copy: GitHub takes a pull request's workflow from its merge commit, and
+  that workflow runs the pull request's checkout. Read it as a change to what
+  every later pull request must pass. A weakening the body does not name and
+  justify is a blocking finding.
 - **Nothing private in a public repository.** In stigmer, a diff, a comment or
   the body that names a private planning record, its folder or its task,
   decision, ruling or milestone ids is a blocking finding. A maintainer reads
