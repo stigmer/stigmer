@@ -21,7 +21,9 @@
 # needs its own runner shape (a real Chromium, the web console, the desktop
 # shell's suites, and its Rust crate with the Rust toolchain and Tauri's
 # system packages); `typecheck-clean-room` is the one job that is not about
-# the diff at all (below). No package is tested twice in one run.
+# the diff at all (below). No package is tested twice in one run except
+# @stigmer/react: its coverage run (`react-tests`) is on the `forks` pool,
+# so `react-vm-tests` runs it again on `vmForks`, the pool developers run.
 #
 # The gate (`changes`) runs scripts/turbo-affected.mjs, which asks
 # `turbo query affected --tasks ...`: task-level, so a change to a fixture a
