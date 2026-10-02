@@ -61,7 +61,8 @@ The presence of a `feat` commit is not a minor bump. Judge the change:
   SDK export's signature changes, a Go import path moves. A Go major is itself a
   migration for every Go consumer (the module path suffix and every import
   change with it, section 5), so a major is graded on what it does to consumers
-  who did not use the removed surface.
+  who did not use the removed surface. Before launch, a contract reshape is
+  graded by the before-launch bullet below instead.
 - **minor, with an Upgrading section**: a surface is removed outright (a kind, a
   proto package, an SDK client or subpath, a CLI mode) and no known consumer
   used it; the release notes name every removed surface under Upgrading so a
@@ -74,12 +75,16 @@ The presence of a `feat` commit is not a minor bump. Judge the change:
   names every renamed field, message and RPC with its new name, every removed
   field, and every field whose value changed meaning with what it now holds; the
   Go module keeps its major. The commits still carry their `BREAKING CHANGE:`
-  footers, and under this rule a footer alone does not make the release a major.
-  The contract is being remade in several steps before launch, and grading each
-  as a major would move every Go import path once per step for no consumer's
-  benefit. A release that changes a surface a known outside consumer uses is a
-  major, as above. The rule ends with the first release whose notes announce
-  general availability; that release's pull request deletes this bullet.
+  footers or `!` markers, and under this rule neither alone makes the release a
+  major. The contract is being remade in several steps before launch, and
+  grading each as a major would move every Go import path once per step for no
+  consumer's benefit. The cost is accepted for every package the release ships:
+  a consumer of `@stigmer/protos`, the npm, Python or Java SDKs on a caret or
+  tilde range takes the change at its next install, and learns of it from the
+  Upgrading section. A release that changes a surface a known outside consumer
+  uses is a major, as above. The rule ends with the first release whose notes
+  announce general availability; that release's pull request deletes this
+  bullet.
 - **minor**: a new capability that expands what users or platform builders can
   do: a new API resource, a new CLI command, a new SDK domain, a product-level
   feature. The bar: would this earn a section in release notes that makes
