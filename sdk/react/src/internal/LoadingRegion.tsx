@@ -17,12 +17,12 @@ import type { ReactNode } from "react";
  * replaces it is what a screen reader user reads, and an announcement per
  * skeleton would talk over every panel that loads at once.
  *
- * `label` names a wordless skeleton ("Loading sessions"). Leave it out when the
- * children already say what is loading in visible text, so a screen reader
- * does not read it twice. The hidden text comes first: the containers space
- * their children with `space-y-*` and `gap-*`, and an absolutely positioned
- * first child changes neither, where a trailing one would give the last
- * placeholder a margin it never had. The `stigmer/require-loading-region`
+ * `label` names a wordless skeleton ("Loading sessions"). Leave it out, or
+ * empty, when the children already say what is loading in visible text, so a
+ * screen reader does not read it twice. The hidden text comes first: the
+ * containers space their children with `space-y-*` and `gap-*`, and an
+ * absolutely positioned first child changes neither, where a trailing one
+ * would give the last placeholder a margin it never had. The `stigmer/require-loading-region`
  * lint rule keeps every busy, labelled container on this component.
  *
  * @internal Not part of the public API.
@@ -38,7 +38,7 @@ export function LoadingRegion({
 }) {
   return (
     <div className={className} aria-busy="true">
-      {label !== undefined && <span className="stg:sr-only">{label}</span>}
+      {label ? <span className="stg:sr-only">{label}</span> : null}
       {children}
     </div>
   );

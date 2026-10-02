@@ -53,12 +53,27 @@ function staticValue(attr) {
 const NAMELESS_ROLES = new Set(["generic", "presentation", "none"]);
 
 /**
- * Elements whose own role takes no name (generic, paragraph and the
- * text-level roles), so with no explicit role a label on them is refused. An
- * element whose own role permits a name (a button, a labelled section, a list)
- * is left alone.
+ * Elements whose own role takes no name, so with no explicit role a label on
+ * them is refused: those HTML-AAM maps to generic (div, span, b, i, u, s,
+ * small, pre, bdi, bdo, data, samp, kbd, var), to paragraph (p), and to the
+ * text-level roles (strong, emphasis, code, subscript, superscript, deletion,
+ * insertion, time). An element whose own role permits a name (a button, a
+ * labelled section, a list) is left alone.
  */
-const NAMELESS_ELEMENTS = new Set(["div", "span", "p", "b", "i", "u", "s", "small", "strong", "em", "code", "pre"]);
+const NAMELESS_ELEMENTS = new Set([
+  "div", "span", "b", "i", "u", "s", "small", "pre", "bdi", "bdo", "data", "samp", "kbd", "var",
+  "p", "strong", "em", "code", "sub", "sup", "del", "ins", "time",
+]);
+
+/**
+ * The role a fixed role attribute gives: its first token, lowercased, or
+ * undefined for an empty attribute, which gives no role at all. (A browser
+ * takes the first token it knows; the first is the one an author means.)
+ */
+function fixedRole(value) {
+  const first = String(value).trim().toLowerCase().split(/\s+/)[0];
+  return first === "" ? undefined : first;
+}
 
 module.exports = {
   meta: {
@@ -89,16 +104,21 @@ module.exports = {
         if (busyValue !== true && busyValue !== "true") return;
         // aria-labelledby names a generic element no more legally than aria-label.
         if (attribute(node, "aria-label") === undefined && attribute(node, "aria-labelledby") === undefined) return;
-        const role = attribute(node, "role");
-        if (role === undefined && !NAMELESS_ELEMENTS.has(node.name.name)) return;
-        if (role !== undefined) {
-          const roleValue = staticValue(role);
-          // A computed role is the author's to justify; a fixed one that can
-          // take a name, other than status, is a real landmark or widget.
-          if (roleValue === undefined) return;
-          if (roleValue !== "status" && !NAMELESS_ROLES.has(roleValue)) return;
+        const roleAttribute = attribute(node, "role");
+        if (roleAttribute !== undefined) {
+          const value = staticValue(roleAttribute);
+          // A computed role is the author's to justify.
+          if (value === undefined) return;
+          const role = fixedRole(value);
+          // A fixed role that can take a name, other than status, is a real
+          // landmark or widget; an empty one is no role, so the element's own
+          // role decides, as below.
+          if (role !== undefined) {
+            if (role === "status" || NAMELESS_ROLES.has(role)) context.report({ node, messageId: "busyLabelledElement" });
+            return;
+          }
         }
-        context.report({ node, messageId: "busyLabelledElement" });
+        if (NAMELESS_ELEMENTS.has(node.name.name)) context.report({ node, messageId: "busyLabelledElement" });
       },
     };
   },

@@ -30,9 +30,9 @@ describe("LoadingRegion", () => {
     expect(root.lastElementChild).toBe(screen.getByTestId("bar"));
   });
 
-  it("renders no hidden text without a label, so visible children are not read twice", () => {
+  it.each([undefined, ""])("renders no hidden text for label %j, so visible children are not read twice", (label) => {
     const { container } = render(
-      <LoadingRegion>
+      <LoadingRegion label={label}>
         <p>Looking up acme…</p>
       </LoadingRegion>,
     );
