@@ -54,7 +54,7 @@ const EXEMPT = new Map([
   ],
   [
     "turbo-set libs test --only=@stigmer/react",
-    "not a separate check: `turbo-set libs test` runs the React suite with the other libs; the lane only gives its coverage run a job of its own",
+    "not a separate check: `turbo-set libs test` runs the React suite with the other libs; the lane only gives its coverage run and its vmForks run a job each",
   ],
 ]);
 

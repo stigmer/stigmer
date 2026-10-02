@@ -258,7 +258,7 @@ jobs:
           if [ -n "$BASE" ]; then base=(--base "$BASE"); fi
           report="$RUNNER_TEMP/coverage-report.txt"
           status=0
-          node scripts/test-coverage.mjs --floors test/coverage-floors.json --input "$RUNNER_TEMP/coverage" "${base[@]}" > "$report" || status=$?
+          node scripts/test-coverage.mjs --floors test/coverage-floors.json --input "$RUNNER_TEMP/coverage" "${base[@]}" > "$report" 2>&1 || status=$?
           cat "$report"
           { echo "### Coverage"; echo; echo '```'; cat "$report"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"

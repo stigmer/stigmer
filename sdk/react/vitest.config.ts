@@ -44,6 +44,8 @@ const FORKS_ONLY = [
  * (2026-10-01: 497 of 499 files passed, then all three workers died, with or
  * without recycling them at 2 GB). `forks` gathers each file's coverage on its
  * own and covers the same statements (the diff above), at the `forks` time.
+ * CI runs the suite both ways, so the pool developers run is still checked
+ * (ci.ts-workspace.yaml, `react-tests` and `react-vm-tests`).
  */
 const COVERAGE_RUN = process.argv.some(
   (arg) => arg === "--coverage" || arg === "--coverage.enabled" || arg === "--coverage.enabled=true",
