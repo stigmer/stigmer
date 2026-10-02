@@ -50,6 +50,7 @@ tester.run("require-loading-region", rule, {
     { code: '<div role="region" aria-label="Plan being written" aria-busy="true"><p>Writing…</p></div>' },
     { code: '<div role="article" aria-label="Plan document" aria-busy="true" />' },
     { code: '<div role="foo region status" aria-busy="true" aria-label="Plan" />' },
+    { code: '<div role="Region" aria-busy="true" aria-label="Plan" />' },
     // An element whose own role takes a name.
     { code: '<button aria-busy="true" aria-label="Saving" />' },
     { code: '<section aria-busy="true" aria-label="Plan" />' },
@@ -91,6 +92,8 @@ tester.run("require-loading-region", rule, {
     { code: spanIn("<a>", "</a>"), errors: reported },
     { code: spanIn("<Button>", "</Button>"), errors: reported },
     { code: spanIn('<button><li role="listitem">', "</li></button>"), errors: reported },
+    { code: spanIn("<button><ul>", "</ul></button>"), errors: reported },
+    { code: spanIn("<Toolbar.Button>", "</Toolbar.Button>"), errors: reported },
     // Every entry of the data file.
     ...markup.namelessElements.map((tag) => ({ code: busy(tag), errors: reported })),
     ...markup.namelessRoles.map((role) => ({ code: busy("section", role), errors: reported })),

@@ -95,15 +95,14 @@ function roleOf(node) {
  * Whether a widget names the element: walking up the JSX it sits in within
  * this file, through role-less wrappers whose own role takes no name, the
  * first other ancestor is a button, a link (an `a` with an href) or an
- * element with a widget role. Anything else, a component included, stops the
- * walk without one.
+ * element with a widget role. Anything else stops the walk without one: a
+ * component or a computed role (neither is a widget this file shows), a
+ * fixed role that is not a widget, or an element with a role of its own.
  */
 function insideWidget(node) {
   for (let parent = node.parent.parent; parent && parent.type === "JSXElement"; parent = parent.parent) {
     const opening = parent.openingElement;
-    if (opening.name.type !== "JSXIdentifier" || !/^[a-z]/.test(opening.name.name)) return false;
     const role = roleOf(opening);
-    if (role === "computed") return false;
     if (role !== undefined && !FALLBACK_ROLES.has(role)) return WIDGET_ROLES.has(role);
     const tag = opening.name.name;
     if (tag === "button" || (tag === "a" && attribute(opening, "href") !== undefined)) return true;
@@ -140,12 +139,12 @@ module.exports = {
         if (busyValue !== true && busyValue !== "true") return;
         if (!names(attribute(node, "aria-label")) && !names(attribute(node, "aria-labelledby"))) return;
         const role = roleOf(node);
-        if (role === "computed") return;
-        if (role !== undefined && (RESERVED_ROLES.has(role) || NAMELESS_ROLES.has(role))) {
+        if (RESERVED_ROLES.has(role) || NAMELESS_ROLES.has(role)) {
           context.report({ node, messageId: "busyLabelledElement" });
           return;
         }
-        // A role that takes a name is a real landmark or widget.
+        // A role that takes a name is a real landmark or widget; a computed
+        // one is the author's to justify.
         if (role !== undefined && !FALLBACK_ROLES.has(role)) return;
         // No role axe would use: the element's own role decides.
         if (NAMELESS_ELEMENTS.has(node.name.name) && !insideWidget(node)) {
