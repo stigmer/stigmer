@@ -15,8 +15,10 @@
  * identifier whose declaration (a parameter or a variable) is annotated
  * `NodeJS.ProcessEnv`, the injection seam `shared/runner-credential-store.ts`
  * describes, or is initialised or defaulted to `process.env` whatever its
- * type. An env object passed under another name (a call's argument, a
- * property) is not followed.
+ * type. Identifiers are matched by name within the file, not by scope: once
+ * one `env` in a file is an env object, every `env` there is read as one,
+ * which errs toward a loud failure, never a silent miss. An env object passed
+ * under another name (a call's argument, a property) is not followed.
  *
  *  1. `E.NAME`, `E["NAME"]` or `const { NAME } = E` on an env object.
  *  2. `E[K]`, where `K` is a string-literal `const` of the same file, or one
@@ -228,6 +230,7 @@ function settingsReadIn(
       else unresolved(node, here, `reads ${node.getText(sourceFile)}, whose setting cannot be told`);
     } else if (ts.isVariableDeclaration(node) && ts.isObjectBindingPattern(node.name) && node.initializer !== undefined && isEnvObject(node.initializer)) {
       for (const element of node.name.elements) {
+        if (element.dotDotDotToken !== undefined) continue;
         const property = element.propertyName ?? element.name;
         if (ts.isIdentifier(property)) names.add(property.text);
       }
@@ -256,7 +259,7 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a key held in a same-file constant", 'const K = "STIGMER_A"; const v = process.env[K];'],
     ["a property read on an injected env parameter", "function f(env: NodeJS.ProcessEnv = process.env) { return env.STIGMER_A?.trim(); }"],
     ["a constant key on an injected env parameter", 'const K = "STIGMER_A"; function f(env: NodeJS.ProcessEnv) { return env[K]; }'],
-    ["a destructured read", "const { STIGMER_A } = process.env;"],
+    ["a destructured read, its rest element not a setting", "const { STIGMER_A, ...rest } = process.env;"],
     ["a read through an unannotated alias", "const env = process.env; const v = env.STIGMER_A;"],
     [
       "a read on a parameter of another type that defaults to process.env",
