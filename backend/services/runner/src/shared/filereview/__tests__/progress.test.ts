@@ -378,6 +378,28 @@ describe("createHybridProgressSubstrate", () => {
     expect(after.changed, "delivered once, then quiet again").toBe(false);
   });
 
+  it("keeps a carried change across two failed captures in a row, then delivers it once", async () => {
+    // The second failure's surviving slice reports nothing new; that must not
+    // erase the change the first failure left undelivered.
+    const tracked = { delta: { entries: [progressEntry("tracked.ts")] }, changed: false };
+    const git = scriptedSubstrate([new Error("git add failed"), new Error("git add failed again"), tracked, tracked]);
+    const ignored = { delta: { entries: [progressEntry("cache/data.txt")], totalFilesChanged: 1 } };
+    const cas = scriptedSubstrate([
+      { ...ignored, changed: true },
+      { ...ignored, changed: false },
+      { ...ignored, changed: false },
+      { ...ignored, changed: false },
+    ]);
+    const hybrid = createHybridProgressSubstrate(git, cas);
+
+    await expect(hybrid.capture()).rejects.toThrow("git add failed");
+    await expect(hybrid.capture()).rejects.toThrow("git add failed again");
+    const next = await hybrid.capture();
+    expect(next.changed, "the change the first failure consumed survives the second").toBe(true);
+    expect(next.delta.entries.map((e) => e.pathAfter)).toEqual(["tracked.ts", "cache/data.txt"]);
+    expect((await hybrid.capture()).changed, "delivered once, then quiet again").toBe(false);
+  });
+
   it("delivers the git slice's change on the next capture when the CAS slice failed the one that consumed it, once", async () => {
     const tracked = { delta: { entries: [progressEntry("tracked.ts")] } };
     const git = scriptedSubstrate([{ ...tracked, changed: true }, { ...tracked, changed: false }, { ...tracked, changed: false }]);
