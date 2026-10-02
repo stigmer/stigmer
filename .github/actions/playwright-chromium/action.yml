@@ -1,0 +1,40 @@
+# The one way CI gets Playwright's Chromium. Every job that drives a browser
+# (the interactive, approval, console-login and functional e2e jobs, the
+# browser-mode suite, the deployed-console smoke) calls this action, so how a
+# job gets its browser lives in one place: scripts/playwright-chromium.mjs.
+#
+# No apt. `npx playwright install --with-deps chromium` used to run
+# `apt-get update` and `apt-get install` against Ubuntu's mirror for about
+# 32 MB no test reads: fonts Playwright files under "tools", and upgrades of
+# mesa packages ubuntu-latest already carries. Every library Chromium loads
+# is already on the image. The mirror trickled at 50 to 90 kB/s on one
+# install in twenty (3 to 11 minutes), and once hung in `apt-get update` for
+# 27 minutes until the job was cancelled and a good change was ejected from
+# the merge queue (#1663).
+#
+# What the script does:
+#   - installs Chromium from Playwright's download host (about 10 s);
+#   - proves it with a headless screenshot of about:blank, a real launch;
+#   - bounds both at 5 minutes, killing whatever the CLI started.
+#
+# A failure says which phase and why:
+#   - a missing `npm ci`;
+#   - a failed or stalled download;
+#   - a browser that cannot start. Playwright's own message above it lists
+#     the missing libraries: the runner image changed. Install the package
+#     that provides each one here, rather than bringing back `--with-deps`.
+#
+# A caller runs it after checkout and the root `npm ci`: the script runs the
+# workspace's own Playwright CLI (node_modules/.bin/playwright).
+# scripts/playwright-chromium.test.mjs refuses a workflow that installs
+# Playwright's browsers any other way.
+name: Install Playwright's Chromium
+description: >-
+  Install the workspace Playwright's Chromium without system packages, and prove
+  it launches, within five minutes.
+runs:
+  using: composite
+  steps:
+    - name: Install Chromium and prove it launches
+      shell: bash
+      run: node "$GITHUB_WORKSPACE/scripts/playwright-chromium.mjs"
