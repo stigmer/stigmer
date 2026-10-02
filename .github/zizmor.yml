@@ -6,6 +6,15 @@ rules:
   # Every action is pinned to the commit its tag peels to, GitHub's own
   # `actions/*` included: a tag can be moved to other code, a commit cannot.
   # Dependabot keeps the pins current (.github/dependabot.yml).
+  #
+  # dtolnay/rust-toolchain has no tag that stays put: its `stable` branch is
+  # regenerated, so a commit taken from it leaves the repository's history
+  # (impostor-commit refuses it, and upstream garbage-collects it), and its
+  # `v1` tag is moved to new commits. It is pinned to a commit on `master`,
+  # whose history is never rewritten, with the toolchain named by the
+  # `toolchain` input. Its comment is `# master branch`: a one-word comment
+  # is read as a ref, which ref-version-mismatch fails once the ref moves,
+  # and Dependabot moves the pin along `master` without touching the comment.
   unpinned-uses:
     config:
       policies:

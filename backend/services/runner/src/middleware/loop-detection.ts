@@ -3,18 +3,26 @@
  *
  * Detects and prevents infinite loops by tracking tool invocations:
  *
- * afterModel — inspects AIMessage tool_calls, tracks signatures
- *   (tool name + param hash) in a sliding window, injects
- *   SystemMessage interventions when repetitive patterns are detected.
+ * wrapModelCall — after the model answers, inspects the response's
+ *   tool_calls and tracks signatures (tool name + param hash) in a sliding
+ *   window. When a repetitive pattern is detected, the intervention advises
+ *   the model on its next call (`advisory-message.ts`): it rides that one
+ *   request and never enters the graph's state. The response's tools run
+ *   after this returns, so a stop decided here halts them below.
  *
  * wrapToolCall — when the total-repetition threshold has been exceeded,
  *   short-circuits tool execution with a ToolMessage halt notice.
+ *
+ * Until stigmer/stigmer#1354 the interventions were SystemMessages returned
+ * from `afterModel`: saved into state between the model's tool calls and
+ * their results, they failed the next Anthropic call and were replayed into
+ * every later turn of the session from its checkpoint.
  */
 
 import { createHash } from "node:crypto";
-import { ToolMessage, SystemMessage } from "@langchain/core/messages";
-import type { AIMessage } from "@langchain/core/messages";
+import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import type { StigmerMiddleware, LoopDetectionConfig } from "./types.js";
+import { withAdvisories } from "./advisory-message.js";
 
 const DEFAULTS: LoopDetectionConfig = {
   historySize: 20,
@@ -68,34 +76,32 @@ function buildIntervention(
   consecutiveCount: number,
   totalCount: number,
   isFinal: boolean,
-): SystemMessage {
+): string {
   if (isFinal) {
-    return new SystemMessage({
-      content:
-        `\u26a0\ufe0f LOOP DETECTED: Critical repetition limit reached.\n\n` +
-        `You have called '${toolName}' ${totalCount} times with similar parameters. ` +
-        `This indicates you are stuck in a loop and unable to make progress.\n\n` +
-        `**You MUST conclude your work now:**\n` +
-        `1. Summarize what you have learned so far\n` +
-        `2. Explain the obstacle preventing progress\n` +
-        `3. Provide your best assessment based on available information\n` +
-        `4. Do NOT call '${toolName}' again\n\n` +
-        `Conclude gracefully with the information you have gathered.`,
-    });
+    return (
+      `\u26a0\ufe0f LOOP DETECTED: Critical repetition limit reached.\n\n` +
+      `You have called '${toolName}' ${totalCount} times with similar parameters. ` +
+      `This indicates you are stuck in a loop and unable to make progress.\n\n` +
+      `**You MUST conclude your work now:**\n` +
+      `1. Summarize what you have learned so far\n` +
+      `2. Explain the obstacle preventing progress\n` +
+      `3. Provide your best assessment based on available information\n` +
+      `4. Do NOT call '${toolName}' again\n\n` +
+      `Conclude gracefully with the information you have gathered.`
+    );
   }
 
-  return new SystemMessage({
-    content:
-      `\u26a0\ufe0f LOOP WARNING: Repetitive pattern detected.\n\n` +
-      `You have called '${toolName}' ${consecutiveCount} times in a row. ` +
-      `This suggests you may be stuck or approaching the problem incorrectly.\n\n` +
-      `**Recommended actions:**\n` +
-      `1. Try a completely different approach or tool\n` +
-      `2. Re-examine your assumptions about the problem\n` +
-      `3. Consider if you have enough information to conclude\n` +
-      `4. Avoid calling '${toolName}' again unless absolutely necessary\n\n` +
-      `Adapt your strategy to make progress.`,
-  });
+  return (
+    `\u26a0\ufe0f LOOP WARNING: Repetitive pattern detected.\n\n` +
+    `You have called '${toolName}' ${consecutiveCount} times in a row. ` +
+    `This suggests you may be stuck or approaching the problem incorrectly.\n\n` +
+    `**Recommended actions:**\n` +
+    `1. Try a completely different approach or tool\n` +
+    `2. Re-examine your assumptions about the problem\n` +
+    `3. Consider if you have enough information to conclude\n` +
+    `4. Avoid calling '${toolName}' again unless absolutely necessary\n\n` +
+    `Adapt your strategy to make progress.`
+  );
 }
 
 export function createLoopDetectionMiddleware(
@@ -105,6 +111,46 @@ export function createLoopDetectionMiddleware(
   let history: Signature[] = [];
   let interventionCount = 0;
   let stopped = false;
+  let pendingIntervention: string | null = null;
+
+  /** Tracks one response's tool calls; returns the intervention it triggers, else null. */
+  function inspect(response: unknown): string | null {
+    if (!cfg.enabled || stopped) return null;
+    if (!AIMessage.isInstance(response)) return null;
+    const toolCalls = response.tool_calls ?? [];
+
+    for (const tc of toolCalls) {
+      const name = tc.name ?? "unknown";
+      const args = tc.args ?? {};
+      const paramHash = hashParams(args);
+
+      history.push([name, paramHash]);
+      if (history.length > cfg.historySize) {
+        history = history.slice(-cfg.historySize);
+      }
+
+      const { toolName: consToolName, count: consCount } = detectConsecutive(history);
+      const { toolName: totalToolName, count: totalCount } = detectTotal(history);
+
+      if (totalCount >= cfg.totalThreshold) {
+        interventionCount++;
+        stopped = true;
+        console.warn(
+          `[LoopDetection] STOP: ${totalToolName} called ${totalCount} times (threshold: ${cfg.totalThreshold})`,
+        );
+        return buildIntervention(totalToolName, consCount, totalCount, true);
+      }
+
+      if (consCount >= cfg.consecutiveThreshold && interventionCount === 0) {
+        interventionCount++;
+        console.warn(
+          `[LoopDetection] WARNING: ${consToolName} called ${consCount} times in a row (threshold: ${cfg.consecutiveThreshold})`,
+        );
+        return buildIntervention(consToolName, consCount, totalCount, false);
+      }
+    }
+    return null;
+  }
 
   return {
     name: "LoopDetectionMiddleware",
@@ -113,57 +159,16 @@ export function createLoopDetectionMiddleware(
       history = [];
       interventionCount = 0;
       stopped = false;
+      pendingIntervention = null;
     },
 
-    afterModel(state) {
-      if (!cfg.enabled || stopped) return;
-
-      const messages = (state.messages ?? []) as unknown[];
-      let lastAi: AIMessage | null = null;
-      for (let i = messages.length - 1; i >= 0; i--) {
-        const msg = messages[i] as { _getType?: () => string; tool_calls?: unknown[] };
-        if (msg?._getType?.() === "ai") {
-          lastAi = msg as unknown as AIMessage;
-          break;
-        }
-      }
-
-      if (!lastAi) return;
-      const toolCalls = (lastAi as unknown as { tool_calls?: Array<{ name?: string; args?: Record<string, unknown> }> }).tool_calls;
-      if (!toolCalls || toolCalls.length === 0) return;
-
-      for (const tc of toolCalls) {
-        const name = tc.name ?? "unknown";
-        const args = tc.args ?? {};
-        const paramHash = hashParams(args);
-
-        history.push([name, paramHash]);
-        if (history.length > cfg.historySize) {
-          history = history.slice(-cfg.historySize);
-        }
-
-        const { toolName: consToolName, count: consCount } = detectConsecutive(history);
-        const { toolName: totalToolName, count: totalCount } = detectTotal(history);
-
-        if (totalCount >= cfg.totalThreshold) {
-          const intervention = buildIntervention(totalToolName, consCount, totalCount, true);
-          interventionCount++;
-          stopped = true;
-          console.warn(
-            `[LoopDetection] STOP: ${totalToolName} called ${totalCount} times (threshold: ${cfg.totalThreshold})`,
-          );
-          return { messages: [intervention] };
-        }
-
-        if (consCount >= cfg.consecutiveThreshold && interventionCount === 0) {
-          const intervention = buildIntervention(consToolName, consCount, totalCount, false);
-          interventionCount++;
-          console.warn(
-            `[LoopDetection] WARNING: ${consToolName} called ${consCount} times in a row (threshold: ${cfg.consecutiveThreshold})`,
-          );
-          return { messages: [intervention] };
-        }
-      }
+    async wrapModelCall(request, handler) {
+      const advisories = pendingIntervention !== null ? [pendingIntervention] : [];
+      pendingIntervention = null;
+      const response = await handler(withAdvisories(request, advisories));
+      const intervention = inspect(response);
+      if (intervention !== null) pendingIntervention = intervention;
+      return response;
     },
 
     async wrapToolCall(request, handler) {

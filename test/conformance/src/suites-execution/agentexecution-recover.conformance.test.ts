@@ -11,6 +11,11 @@
 //   consumed), and the run can reach COMPLETED when the failure cause is gone.
 // - recover of an already-IN_PROGRESS execution is an idempotent no-op (the
 //   alreadyInTargetState branch): it succeeds and the run stays IN_PROGRESS.
+// - two concurrent recovers of one FAILED execution are served one after the
+//   other (stigmer#1672): both answer IN_PROGRESS, the runner is re-dispatched
+//   once, and the run completes. The recovery turn is held so the run is still
+//   IN_PROGRESS when the queued second recover reads it; without the hold the
+//   run could complete first and the second recover would rightly be refused.
 //
 // Mechanism note (issue #200, fixed): AgentExecution.recover terminates the
 // previous Temporal workflow and starts a fresh one — the same strategy
@@ -135,5 +140,50 @@ describe("AgentExecution recover — idempotency", () => {
     // Settle the run.
     await clients.agentExecutionCommand.cancel({ id: executionId });
     await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_CANCELLED);
+  });
+});
+
+describe("AgentExecution recover — concurrency", () => {
+  it("[rpc:AgentExecutionCommandController.recover] two concurrent recovers of one FAILED execution both answer IN_PROGRESS, the runner is re-dispatched once, and the run completes", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+
+    mock.enqueueError(400);
+    // The one recovery turn, held so the run sits IN_PROGRESS while the
+    // second recover is served.
+    mock.enqueue(anthropicText("Recovered once."), { delayMs: HOLD_MS });
+
+    const created = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-recover-twice"), agentId }),
+    );
+    const executionId = created.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+
+    await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    expect(mock.consumed(), "the failure turn should be consumed").toBe(1);
+
+    const answers = await Promise.allSettled([
+      clients.agentExecutionCommand.recover({ id: executionId }),
+      clients.agentExecutionCommand.recover({ id: executionId }),
+    ]);
+    for (const [index, answer] of answers.entries()) {
+      const label = `recover #${index + 1}`;
+      if (answer.status === "rejected") {
+        throw new Error(`${label} was refused: ${String(answer.reason)}`);
+      }
+      expect(
+        answer.value.status?.phase,
+        `${label} should answer IN_PROGRESS; got ${ExecutionPhase[answer.value.status?.phase ?? 0]}`,
+      ).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    }
+
+    mock.releaseHolds();
+    const completed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
+    expect(completed.status?.error, "a completed run carries no error").toBeFalsy();
+    // One re-dispatch: the failure turn plus the one recovery turn. A second
+    // recover that raced the first would dispatch the runner again or fail
+    // the run on two execution contexts.
+    expect(mock.consumed(), "the runner should be re-dispatched exactly once").toBe(2);
+    expect(mock.remaining(), "no scripted turn should be left").toBe(0);
   });
 });

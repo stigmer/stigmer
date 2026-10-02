@@ -59,6 +59,7 @@ import {
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
+import type { KeyedSerializer } from "../../pipeline/keyed-serializer.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -99,6 +100,12 @@ export interface LifecycleDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
   readonly authorizer: Authorizer;
+  /**
+   * Recover's per-execution turn (pipeline/keyed-serializer.ts). One
+   * instance per server, shared by both routers: the composition root
+   * builds it, because the routes are registered once per router.
+   */
+  readonly recoverSerializer: KeyedSerializer;
   readonly broker: StreamBroker;
   readonly engineState: WorkflowExecutionEngineStateProvider;
   /** Recover's RecreateExecutionContext consumes the same builder deps. */
@@ -859,8 +866,26 @@ export async function resumeExecution(
  * delete the new EC); EC BEFORE the start (hydration needs env); start
  * BEFORE the phase update (a failed start leaves the execution FAILED —
  * the user can retry). Idempotent on already-IN_PROGRESS.
+ *
+ * One recover of an execution runs at a time (stigmer#1672): the chain runs
+ * inside the execution's turn on `deps.recoverSerializer`, Authorize
+ * included, because the pipeline has no finalizer a step could release a
+ * turn from. A concurrent second recover waits, then loads the execution as
+ * the first left it: IN_PROGRESS takes the idempotent arm; still FAILED is
+ * a genuine retry.
  */
 export async function recoverExecution(
+  deps: LifecycleDeps,
+  input: RecoverWorkflowExecutionInput,
+  identity: CallerIdentity,
+): Promise<WorkflowExecution> {
+  return deps.recoverSerializer.run(input.id, () =>
+    runRecoverPipeline(deps, input, identity),
+  );
+}
+
+/** The recover chain itself, run inside the execution's turn. */
+function runRecoverPipeline(
   deps: LifecycleDeps,
   input: RecoverWorkflowExecutionInput,
   identity: CallerIdentity,

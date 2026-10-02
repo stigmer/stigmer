@@ -172,6 +172,7 @@ import {
 import { kindEnumName } from "../pipeline/apiresource-meta.js";
 import { quoteJoin } from "../domain/mcpserver/enabledtools/enabledtools.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import { KeyedSerializer } from "../pipeline/keyed-serializer.js";
 import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js";
 import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
@@ -894,6 +895,11 @@ export async function composeServer(
   const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
     logger,
   );
+  // Recover's per-execution turns (stigmer#1672), one per domain: built
+  // here, not inside routes() (which runs twice), so a recover over either
+  // router waits for one over the other.
+  const agentExecutionRecoverSerializer = new KeyedSerializer();
+  const workflowExecutionRecoverSerializer = new KeyedSerializer();
   // Stage: schedule clock (#22) — Go server.go 578–592 injection order:
   // config → artifact → syncer → run starter → (worker below) →
   // reconciler. The client provider closes over `temporalManager`,
@@ -1568,6 +1574,7 @@ export async function composeServer(
       visitorClassifier: extensions.drivers.visitorClassifier,
       runnerCredentialProvider: runnerCredentials,
       broker: agentExecutionStreamBroker,
+      recoverSerializer: agentExecutionRecoverSerializer,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
       artifactStorage,
@@ -1627,6 +1634,7 @@ export async function composeServer(
       gateSteps: extensions.gateSteps,
       engineState: workflowExecutionEngineState,
       broker: workflowExecutionStreamBroker,
+      recoverSerializer: workflowExecutionRecoverSerializer,
       sandboxLane,
       temporalConfig: workflowExecutionTemporalConfig,
       sandboxTerminalObserver: workflowSandboxTerminalObserver,

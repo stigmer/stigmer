@@ -46,6 +46,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
+import type { KeyedSerializer } from "../../pipeline/keyed-serializer.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
@@ -162,6 +163,12 @@ export interface WorkflowExecutionControllerDeps {
    */
   readonly broker: StreamBroker;
   /**
+   * Recover's per-execution turn (pipeline/keyed-serializer.ts). ONE
+   * instance spans both routers, as the broker does; the composition root
+   * owns it, so a recover over either router waits for the other.
+   */
+  readonly recoverSerializer: KeyedSerializer;
+  /**
    * The in-process edges (lazy providers — the routes↔clients cycle
    * resolves at request time): the default-instance creator, the two
    * HITL forwarding edges into the agentexecution controller, and the
@@ -198,6 +205,7 @@ export function registerWorkflowExecutionServices(
     store: deps.store,
     logger: deps.logger,
     authorizer: deps.authorizer,
+    recoverSerializer: deps.recoverSerializer,
     broker: deps.broker,
     engineState: deps.engineState,
     executionContextBuilder: deps.executionContextBuilder,

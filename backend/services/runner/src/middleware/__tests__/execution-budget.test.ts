@@ -9,13 +9,17 @@
  * called for it) and is the typed `ToolRoundLimitError` the native turn reads
  * as `tool_call_limit`. The threshold advisory counts the same rounds, so it
  * lands at its percentage of the budget the stop enforces. Periodic mode (the
- * sub-agent stacks) keeps counting model calls and never stops.
+ * sub-agent stacks) keeps counting model calls and never stops. An advisory
+ * is a user-role message after the request's last message, on one call only
+ * (`advisory-message.ts`; until stigmer/stigmer#1354 it was a SystemMessage,
+ * which Anthropic refuses mid-conversation).
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { AIMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { Command } from "@langchain/langgraph";
 import { createExecutionBudgetMiddleware } from "../execution-budget.js";
+import { ADVISORY_LEAD_IN } from "../advisory-message.js";
 import type { ModelCallRequest, StigmerMiddleware } from "../types.js";
 import { ToolRoundLimitError, UNBOUNDED_ADVISORY_TOOL_ROUNDS } from "../../shared/tool-rounds.js";
 
@@ -132,6 +136,25 @@ describe("ExecutionBudgetMiddleware", () => {
       expect(advisedCalls(handler)).toEqual([8]);
       const advisory = handler.mock.calls[8][0].messages[0];
       expect(advisory).toMatchObject({ content: expect.stringContaining("8 of 10 tool rounds used, 2 remaining") });
+    });
+
+    it("advises with a user-role message after the request's last message, on that one call only", async () => {
+      const history = [new HumanMessage("go"), toolResponse(0), new ToolMessage({ content: "ok", tool_call_id: "call-0-0" })];
+      const request: ModelCallRequest = { model: {}, messages: history, state: { messages: history }, runtime: {} };
+      const mw = createExecutionBudgetMiddleware({ maxToolRounds: 10, warningPct: 80 });
+      const handler = handlerOf((call) => toolResponse(call));
+
+      for (let i = 0; i < 10; i++) await mw.wrapModelCall!(request, handler);
+
+      const advised = handler.mock.calls[8][0].messages;
+      expect(advised.slice(0, history.length), "the history is handed on as it was").toEqual(history);
+      expect(advised).toHaveLength(history.length + 1);
+      const advisory = advised[history.length];
+      expect(HumanMessage.isInstance(advisory)).toBe(true);
+      expect(SystemMessage.isInstance(advisory), "Anthropic refuses a system message anywhere but first").toBe(false);
+      expect(String((advisory as HumanMessage).content).startsWith(ADVISORY_LEAD_IN)).toBe(true);
+      expect(handler.mock.calls[9][0], "the next call is handed the request untouched").toBe(request);
+      expect(request.messages).toHaveLength(history.length);
     });
 
     it("counts tool rounds, not model calls, toward the threshold", async () => {
