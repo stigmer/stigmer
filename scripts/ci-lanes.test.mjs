@@ -13,6 +13,8 @@
 // kept its own trigger or concurrency, or a lane without the gate's test
 // variable would each make `Gate` green over work it never judged; each is a
 // failure here. The per-path link rule is scripts/lane-triggers.test.mjs's.
+// A body-reading check that can cancel a run on its own head would hold a
+// merge behind a run nobody sees fail; that is a failure here too.
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -236,6 +238,19 @@ test("every required check runs on pull requests and in the merge queue, and non
     const job = Object.values(workflow.jobs).find((j) => j.name === name);
     assert.ok(job, `the ruleset requires a job named \`${name}\``);
     assert.equal(job.if, undefined, `${name}: a skipped required check passes`);
+  }
+});
+
+test("no body-reading required check can cancel a run on its own head", () => {
+  // A body edit, a push and a posted verdict each start a run on the same
+  // head within seconds of one another, and GitHub judges the newest.
+  const reason = "GitHub judges a required check by the newest run for the head, and a cancelled one blocks the merge";
+  for (const file of ["ci.integrity.yaml", "ci.review.yaml"]) {
+    const workflow = readWorkflow(file);
+    assert.equal(workflow.concurrency, undefined, `${file}: ${reason}`);
+    for (const [id, job] of Object.entries(workflow.jobs)) {
+      assert.equal(job.concurrency, undefined, `${file} ${id}: ${reason}`);
+    }
   }
 });
 

@@ -16,9 +16,10 @@
 #
 # Its own workflow, not a job beside `Test integrity`: a verdict is a comment,
 # which fires no pull-request event, so posting one reruns this workflow's
-# newest run for the head (the script's --write). A rerun waits for its whole
-# run to finish, and shares its concurrency group, so a job inside
-# ci.integrity.yaml would wait on the integrity job and cancel it.
+# newest run for the head (the script's --write). The script waits for that
+# run to finish before rerunning it, and a rerun runs every job again, so
+# inside ci.integrity.yaml each verdict posted would wait on the integrity job
+# and then run it again.
 #
 # The script a pull request is judged by is the base branch's as it is now:
 # the job checks out the base branch's tip and runs its copy, so a pull
@@ -50,10 +51,16 @@ on:
     types: [opened, edited, synchronize, reopened]
   merge_group:
 
-# Keyed on the pull request's number: two forks' branches can share a name.
-concurrency:
-  group: review-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# No concurrency group, so no run is ever cancelled on its own head. GitHub
+# judges a required check by the newest run created for the head, and a
+# cancelled one blocks the merge however many runs beside it passed, with no
+# red check to say why. A group that cancels in progress let the rerun
+# --write makes cancel a body edit's newer run (#1704), and of two events
+# seconds apart the run GitHub judges can be the one cancelled (#1670); a
+# group that does not cancel still replaces its one pending run with the next
+# (#1524, ci.gate.yaml). A run on a head that has since moved is left to
+# finish, and ends in seconds: the script refuses a head that is no longer
+# the pull request's (`--expect-head`).
 
 permissions: {}
 

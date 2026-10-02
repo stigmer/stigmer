@@ -39,10 +39,8 @@ on:
     types: [opened, edited, synchronize, reopened]
   merge_group:
 
-# Keyed on the pull request's number: two forks' branches can share a name.
-concurrency:
-  group: integrity-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# No concurrency group: a run cancelled on its own head blocks the merge with
+# no red check to say why, for the reasons ci.review.yaml gives (#1670).
 
 permissions: {}
 
