@@ -115,8 +115,7 @@ jobs:
         run: make build-runner
 
       - name: Install Playwright browsers
-        working-directory: test/e2e
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-chromium
 
       # Mock mode gives the session specs zero-secrets agent-turn coverage
       # (stigmer/stigmer#743): global-setup boots the canned-SSE proxy and the
@@ -191,8 +190,7 @@ jobs:
         run: make build-runner
 
       - name: Install Playwright browsers
-        working-directory: test/e2e
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-chromium
 
       - name: Run approval suite (capture stack)
         working-directory: test/e2e
@@ -263,8 +261,7 @@ jobs:
         run: make build-runner
 
       - name: Install Playwright browsers
-        working-directory: test/e2e
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-chromium
 
       - name: Run console-login suite (OIDC stack)
         working-directory: test/e2e
@@ -345,8 +342,7 @@ jobs:
         run: make build-runner
 
       - name: Install Playwright browsers
-        working-directory: test/e2e
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-chromium
 
       - name: Run functional suite (plain stack)
         working-directory: test/e2e
@@ -403,8 +399,7 @@ jobs:
         run: make build-runner
 
       - name: Install Playwright browsers
-        working-directory: test/e2e
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-chromium
 
       - name: Run the plugin journey's sign-in arm (OAuth MCP stack)
         working-directory: test/e2e

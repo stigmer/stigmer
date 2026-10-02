@@ -73,8 +73,7 @@ jobs:
         run: npm run build:libs
 
       - name: Install Playwright browsers
-        working-directory: test/e2e
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-chromium
 
       - name: Run E2E smoke tests
         working-directory: test/e2e

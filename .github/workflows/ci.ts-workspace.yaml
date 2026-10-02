@@ -299,7 +299,7 @@ jobs:
         run: npm ci
 
       - name: Install Chromium for Playwright
-        run: npx playwright install --with-deps chromium
+        uses: ./.github/actions/playwright-chromium
 
       - name: Run browser-mode suites
         run: node scripts/turbo-set.mjs workspace test:a11y --only=@stigmer/react

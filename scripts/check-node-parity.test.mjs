@@ -50,7 +50,7 @@ const LANE = ".github/workflows/ci.ts-workspace.yaml";
 const EXEMPT = new Map([
   [
     "turbo-set workspace test:a11y --only=@stigmer/react",
-    "the browser-mode suite needs a real Chromium (playwright install --with-deps), which the local gate does not provision",
+    "the browser-mode suite needs a real Chromium (the playwright-chromium action), which the local gate does not provision",
   ],
   [
     "turbo-set libs test --only=@stigmer/react",
