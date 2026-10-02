@@ -174,7 +174,7 @@ jobs:
         run: |
           {
             echo "### Runner live suites: estimated spend per case"
-            echo "- the SDK-direct Cursor instruments: one short turn each, no product cap, no estimate"
+            echo "- the SDK-direct Cursor instruments: at most one short turn each, no product cap, no estimate"
           } >> "$GITHUB_STEP_SUMMARY"
           npm run test:live
 
