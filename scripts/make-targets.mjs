@@ -30,6 +30,10 @@
  * the Makefiles a gate lane reaches used one on 2026-10-03; a new one is taught
  * here first.
  *
+ * A make function in a recipe (`$(addsuffix ...)`, `$(patsubst ...)`) is not
+ * evaluated: its inner words are read as written, so a script name a function
+ * builds is not traced.
+ *
  * A recipe's automatic variables are replaced from its own rule (`$@` the
  * target, `$<` the first prerequisite, `$^`, `$+` and `$?` all of them); `$*`
  * and the `D` and `F` forms are refused.
@@ -212,7 +216,8 @@ export function readMakefile(text) {
       refusals.push(`line ${number}: a target-specific variable is not read by this reader`);
       continue;
     }
-    const prerequisites = rest.replace("|", " ").split(/\s+/).filter(Boolean);
+    // Order-only prerequisites follow a `|`; they are prerequisites all the same.
+    const prerequisites = rest.split("|").join(" ").split(/\s+/).filter(Boolean);
     current = { entries: [], second: null };
     for (const target of targets) {
       const entry = rules.get(target) ?? { line: number, prerequisites: [], recipe: [] };

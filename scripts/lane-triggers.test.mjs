@@ -96,29 +96,30 @@
 // rule below holds the lane to the recipe's Makefile, not to the manifest
 // its `npm ci` reads). No gate lane step does any of the others.
 //
-// The make rule. A lane's steps also run repository code through `make`
-// (`make build-runner`), whose recipes the rules above do not read, so a
-// change to the Makefile, or to a script a recipe runs, merged without the
-// lanes that call it (#1733). So for every lane in the map, each `make` call
-// is followed through scripts/make-targets.mjs: the targets it reaches by
-// prerequisite and by `$(MAKE) [-C <dir>]`, across Makefiles, and the script
-// words of their recipes and of each Makefile's `:=` values that run a shell
-// (make runs those whenever it reads the file), placed where each line runs (its Makefile's
-// directory, a leading `cd <dir> &&`, a `(cd <dir> && ...)` subshell, or the
-// checkout's root through `$(CURDIR)`), with what those import by relative
-// path. Every Makefile and script reached must select the lane, and on the
-// always-on lane run every package, the same two questions again. Refused: a
-// `make` call it cannot place (in a step that changes directory, with `-f`
-// or `-I`, with no target, in a directory named by an expression), a
-// Makefile construct the reader does not model (its header lists them), and
-// a script word it cannot place or that names nothing tracked. Not traced:
-// what an `npm run`, `npx` or `cargo` call in a recipe runs (the action
-// rule's `npm run` again), configuration a recipe reads (a tsconfig, a
-// chart's values), `MAKEFLAGS` in a step's env, an environment variable (a
-// step's `env:`, or `NAME=value` before make) that a `?=` default yields to,
-// a `make` inside a quoted string run by another shell (`bash -c "make x"`),
-// and what a body imports by package name. The one configuration file a recipe hands its tool,
-// `tsconfig.tsx.json` (the CLI shim's), is in its lane's list by hand.
+// The make rule. A lane's steps also run repository code through `make` (`make
+// build-runner`), whose recipes the rules above do not read, so a change to the
+// Makefile, or to a script a recipe runs, merged without the lanes that call it
+// (#1733). So for every lane in the map, each `make` call is followed through
+// scripts/make-targets.mjs: the targets it reaches by prerequisite and by
+// `$(MAKE) [-C <dir>]`, across Makefiles, and the script words of their recipes
+// and of each Makefile's `:=` values that run a shell (make runs those whenever
+// it reads the file), placed where each line runs (its Makefile's directory, a
+// leading `cd <dir> &&`, a `(cd <dir> && ...)` subshell, or the checkout's root
+// through `$(CURDIR)`), with what those import by relative path. Every Makefile
+// and script reached must select the lane, and on the always-on lane run every
+// package, the same two questions again. Refused: a `make` call it cannot place
+// (in a step that changes directory, with `-f` or `-I`, with no target, in a
+// directory named by an expression), a Makefile construct the reader does not
+// model (its header lists them), and a script word it cannot place or that
+// names nothing tracked. Not traced: what a package runner in a recipe runs
+// (`npm run`, `npx`, `yarn`, `mvn`, `cargo` and any other; the action rule's
+// `npm run` again), a script name a make function builds (`$(addsuffix ...)`),
+// configuration a recipe reads (a tsconfig, a chart's values), `MAKEFLAGS` in a
+// step's env, an environment variable (a step's `env:`, or `NAME=value` before
+// make) that a `?=` default yields to, a `make` inside a quoted string run by
+// another shell (`bash -c "make x"`), and what a body imports by package name.
+// The one configuration file a recipe hands its tool, `tsconfig.tsx.json` (the
+// CLI shim's), is in its lane's list by hand.
 //
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.
