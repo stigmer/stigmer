@@ -246,3 +246,8 @@ function payloadStart(
   const localExtraLength = view.getUint16(localHeaderOffset + 28, true);
   return localHeaderOffset + LOCAL_HEADER_SIZE + localNameLength + localExtraLength;
 }
+
+/* c8 ignore next -- @preserve */
+export function scratchHintWithoutReason(): number {
+  return 1;
+}
