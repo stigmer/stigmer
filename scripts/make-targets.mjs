@@ -21,13 +21,14 @@
  * `define`, `include`, `vpath`, a pattern or double-colon rule, a recipe on the
  * rule's own line, a target-specific variable, a function call at the top level
  * (`$(eval ...)`, `$(info ...)`), a shell assignment (`!=`), a variable
- * assigned a second time (make expands a `:=` value when it is assigned, so a
- * later reassignment would change what this reader reads), a special target
- * other than those that change nothing it reads (`.PHONY`, `.SILENT` and the
- * like; `.ONESHELL`, `.SECONDEXPANSION`, `.POSIX` and a suffix rule are
- * refused), and a `SHELL` other than sh or bash (both run `cd` and subshells as
- * this reader places them; site/Makefile names bash). None of the Makefiles a
- * gate lane reaches used one on 2026-10-03; a new one is taught here first.
+ * assigned a second time, or after a `:=` used it (make expands a `:=` value
+ * when it is assigned, so either would change what this reader reads), a
+ * special target other than those that change nothing it reads (`.PHONY`,
+ * `.SILENT` and the like; `.ONESHELL`, `.SECONDEXPANSION`, `.POSIX` and a
+ * suffix rule are refused), and a `SHELL` other than sh or bash (both run `cd`
+ * and subshells as this reader places them; site/Makefile names bash). None of
+ * the Makefiles a gate lane reaches used one on 2026-10-03; a new one is taught
+ * here first.
  *
  * A recipe's automatic variables are replaced from its own rule (`$@` the
  * target, `$<` the first prerequisite, `$^`, `$+` and `$?` all of them); `$*`
@@ -106,6 +107,8 @@ export function readMakefile(text) {
   const variables = new Map();
   // The line each variable was first assigned on, so a second assignment is refused rather than guessed at.
   const assigned = new Map();
+  // Names a `:=` value used before they were assigned: make read them as empty, so assigning one later is refused.
+  const usedEarly = new Map();
   const refusals = [];
   // The rule line whose recipe the next tab-prefixed lines belong to: its entries, and whether a recipe may follow.
   let current = null;
@@ -156,6 +159,16 @@ export function readMakefile(text) {
         if (operator !== "+=" && assigned.has(name)) {
           refusals.push(`line ${number}: ${name} is assigned again (first at line ${assigned.get(name)}); this reader expands each name with one value`);
           continue;
+        }
+        if (usedEarly.has(name)) {
+          refusals.push(`line ${number}: ${name} is assigned after the := at line ${usedEarly.get(name)} used it; make read it there as empty`);
+          continue;
+        }
+        if (operator === ":=" || operator === "::=") {
+          for (const [, paren, brace] of value.matchAll(REFERENCE)) {
+            const used = paren ?? brace;
+            if (used !== undefined && !variables.has(used) && !usedEarly.has(used)) usedEarly.set(used, number);
+          }
         }
         if (!assigned.has(name)) assigned.set(name, number);
         variables.set(name, operator === "+=" && variables.has(name) ? `${variables.get(name)} ${value}` : value);
@@ -321,7 +334,8 @@ export function parseMakeArguments(words, dir) {
     if (word === "-C" || word.startsWith("-C")) {
       const named = word === "-C" ? words[(index += 1)] : word.slice(2);
       if (named === undefined || named.includes("$")) return { refusal: `make -C names its directory with an expression` };
-      into = posix.normalize(posix.join(into, named));
+      // An absolute directory (`$(CURDIR)/x`) is rooted at the checkout, as placeWords roots a `cd` to one.
+      into = named.startsWith("/") ? posix.normalize(named).slice(1) || "." : posix.normalize(posix.join(into, named));
     } else if (/^(-f|--file|--makefile|-I|--include-dir|--directory)/.test(word)) {
       return { refusal: `make ${word} reads a file or directory this reader does not follow` };
     } else if (word.startsWith("-")) {

@@ -115,6 +115,8 @@ test("readMakefile refuses every construct it does not model, wherever it sits",
   const again = readMakefile(mk("A := one.mjs", "B := $(A)", "A := two.mjs", "C = x", "C += y"));
   assert.deepEqual(again.refusals, ["line 3: A is assigned again (first at line 1); this reader expands each name with one value"]);
   assert.equal(again.variables.get("C"), "x y", "+= appends and is not a second assignment");
+  assert.deepEqual(readMakefile(mk("A := $$HOME $(B)/x.mjs ${B}/y.mjs", "B := tools")).refusals, ["line 2: B is assigned after the := at line 1 used it; make read it there as empty"]);
+  assert.deepEqual(readMakefile(mk("A = $(B)/x.mjs", "B := tools", "C := $(CURDIR)/y $(HOME)")).refusals, [], "a recursive = reads B when it is used; CURDIR and HOME are never assigned");
   const twice = readMakefile(mk("x:", ">echo one", "x: more", ">echo two", ">echo three"));
   assert.deepEqual(twice.refusals, ["line 4: x gets a second recipe (its first is at line 1)"]);
   assert.deepEqual(twice.rules.get("x").recipe, [{ line: 2, text: "echo one" }], "the second recipe is not merged in");
@@ -162,6 +164,8 @@ test("parseMakeArguments reads a make command's directory, targets and overrides
     targets: ["codegen", "verify"],
     overrides: new Map(),
   });
+  assert.equal(parseMakeArguments(["-C", "/sdk/go/x", "all"], "sdk/go").dir, "sdk/go/x", "a $(CURDIR) directory is rooted at the checkout");
+  assert.equal(parseMakeArguments(["-C", "/", "all"], "sdk/go").dir, ".");
   assert.deepEqual(parseMakeArguments(["-C../../apis", "go-stubs-tools"], "sdk/go"), {
     dir: "apis",
     targets: ["go-stubs-tools"],
