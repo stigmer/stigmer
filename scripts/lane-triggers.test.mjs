@@ -74,11 +74,11 @@
 // version file (`node-version-file: .nvmrc`, `go-version-file: go.work`),
 // and for each `npm ci` the manifest and lockfile in its directory (with an
 // `.npmrc` there when one is tracked), which decide everything it puts on
-// disk. Before this rule a lockfile-only change (a security bump) ran 4 of
-// the 17 lanes that install from it, and a change to .nvmrc 1 of the 18 that
-// set up from it (#1719, #1734). So for every lane in the map, each such file must select
-// the lane, and on the always-on lane run every package, the same two
-// questions as the action rule. Only `npm ci` as a step's first command is
+// disk. A lane that does not watch them lets a dependency bump or a Node
+// upgrade merge without the lanes that run on it (#1719, #1734). So for
+// every lane in the map, each such file must select the lane, and on the
+// always-on lane run every package, the same two questions as the action
+// rule. Only `npm ci` as a step's first command is
 // placed; any other npm install, an expression for a directory or version
 // file, an untracked file, and a setup or install inside a composite action
 // are refused. A yarn install is not read (site/, the one yarn project, is
@@ -126,8 +126,8 @@ const BODY_EXTENSIONS = [".mjs", ".ts"];
 const LOCAL_ACTION = /^\.\/\.github\/actions\/([^/]+)$/;
 /** A setup action's input naming the file it reads a toolchain version from (`node-version-file`, `go-version-file`). */
 const VERSION_FILE = /-version-file$/;
-/** One npm command in a `run:` step: its verb, then its arguments up to the next command. */
-const NPM_COMMAND = /(^|[\s;&|(])npm\s+([a-z-]+)([^\n;&|)]*)/g;
+/** One npm command in a `run:` step: its first word (the verb, unless a flag comes first), then its arguments up to the next command. */
+const NPM_COMMAND = /(^|[\s;&|(])npm\s+([^\s;&|)]+)([^\n;&|)]*)/g;
 /** The spellings npm accepts for `ci` (`npm ci --help`); the lanes use the first. */
 const NPM_CI = new Set(["ci", "clean-install", "ic", "install-clean", "isntall-clean"]);
 /** The spellings npm accepts for `install` (`npm install --help`), which also reads the lockfile and may rewrite it. */
@@ -400,8 +400,9 @@ export function laneActions(workflow) {
  * job's or the workflow's `defaults.run.working-directory`, else the root.
  * Only `npm ci` as a step's first command is placed. Any other npm install
  * is refused, so a moved install cannot hide: an `npm ci` after another
- * command or with `--prefix`, and every other spelling of `ci` or `install`
- * unless `--no-package-lock` says it reads no lockfile. So are a directory
+ * command or with `--prefix`, every other spelling of `ci` or `install`
+ * unless `--no-package-lock` says it reads no lockfile, and any npm command
+ * with a flag before its verb, which could hide either. So are a directory
  * or version file holding an expression, and a file git does not track.
  * `tracked` is passed in, as `actionRuns` takes it, so a fixture needs no git.
  */
@@ -434,6 +435,13 @@ export function laneInputs(workflow, tracked) {
       for (const match of step.run.matchAll(NPM_COMMAND)) {
         const [, before, verb, args] = match;
         const command = `npm ${verb}${args.trimEnd()}`;
+        if (verb.startsWith("-")) {
+          refusals.push(
+            `${label}: "${command}" puts a flag before its command, which this guard cannot read; ` +
+              "name the command first (`npm ci --prefix ...` is refused as well, so install in a working-directory)",
+          );
+          continue;
+        }
         if (NPM_INSTALL.has(verb) && /(^|\s)--no-package-lock\b/.test(args)) continue;
         if (!NPM_CI.has(verb) && !NPM_INSTALL.has(verb)) continue;
         if (verb !== "ci" || match.index + before.length !== start || /(^|\s)--prefix\b/.test(args)) {
@@ -1022,6 +1030,9 @@ test("laneInputs refuses an install or setup it cannot place: a moved or prefixe
     "out=$(npm ci)",
   ]) {
     assert.match(refused({ run }).join("\n"), /installs from a lockfile this guard cannot place/, run);
+  }
+  for (const run of ["npm --prefix svc ci", "npm -w @stigmer/sdk install left-pad"]) {
+    assert.match(refused({ run }).join("\n"), /puts a flag before its command/, run);
   }
   assert.match(refused({ run: "npm ci", "working-directory": "${{ inputs.dir }}" })[0], /working-directory is an expression/);
   assert.match(
