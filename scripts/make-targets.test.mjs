@@ -245,6 +245,7 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
 test("placeWords places a recipe line's words where they run", () => {
   const paths = (text, dir = ".") => placeWords(text, dir, SCRIPT);
   assert.deepEqual(paths("node scripts/a.mjs && bash ./tools/b.sh").words.map(({ path }) => path), ["scripts/a.mjs", "tools/b.sh"]);
+  assert.deepEqual(paths("scripts/run.sh --fast").words.map(({ path }) => path), ["scripts/run.sh"], "a script that is the line's first word");
   assert.deepEqual(paths("node gen.mjs", "sdk/go").words.map(({ path }) => path), ["sdk/go/gen.mjs"], "a package Makefile's line runs in its directory");
   assert.deepEqual(
     paths("cd backend/svc && V=$(node /scripts/lib/v.mjs) node scripts/bundle.mjs").words,
