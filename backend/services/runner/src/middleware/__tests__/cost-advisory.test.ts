@@ -25,6 +25,7 @@
 
 import { describe, it, expect } from "vitest";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { Command } from "@langchain/langgraph";
 import { createCostAdvisoryMiddleware } from "../cost-advisory.js";
 import { ADVISORY_LEAD_IN } from "../advisory-message.js";
 import type { ModelCallRequest, StigmerMiddleware } from "../types.js";
@@ -233,5 +234,14 @@ describe("CostAdvisoryMiddleware", () => {
       expect(spentIn(parentCopy), "the parent's copy, read later, quotes the later total").toBe("0.0930");
       expect(spentIn(parentCopy)).toBe(parent.runningCost.toFixed(4));
     });
+  });
+
+  it("prices nothing and advises no one when a call answers with a Command instead of a message", async () => {
+    const mw = createCostAdvisoryMiddleware({ ...BASE_CONFIG, maxCostUsd: 0.01 });
+    const jump = new Command({ goto: "__end__" });
+    const answered = await mw.wrapModelCall!(REQUEST, async () => jump);
+    expect(answered, "the Command is handed back untouched").toBe(jump);
+    expect(mw.runningCost).toBe(0);
+    expect(advisoryOf(await callModel(mw, NO_USAGE)), "nothing was crossed").toBeUndefined();
   });
 });
