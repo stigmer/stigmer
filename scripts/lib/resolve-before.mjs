@@ -19,6 +19,11 @@
  * over the @stigmer/* versions that very release published minutes earlier,
  * and a cutoff would refuse them.
  *
+ * The trade-off: a manifest or override that pins a version published less
+ * than an hour ago (a security update Dependabot opens at once, for one) fails
+ * the gate with ETARGET until the hour has passed. Rerun the lane then; the
+ * pin is not wrong, it is newer than the cutoff.
+ *
  * Usage as a command: `node scripts/lib/resolve-before.mjs <hours>` prints the
  * `--before` value (an ISO timestamp) for that many hours before now.
  */
@@ -40,6 +45,23 @@ export function resolveBefore(hours, now = new Date()) {
 /** The npm arguments a resolution adds for the margin: none when no margin is given. */
 export function resolveBeforeArgs(hours, now = new Date()) {
   return hours === undefined ? [] : [`--before=${resolveBefore(hours, now)}`];
+}
+
+/**
+ * The npm arguments a command line asks for: `--resolve-before <hours>` or
+ * `--resolve-before=<hours>` gives the cutoff, its absence gives none, and the
+ * flag with no value is refused rather than read as absent (which would
+ * resolve live, the very thing the flag was given to avoid).
+ */
+export function resolveBeforeFromArgv(argv, now = new Date()) {
+  const index = argv.findIndex((arg) => arg === "--resolve-before" || arg.startsWith("--resolve-before="));
+  if (index === -1) return [];
+  const flag = argv[index];
+  const value = flag.includes("=") ? flag.slice("--resolve-before=".length) : argv[index + 1];
+  if (value === undefined || value === "" || value.startsWith("--")) {
+    throw new Error("resolve-before: --resolve-before needs a number of hours");
+  }
+  return resolveBeforeArgs(value, now);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

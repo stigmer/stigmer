@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { resolveBefore, resolveBeforeArgs } from "./resolve-before.mjs";
+import { resolveBefore, resolveBeforeArgs, resolveBeforeFromArgv } from "./resolve-before.mjs";
 
 const NOW = new Date("2026-10-02T12:00:00.000Z");
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "resolve-before.mjs");
@@ -24,6 +24,17 @@ test("the cutoff is the margin's hours before now, as an ISO timestamp", () => {
 test("no margin adds no argument, so a release resolves live", () => {
   assert.deepEqual(resolveBeforeArgs(undefined, NOW), []);
   assert.deepEqual(resolveBeforeArgs("1", NOW), ["--before=2026-10-02T11:00:00.000Z"]);
+});
+
+test("the command line gives the cutoff in either form, nothing without the flag, and refuses the flag with no value", () => {
+  const cutoff = ["--before=2026-10-02T11:00:00.000Z"];
+  assert.deepEqual(resolveBeforeFromArgv(["--resolve-before=1"], NOW), cutoff);
+  assert.deepEqual(resolveBeforeFromArgv(["--package", "backend/services/runner", "--resolve-before", "1"], NOW), cutoff);
+  assert.deepEqual(resolveBeforeFromArgv(["--package", "backend/services/runner"], NOW), [], "a release passes no flag and resolves live");
+  for (const argv of [["--resolve-before"], ["--resolve-before="], ["--resolve-before", "--package", "x"]]) {
+    assert.throws(() => resolveBeforeFromArgv(argv, NOW), /--resolve-before needs a number of hours/, argv.join(" "));
+  }
+  assert.throws(() => resolveBeforeFromArgv(["--resolve-before=soon"], NOW), /must be a positive number of hours/);
 });
 
 test("a margin that is not a positive number of hours is refused", () => {

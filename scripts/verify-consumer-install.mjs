@@ -96,7 +96,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { resolveBeforeArgs } from "./lib/resolve-before.mjs";
+import { resolveBeforeFromArgv } from "./lib/resolve-before.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -129,18 +129,11 @@ const packageDir = packageArg
     : resolve(repoRoot, packageArg)
   : process.cwd();
 
-// `--resolve-before <hours>` or `--resolve-before=<hours>`; absent, both
-// installs resolve live (the header says who passes it and why).
-const resolveBeforeFlag = args.find((arg) => arg === "--resolve-before" || arg.startsWith("--resolve-before="));
-const resolveBeforeHours =
-  resolveBeforeFlag === undefined
-    ? undefined
-    : resolveBeforeFlag.includes("=")
-      ? resolveBeforeFlag.slice("--resolve-before=".length)
-      : args[args.indexOf(resolveBeforeFlag) + 1];
+// `--resolve-before <hours>`: the npm arguments both installs add; absent,
+// both resolve live (the header says who passes it and why).
 let resolution;
 try {
-  resolution = resolveBeforeArgs(resolveBeforeHours);
+  resolution = resolveBeforeFromArgv(args);
 } catch (error) {
   fail(error.message);
 }
