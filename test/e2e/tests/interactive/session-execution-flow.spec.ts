@@ -9,6 +9,7 @@ import {
   getSessionComposer,
   assertComposerDisabled,
   assertComposerEnabled,
+  START_SESSION_WAITS_MS,
 } from "../../helpers/session";
 import {
   enqueueCannedTextTurns,
@@ -36,11 +37,12 @@ const TURN_DELAY_MS = 2_000;
  */
 const TURN_BUDGET_MS = 90_000;
 
-/** `startNewSession`'s own waits: the composer (15 s), then the session's URL (30 s). */
-const SESSION_START_MS = 45_000;
+/** `startNewSession`'s own waits (the composer, then the session's URL), read from the helper. */
+const SESSION_START_MS = START_SESSION_WAITS_MS.composer + START_SESSION_WAITS_MS.sessionUrl;
 
 /**
- * The case budget, derived from the waits so the two cannot disagree again
+ * The case budget, derived from the turn and session waits (the short waits
+ * are tallied below, so a change to them must move this too)
  * (#1563: every case waited up to 90 s under Playwright's 30 s default, so a
  * slow turn failed as a test timeout while its own wait was in budget). The
  * follow-up case waits longest: a session start, four turn waits (one
