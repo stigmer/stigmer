@@ -70,7 +70,8 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
@@ -97,7 +98,7 @@ const REFUSED_SYNTAX = /[{}[\]!?+]/;
 /** A file a `run:` step names under the checkout's root or the action's own folder: the variable, then the path. */
 const PLACED_PATH = /\$(GITHUB_WORKSPACE|GITHUB_ACTION_PATH)\/([^\s"'`()=;|&<>]+)/g;
 /** A word in a `run:` step that names a script, however it is spelled. */
-const SCRIPT_WORD = /[^\s"'`()=;|&<>]+\.(?:mjs|cjs|js|ts|sh|py)\b/g;
+const SCRIPT_WORD = /[^\s"'`()=;|&<>]+\.(?:mjs|cjs|js|jsx|mts|cts|ts|tsx|sh|bash|py)\b/g;
 /** The prefixes under which a script word is placed: the checkout, or the action's own folder. */
 const PLACED = ["$GITHUB_WORKSPACE/", "$GITHUB_ACTION_PATH/"];
 /** The bodies whose imports extractRelativeSpecifiers can follow. */
@@ -407,6 +408,24 @@ function readActions(tracked, rootDir = root) {
   return actions;
 }
 
+/**
+ * What the action rule could not read: each action's refusals, each gate
+ * lane's, and each call to an action with no folder, one line apiece.
+ */
+export function readProblems(actions, laneCalls) {
+  return [
+    ...[...actions].flatMap(([name, { refusals }]) =>
+      refusals.map((refusal) => `.github/actions/${name} ${refusal}`),
+    ),
+    ...[...laneCalls].flatMap(([file, { actions: called, refusals }]) => [
+      ...refusals.map((refusal) => `${file} ${refusal}`),
+      ...called
+        .filter((name) => !actions.has(name))
+        .map((name) => `${file} calls ./.github/actions/${name}, which has no folder`),
+    ]),
+  ];
+}
+
 const manifests = trackedManifests();
 const byName = workspaceDirsByName(root, manifests);
 const closures = new Map(
@@ -486,18 +505,7 @@ test("the guard still finds the packages and lanes it exists for", () => {
 });
 
 test("every composite action, and every action call in a gate lane, is one this guard reads", () => {
-  const problems = [
-    ...[...actions].flatMap(([name, { refusals }]) =>
-      refusals.map((refusal) => `.github/actions/${name} ${refusal}`),
-    ),
-    ...[...laneCalls].flatMap(([file, { actions: called, refusals }]) => [
-      ...refusals.map((refusal) => `${file} ${refusal}`),
-      ...called
-        .filter((name) => !actions.has(name))
-        .map((name) => `${file} calls ./.github/actions/${name}, which has no folder`),
-    ]),
-  ];
-  assert.deepEqual(problems, []);
+  assert.deepEqual(readProblems(actions, laneCalls), []);
 });
 
 test("a gate lane runs when any file an action it calls runs changes, and on the always-on lane so does every job", () => {
@@ -674,6 +682,8 @@ test("actionRuns refuses what it cannot place: another runtime, a nested action,
     "node ${{ github.workspace }}/scripts/a.mjs",
     "bash build.sh",
     "python3 tools/x.py",
+    "tsx scripts/x.mts",
+    "bash tools/run.bash",
   ]) {
     assert.match(refused(composite(run)).join("\n"), /names a script under neither/, run);
   }
@@ -686,20 +696,20 @@ test("actionRuns refuses what it cannot place: another runtime, a nested action,
     );
   }
   assert.deepEqual(
-    refused(composite('echo "checksums.txt" "$HOME/bin/temporal" a.json b.tsx')),
+    refused(composite('echo "checksums.txt" "$HOME/bin/temporal" a.json b.tsv')),
     [],
     "words that only look like scripts are not refused",
   );
 });
 
-test("bodyClosure follows relative imports to their tracked files, .js to .ts, and refuses one that resolves nowhere", () => {
+test("bodyClosure follows relative imports to their tracked files, .js to .ts, through a cycle, and refuses one that resolves nowhere", () => {
   const sources = {
     "cli/scripts/install.ts": 'import { x } from "../src/a.js";\nimport fs from "node:fs";\nimport y from "fflate";',
     "cli/src/a.ts": 'export { b } from "./deep/b.js";\nexport type { T } from "./types.js";',
     "cli/src/deep/b.ts": "export const b = 1;",
     "cli/src/types.ts": "export type T = number;",
     "scripts/run.mjs": 'import { h } from "./lib/h.mjs";\nconst later = () => import("./lib/late.mjs");',
-    "scripts/lib/h.mjs": "export const h = 1;",
+    "scripts/lib/h.mjs": 'import "../run.mjs";\nexport const h = 1;',
     "scripts/lib/late.mjs": "export default 1;",
   };
   const tracked = new Set(Object.keys(sources));
@@ -718,6 +728,29 @@ test("bodyClosure follows relative imports to their tracked files, .js to .ts, a
   });
   const broken = bodyClosure(["scripts/x.mjs"], new Set(["scripts/x.mjs"]), () => 'import "./missing.mjs";');
   assert.deepEqual(broken.refusals, ['scripts/x.mjs imports "./missing.mjs", which resolves to no tracked file']);
+});
+
+test("an action folder without action.yml, and a call to an action with no folder, are each reported", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "lane-triggers-"));
+  try {
+    mkdirSync(join(scratch, ".github/actions/bare"), { recursive: true });
+    const read = readActions(new Set([".github/actions/bare/README.md"]), scratch);
+    assert.deepEqual(read.get("bare"), {
+      files: [".github/actions/bare/README.md"],
+      bodies: [],
+      refusals: ["has no action.yml, the one name this guard reads"],
+    });
+    assert.deepEqual(
+      readProblems(read, new Map([["ci.x.yaml", { actions: ["bare", "gone"], refusals: ["jobs.a: nested"] }]])),
+      [
+        ".github/actions/bare has no action.yml, the one name this guard reads",
+        "ci.x.yaml jobs.a: nested",
+        "ci.x.yaml calls ./.github/actions/gone, which has no folder",
+      ],
+    );
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
 });
 
 test("laneActions names the repository's actions a workflow calls, and refuses a local call it does not read", () => {

@@ -17,8 +17,7 @@
  * (turbo.json widens their `inputs`: apis/testdata/hitl/file-review for
  * @stigmer/sdk#test, test/fixtures/tool-view for sdk and react). The
  * package-level view attributes such a change to the root and runs nothing;
- * the task-level view names the suites (measured 2026-09-11, stigmer-cloud
- * project 20260904.04, T01_6).
+ * the task-level view names the suites (measured 2026-09-11).
  *
  * Reading turbo's answer: a task's `reason.__typename` is `TaskFileChanged`
  * (its own inputs moved), `TaskDependencyTaskChanged` (an upstream task did),
