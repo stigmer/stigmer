@@ -26,7 +26,8 @@
 # runner-live's step summary lists the estimated spend of every case that has
 # an estimate (the native turns, the llm_call cases, the Cursor transcript).
 # The SDK-direct Cursor instruments and the CLI's one turn have no product cap
-# and no estimate; each is one short turn, and the summary names them.
+# and no estimate; each takes at most one short turn, and the summary names
+# them.
 #
 # Keys: ANTHROPIC_API_KEY and CURSOR_API_KEY from the `provider-integration`
 # environment, which deploys only to `main`. A release run runs on `main` and
