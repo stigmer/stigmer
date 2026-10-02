@@ -85,7 +85,7 @@ describe("SharedAgentChat", () => {
     setProfileState({ isLoading: true });
     render(<SharedAgentChat org="acme" slug="support-agent" />);
 
-    expect(screen.getByLabelText("Loading agent")).toBeTruthy();
+    expect(screen.getByText("Loading agent")).toBeTruthy();
     expect(newSessionViewerProps).toHaveLength(0);
   });
 

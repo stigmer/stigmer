@@ -27,6 +27,9 @@ export default defineConfig([
       // list carries UNSTYLED_LIST and every content list declares its
       // list-* style, so this fence too starts at zero.
       "stigmer/require-list-reset": "error",
+      // Error (not warn): the #1653 sweep moved all 38 busy, labelled loading
+      // containers onto LoadingRegion, so this fence starts at zero too.
+      "stigmer/require-loading-region": "error",
     },
   },
   {

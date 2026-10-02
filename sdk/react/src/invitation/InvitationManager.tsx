@@ -21,6 +21,7 @@ import { RoleSelector } from "../iam-policy/RoleSelector.js";
 import { useOwnerAssignment } from "../iam-policy/useOwnerAssignment.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -115,10 +116,9 @@ export function InvitationManager({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading invitations"
+        label="Loading invitations"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
@@ -126,7 +126,7 @@ export function InvitationManager({
             className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

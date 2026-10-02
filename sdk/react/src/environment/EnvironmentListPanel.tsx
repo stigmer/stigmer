@@ -10,6 +10,7 @@ import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { useEnvironmentList } from "./useEnvironmentList.js";
 import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor.js";
 import { isShareRestrictedEnvironment } from "./shareRestriction.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -132,10 +133,9 @@ export function EnvironmentListPanel({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading environments"
+        label="Loading environments"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
@@ -143,7 +143,7 @@ export function EnvironmentListPanel({
             className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

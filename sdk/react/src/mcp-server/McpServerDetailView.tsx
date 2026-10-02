@@ -50,6 +50,7 @@ import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue.js";
 import type { KeyValueRow, SelectOption } from "../inline-edit/types.js";
 import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Tab identifier for the MCP server capability panel. */
 export type CapabilityTab = "tools" | "policies" | "resources";
@@ -2202,10 +2203,9 @@ function Dot() {
 
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div
+    <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-6", className)}
-      aria-busy="true"
-      aria-label="Loading MCP server details"
+      label="Loading MCP server details"
     >
       <div className="stg:flex stg:items-start stg:gap-3">
         <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -2224,7 +2224,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
           />
         </div>
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

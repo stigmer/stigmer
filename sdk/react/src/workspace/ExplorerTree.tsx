@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { useWorkspaceFiles } from "./useWorkspaceFiles.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ExplorerTree}. */
 export interface ExplorerTreeProps {
@@ -187,14 +188,9 @@ function ExplorerRootBody({
 }) {
   if (isLoading) {
     return (
-      <div
-        // role="status" both announces the loading state to assistive tech and
-        // makes aria-label permitted here (a role-less generic div cannot carry
-        // an accessible name — axe `aria-prohibited-attr`).
-        role="status"
+      <LoadingRegion
         className="stg:space-y-1.5 stg:px-2 stg:py-2"
-        aria-busy="true"
-        aria-label={`Loading files for ${entryName}`}
+        label={`Loading files for ${entryName}`}
       >
         {[1, 2, 3, 4].map((i) => (
           <div
@@ -204,7 +200,7 @@ function ExplorerRootBody({
             aria-hidden="true"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

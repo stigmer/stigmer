@@ -14,6 +14,7 @@ import { useDeleteMemory } from "./useDeleteMemory.js";
 import { useMemories } from "./useMemories.js";
 import { useRejectMemory } from "./useRejectMemory.js";
 import { useUpdateMemoryContent } from "./useUpdateMemoryContent.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -71,10 +72,9 @@ export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading memories"
+        label="Loading memories"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
@@ -82,7 +82,7 @@ export function MemoryListPanel({ org, className, now }: MemoryListPanelProps) {
             className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

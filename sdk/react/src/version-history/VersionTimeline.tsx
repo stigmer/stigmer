@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { VersionTimelineProps } from "./types.js";
 import { VersionTimelineEntry } from "./VersionTimelineEntry.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /**
  * Accessible vertical timeline for version history.
@@ -163,10 +164,9 @@ function CompareIcon({ className }: { readonly className?: string }) {
 
 function TimelineSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div
+    <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-4 stg:pt-2", className)}
-      aria-busy="true"
-      aria-label="Loading version history"
+      label="Loading version history"
     >
       {[1, 2, 3].map((i) => (
         <div key={i} className="stg:flex stg:gap-3">
@@ -183,7 +183,7 @@ function TimelineSkeleton({ className }: { readonly className?: string }) {
           </div>
         </div>
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

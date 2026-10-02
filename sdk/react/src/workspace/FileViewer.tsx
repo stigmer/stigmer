@@ -24,6 +24,7 @@ import { useFileChangeContent } from "../execution/useFileChangeContent.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { RevealTarget } from "../internal/useRevealLine.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { useWorkspaceFileContent } from "./useWorkspaceFileContent.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
@@ -624,11 +625,9 @@ function CapturedFileContent({
 
 function LoadingSkeleton() {
   return (
-    <div
-      role="status"
+    <LoadingRegion
       className="stg:space-y-2 stg:p-4"
-      aria-busy="true"
-      aria-label="Loading file"
+      label="Loading file"
     >
       {SKELETON_LINE_WIDTHS.map((width, i) => (
         <div
@@ -638,7 +637,7 @@ function LoadingSkeleton() {
           aria-hidden="true"
         />
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

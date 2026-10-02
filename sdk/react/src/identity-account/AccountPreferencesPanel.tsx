@@ -21,6 +21,7 @@ import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Switch } from "../switch/Switch.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link AccountPreferencesPanel}. */
 export interface AccountPreferencesPanelProps {
@@ -232,14 +233,13 @@ export function AccountPreferencesPanel({
 
   if (isFetching && !account) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-4", className)}
-        aria-busy="true"
-        aria-label="Loading account preferences"
+        label="Loading account preferences"
       >
         <div className="stg:bg-muted-subtle stg:h-28 stg:animate-pulse stg:rounded" />
         <div className="stg:bg-muted-subtle stg:h-8 stg:w-32 stg:animate-pulse stg:rounded" />
-      </div>
+      </LoadingRegion>
     );
   }
 

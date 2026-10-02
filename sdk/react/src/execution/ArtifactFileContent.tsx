@@ -4,6 +4,7 @@
 // unavailable / text). Domain: execution (data-model-agnostic).
 
 import { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ArtifactFileContent}. */
 export interface ArtifactFileContentProps {
@@ -44,7 +45,7 @@ export function ArtifactFileContent({
 }: ArtifactFileContentProps) {
   if (isLoading) {
     return (
-      <div className="stg:space-y-2 stg:p-4" aria-busy="true" aria-label="Loading content">
+      <LoadingRegion className="stg:space-y-2 stg:p-4" label="Loading content">
         {SKELETON_LINE_WIDTHS.map((width, i) => (
           <div
             key={i}
@@ -53,7 +54,7 @@ export function ArtifactFileContent({
             aria-hidden="true"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

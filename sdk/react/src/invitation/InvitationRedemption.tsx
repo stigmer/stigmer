@@ -8,6 +8,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInvitationPreview } from "./useInvitationPreview.js";
 import { useRedeemInvitation } from "./useRedeemInvitation.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -141,13 +142,12 @@ export function InvitationRedemption({
   // Loading state
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:mx-auto stg:max-w-sm", className)}
-        aria-busy="true"
-        aria-label="Loading invitation"
+        label="Loading invitation"
       >
         <LoadingSkeleton />
-      </div>
+      </LoadingRegion>
     );
   }
 

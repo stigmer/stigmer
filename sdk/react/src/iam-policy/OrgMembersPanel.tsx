@@ -26,6 +26,7 @@ import { useDeleteIamPolicy } from "./useDeleteIamPolicy.js";
 import { RoleSelector } from "./RoleSelector.js";
 import { ProviderBadge } from "./ProviderBadge.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -127,10 +128,9 @@ export function OrgMembersPanel({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading members"
+        label="Loading members"
       >
         {Array.from({ length: 3 }, (_, i) => (
           <div
@@ -138,7 +138,7 @@ export function OrgMembersPanel({
             className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

@@ -7,6 +7,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { channelProviderOf } from "../channel/providers.js";
 import { useChannelAppList } from "./useChannelAppList.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -69,15 +70,14 @@ export function ChannelAppListPanel({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading channel apps"
+        label="Loading channel apps"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div key={i} className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg" />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { useIdentityProviderList } from "./useIdentityProviderList.js";
 import { useDeleteIdentityProvider } from "./useDeleteIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link IdentityProviderListPanel}. */
 export interface IdentityProviderListPanelProps {
@@ -75,10 +76,9 @@ export function IdentityProviderListPanel({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading identity providers"
+        label="Loading identity providers"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
@@ -86,7 +86,7 @@ export function IdentityProviderListPanel({
             className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

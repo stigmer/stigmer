@@ -7,6 +7,7 @@ import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import { SessionViewer } from "../session/SessionViewer.js";
 import { useSharedAgentProfile } from "./useSharedAgentProfile.js";
 import type { SharingAudience } from "./useSaveAgentShare.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -123,13 +124,12 @@ export function SharedAgentChat({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}
-        aria-busy="true"
-        aria-label="Loading agent"
+        label="Loading agent"
       >
         <LoadingSkeleton />
-      </div>
+      </LoadingRegion>
     );
   }
 

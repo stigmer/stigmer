@@ -54,7 +54,7 @@ describe("WorkflowArtifactDocument", () => {
     expect(screen.getByText("2.0 KB")).toBeTruthy();
     expect(screen.getByText("application/json")).toBeTruthy();
     await waitFor(() =>
-      expect(screen.queryByLabelText("Loading content")).toBeNull(),
+      expect(screen.queryByText("Loading content")).toBeNull(),
     );
   });
 

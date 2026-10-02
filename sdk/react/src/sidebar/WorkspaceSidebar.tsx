@@ -31,6 +31,7 @@ import {
   sectionLabelClassName,
 } from "./chrome.js";
 import type { RenderSidebarLink } from "./types.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -433,7 +434,7 @@ function cnActivityRow(active: boolean): string {
 
 function RecentsSkeletons() {
   return (
-    <div className="stg:space-y-2 stg:px-2" aria-busy="true" aria-label="Loading sessions">
+    <LoadingRegion className="stg:space-y-2 stg:px-2" label="Loading sessions">
       {Array.from({ length: 5 }, (_, i) => (
         <div
           key={i}
@@ -441,7 +442,7 @@ function RecentsSkeletons() {
           style={{ width: `${70 + Math.sin(i * 1.5) * 20}%` }}
         />
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

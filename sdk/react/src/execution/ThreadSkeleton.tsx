@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ThreadSkeleton}. */
 export interface ThreadSkeletonProps {
@@ -30,10 +31,9 @@ const AI_LINE_WIDTHS = [
  */
 export function ThreadSkeleton({ className }: ThreadSkeletonProps) {
   return (
-    <div
+    <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-4 stg:pt-6 stg:pb-4", className)}
-      aria-busy="true"
-      aria-label="Loading conversation"
+      label="Loading conversation"
     >
       <div className="stg:animate-pulse stg:space-y-4">
         {/* Turn 1: Human bubble */}
@@ -68,6 +68,6 @@ export function ThreadSkeleton({ className }: ThreadSkeletonProps) {
           ))}
         </div>
       </div>
-    </div>
+    </LoadingRegion>
   );
 }

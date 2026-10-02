@@ -7,6 +7,7 @@ import { EnvironmentVariableEditor } from "../environment/EnvironmentVariableEdi
 import { EnvironmentListPanel } from "../environment/EnvironmentListPanel.js";
 import { CreateEnvironmentForm } from "../environment/CreateEnvironmentForm.js";
 import { useActiveOrgSlug } from "../organization/OrgProvider.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 const ENV_EXCLUDE_LABELS: Record<string, string>[] = [
   { "stigmer.ai/personal": "true" },
@@ -152,7 +153,7 @@ function EnvironmentsCard({ org }: { org: string }) {
 
 function SkeletonRows({ count }: { count: number }) {
   return (
-    <div className="stg:space-y-2" aria-busy="true" aria-label="Loading">
+    <LoadingRegion className="stg:space-y-2" label="Loading">
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}
@@ -160,6 +161,6 @@ function SkeletonRows({ count }: { count: number }) {
           style={{ width: `${85 - i * 10}%` }}
         />
       ))}
-    </div>
+    </LoadingRegion>
   );
 }

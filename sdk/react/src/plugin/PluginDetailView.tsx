@@ -49,6 +49,7 @@ import { PluginIcon } from "./PluginIcon.js";
 import { usePlugin } from "./usePlugin.js";
 import { usePluginMembers } from "./usePluginMembers.js";
 import { usePluginVersions } from "./usePluginVersions.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
@@ -526,7 +527,7 @@ function stateLabel(state: PluginState): string | undefined {
 
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div className={cn("stg:flex stg:flex-col stg:gap-6", className)} aria-busy="true" aria-label="Loading plugin details">
+    <LoadingRegion className={cn("stg:flex stg:flex-col stg:gap-6", className)} label="Loading plugin details">
       <div className="stg:flex stg:items-start stg:gap-3">
         <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
         <div className="stg:flex-1 stg:space-y-2">
@@ -535,7 +536,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
         </div>
       </div>
       <div className="stg:h-24 stg:animate-pulse stg:rounded-lg stg:bg-muted" />
-    </div>
+    </LoadingRegion>
   );
 }
 

@@ -20,6 +20,7 @@ import { LowBalanceBanner } from "./LowBalanceBanner.js";
 import { PlanSection } from "./PlanSection.js";
 import { billingReturnUrl, type BillingRedirect } from "./redirect.js";
 import { useCreatePaymentMethodSetupSession } from "./useCreatePaymentMethodSetupSession.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link BillingSection}. */
 export interface BillingSectionProps {
@@ -170,7 +171,7 @@ function BillingContent({
 
   if (isLoading) {
     return (
-      <div className="stg:space-y-4" aria-busy="true" aria-label="Loading billing">
+      <LoadingRegion className="stg:space-y-4" label="Loading billing">
         <div className="stg:h-24 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
         <div className="stg:grid stg:grid-cols-3 stg:gap-3">
           {Array.from({ length: 3 }, (_, i) => (
@@ -181,7 +182,7 @@ function BillingContent({
           ))}
         </div>
         <div className="stg:h-48 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-      </div>
+      </LoadingRegion>
     );
   }
 

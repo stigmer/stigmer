@@ -19,6 +19,7 @@ import { execIdFromStorageKey } from "./useFileChangeContent.js";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useToolOutputContent } from "./useToolOutputContent.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link McpToolDetail}. */
 export interface McpToolDetailProps {
@@ -115,10 +116,9 @@ function McpOffloadedImage({ storageKey }: { readonly storageKey: string }) {
   }
   if (!url) {
     return (
-      <div
+      <LoadingRegion
         className="stg:h-40 stg:w-64 stg:animate-pulse stg:rounded-md stg:border stg:border-border stg:bg-muted"
-        aria-busy="true"
-        aria-label="Loading image output"
+        label="Loading image output"
       />
     );
   }
