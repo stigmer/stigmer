@@ -65,11 +65,10 @@ import {
   readFileSync,
   rmSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
-import { parse } from "yaml";
 
 /** The whole step's bound: about 25 times the install and launch together on a hosted runner. */
 export const DEADLINE_MS = 5 * 60 * 1000;
@@ -323,8 +322,15 @@ export function installFindings(sources, exempt = EXEMPT) {
   return findings;
 }
 
-/** Every workflow and composite action under `root`'s .github, parsed. */
+/**
+ * Every workflow and composite action under `root`'s .github, parsed.
+ *
+ * The YAML parser is loaded here, not at the top: the action runs this file
+ * before anything has proven the root `npm ci` ran, so the installer half
+ * imports only Node's built-ins and can say what is missing.
+ */
 export function readSources(root) {
+  const { parse } = createRequire(import.meta.url)("yaml");
   const sources = [];
   const workflows = join(root, ".github", "workflows");
   for (const name of readdirSync(workflows).sort()) {

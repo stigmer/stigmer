@@ -27,11 +27,13 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { Writable } from "node:stream";
 import { after, afterEach, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -421,6 +423,29 @@ test(
     );
   },
 );
+
+test("a checkout with no npm ci at all still gets the named message, not a module error", () => {
+  // The action runs the script before anything proves node_modules exists, so
+  // the installer half may import only Node's built-ins.
+  // The real path: the script starts main only when argv names it as Node resolves it.
+  const checkout = join(realpathSync(scratch), "no-npm-ci");
+  mkdirSync(join(checkout, "scripts"), { recursive: true });
+  const script = join(checkout, "scripts", "playwright-chromium.mjs");
+  writeFileSync(
+    script,
+    readFileSync(join(root, "scripts", "playwright-chromium.mjs")),
+  );
+  const result = spawnSync(process.execPath, [script], {
+    env: { ...process.env, GITHUB_WORKSPACE: checkout },
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 1, result.stderr);
+  assert.doesNotMatch(result.stderr, /ERR_MODULE_NOT_FOUND/);
+  assert.match(
+    result.stderr,
+    /node_modules\/\.bin\/playwright does not exist; run the root `npm ci` before this action/,
+  );
+});
 
 test("the workspace is GITHUB_WORKSPACE on a runner, and this repository otherwise", () => {
   assert.equal(workspaceRoot({ GITHUB_WORKSPACE: "/w" }), "/w");
