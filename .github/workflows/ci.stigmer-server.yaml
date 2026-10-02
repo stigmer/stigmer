@@ -189,7 +189,9 @@ jobs:
             temporal operator cluster health >/dev/null 2>&1 && break
             sleep 1
           done
-          npm run verify:consumer
+          # The last hour's publishes are ignored (#1669;
+          # scripts/lib/resolve-before.mjs). A release resolves live.
+          npm run verify:consumer -- --resolve-before=1
 
       # The Docker image smoke (DD-014, Phase-2 P4): the SAME dist-slim the
       # deep verify just proved, packaged by the service's Dockerfile and
