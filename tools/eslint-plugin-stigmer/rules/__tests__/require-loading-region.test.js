@@ -37,6 +37,7 @@ tester.run("require-loading-region", rule, {
     { code: '<Panel aria-busy="true" aria-label="Loading" />' },
     { code: '<div role="region" aria-label="Plan being written" aria-busy="true"><p>Writing…</p></div>' },
     { code: '<div role="article" aria-label="Plan document" aria-busy="true" />' },
+    { code: '<div role={roleFor(kind)} aria-busy="true" aria-label="Loading" />' },
     {
       code: '<div aria-busy="true" aria-label="anything" />',
       filename: "/repo/sdk/react/src/internal/LoadingRegion.tsx",
@@ -47,5 +48,11 @@ tester.run("require-loading-region", rule, {
     { code: "<div aria-busy={true} aria-label={`Loading files for ${name}`} />", errors: reported },
     { code: '<div role="status" aria-busy="true" aria-label="Loading file" />', errors: reported },
     { code: '<span aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div aria-busy aria-label="Loading" />', errors: reported },
+    { code: '<div role={"status"} aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: "<div role={`status`} aria-busy={true} aria-label=\"Loading\" />", errors: reported },
+    { code: '<div role="generic" aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div role="presentation" aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div role="none" aria-busy="true" aria-label="Loading" />', errors: reported },
   ],
 });

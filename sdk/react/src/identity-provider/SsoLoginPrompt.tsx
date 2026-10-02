@@ -244,9 +244,11 @@ function LoadingState({ org }: { org: string }) {
   return (
     <LoadingRegion
       className="stg:flex stg:flex-col stg:items-center stg:gap-3 stg:py-4"
+      label={`Looking up SSO provider for ${org}`}
     >
       <SpinnerIcon size={20} className="stg:text-muted-foreground" />
-      <p className="stg:text-sm stg:text-muted-foreground">
+      {/* The hidden label says it in full; this is its short visible form. */}
+      <p className="stg:text-sm stg:text-muted-foreground" aria-hidden="true">
         Looking up <span className="stg:font-medium stg:text-foreground">{org}</span>&hellip;
       </p>
     </LoadingRegion>

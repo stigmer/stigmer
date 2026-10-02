@@ -11,11 +11,15 @@
 // role="status", belongs inside LoadingRegion; everywhere else renders
 // <LoadingRegion label="...">.
 //
-// Left legal: a busy element whose role permits a name and is not "status",
-// such as a streaming plan's labelled region or article, which holds real
-// content and is no skeleton; and a computed `aria-busy={isSubmitting}` (a
-// button mid-request). Only a literal `"true"` or `{true}` is a loading
-// region's mark.
+// "Busy" is aria-busy fixed true: `"true"`, `{true}`, or the bare attribute,
+// which JSX renders as "true". A role that takes no name (generic,
+// presentation, none) counts as no role, and a fixed role is read however it
+// is written (`"status"`, `{"status"}`, `{`status`}`).
+//
+// Left legal: a busy element whose fixed role permits a name and is not
+// "status", such as a streaming plan's labelled region or article, which
+// holds real content and is no skeleton; a computed role, the author's to
+// justify; and a computed `aria-busy={isSubmitting}` (a button mid-request).
 
 const REGION_FILE_SUFFIX = "internal/LoadingRegion.tsx";
 
@@ -26,17 +30,28 @@ function attribute(node, name) {
   );
 }
 
-/** Whether a JSX attribute's value is the literal true: `"true"` or `{true}`. */
-function isLiteralTrue(attr) {
+/**
+ * A JSX attribute's value when it is fixed in the source: `true` for a
+ * valueless attribute (`<div aria-busy>` renders aria-busy="true"), the
+ * string or boolean of a literal, written bare or in braces (`"x"`, `{"x"}`,
+ * `{true}`), or of a template literal with no expressions; undefined for
+ * anything computed.
+ */
+function staticValue(attr) {
   const value = attr.value;
-  if (value === null) return false;
-  if (value.type === "Literal") return value.value === "true";
-  return (
-    value.type === "JSXExpressionContainer" &&
-    value.expression.type === "Literal" &&
-    value.expression.value === true
-  );
+  if (value === null) return true;
+  if (value.type === "Literal") return value.value;
+  if (value.type !== "JSXExpressionContainer") return undefined;
+  const expression = value.expression;
+  if (expression.type === "Literal") return expression.value;
+  if (expression.type === "TemplateLiteral" && expression.expressions.length === 0) {
+    return expression.quasis[0].value.cooked;
+  }
+  return undefined;
 }
+
+/** Roles under which an element takes no name, so a label on it is as prohibited as on no role at all. */
+const NAMELESS_ROLES = new Set(["generic", "presentation", "none"]);
 
 module.exports = {
   meta: {
@@ -67,11 +82,18 @@ module.exports = {
         // DOM elements only: a component's props are its own business.
         if (node.name.type !== "JSXIdentifier" || !/^[a-z]/.test(node.name.name)) return;
         const busy = attribute(node, "aria-busy");
-        if (busy === undefined || !isLiteralTrue(busy)) return;
+        if (busy === undefined) return;
+        const busyValue = staticValue(busy);
+        if (busyValue !== true && busyValue !== "true") return;
         if (attribute(node, "aria-label") === undefined) return;
         const role = attribute(node, "role");
-        const roleValue = role?.value?.type === "Literal" ? role.value.value : undefined;
-        if (role !== undefined && roleValue !== "status") return;
+        if (role !== undefined) {
+          const roleValue = staticValue(role);
+          // A computed role is the author's to justify; a fixed one that can
+          // take a name, other than status, is a real landmark or widget.
+          if (roleValue === undefined) return;
+          if (roleValue !== "status" && !NAMELESS_ROLES.has(roleValue)) return;
+        }
         context.report({ node, messageId: "busyLabelledElement" });
       },
     };
