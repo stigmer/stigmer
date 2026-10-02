@@ -99,7 +99,9 @@ const hang = () => {
   setInterval(() => {}, 1000);
 };
 if (command === "install") {
-  if (mode === "install-fails") {
+  if (mode === "install-killed") {
+    process.kill(process.pid, "SIGTERM");
+  } else if (mode === "install-fails") {
     console.error("Error: Failed to download Chrome Headless Shell");
     process.exit(3);
   } else if (mode === "install-hangs") {
@@ -301,6 +303,30 @@ test("a failed install fails with its exit code, and the probe never runs", asyn
   assert.match(
     verdictMessage(verdict),
     /`playwright install chromium` exited with code 3/,
+  );
+});
+
+test("an install killed by a signal fails and names the signal", async () => {
+  const fake = fakeCli("install-killed");
+  const { verdict } = await run(fake);
+  assert.equal(verdict.ok, false);
+  assert.equal(verdict.phase, "install");
+  assert.equal(verdict.signal, "SIGTERM");
+  assert.match(
+    verdictMessage(verdict),
+    /`playwright install chromium` was killed by SIGTERM/,
+  );
+});
+
+test("a CLI that exists but cannot be run fails with the reason", async () => {
+  const fake = fakeCli("ok");
+  chmodSync(fake.cli, 0o644);
+  const { verdict } = await run(fake);
+  assert.equal(verdict.ok, false);
+  assert.equal(verdict.phase, "install");
+  assert.match(
+    verdictMessage(verdict),
+    /could not run .*playwright: spawn .*EACCES/,
   );
 });
 
