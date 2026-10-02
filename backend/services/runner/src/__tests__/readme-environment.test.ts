@@ -338,9 +338,9 @@ function settingsReadIn(
   /**
    * The destructure a node starts, and what it destructures: a declaration's
    * or parameter's pattern, or the object a plain `=` writes into. A pattern
-   * nested under `env` is not a start (its source is the element holding it),
-   * so a nested one with a default is never read as an assignment from that
-   * default.
+   * nested under `env` in a destructure of `process` is read through
+   * `nestedEnvPatterns`, from the element holding it, whatever default it
+   * carries.
    */
   const destructureAt = (node: ts.Node): { readonly pattern: ObjectPattern; readonly source: "env" | "process" } | undefined => {
     let pattern: ObjectPattern;
@@ -349,7 +349,7 @@ function settingsReadIn(
       if (isAnnotatedProcessEnv(node)) return { pattern: node.name, source: "env" };
       pattern = node.name;
       value = node.initializer;
-    } else if (isPlainAssignment(node) && ts.isObjectLiteralExpression(node.left) && !nestedEnvPatterns.has(node.left)) {
+    } else if (isPlainAssignment(node) && ts.isObjectLiteralExpression(node.left)) {
       pattern = node.left;
       value = node.right;
     } else {
