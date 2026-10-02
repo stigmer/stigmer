@@ -46,14 +46,17 @@
 // asked, so the gate's own answer is the one checked. The always-on lane
 // decides job by job inside, so there the file must also run every package
 // (`everythingBecause` in scripts/turbo-affected.mjs), or the job that calls
-// the action can skip. What the guard cannot place is refused, as trigger
-// syntax is above: a script word under neither $GITHUB_WORKSPACE/ nor
+// the action can skip. What the guard sees but cannot place is refused, as
+// trigger syntax is above: a script word under neither $GITHUB_WORKSPACE/ nor
 // $GITHUB_ACTION_PATH/ (a composite step runs in the caller's working
 // directory, so `node scripts/x.mjs` would work unseen), a body that is not
 // .mjs or .ts (the forms whose imports extractRelativeSpecifiers follows), an
 // untracked path, an action inside an action, a lane calling a local
-// workflow. Workflows outside the map (the cache writers, the post-deploy
-// smoke) are not the gate and are not held to it.
+// workflow. It sees a script by its extension: a step that runs repository
+// code without naming such a file (a `make` target, an `npm run` script, a
+// script with no extension) is not traced, and none of today's actions does.
+// Workflows outside the map (the cache writers, the post-deploy smoke) are
+// not the gate and are not held to it.
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
