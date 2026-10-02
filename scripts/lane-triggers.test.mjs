@@ -130,8 +130,10 @@ const LOCAL_ACTION = /^\.\/\.github\/actions\/([^/]+)$/;
 const VERSION_FILE = /-version-file$/;
 /** One npm command in a `run:` step, bare, quoted or in a subshell: its first word (the verb, unless a flag comes first), then its arguments up to the next command. */
 const NPM_COMMAND = /(^|[\s;&|(`'"])npm\s+([^\s;&|)`'"]+)([^\n;&|)`'"]*)/g;
-/** A directory change in a `run:` step, which moves what follows out of the step's working-directory. */
-const CHANGES_DIRECTORY = /(^|[\s;&|(])(cd|pushd|popd)(\s|$)/m;
+/** A directory change anywhere in a `run:` step, quoted or not, which can move an install out of the step's working-directory. */
+const CHANGES_DIRECTORY = /\b(cd|pushd|popd)\b/;
+/** npm's flags that install somewhere else: `--prefix <dir>`, `--prefix=<dir>`, and its short form `-C <dir>`. */
+const MOVES_INSTALL = /(^|\s)(--prefix\b|-C\b)/;
 /**
  * The spellings npm accepts for `ci` and for `install-ci-test`, its `ci`
  * then `test` (`npm ci --help`, `npm install-ci-test --help`); the lanes use
@@ -426,10 +428,11 @@ export function laneActions(workflow) {
  * `npm ci` reads. The directory is the step's `working-directory`, else the
  * job's or the workflow's `defaults.run.working-directory`, else the root.
  * Only `npm ci` as a step's first command is placed, and an install that
- * says `--no-package-lock` counts its directory's manifest alone. Any other
- * npm install the guard sees is refused, so a moved install cannot hide: an
- * `npm ci` after another command, in a quote or a subshell, or moved by
- * `--prefix` or a `cd`; every other spelling of `ci` or `install`; a flag
+ * says `--no-package-lock`, as a top-level command, counts its directory's
+ * manifest alone. Any other npm install the guard sees is refused, so a
+ * moved install cannot hide: an `npm ci` after another command, in a quote
+ * or a subshell; any install in a step that changes directory or passes
+ * `--prefix` or `-C`; every other spelling of `ci` or `install`; a flag
  * before an install's verb. So are a directory or version file holding an
  * expression, and a file git does not track. npm is seen by its command
  * word, as the action rule sees a script by its extension: an install run
@@ -486,11 +489,14 @@ export function laneInputs(workflow, tracked) {
           continue;
         }
         if (!NPM_CI.has(verb) && !NPM_INSTALL.has(verb)) continue;
-        const moved = /(^|\s)--prefix\b/.test(args) || CHANGES_DIRECTORY.test(run);
+        const moved = MOVES_INSTALL.test(args) || CHANGES_DIRECTORY.test(run);
         if (NPM_INSTALL.has(verb) && /(^|\s)--no-package-lock\b/.test(args)) {
-          // It reads no lockfile, but still the manifest in its directory.
-          if (moved) {
-            refusals.push(`${label}: "${command}" runs outside the step's working-directory, which this guard cannot place`);
+          // It reads no lockfile, but still the manifest in its directory,
+          // so it must run there: a top-level command, with nothing moving it.
+          if (moved || /[`'"(]/.test(before)) {
+            refusals.push(
+              `${label}: "${command}" is not a top-level command in the step's working-directory, which this guard cannot place`,
+            );
           } else {
             installsFrom(["package.json"]);
           }
@@ -1049,7 +1055,7 @@ test("laneInputs reads each version file and each npm ci's manifest and lockfile
       files: [".nvmrc", "go.work", "package-lock.json", "package.json", "svc/.npmrc", "svc/package-lock.json", "svc/package.json"],
       refusals: [],
     },
-    "flags and a following command are accepted, a tracked .npmrc is counted, and an install that reads no lockfile is skipped",
+    "flags and a following command are accepted, a tracked .npmrc is counted, and an install that reads no lockfile adds nothing beyond its manifest",
   );
   assert.deepEqual(laneInputs(lane([{ run: "npm ci" }], { jobDir: "job", workflowDir: "wf" }), tracked).files, [
     "job/package-lock.json",
@@ -1090,11 +1096,20 @@ test("laneInputs refuses an install or setup it cannot place: a moved or prefixe
     "cd svc\nnpm ci",
     "npm cit",
     "npm it",
+    "npm ci -C svc",
+    "npm ci --prefix=svc",
+    "npm ci\necho 'cd svc'",
   ]) {
     assert.match(refused({ run }).join("\n"), /installs from a lockfile this guard cannot place/, run);
   }
-  for (const run of ["cd svc && npm install --no-package-lock", "pushd svc && npm install --no-package-lock"]) {
-    assert.match(refused({ run })[0], /runs outside the step's working-directory/, run);
+  for (const run of [
+    "cd svc && npm install --no-package-lock",
+    "pushd svc && npm install --no-package-lock",
+    "bash -c 'cd svc; npm install --no-package-lock'",
+    "(npm install --no-package-lock)",
+    "npm install --no-package-lock -C svc",
+  ]) {
+    assert.match(refused({ run })[0], /is not a top-level command in the step's working-directory/, run);
   }
   for (const run of ["npm --prefix svc ci", "npm -w @stigmer/sdk install left-pad"]) {
     assert.match(refused({ run }).join("\n"), /puts a flag before an install/, run);
