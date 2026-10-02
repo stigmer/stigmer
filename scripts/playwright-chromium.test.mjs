@@ -33,7 +33,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { Writable } from "node:stream";
-import { after, test } from "node:test";
+import { after, afterEach, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { parse } from "yaml";
@@ -128,9 +128,43 @@ if (command === "install") {
 `;
 
 const scratch = mkdtempSync(join(tmpdir(), "playwright-chromium-test-"));
-after(() => rmSync(scratch, { recursive: true, force: true }));
-
 let fixtureCount = 0;
+
+// Every pid file a hanging fake wrote. A deadline that failed to fire would
+// leave the fake and its grandchild running, and they would hold this file's
+// process open: each case kills what its fakes started, so a broken deadline
+// fails its case and the run still ends.
+const pidFiles = [];
+
+function stopFakes() {
+  for (const file of pidFiles.splice(0)) {
+    let pids = [];
+    try {
+      pids = readFileSync(file, "utf8").trim().split(" ").map(Number);
+    } catch {
+      continue;
+    }
+    // Only real pids: a 0 here would signal this runner's own process group.
+    if (
+      pids.length !== 2 ||
+      !pids.every((pid) => Number.isInteger(pid) && pid > 1)
+    )
+      continue;
+    for (const target of [-pids[0], ...pids]) {
+      try {
+        process.kill(target, "SIGKILL");
+      } catch {
+        // Already gone, as it should be.
+      }
+    }
+  }
+}
+
+afterEach(stopFakes);
+after(() => {
+  stopFakes();
+  rmSync(scratch, { recursive: true, force: true });
+});
 
 /** A fresh fake CLI in its own directory, with its call log, pid file and probe path. */
 function fakeCli(mode, extraEnv = {}) {
@@ -143,6 +177,7 @@ function fakeCli(mode, extraEnv = {}) {
   writeFileSync(cli, FAKE_CLI);
   chmodSync(cli, 0o755);
   writeFileSync(log, "");
+  pidFiles.push(pids);
   const env = {
     FAKE_PLAYWRIGHT: mode,
     FAKE_PLAYWRIGHT_LOG: log,
