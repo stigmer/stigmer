@@ -75,6 +75,7 @@ What holds them:
   - `floor`: a package below its floor in `test/coverage-floors.json`. A floor is the lowest share of its lines and branches the package's tests may run, and the fewest cases that may pass.
   - `no-floor`: a measured package with no entry. A new package adds its own entry: the figures the finding prints, less the file's `margin`, rounded down to one decimal place.
   - `floor-unmeasured`: a floor the change moves for a package the run did not measure. A change to the floors file runs every package's suite, so a new figure is always judged against a real run.
+  - `mismatch`: one file measured twice with different statements or branches (two configs, or two versions of the source), so the runs cannot be merged.
 
   The floors only rise. A maintainer lifts them at the weekly release with `--raise`, over a dispatched `Gate` run, which runs every lane and every package. A pull request may raise its own package's floor early, to at most the `• measured` figure its `Coverage` report prints, less the margin. Lowering one takes two edits in the same pull request: the figure in `test/coverage-floors.json`, and a `Coverage-drop:` line in the body. Removing a test from a package at its case floor needs both, beside the `Test-removal:`, since the case margin is 0: the `cases` figure is lowered, and the drop declared. The tool's header has the full rules.
 
@@ -86,7 +87,7 @@ What holds them:
   ```
 
   A few caveats about running it locally:
-  - `site` runs `yarn test:unit`, and `test/conformance` runs `npm run test:unit`, where every other package runs `npm test`.
+  - Two packages run another command in place of `npm test -- <flags>`: `site` runs `yarn test:unit <flags>` (yarn takes the flags with no `--`), and `test/conformance` runs `npm run test:unit -- <flags>`.
   - Run vitest in the package as above, or pass `--force` to `node scripts/turbo-set.mjs`. Otherwise a turbo cache hit runs no tests and leaves the last run's coverage on disk.
   - A suite that needs a service the machine lacks skips outside the gate (rule 2). Its lines then read as unrun, and a floor can read low. The gate provides every service, so its run gives the verdict.
 - `Gate` (every lane the change needs, with `STIGMER_TEST_GATE=1`), `Test integrity` and `Review verdict` are required checks on `main`, through the merge queue, with no bypass.
