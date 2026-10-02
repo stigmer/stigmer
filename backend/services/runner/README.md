@@ -145,7 +145,7 @@ The check is skipped gracefully when the fingerprint file is absent — for exam
 
 ## Environment variable reference
 
-All configuration is environment-driven. Every variable the runner's source reads is named here, except the few `src/__tests__/readme-environment.test.ts` lists as deliberate exceptions, each with its reason (the operating system's home directory, a backend value not yet supported); the test fails when any other is not named (in its own row, or beside the setting it aliases), so a new setting cannot land undocumented. Defaults are checked by hand against the module each row cites or that reads the variable. "Applies to" indicates the run mode, execution location, or credential mode a variable is relevant to.
+All configuration is environment-driven. Every variable the runner's source reads is named here, except the few `src/__tests__/readme-environment.test.ts` lists as deliberate exceptions, each with its reason (the operating system's home directory, a backend value not yet supported); the test fails when any other name appears nowhere in this file, so a new setting cannot land undocumented. That its row says the right thing is read in review. Defaults are checked by hand against the module each row cites or that reads the variable. "Applies to" indicates the run mode, execution location, or credential mode a variable is relevant to.
 
 ### Core configuration
 
@@ -180,7 +180,7 @@ All configuration is environment-driven. Every variable the runner's source read
 
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|
-| `ARTIFACT_STORAGE_TYPE` | All | No | `proxy` if `STIGMER_PROXY_ENDPOINT` is set, else `local` | Selects the artifact backend: `local` (filesystem, served by the Stigmer backend) or `proxy` (presigned URLs via the proxy). An explicit value always wins. Storage follows transport, not execution location. |
+| `ARTIFACT_STORAGE_TYPE` | All | No | `proxy` if `STIGMER_ARTIFACT_PROXY_ENDPOINT` or `STIGMER_PROXY_ENDPOINT` is set, else `local` | Selects the artifact backend: `local` (filesystem, served by the Stigmer backend), `proxy` (presigned URLs via the proxy), or `none` (storage deliberately disabled: artifact features are refused rather than stored). An explicit value always wins. Storage follows transport, not execution location (`src/shared/artifact-storage.ts`). |
 | `STIGMER_ARTIFACT_PROXY_ENDPOINT` | Proxy storage | No | value of `STIGMER_PROXY_ENDPOINT` | Endpoint the proxy artifact store presigns against, when artifact traffic must reach a different host than LLM traffic (the checkpointer-override pattern). |
 | `LOCAL_ARTIFACT_PATH` | Local storage | No | `~/.stigmer/data/artifacts` | Filesystem root of the local artifact store. **Must equal the stigmer-server's `ARTIFACT_LOCAL_BASE_PATH`** — in local mode the server writes an artifact to `<ARTIFACT_LOCAL_BASE_PATH>/<key>` and the runner reads it from `<LOCAL_ARTIFACT_PATH>/<key>`, so a mismatch makes every storage-key attachment and offload fail to resolve. The defaults align out of the box; the CLI local daemon sets both explicitly. |
 | `LOCAL_ARTIFACT_SERVE_URL` | Local storage | No | `http://localhost:7235` | Base URL of the server's artifact HTTP file server (its `ARTIFACT_HTTP_PORT`, default `GRPC_PORT + 1`, or an ephemeral port the server's boot log names when `GRPC_PORT` is 0). Used for blob downloads; the runner's own read-back goes straight to disk. |

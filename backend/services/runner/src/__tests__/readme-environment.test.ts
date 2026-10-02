@@ -25,7 +25,9 @@
  *     computed key in the destructure is judged by rules 2 and 4).
  *  2. `E[K]`, where `K` is a string-literal `const` of the same file, or one
  *     imported by its own name from a relative module that exports it as a
- *     literal (an aliased import is not followed).
+ *     literal (an aliased import is not followed), and `K` is bound nowhere
+ *     else in the file: a parameter or a second declaration of the same name
+ *     makes the key ambiguous, so it is refused rather than guessed.
  *  3. The first argument of `requireEnv(...)` or `getRunnerSecret(...)`, a
  *     literal or a `K` as in rule 2.
  *  4. Any other computed-key read of an env object, or reader call, is
@@ -141,6 +143,30 @@ function stringConstants(sourceFile: ts.SourceFile, exportedOnly: boolean): Map<
   return constants;
 }
 
+/**
+ * How many times each name is bound in the file: parameters, variables,
+ * destructured names, functions, classes and imports. Matching is by name,
+ * not scope, so a constant key resolves only when its name is bound once.
+ */
+function bindingCounts(sourceFile: ts.SourceFile): Map<string, number> {
+  const counts = new Map<string, number>();
+  const bind = (name: ts.Node | undefined): void => {
+    if (name !== undefined && ts.isIdentifier(name)) counts.set(name.text, (counts.get(name.text) ?? 0) + 1);
+  };
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isParameter(node) || ts.isVariableDeclaration(node) || ts.isBindingElement(node)
+      || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)
+      || ts.isImportSpecifier(node) || ts.isNamespaceImport(node) || ts.isImportClause(node)
+    ) {
+      bind(node.name);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return counts;
+}
+
 /** The real tree's resolver: a relative `.js` specifier names the `.ts` module beside the importing file. */
 function resolveFromTree(fromFile: string): ImportResolver {
   return (specifier, name) => {
@@ -238,8 +264,10 @@ function settingsReadIn(
   collectEnvIdentifiers(sourceFile);
 
   const isEnvObject = (node: ts.Expression): boolean => isProcessEnv(node) || (ts.isIdentifier(node) && envIdentifiers.has(node.text));
+  const bound = bindingCounts(sourceFile);
   const keyOf = (node: ts.Expression | undefined): string | undefined =>
-    stringLiteralText(node) ?? (node !== undefined && ts.isIdentifier(node) ? constants.get(node.text) : undefined);
+    stringLiteralText(node)
+    ?? (node !== undefined && ts.isIdentifier(node) && bound.get(node.text) === 1 ? constants.get(node.text) : undefined);
   const lineOf = (node: ts.Node): number => sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
 
   const names = new Set<string>();
@@ -351,6 +379,12 @@ describe("settingsReadIn (the checker itself)", () => {
     const result = read('import { K as R } from "./other.js";\nconst v = process.env[R];', otherModule);
     expect(result.names).toEqual([]);
     expect(result.refused).toEqual([{ line: 2, how: "reads process.env[R], whose setting cannot be told" }]);
+  });
+
+  it("refuses a constant key whose name a parameter also binds, rather than guess the scope", () => {
+    const result = read('const K = "STIGMER_A";\nfunction f(K: string) { return process.env[K]; }');
+    expect(result.names).toEqual([]);
+    expect(result.refused).toEqual([{ line: 2, how: "reads process.env[K], whose setting cannot be told" }]);
   });
 
   it("never files an aliased import under its exported name, so a later local of that name is refused, not misread", () => {
