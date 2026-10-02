@@ -54,5 +54,6 @@ tester.run("require-loading-region", rule, {
     { code: '<div role="generic" aria-busy="true" aria-label="Loading" />', errors: reported },
     { code: '<div role="presentation" aria-busy="true" aria-label="Loading" />', errors: reported },
     { code: '<div role="none" aria-busy="true" aria-label="Loading" />', errors: reported },
+    { code: '<div aria-busy="true" aria-labelledby="loading-title" />', errors: reported },
   ],
 });

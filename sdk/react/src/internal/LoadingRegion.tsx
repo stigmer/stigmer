@@ -13,6 +13,12 @@ import type { ReactNode } from "react";
  * skeleton with either would answer locators meant for them. The name is
  * visually hidden text instead, read in place.
  *
+ * Deliberately not a live region: the two skeletons that had role="status"
+ * (the file viewer's and the explorer's) were announced as they appeared, and
+ * no longer are. A loading placeholder is not news; the content that replaces
+ * it is what a screen reader user reads, and an announcement per skeleton
+ * would talk over every panel that loads at once.
+ *
  * `label` names a wordless skeleton ("Loading sessions"). Leave it out when the
  * children already say what is loading in visible text, so a screen reader
  * does not read it twice. The hidden text comes first: the containers space

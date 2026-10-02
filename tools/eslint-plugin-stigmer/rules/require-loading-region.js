@@ -62,7 +62,7 @@ module.exports = {
     },
     messages: {
       busyLabelledElement:
-        "Busy element with an aria-label and no role, or role=\"status\". Render the internal LoadingRegion " +
+        "Busy element with an aria-label or aria-labelledby and no role, or role=\"status\". Render the internal LoadingRegion " +
         "primitive instead (sdk/react/src/internal/LoadingRegion.tsx) with the " +
         "label as its `label` prop: aria-label on a role-less element fails " +
         "axe's aria-prohibited-attr, and role=\"status\" is taken by the " +
@@ -85,7 +85,8 @@ module.exports = {
         if (busy === undefined) return;
         const busyValue = staticValue(busy);
         if (busyValue !== true && busyValue !== "true") return;
-        if (attribute(node, "aria-label") === undefined) return;
+        // aria-labelledby names a generic element no more legally than aria-label.
+        if (attribute(node, "aria-label") === undefined && attribute(node, "aria-labelledby") === undefined) return;
         const role = attribute(node, "role");
         if (role !== undefined) {
           const roleValue = staticValue(role);
