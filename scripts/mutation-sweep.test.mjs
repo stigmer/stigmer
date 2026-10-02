@@ -745,15 +745,20 @@ test("--report --publish files nothing for a one-file check, and closes no orpha
   }
 });
 
-test("--report given the repository's targets file by an absolute path prints it from the root in the body", () => {
+test("--report given the repository's targets file by an absolute path prints its check command, the default naming the file from the root", () => {
   const gh = fakeGh([]);
   try {
     const repoTargets = join(dirname(fileURLToPath(import.meta.url)), "..", "test", "mutation-targets.json");
-    const name = Object.keys(readTargets(readFileSync(repoTargets, "utf8")).targets)[0];
+    const { targets, check } = readTargets(readFileSync(repoTargets, "utf8"));
+    const name = Object.keys(targets)[0];
+    // The script is copied between repositories, and a repository whose file
+    // names its own `check` prints that; one that names none prints the
+    // default, with the path from the root rather than the absolute one given.
+    const expected = (check ?? defaultCheck("test/mutation-targets.json")).replaceAll("{target}", name);
     writeRun(gh.dir, name, [mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]);
     const out = spawnSync(process.execPath, [SCRIPT, "--targets", repoTargets, "--report", "--input", join(gh.dir, "runs")], { env: gh.env, encoding: "utf8" });
     assert.equal(out.status, 0, out.stderr);
-    assert.ok(out.stdout.includes(`\nSTIGMER_TEST_GATE=1 node scripts/mutation-sweep.mjs --targets test/mutation-targets.json --run ${name} --out <dir> --only <file>\n`), out.stdout);
+    assert.ok(out.stdout.includes(`\n${expected}\n`), out.stdout);
   } finally {
     rmSync(gh.dir, { recursive: true, force: true });
   }
