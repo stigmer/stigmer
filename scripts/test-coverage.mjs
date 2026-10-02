@@ -97,6 +97,10 @@
  *       [--base <ref>] [--json]
  *   node scripts/test-coverage.mjs --floors <file> --input <dir> ... --raise
  *   node scripts/test-coverage.mjs --floors <file> --from-run <run id> --raise
+ * A raise needs a full run, one that measured every package with a floor: a
+ * dispatched `Gate` (`gh workflow run ci.gate.yaml --ref main`) runs every
+ * lane and every package. A pull-request or merge-queue run measures only
+ * what its change reaches, and a raise refuses it as not a full run.
  * Exit: 0 clean (or floors written), 1 findings, 2 the script could not judge
  * (a usage or git error, unreadable input, no coverage at all without --base,
  * or coverage that matches no tracked file).

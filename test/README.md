@@ -28,6 +28,8 @@ Every test in this repository and in stigmer-cloud belongs to one layer. The lay
 
 Make targets and CI lanes keep the names they have (by package, artifact or cadence); the "Run by" column is the map from layer to entry point.
 
+Coverage is measured from three layers: unit, integration and composed, which is the package's own `npm test`, whose vitest config collects it. The other layers do not count. Contract, e2e and install tests drive a spawned server or a shipped artifact. Browser, load and live tests run under configs of their own. A tooling test runs a repository script, which is not a package. So a server line that only the conformance suite reaches counts as never run, and the test that runs it is a composed one. The rules are under "What holds them" below.
+
 ### Names
 
 The name of a test file is read at its last dotted segments before `.test` or `.spec`. A segment there is either a reserved word, which must be true, or a topic, which is free (`workflow.undo.test.tsx`, `list-read-scope.load-tenancy.test.ts`).
@@ -60,14 +62,34 @@ A green run must mean the tests ran. Every test in this repository keeps five ru
 2. A missing dependency may skip a test only outside the gate. The gate provides every dependency. Inside it (`STIGMER_TEST_GATE=1`), the helpers for the services it provisions throw instead of skipping: Postgres (`testDatabaseAdminUrl()`) and the runner's Temporal paths (`IN_TEST_GATE`). The live class keeps the same rule for its provider keys: a suite skips through `liveSecret(...)` written in its skip condition, and inside the live workflow (`STIGMER_LIVE=1`) a missing key throws. A live test that calls a model pins it and runs under the product's cap wherever the product has one (an execution's cost cap, a call's token cap), and asserts structure and side effects, never a model's words.
 3. A test is never retried into green. A flaky test is quarantined by name, against an open issue, until it is fixed: its skip carries `// quarantined: <repo>#<issue>` on the line above, and the pull request that adds it declares `Quarantine:` in its body. Every later pull request re-checks that the issue the marker names is still open.
 4. A change that adds or changes behaviour changes the tests that pin it. A refactor that changes no behaviour keeps them passing as they are.
-5. The gate's own files change only with a maintainer's explicit approval: the workflows under `.github/workflows/`, the vitest and Playwright configs, `scripts/ci-lanes.mjs`, `scripts/test-integrity.mjs`, `scripts/review-verdict.mjs`, the review brief in `.agents/skills/review-pull-request/SKILL.md`, and this section.
+5. The gate's own files change only with a maintainer's explicit approval: the workflows under `.github/workflows/`, the vitest and Playwright configs, `scripts/ci-lanes.mjs`, `scripts/test-integrity.mjs`, `scripts/test-coverage.mjs` and its floors in `test/coverage-floors.json`, `scripts/review-verdict.mjs`, the review brief in `.agents/skills/review-pull-request/SKILL.md`, and this section.
 
 What holds them:
 
-- `scripts/test-integrity.mjs`, as the required `Test integrity` check, refuses the ways a suite goes quiet without going red. On every tree: a focused `.only`, a valueless `return` in a test body, a config that retries, passes with no tests or allows `.only`. On a pull request, against its base: a deleted case, a new skip, and a weakened RPC waiver. Its header has the full rules. Its run-report rule, which refuses a run-time skip nothing explains, is not yet run by this repository's gate (#1610).
+- `scripts/test-integrity.mjs`, as the required `Test integrity` check, refuses the ways a suite goes quiet without going red. On every tree: a focused `.only`, a valueless `return` in a test body, a config that retries, passes with no tests or allows `.only`. On a pull request, against its base: a deleted case, a new skip, a weakened RPC waiver, and a lowered or removed coverage floor. Its header has the full rules. Its run-report rule, which refuses a run-time skip nothing explains, is not yet run by this repository's gate (#1610).
 - An exception is declared in the pull request's body, one line each: `Test-removal: <case or file> -- <reason>`, `Quarantine: <case or file> -- <repo>#<issue>`, `Skip: <case or file> -- <why it does not apply there>`, `RPC-waiver: <Service>.<method> -- <why no conformance test pins it>`, `Coverage-drop: <package dir> -- <why its floor falls>` (a floor lowered or removed in `test/coverage-floors.json`). A declaration makes the exception loud; it does not make it right.
+- `scripts/test-coverage.mjs`, as `Gate`'s `Coverage` job, refuses new code no test runs and a package whose tests run less of it than they did. It reads what each package's own suite measured in the lanes (the three layers above) and reports each finding by file and line, or by package:
+  - `unrun`: a line the change adds to a measured package's source that no test ran. A statement that spans several lines counts when any of them was added. The way out is a test. For a line no test can reach, the way out is the coverage provider's ignore hint with its reason after `--`, for example `/* v8 ignore next -- @preserve: the socket closes before a test can observe it */`. In TypeScript an `if`, `else` or `next` hint must carry `@preserve`, or the transform strips it and it ignores nothing.
+  - `ignore-reason`: a hint the change adds with no reason, or one the transform would strip. `ignore file` is always refused: a module left out of its package's figures belongs in the vitest config's `exclude`.
+  - `floor`: a package below its floor in `test/coverage-floors.json`. A floor is the lowest share of its lines and branches the package's tests may run, and the fewest cases that may pass.
+  - `no-floor`: a measured package with no entry. A new package adds its own entry: the figures the finding prints, less the file's `margin`, rounded down to one decimal place.
+  - `floor-unmeasured`: a floor the change moves for a package the run did not measure. A change to the floors file runs every package's suite, so a new figure is always judged against a real run.
+
+  The floors only rise. A maintainer lifts them at the weekly release with `--raise`, over a dispatched `Gate` run, which runs every lane and every package. A pull request may raise its own package's floor early, to at most the `• measured` figure its `Coverage` report prints, less the margin. Lowering one takes a `Coverage-drop:` line. Removing a test from a package at its case floor needs one beside the `Test-removal:`, since the case margin is 0. The tool's header has the full rules.
+
+  To see a refusal before pushing, measure each package the change touches and judge it against the base:
+
+  ```bash
+  (cd <package> && npm test -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=json --outputFile.json=coverage/report.json)
+  node scripts/test-coverage.mjs --floors test/coverage-floors.json --input <package>/coverage --base origin/main
+  ```
+
+  A few caveats about running it locally:
+  - `site` runs `yarn test:unit`, and `test/conformance` runs `npm run test:unit`, where every other package runs `npm test`.
+  - Run vitest in the package as above, or pass `--force` to `node scripts/turbo-set.mjs`. Otherwise a turbo cache hit runs no tests and leaves the last run's coverage on disk.
+  - A suite that needs a service the machine lacks skips outside the gate (rule 2). Its lines then read as unrun, and a floor can read low. The gate provides every service, so its run gives the verdict.
 - `Gate` (every lane the change needs, with `STIGMER_TEST_GATE=1`), `Test integrity` and `Review verdict` are required checks on `main`, through the merge queue, with no bypass.
-- A reviewer that did not write the pull request reads the change and every declaration, and `Review verdict` waits for its current approve (`.agents/skills/review-pull-request/SKILL.md`). Rule 4 is held by that review: the brief judges the tests a change carries.
+- A reviewer that did not write the pull request reads the change and every declaration, and `Review verdict` waits for its current approve (`.agents/skills/review-pull-request/SKILL.md`). Rule 4 is held by that review and by `Coverage` together. `Coverage` proves the change's new lines ran under a test, and the brief judges whether those tests check what the change does.
 - Rule 5 is held only in part. The review treats an unjustified weakening of a required check's workflow, `scripts/review-verdict.mjs` or the brief as blocking, and the integrity tool refuses the config settings above. Nothing yet asks for a maintainer's approval on the other files it lists (#1611).
 
 ## The conformance suite
