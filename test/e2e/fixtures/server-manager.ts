@@ -177,6 +177,13 @@ export async function stopBackendStack(): Promise<boolean> {
       }
     }
   }
-  await waitForPortRefusal(running.apiPort, { timeoutMs: 15_000 });
+  try {
+    await waitForPortRefusal(running.apiPort, { timeoutMs: 15_000 });
+  } catch (error) {
+    throw new Error(
+      `[e2e] the backend stack's processes have stopped, but its API port is not free: ${(error as Error).message}. ` +
+        `A listener this stack does not know of holds it, or a stopped process has not released it yet (#1594).`,
+    );
+  }
   return true;
 }

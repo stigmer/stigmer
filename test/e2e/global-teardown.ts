@@ -22,7 +22,11 @@ async function globalTeardown() {
     // The state file says this run started a stack; a teardown that finds
     // none to stop must say so, not report a stop it never made (#1594).
     if (!(await stopBackendStack())) {
-      throw new Error("[e2e] the state file records a stack this run started, but this process holds none to stop");
+      // The file goes first, so a stale one cannot fail every later teardown.
+      fs.unlinkSync(STATE_FILE);
+      throw new Error(
+        `[e2e] ${STATE_FILE} recorded a stack this run started, but this process holds none to stop; the file is removed`,
+      );
     }
     console.log("[e2e] Backend stack stopped, and its API port refuses connections");
   }

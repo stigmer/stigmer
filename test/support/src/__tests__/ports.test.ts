@@ -55,7 +55,7 @@ describe("waitForPortRefusal", () => {
   it("rejects, naming the port, when the listener outlives the budget", async () => {
     const { port } = await listen();
     await expect(waitForPortRefusal(port, { timeoutMs: 400, intervalMs: 50 })).rejects.toThrow(
-      `127.0.0.1:${port} still accepts connections 400 ms after its owner stopped`,
+      `127.0.0.1:${port} still accepts connections after 400 ms`,
     );
   });
 });

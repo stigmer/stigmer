@@ -50,13 +50,20 @@ async function stopStackOnFailure(steps: () => Promise<void>): Promise<void> {
   try {
     await steps();
   } catch (error) {
-    try {
-      await stopBackendStack();
-    } catch (stopError) {
-      console.error(`[e2e] stopping the stack after a failed setup failed too: ${String(stopError)}`);
+    // Each cleanup step reports its own failure and lets the next run, so the
+    // error thrown is always the setup's own.
+    const cleanups: Array<[string, () => Promise<unknown> | unknown]> = [
+      ["stopping the stack", () => stopBackendStack()],
+      ["closing the mock LLM proxy", () => stopMockLlmProxy()],
+      ["removing the state file", () => fs.rmSync(STATE_FILE, { force: true })],
+    ];
+    for (const [what, cleanup] of cleanups) {
+      try {
+        await cleanup();
+      } catch (cleanupError) {
+        console.error(`[e2e] ${what} after a failed setup failed too: ${String(cleanupError)}`);
+      }
     }
-    await stopMockLlmProxy();
-    fs.rmSync(STATE_FILE, { force: true });
     throw error;
   }
 }

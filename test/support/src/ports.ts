@@ -70,7 +70,7 @@ export async function waitForPortRefusal(
     if (!(await isPortReachable(port, host))) return Date.now() - started;
     if (Date.now() - started >= timeoutMs) {
       throw new Error(
-        `${host}:${port} still accepts connections ${timeoutMs} ms after its owner stopped; something outside the stack holds it`,
+        `${host}:${port} still accepts connections after ${timeoutMs} ms`,
       );
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
