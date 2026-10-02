@@ -162,9 +162,10 @@
     },
 
     // The repository root's own suites: scripts/**, scripts/lib/**, the
-    // install layer's test/install/** and test/install/lib/**, and the Helm
-    // chart's tests, the globs in the root `test:root` script, which
-    // `npm run test:scripts` reaches through scripts/turbo-set.mjs's root set.
+    // install layer's test/install/** and test/install/lib/**, the Helm
+    // chart's tests and the composite actions' own (.github/actions/*/), the
+    // globs in the root `test:root` script, which `npm run test:scripts`
+    // reaches through scripts/turbo-set.mjs's root set.
     // A root suite that imports a workspace package's build output declares
     // that package's build here, so every caller gets it first:
     // scripts/verify-docs-tour-parity.test.mjs imports the tour fixtures,

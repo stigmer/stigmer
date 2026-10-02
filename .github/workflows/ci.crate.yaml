@@ -43,6 +43,9 @@ jobs:
   rust:
     name: fmt / clippy / build / test
     runs-on: ubuntu-latest
+    # Sized for an archive-cache miss in .github/actions/tauri-linux-deps:
+    # its download from Ubuntu's mirror has taken 20 min 17 s (#1529).
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: crates/stigmer-runner-host
@@ -96,6 +99,7 @@ jobs:
   ipc-fixtures:
     name: IPC fixture freshness
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

@@ -32,6 +32,14 @@
 # cancelled `coverage` as a failure. scripts/ci-coverage.test.mjs holds the
 # uploads and this job's needs to one shape.
 #
+# Every job here and in every lane carries `timeout-minutes`, sized from its
+# measured wall time and at most 45. A hung step then fails at its cap, red
+# and named, instead of holding a runner for GitHub's six-hour default and a
+# queue entry until the queue's 60-minute check timeout ejects it.
+# scripts/ci-timeouts.test.mjs refuses a job without one, and
+# scripts/ci-timeouts.mjs's header has the sizing rule and the ceiling's
+# reason.
+#
 # Called lanes do not inherit this workflow's `env` (GitHub does not pass a
 # caller's workflow-level env down), so each lane sets STIGMER_TEST_GATE=1
 # itself; their `github` context is this workflow's, which is why the lanes
@@ -68,6 +76,7 @@ jobs:
   lanes:
     name: Lanes this change needs
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       all-in-one: ${{ steps.select.outputs.all-in-one }}
       authorization-model: ${{ steps.select.outputs.authorization-model }}
@@ -219,6 +228,7 @@ jobs:
     needs: [lanes, authorization-model, conformance, docs, go-sdk, runner, stigmer-server, ts-workspace]
     if: ${{ !cancelled() && needs.lanes.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # Full commit graph, no blobs: the changed-lines rule diffs the change
       # against its base, and git fetches the blobs that diff reads.
@@ -268,6 +278,7 @@ jobs:
     needs: [lanes, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

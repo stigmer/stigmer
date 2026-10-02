@@ -31,7 +31,7 @@
     "build:libs": "node scripts/turbo-set.mjs libs build",
     "build:web": "node scripts/turbo-set.mjs workspace build --only=web",
     "clean:libs": "node scripts/turbo-set.mjs libs clean",
-    "test:root": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs test/install/*.test.mjs test/install/lib/*.test.mjs deploy/helm/stigmer/__tests__/*.test.mjs",
+    "test:root": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs test/install/*.test.mjs test/install/lib/*.test.mjs deploy/helm/stigmer/__tests__/*.test.mjs .github/actions/*/*.test.mjs",
     "test:scripts": "node scripts/turbo-set.mjs root test:root",
     "test": "npm run test:scripts && node scripts/turbo-set.mjs libs test"
   },

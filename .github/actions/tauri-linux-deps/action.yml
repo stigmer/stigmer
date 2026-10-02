@@ -12,6 +12,11 @@
 # against the package index before apt sees it. A miss, or a file that does
 # not match, is downloaded as it always was.
 #
+# The index refresh before any of that is bounded at five minutes in the
+# script, since a composite step cannot carry `timeout-minutes`: a stalled
+# mirror fails the step, named, instead of holding the job to its cap
+# (apt-cache.sh's header, #1702).
+#
 # This is a reader. There is no save here and must never be, for the reason
 # turbo-cache gives: a reader that saved would turn every lane into a writer.
 # Unlike turbo-cache it restores on every event, the merge queue and main
