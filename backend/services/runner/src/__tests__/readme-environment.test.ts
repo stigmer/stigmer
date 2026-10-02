@@ -12,8 +12,9 @@
  * learn exists.
  *
  * What counts as reading a setting. An env object is `process.env` (also
- * through a default or namespace import of `node:process`, and as
- * `globalThis.process.env`), `env` taken from `process` (imported, or
+ * through a default or namespace import of `node:process`, through
+ * `globalThis` or `global`, and with either member written as a literal key,
+ * `process["env"]`), `env` taken from `process` (imported, or
  * destructured in a declaration, a parameter, an assignment or a nested
  * pattern), or an identifier whose declaration (a parameter or a variable)
  * is annotated `NodeJS.ProcessEnv`, the injection seam
@@ -76,6 +77,9 @@ import { readSource, typeScriptFilesUnder } from "../__test-utils__/module-speci
 const SRC_ROOT = fileURLToPath(new URL("../", import.meta.url));
 const README_PATH = join(SRC_ROOT, "..", "README.md");
 const OUTSIDE_THE_SWEEP = new Set(["__tests__", "__test-utils__"]);
+
+/** The names the global object goes by, through which `process` is reached as a member. */
+const GLOBAL_OBJECTS = new Set(["globalThis", "global"]);
 
 /** The functions whose first argument names the setting they read (rule 3). */
 const READERS = new Set(["requireEnv", "getRunnerSecret"]);
@@ -141,6 +145,12 @@ function unwrapped(node: ts.Expression): ts.Expression {
     current = current.expression;
   }
   return current;
+}
+
+/** The member a property access or a literal-keyed element access names: `o.m` and `o["m"]` alike. */
+function memberName(node: ts.Expression): string | undefined {
+  if (ts.isPropertyAccessExpression(node)) return node.name.text;
+  return ts.isElementAccessExpression(node) ? stringLiteralText(node.argumentExpression) : undefined;
 }
 
 /** The file's string-literal `const` declarations, by name; `exportedOnly` keeps the exported top-level ones. */
@@ -312,19 +322,20 @@ function settingsReadIn(
     }
   }
 
-  /** `process` itself: a name it is bound to, or `globalThis.process`. */
+  /** `process` itself: a name it is bound to, or the global's member on `globalThis` or `global`. */
   const isProcess = (node: ts.Expression): boolean => {
     const value = unwrapped(node);
     if (ts.isIdentifier(value)) return processNames.has(value.text);
-    return ts.isPropertyAccessExpression(value)
-      && ts.isIdentifier(value.expression)
-      && value.expression.text === "globalThis"
-      && value.name.text === "process";
+    if (memberName(value) !== "process" || !(ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value))) return false;
+    const holder = unwrapped(value.expression);
+    return ts.isIdentifier(holder) && GLOBAL_OBJECTS.has(holder.text);
   };
   const isProcessEnv = (node: ts.Expression | undefined): boolean => {
     if (node === undefined) return false;
     const value = unwrapped(node);
-    return ts.isPropertyAccessExpression(value) && value.name.text === "env" && isProcess(value.expression);
+    return (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value))
+      && memberName(value) === "env"
+      && isProcess(value.expression);
   };
   const isEnvObject = (node: ts.Expression): boolean => {
     const value = unwrapped(node);
@@ -480,6 +491,10 @@ describe("settingsReadIn (the checker itself)", () => {
     ["a destructure of a non-null assertion", "const { STIGMER_A } = process.env!;"],
     ["a read through satisfies", "const v = (process.env satisfies NodeJS.ProcessEnv).STIGMER_A;"],
     ["a read through globalThis.process", "const v = globalThis.process.env.STIGMER_A;"],
+    ["a read through global.process", "const v = global.process.env.STIGMER_A;"],
+    ["a read through a literal-keyed process member", 'const v = globalThis["process"].env.STIGMER_A;'],
+    ["a read through a literal-keyed env member", 'const v = process["env"].STIGMER_A;'],
+    ["a read through an angle-bracket assertion", "const v = (<NodeJS.ProcessEnv>process.env).STIGMER_A;"],
     ["an in test with a literal key", 'const set = "STIGMER_A" in process.env;'],
     ["an in test with a constant key", 'const K = "STIGMER_A"; const set = K in process.env;'],
   ])("reads %s", (_label, source) => {
