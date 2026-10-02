@@ -116,7 +116,7 @@ export function readMakefile(text) {
   const variables = new Map();
   // The line each variable was first assigned on, so a second assignment is refused rather than guessed at.
   const assigned = new Map();
-  // Names a `:=` value used before they were assigned: make read them as empty, so assigning one later is refused.
+  // Names a `:=` value used: make expanded them there, so assigning or appending to one later is refused.
   const usedEarly = new Map();
   // The `:=` values that run a shell: make runs them whenever it reads the file, whichever target is asked for.
   const onRead = [];
@@ -172,13 +172,13 @@ export function readMakefile(text) {
           continue;
         }
         if (usedEarly.has(name)) {
-          refusals.push(`line ${number}: ${name} is assigned after the := at line ${usedEarly.get(name)} used it; make read it there as empty`);
+          refusals.push(`line ${number}: ${name} is assigned after the := at line ${usedEarly.get(name)} used it; make expanded it there with its value at that line`);
           continue;
         }
         if (operator === ":=" || operator === "::=") {
           for (const [, paren, brace] of value.matchAll(REFERENCE)) {
             const used = paren ?? brace;
-            if (used !== undefined && !variables.has(used) && !usedEarly.has(used)) usedEarly.set(used, number);
+            if (used !== undefined && !usedEarly.has(used)) usedEarly.set(used, number);
           }
         }
         if (!assigned.has(name)) assigned.set(name, number);

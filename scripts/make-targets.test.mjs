@@ -116,7 +116,8 @@ test("readMakefile refuses every construct it does not model, wherever it sits",
   const again = readMakefile(mk("A := one.mjs", "B := $(A)", "A := two.mjs", "C = x", "C += y"));
   assert.deepEqual(again.refusals, ["line 3: A is assigned again (first at line 1); this reader expands each name with one value"]);
   assert.equal(again.variables.get("C"), "x y", "+= appends and is not a second assignment");
-  assert.deepEqual(readMakefile(mk("A := $$HOME $(B)/x.mjs ${B}/y.mjs", "B := tools")).refusals, ["line 2: B is assigned after the := at line 1 used it; make read it there as empty"]);
+  assert.deepEqual(readMakefile(mk("A := $$HOME $(B)/x.mjs ${B}/y.mjs", "B := tools")).refusals, ["line 2: B is assigned after the := at line 1 used it; make expanded it there with its value at that line"]);
+  assert.deepEqual(readMakefile(mk("A = scripts", "B := $(A)/x.mjs", "A += extra")).refusals, ["line 3: A is assigned after the := at line 2 used it; make expanded it there with its value at that line"], "an append counts too");
   assert.deepEqual(readMakefile(mk("A = $(B)/x.mjs", "B := tools", "C := $(CURDIR)/y $(HOME)")).refusals, [], "a recursive = reads B when it is used; CURDIR and HOME are never assigned");
   const twice = readMakefile(mk("x:", ">echo one", "x: more", ">echo two", ">echo three"));
   assert.deepEqual(twice.refusals, ["line 4: x gets a second recipe (its first is at line 1)"]);
