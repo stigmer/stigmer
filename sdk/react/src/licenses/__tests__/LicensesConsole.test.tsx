@@ -182,9 +182,10 @@ describe("LicensesConsole detail", () => {
     ["an address alone", "", "ada@stigmer.test", "by ada@stigmer.test"],
   ])("names the issuer once: %s", async (_case, displayName, email, line) => {
     const user = userEvent.setup();
+    const issued = license({ ...PAID_RENEWAL, issuer: { displayName, email } });
     const client = mockClient({
-      list: vi.fn().mockResolvedValue({ entries: [paidRenewal] }),
-      get: vi.fn().mockResolvedValue(license({ ...PAID_RENEWAL, issuer: { displayName, email } })),
+      list: vi.fn().mockResolvedValue({ entries: [issued] }),
+      get: vi.fn().mockResolvedValue(issued),
     });
     renderConsole(client);
 
