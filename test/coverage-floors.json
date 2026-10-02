@@ -31,14 +31,14 @@
       "cases": 5222
     },
     "backend/services/stigmer-server": {
-      "lines": 83.3,
-      "branches": 69.6,
-      "cases": 4607
+      "lines": 83.5,
+      "branches": 69.8,
+      "cases": 4652
     },
     "client-apps/cli": {
-      "lines": 68.5,
-      "branches": 60.2,
-      "cases": 1058
+      "lines": 68.7,
+      "branches": 60.4,
+      "cases": 1075
     },
     "client-apps/desktop": {
       "lines": 35.3,
@@ -52,7 +52,7 @@
     },
     "mcp-server": {
       "lines": 82.8,
-      "branches": 71.7,
+      "branches": 71.8,
       "cases": 160
     },
     "plugins": {
@@ -92,8 +92,8 @@
     },
     "test/conformance": {
       "lines": 45.9,
-      "branches": 43.9,
-      "cases": 209
+      "branches": 43.8,
+      "cases": 210
     },
     "tools/codegen": {
       "lines": 4.1,

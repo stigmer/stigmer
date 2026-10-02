@@ -52,6 +52,10 @@ const EXEMPT = new Map([
     "turbo-set workspace test:a11y --only=@stigmer/react",
     "the browser-mode suite needs a real Chromium (playwright install --with-deps), which the local gate does not provision",
   ],
+  [
+    "turbo-set libs test --only=@stigmer/react",
+    "not a separate check: `turbo-set libs test` runs the React suite with the other libs; the lane only gives its coverage run and its vmForks run a job each",
+  ],
 ]);
 
 const TURBO_SET = /^node scripts\/turbo-set\.mjs\s+(\S+)\s+(\S+)(.*)$/;

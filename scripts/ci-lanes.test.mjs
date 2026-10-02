@@ -6,7 +6,8 @@
 // What these guard: the selection (a path in a lane's list selects it, the
 // gate's own files and a dispatch select every lane, no base selects every
 // lane), the verdict (a needed lane that did not pass, a lane that ran
-// without being needed, a selection that gave no answer: each is red), and
+// without being needed, a selection that gave no answer, a coverage job that
+// did not pass: each is red), and
 // the structure, read from the workflow files as they are. A lane that left
 // the gate, a gate job whose condition drifted from the map, a lane that
 // kept its own trigger or concurrency, or a lane without the gate's test
@@ -21,7 +22,7 @@ import { fileURLToPath } from "node:url";
 
 import { parse } from "yaml";
 
-import { EVERY_LANE, LANES, laneId, selectLanes, verdict } from "./ci-lanes.mjs";
+import { EVERY_LANE, GATE_JOBS, LANES, laneId, selectLanes, verdict } from "./ci-lanes.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workflowsDir = join(root, ".github/workflows");
@@ -40,6 +41,7 @@ function needsFor(chosen, resultOf = () => undefined) {
   for (const id of IDS) {
     needs[id] = { result: resultOf(id) ?? (chosen.includes(id) ? "success" : "skipped"), outputs: {} };
   }
+  for (const id of GATE_JOBS) needs[id] = { result: resultOf(id) ?? "success", outputs: {} };
   return needs;
 }
 
@@ -107,7 +109,8 @@ test("the gate's own files, a dispatch and a missing base run every lane", () =>
 test("the verdict passes only when every needed lane passed and every other lane was skipped", () => {
   const green = verdict(needsFor(["runner", "ts-workspace"]));
   assert.equal(green.ok, true);
-  assert.equal(green.lines.length, IDS.length + 1);
+  assert.equal(green.lines.length, IDS.length + GATE_JOBS.length + 1);
+  assert.ok(green.lines.includes("ok   coverage: passed"));
 
   const red = verdict(needsFor(["runner", "ts-workspace"], (id) => (id === "runner" ? "failure" : undefined)));
   assert.equal(red.ok, false);
@@ -139,6 +142,18 @@ test("the verdict is red when the selection failed or gave no answer for a lane"
   assert.deepEqual(verdict(missing).lines.filter((l) => l.startsWith("FAIL")), ["FAIL crate: not among Gate's needs"]);
 });
 
+test("the verdict is red unless the coverage job passed, whichever lanes ran", () => {
+  for (const result of ["failure", "cancelled", "skipped"]) {
+    const judged = verdict(needsFor(["runner"], (id) => (id === "coverage" ? result : undefined)));
+    assert.equal(judged.ok, false, result);
+    assert.deepEqual(judged.lines.filter((l) => l.startsWith("FAIL")), [`FAIL coverage: ${result}`]);
+  }
+  const absent = needsFor([]);
+  delete absent.coverage;
+  assert.deepEqual(verdict(absent).lines.filter((l) => l.startsWith("FAIL")), ["FAIL coverage: not among Gate's needs"]);
+  assert.equal(verdict(needsFor([])).ok, true, "a change no lane judged still needs coverage, and it passed");
+});
+
 // ─── The shape, read from the workflow files ────────────────────────────
 
 const gate = readWorkflow("ci.gate.yaml");
@@ -165,7 +180,7 @@ test("each lane job runs exactly when the selection says so, and Gate needs them
   const judge = gate.jobs.gate;
   assert.equal(judge.name, "Gate", "the ruleset requires this exact name");
   assert.equal(judge.if, "always()", "a skipped required check passes, so Gate must never be skippable");
-  assert.deepEqual([...judge.needs].sort(), ["lanes", ...IDS].sort());
+  assert.deepEqual([...judge.needs].sort(), ["lanes", ...IDS, ...GATE_JOBS].sort());
   assert.match(judge.steps.at(-1).run, /ci-lanes\.mjs verdict/);
   assert.equal(judge.steps.at(-1).env.GATE_NEEDS, "${{ toJSON(needs) }}");
 });

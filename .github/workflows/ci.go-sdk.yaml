@@ -140,4 +140,16 @@ jobs:
       # strip contract (oss#327) and the gojson serializer's pinned Go
       # equivalence corpus.
       - name: Run the codegen toolchain's own tests
-        run: npm run test -w @stigmer/codegen
+        run: npm run test -w @stigmer/codegen -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-go-sdk-go-sdk
+          path: |
+            tools/codegen/coverage/
+          if-no-files-found: error
+          retention-days: 14

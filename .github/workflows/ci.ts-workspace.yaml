@@ -21,7 +21,9 @@
 # needs its own runner shape (a real Chromium, the web console, the desktop
 # shell's suites, and its Rust crate with the Rust toolchain and Tauri's
 # system packages); `typecheck-clean-room` is the one job that is not about
-# the diff at all (below). No package is tested twice in one run.
+# the diff at all (below). No package is tested twice in one run except
+# @stigmer/react: its coverage run (`react-tests`) is on the `forks` pool,
+# so `react-vm-tests` runs it again on `vmForks`, the pool developers run.
 #
 # The gate (`changes`) runs scripts/turbo-affected.mjs, which asks
 # `turbo query affected --tasks ...`: task-level, so a change to a fixture a
@@ -185,8 +187,36 @@ jobs:
       - name: Verify Node-ESM output
         run: node scripts/verify-esm-node.mjs --only="$AFFECTED"
 
+      # Coverage on, written per package under coverage/ (the flags after `--`
+      # reach each package's `vitest run`; scripts/ci-coverage.test.mjs holds
+      # them to one shape in every lane). @stigmer/react's suite runs in its
+      # own job, `react-tests`, below.
       - name: Tests
-        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED"
+        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED" --filter='!@stigmer/react' -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      # `ignore`: the affected set can hold only packages with no tests
+      # (apis/stubs/ts), and scripts/ci-coverage.test.mjs holds the paths.
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-ts-workspace-libs
+          path: |
+            backend/libs/ts/temporal-codecs/coverage/
+            backend/libs/ts/zip-structure/coverage/
+            backend/libs/ts/plugin-package/coverage/
+            backend/libs/ts/outbound/coverage/
+            sdk/typescript/coverage/
+            sdk/theme/coverage/
+            sdk/embed/coverage/
+            sdk/ink/coverage/
+            mcp-server/coverage/
+            plugins/coverage/
+            client-apps/cli/coverage/
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Every affected package's tsconfig.json pass (the one config that includes
   # its test files), eslint where a package has one, and TypeDoc's strict
@@ -274,6 +304,80 @@ jobs:
       - name: Run browser-mode suites
         run: node scripts/turbo-set.mjs workspace test:a11y --only=@stigmer/react
 
+  # The React SDK's default (happy-dom) suite, with coverage, in its own job.
+  # A coverage run puts every file on the `forks` pool (sdk/react's
+  # vitest.config.ts says why), which takes the suite from about 145 s to
+  # about 325 s on this runner; inside `libs` that made the libs job the
+  # run's last job (2026-10-01). Here it runs beside the other jobs, and
+  # `react-vm-tests` below runs the same suite on the pool developers run.
+  react-tests:
+    name: React SDK Tests (coverage)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Run the React SDK tests
+        run: node scripts/turbo-set.mjs libs test --only=@stigmer/react -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-ts-workspace-react-tests
+          path: |
+            sdk/react/coverage/
+          if-no-files-found: error
+          retention-days: 14
+
+  # The same suite without coverage, so on `vmForks`, the pool `npm test` and
+  # `make check` run: a file that fails only there (the class FORKS_ONLY in
+  # sdk/react's vitest.config.ts exists for) is caught here, not on main. Its
+  # own runner, beside `react-tests`, so neither waits for the other.
+  react-vm-tests:
+    name: React SDK Tests (vmForks)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Run the React SDK tests on vmForks
+        run: node scripts/turbo-set.mjs libs test --only=@stigmer/react
+
   web-tests:
     name: Web Console Tests
     runs-on: ubuntu-latest
@@ -298,7 +402,19 @@ jobs:
         run: npm ci
 
       - name: Run web console tests
-        run: node scripts/turbo-set.mjs workspace test --only=web
+        run: node scripts/turbo-set.mjs workspace test --only=web -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-ts-workspace-web-tests
+          path: |
+            client-apps/web/coverage/
+          if-no-files-found: error
+          retention-days: 14
 
   desktop-tests:
     name: Desktop App Tests
@@ -324,7 +440,19 @@ jobs:
         run: npm ci
 
       - name: Run desktop app tests
-        run: node scripts/turbo-set.mjs workspace test --only=desktop
+        run: node scripts/turbo-set.mjs workspace test --only=desktop -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-ts-workspace-desktop-tests
+          path: |
+            client-apps/desktop/coverage/
+          if-no-files-found: error
+          retention-days: 14
 
   # The Tauri shell's Rust crate, compiled and tested for real: it needs the
   # Rust toolchain and the system libraries Tauri links (the shared

@@ -22,6 +22,16 @@
 # required check that is skipped counts as passed, so `Gate` must run in every
 # case and decide (a cancelled run's `Gate` sees cancelled lanes and fails).
 #
+# One job is not a lane: `coverage` judges what the package suites measured.
+# The lanes that run a package's own vitest suite upload its coverage and its
+# report (`coverage-*` artifacts); this job refuses a changed line no test ran
+# and a package below its floor (scripts/test-coverage.mjs, the floors in
+# test/coverage-floors.json). `Gate` needs it like a lane and fails unless it
+# passed. It runs under `!cancelled()`, not
+# `always()`: it is not a required check itself, and `Gate` reads a skipped or
+# cancelled `coverage` as a failure. scripts/ci-coverage.test.mjs holds the
+# uploads and this job's needs to one shape.
+#
 # Called lanes do not inherit this workflow's `env` (GitHub does not pass a
 # caller's workflow-level env down), so each lane sets STIGMER_TEST_GATE=1
 # itself; their `github` context is this workflow's, which is why the lanes
@@ -204,9 +214,58 @@ jobs:
     if: needs.lanes.outputs.workflows == 'true'
     uses: ./.github/workflows/ci.workflows.yaml
 
+  coverage:
+    name: Coverage
+    needs: [lanes, authorization-model, conformance, docs, go-sdk, runner, stigmer-server, ts-workspace]
+    if: ${{ !cancelled() && needs.lanes.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      # Full commit graph, no blobs: the changed-lines rule diffs the change
+      # against its base, and git fetches the blobs that diff reads.
+      - name: Checkout (full history, no blobs)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      # A change that ran no package's tests uploads nothing, and the download
+      # then creates no directory; the tool reads an empty one as "nothing
+      # measured" and judges the change alone.
+      - name: Collect the package suites' coverage and reports
+        run: mkdir -p "$RUNNER_TEMP/coverage"
+
+      - name: Download the coverage artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: coverage-*
+          path: ${{ runner.temp }}/coverage
+
+      # The base is the pull request's base branch, or the commit the merge
+      # queue builds on; a manual dispatch has none, and judges the floors
+      # alone. The report goes to the log and, fenced so each line stays a
+      # line, to the job summary; the step exits with the tool's own code.
+      - name: Every changed line run, every package at its floor
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.merge_group.base_sha }}
+        run: |
+          base=()
+          if [ -n "$BASE" ]; then base=(--base "$BASE"); fi
+          report="$RUNNER_TEMP/coverage-report.txt"
+          status=0
+          node scripts/test-coverage.mjs --floors test/coverage-floors.json --input "$RUNNER_TEMP/coverage" "${base[@]}" > "$report" 2>&1 || status=$?
+          cat "$report"
+          { echo "### Coverage"; echo; echo '```'; cat "$report"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
   gate:
     name: Gate
-    needs: [lanes, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows]
+    needs: [lanes, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
     if: always()
     runs-on: ubuntu-latest
     steps:

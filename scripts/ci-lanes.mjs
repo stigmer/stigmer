@@ -33,7 +33,9 @@
  * did not run, when a needed lane did not succeed, or when a lane that was not
  * needed reports anything but `skipped`. A required check that is skipped
  * counts as passed, so `Gate` itself runs under `if: always()` and this is
- * where the decision is made.
+ * where the decision is made. One job besides the lanes is judged too:
+ * `coverage` (ci.gate.yaml's header says what it refuses), which must succeed
+ * whenever the selection did, whichever lanes ran.
  *
  * Outputs of the selection (stdout; appended to GITHUB_OUTPUT when set):
  *   <lane id>=true|false      one per lane in LANES, e.g. runner=true
@@ -422,6 +424,9 @@ export const EVERY_LANE = [
   ".github/actions/**",
 ];
 
+/** The jobs in ci.gate.yaml that are not lanes and that `Gate` needs to have passed. */
+export const GATE_JOBS = ["coverage"];
+
 /** `ci.runner.yaml` -> `runner`: the lane's job id in ci.gate.yaml and its output name. */
 export function laneId(file) {
   return file.replace(/^ci\./, "").replace(/\.ya?ml$/, "");
@@ -457,7 +462,7 @@ export function selectLanes({ event, changedFiles }) {
 
 /**
  * The gate's verdict from its `needs` context: `{ ok, lines }`, one line per
- * lane plus the selection's own.
+ * lane and per gate job, plus the selection's own.
  */
 export function verdict(needs) {
   const lines = [];
@@ -487,6 +492,12 @@ export function verdict(needs) {
     } else {
       lines.push(`ok   ${id}: ${selected === "true" ? "needed, passed" : "not needed"}`);
     }
+  }
+  for (const id of GATE_JOBS) {
+    const result = needs[id]?.result;
+    if (result === undefined) fail(`${id}: not among Gate's needs`);
+    else if (result !== "success") fail(`${id}: ${result}`);
+    else lines.push(`ok   ${id}: passed`);
   }
   return { ok, lines };
 }

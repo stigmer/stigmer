@@ -2,7 +2,7 @@ import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 /**
  * The default (happy-dom) suite runs on vitest's `vmForks` pool, apart from
- * the files in `FORKS_ONLY` below.
+ * the files in `FORKS_ONLY` below and a coverage run (`COVERAGE_RUN`).
  *
  * Why the pool matters: under the default `forks` pool every test file starts
  * a new child process and re-imports happy-dom before its first test, and on
@@ -35,6 +35,22 @@ const FORKS_ONLY = [
 ];
 // A file that fails only under vmForks joins FORKS_ONLY with its reason; its
 // test body is not bent to fit the pool.
+
+/**
+ * A coverage run (`--coverage.enabled`, as the CI lanes pass it) puts every
+ * file on `forks`. Under `vmForks` each file evaluates its whole module graph
+ * again in its own context, and gathering V8's coverage of all those scripts
+ * outgrew every worker's ~4 GB heap at once on the 4-vCPU CI runner
+ * (2026-10-01: 497 of 499 files passed, then all three workers died, with or
+ * without recycling them at 2 GB). `forks` gathers each file's coverage on its
+ * own and covers the same statements (the diff above), at the `forks` time.
+ * CI runs the suite both ways, so the pool developers run is still checked
+ * (ci.ts-workspace.yaml, `react-tests` and `react-vm-tests`).
+ * The flags are the CLI spellings vitest 3.2 reads as coverage on; it reads
+ * `--coverage.enabled true` as a file filter, with coverage left off.
+ */
+const COVERAGE_FLAGS = new Set(["--coverage", "--coverage=true", "--coverage.enabled", "--coverage.enabled=true"]);
+const COVERAGE_RUN = process.argv.some((arg) => COVERAGE_FLAGS.has(arg));
 
 export default defineConfig({
   test: {
@@ -96,7 +112,7 @@ export default defineConfig({
           name: "vm",
           include: ["src/**/*.test.{ts,tsx}"],
           exclude: FORKS_ONLY,
-          pool: "vmForks",
+          pool: COVERAGE_RUN ? "forks" : "vmForks",
         },
       },
       {

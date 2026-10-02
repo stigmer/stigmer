@@ -106,5 +106,20 @@ jobs:
         run: npm run verify:consumer
 
       # GitHub sets CI=true, so vitest.config.ts caps fork concurrency here.
+      # `make test-runner` is the install above and then `npm test`; it is
+      # called directly here so the coverage flags reach vitest.
       - name: Run runner vitest suite
-        run: make test-runner
+        working-directory: backend/services/runner
+        run: npm test -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+
+      # The coverage and the report for ci.gate.yaml's Coverage job, red or
+      # green: a failed run still says what it covered (reportOnFailure).
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-runner-runner-vitest
+          path: |
+            backend/services/runner/coverage/
+          if-no-files-found: error
+          retention-days: 14
