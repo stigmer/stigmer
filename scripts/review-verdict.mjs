@@ -48,9 +48,10 @@
  *     change to this file.
  * Any edit to the change, or a declaration added, removed or changed in what
  * it names (every field the integrity tool reads from it, for every kind it
- * parses), makes the verdict stale, and the pull request needs a new review. The digest is
- * taken before the review and posted only if it has not moved since, so a
- * declaration added while the reviewer reads is never approved unread.
+ * parses), makes the verdict stale, and the pull request needs a new
+ * review. The digest is taken before the review and posted only if it has
+ * not moved since, so a declaration added while the reviewer reads is never
+ * approved unread.
  *
  * The state of a pull request is its newest review comment by a writer:
  *   current         approve, and its digest is the digest now

@@ -28,7 +28,7 @@ Every test in this repository and in stigmer-cloud belongs to one layer. The lay
 
 Make targets and CI lanes keep the names they have (by package, artifact or cadence); the "Run by" column is the map from layer to entry point.
 
-Coverage is measured from three layers: unit, integration and composed, which is the package's own `npm test`, whose vitest config collects it. The other layers do not count. Contract, e2e and install tests drive a spawned server or a shipped artifact. Browser, load and live tests run under configs of their own. A tooling test runs a repository script, which is not a package. So a server line that only the conformance suite reaches counts as never run, and the test that runs it is a composed one. The rules are under "What holds them" below.
+Coverage is measured from three layers: unit, integration and composed, which is the package's own `npm test`, whose vitest config collects it. The other layers do not count. Contract, e2e and install tests drive a spawned server or a shipped artifact. Browser, load and live tests run under configs of their own. A tooling test runs a repository script, which is not a package. So a server line that only the conformance suite reaches counts as never run. The test that would count it is a composed one (`*.composed.test.ts`). The rules are under "What holds them" below.
 
 ### Names
 
@@ -76,7 +76,7 @@ What holds them:
   - `no-floor`: a measured package with no entry. A new package adds its own entry: the figures the finding prints, less the file's `margin`, rounded down to one decimal place.
   - `floor-unmeasured`: a floor the change moves for a package the run did not measure. A change to the floors file runs every package's suite, so a new figure is always judged against a real run.
 
-  The floors only rise. A maintainer lifts them at the weekly release with `--raise`, over a dispatched `Gate` run, which runs every lane and every package. A pull request may raise its own package's floor early, to at most the `• measured` figure its `Coverage` report prints, less the margin. Lowering one takes a `Coverage-drop:` line. Removing a test from a package at its case floor needs one beside the `Test-removal:`, since the case margin is 0. The tool's header has the full rules.
+  The floors only rise. A maintainer lifts them at the weekly release with `--raise`, over a dispatched `Gate` run, which runs every lane and every package. A pull request may raise its own package's floor early, to at most the `• measured` figure its `Coverage` report prints, less the margin. Lowering one takes two edits in the same pull request: the figure in `test/coverage-floors.json`, and a `Coverage-drop:` line in the body. Removing a test from a package at its case floor needs both, beside the `Test-removal:`, since the case margin is 0: the `cases` figure is lowered, and the drop declared. The tool's header has the full rules.
 
   To see a refusal before pushing, measure each package the change touches and judge it against the base:
 
