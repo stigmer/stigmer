@@ -45,11 +45,15 @@ const SESSION_START_MS = 45_000;
  * slow turn failed as a test timeout while its own wait was in budget). The
  * follow-up case waits longest: a session start, four turn waits (one
  * `waitForAIResponse`, then the response count and the settled response),
- * and about 25 s of short waits, which the 30 s covers. The pasted-screenshot
- * case makes three turn waits and about 50 s of short waits, inside the same
- * budget. A case that adds a turn wait raises the count.
+ * and its bounded short waits (30 s together: the error-boundary check, two
+ * composer checks at 5 s each, the user message at 10 s, one more composer
+ * check). The 60 s allowance covers those and the steps that carry no bound
+ * of their own (navigation, fills, clicks, the agent fixture). The
+ * pasted-screenshot case makes three turn waits and about 50 s of short
+ * waits, inside the same budget. A case that adds a turn wait raises the
+ * count.
  */
-const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 30_000;
+const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 60_000;
 
 /**
  * Agent execution through the session surface, anchored to the signals the
