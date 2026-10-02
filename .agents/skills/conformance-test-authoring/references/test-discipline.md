@@ -39,6 +39,8 @@ report states what was tested so others can judge the coverage.
 - A test that cannot fail: a tautology, a matcher too broad to miss anything.
 - Cleanup or resource release missing on the non-happy path.
 - Behaviour that differs between the first run and the second.
+- An ignore hint whose reason is not true: a line a test could reach, hidden
+  from coverage.
 
 ## The two tests to consider every time
 
@@ -72,6 +74,8 @@ script's test beside it in `scripts/`.
 - Does every new behaviour have a test that proves it end to end?
 - Does every function with logic have a unit test over its branches?
 - Do the tests run, and pass, here and in CI?
+- Does every line the change adds to a package's source run under a test, or
+  carry an ignore hint whose reason is true?
 - Would the tests catch a revert of the change?
 - For a bug fix, does a test reproduce the original bug?
 

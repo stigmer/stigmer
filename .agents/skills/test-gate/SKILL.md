@@ -40,7 +40,10 @@ and the questions before "done". Read it once per session under this gate.
    producing its exact error.
 4. **Run them.** The root guide's verification map names the command for each
    path prefix; quote each summary line. Work is not complete on a test that has
-   not run.
+   not run. For a change to a package's source, measure it too: `Gate` refuses a
+   line the change adds that no test runs, and "What holds them" in
+   `test/README.md` has the command that names those lines before you push. In
+   stigmer-cloud, `make gate`'s coverage step applies the same rule.
 5. **Answer the questions before "done"** from the discipline reference. Any
    "no" and the work continues.
 

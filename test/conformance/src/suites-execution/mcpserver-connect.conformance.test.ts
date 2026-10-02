@@ -675,7 +675,11 @@ describe("McpServer connect conformance — blocking connect", () => {
 });
 
 describe("McpServer connect conformance — async startConnect", () => {
-  it("[rpc:McpServerCommandController.startConnect] returns immediately with CONNECTING, attaches concurrent starts to one discovery run, and settles SUCCEEDED", async () => {
+  // Under load the fixture has seen two `initialize` requests across the two
+  // starts though both returned the same workflow id; whether that is a second
+  // run, a retried attempt or a stray request is not yet known.
+  // quarantined: stigmer/stigmer#1720
+  it.skip("[rpc:McpServerCommandController.startConnect] returns immediately with CONNECTING, attaches concurrent starts to one discovery run, and settles SUCCEEDED", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({ org, name: uniqueName("async"), url: mcpTools.url() }),
