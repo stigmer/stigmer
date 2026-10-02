@@ -102,7 +102,8 @@
 // lanes that call it (#1733). So for every lane in the map, each `make` call
 // is followed through scripts/make-targets.mjs: the targets it reaches by
 // prerequisite and by `$(MAKE) [-C <dir>]`, across Makefiles, and the script
-// words of their recipes, placed where each line runs (its Makefile's
+// words of their recipes and of each Makefile's `:=` values that run a shell
+// (make runs those whenever it reads the file), placed where each line runs (its Makefile's
 // directory, a leading `cd <dir> &&`, a `(cd <dir> && ...)` subshell, or the
 // checkout's root through `$(CURDIR)`), with what those import by relative
 // path. Every Makefile and script reached must select the lane, and on the

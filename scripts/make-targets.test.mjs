@@ -18,6 +18,7 @@ import { test } from "node:test";
 import {
   commandWords,
   curdirOf,
+  directoryOf,
   expand,
   makefileIn,
   parseMakeArguments,
@@ -144,6 +145,7 @@ test("expand substitutes variables as text, recursively, and never evaluates a f
   assert.equal(curdirOf("sdk/go"), "/sdk/go");
   assert.equal(makefileIn("."), "Makefile");
   assert.equal(makefileIn("sdk/go"), "sdk/go/Makefile");
+  assert.deepEqual(["sdk/go/", "./sdk//go/", "/", ".", ""].map(directoryOf), ["sdk/go", "sdk/go", ".", ".", "."]);
 });
 
 test("commandWords splits one shell command into words, keeping references and quotes whole", () => {
@@ -166,6 +168,8 @@ test("parseMakeArguments reads a make command's directory, targets and overrides
   });
   assert.equal(parseMakeArguments(["-C", "/sdk/go/x", "all"], "sdk/go").dir, "sdk/go/x", "a $(CURDIR) directory is rooted at the checkout");
   assert.equal(parseMakeArguments(["-C", "/", "all"], "sdk/go").dir, ".");
+  assert.equal(parseMakeArguments(["-C", "sdk/go/", "x"], ".").dir, "sdk/go", "a trailing slash names the same directory");
+  assert.equal(parseMakeArguments(["x"], "sdk/go/").dir, "sdk/go");
   assert.deepEqual(parseMakeArguments(["-C../../apis", "go-stubs-tools"], "sdk/go"), {
     dir: "apis",
     targets: ["go-stubs-tools"],
@@ -270,6 +274,31 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
   for (const recipe of [">node $*.mjs", ">node $(@D)/x.mjs", ">cp $< $(<F)"]) {
     assert.match(refused(mk("t: a.mjs", recipe)).join("\n"), /uses the automatic variable .+, which this reader does not expand/, recipe);
   }
+  const inherited = targetClosure({
+    read: files({
+      Makefile: mk("all:", ">$(MAKE) -C sub gen", ">$(MAKE) -C sub gen TOOL=b.mjs"),
+      "sub/Makefile": mk("TOOL = default.mjs", "gen:", ">node $(TOOL)"),
+    }),
+    dir: ".",
+    targets: ["all"],
+    overrides: new Map([["TOOL", "a.mjs"]]),
+  });
+  assert.deepEqual(inherited.refusals, []);
+  assert.deepEqual(
+    inherited.lines.filter(({ target }) => target === "gen").map(({ text }) => text),
+    ["node a.mjs", "node b.mjs"],
+    "a caller's override reaches a sub-make, and one target is read once per override set",
+  );
+  const onRead = targetClosure({
+    read: files({ Makefile: mk("VERSION := $(shell node $(CURDIR)/scripts/version.mjs)", "LATER = $(shell node lazy.mjs)", "t:", ">echo") }),
+    dir: ".",
+    targets: ["t"],
+  });
+  assert.deepEqual(
+    onRead.lines.map(({ target, text }) => `${target}: ${text}`),
+    ["(read): $(shell node /scripts/version.mjs)", "t: echo"],
+    "a := that runs a shell runs whenever the file is read; a recursive = only where it is used",
+  );
   const cycle = targetClosure({ read: files({ Makefile: mk("a: b", ">echo a", "b: a", ">echo b") }), dir: ".", targets: ["a"] });
   assert.deepEqual(cycle.targets.map(({ target }) => target), ["a", "b"], "a prerequisite cycle is visited once");
 });

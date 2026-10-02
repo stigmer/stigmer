@@ -81,6 +81,11 @@ const MAKE_WORD = /(^|[\s;&|(`])make(?=[\s;&|)`]|$)/;
 /** A directory change at a command's start: `cd`, `pushd`, `popd`. */
 const DIRECTORY_CHANGE = /(^|[\s;&|(])(cd|pushd|popd)\b/;
 
+/** A checkout-relative directory in one spelling: normalized, no trailing slash, "." for the root. */
+export function directoryOf(path) {
+  return posix.normalize(path).replace(/(.)\/+$/, "$1").replace(/^\/$/, ".");
+}
+
 /** The path of the Makefile make reads in `dir` ("." for the checkout's root). */
 export function makefileIn(dir) {
   return dir === "." ? "Makefile" : `${dir}/Makefile`;
@@ -109,6 +114,8 @@ export function readMakefile(text) {
   const assigned = new Map();
   // Names a `:=` value used before they were assigned: make read them as empty, so assigning one later is refused.
   const usedEarly = new Map();
+  // The `:=` values that run a shell: make runs them whenever it reads the file, whichever target is asked for.
+  const onRead = [];
   const refusals = [];
   // The rule line whose recipe the next tab-prefixed lines belong to: its entries, and whether a recipe may follow.
   let current = null;
@@ -171,6 +178,7 @@ export function readMakefile(text) {
           }
         }
         if (!assigned.has(name)) assigned.set(name, number);
+        if ((operator === ":=" || operator === "::=") && /\$[({]shell\s/.test(value)) onRead.push({ line: number, text: value });
         variables.set(name, operator === "+=" && variables.has(name) ? `${variables.get(name)} ${value}` : value);
       }
       continue;
@@ -215,7 +223,7 @@ export function readMakefile(text) {
       current.entries.push(entry);
     }
   }
-  return { rules, variables, refusals };
+  return { rules, variables, refusals, onRead };
 }
 
 /**
@@ -326,7 +334,7 @@ export function commandWords(text, from = 0) {
  * a value holding `$` is one this reader cannot know.
  */
 export function parseMakeArguments(words, dir) {
-  let into = dir;
+  let into = directoryOf(dir);
   const targets = [];
   const overrides = new Map();
   for (let index = 0; index < words.length; index += 1) {
@@ -335,7 +343,7 @@ export function parseMakeArguments(words, dir) {
       const named = word === "-C" ? words[(index += 1)] : word.slice(2);
       if (named === undefined || named.includes("$")) return { refusal: `make -C names its directory with an expression` };
       // An absolute directory (`$(CURDIR)/x`) is rooted at the checkout, as placeWords roots a `cd` to one.
-      into = named.startsWith("/") ? posix.normalize(named).slice(1) || "." : posix.normalize(posix.join(into, named));
+      into = directoryOf(named.startsWith("/") ? named.slice(1) || "." : posix.join(into, named));
     } else if (/^(-f|--file|--makefile|-I|--include-dir|--directory)/.test(word)) {
       return { refusal: `make ${word} reads a file or directory this reader does not follow` };
     } else if (word.startsWith("-")) {
@@ -355,12 +363,13 @@ export function parseMakeArguments(words, dir) {
 /**
  * Everything a `make` call reaches: `{ makefiles, targets, lines, refusals }`.
  * `read(path)` returns a Makefile's text, or undefined when there is none.
- * `targets` are `{ makefile, target }`; `lines` are `{ makefile, dir,
- * target, text }`, one per reached recipe line, expanded, shell comments
- * left out. A target that still holds a reference this reader could not
- * expand reaches every rule its literal prefix starts
- * (`rehearse-upgrade-$(ARTIFACT)` reaches each `rehearse-upgrade-*`), so a
- * lane can only be held to more files, never fewer; one named wholly by such
+ * `targets` are `{ makefile, target }`; `lines` are `{ makefile, dir, target,
+ * text }`, one per reached recipe line, expanded, shell comments left out. Each
+ * Makefile read adds its `:=` values that run a shell, as target `(read)`,
+ * since make runs those whenever it reads the file. A target that still holds a
+ * reference this reader could not expand reaches every rule its literal prefix
+ * starts (`rehearse-upgrade-$(ARTIFACT)` reaches each `rehearse-upgrade-*`), so
+ * a lane can only be held to more files, never fewer; one named wholly by such
  * a reference (`$(TARGET)`) has no prefix to match on and is refused.
  */
 export function targetClosure({ read, dir, targets, overrides = new Map() }) {
@@ -393,7 +402,13 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
       refusals.push(`${makefile} does not exist, yet a make call reads it for ${target}`);
       return;
     }
-    makefiles.add(makefile);
+    if (!makefiles.has(makefile)) {
+      makefiles.add(makefile);
+      // What the file runs when it is read, before any target: each `:=` value's `$(shell ...)`.
+      for (const { text } of file.onRead) {
+        lines.push({ makefile, dir: at, target: "(read)", text: expand(text, file.variables, { overrides, curdir: curdirOf(at) }) });
+      }
+    }
     let names = [target];
     if (target.includes("$")) {
       const prefix = target.slice(0, target.indexOf("$"));
@@ -463,7 +478,7 @@ export function placeWords(text, dir, pattern) {
   // A `cd` to an absolute path (`$(CURDIR)/...`) is rooted at the checkout, as a word is; one to a
   // directory still holding a reference cannot be named.
   const into = (from, target) =>
-    target.includes("$") ? null : target.startsWith("/") ? posix.normalize(target).slice(1) || "." : posix.normalize(posix.join(from, target));
+    target.includes("$") ? null : directoryOf(target.startsWith("/") ? target.slice(1) || "." : posix.join(from, target));
   const leading = /^cd\s+([^\s;&|()]+)\s*&&/.exec(text);
   const base = leading ? into(dir, leading[1]) : dir;
   // Quoted text is blanked to its length, so a parenthesis in a message neither opens nor closes a subshell.
