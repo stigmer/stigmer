@@ -40,9 +40,9 @@
 #
 # Subcommands, in the order a lane runs them:
 #   resolve  apt-get update, under its deadline, then write the manifest of
-#            archives the install
-#            will fetch (`file size sha256`, sorted) and print the cache key,
-#            content-addressed from that manifest, and its prefix.
+#            archives the install will fetch (`file size sha256`, sorted) and
+#            print the cache key, content-addressed from that manifest, and its
+#            prefix.
 #   seed     copy each cached archive whose hash matches the manifest into
 #            apt's archive directory.
 #   install  apt-get install the list, exactly as before the cache existed.

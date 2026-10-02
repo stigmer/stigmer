@@ -28,9 +28,12 @@
  * own clock starts only when a runner picks it up, after the jobs it needs.
  * Over the 77 green merge-queue runs of 2026-09-30 to 2026-10-02 the latest
  * a job started was 15 minutes after its entry's run was created
- * (`desktop-rust`, under load). So a cap of at most 60 - 15 = 45 still fires
- * by the queue's hour, and the red names the job that hung instead of the
- * queue's generic timeout. A job that needs longer is sharded
+ * (`desktop-rust`, under load; the median was under 2). So 45 = 60 - 15 is
+ * the largest cap that can fire by the queue's hour at all. At a typical
+ * start it fires well inside it, and the red names the job that hung. At the
+ * worst start it fires at about the hour, racing the queue's generic timeout
+ * and the `gate` job that reports the check after it; the run still shows
+ * the job red at its cap. A job that needs longer is sharded
  * (scripts/ci-shards.mjs), not given more time.
  *
  * How a cap is sized, so that a slow green run is never turned red: the
