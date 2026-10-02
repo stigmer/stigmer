@@ -4,10 +4,11 @@
  * Decides whether the live workflow (.github/workflows/ci.live.yaml) may run
  * a commit with the provider keys, and which published CLI it installs.
  *
- * The keys live in an environment that deploys only to `main`. The workflow
- * runs from `main`, but after a release it checks out the released commit,
- * so the rule that keeps the keys with reviewed code is here, not in the
- * environment: the commit must be one `main` already carries. GitHub's
+ * Two guards keep the keys with reviewed code. The keys live in an
+ * environment that deploys only to `main`, which refuses a run dispatched
+ * from any other branch. A release run starts on `main` but checks out the
+ * released commit, which the environment cannot see, so this rule guards
+ * it: the commit must be one `main` already carries. GitHub's
  * compare of `main...<commit>` reads `identical` for `main`'s tip and `behind`
  * for an older commit of it; `ahead` or `diverged` is a commit `main` does
  * not carry, and it is refused.

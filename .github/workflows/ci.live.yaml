@@ -82,7 +82,11 @@ jobs:
       ref: ${{ steps.resolve.outputs.ref }}
       version: ${{ steps.resolve.outputs.version }}
     steps:
-      # main's copy of the decision script (the default checkout here is main).
+      # The default checkout: main after a release (a workflow_run runs on the
+      # default branch), the dispatched ref on a dispatch. A dispatch from any
+      # other branch runs that branch's copy of the script, and the
+      # provider-integration environment, which deploys only to main, refuses
+      # the jobs that read the keys.
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -168,7 +172,7 @@ jobs:
         run: |
           {
             echo "### Runner live suites: estimated spend per case"
-            echo "- the five SDK-direct Cursor instruments: one short turn each, no product cap, no estimate"
+            echo "- the SDK-direct Cursor instruments: one short turn each, no product cap, no estimate"
           } >> "$GITHUB_STEP_SUMMARY"
           npm run test:live
 
