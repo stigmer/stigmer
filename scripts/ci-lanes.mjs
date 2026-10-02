@@ -17,8 +17,9 @@
  * to do (#662 merged over a red docs lane that way, #688). Here the lane set
  * is explicit: a lane the change needs either passes or fails `Gate`, and the
  * lists live in one place, guarded by scripts/lane-triggers.test.mjs (a list
- * that watches a standalone package must watch everything it links, and a
- * lane must watch every file an action it calls runs).
+ * that watches a standalone package must watch everything it links, a lane
+ * must watch every file an action it calls runs, and what its steps set up
+ * and install from).
  *
  * Every lane runs when the gate itself could have changed: this script, the
  * orchestrator, or a composite action the lanes use (`EVERY_LANE`); on a
@@ -95,6 +96,12 @@ export const LANES = {
       "backend/services/runner/src/shared/llm-backend.ts",
       "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
+      // What the lane's steps set up and install from: the Node version, and
+      // the root manifest and lockfile, decide everything its `npm ci` puts on
+      // disk and runs (scripts/lane-triggers.test.mjs fails when one is missing).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.all-in-one.yaml",
     ],
   },
@@ -104,6 +111,9 @@ export const LANES = {
       "backend/services/stigmer-server/src/authorization/model/data/**",
       "tools/codegen/src/authorization-model/**",
       "tools/codegen/package.json",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
       "package-lock.json",
       ".github/workflows/ci.authorization-model.yaml",
     ],
@@ -132,6 +142,10 @@ export const LANES = {
       "backend/services/runner/src/shared/llm-backend.ts",
       "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.cli-up.yaml",
     ],
   },
@@ -146,6 +160,10 @@ export const LANES = {
       "sdk/python/src/stigmer/_gen/**",
       "sdk/python/Makefile",
       "sdk/go/proto/**",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.codegen.yaml",
     ],
   },
@@ -177,6 +195,10 @@ export const LANES = {
       "backend/services/runner/src/shared/llm-backend.ts",
       "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.compose-stack.yaml",
     ],
   },
@@ -187,6 +209,10 @@ export const LANES = {
       // The shared test machinery the suites import (@stigmer/test-support).
       "test/support/**",
       "apis/**",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.conformance.yaml",
     ],
   },
@@ -204,6 +230,10 @@ export const LANES = {
       "client-apps/cli/scripts/install-temporal-cli.ts",
       "client-apps/cli/src/errors/cli-exit-error.ts",
       "client-apps/cli/src/errors/exit-codes.ts",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.conformance-execution.yaml",
     ],
   },
@@ -212,6 +242,8 @@ export const LANES = {
       "crates/stigmer-runner-host/**",
       "backend/services/runner/src/ipc-protocol.ts",
       "backend/services/runner/src/ipc-protocol-fixtures.ts",
+      // The Node version the lane sets up (ci.all-in-one says why).
+      ".nvmrc",
       ".github/workflows/ci.crate.yaml",
     ],
   },
@@ -252,6 +284,10 @@ export const LANES = {
       ".cursor/rules/agents-*.mdc",
       ".cursor/hooks.json",
       "scripts/agents-check.mjs",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.docs.yaml",
     ],
   },
@@ -276,7 +312,10 @@ export const LANES = {
       // The Chromium every job here installs: .github/actions/playwright-chromium
       // runs it (scripts/lane-triggers.test.mjs fails when it is missing).
       "scripts/playwright-chromium.mjs",
+      // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.e2e-interactive.yaml",
     ],
   },
@@ -287,6 +326,10 @@ export const LANES = {
       "tools/codegen/**",
       "go.work",
       "go.work.sum",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.go-sdk.yaml",
     ],
   },
@@ -314,6 +357,10 @@ export const LANES = {
       "backend/services/runner/src/shared/llm-backend.ts",
       "backend/services/runner/src/shared/llm-proxy.ts",
       "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.helm-chart.yaml",
     ],
   },
@@ -325,6 +372,10 @@ export const LANES = {
       "apis/**",
       "sdk/java/**",
       "tools/codegen/**",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.java-sdk.yaml",
     ],
   },
@@ -332,6 +383,10 @@ export const LANES = {
     paths: [
       "plugins/**",
       "backend/libs/ts/plugin-package/**",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.plugins-static.yaml",
     ],
   },
@@ -358,6 +413,8 @@ export const LANES = {
       // change there must run this gate in its own PR (#1087).
       "scripts/lib/**",
       "Makefile",
+      // The Node version the lane sets up (ci.all-in-one says why).
+      ".nvmrc",
       ".github/workflows/ci.runner.yaml",
     ],
   },
@@ -387,6 +444,8 @@ export const LANES = {
       "scripts/verify-static-export-routes.mjs",
       "test/extension-consumer/**",
       "Makefile",
+      // The Node version the lane sets up (ci.all-in-one says why).
+      ".nvmrc",
       ".github/workflows/ci.stigmer-server.yaml",
     ],
   },
@@ -425,6 +484,10 @@ export const LANES = {
       "backend/services/stigmer-server/Dockerfile",
       "backend/services/runner/Dockerfile.sandbox",
       "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
       ".github/workflows/ci.upgrade-rehearsal.yaml",
     ],
   },

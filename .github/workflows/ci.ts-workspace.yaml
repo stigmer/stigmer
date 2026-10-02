@@ -33,9 +33,11 @@
 # `--only`; turbo builds the dependencies (`^build`) itself. Three cases run
 # everything, because turbo cannot see the change: a manual dispatch; a change
 # to this file (passed as --lane-file, since a called workflow's own ref
-# names ci.gate.yaml), to ci.gate.yaml, or to the workspace tooling (root
-# manifests, scripts/**); an SCM fallback, which also prints a warning. The job summary shows base, head
-# and turbo's reason per task, so a skipped job can be trusted from the PR.
+# names ci.gate.yaml), to ci.gate.yaml, or to the workspace tooling
+# (WORKSPACE_TOOLING in scripts/turbo-affected.mjs, which says why each entry
+# runs everything); an SCM fallback, which also prints a warning. The job
+# summary shows base, head and turbo's reason per task, so a skipped job can
+# be trusted from the PR.
 # It is the only job that needs git history: a full commit graph without
 # blobs (`filter: blob:none`), since `git diff --name-only` reads trees.
 #
