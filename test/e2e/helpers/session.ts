@@ -21,6 +21,13 @@ export function getAIResponses(page: Page): Locator {
   return page.getByRole("article", { name: "AI response" });
 }
 
+/**
+ * The longest `startNewSession` itself waits: the launcher's composer, then the
+ * new session's URL. Exported so a spec's case budget can count it rather than
+ * copy the numbers.
+ */
+export const START_SESSION_WAITS_MS = { composer: 15_000, sessionUrl: 30_000 } as const;
+
 export async function startNewSession(
   page: Page,
   message: string,
@@ -28,10 +35,10 @@ export async function startNewSession(
   await page.goto("/");
   const form = getNewSessionComposer(page);
   const textarea = form.locator("textarea");
-  await textarea.waitFor({ state: "visible", timeout: 15_000 });
+  await textarea.waitFor({ state: "visible", timeout: START_SESSION_WAITS_MS.composer });
   await textarea.fill(message);
   await page.getByRole("button", { name: "Send message" }).click();
-  await page.waitForURL(/\/sessions\/ses_/, { timeout: 30_000 });
+  await page.waitForURL(/\/sessions\/ses_/, { timeout: START_SESSION_WAITS_MS.sessionUrl });
 }
 
 export async function sendFollowUp(

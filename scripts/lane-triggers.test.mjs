@@ -1,7 +1,9 @@
-// A CI lane runs when anything it builds against, or runs through a composite
-// action, changes: a lane or a path-filtered deploy that builds a package
-// outside the npm workspace runs when anything that package links changes,
-// and a gate lane runs when any file an action it calls runs changes.
+// A CI lane runs when anything it builds against, runs through a composite
+// action, or sets up and installs from, changes: a lane or a path-filtered
+// deploy that builds a package outside the npm workspace runs when anything
+// that package links changes, a gate lane runs when any file an action it
+// calls runs changes, and a gate lane runs when the toolchain version file,
+// manifest or lockfile its steps set up and install from changes.
 // Run via `node --test scripts/lane-triggers.test.mjs` (wired into root `npm test`).
 //
 // ci.ts-workspace asks turbo which workspace packages a change reaches, so a
@@ -62,9 +64,35 @@
 // import, export and `import()` are read), and none of today's actions or
 // bodies does any of these. Packages are not traced:
 // what an action runs from node_modules/ and what a body imports by name,
-// whether a dependency (which moves with the lockfile these lanes do not
-// watch, #1719) or a workspace package (whose source a lane would have to
-// list itself). Today's bodies import no workspace package.
+// whether a dependency (which moves with the lockfile, the setup rule's
+// ground: every lane that calls these actions runs the root `npm ci` first)
+// or a workspace package (whose source a lane would have to list itself).
+// Today's bodies import no workspace package.
+//
+// The setup rule. A lane's steps set up a toolchain and install packages
+// from files outside any list a source change touches: a setup action's
+// version file (`node-version-file: .nvmrc`, `go-version-file: go.work`),
+// and for each `npm ci` the manifest and lockfile in its directory (with an
+// `.npmrc` there when one is tracked), which decide everything it puts on
+// disk. A lane that does not watch them lets a dependency bump or a Node
+// upgrade merge without the lanes that run on it (#1719, #1734). So for
+// every lane in the map, each such file must select the lane, and on the
+// always-on lane run every package, the same two questions as the action
+// rule. It reads npm's `ci` and `install` commands in each of their
+// spellings: `npm ci` as a step's first command is placed, and a top-level
+// `npm install --no-package-lock` counts its manifest. Any other `ci` or
+// `install` it sees (after another command, quoted, moved by a directory
+// change, `--prefix` or `-C`), an expression for a directory or version
+// file, an untracked file, and a setup or install inside a composite action
+// are refused. Like the action rule's script words, this reads the
+// spellings the lanes use, not everything npm can do. Not traced: other
+// commands that change node_modules (`npm update`, `dedupe`, `audit fix`,
+// `link`), an install redirected by `npm_config_*` in a step's env (the
+// lanes set only the fetch-retry ones), an install run through another
+// program (`npx npm@10 ci`; yarn, whose one project, site/, is in its
+// lane's list), and what a `make` target installs or runs (#1733). No gate
+// lane does any of these.
+//
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.
 
@@ -105,6 +133,41 @@ const PLACED = ["$GITHUB_WORKSPACE/", "$GITHUB_ACTION_PATH/"];
 const BODY_EXTENSIONS = [".mjs", ".ts"];
 /** A step's `uses:` naming one of this repository's composite actions. */
 const LOCAL_ACTION = /^\.\/\.github\/actions\/([^/]+)$/;
+/** A setup action's input naming the file it reads a toolchain version from (`node-version-file`, `go-version-file`). */
+const VERSION_FILE = /-version-file$/;
+/** One npm command in a `run:` step, bare, quoted or in a subshell: its first word (the verb, unless a flag comes first), then its arguments up to the next command. */
+const NPM_COMMAND = /(^|[\s;&|(`'"])npm\s+([^\s;&|)`'"]+)([^\n;&|)`'"]*)/g;
+/** A directory change anywhere in a `run:` step, quoted or not, which can move an install out of the step's working-directory. */
+const CHANGES_DIRECTORY = /\b(cd|pushd|popd)\b/;
+/** npm's flags that install somewhere else: `--prefix <dir>`, `--prefix=<dir>`, and its short form `-C <dir>`. */
+const MOVES_INSTALL = /(^|\s)(--prefix\b|-C\b)/;
+/**
+ * The spellings npm accepts for `ci` and for `install-ci-test`, its `ci`
+ * then `test` (`npm ci --help`, `npm install-ci-test --help`); the lanes use
+ * the first.
+ */
+const NPM_CI = new Set(["ci", "clean-install", "ic", "install-clean", "isntall-clean", "install-ci-test", "cit", "clean-install-test", "sit"]);
+/**
+ * The spellings npm accepts for `install` and for `install-test` (`npm
+ * install --help`, `npm install-test --help`), which also read the lockfile
+ * and may rewrite it.
+ */
+const NPM_INSTALL = new Set([
+  "install",
+  "add",
+  "i",
+  "in",
+  "ins",
+  "inst",
+  "insta",
+  "instal",
+  "isnt",
+  "isnta",
+  "isntal",
+  "isntall",
+  "install-test",
+  "it",
+]);
 
 /** Every tracked manifest below the root, as repo-relative POSIX directory -> manifest. */
 export function trackedManifests(rootDir = root) {
@@ -364,6 +427,117 @@ export function laneActions(workflow) {
   return { actions: [...actions].sort(), refusals };
 }
 
+/**
+ * What one parsed workflow's steps set up and install from, sorted:
+ * `{ files, refusals }`. `files` are each `with.<tool>-version-file` a step
+ * passes to a setup action, and for each `npm ci` the manifest and lockfile
+ * in its directory, with an `.npmrc` there when one is tracked: everything
+ * `npm ci` reads. The directory is the step's `working-directory`, else the
+ * job's or the workflow's `defaults.run.working-directory`, else the root.
+ * Only `npm ci` as a step's first command is placed, and an install that
+ * says `--no-package-lock`, as a top-level command, counts its directory's
+ * manifest alone. Any other `ci` or `install` the guard sees is refused, so
+ * a moved install cannot hide: an `npm ci` after another command, in a quote
+ * or a subshell; any install in a step that changes directory or passes
+ * `--prefix` or `-C`; every other spelling of `ci` or `install`; a flag
+ * before an install's verb. So are a directory or version file holding an
+ * expression, and a file git does not track. Only `ci` and `install` are
+ * read; the file header lists what is not traced.
+ * `tracked` is passed in, as `actionRuns` takes it, so a fixture needs no git.
+ */
+export function laneInputs(workflow, tracked) {
+  const files = new Set();
+  const refusals = [];
+  for (const [jobId, job] of Object.entries(workflow.jobs ?? {})) {
+    for (const [index, step] of (job.steps ?? []).entries()) {
+      const label = `jobs.${jobId} ${step.name ? `"${step.name}"` : `step ${index + 1}`}`;
+      const read = (file, how) => {
+        if (tracked.has(file)) files.add(file);
+        else refusals.push(`${label}: ${how} ${file}, which git does not track`);
+      };
+      for (const [key, value] of Object.entries(step.with ?? {})) {
+        if (!VERSION_FILE.test(key)) continue;
+        if (String(value).includes("${{")) {
+          refusals.push(`${label}: ${key} is an expression; name the file, so this guard can hold the lane to it`);
+        } else {
+          read(posix.normalize(String(value)), "sets up from");
+        }
+      }
+      if (typeof step.run !== "string") continue;
+      const dir = String(
+        step["working-directory"] ??
+          job.defaults?.run?.["working-directory"] ??
+          workflow.defaults?.run?.["working-directory"] ??
+          ".",
+      );
+      const installsFrom = (names) => {
+        if (dir.includes("${{")) {
+          refusals.push(`${label}: working-directory is an expression; name the directory, so this guard can hold the lane to it`);
+          return;
+        }
+        for (const name of names) read(posix.join(dir, name), "installs from");
+        const npmrc = posix.join(dir, ".npmrc");
+        if (tracked.has(npmrc)) files.add(npmrc);
+      };
+      // A trailing backslash continues the command on the next line.
+      const run = step.run.replace(/\\\r?\n/g, " ");
+      const start = run.length - run.trimStart().length;
+      for (const match of run.matchAll(NPM_COMMAND)) {
+        const [, before, verb, args] = match;
+        const command = `npm ${verb}${args.trimEnd()}`;
+        const words = [verb, ...args.trim().split(/\s+/)];
+        if (!words.some((word) => NPM_CI.has(word) || NPM_INSTALL.has(word))) continue;
+        if (verb.startsWith("-")) {
+          refusals.push(
+            `${label}: "${command}" puts a flag before an install, which this guard cannot read; ` +
+              "name the command first, and install in a working-directory rather than with --prefix",
+          );
+          continue;
+        }
+        if (!NPM_CI.has(verb) && !NPM_INSTALL.has(verb)) continue;
+        const moved = MOVES_INSTALL.test(args) || CHANGES_DIRECTORY.test(run);
+        if (NPM_INSTALL.has(verb) && /(^|\s)--no-package-lock\b/.test(args)) {
+          // It reads no lockfile, but still the manifest in its directory,
+          // so it must run there: a top-level command, with nothing moving it.
+          if (moved || /[`'"(]/.test(before)) {
+            refusals.push(
+              `${label}: "${command}" is not a top-level command in the step's working-directory, which this guard cannot place`,
+            );
+          } else {
+            installsFrom(["package.json"]);
+          }
+        } else if (verb !== "ci" || match.index + before.length !== start || moved) {
+          refusals.push(
+            `${label}: "${command}" installs from a lockfile this guard cannot place; ` +
+              "make `npm ci` the step's first command, in its working-directory, or teach this guard the spelling",
+          );
+        } else {
+          installsFrom(["package.json", "package-lock.json"]);
+        }
+      }
+    }
+  }
+  return { files: [...files].sort(), refusals };
+}
+
+/**
+ * The setup rule's refusals for one parsed composite action: a step that sets
+ * up or installs from a file, or that the rule cannot place, is refused,
+ * since its callers would depend on that file through the action and the
+ * guard does not yet read it as theirs.
+ */
+export function actionSetups(action, tracked) {
+  const { files, refusals } = laneInputs({ jobs: { action: { steps: action?.runs?.steps ?? [] } } }, tracked);
+  return [
+    ...refusals,
+    ...files.map(
+      (file) =>
+        `sets up or installs from ${file}, which this guard does not read as its callers' input; ` +
+        "do it in the lane, or teach this guard to follow it",
+    ),
+  ];
+}
+
 function readWorkflows(rootDir = root) {
   const dir = join(rootDir, ".github/workflows");
   return readdirSync(dir)
@@ -375,7 +549,7 @@ function readWorkflows(rootDir = root) {
     });
 }
 
-/** Every tracked path, for the action rule. */
+/** Every tracked path, for the action and setup rules. */
 function trackedFiles(rootDir = root) {
   const listed = execFileSync("git", ["ls-files", "-z"], { cwd: rootDir, encoding: "utf8" });
   return new Set(listed.split("\0").filter(Boolean));
@@ -397,12 +571,13 @@ function readActions(tracked, rootDir = root) {
       actions.set(name, { files: own, bodies: [], refusals: ["has no action.yml, the one name this guard reads"] });
       continue;
     }
-    const runs = actionRuns(parse(readFileSync(manifest, "utf8")), tracked, `.github/actions/${name}`);
+    const action = parse(readFileSync(manifest, "utf8"));
+    const runs = actionRuns(action, tracked, `.github/actions/${name}`);
     const closure = bodyClosure(runs.files, tracked, (file) => readFileSync(join(rootDir, file), "utf8"));
     actions.set(name, {
       files: [...new Set([...own, ...closure.files])].sort(),
       bodies: closure.files,
-      refusals: [...runs.refusals, ...closure.refusals],
+      refusals: [...runs.refusals, ...closure.refusals, ...actionSetups(action, tracked)],
     });
   }
   return actions;
@@ -435,13 +610,30 @@ const closures = new Map(
   ]),
 );
 const workflows = readWorkflows();
-const actions = readActions(trackedFiles());
+const tracked = trackedFiles();
+const actions = readActions(tracked);
+const gateLanes = workflows.filter(({ file }) => LANES[file] !== undefined);
 /** Each gate lane's workflow file -> the actions its jobs call, and what it refused. */
-const laneCalls = new Map(
-  workflows
-    .filter(({ file }) => LANES[file] !== undefined)
-    .map(({ file, workflow }) => [file, laneActions(workflow)]),
-);
+const laneCalls = new Map(gateLanes.map(({ file, workflow }) => [file, laneActions(workflow)]));
+/** Each gate lane's workflow file -> what its steps set up and install from, and what it refused. */
+const laneSetups = new Map(gateLanes.map(({ file, workflow }) => [file, laneInputs(workflow, tracked)]));
+
+/**
+ * Why a change to `changed` would leave the lane in `file` short, or null:
+ * "lane" when the gate does not select it, "jobs" when the lane decides job
+ * by job (`always`) and the change does not run every package there, so a
+ * job that uses the file can skip.
+ */
+function missedBy(file, changed) {
+  if (!selectLanes({ event: "pull_request", changedFiles: [changed] }).lanes[laneId(file)]) return "lane";
+  if (
+    LANES[file].always === true &&
+    everythingBecause({ GITHUB_EVENT_NAME: "pull_request" }, [changed], `.github/workflows/${file}`) === null
+  ) {
+    return "jobs";
+  }
+  return null;
+}
 
 /** Every (lane, list, standalone package) where the list watches the package. */
 function watchedPairs() {
@@ -511,18 +703,15 @@ test("every composite action, and every action call in a gate lane, is one this 
 test("a gate lane runs when any file an action it calls runs changes, and on the always-on lane so does every job", () => {
   const problems = [];
   for (const [file, { actions: called }] of laneCalls) {
-    const id = laneId(file);
     for (const name of called) {
       for (const changed of actions.get(name)?.files ?? []) {
-        if (!selectLanes({ event: "pull_request", changedFiles: [changed] }).lanes[id]) {
+        const missed = missedBy(file, changed);
+        if (missed === "lane") {
           problems.push(
             `${file} calls ${name}, which runs ${changed}, yet a change to it does not select the lane. ` +
               `Add "${changed}" to the lane's list in scripts/ci-lanes.mjs.`,
           );
-        } else if (
-          LANES[file].always === true &&
-          everythingBecause({ GITHUB_EVENT_NAME: "pull_request" }, [changed], `.github/workflows/${file}`) === null
-        ) {
+        } else if (missed === "jobs") {
           problems.push(
             `${file} decides job by job and calls ${name}, which runs ${changed}, yet a change to it does not ` +
               "run every package there, so a job that calls the action can skip. " +
@@ -555,6 +744,70 @@ test("the action rule still finds the bodies and lanes it exists for", () => {
     [...laneCalls].filter(([, { actions: called }]) => called.includes(name)).map(([file]) => laneId(file));
   assert.deepEqual(callers("playwright-chromium"), ["e2e-interactive", "ts-workspace"]);
   assert.deepEqual(callers("temporal-cli"), ["conformance-execution", "e2e-interactive"]);
+});
+
+test("every setup and install step in a gate lane is one this guard reads", () => {
+  const problems = [...laneSetups].flatMap(([file, { refusals }]) => refusals.map((refusal) => `${file} ${refusal}`));
+  assert.deepEqual(problems, []);
+});
+
+test("a gate lane runs when what its steps set up and install from changes, and on the always-on lane so does every job", () => {
+  const problems = [];
+  for (const [file, { files }] of laneSetups) {
+    for (const changed of files) {
+      const missed = missedBy(file, changed);
+      if (missed === "lane") {
+        problems.push(
+          `${file} sets up or installs from ${changed}, yet a change to it does not select the lane. ` +
+            `Add "${changed}" to the lane's list in scripts/ci-lanes.mjs.`,
+        );
+      } else if (missed === "jobs") {
+        problems.push(
+          `${file} decides job by job and sets up or installs from ${changed}, yet a change to it does not ` +
+            "run every package there, so a job can skip. " +
+            "Make it workspace tooling (WORKSPACE_TOOLING in scripts/turbo-affected.mjs).",
+        );
+      }
+    }
+  }
+  assert.deepEqual(problems, []);
+});
+
+test("the setup rule still finds the setups and installs it exists for", () => {
+  // If the step read broke, the rule above would pass on nothing. These are
+  // today's lanes for each file their steps set up or install from.
+  const readers = (changed) =>
+    [...laneSetups].filter(([, { files }]) => files.includes(changed)).map(([file]) => laneId(file)).sort();
+  const rootInstalls = [
+    "all-in-one",
+    "authorization-model",
+    "cli-up",
+    "codegen",
+    "compose-stack",
+    "conformance",
+    "conformance-execution",
+    "docs",
+    "e2e-interactive",
+    "go-sdk",
+    "helm-chart",
+    "java-sdk",
+    "plugins-static",
+    "runner",
+    "stigmer-server",
+    "ts-workspace",
+    "upgrade-rehearsal",
+  ];
+  assert.deepEqual(readers(".nvmrc"), [...rootInstalls, "crate"].sort());
+  assert.deepEqual(readers("go.work"), ["go-sdk"]);
+  assert.deepEqual(readers("package.json"), rootInstalls);
+  assert.deepEqual(readers("package-lock.json"), rootInstalls);
+  assert.deepEqual(readers("backend/services/stigmer-server/package-lock.json"), [
+    "conformance",
+    "conformance-execution",
+    "stigmer-server",
+  ]);
+  assert.deepEqual(readers("backend/services/runner/package-lock.json"), ["runner"]);
+  assert.deepEqual(readers("test/extension-consumer/package-lock.json"), ["stigmer-server"]);
 });
 
 test("linkClosure follows file: and workspace links, and stops at a reached package's devDependencies", () => {
@@ -770,4 +1023,138 @@ test("laneActions names the repository's actions a workflow calls, and refuses a
   assert.equal(nested.refusals.length, 2);
   assert.match(nested.refusals[0], /a workflow whose steps this guard does not read/);
   assert.match(nested.refusals[1], /not \.\/\.github\/actions\/<name>/);
+});
+
+/** A workflow of one job whose steps are given, with optional job and workflow defaults. */
+const lane = (steps, { jobDir, workflowDir } = {}) => ({
+  ...(workflowDir ? { defaults: { run: { "working-directory": workflowDir } } } : {}),
+  jobs: { j: { ...(jobDir ? { defaults: { run: { "working-directory": jobDir } } } : {}), steps } },
+});
+
+test("laneInputs reads each version file and each npm ci's manifest and lockfile, from the step's, job's or workflow's directory", () => {
+  const tracked = new Set([
+    ".nvmrc",
+    "go.work",
+    "package.json",
+    "package-lock.json",
+    "svc/package.json",
+    "svc/package-lock.json",
+    "svc/.npmrc",
+    "job/package.json",
+    "job/package-lock.json",
+    "wf/package.json",
+    "wf/package-lock.json",
+  ]);
+  assert.deepEqual(
+    laneInputs(
+      lane([
+        { uses: "actions/setup-node@abc", with: { "node-version-file": ".nvmrc", cache: "npm" } },
+        { uses: "actions/setup-go@abc", with: { "go-version-file": "./go.work" } },
+        { run: "npm ci" },
+        { run: "npm ci --no-audit --no-fund && npm run typecheck", "working-directory": "svc" },
+        { run: "npm run build:libs" },
+        { run: "rm package-lock.json\nnpm install --no-package-lock --no-audit --no-fund" },
+      ]),
+      tracked,
+    ),
+    {
+      files: [".nvmrc", "go.work", "package-lock.json", "package.json", "svc/.npmrc", "svc/package-lock.json", "svc/package.json"],
+      refusals: [],
+    },
+    "flags and a following command are accepted, a tracked .npmrc is counted, and an install that reads no lockfile adds nothing beyond its manifest",
+  );
+  assert.deepEqual(laneInputs(lane([{ run: "npm ci" }], { jobDir: "job", workflowDir: "wf" }), tracked).files, [
+    "job/package-lock.json",
+    "job/package.json",
+  ]);
+  assert.deepEqual(laneInputs(lane([{ run: "  npm ci\n" }], { workflowDir: "wf" }), tracked).files, [
+    "wf/package-lock.json",
+    "wf/package.json",
+  ]);
+  assert.deepEqual(
+    laneInputs(lane([{ run: "npm ci \\\n  --no-audit --no-fund" }]), tracked),
+    { files: ["package-lock.json", "package.json"], refusals: [] },
+    "a line continuation is one command",
+  );
+  assert.deepEqual(
+    laneInputs(lane([{ run: "npm install --no-package-lock", "working-directory": "svc" }]), tracked),
+    { files: ["svc/.npmrc", "svc/package.json"], refusals: [] },
+    "an install that reads no lockfile still reads its directory's manifest",
+  );
+});
+
+test("laneInputs refuses an install or setup it cannot place: a moved or prefixed npm ci, another install spelling, an expression, an untracked file", () => {
+  const tracked = new Set(["package.json", "package-lock.json", ".nvmrc"]);
+  const refused = (step) => laneInputs(lane([step]), tracked).refusals;
+  for (const run of [
+    "cd svc && npm ci",
+    "echo start\nnpm ci",
+    "npm ci --prefix svc",
+    "npm install",
+    "npm i -D left-pad",
+    "npm clean-install",
+    "npm isntall",
+    "out=$(npm ci)",
+    "x=`npm ci`",
+    "bash -c 'npm ci'",
+    'bash -c "npm ci"',
+    "npm ci \\\n  --prefix svc",
+    "cd svc\nnpm ci",
+    "npm cit",
+    "npm it",
+    "npm ci -C svc",
+    "npm ci --prefix=svc",
+    "npm ci\necho 'cd svc'",
+  ]) {
+    assert.match(refused({ run }).join("\n"), /installs from a lockfile this guard cannot place/, run);
+  }
+  for (const run of [
+    "cd svc && npm install --no-package-lock",
+    "pushd svc && npm install --no-package-lock",
+    "bash -c 'cd svc; npm install --no-package-lock'",
+    "(npm install --no-package-lock)",
+    "npm install --no-package-lock -C svc",
+  ]) {
+    assert.match(refused({ run })[0], /is not a top-level command in the step's working-directory/, run);
+  }
+  for (const run of ["npm --prefix svc ci", "npm -w @stigmer/sdk install left-pad"]) {
+    assert.match(refused({ run }).join("\n"), /puts a flag before an install/, run);
+  }
+  assert.match(refused({ run: "npm ci", "working-directory": "${{ inputs.dir }}" })[0], /working-directory is an expression/);
+  assert.match(
+    refused({ uses: "actions/setup-node@abc", with: { "node-version-file": "${{ matrix.file }}" } })[0],
+    /node-version-file is an expression/,
+  );
+  assert.match(refused({ run: "npm ci", "working-directory": "gone" })[0], /installs from gone\/package\.json, which git does not track/);
+  assert.match(
+    refused({ uses: "actions/setup-python@abc", with: { "python-version-file": ".python-version" } })[0],
+    /sets up from \.python-version, which git does not track/,
+  );
+  assert.deepEqual(
+    refused({ run: "npm run test:scripts && npm test && npm exec tsc && echo npmci" }),
+    [],
+    "npm commands that install nothing are not refused",
+  );
+  assert.deepEqual(
+    refused({ run: "npm --version && npm -v && npm -w @stigmer/sdk run build" }),
+    [],
+    "a leading flag on a command that installs nothing is not refused",
+  );
+});
+
+test("actionSetups refuses a setup or install inside a composite action, which its callers would depend on unseen", () => {
+  const tracked = new Set(["package.json", "package-lock.json", ".nvmrc"]);
+  assert.deepEqual(actionSetups({ runs: { using: "composite", steps: [{ run: 'node "$GITHUB_WORKSPACE/x.mjs"' }] } }, tracked), []);
+  const refused = actionSetups(
+    {
+      runs: {
+        using: "composite",
+        steps: [{ uses: "actions/setup-node@abc", with: { "node-version-file": ".nvmrc" } }, { run: "npm ci" }, { run: "npm install" }],
+      },
+    },
+    tracked,
+  );
+  assert.equal(refused.length, 4);
+  assert.match(refused[0], /installs from a lockfile this guard cannot place/);
+  assert.match(refused[1], /sets up or installs from \.nvmrc, which this guard does not read as its callers' input/);
 });

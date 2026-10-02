@@ -3,8 +3,8 @@
 // Run via `node --test scripts/mutation-sweep.test.mjs` (wired into root `npm test`).
 //
 // What these guard: a targets file of the wrong shape is refused before a
-// sweep starts, and the committed one names packages that exist and globs
-// that match tracked files; every target's config skips static mutants, writes only the
+// sweep starts (its `check` command included), and the committed one names
+// packages that exist and globs that match tracked files; every target's config skips static mutants, writes only the
 // JSON report, points every output outside the tree and removes its sandbox;
 // a finding is named by what changed and where, not by Stryker's id or its
 // line, so a line moved by an edit above it keeps its name and two identical
@@ -15,8 +15,11 @@
 // Stryker's verdict only when every related test stays green, always restores
 // the file and refuses one with uncommitted changes, and its cached verdicts
 // drop a refuted finding; blanked strings and emptied objects are listed apart
-// as probably harmless; and the publish plan creates, rewrites, comments,
-// closes and reopens exactly when it should. Through a fake `gh` on PATH, the
+// as probably harmless; the body gives the targets file's command for
+// checking a fix, or the script's own with its variable and the file's real
+// path; the publish plan creates, rewrites, comments, closes and reopens
+// exactly when it should; and an open issue whose target left the file is
+// closed, while a narrowed run or a one-file check closes nothing else. Through a fake `gh` on PATH, the
 // command's `--report --publish` and `--failed` end to end; through a fake
 // `npx` in a throwaway repository, `--run` end to end: its record, the
 // confirm step's verdicts and their cache, an interrupted run, a signal sent
@@ -39,12 +42,15 @@ import {
   compareRuns,
   confirmFindings,
   confirmTimeout,
+  defaultCheck,
   findingKey,
   hasWork,
+  issueTargetsPath,
   keepVerdicts,
   keysFromBody,
   MAX_BODY,
   oneLine,
+  orphanedIssues,
   publishPlan,
   readTargets,
   reasonlessDisables,
@@ -55,6 +61,7 @@ import {
   strykerConfig,
   summarize,
   targetMarker,
+  targetOfBody,
   toConfirm,
   verdictsOf,
 } from "./mutation-sweep.mjs";
@@ -67,6 +74,9 @@ const TARGET = {
   mutate: ["src/gate/**/*.ts", "!src/gate/**/__tests__/**"],
   concurrency: 2,
 };
+
+/** The command a body gives when its targets file names none. */
+const CHECK = defaultCheck("test/mutation-targets.json");
 
 const SOURCE = ["export function allowed(used: number, cap: number): boolean {", "  if (used < cap && cap > 0) return true;", "  return used < cap;", "}", ""].join("\n");
 
@@ -91,6 +101,19 @@ test("a well-formed targets file reads with no problems", () => {
   const { targets, problems } = readTargets(JSON.stringify({ targets: { "credit-gate": TARGET } }));
   assert.deepEqual(problems, []);
   assert.equal(targets["credit-gate"].package, "backend/services/example");
+});
+
+test("a targets file may name the command its issues give for checking a fix, and that command names the target", () => {
+  const targets = { "credit-gate": TARGET };
+  assert.equal(readTargets(JSON.stringify({ targets })).check, undefined);
+  const named = readTargets(JSON.stringify({ targets, check: "make sweep TARGET={target}" }));
+  assert.deepEqual(named.problems, []);
+  assert.equal(named.check, "make sweep TARGET={target}");
+  for (const check of ["", "make sweep", 42, ["make sweep TARGET={target}"]]) {
+    const { problems } = readTargets(JSON.stringify({ targets, check }));
+    assert.equal(problems.length, 1, JSON.stringify(check));
+    assert.match(problems[0], /"check" is the command that checks a fix in one file, with \{target\}/);
+  }
 });
 
 test("a targets file of the wrong shape names every problem", () => {
@@ -425,7 +448,7 @@ test("a code span survives backticks in its text, and keeps an issue number from
   assert.equal(codeSpan("a ``b`` c"), "```a ``b`` c```");
   const summary = summarize(report([mutant("1", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t9"])]), "pkg");
   summary.findings[0].tests = ["keeps the grant (#776) and cloud #226"];
-  const { body } = renderIssue({ name: "credit-gate", target: TARGET, summary });
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary });
   assert.match(body, /ran by: `keeps the grant \(#776\) and cloud #226`/);
 });
 
@@ -458,7 +481,7 @@ test("the body names its target and carries this run's keys back to the next run
     report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1", "t2"]), mutant("3", "NoCoverage", "BlockStatement", 3, 3, 21, "{}")]),
     "backend/services/example",
   );
-  const { title, body } = renderIssue({ name: "credit-gate", target: TARGET, summary, change: { added: ["x"], gone: [] }, commit: "0123456789abcdef", runUrl: "https://example.test/run/1" });
+  const { title, body } = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary, change: { added: ["x"], gone: [] }, commit: "0123456789abcdef", runUrl: "https://example.test/run/1" });
   assert.equal(title, "Mutation sweep: the credit gate -- 1 change no test notices");
   assert.ok(body.startsWith(targetMarker("credit-gate")));
   assert.deepEqual(keysFromBody(body), summary.findings.map((f) => f.key));
@@ -467,8 +490,23 @@ test("the body names its target and carries this run's keys back to the next run
   assert.match(body, /- L2 `cap > 0` -> `cap >= 0` \(EqualityOperator\) -- ran by: `allows a run under the cap` and 1 more/);
   assert.match(body, /`0123456789`|`012345678`/);
   assert.match(body, /1 new and 0 gone since the last run/);
-  assert.match(body, /--run credit-gate --out <dir> --only <file>/);
+  assert.ok(body.includes("\nSTIGMER_TEST_GATE=1 node scripts/mutation-sweep.mjs --targets test/mutation-targets.json --run credit-gate --out <dir> --only <file>\n"), body);
   assert.match(body, /\(not re-checked\)/);
+});
+
+test("the default command names the targets file from the repository root, never by a path of the machine that ran it", () => {
+  const repo = join(tmpdir(), "repo");
+  assert.equal(issueTargetsPath(join(repo, "test", "mutation-targets.json"), repo), "test/mutation-targets.json");
+  assert.equal(issueTargetsPath(join(repo, "test", ".", "mutation-targets.json"), repo), "test/mutation-targets.json");
+  assert.equal(issueTargetsPath(join(tmpdir(), "elsewhere.json"), repo), join(tmpdir(), "elsewhere.json"));
+  assert.equal(issueTargetsPath(repo, repo), repo);
+});
+
+test("the body gives the targets file's own command for checking a fix, with the target's name in it", () => {
+  const summary = summarize(report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]), TARGET.package);
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, check: "make sweep TARGET={target} ONLY=<file> # {target}", summary });
+  assert.ok(body.includes("\nmake sweep TARGET=credit-gate ONLY=<file> # credit-gate\n"), body);
+  assert.ok(!body.includes("node scripts/mutation-sweep.mjs"), body);
 });
 
 test("probably-harmless changes are listed apart and left out of the title's count; a refuted one is reported as caught", () => {
@@ -476,7 +514,7 @@ test("probably-harmless changes are listed apart and left out of the title's cou
   const first = summarize(report(mutants), "pkg");
   const byMutator = Object.fromEntries(first.findings.map((f) => [f.mutator, f.confirmKey]));
   const summary = summarize(report(mutants), "pkg", { confirmed: { [byMutator.EqualityOperator]: true, [byMutator.LogicalOperator]: false } });
-  const { title, body } = renderIssue({ name: "credit-gate", target: TARGET, summary });
+  const { title, body } = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary });
   assert.equal(title, "Mutation sweep: the credit gate -- 1 change no test notices");
   assert.match(body, /### Probably harmless: messages and payloads \(1\)/);
   assert.match(body, /1 that Stryker missed were caught on re-check/);
@@ -486,7 +524,7 @@ test("probably-harmless changes are listed apart and left out of the title's cou
 test("a body over the listing budget says how many more there are", () => {
   const mutants = Array.from({ length: 230 }, (_, i) => mutant(String(i), "Survived", "BooleanLiteral", 1, 1, 2, `v${i}`));
   const summary = summarize(report(mutants, "e\n"), "pkg");
-  const { body } = renderIssue({ name: "credit-gate", target: TARGET, summary });
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary });
   assert.match(body, /…and 30 more/);
   assert.equal(keysFromBody(body).length, 230);
   assert.ok(body.length < 65_536);
@@ -494,11 +532,11 @@ test("a body over the listing budget says how many more there are", () => {
 
 test("a body never passes GitHub's limit: too many keys are left out and marked partial", () => {
   const many = Array.from({ length: 5000 }, (_, i) => mutant(String(i), i % 2 ? "Survived" : "NoCoverage", "ConditionalExpression", 1, 1, 2, `v${i}`));
-  const { body } = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(report(many, "e\n"), "pkg") });
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary: summarize(report(many, "e\n"), "pkg") });
   assert.ok(body.length <= MAX_BODY, `${body.length} characters`);
   assert.equal(keysFromBody(body), undefined, "the next run cannot compare against a partial list");
   const some = Array.from({ length: 1000 }, (_, i) => mutant(String(i), "Survived", "ConditionalExpression", 1, 1, 2, `v${i}`));
-  const full = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(report(some, "e\n"), "pkg") });
+  const full = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary: summarize(report(some, "e\n"), "pkg") });
   assert.ok(full.body.length <= MAX_BODY, `${full.body.length} characters`);
   assert.equal(keysFromBody(full.body).length, 1000);
 });
@@ -510,11 +548,11 @@ test("a body's visible text stops short of GitHub's limit however long its lines
     files[`src/${"deeply/nested/".repeat(8)}module-${i}.ts`] = { language: "typescript", source: `${long}\n`, mutants: [{ ...mutant(String(i), "Survived", "ConditionalExpression", 1, 1, 400, long), coveredBy: ["t1", "t2"] }] };
   }
   const wide = { schemaVersion: "2", thresholds: { high: 80, low: 60 }, files, testFiles: { "t.test.ts": { tests: [{ id: "t1", name: long }, { id: "t2", name: long }] } } };
-  const { body } = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(wide, `backend/${"services/".repeat(10)}example`) });
+  const { body } = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary: summarize(wide, `backend/${"services/".repeat(10)}example`) });
   assert.ok(body.length <= MAX_BODY, `${body.length} characters`);
   assert.match(body, /…and \d+ more in the run's `mutation.json`/);
   const disables = Array.from({ length: 5000 }, (_, i) => `// Stryker disable next-line Rule${i}`).join("\n");
-  const reasonless = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(report([], disables), "pkg") });
+  const reasonless = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary: summarize(report([], disables), "pkg") });
   assert.ok(reasonless.body.length <= MAX_BODY, `${reasonless.body.length} characters`);
   assert.match(reasonless.body, /### Disable comments without a reason \(5000\)/);
   assert.match(reasonless.body, /…and \d+ more\./);
@@ -522,11 +560,27 @@ test("a body's visible text stops short of GitHub's limit however long its lines
 
 test("a body with no findings says the issue closes itself", () => {
   const summary = summarize(report([mutant("1", "Killed", "EqualityOperator", 2, 7, 17, "used <= cap")]), "pkg");
-  const { title, body } = renderIssue({ name: "credit-gate", target: TARGET, summary });
+  const { title, body } = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary });
   assert.equal(title, "Mutation sweep: the credit gate -- 0 changes no test notices");
   assert.match(body, /Every change was caught/);
   assert.deepEqual(keysFromBody(body), []);
   assert.equal(hasWork(summary), false);
+});
+
+test("an open issue whose target left the targets file is an orphan; a listed, closed or unmarked one is not", () => {
+  const body = (name) => `${targetMarker(name)}\nThe weekly mutation sweep planted …`;
+  assert.equal(targetOfBody(body("credit-gate")), "credit-gate");
+  assert.equal(targetOfBody("A person's issue that quotes no marker"), undefined);
+  assert.equal(targetOfBody(undefined), undefined);
+  const issues = [
+    { number: 1, state: "OPEN", body: body("credit-gate") },
+    { number: 2, state: "OPEN", body: body("removed-area") },
+    { number: 3, state: "CLOSED", body: body("removed-area") },
+    { number: 4, state: "OPEN", body: "Labelled by hand, with no marker" },
+    { number: 5, state: "OPEN", body: body("constructor") },
+  ];
+  assert.deepEqual(orphanedIssues(issues, { "credit-gate": TARGET }).map((i) => i.number), [2, 5]);
+  assert.deepEqual(orphanedIssues(issues, { "credit-gate": TARGET, "removed-area": TARGET, constructor: TARGET }).map((i) => i.number), []);
 });
 
 test("an issue body with no keys marker reads as no previous findings", () => {
@@ -622,13 +676,37 @@ test("--report --publish files a new issue for a target with findings", () => {
 });
 
 test("--report --publish closes the target's open issue once every change is caught", () => {
-  const previous = renderIssue({ name: "credit-gate", target: TARGET, summary: summarize(report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0")]), TARGET.package) });
+  const previous = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary: summarize(report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0")]), TARGET.package) });
   const gh = fakeGh([{ number: 41, state: "OPEN", body: previous.body }]);
   try {
     writeRun(gh.dir, "credit-gate", [mutant("2", "Killed", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t2"])]);
     const out = spawnSync(process.execPath, [SCRIPT, "--targets", join(gh.dir, "targets.json"), "--report", "--input", join(gh.dir, "runs"), "--publish", "--repo", "o/r"], { env: gh.env, encoding: "utf8" });
     assert.equal(out.status, 0, out.stderr);
     assert.deepEqual(gh.calls().slice(1).map((c) => c.split(" ").slice(0, 3).join(" ")), ["issue edit 41", "issue comment 41", "issue close 41"]);
+  } finally {
+    rmSync(gh.dir, { recursive: true, force: true });
+  }
+});
+
+test("--report --publish closes an open issue whose target left the file, rewrites the swept one with the file's check, and leaves an unswept one alone", () => {
+  const swept = renderIssue({ name: "credit-gate", target: TARGET, check: CHECK, summary: summarize(report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0")]), TARGET.package) });
+  const unswept = renderIssue({ name: "other-area", target: TARGET, check: CHECK, summary: summarize(report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0")]), TARGET.package) });
+  const removed = renderIssue({ name: "removed-area", target: TARGET, check: CHECK, summary: summarize(report([mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0")]), TARGET.package) });
+  const gh = fakeGh([
+    { number: 41, state: "OPEN", body: swept.body },
+    { number: 42, state: "OPEN", body: unswept.body },
+    { number: 43, state: "OPEN", body: removed.body },
+  ]);
+  try {
+    writeRun(gh.dir, "credit-gate", [mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]);
+    writeFileSync(join(gh.dir, "targets.json"), JSON.stringify({ targets: { "credit-gate": TARGET, "other-area": TARGET }, check: "make sweep TARGET={target} ONLY=<file>" }));
+    const out = spawnSync(process.execPath, [SCRIPT, "--targets", join(gh.dir, "targets.json"), "--report", "--input", join(gh.dir, "runs"), "--publish", "--repo", "o/r"], { env: gh.env, encoding: "utf8" });
+    assert.equal(out.status, 0, out.stderr);
+    const calls = gh.calls().slice(1);
+    assert.deepEqual(calls.map((c) => c.split(" ").slice(0, 3).join(" ")), ["issue edit 41", "issue close 43"]);
+    assert.match(calls[1], /--comment Its target is no longer in the targets file/);
+    assert.match(out.stdout, /closed #43: its target, removed-area, is no longer in /);
+    assert.ok(readFileSync(join(gh.dir, "bodies.log"), "utf8").includes("\nmake sweep TARGET=credit-gate ONLY=<file>\n"));
   } finally {
     rmSync(gh.dir, { recursive: true, force: true });
   }
@@ -652,8 +730,9 @@ test("--report reads the confirm step's verdicts beside the report, and leaves a
   }
 });
 
-test("--report --publish files nothing for a one-file check", () => {
-  const gh = fakeGh([]);
+test("--report --publish files nothing for a one-file check, and closes no orphan", () => {
+  const removed = renderIssue({ name: "removed-area", target: TARGET, check: CHECK, summary: summarize(report([]), TARGET.package) });
+  const gh = fakeGh([{ number: 43, state: "OPEN", body: removed.body }]);
   try {
     writeRun(gh.dir, "credit-gate", [mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]);
     const meta = join(gh.dir, "runs/credit-gate/target.json");
@@ -661,6 +740,25 @@ test("--report --publish files nothing for a one-file check", () => {
     const out = spawnSync(process.execPath, [SCRIPT, "--targets", join(gh.dir, "targets.json"), "--report", "--input", join(gh.dir, "runs"), "--publish", "--repo", "o/r"], { env: gh.env, encoding: "utf8" });
     assert.equal(out.status, 0, out.stderr);
     assert.deepEqual(gh.calls().map((c) => c.split(" ").slice(0, 2).join(" ")), ["issue list"]);
+  } finally {
+    rmSync(gh.dir, { recursive: true, force: true });
+  }
+});
+
+test("--report given the repository's targets file by an absolute path prints its check command, the default naming the file from the root", () => {
+  const gh = fakeGh([]);
+  try {
+    const repoTargets = join(dirname(fileURLToPath(import.meta.url)), "..", "test", "mutation-targets.json");
+    const { targets, check } = readTargets(readFileSync(repoTargets, "utf8"));
+    const name = Object.keys(targets)[0];
+    // The script is copied between repositories, and a repository whose file
+    // names its own `check` prints that; one that names none prints the
+    // default, with the path from the root rather than the absolute one given.
+    const expected = (check ?? defaultCheck("test/mutation-targets.json")).replaceAll("{target}", name);
+    writeRun(gh.dir, name, [mutant("2", "Survived", "EqualityOperator", 2, 21, 28, "cap >= 0", ["t1"])]);
+    const out = spawnSync(process.execPath, [SCRIPT, "--targets", repoTargets, "--report", "--input", join(gh.dir, "runs")], { env: gh.env, encoding: "utf8" });
+    assert.equal(out.status, 0, out.stderr);
+    assert.ok(out.stdout.includes(`\n${expected}\n`), out.stdout);
   } finally {
     rmSync(gh.dir, { recursive: true, force: true });
   }

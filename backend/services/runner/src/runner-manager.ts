@@ -115,7 +115,7 @@ export interface RunnerManagerOptions {
   /** Default LLM model identifier. @default "gpt-4.1" */
   readonly primaryModel?: string;
 
-  /** No-progress bound for the Cursor harness stream (ms). @default 180000 */
+  /** No-progress bound for every harness's engine stream (ms); named for Cursor, its first user. @default 180000 */
   readonly cursorStreamStallTimeoutMs?: number;
 
   /** Bound for Cursor Agent.create/resume (ms). @default 120000 */

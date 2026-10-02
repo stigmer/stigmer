@@ -72,6 +72,13 @@
  * or explicitly:
  *   node scripts/verify-consumer-install.mjs --package backend/services/runner
  *
+ * `--resolve-before <hours>` makes both installs ignore versions published in
+ * the last <hours> (npm's `--before`), so a version the registry has not
+ * propagated yet cannot fail the check (stigmer/stigmer#1669). The gate lanes
+ * pass it (ci.runner.yaml, ci.stigmer-server.yaml); a release never does,
+ * because its own @stigmer/* versions are minutes old. The rule and its
+ * reasons are scripts/lib/resolve-before.mjs.
+ *
  * Needs network (registry install) and a prior `npm run build` of the
  * package and of every file:-linked lib. Runs in a few minutes.
  */
@@ -88,6 +95,9 @@ import {
 import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { consumerInstallArgs, tarballInstallArgs } from "./lib/consumer-install-args.mjs";
+import { resolveBeforeFromArgv } from "./lib/resolve-before.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -119,6 +129,15 @@ const packageDir = packageArg
     ? packageArg
     : resolve(repoRoot, packageArg)
   : process.cwd();
+
+// `--resolve-before <hours>`: the npm arguments both installs add; absent,
+// both resolve live (the header says who passes it and why).
+let resolution;
+try {
+  resolution = resolveBeforeFromArgv(args);
+} catch (error) {
+  fail(error.message);
+}
 
 const manifestPath = join(packageDir, "package.json");
 if (!existsSync(manifestPath)) {
@@ -238,22 +257,11 @@ try {
 // ─── Install the tarball the way a consumer does ─────────────────────────────
 
 const stagingDir = join(workDir, "staging");
+const tarballInstall = tarballInstallArgs(tarball, stagingDir, resolution);
 console.log(
-  "verify-consumer-install: fresh consumer install (registry resolution, --omit=dev)...",
+  `verify-consumer-install: fresh consumer install (registry resolution, ${tarballInstall.filter((arg) => arg === "--omit=dev" || arg.startsWith("--before=")).join(", ")})...`,
 );
-npm(
-  [
-    "install",
-    tarball,
-    "--prefix",
-    stagingDir,
-    "--omit=dev",
-    "--no-audit",
-    "--no-fund",
-    "--loglevel=error",
-  ],
-  workDir,
-);
+npm(tarballInstall, workDir);
 
 // ─── Check 2: exactly one physical copy of each singleCopy package ──────────
 
@@ -344,7 +352,7 @@ if (check.typecheckConsumer) {
   console.log(
     `verify-consumer-install: typechecking ${consumerManifest.name} against the packed ${manifest.name}...`,
   );
-  npm(["install", "--no-audit", "--no-fund", "--loglevel=error"], consumerDir);
+  npm(consumerInstallArgs(resolution), consumerDir);
   execFileSync("npm", ["run", "typecheck"], {
     cwd: consumerDir,
     stdio: "inherit",

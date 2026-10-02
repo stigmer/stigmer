@@ -22,10 +22,27 @@
 # MD5 unless told otherwise (it sets Acquire::ForceHash only when unset), hence
 # the explicit SHA256.
 #
+# Why `apt-get update` has a deadline: the index refresh (about 12.6 MB, 1 to
+# 2 s on a healthy mirror) is a wait on Ubuntu's mirror that nothing else here
+# bounds. A composite action's step cannot carry `timeout-minutes`, and apt's
+# own timeouts catch a dead connection, not a slow one, so a trickling or
+# half-stalled refresh runs until the calling job's cap. The same command, run by
+# Playwright's installer at the time, sat silent for 27 minutes before its
+# job's cap stopped it and a good change was ejected from the merge queue
+# (#1663, #1702). So `resolve` gives it TAURI_APT_UPDATE_DEADLINE_S seconds
+# (default 300: about 40 times a healthy refresh, and enough for the whole
+# index at the 61.5 kB/s trickle #1529 measured), then stops it with its
+# whole process group and fails with a message that says so. No retry: a
+# mirror that keeps stalling should show, not hide behind a second try. The
+# variable exists for apt-cache.test.mjs. `install`'s download is not bounded
+# here: on a cache miss it has taken 20 minutes and still finished, and the
+# calling job's cap bounds it.
+#
 # Subcommands, in the order a lane runs them:
-#   resolve  apt-get update, then write the manifest of archives the install
-#            will fetch (`file size sha256`, sorted) and print the cache key,
-#            content-addressed from that manifest, and its prefix.
+#   resolve  apt-get update, under its deadline, then write the manifest of
+#            archives the install will fetch (`file size sha256`, sorted) and
+#            print the cache key, content-addressed from that manifest, and its
+#            prefix.
 #   seed     copy each cached archive whose hash matches the manifest into
 #            apt's archive directory.
 #   install  apt-get install the list, exactly as before the cache existed.
@@ -44,6 +61,7 @@ ARCHIVES=/var/cache/apt/archives
 CACHE_DIR="${HOME}/.cache/tauri-apt"
 WORK_DIR="${RUNNER_TEMP:-/tmp}/tauri-apt"
 MANIFEST="${WORK_DIR}/manifest"
+UPDATE_DEADLINE_S="${TAURI_APT_UPDATE_DEADLINE_S:-300}"
 
 SUDO=()
 if [[ $(id -u) -ne 0 ]]; then
@@ -57,8 +75,21 @@ megabytes() { awk -v b="$1" 'BEGIN { printf "%.1f", b / 1048576 }'; }
 
 sha256_of() { sha256sum "$1" | cut -d' ' -f1; }
 
+# Under sudo, timeout runs as root and can stop apt's root-owned fetch
+# methods. It signals its whole process group, and KILLs whatever outlives the
+# TERM by 15 s (exit 137 rather than 124).
+update_index() {
+  local status=0
+  "${SUDO[@]}" timeout --kill-after=15 "$UPDATE_DEADLINE_S" apt-get update || status=$?
+  case $status in
+    0) ;;
+    124 | 137) die "resolve: apt-get update did not finish in ${UPDATE_DEADLINE_S} s: Ubuntu's mirror stalled (#1702). Nothing was installed; rerun the job." ;;
+    *) exit "$status" ;;
+  esac
+}
+
 resolve() {
-  "${SUDO[@]}" apt-get update
+  update_index
   mkdir -p "$WORK_DIR"
 
   local uris="${WORK_DIR}/uris"

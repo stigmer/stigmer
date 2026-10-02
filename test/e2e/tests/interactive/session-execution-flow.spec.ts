@@ -9,6 +9,7 @@ import {
   getSessionComposer,
   assertComposerDisabled,
   assertComposerEnabled,
+  START_SESSION_WAITS_MS,
 } from "../../helpers/session";
 import {
   enqueueCannedTextTurns,
@@ -28,6 +29,35 @@ const HAS_LLM_KEY = !!(
 const TURN_DELAY_MS = 2_000;
 
 /**
+ * How long one wait on a turn may take on a loaded runner: every wait for a
+ * response, a response count or a settled response passes it. Note that
+ * `waitForAIResponse` (helpers/session.ts) spends it twice, once for the
+ * response to appear and once for it to settle, so one call is two turn
+ * waits.
+ */
+const TURN_BUDGET_MS = 90_000;
+
+/** `startNewSession`'s own waits (the composer, then the session's URL), read from the helper. */
+const SESSION_START_MS = START_SESSION_WAITS_MS.composer + START_SESSION_WAITS_MS.sessionUrl;
+
+/**
+ * The case budget, derived from the turn and session waits (the short waits
+ * are tallied below, so a change to them must move this too)
+ * (#1563: every case waited up to 90 s under Playwright's 30 s default, so a
+ * slow turn failed as a test timeout while its own wait was in budget). The
+ * follow-up case waits longest: a session start, four turn waits (one
+ * `waitForAIResponse`, then the response count and the settled response),
+ * and its bounded short waits (30 s together: the error-boundary check, two
+ * composer checks at 5 s each, the user message at 10 s, one more composer
+ * check). The 60 s allowance covers those and the steps that carry no bound
+ * of their own (navigation, fills, clicks, the agent fixture). The
+ * pasted-screenshot case makes three turn waits and about 65 s of bounded
+ * short waits, inside the same budget. A case that adds a turn wait raises the
+ * count.
+ */
+const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 60_000;
+
+/**
  * Agent execution through the session surface, anchored to the signals the
  * CURRENT session viewer exposes (stigmer/stigmer#743 re-anchor): the
  * composer disables while a run is active and re-enables after, and the
@@ -37,6 +67,8 @@ const TURN_DELAY_MS = 2_000;
  * header/sidebar surface anymore.
  */
 test.describe("Agent execution via session", () => {
+  test.describe.configure({ timeout: CASE_BUDGET_MS });
+
   // The launcher sends with no agent picked and the built-in assistant
   // answers; a raw e2e stack has no org seeded. Idempotent.
   test.beforeAll(async ({ stigmerClient }) => {
@@ -72,7 +104,7 @@ test.describe("Agent execution via session", () => {
     await assertComposerDisabled(page);
 
     // The settled response is the completion signal on this surface.
-    await waitForAIResponse(page, { timeout: 90_000 });
+    await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
     await assertComposerEnabled(page);
   });
 
@@ -86,7 +118,7 @@ test.describe("Agent execution via session", () => {
     await assertNoErrorBoundary(page);
 
     // Settled response: visible and no longer streaming (not aria-busy).
-    const aiResponse = await waitForAIResponse(page, { timeout: 90_000 });
+    const aiResponse = await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
     await expect(aiResponse).toBeVisible();
 
     const thread = getMessageThread(page);
@@ -109,7 +141,7 @@ test.describe("Agent execution via session", () => {
 
     await startNewSession(page, "Say exactly: ready");
     await assertNoErrorBoundary(page);
-    await waitForAIResponse(page, { timeout: 90_000 });
+    await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
     await assertComposerEnabled(page);
 
     const form = getSessionComposer(page);
@@ -160,7 +192,7 @@ test.describe("Agent execution via session", () => {
 
     // Drain the follow-up's turn before ending: the send above started a
     // second execution; its settled response re-enables the composer.
-    await expect(getAIResponses(page)).toHaveCount(2, { timeout: 90_000 });
+    await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
     await assertComposerEnabled(page);
   });
 
@@ -176,7 +208,7 @@ test.describe("Agent execution via session", () => {
     await assertNoErrorBoundary(page);
 
     // Wait for the first execution to complete.
-    await waitForAIResponse(page, { timeout: 90_000 });
+    await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
     await assertComposerEnabled(page);
 
     // Send follow-up.
@@ -193,11 +225,11 @@ test.describe("Agent execution via session", () => {
 
     // Thread ends with two settled AI responses — the second execution's
     // completion signal — and the composer re-enables.
-    await expect(getAIResponses(page)).toHaveCount(2, { timeout: 90_000 });
+    await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
     await expect(getAIResponses(page).last()).not.toHaveAttribute(
       "aria-busy",
       "true",
-      { timeout: 90_000 },
+      { timeout: TURN_BUDGET_MS },
     );
     await assertComposerEnabled(page);
   });

@@ -196,6 +196,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
   for (const file of [
     "package.json",
     "package-lock.json",
+    ".nvmrc",
     "scripts/turbo-set.mjs",
     ".github/actions/playwright-chromium/action.yml",
     COVERAGE_FLOORS,
@@ -221,6 +222,7 @@ test("everythingBecause: the lane's own workflow file and the workspace tooling 
   assert.deepEqual(WORKSPACE_TOOLING, [
     "package.json",
     "package-lock.json",
+    ".nvmrc",
     "scripts/",
     ".github/actions/",
     "test/coverage-floors.json",

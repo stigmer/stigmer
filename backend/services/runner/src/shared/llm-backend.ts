@@ -22,7 +22,7 @@ export const ANTHROPIC_BACKEND_ENV = "STIGMER_ANTHROPIC_BACKEND";
 export const OPENAI_BACKEND_ENV = "STIGMER_OPENAI_BACKEND";
 
 /** Operator guide for backend configuration; the single copy of this URL. */
-export const BACKEND_DOC_URL = "https://docs.stigmer.ai/guides/runners/model-backends";
+export const BACKEND_DOC_URL = "https://stigmer.ai/docs/guides/runners/model-backends";
 
 /**
  * Backends implemented in this build. Anthropic's values name the serving

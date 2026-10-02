@@ -39,6 +39,7 @@ jobs:
   shellcheck:
     name: ShellCheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -52,6 +53,7 @@ jobs:
   install-linux:
     name: Install on Node-less Linux
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     # A bare image (not the runner VM, which has Node preinstalled) proves the
     # installer's only prerequisites are curl, tar, and a sha-256 tool — in
     # particular that it vendors its own Node runtime.
@@ -78,6 +80,7 @@ jobs:
   install-macos:
     name: Install on macOS
     runs-on: macos-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

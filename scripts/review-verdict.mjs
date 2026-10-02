@@ -41,15 +41,17 @@
  *     meaning (`rm -rf /tmp/x` against `rm -rf / tmp/x`, a YAML key's
  *     nesting). Every option and setting that shapes the diff's text is
  *     pinned, so the digest a workstation posts is the one CI computes;
- *   - the declarations the body carries (`Test-removal:`, `Quarantine:`,
- *     `Skip:`, `RPC-waiver:`), read by the test-integrity tool's own parser, since the
- *     reviewer judges each one.
+ *   - the declarations the body carries: every kind the test-integrity
+ *     tool's own parser reads (`parseDeclarations`, over its `DECLARATION`
+ *     grammar; `Test-removal:` and `Coverage-drop:` among them), since the
+ *     reviewer judges each one. A kind added there is bound here with no
+ *     change to this file.
  * Any edit to the change, or a declaration added, removed or changed in what
  * it names (every field the integrity tool reads from it, for every kind it
- * parses: `Test-removal:`, `Quarantine:`, `Skip:`, `RPC-waiver:`), makes
- * the verdict stale, and the pull request needs a new review. The digest is
- * taken before the review and posted only if it has not moved since, so a
- * declaration added while the reviewer reads is never approved unread.
+ * parses), makes the verdict stale, and the pull request needs a new
+ * review. The digest is taken before the review and posted only if it has
+ * not moved since, so a declaration added while the reviewer reads is never
+ * approved unread.
  *
  * The state of a pull request is its newest review comment by a writer:
  *   current         approve, and its digest is the digest now

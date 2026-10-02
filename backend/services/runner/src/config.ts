@@ -47,9 +47,11 @@ import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
 /**
- * Default no-progress bound for the Cursor harness stream (ms). Larger than the
- * shared DEFAULT_STALL_TIMEOUT_MS (120s) because opaque MCP / GUI tool calls
- * can run for minutes while emitting no stream activity. Single source of truth
+ * Default no-progress bound for every harness's engine stream (ms); named for
+ * the Cursor harness, its first user, and armed by the turn runtime for every
+ * engine since #1070. Larger than the shared DEFAULT_STALL_TIMEOUT_MS (120s)
+ * because opaque MCP / GUI tool calls can run for minutes while emitting no
+ * stream activity. Single source of truth
  * for env-loaded ({@link loadConfig}) and options-mapped (runner / manager)
  * config so the three construction sites never drift.
  */
@@ -158,11 +160,14 @@ export interface Config {
   readonly artifactProxyEndpoint: string | null;
   readonly primaryModel: string;
   /**
-   * No-progress bound for the Cursor harness stream (milliseconds). If no
-   * stream event or token delta arrives for this long, the stall watchdog
-   * (see activities/execute-cursor + shared/stall-watchdog.ts) cancels the run
-   * and fails the execution with a StallTimeoutError rather than hanging at
-   * EXECUTION_IN_PROGRESS forever.
+   * No-progress bound for every harness's engine stream (milliseconds); the
+   * name is the Cursor harness's, its first user. The roots set it from the
+   * `cursorStreamStallTimeoutMs` option; `loadConfig` also reads
+   * CURSOR_STREAM_STALL_TIMEOUT_MS, which no boot path in `main.ts` forwards
+   * yet (stigmer/stigmer#1731). If the engine reports no activity for this
+   * long, the turn runtime's stall watchdog (harness/run-turn.ts over
+   * shared/stall-watchdog.ts) cancels the run and fails the execution with a
+   * StallTimeoutError rather than hanging at EXECUTION_IN_PROGRESS forever.
    *
    * Larger than the shared DEFAULT_STALL_TIMEOUT_MS (120s) because opaque MCP /
    * GUI tool calls can legitimately run for minutes while emitting no stream

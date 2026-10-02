@@ -34,7 +34,7 @@ The plain `dist/` resolves its dependencies from `node_modules` at runtime — ~
 make build-runner-slim          # or: npm run build:slim
 ```
 
-This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), a build-time-prebuilt Temporal workflow bundle, and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge, `@cursor/sdk` and its native binaries, `jq-wasm`) — **~85 MB per platform**. `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://docs.stigmer.ai/guides/runners/embedding) for how apps stage it.
+This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), a build-time-prebuilt Temporal workflow bundle, and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge, `@cursor/sdk` and its native binaries, `jq-wasm`) — **~85 MB per platform**. `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for how apps stage it.
 
 > **Why the slim bundle is CommonJS, not ESM.** The runner's auth correctness depends on a deliberate module **load order**: it installs the fetch + HTTP/2 interceptors first, then lazily loads `@cursor/sdk` and `@connectrpc/connect-node` (via dynamic `import()`) so the interceptors are in place before those packages capture `globalThis.fetch` / snapshot the `node:http2` ESM facade. An **ESM** esbuild bundle destroys this — it hoists every external `import` to the top of the output and evaluates them before any code runs, freezing the `node:http2` facade and capturing the original `fetch` before install, which silently breaks proxy auth on the authenticated path (this was the regression in [#170](https://github.com/stigmer/stigmer/issues/170)). A **CJS** bundle preserves the source's lazy evaluation order, so the dynamic-import boundary keeps both interceptors correct. The meta `package.json` deliberately omits `"type": "module"` so `node main.js` runs as CommonJS — do **not** add it back, and do not flip `format` to `"esm"` in `bundle-slim.mjs`. The boot guard `assertHttp2ConnectPatched()` plus the authenticated check in `verify-slim-artifact.mjs` fail loudly if this is ever reverted.
 
@@ -42,12 +42,13 @@ The slim build is also published to npm as `@stigmer/runner-slim` (with per-plat
 
 ## Run modes
 
-The runner has two **run modes**, selected by the `STIGMER_RUNNER_MODE` environment variable. Do not confuse the run mode (process topology) with the execution location (`MODE=local|cloud`) or the transport (`STIGMER_PROXY_ENDPOINT`) — those are independent axes covered in [Execution location vs transport](#execution-location-vs-transport).
+The runner has three **run modes**, selected at boot by two environment variables (`src/main.ts`): `STIGMER_RUNNER_MODE=manager` selects manager mode; otherwise a set `STIGMER_POOL_MEMBER_ID` selects pool mode; otherwise the runner is static. Do not confuse the run mode (process topology) with the execution location (`MODE=local|cloud`) or the transport (`STIGMER_PROXY_ENDPOINT`) — those are independent axes covered in [Execution location vs transport](#execution-location-vs-transport).
 
 | Run mode | Selector | Topology | Used by |
 |----------|----------|----------|---------|
-| Static | `STIGMER_RUNNER_MODE` unset (default) | One Worker polling one task queue; blocks until shutdown | CLI daemon, cloud deployments |
+| Static | Neither of the two below (default) | One Worker polling one task queue; blocks until shutdown | CLI daemon, cloud deployments |
 | Manager | `STIGMER_RUNNER_MODE=manager` | Shared Temporal connection; dynamic per-session / per-execution Workers; stdin/stdout JSON IPC | Desktop app |
+| Pool | `STIGMER_POOL_MEMBER_ID` set, and `STIGMER_RUNNER_MODE` not `manager` | A warm-pool sandbox: boots the runner manager, then serves what its injected credential says — a blank member polls its `sandbox:{memberId}` control queue for a claim, a claimed member that restarted goes straight to its session's queue (`src/pool-member.ts`) | Hosted cloud sandboxes |
 
 ### Static mode
 
@@ -144,14 +145,17 @@ The check is skipped gracefully when the fingerprint file is absent — for exam
 
 ## Environment variable reference
 
-All configuration is environment-driven. Names and defaults below are verified against `src/config.ts`, `src/shared/artifact-storage.ts`, `src/claimcheck/config.ts`, `src/otel.ts`, and the LLM/registry activities. "Applies to" indicates the run mode, execution location, or credential mode a variable is relevant to.
+All configuration is environment-driven. Every variable the runner's source reads is named here, except the few `src/__tests__/readme-environment.test.ts` lists as deliberate exceptions, each with its reason (the operating system's home directory, a backend value not yet supported); the test fails when any other name appears nowhere in this file, so a new setting cannot land undocumented. That its row says the right thing is read in review. Defaults are checked by hand against the module each row cites or that reads the variable. "Applies to" indicates the run mode, execution location, or credential mode a variable is relevant to.
 
 ### Core configuration
 
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|
-| `STIGMER_RUNNER_MODE` | All | No | `static` | Selects the run mode. Set to `manager` for dynamic per-session/per-execution Workers; any other value (or unset) means static mode. |
-| `MODE` | All | No | `local` | Execution location: `local` (host filesystem, local-path workspaces) or `cloud` (server-provisioned sandbox, git-only). Independent of `STIGMER_PROXY_ENDPOINT`. |
+| `STIGMER_RUNNER_MODE` | All | No | `static` | Selects the run mode. Set to `manager` for dynamic per-session/per-execution Workers; any other value (or unset) means static mode, or pool mode when `STIGMER_POOL_MEMBER_ID` is set. |
+| `STIGMER_POOL_MEMBER_ID` | Hosted sandboxes | No | _(none)_ | Selects pool mode (see [Run modes](#run-modes)): the sandbox's identity in the warm pool. Set by the hosted edition's sandbox provisioning; a self-hosted runner never sets it. |
+| `MODE` | All | No | `local` | Execution location: `local` (host filesystem, local-path workspaces) or `cloud` (server-provisioned sandbox, git-only). Independent of `STIGMER_PROXY_ENDPOINT`. Also the default for the two guards below. |
+| `STIGMER_WEB_FETCH_ALLOW_PRIVATE` | All (native `web_fetch`) | No | follows `MODE`: strict in `cloud`, relaxed in `local` | The `web_fetch` address guard's override. `true` lets the agent fetch loopback and private-network addresses on any runner (link-local, which holds the cloud metadata endpoint, stays refused); `false` refuses them on a local runner too. For embedders whose execution location and network differ; managed cloud deployments never set it. See `src/tools/url-guard.ts`. |
+| `STIGMER_MCP_ALLOW_STDIO` | All | No | follows `MODE`: forbidden in `cloud`, allowed in `local` | The MCP transport guard's override. `true` lets a cloud runner start stdio MCP servers, which download a package and run it as a subprocess holding the execution's secrets; `false` forbids them on a local runner too. For rolling the policy back without a redeploy; managed cloud deployments never set it. See `src/shared/mcp-transport-guard.ts`. |
 | `STIGMER_TASK_QUEUE` | Static mode | No | `stigmer_runner` | Temporal task queue the static Worker polls. (Legacy alias: `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE`.) Unused in manager mode, where each Worker derives its own queue. |
 | `TEMPORAL_SERVICE_ADDRESS` | All | No | _(discovered)_ | Address of the Temporal frontend. **Resolution order:** an explicit value always wins; otherwise, if `STIGMER_TOKEN` is set, the runner discovers it from the control plane at boot (`getRunnerBootstrapConfig`); otherwise it falls back to `localhost:7233`. Discovery failure aborts startup with an actionable error (no silent fallback). |
 | `TEMPORAL_NAMESPACE` | All | No | `default` | Temporal namespace. |
@@ -176,7 +180,8 @@ All configuration is environment-driven. Names and defaults below are verified a
 
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|
-| `ARTIFACT_STORAGE_TYPE` | All | No | `proxy` if `STIGMER_PROXY_ENDPOINT` is set, else `local` | Selects the artifact backend: `local` (filesystem, served by the Stigmer backend) or `proxy` (presigned URLs via the proxy). An explicit value always wins. Storage follows transport, not execution location. |
+| `ARTIFACT_STORAGE_TYPE` | All | No | `proxy` if `STIGMER_ARTIFACT_PROXY_ENDPOINT` or `STIGMER_PROXY_ENDPOINT` is set, else `local` | Selects the artifact backend: `local` (filesystem, served by the Stigmer backend), `proxy` (presigned URLs via the proxy), or `none` (storage deliberately disabled: artifact features are refused rather than stored). An explicit value always wins. Storage follows transport, not execution location (`src/shared/artifact-storage.ts`). |
+| `STIGMER_ARTIFACT_PROXY_ENDPOINT` | Proxy storage | No | value of `STIGMER_PROXY_ENDPOINT` | Endpoint the proxy artifact store presigns against, when artifact traffic must reach a different host than LLM traffic (the checkpointer-override pattern). |
 | `LOCAL_ARTIFACT_PATH` | Local storage | No | `~/.stigmer/data/artifacts` | Filesystem root of the local artifact store. **Must equal the stigmer-server's `ARTIFACT_LOCAL_BASE_PATH`** — in local mode the server writes an artifact to `<ARTIFACT_LOCAL_BASE_PATH>/<key>` and the runner reads it from `<LOCAL_ARTIFACT_PATH>/<key>`, so a mismatch makes every storage-key attachment and offload fail to resolve. The defaults align out of the box; the CLI local daemon sets both explicitly. |
 | `LOCAL_ARTIFACT_SERVE_URL` | Local storage | No | `http://localhost:7235` | Base URL of the server's artifact HTTP file server (its `ARTIFACT_HTTP_PORT`, default `GRPC_PORT + 1`, or an ephemeral port the server's boot log names when `GRPC_PORT` is 0). Used for blob downloads; the runner's own read-back goes straight to disk. |
 
@@ -215,6 +220,24 @@ The claim-check codec offloads oversized Temporal payloads to artifact storage a
 | `STIGMER_CLOUD_API_URL` | All | No | _(unset)_ | Explicit override for the origin serving `/v1/proxy/model-registry` (model resolution and pricing). When unset, fetches go to `STIGMER_PROXY_ENDPOINT` (proxy mode) or `STIGMER_BACKEND_ENDPOINT` (direct/local mode — the local stigmer-server serves the registry). |
 | `STIGMER_AUTH_TOKEN` | Pricing/registry fetch | No | value of `STIGMER_TOKEN` | Fallback bearer token for model-pricing and model-registry requests when `STIGMER_TOKEN` is not set. |
 | `GITHUB_TOKEN` | Deep-agent git writeback | When writing back to GitHub | _(none)_ | Token used by the deep-agent harness for git writeback operations. |
+| `STIGMER_RUNNER_HITL_SECRET` | All | No | _(a random secret per process)_ | Master secret the per-execution approval fingerprint keys derive from (`src/shared/fingerprint-secret.ts`). Set it to keep a pending approval valid across runner restarts and replicas; without it a restart re-keys, so a pending approval is asked again (never silently accepted). Taken into the credential store at boot, so agent tools never see it. |
+
+### Model backends
+
+Where the native harness's models are served when the runner talks to providers directly. Under `STIGMER_PROXY_ENDPOINT` the proxy owns provider routing, and the runner warns that a non-`public` backend is ignored. The [model backends guide](https://stigmer.ai/docs/guides/runners/model-backends) is the one explanation of each backend, its credentials and its errors; the rows below index what the runner reads.
+
+| Variable | Applies to | Required | Default | Purpose |
+|----------|-----------|----------|---------|---------|
+| `STIGMER_ANTHROPIC_BACKEND` | Anthropic models | No | `public` | Where Anthropic models are served: `public` (Anthropic's API), `vertex`, `bedrock` or `foundry`. An unknown value stops the runner at startup. |
+| `CLOUD_ML_REGION` | `vertex` | Yes (vertex) | _(none)_ | The Vertex AI region, or `global`. Credentials come from Application Default Credentials. |
+| `AWS_REGION` | `bedrock` | Yes (bedrock) | _(none)_ | The Bedrock region; the runner never assumes one. |
+| `AWS_BEARER_TOKEN_BEDROCK` | `bedrock` | No | _(the AWS credential chain)_ | A Bedrock API key, instead of the AWS chain (environment keys, IAM role / IRSA). Taken into the credential store at boot. |
+| `STIGMER_BEDROCK_INFERENCE_PREFIX` | `bedrock` | No | _(none)_ | The inference-profile geography (`us`, `eu`, `global`, …) for models Bedrock serves only through a profile. |
+| `STIGMER_BEDROCK_MODEL_MAP` | `bedrock` | No | _(none)_ | Overrides, `canonical=bedrockId` pairs separated by commas; consulted before the built-in mapping. A malformed value stops the runner at startup. |
+| `ANTHROPIC_FOUNDRY_RESOURCE` | `foundry` | One of the two | _(none)_ | The Microsoft Foundry resource name. |
+| `ANTHROPIC_FOUNDRY_BASE_URL` | `foundry` | One of the two | _(none)_ | A full Foundry endpoint, instead of the resource name. |
+| `ANTHROPIC_FOUNDRY_API_KEY` | `foundry` | No | _(a Microsoft Entra ID token)_ | A Foundry API key, instead of the runner's Azure identity. Taken into the credential store at boot. |
+| `STIGMER_FOUNDRY_DEPLOYMENT_MAP` | `foundry` | No | _(none)_ | Custom deployment names, `canonical=deployment` pairs separated by commas. A malformed value stops the runner at startup. |
 
 ### Observability
 
@@ -231,6 +254,13 @@ These tune internal behavior or support testing. Most operators never set them.
 | `STREAMING_MIN_INTERVAL_MS` | `500` | Minimum time between streaming status updates (rate limit). |
 | `STREAMING_MAX_INTERVAL_MS` | `5000` | Maximum time before a forced keepalive status update. Clamped up to the min if set lower. |
 | `STREAMING_BURST_THRESHOLD` | `50` | Event count that triggers an immediate status update (burst protection). |
+| `STIGMER_PROGRESS_CAPTURE_MIN_INTERVAL_MS` | `2000` | Minimum time between two mid-run captures of the "N files changed so far" strip. Each capture stages the working tree with git (git workspaces) or reads the touched files (other workspaces), so this bounds that cost however often status is written. Read once at startup; a non-numeric or negative value keeps the default, and `0` captures on every status write. |
+| `CURSOR_STREAM_STALL_TIMEOUT_MS` | `180000` (3 min) | **Parsed but not yet honoured** ([#1731](https://github.com/stigmer/stigmer/issues/1731)): `loadConfig` reads it, but no boot path passes it to the runner, so the default always applies to `stigmer-runner`. The bound it names: how long an engine may report no activity before the run is cancelled and the execution fails with a stall error, for every harness (the name is the Cursor harness's, its first user). Embedders set it through the `cursorStreamStallTimeoutMs` option. |
+| `CURSOR_AGENT_RESOLVE_TIMEOUT_MS` | `120000` (2 min) | **Parsed but not yet honoured**, as above; embedders use the `agentResolveTimeoutMs` option. The bound it names: the Cursor SDK's agent create or resume, which has no timeout of its own; on expiry the execution fails with a transport diagnosis instead of hanging until Temporal's heartbeat timeout. |
+| `STIGMER_CURSOR_AGENT_CACHE_TTL_MS` | `1800000` (30 min) | How long an idle Cursor agent stays parked between turns, holding its MCP subprocesses, before it is closed. A non-positive or non-numeric value keeps the default. |
+| `WORKSPACE_LOCK_TIMEOUT_MS` | `900000` (15 min) | **Parsed but not yet honoured**, as above; embedders use the `workspaceLockTimeoutMs` option. The bound it names: how long a turn waits for another session's lock on the same workspace before the execution fails with "workspace is in use by another session" (`src/shared/workspace/workspace-lock.ts`). |
+| `STIGMER_MCP_BRIDGE_ENDPOINT` | _(none)_ | The MCP bridge the runner's own attachments (channel messaging, conversation participation) connect to, as `https://…`. Unset selects the local shape: a spawned `stigmer mcp-server` stdio child against the local backend. |
+| `STIGMER_WORKFLOW_BUNDLE` | _(discovered)_ | An explicit path to the pre-built Temporal workflow bundle, for tests and for embedders that stage it elsewhere (`src/workflow-source.ts`). A path that does not exist stops the boot. |
 | `SKIP_MCP_CONNECT_BACKFILL` | `false` | When `true`, skips MCP Connect backfill. |
 | `STIGMER_MCP_PUBLIC_ENDPOINT` | _(none)_ | The server's public endpoint. A server that provisions this runner's sandbox sets it from its own configuration (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`). Fills `STIGMER_SERVER_ADDRESS` (as `host:port`) for MCP servers that declare it and carry no value; without it, only stdio servers are filled, from `STIGMER_BACKEND_ENDPOINT`. A value already present is never overridden. |
 | `CURSOR_EVENT_RECORD_DIR` | _(none)_ | Directory to record Cursor harness events (debugging/fixtures). |

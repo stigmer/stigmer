@@ -23,13 +23,18 @@
  *         "mutate": ["src/authorization/**\/*.ts", "!src/authorization/**\/__tests__/**"],
  *         "concurrency": 2
  *       }
- *     }
+ *     },
+ *     "check": "make sweep TARGET={target} ONLY=<file>"
  *   }
  * `mutate` is relative to the package, as Stryker reads it. The engines a
  * target's tests need (Postgres, OpenFGA) are the caller's to provide, with
  * `STIGMER_TEST_GATE=1` so a missing one fails instead of skipping: a sweep
  * whose database suites skipped would report every line only they check as
- * run by nothing.
+ * run by nothing. `check`, optional, is the command each issue gives for
+ * checking a fix in one file, with `{target}` where the target's name goes.
+ * Without it the issue gives this script's own `--only` command with the
+ * variable set; a repository that runs the script through a wrapper of its
+ * own (one that provides the engines, say) names that instead.
  *
  * Four modes:
  *   - `--run <target>` writes the target's Stryker config into `--out`, runs
@@ -71,6 +76,11 @@
  *     rewritten every run, a comment added when the list changed, closed when
  *     the list is empty, reopened when a finding returns. The previous run's
  *     list is read back from the issue body, so the script keeps no state.
+ *     An open issue whose target the targets file no longer names is closed,
+ *     since nothing will rewrite it again. That is judged against the file,
+ *     not the runs, so a run that swept only some targets closes nothing
+ *     else; and a run of one-file checks, which publishes nothing, closes
+ *     nothing either.
  *     `--failed` files or comments on one `mutation-sweep-failure` issue
  *     instead, for a run that could not sweep.
  *
@@ -100,7 +110,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, posix, relative, resolve } from "node:path";
+import { isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ─── The targets file ───────────────────────────────────────────────────
@@ -113,18 +123,28 @@ export const FAILURE_LABEL = "mutation-sweep-failure";
 
 const TARGET_NAME = /^[a-z0-9][a-z0-9-]*$/;
 
-/** Reads the targets file; returns the targets and every problem with its shape. */
+/** Where a `check` command puts the target's name. */
+export const TARGET_PLACEHOLDER = "{target}";
+
+/**
+ * Reads the targets file; returns the targets, the file's `check` command (or
+ * undefined when it names none) and every problem with its shape.
+ */
 export function readTargets(text) {
   const problems = [];
   let doc;
   try {
     doc = JSON.parse(text);
   } catch (error) {
-    return { targets: {}, problems: [`not JSON: ${error instanceof Error ? error.message : String(error)}`] };
+    return { targets: {}, check: undefined, problems: [`not JSON: ${error instanceof Error ? error.message : String(error)}`] };
   }
   const targets = doc?.targets;
   if (targets === null || typeof targets !== "object" || Array.isArray(targets)) {
-    return { targets: {}, problems: ['needs a "targets" object'] };
+    return { targets: {}, check: undefined, problems: ['needs a "targets" object'] };
+  }
+  const check = doc.check;
+  if (check !== undefined && !(typeof check === "string" && check.includes(TARGET_PLACEHOLDER))) {
+    problems.push(`"check" is the command that checks a fix in one file, with ${TARGET_PLACEHOLDER} where the target's name goes`);
   }
   for (const [name, target] of Object.entries(targets)) {
     if (!TARGET_NAME.test(name)) problems.push(`target "${name}": a name is lowercase words joined by "-"`);
@@ -139,7 +159,28 @@ export function readTargets(text) {
       problems.push(`target "${name}": "concurrency" is a whole number of test workers, at least 1`);
     }
   }
-  return { targets, problems };
+  return { targets, check, problems };
+}
+
+/**
+ * The `check` a targets file at `targetsPath` gets when it names none: this
+ * script's own one-file sweep, with the variable that makes a missing engine
+ * fail rather than skip.
+ */
+export function defaultCheck(targetsPath) {
+  return `STIGMER_TEST_GATE=1 node scripts/mutation-sweep.mjs --targets ${targetsPath} --run ${TARGET_PLACEHOLDER} --out <dir> --only <file>`;
+}
+
+/**
+ * The targets path an issue's default command names: relative to the
+ * repository root, as the command is run from there, so a run given an
+ * absolute or `./` path never prints its own machine's path in an issue. A
+ * file outside the repository keeps the path it was given.
+ */
+export function issueTargetsPath(targetsPath, repoRoot) {
+  const fromRoot = relative(repoRoot, resolve(targetsPath));
+  if (fromRoot === "" || fromRoot.startsWith("..") || isAbsolute(fromRoot)) return targetsPath;
+  return fromRoot.split(sep).join(posix.sep);
 }
 
 /**
@@ -533,6 +574,24 @@ export function targetMarker(name) {
   return `<!-- ${MARKER}:target=${name} -->`;
 }
 
+/** The target an issue body's marker names, or undefined for a body that is not a target's. */
+export function targetOfBody(body) {
+  const match = new RegExp(`<!-- ${MARKER}:target=([a-z0-9][a-z0-9-]*) -->`).exec(body ?? "");
+  return match ? match[1] : undefined;
+}
+
+/**
+ * The open issues whose target `targets` no longer names: a target removed
+ * from the file, or renamed, which no run will rewrite again. A closed one is
+ * left as it is, and an issue with no marker is not a target's.
+ */
+export function orphanedIssues(issues, targets) {
+  return issues.filter((issue) => {
+    const name = targetOfBody(issue.body);
+    return issue.state === "OPEN" && name !== undefined && !Object.hasOwn(targets, name);
+  });
+}
+
 /**
  * The finding keys a previous body recorded: none for a body without the
  * marker (a new issue), undefined when the body recorded too many to keep, so
@@ -595,7 +654,7 @@ function byFileEntries(findings) {
  * The issue for one target: its title, and a body a person can act on that
  * also carries, hidden, the target's name and this run's finding keys.
  */
-export function renderIssue({ name, target, summary, change, commit, runUrl }) {
+export function renderIssue({ name, target, check, summary, change, commit, runUrl }) {
   const notNoticed = summary.findings.filter((f) => f.status === "Survived" && !f.harmless);
   const harmless = summary.findings.filter((f) => f.status === "Survived" && f.harmless);
   const neverRun = summary.findings.filter((f) => f.status === "NoCoverage");
@@ -615,7 +674,7 @@ export function renderIssue({ name, target, summary, change, commit, runUrl }) {
     "A finding is closed by a test that fails when the code is changed that way. When the change truly makes no difference (two ways of writing the same thing), the line above it carries `// Stryker disable next-line <rule>: <why it makes no difference>`, and the reviewer judges the reason. To check a fix locally:",
     "",
     "```",
-    `node scripts/mutation-sweep.mjs --targets <targets file> --run ${name} --out <dir> --only <file>`,
+    check.replaceAll(TARGET_PLACEHOLDER, name),
     "```",
     "",
     facts.join(" · "),
@@ -737,10 +796,11 @@ function root() {
   return execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 }
 
+/** The targets file at `path`, validated: its targets, and the `check` it names, if any. */
 function loadTargets(path) {
-  const { targets, problems } = readTargets(readFileSync(resolve(path), "utf8"));
+  const { targets, check, problems } = readTargets(readFileSync(resolve(path), "utf8"));
   if (problems.length > 0) throw new Error(`${path}: ${problems.join("; ")}`);
-  return targets;
+  return { targets, check };
 }
 
 /**
@@ -782,7 +842,7 @@ function removeStrykerSetupFiles(packageDir) {
 }
 
 async function runTarget(opts) {
-  const targets = loadTargets(opts.targets);
+  const { targets } = loadTargets(opts.targets);
   const target = targets[opts.run];
   if (!target) throw new Error(`no target "${opts.run}" in ${opts.targets} (known: ${Object.keys(targets).join(", ")})`);
   const repo = root();
@@ -873,10 +933,13 @@ async function runTarget(opts) {
 
 /** The targets file's targets, validated, as `[{ name, package }]`: what a workflow builds its matrix from. */
 function listTargets(opts) {
-  const targets = loadTargets(opts.targets);
+  const { targets } = loadTargets(opts.targets);
   console.log(JSON.stringify(Object.entries(targets).map(([name, target]) => ({ name, package: target.package }))));
   return 0;
 }
+
+/** What a closed orphan's issue is told. */
+const ORPHAN_COMMENT = "Its target is no longer in the targets file, so the sweep will not rewrite this issue again.";
 
 function previousIssues(repo) {
   const listed = JSON.parse(gh(["issue", "list", "--repo", repo, "--label", LABEL, "--state", "all", "--limit", "200", "--json", "number,state,body"]));
@@ -884,7 +947,8 @@ function previousIssues(repo) {
 }
 
 function report(opts) {
-  const targets = loadTargets(opts.targets);
+  const { targets, check: named } = loadTargets(opts.targets);
+  const check = named ?? defaultCheck(issueTargetsPath(opts.targets, root()));
   const runs = readRuns(opts.inputs.map((d) => resolve(d)));
   if (runs.length === 0) {
     console.error("mutation-sweep: no target.json under the inputs; nothing ran, so nothing can be reported");
@@ -903,7 +967,7 @@ function report(opts) {
     const existing = issues.find((i) => (i.body ?? "").includes(targetMarker(run.target)));
     const previousKeys = keysFromBody(existing?.body);
     const change = existing && previousKeys ? compareRuns(previousKeys, summary.findings.map((f) => f.key)) : undefined;
-    const rendered = renderIssue({ name: run.target, target, summary, change, commit: run.commit, runUrl: opts.runUrl });
+    const rendered = renderIssue({ name: run.target, target, check, summary, change, commit: run.commit, runUrl: opts.runUrl });
     out.push({ target: run.target, summary, rendered });
     if (opts.publish && !run.only) {
       const bodyDir = mkdtempSync(join(tmpdir(), "mutation-sweep-"));
@@ -916,6 +980,12 @@ function report(opts) {
       } finally {
         rmSync(bodyDir, { recursive: true, force: true });
       }
+    }
+  }
+  if (opts.publish && runs.some((run) => !run.only)) {
+    for (const orphan of orphanedIssues(issues, targets)) {
+      gh(["issue", "close", String(orphan.number), "--repo", opts.repo, "--comment", ORPHAN_COMMENT]);
+      console.log(`• closed #${orphan.number}: its target, ${targetOfBody(orphan.body)}, is no longer in ${opts.targets}`);
     }
   }
   if (opts.json) {

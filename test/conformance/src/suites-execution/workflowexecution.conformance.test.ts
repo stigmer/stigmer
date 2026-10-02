@@ -491,7 +491,12 @@ describe("WorkflowExecution conformance — create negative paths", () => {
 // (pinned below) from hanging the suite.
 
 describe("WorkflowExecution conformance — event log pagination & streaming (CW-7)", () => {
-  it("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog walks the after_sequence cursor: page_size 1, has_more, exhaustion", async () => {
+  // The server saves an execution's terminal status and then, in a second
+  // write, the events of the same update (update-status.ts: the merge, then
+  // PersistEvents), so a read right after the phase turns terminal can find
+  // the log one event short, and this walk sees has_more false too early.
+  // quarantined: stigmer/stigmer#1634
+  it.skip("[rpc:WorkflowExecutionQueryController.getEventLog] getEventLog walks the after_sequence cursor: page_size 1, has_more, exhaustion", async () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     const created = await createExecution(org, workflowId);

@@ -32,10 +32,11 @@
  *
  *   - `workflow_dispatch`: a manual run is "run it" (the ci.docs convention).
  *   - the lane's own workflow file, or the workspace's own tooling
- *     (WORKSPACE_TOOLING: the root manifests, scripts/**, the composite
- *     actions and the coverage floors), changed. Turbo attributes these to
- *     the root package and no task; but a root devDependency bump (tsx,
- *     @tailwindcss/cli) is what several build scripts run, a change to this
+ *     (WORKSPACE_TOOLING: the root manifests, the Node version, scripts/**,
+ *     the composite actions and the coverage floors), changed. Turbo
+ *     attributes these to the root package and no task; but a root
+ *     devDependency bump (tsx, @tailwindcss/cli) is what several build
+ *     scripts run, every package runs on the Node version, a change to this
  *     lane must exercise this lane, a job here that calls a composite action
  *     must run when the action changes (#1715), and a moved coverage floor is
  *     judged against a run that measured every package it names (the gate's
@@ -96,6 +97,8 @@ export const COVERAGE_FLOORS = "test/coverage-floors.json";
 export const WORKSPACE_TOOLING = [
   "package.json",
   "package-lock.json",
+  // Every package builds and runs on the Node version it names (#1734).
+  ".nvmrc",
   "scripts/",
   // A composite action runs every lane (EVERY_LANE in ci-lanes.mjs); here it
   // runs every package, so each job of this lane that calls the action runs.

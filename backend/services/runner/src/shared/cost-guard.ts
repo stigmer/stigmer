@@ -1,32 +1,35 @@
 /**
  * ExecutionConfig.max_cost_usd enforcement as a hard stop on a harness turn.
  *
- * Harness-agnostic: the Cursor activity was its only caller until the turn
- * runtime took it over in #1070. The rationale below is Cursor's, and it is
- * why the module is shaped as a hard stop rather than a middleware.
+ * The one enforcement of the cap, for every harness: the turn runtime
+ * (`harness/run-turn.ts`) calls `costCapExceeded` on each usage delta an
+ * adapter reports, and on an overrun stops the turn through the same abort
+ * the stall watchdog and a platform STOP use, then settles `costCapArm`
+ * (`harness/terminal-table.ts`): EXECUTION_TERMINATED, work checkpointed, the
+ * conversation continuing on the next message — the recursion-limit
+ * precedent, `toolCallLimitArm`.
  *
- * The native harness enforces the cap in middleware (cost-cap.ts): tools are
- * blocked at the threshold and the model gets one final tool-free round to
- * summarize. Cursor's only control point is cancelling the in-flight run, so
- * here the cap is a HARD stop — the shared onDelta flags the overrun when a
- * turn-ended usage delta lands, and the stream loop ends the run through the
- * same clean-cancel pattern the stall watchdog and first-denial stop use.
- * Slightly harsher than native by construction; both harnesses terminate with
- * the same honesty semantics (EXECUTION_TERMINATED, work checkpointed, the
- * conversation continues on the next message — the recursion-limit precedent,
- * `harness/terminal-table.ts` `toolCallLimitArm`).
+ * Why a hard stop rather than a middleware: the Cursor activity was the
+ * guard's only caller until the turn runtime took it over in #1070, and
+ * Cursor's only control point is cancelling the in-flight run. The runtime
+ * kept that shape for every engine, because it is where the running estimate
+ * advances. Until #1096 the native harness also capped inside its graph
+ * (`cost-cap.ts`: tools blocked at the threshold, one final tool-free round
+ * to summarize); that middleware now only advises, near the cap
+ * (`middleware/cost-advisory.ts`).
  *
- * The running figure is the usage accumulator's local pricing-table estimate
- * (authoritative billing is the BiDi proxy). That is the same estimation
- * basis the native cost-cap middleware uses — acceptable for a safety net.
+ * The running figure is the runtime usage accumulator's local pricing-table
+ * estimate (`harness/usage-accumulator.ts`; authoritative billing is the
+ * BiDi proxy) — acceptable for a safety net. The cost advisory warns from
+ * its own tally on the same estimation basis, which can differ slightly: it
+ * prices cache writes at the input rate.
  */
 
 /**
  * Whether the per-execution cost budget has been exhausted.
  *
  * `maxCostUsd <= 0` means "no cap" (the proto contract: 0/unset disables the
- * ceiling). The boundary is inclusive: reaching the cap exactly stops the run,
- * matching the native middleware's `runningCost >= maxCostUsd` check.
+ * ceiling). The boundary is inclusive: reaching the cap exactly stops the run.
  */
 export function costCapExceeded(maxCostUsd: number, estimatedCostUsd: number): boolean {
   return maxCostUsd > 0 && estimatedCostUsd >= maxCostUsd;

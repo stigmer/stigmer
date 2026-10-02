@@ -48,6 +48,7 @@ jobs:
   lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -130,6 +131,7 @@ jobs:
   sdk-docs-freshness:
     name: SDK Docs Freshness
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -171,6 +173,7 @@ jobs:
   links:
     name: Links (Lychee)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Non-blocking: external links are inherently flaky in CI due to rate
     # limiting, transient failures, and geo-blocks. Exclusions for known
     # vendor dashboard URLs live in .lychee.toml.

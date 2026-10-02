@@ -33,9 +33,11 @@
 # `--only`; turbo builds the dependencies (`^build`) itself. Three cases run
 # everything, because turbo cannot see the change: a manual dispatch; a change
 # to this file (passed as --lane-file, since a called workflow's own ref
-# names ci.gate.yaml), to ci.gate.yaml, or to the workspace tooling (root
-# manifests, scripts/**); an SCM fallback, which also prints a warning. The job summary shows base, head
-# and turbo's reason per task, so a skipped job can be trusted from the PR.
+# names ci.gate.yaml), to ci.gate.yaml, or to the workspace tooling
+# (WORKSPACE_TOOLING in scripts/turbo-affected.mjs, which says why each entry
+# runs everything); an SCM fallback, which also prints a warning. The job
+# summary shows base, head and turbo's reason per task, so a skipped job can
+# be trusted from the PR.
 # It is the only job that needs git history: a full commit graph without
 # blobs (`filter: blob:none`), since `git diff --name-only` reads trees.
 #
@@ -113,6 +115,7 @@ jobs:
   changes:
     name: Detect affected packages
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       packages: ${{ steps.verdict.outputs.packages }}
       libs: ${{ steps.verdict.outputs.libs }}
@@ -159,6 +162,7 @@ jobs:
   libs:
     name: Libs build + tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: changes
     if: needs.changes.outputs.libs == 'true'
     env:
@@ -230,6 +234,7 @@ jobs:
   verify:
     name: Lint + Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: changes
     if: needs.changes.outputs.packages != '[]'
     env:
@@ -278,6 +283,7 @@ jobs:
   a11y-audit:
     name: Browser Suite (A11y Audit + Layout Contracts)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
     steps:
@@ -313,6 +319,7 @@ jobs:
   react-tests:
     name: React SDK Tests (coverage)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
     steps:
@@ -355,6 +362,7 @@ jobs:
   react-vm-tests:
     name: React SDK Tests (vmForks)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
     steps:
@@ -381,6 +389,7 @@ jobs:
   web-tests:
     name: Web Console Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), 'web')
     steps:
@@ -419,6 +428,7 @@ jobs:
   desktop-tests:
     name: Desktop App Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
     steps:
@@ -464,6 +474,9 @@ jobs:
   desktop-rust:
     name: Desktop Rust Tests
     runs-on: ubuntu-latest
+    # Sized for an archive-cache miss in .github/actions/tauri-linux-deps:
+    # its download from Ubuntu's mirror has taken 20 min 17 s (#1529).
+    timeout-minutes: 45
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
     steps:
@@ -496,6 +509,7 @@ jobs:
   typecheck-clean-room:
     name: typecheck (clean-room resolution)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: needs.changes.outputs.libs == 'true'
     steps:
@@ -537,10 +551,18 @@ jobs:
       #     still typechecks here (issue #1044 was exactly that class, and
       #     yarn's last catch on this job). Under npm that is each package's
       #     own devDependencies discipline.
+      # `--before` ignores versions published in the last hour: the registry
+      # can list a version before it serves its tarball, and that E404 says
+      # nothing about this change (#1669; scripts/lib/resolve-before.mjs).
       - name: Install dependencies (npm, fresh resolution)
         run: |
           rm package-lock.json
-          npm install --no-package-lock --no-audit --no-fund
+          # Its own assignment, so a failure stops the step (a failed
+          # substitution inside an argument would not, and npm would resolve
+          # live past an empty --before).
+          cutoff="$(node scripts/lib/resolve-before.mjs 1)"
+          echo "Resolving versions published before $cutoff"
+          npm install --no-package-lock --no-audit --no-fund --before="$cutoff"
 
       # The three dist-exporting libs a consumer package imports (see the
       # header): the CLI resolves each from its dist, so all are built before
