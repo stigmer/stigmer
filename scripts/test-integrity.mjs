@@ -40,6 +40,16 @@
  *     line by line and any other shape is refused (`rpc-waivers-shape`), so an
  *     entry is never passed unread; the conformance suite's `inventory:check`
  *     holds the rest of the file. A tree without the file has no such rule.
+ *   - a lowered coverage floor. A `coverage-floors.json` (found by that name
+ *     wherever a repository keeps it, so this shared file names neither
+ *     repository's layout) holds each package's lowest share of lines and
+ *     branches run and its fewest passing cases (scripts/test-coverage.mjs
+ *     reads it and has the rest of its rules); a package entry the base
+ *     carried that the change removes, or whose figure it lowers, is refused.
+ *     A raised or added floor, and the `margin`, are the coverage tool's to
+ *     judge, against a run that measured them. A file this reader cannot read
+ *     as `packages` of numbers, at the head or the base, is refused
+ *     (`coverage-floors-shape`), never passed unread.
  *
  * Rules on where a test lives and what its name says (always; the standard
  * they enforce is test/README.md, "The test standard"). A name that says
@@ -116,12 +126,17 @@
  *   Quarantine: <case title or file path> -- <repo>#<issue>
  *   Skip: <case title or file path> -- <why the case does not apply there>
  *   RPC-waiver: <Service>.<method> -- <why no conformance test pins it>
+ *   Coverage-drop: <package dir> -- <why its floor falls>
  *
  * A quarantine is a case that should run and cannot yet (flaky, blocked), so
  * it names an open issue. A skip is a case that does not apply in some place
  * it can run (a deployed endpoint with no operator credential, a smoke run
  * against a sign-in redirect), so it names its reason. An RPC waiver is part
  * of the API left without the conformance test that pins it, so it names why.
+ * A coverage drop is a package whose tests now run less of it, or fewer of
+ * whose cases pass, so it names why; one line covers every figure of the
+ * package. A removed case at its package's exact case floor takes two lines:
+ * `Test-removal:` for the case, `Coverage-drop:` for the floor.
  *
  * The declarations are self-service by design: they make a removal or a skip
  * loud and put it in front of the reviewer, who reads the retitles too, since
@@ -176,11 +191,19 @@ export const BY_CONSTRUCTION = [
 ];
 
 const QUARANTINE_COMMENT = /quarantined:\s*((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/i;
-const DECLARATION = /^\s*(Test-removal|Quarantine|Skip|RPC-waiver)\s*:\s*(.+?)\s+(?:--|—|–)\s+(.+?)\s*$/gim;
+const DECLARATION = /^\s*(Test-removal|Quarantine|Skip|RPC-waiver|Coverage-drop)\s*:\s*(.+?)\s+(?:--|—|–)\s+(.+?)\s*$/gim;
 
 /** The conformance suite's RPC waivers, read by the change rule on weakened waivers. */
 export const RPC_WAIVERS = "test/conformance/inventory/rpc-waivers.yaml";
 const WAIVER_KINDS = new Set(["gap", "proven-elsewhere"]);
+
+/**
+ * The coverage floors file, by its name: stigmer keeps it in test/, the cloud
+ * in scripts/, and a path fixed here would be blind to one of them.
+ */
+export const COVERAGE_FLOORS_NAME = "coverage-floors.json";
+const COVERAGE_FLOORS_PATHSPECS = [COVERAGE_FLOORS_NAME, `**/${COVERAGE_FLOORS_NAME}`];
+const FLOOR_FIGURES = ["lines", "branches", "cases"];
 
 /** The services a gate provides: a file's name carries one exactly when the file reaches it. */
 export const SERVICE_WORDS = ["openfga", "postgres", "temporal", "vault"];
@@ -941,6 +964,64 @@ export function compareRpcWaivers(base, head) {
   return weakened;
 }
 
+// ─── Coverage floors ────────────────────────────────────────────────────
+
+/**
+ * Reads a floors file's `packages`: `{ entries: Map<package, { lines, branches,
+ * cases, line }>, problems: [{ line, message }] }`. Only what the drop rule
+ * compares is read, each figure a number, so this reader is never stricter
+ * than the coverage tool's own (`readFloors` in scripts/test-coverage.mjs),
+ * which holds the rest of the shape. `line` is where the package's key sits,
+ * for the finding to point at.
+ */
+export function readCoverageFloors(text) {
+  const entries = new Map();
+  const problems = [];
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    return { entries, problems: [{ line: 1, message: `not JSON: ${error.message}` }] };
+  }
+  // As `readFloors` reads it: no `packages` (or null) is an empty file, anything else that is not an object is not one.
+  const packages = data?.packages ?? {};
+  if (typeof packages !== "object" || Array.isArray(packages)) {
+    return { entries, problems: [{ line: 1, message: "`packages` must be an object keyed by package directory" }] };
+  }
+  const lines = text.split("\n");
+  for (const [pkg, floor] of Object.entries(packages)) {
+    const key = JSON.stringify(pkg);
+    const line = lines.findIndex((l) => l.trimStart().startsWith(`${key}:`) || l.trimStart().startsWith(`${key} :`)) + 1 || 1;
+    const bad = FLOOR_FIGURES.filter((figure) => typeof floor?.[figure] !== "number");
+    if (bad.length > 0) {
+      problems.push({ line, message: `${pkg}: ${bad.join(", ")} must be a number` });
+      continue;
+    }
+    entries.set(pkg, { lines: floor.lines, branches: floor.branches, cases: floor.cases, line });
+  }
+  return { entries, problems };
+}
+
+/**
+ * The floors the head lowers against the base: each package the base floored
+ * that the head removed, or one of whose figures the head lowered. A raised
+ * or added floor lowers nothing. Returns `[{ pkg, line, removed, lowered:
+ * [{ figure, from, to }] }]`, `line` the head's key line (1 for a removal).
+ */
+export function compareCoverageFloors(base, head) {
+  const dropped = [];
+  for (const [pkg, was] of base ?? new Map()) {
+    const now = head?.get(pkg);
+    if (!now) {
+      dropped.push({ pkg, line: 1, removed: true, lowered: [] });
+      continue;
+    }
+    const lowered = FLOOR_FIGURES.filter((figure) => now[figure] < was[figure]).map((figure) => ({ figure, from: was[figure], to: now[figure] }));
+    if (lowered.length > 0) dropped.push({ pkg, line: now.line, removed: false, lowered });
+  }
+  return dropped;
+}
+
 // ─── Declarations and quarantines ───────────────────────────────────────
 
 export function parseDeclarations(body) {
@@ -948,17 +1029,19 @@ export function parseDeclarations(body) {
   const quarantines = [];
   const skips = [];
   const rpcWaivers = [];
+  const coverageDrops = [];
   for (const match of (body ?? "").matchAll(DECLARATION)) {
     const [, kind, subject, rest] = match;
     if (kind.toLowerCase() === "test-removal") removals.push({ subject: subject.trim(), reason: rest.trim() });
     else if (kind.toLowerCase() === "skip") skips.push({ subject: subject.trim(), reason: rest.trim() });
     else if (kind.toLowerCase() === "rpc-waiver") rpcWaivers.push({ subject: subject.trim(), reason: rest.trim() });
+    else if (kind.toLowerCase() === "coverage-drop") coverageDrops.push({ subject: subject.trim(), reason: rest.trim() });
     else {
       const issue = /((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/.exec(rest);
       quarantines.push({ subject: subject.trim(), repo: issue?.[1] ?? "", issue: issue ? Number(issue[2]) : undefined });
     }
   }
-  return { removals, quarantines, skips, rpcWaivers };
+  return { removals, quarantines, skips, rpcWaivers, coverageDrops };
 }
 
 function declares(declarations, item) {
@@ -986,6 +1069,16 @@ export function applyDeclarations(comparison, declarations) {
     const what = w.was === undefined ? `${w.rpc} is waived as \`${w.kind}\` and was not waived at the base` : `${w.rpc}'s waiver moved from \`${w.was}\` to \`${w.kind}\``;
     if (d) declared.push({ rule: "new-rpc-waiver", path: RPC_WAIVERS, line: w.line, message: `${what}: ${d.reason}` });
     else refused.push({ rule: "new-rpc-waiver", path: RPC_WAIVERS, line: w.line, message: `${what}; declare it with \`RPC-waiver: ${w.rpc} -- <why no conformance test pins it>\`` });
+  }
+  for (const f of comparison.droppedFloors ?? []) {
+    const d = (declarations.coverageDrops ?? []).find((x) => x.subject === f.pkg);
+    const what = f.removed
+      ? `${f.pkg}'s floor was removed`
+      : `${f.pkg}: ${f.lowered.map((l) => `${l.figure} ${l.from} -> ${l.to}`).join(", ")}`;
+    // A case floor usually falls because a case was removed, which its own line declares; the floor needs this one too.
+    const cases = f.lowered.some((l) => l.figure === "cases") ? " (a `Test-removal:` declares a case; this line declares its package's floor)" : "";
+    if (d) declared.push({ rule: "coverage-drop", path: f.path, line: f.line, message: `${what}: ${d.reason}` });
+    else refused.push({ rule: "coverage-drop", path: f.path, line: f.line, message: `${what}; declare it with \`Coverage-drop: ${f.pkg} -- <why its floor falls>\`${cases}` });
   }
   return { refused, declared };
 }
@@ -1101,11 +1194,26 @@ function main(argv) {
         lineages.push({ base: readBase(a), head: head.get(a) });
       }
     }
+    const baseTree = git(root, ["ls-tree", "-r", "--name-only", mergeBase]).split("\n").filter(Boolean);
     const manifests = new Set([
       ...git(root, ["ls-files", "--", "package.json", "**/package.json"]).split("\n"),
-      ...git(root, ["ls-tree", "-r", "--name-only", mergeBase]).split("\n").filter((p) => posix.basename(p) === "package.json"),
+      ...baseTree.filter((p) => posix.basename(p) === "package.json"),
     ].filter(Boolean).map((p) => posix.dirname(p)));
     comparison = compareInventories(lineages, manifests);
+    // Each floors file at the head against itself at the base (through a rename), and a base file the head deleted against nothing.
+    const headFloors = git(root, ["ls-files", "--", ...COVERAGE_FLOORS_PATHSPECS]).split("\n").filter(Boolean);
+    const baseFloors = new Set(baseTree.filter((p) => posix.basename(p) === COVERAGE_FLOORS_NAME));
+    const floorPairs = headFloors.map((path) => ({ path, was: renamed.get(path) ?? path }));
+    for (const was of baseFloors) if (!floorPairs.some((p) => p.was === was)) floorPairs.push({ path: was, was, deleted: true });
+    comparison.droppedFloors = [];
+    for (const { path, was, deleted } of floorPairs) {
+      const head = deleted ? { entries: new Map(), problems: [] } : readCoverageFloors(readFileSync(join(root, path), "utf8"));
+      const base = baseFloors.has(was) ? readCoverageFloors(git(root, ["show", `${mergeBase}:${was}`])) : { entries: new Map(), problems: [] };
+      for (const p of head.problems) findings.push({ rule: "coverage-floors-shape", path, line: p.line, message: p.message });
+      for (const p of base.problems) findings.push({ rule: "coverage-floors-shape", path: was, line: p.line, message: `at the base: ${p.message}` });
+      if (head.problems.length > 0 || base.problems.length > 0) continue;
+      for (const d of compareCoverageFloors(base.entries, head.entries)) comparison.droppedFloors.push({ ...d, path });
+    }
     if (git(root, ["ls-tree", "--name-only", mergeBase, "--", LAYOUT_BASELINE]).trim() !== "") {
       baseBaseline = readLayoutBaseline(git(root, ["show", `${mergeBase}:${LAYOUT_BASELINE}`]));
     }

@@ -45,6 +45,29 @@
  * file no test loads at zero (vitest's `coverage.all`), so a changed source
  * file the coverage does not list is one its config excludes.
  *
+ * Every new ignore hint says why. With --base, an added line holding one of
+ * the provider's hints (`istanbul`, `c8`, `v8` or `node:coverage`, then
+ * `ignore`, then `if`, `else`, `next`, `file`, `start` or `stop`) in a code
+ * file is refused (`ignore-reason`) unless the hint carries a reason after a
+ * `--`; `stop` only closes a `start`, so it needs none. In TypeScript and JSX
+ * an `if`, `else` or `next` hint must also be a legal comment (`@preserve`):
+ * the transform strips every other comment before the provider reads the
+ * code, so a plain one ignores nothing (measured 2026-10-02 under vitest
+ * 3.2.4; `start` and `stop` are read from the source text and survive). And
+ * `ignore file` is refused outright: a whole module out of its package's
+ * figures belongs in the vitest config's `exclude`, where the gate's own
+ * files are reviewed, not in a comment. An existing hint is never read, only
+ * the lines a change adds, and the rule holds in every file, measured or not,
+ * so it never depends on which packages a run measured.
+ *
+ * A floor that moves is judged on a run that measured it. With --base, every
+ * package whose floor the change adds or changes (any figure, up or down;
+ * test-integrity.mjs refuses a lowered one the pull request does not declare)
+ * must have been measured in this run, or it is refused
+ * (`floor-unmeasured`): a floor set by hand and never measured would merge
+ * green and fail the next change that touches its package. The base's floors
+ * file is the one at the same path at the merge base.
+ *
  * Only the packages this run measured are judged, because a pull request
  * runs only the packages it affects. A package with a floor whose source the
  * change edits must have been measured, or the change cannot be judged and is
@@ -80,9 +103,9 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, posix, resolve } from "node:path";
+import { join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ─── What a coverage file and a report look like ────────────────────────
@@ -97,6 +120,28 @@ const CODE = /\.(?:[cm]?[jt]sx?)$/;
 const TEST_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
 
 const FIGURES = ["lines", "branches", "cases"];
+
+/**
+ * A coverage ignore hint on a line: the provider's own prefixes and directives
+ * (ast-v8-to-istanbul 0.3.12, `IGNORE_PATTERN` and `IGNORE_LINES_PATTERN` in
+ * its ignore-hints module), anywhere on the line. The provider reads `start`
+ * and `stop` as plain text on any line, a JSDoc continuation line included,
+ * and `if`, `else`, `next` and `file` at the start of a comment's text, which
+ * can be a later line of a block comment; so no comment opener is required
+ * here. This matches wider than the provider, so a hint it would not honour
+ * (or the words in a string) is also asked for its reason, which hides
+ * nothing.
+ */
+const IGNORE_HINT = /\b(?:istanbul|[cv]8|node:coverage)\s+ignore\s+(if|else|next|file|start|stop)(?=\W|$)/;
+
+/** The separators a declaration accepts (test-integrity.mjs `DECLARATION`), before a hint's reason. */
+const REASON = /(?:--|—|–)(.*)$/;
+
+/** Sources the TypeScript transform rewrites, stripping every comment that is not a legal one. */
+const TRANSFORMED = /\.(?:[cm]?tsx?|jsx)$/;
+
+/** The hints read from the transformed code's comments, which only a legal comment survives to. */
+const AST_HINTS = new Set(["if", "else", "next"]);
 
 // ─── Reading the inputs ─────────────────────────────────────────────────
 
@@ -486,6 +531,61 @@ export function checkChange(added, files, measuredPackages, floors, packageDirs)
   return { findings, notMeasured };
 }
 
+/**
+ * What is wrong with the ignore hint on one line of `path`, or undefined:
+ * the line holds no hint, or a hint that says why and survives to the
+ * provider (see the header).
+ */
+export function hintProblem(path, text) {
+  const match = IGNORE_HINT.exec(text);
+  if (!match) return undefined;
+  const directive = match[1];
+  if (directive === "file") return "`ignore file` takes a whole module out of its package's figures; exclude it in the package's vitest config instead";
+  // The hint's own text: up to the close of its block comment when the line has one, else the rest of the line.
+  const comment = text.slice(match.index + match[0].length).split("*/")[0];
+  const reason = (REASON.exec(comment)?.[1] ?? "").replace(/@preserve\s*:?/g, "").trim();
+  // A legal comment is one the line marks `@preserve`; a hint whose marker sits on another line of its comment is asked to carry it on its own.
+  const legal = /@preserve\b/.test(text);
+  if (directive !== "stop" && !/\w/.test(reason)) return `\`ignore ${directive}\` says no reason; write it after \`--\`, as \`/* v8 ignore next -- @preserve: <why no test can reach it> */\``;
+  if (TRANSFORMED.test(path) && AST_HINTS.has(directive) && !legal) return `\`ignore ${directive}\` without \`@preserve\` is stripped by the TypeScript transform, so it ignores nothing; write \`/* v8 ignore ${directive} -- @preserve: <reason> */\``;
+  return undefined;
+}
+
+/**
+ * The ignore hints the change adds without a reason (`ignore-reason`), in
+ * every code file outside the tests, measured or not. `readLines(path)` is the
+ * head file's lines.
+ */
+export function checkIgnoreHints(added, readLines) {
+  const findings = [];
+  for (const [path, lines] of added) {
+    if (!CODE.test(path) || TEST_FILE.test(path) || path.endsWith(".d.ts")) continue;
+    const text = readLines(path);
+    for (const line of [...lines].sort((a, b) => a - b)) {
+      const problem = hintProblem(path, text[line - 1] ?? "");
+      if (problem) findings.push({ rule: "ignore-reason", path: `${path}:${line}`, message: problem });
+    }
+  }
+  return findings;
+}
+
+/**
+ * The floors the change added or moved for a package this run did not
+ * measure (`floor-unmeasured`). `baseFloors` is the merge base's file, read
+ * like `floors`, or undefined when the base had none (every entry is new).
+ */
+export function checkFloorChange(baseFloors, floors, measuredPackages) {
+  const findings = [];
+  for (const [pkg, floor] of Object.entries(floors.packages)) {
+    const was = baseFloors?.packages[pkg];
+    const moved = !was || FIGURES.some((figure) => was[figure] !== floor[figure]);
+    if (moved && !measuredPackages.has(pkg)) {
+      findings.push({ rule: "floor-unmeasured", path: pkg, message: "its floor changed, but its coverage was not collected in this run, so the new floor cannot be judged" });
+    }
+  }
+  return findings;
+}
+
 // ─── Report ─────────────────────────────────────────────────────────────
 
 export function formatReport({ findings, measured, floors, notMeasured, base, changedFiles, unmatched = [] }) {
@@ -609,6 +709,12 @@ function main(argv) {
       const change = checkChange(added, merged.files, new Set(measured.keys()), floors, packageDirs);
       findings.push(...change.findings);
       notMeasured = change.notMeasured;
+      findings.push(...checkIgnoreHints(added, (path) => readFileSync(join(root, path), "utf8").split("\n")));
+      // The base's floors at the same path; a file outside the repository, a base without it, or one the tool cannot read makes every entry new.
+      const floorsAt = relative(root, realpathSync(floorsPath)).split(sep).join("/");
+      const floorsAtBase = !floorsAt.startsWith("..") && git(root, ["ls-tree", "--name-only", mergeBase, "--", floorsAt]).trim() !== "";
+      const atBase = floorsAtBase ? readFloors(git(root, ["show", `${mergeBase}:${floorsAt}`])) : undefined;
+      findings.push(...checkFloorChange(atBase?.problems.length === 0 ? atBase : undefined, floors, new Set(measured.keys())));
     }
 
     const result = { findings, measured, floors, notMeasured, base: baseLabel, changedFiles, unmatched: merged.unmatched };

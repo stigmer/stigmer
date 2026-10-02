@@ -25,26 +25,37 @@
  * wrapModelCall — after the model answers, reads `usage_metadata` off its
  *   response, prices the call at the parent's rates (a sub-agent on its own
  *   model is priced the same way the enforcement prices it; per-sub-agent
- *   pricing is #1121), and accumulates the running total. Once the total
- *   reaches `warningPct` of the cap, the stack that made the call advises the
- *   model on its next call (`advisory-message.ts`): the warning rides that
- *   one request and never enters the graph's state. Until
+ *   pricing is #1121), and accumulates the running total. The call that
+ *   takes the total to `warningPct` of the cap marks the run crossed, once.
+ *   From then on every conversation in the run, the parent's and each
+ *   sub-agent invocation's, is advised once, on its next model call
+ *   (`advisory-message.ts`): the warning rides that one request and never
+ *   enters the graph's state. Its text is written as it is delivered, so a
+ *   copy read after further spend quotes the spend as it stands. Until
  *   stigmer/stigmer#1354 the warning was a SystemMessage returned from
  *   `afterModel`, which landed between the model's tool calls and their
  *   results, failed the next Anthropic call, and was replayed into every
  *   later turn of the session from its checkpoint.
  *
- * forSubAgent — a view that shares the running total, so a sub-agent's calls
- *   advance the same figure the parent's warning reads. The view keeps its
- *   own pending advisory, delivered on that sub-agent's next model call. One
- *   view serves every invocation of its sub-agent in the turn (the stack is
- *   built once per sub-agent spec), so its `beforeAgent` drops a warning the
- *   previous invocation left undelivered, and never resets the shared total.
- *   The warning is given once per run, so when the crossing call is a
- *   sub-agent's last, nobody is warned: the sub-agent makes no further call
- *   and the parent's flag is already spent (#1679). Concurrent invocations of
- *   one sub-agent share the view, as they share its loop and budget
- *   middleware.
+ * Who is told (stigmer/stigmer#1679): until then only the graph whose call
+ *   crossed was told. When that call was a sub-agent's last, nobody was; when
+ *   a sub-agent was told mid-task, it wrapped up while the parent, which
+ *   decides whether to delegate again and writes the answer the user reads,
+ *   never heard. Now the parent always hears it, on its call after its
+ *   sub-agents return, and a sub-agent invoked after the crossing hears it on
+ *   its first call, before it spends.
+ *
+ * forSubAgent — a view over the same running total, so a sub-agent's calls
+ *   advance the figure every warning reads, with its own record of whether
+ *   its conversation has been told. One view serves every invocation of its
+ *   sub-agent in the turn (the stack is built once per sub-agent spec), so
+ *   its `beforeAgent` starts a conversation that has heard nothing, and never
+ *   resets the shared total. Concurrent invocations of one sub-agent share
+ *   the view, as they share its loop and budget middleware. Of two running
+ *   at once, usually only the first to call is told; and when the second
+ *   starts after the first was told, its start resets the shared flag, so the
+ *   first may be told again and the second not at all. The parent is told
+ *   either way. The shared instance is stigmer/stigmer#1699.
  *
  * Only built when `max_cost_usd > 0` is explicitly configured.
  */
@@ -96,7 +107,7 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
   }
 
   let runningCost = 0;
-  let warned = false;
+  let crossed = false;
   let modelCallCount = 0;
 
   function computeCallCost(totalInput: number, output: number, cacheRead: number): number {
@@ -129,50 +140,49 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
     );
   }
 
-  /** Prices one model response; returns the warning when this call crossed the threshold, else null. */
-  function priceResponse(response: unknown): string | null {
-    if (!AIMessage.isInstance(response)) return null;
+  /** Prices one model response into the running total; marks the run crossed when this call takes it past the threshold. */
+  function priceResponse(response: unknown): void {
+    if (!AIMessage.isInstance(response)) return;
 
     const { totalInput, output, cacheRead } = extractUsage(response);
-    if (totalInput === 0 && output === 0) return null;
+    if (totalInput === 0 && output === 0) return;
 
     runningCost += computeCallCost(totalInput, output, cacheRead);
     modelCallCount++;
 
     const warningThreshold = maxCostUsd * warningPct / 100;
-    if (warned || runningCost < warningThreshold) return null;
-    warned = true;
+    if (crossed || runningCost < warningThreshold) return;
+    crossed = true;
     console.warn(
       `[CostAdvisory] WARNING: $${runningCost.toFixed(4)} >= $${warningThreshold.toFixed(4)} ` +
       `(${warningPct}% of $${maxCostUsd.toFixed(2)}) after ${modelCallCount} calls.`,
     );
-    return createWarningText();
   }
 
   /**
-   * One graph's model-call wrapper: delivers that graph's pending advisory,
-   * then prices the response. Each graph (the parent, each sub-agent view)
-   * holds its own pending slot over the one shared running total; a slot
-   * still pending when its graph stops calling the model is never delivered.
+   * One conversation's model-call wrapper: once the run has crossed, advises
+   * the first call this conversation makes after it, then prices the
+   * response. The parent and each sub-agent view hold one each, over the one
+   * shared running total. `told` is set before the call is handed on, so a
+   * second call that starts while the first is in flight is not advised again.
    */
-  function advisingWrapper(): { wrapModelCall: WrapModelCall; clear(): void } {
-    let pending: string | null = null;
+  function advisingConversation(): { wrapModelCall: WrapModelCall; reset(): void } {
+    let told = false;
     return {
       async wrapModelCall(request: ModelCallRequest, handler) {
-        const advisories = pending !== null ? [pending] : [];
-        pending = null;
-        const response = await handler(withAdvisories(request, advisories));
-        const warning = priceResponse(response);
-        if (warning !== null) pending = warning;
+        const advise = crossed && !told;
+        if (advise) told = true;
+        const response = await handler(withAdvisories(request, advise ? [createWarningText()] : []));
+        priceResponse(response);
         return response;
       },
-      clear() {
-        pending = null;
+      reset() {
+        told = false;
       },
     };
   }
 
-  const parent = advisingWrapper();
+  const parent = advisingConversation();
 
   const middleware: CostAdvisoryMiddleware = {
     name: "CostAdvisoryMiddleware",
@@ -181,9 +191,9 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
 
     beforeAgent() {
       runningCost = 0;
-      warned = false;
+      crossed = false;
       modelCallCount = 0;
-      parent.clear();
+      parent.reset();
     },
 
     wrapModelCall: parent.wrapModelCall,
@@ -194,18 +204,19 @@ export function createCostAdvisoryMiddleware(config: CostAdvisoryConfig): CostAd
         : 0;
       console.log(
         `[CostAdvisory] Summary: $${runningCost.toFixed(4)} of $${maxCostUsd.toFixed(2)} ` +
-        `(~${pctUsed.toFixed(0)}%) across ${modelCallCount} calls, warned=${warned}`,
+        `(~${pctUsed.toFixed(0)}%) across ${modelCallCount} calls, crossed=${crossed}`,
       );
     },
 
     forSubAgent(): StigmerMiddleware {
-      const view = advisingWrapper();
+      const view = advisingConversation();
       return {
         name: "CostAdvisorySubAgentView",
-        // Drops only this view's undelivered warning. The running total is the
-        // parent's and is never reset here: a sub-agent's calls advance it.
+        // A new invocation is a new conversation, told nothing yet. The
+        // running total is the parent's and is never reset here: a
+        // sub-agent's calls advance it.
         beforeAgent() {
-          view.clear();
+          view.reset();
         },
         wrapModelCall: view.wrapModelCall,
       };

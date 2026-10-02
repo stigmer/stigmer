@@ -8,7 +8,8 @@
 // pass without passing; how a deletion is told from a retitle and a move; which
 // skips carry their reason by construction; the PR-body declarations; which
 // of a run's skipped cases a skip site explains; how the RPC waiver file is
-// read and which of its changes weaken the contract; the layout rules (which
+// read and which of its changes weaken the contract; how a coverage floors
+// file is read and which of its changes lower a floor; the layout rules (which
 // words a name may carry and when they are true, where a test may live, what
 // test/support may import) and the baseline that lists what does not follow
 // them yet; and, through a throwaway git repository, the command's exit codes
@@ -26,8 +27,10 @@ import {
   applyDeclarations,
   applyLayoutBaseline,
   byConstruction,
+  compareCoverageFloors,
   compareRpcWaivers,
   CONFIG_PATHSPECS,
+  COVERAGE_FLOORS_NAME,
   checkConfig,
   checkLayout,
   compareInventories,
@@ -40,6 +43,7 @@ import {
   nameWords,
   packageOf,
   parseDeclarations,
+  readCoverageFloors,
   readLayoutBaseline,
   readRpcWaivers,
   resolveRelative,
@@ -364,6 +368,62 @@ it("an RPC-waiver declaration names the RPC and why, and covers exactly that RPC
   assert.match(declared[0].message, /A\.b is waived as `gap` and was not waived at the base: served by the cloud only/);
   assert.deepEqual(refused.map((r) => [r.rule, r.line]), [["new-rpc-waiver", 8]]);
   assert.match(refused[0].message, /E\.f's waiver moved from `proven-elsewhere` to `gap`; declare it with `RPC-waiver: E\.f -- <why no conformance test pins it>`/);
+});
+
+const floors = (packages, extra = {}) => `${JSON.stringify({ margin: { lines: 0.5, branches: 0.5, cases: 0 }, ...extra, packages }, null, 2)}\n`;
+
+it("a floors file is read as its packages' figures, each at the line of its key", () => {
+  const { entries, problems } = readCoverageFloors(floors({ a: { lines: 81.4, branches: 72, cases: 10 }, "b/c": { lines: 50, branches: 40, cases: 3 } }));
+  assert.deepEqual(problems, []);
+  assert.deepEqual([...entries], [
+    ["a", { lines: 81.4, branches: 72, cases: 10, line: 8 }],
+    ["b/c", { lines: 50, branches: 40, cases: 3, line: 13 }],
+  ]);
+});
+
+it("a floors file it cannot read as packages of numbers is a problem; one with no packages is empty, as the coverage tool reads it", () => {
+  const problems = (text) => readCoverageFloors(text).problems.map((p) => [p.line, p.message]);
+  assert.match(problems("{ nope")[0][1], /^not JSON/);
+  assert.deepEqual(problems(JSON.stringify({ packages: [] })), [[1, "`packages` must be an object keyed by package directory"]]);
+  assert.deepEqual(problems(JSON.stringify({ packages: "all" })), [[1, "`packages` must be an object keyed by package directory"]]);
+  // No `packages`, or null, reads as an empty file, as the coverage tool's own reader has it; its entries were then all removed.
+  assert.deepEqual(readCoverageFloors(JSON.stringify({ margin: {} })), { entries: new Map(), problems: [] });
+  assert.deepEqual(readCoverageFloors(JSON.stringify({ packages: null })), { entries: new Map(), problems: [] });
+  assert.deepEqual(problems(floors({ a: { lines: "81", branches: 72 } })), [[8, "a: lines, cases must be a number"]]);
+});
+
+it("a lowered or removed floor is a drop; a raised, added or unchanged one is not", () => {
+  const read = (packages) => readCoverageFloors(floors(packages)).entries;
+  const base = read({ a: { lines: 80, branches: 70, cases: 10 }, b: { lines: 50, branches: 40, cases: 3 } });
+  const drops = (packages) => compareCoverageFloors(base, read(packages)).map((d) => [d.pkg, d.removed, d.lowered.map((l) => `${l.figure} ${l.from}->${l.to}`)]);
+  const b = { lines: 50, branches: 40, cases: 3 };
+  assert.deepEqual(drops({ a: { lines: 80, branches: 70, cases: 10 }, b }), [], "unchanged");
+  assert.deepEqual(drops({ a: { lines: 85, branches: 71, cases: 12 }, b, c: { lines: 1, branches: 1, cases: 1 } }), [], "raised, and a package added");
+  assert.deepEqual(drops({ a: { lines: 79.9, branches: 70, cases: 9 }, b }), [["a", false, ["lines 80->79.9", "cases 10->9"]]], "two figures of one package, one finding");
+  assert.deepEqual(drops({ a: { lines: 80, branches: 70, cases: 10 } }), [["b", true, []]], "an entry removed");
+  assert.deepEqual(compareCoverageFloors(base, read({ a: { lines: 80, branches: 69, cases: 10 }, b }))[0].line, 8, "the head's key line");
+});
+
+it("a Coverage-drop declaration names the package and why, and covers exactly that package", () => {
+  const declarations = parseDeclarations("Coverage-drop: client-apps/cli -- the offline cache cases moved to the conformance suite\ncoverage-drop: sdk/ink — retired");
+  assert.deepEqual(declarations.coverageDrops, [
+    { subject: "client-apps/cli", reason: "the offline cache cases moved to the conformance suite" },
+    { subject: "sdk/ink", reason: "retired" },
+  ]);
+  const comparison = {
+    deleted: [],
+    newSkips: [],
+    droppedFloors: [
+      { pkg: "client-apps/cli", path: "test/coverage-floors.json", line: 41, removed: false, lowered: [{ figure: "lines", from: 81.4, to: 80.9 }] },
+      { pkg: "client-apps/web", path: "test/coverage-floors.json", line: 52, removed: false, lowered: [{ figure: "cases", from: 900, to: 899 }] },
+      { pkg: "sdk/embed", path: "test/coverage-floors.json", line: 1, removed: true, lowered: [] },
+    ],
+  };
+  const { refused, declared } = applyDeclarations(comparison, declarations);
+  assert.deepEqual(declared.map((d) => [d.rule, d.path, d.line, d.message]), [["coverage-drop", "test/coverage-floors.json", 41, "client-apps/cli: lines 81.4 -> 80.9: the offline cache cases moved to the conformance suite"]]);
+  assert.deepEqual(refused.map((r) => [r.rule, r.line]), [["coverage-drop", 52], ["coverage-drop", 1]]);
+  assert.match(refused[0].message, /^client-apps\/web: cases 900 -> 899; declare it with `Coverage-drop: client-apps\/web -- <why its floor falls>` \(a `Test-removal:` declares a case; this line declares its package's floor\)$/);
+  assert.match(refused[1].message, /^sdk\/embed's floor was removed; declare it with `Coverage-drop: sdk\/embed -- <why its floor falls>`$/);
 });
 
 it("the report's last line is the verdict", () => {
@@ -820,6 +880,89 @@ it("the command: a new RPC waiver is refused until declared; a tree without the 
     const shape = r.run("--base", "main");
     assert.equal(shape.status, 1, shape.stdout);
     assert.match(shape.stdout, /rpc-waivers-shape +test\/conformance\/inventory\/rpc-waivers\.yaml:2/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a lowered floor is refused until declared, wherever the floors file lives; a raise is not judged here", () => {
+  const r = repo();
+  try {
+    const both = (a, b) => floors({ "pkg/a": a, "pkg/b": b });
+    const A = { lines: 80, branches: 70, cases: 10 };
+    const B = { lines: 50, branches: 40, cases: 3 };
+    r.write(A_TEST, `it("a", () => {});`);
+    r.write(`test/${COVERAGE_FLOORS_NAME}`, both(A, B));
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+
+    r.git("checkout", "-q", "-b", "raise");
+    r.write(`test/${COVERAGE_FLOORS_NAME}`, both({ ...A, lines: 82 }, B));
+    r.git("commit", "-qam", "raise");
+    assert.equal(r.run("--base", "main").status, 0, "a raise is the coverage tool's to judge");
+
+    r.git("checkout", "-q", "main");
+    r.git("checkout", "-q", "-b", "lower");
+    r.write(`test/${COVERAGE_FLOORS_NAME}`, both({ ...A, branches: 69.5 }, B));
+    r.git("commit", "-qam", "lower");
+    const refused = r.run("--base", "main");
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(refused.stdout, /coverage-drop +test\/coverage-floors\.json:8 +pkg\/a: branches 70 -> 69\.5; declare it with `Coverage-drop: pkg\/a -- <why its floor falls>`/);
+    r.write("body.md", "Coverage-drop: pkg/a -- the retry branch moved into the runner");
+    const declared = r.run("--base", "main", "--pr-body-file", join(r.dir, "body.md"));
+    assert.equal(declared.status, 0, declared.stdout);
+    assert.match(declared.stdout, /declared +test\/coverage-floors\.json:8 +pkg\/a: branches 70 -> 69\.5: the retry branch moved into the runner/);
+
+    r.git("checkout", "-q", "main");
+    r.git("checkout", "-q", "-b", "moved");
+    mkdirSync(join(r.dir, "scripts"));
+    r.git("mv", `test/${COVERAGE_FLOORS_NAME}`, `scripts/${COVERAGE_FLOORS_NAME}`);
+    r.write(`scripts/${COVERAGE_FLOORS_NAME}`, floors({ "pkg/a": A }));
+    r.git("commit", "-qam", "move the file, drop an entry");
+    const moved = r.run("--base", "main");
+    assert.equal(moved.status, 1, moved.stdout);
+    assert.match(moved.stdout, /coverage-drop +scripts\/coverage-floors\.json:1 +pkg\/b's floor was removed/, "judged against the base file it was renamed from");
+    assert.doesNotMatch(moved.stdout, /pkg\/a/);
+
+    r.git("checkout", "-q", "main");
+    r.git("checkout", "-q", "-b", "deleted");
+    r.git("rm", "-q", `test/${COVERAGE_FLOORS_NAME}`);
+    r.git("commit", "-qm", "delete the file");
+    const deleted = r.run("--base", "main");
+    assert.equal(deleted.status, 1, deleted.stdout);
+    assert.match(deleted.stdout, /pkg\/a's floor was removed/);
+    assert.match(deleted.stdout, /pkg\/b's floor was removed/);
+
+    r.git("checkout", "-q", "main");
+    r.git("checkout", "-q", "-b", "broken");
+    r.write(`test/${COVERAGE_FLOORS_NAME}`, "{ not json");
+    r.git("commit", "-qam", "break it");
+    const broken = r.run("--base", "main");
+    assert.equal(broken.status, 1, broken.stdout);
+    assert.match(broken.stdout, /coverage-floors-shape +test\/coverage-floors\.json:1 +not JSON/);
+
+    r.write(`test/${COVERAGE_FLOORS_NAME}`, both(A, B));
+    r.git("commit", "-qam", "mend it");
+    assert.equal(r.run("--base", "main").status, 0, "the tree as the base had it");
+    assert.equal(r.run().status, 0, "without a base there is no change to judge");
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a floors file the base cannot read is refused, not passed unread", () => {
+  const r = repo();
+  try {
+    r.write(A_TEST, `it("a", () => {});`);
+    r.write(`scripts/${COVERAGE_FLOORS_NAME}`, JSON.stringify({ packages: { "pkg/a": { lines: "80" } } }));
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+    r.write(`scripts/${COVERAGE_FLOORS_NAME}`, floors({ "pkg/a": { lines: 1, branches: 1, cases: 1 } }));
+    r.git("commit", "-qam", "mend");
+    const result = r.run("--base", "main");
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /coverage-floors-shape +scripts\/coverage-floors\.json:1 +at the base: pkg\/a: lines, branches, cases must be a number/);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }

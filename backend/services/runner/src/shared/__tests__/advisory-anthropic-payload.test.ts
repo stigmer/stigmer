@@ -18,6 +18,11 @@
  * turn right after it, and the advisory as a user turn after that, which the
  * API combines with the tool results into one turn. A last case pins that the
  * old shape is exactly what the client refuses.
+ *
+ * One request has no tool result before its advisory: a sub-agent invoked
+ * after the run crossed the cost line is advised on its first call, right
+ * after the task message (stigmer/stigmer#1679). Its arm asserts the two user
+ * turns the API combines, the task's and the advisory's.
  */
 
 import { describe, expect, it } from "vitest";
@@ -142,6 +147,36 @@ describe("an advised request through the real @langchain/anthropic conversion", 
     });
     const request = await firstAdvisedRequest(mw, (call) => toolResponse({ file_path: `/f${call}.md` }));
     assertAdvisedPayload(await payloadFor(request));
+  });
+
+  it("the cost advisory on a sub-agent's first call after the run crossed: right after the task message", async () => {
+    const mw = createCostAdvisoryMiddleware({
+      maxCostUsd: 1,
+      inputPricePerMillion: 100_000,
+      outputPricePerMillion: 100_000,
+      cacheReadPricePerMillion: 0,
+      warningPct: 80,
+    });
+    // The parent's call crosses the line; the sub-agent is invoked after it.
+    await mw.wrapModelCall!(REQUEST, async () => toolResponse({ file_path: "/a.md" }));
+    const view = mw.forSubAgent();
+    view.beforeAgent!({}, {});
+    const task: BaseMessage[] = [new HumanMessage("Summarize the file.")];
+    let first: ModelCallRequest | undefined;
+    await view.wrapModelCall!({ model: {}, messages: task, state: { messages: task }, runtime: {} }, async (request) => {
+      first = request;
+      return new AIMessage({ content: "ok" });
+    });
+    expect(first!.messages, "the first call carries the task and the advisory").toHaveLength(task.length + 1);
+
+    const payload = await payloadFor(first!);
+    expect(payload.system, "the system prompt rides the request's own field").toBeDefined();
+    expect(payload.messages.map((m) => m.role), "two user turns, which the API combines into one").toEqual(["user", "user"]);
+    const texts = payload.messages.map((m) =>
+      typeof m.content === "string" ? m.content : (m.content as Array<{ text?: string }>).map((b) => b.text ?? "").join(""),
+    );
+    expect(texts[0]).toBe("Summarize the file.");
+    expect(texts[1].startsWith(ADVISORY_LEAD_IN), "the advisory follows the task message").toBe(true);
   });
 
   it("loop detection's warning after seven identical calls", async () => {

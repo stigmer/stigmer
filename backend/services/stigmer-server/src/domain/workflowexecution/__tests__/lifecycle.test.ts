@@ -107,9 +107,10 @@ afterAll(async () => {
 
 /** The EC-builder deps recover consumes; the loaders throw NotFound-ish
  * errors by default, exercising the degrade-gracefully arms. The deleter
- * records the context ids the server deletes, or throws `deleteFailure`. */
+ * records every context id the server asks it to delete, then throws
+ * `deleteFailure` when one is set. */
 function builderDeps(edges?: {
-  deleted?: string[];
+  attempted?: string[];
   deleteFailure?: Error;
 }): WorkflowExecutionContextBuilderDeps {
   return {
@@ -130,10 +131,10 @@ function builderDeps(edges?: {
     }),
     executionContextDeleter: () => ({
       delete: async (contextId) => {
+        edges?.attempted?.push(contextId);
         if (edges?.deleteFailure !== undefined) {
           throw edges.deleteFailure;
         }
-        edges?.deleted?.push(contextId);
       },
     }),
   };
@@ -615,29 +616,32 @@ describe("connected-engine transitions", () => {
   it("recover: the run's stale context is deleted through the server's delete edge", async () => {
     const id = await seed(ExecutionPhase.EXECUTION_FAILED, { error: "boom" });
     const staleId = await seedStaleContext(id);
-    const deleted: string[] = [];
+    const attempted: string[] = [];
     const result = await recoverExecution(
-      { ...deps(engine), executionContextBuilder: builderDeps({ deleted }) },
+      { ...deps(engine), executionContextBuilder: builderDeps({ attempted }) },
       recoverInput({ id }),
       testCallerIdentity(),
     );
-    expect(deleted).toEqual([staleId]);
+    expect(attempted).toEqual([staleId]);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
   });
 
   it("recover: a failed stale-context delete never fails the recover (best-effort)", async () => {
     const id = await seed(ExecutionPhase.EXECUTION_FAILED, { error: "boom" });
-    await seedStaleContext(id);
+    const staleId = await seedStaleContext(id);
+    const attempted: string[] = [];
     const result = await recoverExecution(
       {
         ...deps(engine),
         executionContextBuilder: builderDeps({
+          attempted,
           deleteFailure: new Error("the delete chain is down"),
         }),
       },
       recoverInput({ id }),
       testCallerIdentity(),
     );
+    expect(attempted, "the delete was tried, and it failed").toEqual([staleId]);
     expect(result.status?.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
   });
 

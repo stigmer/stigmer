@@ -9,7 +9,8 @@
 // lifts it (never lowers it, never from a partial run); which added lines are
 // unrun (a statement whose range holds one, not only its first line); which
 // changed files are judged, refused as unmeasured, or listed as not measured;
-// and, through a throwaway git repository, the command's exit codes end to end.
+// which added ignore hints say why and survive to the provider; which moved
+// floors this run could not judge; and, through a throwaway git repository, the command's exit codes end to end.
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -23,11 +24,14 @@ import {
   addedLines,
   casesByPackage,
   checkChange,
+  checkFloorChange,
   checkFloors,
+  checkIgnoreHints,
   fileTotals,
   floorTo1,
   formatReport,
   headerPath,
+  hintProblem,
   lineHits,
   makeRelativizer,
   measure,
@@ -302,6 +306,66 @@ test("a change is judged in measured files, refused where a floored package went
   assert.deepEqual(notMeasured, ["p/scripts/build.mjs", "r/src/c.ts"]);
 });
 
+test("an ignore hint says why, and in TypeScript an AST-read hint is a legal comment; `stop` needs no reason, `file` is never one", () => {
+  const ok = (path, text) => assert.equal(hintProblem(path, text), undefined, text);
+  const refused = (path, text, pattern) => assert.match(hintProblem(path, text) ?? "", pattern, text);
+  ok("p/a.ts", "const a = 1;");
+  ok("p/a.ts", "  /* v8 ignore next -- @preserve: main.ts runs only as the process entry */");
+  ok("p/a.ts", "foo(); // c8 ignore next 2 -- @preserve: the socket closes first");
+  ok("p/a.ts", "/* istanbul ignore else — @preserve: the platform branch */");
+  ok("p/a.ts", "/* node:coverage ignore if – @preserve: windows only */");
+  ok("p/a.ts", "/* v8 ignore start -- the generated table */");
+  ok("p/a.ts", "/* v8 ignore stop */");
+  ok("p/a.mjs", "/* v8 ignore next -- a plain module keeps its comments */");
+  for (const prefix of ["v8", "c8", "istanbul", "node:coverage"]) {
+    for (const directive of ["if", "else", "next", "start"]) refused("p/a.ts", `/* ${prefix} ignore ${directive} */`, /says no reason/);
+    refused("p/a.ts", `/* ${prefix} ignore file -- @preserve: generated */`, /ignore file/);
+  }
+  refused("p/a.ts", "/* v8 ignore next -- @preserve */", /says no reason/);
+  refused("p/a.ts", "/* v8 ignore next -- @preserve: */", /says no reason/);
+  refused("p/a.ts", "// v8 ignore next -- the socket closes first", /without `@preserve` is stripped/);
+  refused("p/a.tsx", "/* v8 ignore if -- the platform branch */", /without `@preserve` is stripped/);
+  refused("p/a.mts", "/* v8 ignore else -- the platform branch */", /without `@preserve` is stripped/);
+  ok("p/a.ts", "/* v8 ignore start -- read from the source, so it survives the transform */");
+  ok("p/a.ts", "const doc = 'no hint here: ignore next';");
+  // The provider reads `start` and `stop` on any line, and the other hints at the start of a block comment's later line.
+  refused("p/a.ts", " * v8 ignore start", /says no reason/);
+  refused("p/a.ts", "  v8 ignore next -- @preserve */", /says no reason/);
+  refused("p/a.ts", " * c8 ignore file", /ignore file/);
+  refused("p/a.ts", "<!-- /* istanbul ignore start */ -->", /says no reason/);
+  ok("p/a.ts", " * v8 ignore start -- the generated table");
+  ok("p/a.ts", "  v8 ignore next -- @preserve: the platform branch */");
+  refused("p/a.ts", "const words = 'v8 ignore next';", /says no reason/);
+});
+
+test("the hints a change adds are judged in every code file outside the tests; an existing hint is not read", () => {
+  const files = {
+    "p/src/a.ts": ["export const a = 1;", "/* v8 ignore next */", "export const b = 2;", "/* c8 ignore next */"],
+    "scripts/x.mjs": ["// v8 ignore next"],
+    "p/src/__tests__/a.test.ts": ["/* v8 ignore next */"],
+    "p/README.md": ["/* v8 ignore next */"],
+  };
+  const added = new Map([
+    ["p/src/a.ts", new Set([2, 3])],
+    ["scripts/x.mjs", new Set([1])],
+    ["p/src/__tests__/a.test.ts", new Set([1])],
+    ["p/README.md", new Set([1])],
+  ]);
+  const findings = checkIgnoreHints(added, (path) => files[path]);
+  assert.deepEqual(findings.map((f) => `${f.rule} ${f.path}`), ["ignore-reason p/src/a.ts:2", "ignore-reason scripts/x.mjs:1"]);
+});
+
+test("a floor the change adds or moves must have been measured; an unchanged one need not", () => {
+  const base = floorsOf({ p: { lines: 80, branches: 70, cases: 9 }, q: { lines: 50, branches: 40, cases: 3 }, r: { lines: 10, branches: 10, cases: 1 } });
+  const head = floorsOf({ p: { lines: 81, branches: 70, cases: 9 }, q: { lines: 50, branches: 40, cases: 2 }, r: { lines: 10, branches: 10, cases: 1 }, s: { lines: 1, branches: 1, cases: 1 } });
+  const unmeasured = (measured, was = base) => checkFloorChange(was, head, new Set(measured)).map((f) => `${f.rule} ${f.path}`);
+  assert.deepEqual(unmeasured([]), ["floor-unmeasured p", "floor-unmeasured q", "floor-unmeasured s"], "raised, lowered and added; r is unchanged");
+  assert.deepEqual(unmeasured(["p", "q", "s"]), []);
+  assert.deepEqual(unmeasured(["p", "q", "r", "s"], null), [], "a base without the file: every entry is new, and all were measured");
+  assert.deepEqual(unmeasured(["p"], null), ["floor-unmeasured q", "floor-unmeasured r", "floor-unmeasured s"]);
+  assert.match(checkFloorChange(base, head, new Set())[0].message, /its floor changed, but its coverage was not collected in this run, so the new floor cannot be judged/);
+});
+
 test("the report lists findings, each measured package against its floor, and one summary line", () => {
   const text = formatReport({
     findings: [{ rule: "unrun", path: "p/a.ts:3", message: "is never run by a test (p's own tests)" }],
@@ -401,6 +465,71 @@ test("the command: an unrun added line is refused and named, a test that runs it
     assert.deepEqual(JSON.parse(readFileSync(join(r.dir, "floors.json"), "utf8")).packages, { pkg: { lines: 100, branches: 100, cases: 2 } });
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+test("the command: a hint without its reason is refused, and a floor moved for a package the run did not measure", () => {
+  const r = repo();
+  try {
+    const floors = (packages) => JSON.stringify({ margin: { lines: 0, branches: 0, cases: 0 }, packages });
+    r.write("pkg/package.json", "{}");
+    r.write("other/package.json", "{}");
+    r.write("pkg/src/a.ts", "export const a = 1;\n");
+    r.write("floors.json", floors({ pkg: { lines: 0, branches: 0, cases: 0 }, other: { lines: 10, branches: 10, cases: 1 } }));
+    r.write(".gitignore", "in/\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+    r.write("pkg/src/a.ts", "export const a = 1;\n/* c8 ignore next -- @preserve */\nexport const b = () => 2;\n");
+    r.write("floors.json", floors({ pkg: { lines: 0, branches: 0, cases: 0 }, other: { lines: 20, branches: 10, cases: 1 } }));
+    r.git("commit", "-qam", "a hint and a raise");
+    // b's statement is gone: the hint hid it from the provider.
+    runOutput(r, [[1, 1, 1]]);
+    const refused = r.run("--floors", "floors.json", "--input", "in", "--base", "main");
+    assert.equal(refused.status, 1, refused.stdout + refused.stderr);
+    assert.match(refused.stdout, /^✗ ignore-reason  pkg\/src\/a\.ts:2  `ignore next` says no reason/m);
+    assert.match(refused.stdout, /^✗ floor-unmeasured  other  its floor changed, but its coverage was not collected in this run/m);
+    assert.doesNotMatch(refused.stdout, /unrun/);
+
+    r.write("pkg/src/a.ts", "export const a = 1;\n/* c8 ignore next -- @preserve: only the CLI's entry calls it */\nexport const b = () => 2;\n");
+    r.write("floors.json", floors({ pkg: { lines: 0, branches: 0, cases: 0 }, other: { lines: 10, branches: 10, cases: 1 } }));
+    r.git("commit", "-qam", "the reason, and the floor back");
+    const clean = r.run("--floors", "floors.json", "--input", "in", "--base", "main");
+    assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+test("the command: a base floors file it cannot read, or a floors file outside the repository, makes every entry new", () => {
+  const r = repo();
+  const outside = mkdtempSync(join(tmpdir(), "test-coverage-floors-"));
+  try {
+    const floors = JSON.stringify({ margin: { lines: 0, branches: 0, cases: 0 }, packages: { pkg: { lines: 0, branches: 0, cases: 0 }, other: { lines: 10, branches: 10, cases: 1 } } });
+    r.write("pkg/package.json", "{}");
+    r.write("other/package.json", "{}");
+    r.write("pkg/src/a.ts", "export const a = 1;\n");
+    // `other` is the same at the base, so only the fallback (an unreadable base is no base) asks for its measurement.
+    r.write("floors.json", JSON.stringify({ packages: { pkg: { lines: "0" }, other: { lines: 10, branches: 10, cases: 1 } } }));
+    r.write(".gitignore", "in/\n");
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+    r.write("floors.json", floors);
+    r.git("commit", "-qam", "mend the floors");
+    runOutput(r, [[1, 1, 1]]);
+    const unreadable = r.run("--floors", "floors.json", "--input", "in", "--base", "main");
+    assert.equal(unreadable.status, 1, unreadable.stdout + unreadable.stderr);
+    assert.match(unreadable.stdout, /^✗ floor-unmeasured  other  /m);
+    assert.doesNotMatch(unreadable.stdout, /floor-unmeasured  pkg/, "pkg was measured");
+
+    writeFileSync(join(outside, "floors.json"), floors);
+    const elsewhere = r.run("--floors", join(outside, "floors.json"), "--input", "in", "--base", "main");
+    assert.equal(elsewhere.status, 1, elsewhere.stdout + elsewhere.stderr);
+    assert.match(elsewhere.stdout, /^✗ floor-unmeasured  other  /m);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   }
 });
 
