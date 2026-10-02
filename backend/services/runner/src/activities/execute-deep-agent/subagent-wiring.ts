@@ -1,7 +1,8 @@
 /**
  * Sub-agent middleware composition for ExecuteDeepAgent.
  *
- * Each sub-agent gets its own middleware stack with:
+ * Each sub-agent invocation gets its own middleware stack
+ * (`compileSubagents` builds one per invocation, stigmer/stigmer#1699) with:
  * - Path normalization (issue #429), FIRST, on every graph since issue #754
  *   — workspace-relative paths are rewritten to the virtual root's dialect
  *   before deepagents' permission validation and the backend see them,

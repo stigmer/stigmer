@@ -47,15 +47,12 @@
  *
  * forSubAgent — a view over the same running total, so a sub-agent's calls
  *   advance the figure every warning reads, with its own record of whether
- *   its conversation has been told. One view serves every invocation of its
- *   sub-agent in the turn (the stack is built once per sub-agent spec), so
- *   its `beforeAgent` starts a conversation that has heard nothing, and never
- *   resets the shared total. Concurrent invocations of one sub-agent share
- *   the view, as they share its loop and budget middleware. Of two running
- *   at once, usually only the first to call is told; and when the second
- *   starts after the first was told, its start resets the shared flag, so the
- *   first may be told again and the second not at all. The parent is told
- *   either way. The shared instance is stigmer/stigmer#1699.
+ *   its conversation has been told. Each invocation of a sub-agent gets its
+ *   own view (`compileSubagents` builds the stack per invocation), so two
+ *   invocations running at once are each told once; its `beforeAgent` starts
+ *   a conversation that has heard nothing, and never resets the shared total.
+ *   Until stigmer/stigmer#1699 one view served every invocation in the turn,
+ *   and of two running at once usually only the first to call was told.
  *
  * Only built when `max_cost_usd > 0` is explicitly configured.
  */

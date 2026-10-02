@@ -2,9 +2,11 @@
  * SubAgent transformation and compilation.
  *
  * Transforms proto SubAgent definitions into CompiledSubAgent instances for
- * the deepagents JS runtime. Each compiled subagent is a pre-compiled graph
- * with its own middleware stack (loop detection, budget, truncation, cost cap)
- * and concurrency gating via SubAgentGate.
+ * the deepagents JS runtime. Each compiled subagent is a runnable that builds
+ * a fresh graph on a fresh middleware stack (loop detection, budget,
+ * truncation, cost view) for every invocation, so concurrent invocations of
+ * one sub-agent never share a conversation's state, and is gated for
+ * concurrency by SubAgentGate.
  *
  * Design decisions:
  * - CompiledSubAgent format: full middleware control, no unwanted deepagents defaults
@@ -522,9 +524,11 @@ async function buildSubagentWorkspaceBackend(opts: {
  * Compile transformed subagent specifications into CompiledSubAgent instances.
  *
  * Each subagent gets:
- * - Its own agent graph sharing the parent's workspace root (shell-capable
- *   outside plan mode; see {@link buildSubagentBackend})
- * - Per-subagent middleware (loop detection, budget, truncation, cost cap view)
+ * - One model client and one backend sharing the parent's workspace root
+ *   (shell-capable outside plan mode; see {@link buildSubagentBackend})
+ * - A fresh agent graph and middleware stack (loop detection, budget,
+ *   truncation, cost view) per invocation, built once more at compile only
+ *   to refuse a spec deepagents cannot build
  * - Concurrency gating via shared SubAgentGate
  */
 export async function compileSubagents(
@@ -552,19 +556,6 @@ export async function compileSubagents(
 
   for (const spec of transformed) {
     try {
-      // Structural coupling (DD-19): a sub-agent gate flows gitignored writes into
-      // CAS iff a CAS observer backs that sub-agent's filesystem backend. Deriving
-      // both from the same `casObserver` makes "unobserved unreviewable bytes"
-      // impossible by construction. Path normalization is unconditional
-      // (issue #754): every graph speaks the virtual dialect, so every graph
-      // carries the repair seam — matching the parent's composition.
-      const middleware = buildSubAgentMiddleware({
-        costAdvisory: opts.costAdvisory,
-        approvalGate: opts.approvalGate,
-        captureIgnored: !!opts.casObserver,
-        pathNormalization: { rootDir: opts.workspaceRootDir },
-      });
-
       const modelName = spec.model ?? opts.parentModelName;
       // Use a configured model instance (proxy base URL + auth, plus registry
       // id -> API id resolution) when a factory is supplied so sub-agent LLM
@@ -575,20 +566,46 @@ export async function compileSubagents(
 
       const backend = await buildSubagentBackend(opts);
 
-      const agentGraph = await createDeepAgent({
+      // One graph on one middleware stack per INVOCATION (stigmer/stigmer#1699).
+      // Loop detection, the periodic budget and the cost view keep one
+      // conversation's state in their closures; the parent may delegate to
+      // this sub-agent several times in one message, and those invocations
+      // run at once (SubAgentGate admits three), so a stack built per spec
+      // pooled their histories, round counts and told flags. A build is about
+      // a millisecond. The model, the backend, the parent's cost advisory (its
+      // running total is the execution's) and the gate config are the spec's,
+      // shared by every invocation as before.
+      //
+      // Structural coupling (DD-19): a sub-agent gate flows gitignored writes into
+      // CAS iff a CAS observer backs that sub-agent's filesystem backend. Deriving
+      // both from the same `casObserver` makes "unobserved unreviewable bytes"
+      // impossible by construction. Path normalization is unconditional
+      // (issue #754): every graph speaks the virtual dialect, so every graph
+      // carries the repair seam — matching the parent's composition.
+      const buildGraph = () => createDeepAgent({
         model,
         systemPrompt: spec.systemPrompt,
         tools: spec.tools.length > 0 ? spec.tools : undefined,
-        middleware: middleware as unknown[],
+        middleware: buildSubAgentMiddleware({
+          costAdvisory: opts.costAdvisory,
+          approvalGate: opts.approvalGate,
+          captureIgnored: !!opts.casObserver,
+          pathNormalization: { rootDir: opts.workspaceRootDir },
+        }) as unknown[],
         backend,
         // Enforced inside this graph's own filesystem tools — and inherited by
         // any spec-style sub-agent deepagents auto-injects one level deeper.
         ...(opts.permissions ? { permissions: opts.permissions } : {}),
       } as Parameters<typeof createDeepAgent>[0]);
 
-      const gatedRunnable = gate.wrapRunnable(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        agentGraph as any,
+      // Built once here and dropped: deepagents refuses a bad spec while
+      // building (a tool named like a built-in, a permission rule on a
+      // shell-capable backend), and a refused spec is skipped at setup with a
+      // log line, never failed at its first delegation.
+      buildGraph();
+
+      const gatedRunnable = gate.wrapRunnable<Record<string, unknown>, Record<string, unknown>>(
+        { invoke: (input, config) => buildGraph().invoke(input, config) },
         spec.name,
       );
 
