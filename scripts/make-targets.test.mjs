@@ -102,6 +102,8 @@ test("readMakefile refuses every construct it does not model, wherever it sits",
     ["just some words", /is neither a rule nor an assignment/],
     ["$(info hello: world)", /a function call at the top level/],
     ["$(eval $(call TPL,a:b))", /a function call at the top level/],
+    ["override TOOL = a.mjs", /`override` makes the file's value win/],
+    ["stamp: $(shell date)", /a rule line runs `\$\(shell \.\.\.\)` when the file is read/],
     ["\techo orphan", /a recipe line outside any rule/],
   ];
   for (const [line, expected] of cases) {
@@ -300,6 +302,16 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
     dir: ".",
     targets: ["t"],
   });
+  const indirect = targetClosure({
+    read: files({ Makefile: mk("A = $(shell node a.mjs)", "B := $(A)", "C := x", "C += $(shell node c.mjs)", "D = y", "D += $(shell node d.mjs)", "t:", ">echo") }),
+    dir: ".",
+    targets: ["t"],
+  });
+  assert.deepEqual(
+    indirect.lines.map(({ target, text }) => `${target}: ${text}`),
+    ["(read): $(shell node a.mjs)", "(read): $(shell node c.mjs)", "t: echo"],
+    "a := reaching a shell through another variable, and a += onto a :=, run when the file is read; a += onto a recursive = does not",
+  );
   assert.deepEqual(
     onRead.lines.map(({ target, text }) => `${target}: ${text}`),
     ["(read): $(shell node /scripts/version.mjs)", "t: echo"],

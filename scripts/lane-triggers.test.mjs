@@ -116,10 +116,11 @@
 // `npm run` again), a script name a make function builds (`$(addsuffix ...)`),
 // configuration a recipe reads (a tsconfig, a chart's values), `MAKEFLAGS` in a
 // step's env, an environment variable (a step's `env:`, or `NAME=value` before
-// make) that a `?=` default yields to, a `make` inside a quoted string run by
-// another shell (`bash -c "make x"`), and what a body imports by package name.
-// The one configuration file a recipe hands its tool, `tsconfig.tsx.json` (the
-// CLI shim's), is in its lane's list by hand.
+// make) that a `?=` default yields to, anything inside a quoted string run by
+// another shell (`bash -c 'cd sub && make x'`: neither its `cd` nor its `make`
+// is read), and what a body imports by package name. The one configuration file
+// a recipe hands its tool, `tsconfig.tsx.json` (the CLI shim's), is in its
+// lane's list by hand.
 //
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.

@@ -20,15 +20,15 @@
  * rules would hold a lane to the wrong files and pass green: a conditional,
  * `define`, `include`, `vpath`, a pattern or double-colon rule, a recipe on the
  * rule's own line, a target-specific variable, a function call at the top level
- * (`$(eval ...)`, `$(info ...)`), a shell assignment (`!=`), a variable
- * assigned a second time, or after a `:=` used it (make expands a `:=` value
- * when it is assigned, so either would change what this reader reads), a
- * special target other than those that change nothing it reads (`.PHONY`,
- * `.SILENT` and the like; `.ONESHELL`, `.SECONDEXPANSION`, `.POSIX` and a
- * suffix rule are refused), and a `SHELL` other than sh or bash (both run `cd`
- * and subshells as this reader places them; site/Makefile names bash). None of
- * the Makefiles a gate lane reaches used one on 2026-10-03; a new one is taught
- * here first.
+ * (`$(eval ...)`, `$(info ...)`), `override`, a `$(shell ...)` in a rule line,
+ * a shell assignment (`!=`), a variable assigned a second time, or after a `:=`
+ * used it (make expands a `:=` value when it is assigned, so either would
+ * change what this reader reads), a special target other than those that change
+ * nothing it reads (`.PHONY`, `.SILENT` and the like; `.ONESHELL`,
+ * `.SECONDEXPANSION`, `.POSIX` and a suffix rule are refused), and a `SHELL`
+ * other than sh or bash (both run `cd` and subshells as this reader places
+ * them; site/Makefile names bash). None of the Makefiles a gate lane reaches
+ * used one on 2026-10-03; a new one is taught here first.
  *
  * A make function in a recipe (`$(addsuffix ...)`, `$(patsubst ...)`) is not
  * evaluated: its inner words are read as written, so a script name a function
@@ -58,8 +58,8 @@
 
 import { posix } from "node:path";
 
-/** A variable assignment: an optional `export` or `override`, the name, the operator, the value. */
-const ASSIGNMENT = /^(?:(?:export|override)\s+)?([A-Za-z0-9_.-]+)\s*(::=|:=|\?=|\+=|!=|=)\s*(.*)$/;
+/** A variable assignment: an optional `export`, the name, the operator, the value (`override` is refused first). */
+const ASSIGNMENT = /^(?:export\s+)?([A-Za-z0-9_.-]+)\s*(::=|:=|\?=|\+=|!=|=)\s*(.*)$/;
 /** A rule line: its targets, one or two colons, then the rest of the line. */
 const RULE = /^([^:=#]+?)\s*(::?)(?!=)\s*(.*)$/;
 /** The directives and constructs this reader does not model. */
@@ -120,6 +120,8 @@ export function readMakefile(text) {
   const usedEarly = new Map();
   // The `:=` values that run a shell: make runs them whenever it reads the file, whichever target is asked for.
   const onRead = [];
+  // The names assigned with `:=`, whose `+=` also expands at once.
+  const simple = new Set();
   const refusals = [];
   // The rule line whose recipe the next tab-prefixed lines belong to: its entries, and whether a recipe may follow.
   let current = null;
@@ -153,6 +155,10 @@ export function readMakefile(text) {
       continue;
     }
     if (/^(export|unexport)\s+[A-Za-z0-9_.-]+$/.test(content)) continue;
+    if (/^override\s/.test(content)) {
+      refusals.push(`line ${number}: \`override\` makes the file's value win over a command line's; this reader does not model it`);
+      continue;
+    }
     if (/^\$[({][A-Za-z-]+\s/.test(content)) {
       refusals.push(`line ${number}: a function call at the top level (\`$(eval ...)\`, \`$(info ...)\`) is not read by this reader`);
       continue;
@@ -182,7 +188,10 @@ export function readMakefile(text) {
           }
         }
         if (!assigned.has(name)) assigned.set(name, number);
-        if ((operator === ":=" || operator === "::=") && /\$[({]shell\s/.test(value)) onRead.push({ line: number, text: value });
+        // A `:=` (or a `+=` onto one) expands now, so a shell it reaches, directly or through another variable, runs now.
+        const immediate = operator === ":=" || operator === "::=" || (operator === "+=" && simple.has(name));
+        if (operator === ":=" || operator === "::=") simple.add(name);
+        if (immediate && /\$[({]shell\s/.test(expand(value, variables))) onRead.push({ line: number, text: value });
         variables.set(name, operator === "+=" && variables.has(name) ? `${variables.get(name)} ${value}` : value);
       }
       continue;
@@ -206,6 +215,10 @@ export function readMakefile(text) {
     if (special.length > 0) continue;
     if (colons === "::" || targets.some((target) => target.includes("%")) || rest.includes(":")) {
       refusals.push(`line ${number}: a pattern, static-pattern or double-colon rule is not read by this reader`);
+      continue;
+    }
+    if (/\$[({]shell\s/.test(content)) {
+      refusals.push(`line ${number}: a rule line runs \`$(shell ...)\` when the file is read; this reader does not evaluate it`);
       continue;
     }
     if (rest.includes(";")) {
