@@ -886,6 +886,12 @@ describe("the lifecycle a composition's own sweep calls", () => {
       state: ActorState.PAUSED,
       template: current,
     });
+    // Mid-transition: nothing to keep up this pass.
+    h.substrate.put({
+      name: "sbx-ses-000000000006",
+      state: ActorState.RESUMING,
+      template: current,
+    });
     const listed = await h.driver.lifecycle.list();
     expect(await h.driver.lifecycle.maintain(listed)).toEqual({
       redeleted: 1,
@@ -952,6 +958,19 @@ describe("the lifecycle a composition's own sweep calls", () => {
       }),
     ).toEqual({ redeleted: 1, egressReconciled: 0, moved: 0, retired: 0 });
     expect(h.substrate.calls.slice(before)).not.toContain("listTemplates ");
+    // A shutdown before the first sandbox touches none.
+    h.substrate.put({
+      name: "sbx-ses-000000000003",
+      state: ActorState.DELETING,
+      template: "t",
+    });
+    const untouched = h.substrate.calls.length;
+    expect(
+      await h.driver.lifecycle.maintain(await h.driver.lifecycle.list(), {
+        stopping: () => true,
+      }),
+    ).toEqual({ redeleted: 0, egressReconciled: 0, moved: 0, retired: 0 });
+    expect(h.substrate.calls.slice(untouched)).toEqual(["listActors "]);
   });
 
   it("prepares the template, and logs instead of rejecting when it cannot", async () => {
