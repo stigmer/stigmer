@@ -570,16 +570,17 @@ together; nothing outside it sees them.
 - **Key fields**: `description`, `logo_url`, `preferences`, `is_personal`, and
   the child-organization fields `management_mode`, `identity_provider_ref` and
   `external_org_id`.
-- **Note**: Every edition has Organizations. On a laptop or a self-hosted
-  server, the CLI uses the `stigmer` Organization when a command names none;
-  `stigmer up` creates it on a laptop and `stigmer bootstrap` on a raw server,
-  and `stigmer config context set --org` points the CLI at another. The
-  `stigmer` Organization has no role beyond that: on a laptop it is the user's
-  own, and on Stigmer Cloud it is Stigmer's own.
+- **Note**: Every edition has Organizations. Open source holds one: its server
+  makes it the first time it starts, `stigmer`, fills it into every request that
+  names none, refuses a second one and refuses to delete it, so a user never
+  names it, and the console and the CLI never show it
+  (`GetServerInfoOutput.single_org`). Enterprise and Stigmer Cloud hold many,
+  and a request names its Organization; `stigmer config context set --org`
+  points the CLI at one.
 - **Context rule**: `org` in identifiers, "Organization" in prose. Never call it
-  a tenant, and never a Workspace, which is a Session's files. Call the default
-  one the `stigmer` Organization. "System Organization" is a retired phrase from
-  when default content was installed into it.
+  a tenant, and never a Workspace, which is a Session's files. In docs for open
+  source, do not make a reader name or create one. "System Organization" is a
+  retired phrase from when default content was installed into it.
 
 ---
 
@@ -1116,10 +1117,9 @@ Ephemeral runtime secrets and variables scoped to a specific execution.
 
 Retired term. The starter bundle of Agents, Skills, MCP Servers and Workflows
 that earlier releases installed on a fresh stack. A fresh install now gets the
-`stigmer` Organization and nothing else (`stigmer up` on a laptop,
-`stigmer bootstrap` against a raw server): a Session with no Agent runs the
-built-in assistant, and everything else is a Plugin you install by name; see
-Plugin and Marketplace.
+one Organization its server makes at its first start and nothing else: a Session
+with no Agent runs the built-in assistant, and everything else is a Plugin you
+install by name; see Plugin and Marketplace.
 
 - **Capitalize**: Yes (when quoting historical docs).
 - **Context rule**: Do not use in new writing. A doc describing "the built-in

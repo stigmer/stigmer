@@ -143,7 +143,8 @@ function SupportChat() {
 presents it as product chat: your user can't swap the Agent or reconfigure its
 tools — you decided that upstream.
 
-On the local server every resource lives in the `stigmer` Organization, so
+On a local or self-hosted open-source server everything lives in the one
+Organization the server made the first time it started, `stigmer`, so
 `org="stigmer"` works as written, and `support-agent` is the slug of the Agent
 you created earlier. Leave `initialAgentRef` out and the embed talks to the
 built-in assistant instead, with no tools of its own.

@@ -48,6 +48,18 @@ Key properties:
 | `slug`            | URL-friendly identifier, unique across the platform                                                                                              |
 | `management_mode` | `self_managed` (you operate the org directly) or `platform_managed` (an external platform creates and operates the org via an Identity Provider) |
 
+### Per edition
+
+- **Open source** holds one Organization. Its server makes it the first time it
+  starts and fills it into every request that names none, so nobody names it:
+  the console has no organization switcher or onboarding, the CLI never asks for
+  one, and an API call leaves `org` empty. The server refuses a second
+  Organization (`ORGANIZATION_LIMIT_REACHED`) and refuses to delete its one
+  (`ORGANIZATION_IS_SINGLE`). `getServerInfo` answers `single_org: true`, which
+  is how a client knows.
+- **Enterprise and Stigmer Cloud** hold many. A request names its Organization,
+  and a request that names none is refused.
+
 ### Plugins
 
 A Plugin groups the resources that belong together within an Organization: the

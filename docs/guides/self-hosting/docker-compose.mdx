@@ -125,26 +125,22 @@ shows `Up`, and `postgres`, `temporal` and `stigmer-server` also show
 
 ### Open the console
 
-Open [http://localhost:7234](http://localhost:7234). The console asks you to
-create an Organization: a fresh stack has none yet. Create one for your team and
-note its slug, the short name under its display name; everything on this page
-lands in it. Download links the platform mints point at port 7235.
+Open [http://localhost:7234](http://localhost:7234). The console opens straight
+into your library: the server set up the one place everything on this page lands
+the first time it started, so there is nothing to create first. Download links
+the platform mints point at port 7235.
 
 ### Connect the CLI
 
-Tell the CLI where the stack is, as a named backend, switch to it, and point it
-at the Organization you created:
+Tell the CLI where the stack is, as a named backend, and switch to it:
 
 ```bash
 stigmer config backend add myserver --endpoint localhost:7234
 stigmer config backend use myserver
-stigmer config context set --org <your-org-slug>
 ```
 
-The last command checks that you belong to the Organization before it saves it,
-so a mistyped slug is refused on the spot. Every `apply`, `run` and `get` on
-this page now lands where the console looks; `--org <slug>` on a command, or
-`STIGMER_ORG` set for the process, points one command at another Organization.
+Every `apply`, `run` and `get` on this page now lands where the console looks;
+no command needs to say where.
 
 From your laptop, use the machine's address instead of `localhost`. A named
 backend keeps its own address and, later, its own API key, so switching between
@@ -153,15 +149,7 @@ scripts, setting `STIGMER_SERVER_ADDRESS=<host>:<port>` in the process's
 variables overrides the active backend for that process. The
 [`stigmer config`](/docs/cli/commands/config) reference lists every backend and
 context command, and [Organizations](/docs/concepts/organizations) explains how
-more than one fits together.
-
-<Callout type="info">
-  Setting a stack up from a script, with no browser? Skip the console step and
-  the context command, and run [`stigmer
-  bootstrap`](/docs/cli/commands/bootstrap). It creates the `stigmer`
-  Organization, the one the CLI uses when you name none. It works whether
-  authentication is on or not, and running it again changes nothing.
-</Callout>
+the editions that hold several fit together.
 
 ### Run your first Agent
 
