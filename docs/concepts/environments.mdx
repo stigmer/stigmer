@@ -77,6 +77,11 @@ spec:
       slug: production-secrets
 ```
 
+You can attach an Environment only if you can view it: one you created, or one
+shared with the Organization. Naming a teammate's private Environment is
+refused. Attaching your own private Environment to an Agent Instance others run
+lets their runs use its values, so share it that way only on purpose.
+
 This layering lets you separate concerns:
 
 - **Shared configuration** — URLs, feature flags, non-sensitive settings shared
