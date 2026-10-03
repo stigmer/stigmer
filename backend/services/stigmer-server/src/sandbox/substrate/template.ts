@@ -81,21 +81,34 @@ const LIMITS = [
 /** Every template this driver writes carries this prefix; nothing else may. */
 export const TEMPLATE_NAME_PREFIX = "stigmer-runner-";
 
+/**
+ * Where the runner believes it runs, its MODE. Open source's sandboxes are
+ * `local`, the runner's own default. A composition that hosts many
+ * organisations' sandboxes runs them `cloud`, which makes the runner's
+ * web-fetch guard refuse private addresses, forbids a user's stdio MCP
+ * servers and expects the composition's lanes (the runner's config.ts,
+ * url-guard.ts, mcp-transport-guard.ts). It is the driver's to write, never
+ * an operator's runner setting, because the runner reads it once as the
+ * single statement of where it is.
+ */
+export type SubstrateRunnerMode = "local" | "cloud";
+
 /** What a template is built from. */
 export interface RunnerTemplateInput {
   readonly config: SandboxDriverConfig;
   readonly settings: SubstrateDriverSettings;
+  readonly runnerMode: SubstrateRunnerMode;
 }
 
 /** The template, named by its content. */
 export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
-  const { config, settings } = input;
+  const { config, settings, runnerMode } = input;
   const https = settings.httpsEgress === "all";
   const trustBundlePath = `${SYSTEM_INFO_MOUNT_PATH}/${TRUST_BUNDLE_FILE}`;
 
   const env: Record<string, string> = {
     ...config.runnerEnv,
-    MODE: "local",
+    MODE: runnerMode,
     STIGMER_BACKEND_ENDPOINT: config.backendEndpoint,
     TEMPORAL_SERVICE_ADDRESS: config.temporalAddress,
     TEMPORAL_NAMESPACE: config.temporalNamespace,

@@ -35,7 +35,6 @@ import {
   newStoreSessionActivityReader,
   sessionActivityOf,
 } from "../session-activity.js";
-import { ActorState } from "../substrate/gen/ateapipb/ateapi_pb.js";
 import { decideIdle, type IdleAction } from "../substrate/idle-decision.js";
 
 /** The reader's clock: after every stamp the tests write, unless one is meant to be later. */
@@ -223,7 +222,7 @@ describe("a stamp ahead of the server's clock", () => {
     );
     const activity = await reader.activity("ses_a");
     return decideIdle({
-      state: ActorState.RUNNING,
+      state: "running",
       busy: activity.busy,
       lastActiveAt: activity.lastActiveAt ?? new Date(0),
       now: new Date(nowMs),

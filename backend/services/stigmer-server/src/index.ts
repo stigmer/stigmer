@@ -599,10 +599,21 @@ export type {
 export { newSubstrateSettingsFromEnv } from "./sandbox/substrate/config.js";
 export type {
   SubstrateActorSummary,
+  SubstrateMaintenance,
+  SubstratePauseGuard,
   SubstrateSandboxLifecycle,
   SubstrateSandboxState,
   SubstrateReattachResult,
+  SubstrateSleepGuard,
+  SubstrateSleepOutcome,
 } from "./sandbox/substrate/driver.js";
+export type { SubstrateRunnerMode } from "./sandbox/substrate/template.js";
+// The bound a composition's own idle windows must keep: a pause no longer
+// than this always wakes a runner whose credential is still renewable.
+export { MAX_IN_PLACE_PAUSE_SECONDS as SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS } from "./sandbox/substrate/limits.js";
+// The one queue a sandbox serves, for a composition that pushes to it
+// outside a turn (a renewed token).
+export { sandboxTaskQueue } from "./sandbox/naming.js";
 export type { PushResult as SubstrateAttachPushResult } from "./sandbox/substrate/push.js";
 export type { SubstrateSandboxDriverHandle } from "./sandbox/substrate/builtin.js";
 export { newSubstrateSandboxDriver } from "./sandbox/substrate/builtin.js";

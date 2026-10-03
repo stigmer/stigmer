@@ -22,7 +22,15 @@
  *     before any call;
  *   - one actor's operations never interleave;
  *   - deprovision, probe, reattach (a running sandbox only), and template
- *     retirement.
+ *     retirement;
+ *   - the lifecycle a composition's own sweep calls: a guarded pause asks
+ *     before the call from a fresh read and thaws when the sweep says it is
+ *     no longer idle afterwards, a guarded suspend asks before; `maintain`
+ *     repeats a stuck delete, makes an awake sandbox's egress current once
+ *     per process, moves only a sleeping sandbox off an older template, then
+ *     retires, skipping a sandbox whose upkeep fails and stopping before
+ *     retirement when asked; `prepare` readies the template and never
+ *     rejects.
  */
 import { describe, expect, it } from "vitest";
 
@@ -752,6 +760,207 @@ describe("a pause close to this process's start", () => {
     });
     await later.driver.provisioner.ensureSessionSandbox(SESSION, env);
     expect(later.substrate.calls).not.toContain(`suspendActor ${ACTOR}`);
+  });
+});
+
+describe("the lifecycle a composition's own sweep calls", () => {
+  const idle = { proceed: async () => true, stillIdle: async () => true };
+
+  it("pauses and suspends unguarded as before, answering done", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
+    expect(await h.driver.lifecycle.pause("session", SESSION)).toBe("done");
+    expect(await h.driver.lifecycle.suspend("session", SESSION)).toBe("done");
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
+  });
+
+  it("asks a pause's guard about the sandbox as it is now, and skips when it says no", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
+    const seen: string[] = [];
+    const outcome = await h.driver.lifecycle.pause("session", SESSION, {
+      proceed: async (actor) => {
+        seen.push(`${actor.name} ${actor.state}`);
+        return false;
+      },
+      stillIdle: async () => true,
+    });
+    expect(outcome).toBe("skipped");
+    expect(seen).toEqual([`${ACTOR} running`]);
+    expect(h.substrate.calls).toEqual([`getActor ${ACTOR}`]);
+  });
+
+  it("pauses when its guard proceeds and the sandbox is still idle afterwards", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
+    expect(await h.driver.lifecycle.pause("session", SESSION, idle)).toBe(
+      "done",
+    );
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.PAUSED);
+  });
+
+  it("thaws in place when a turn arrived while the pause was in flight", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
+    const outcome = await h.driver.lifecycle.pause("session", SESSION, {
+      proceed: async () => true,
+      stillIdle: async () => false,
+    });
+    expect(outcome).toBe("thawed");
+    expect(h.substrate.calls).toEqual([
+      `getActor ${ACTOR}`,
+      `pauseActor ${ACTOR}`,
+      `resumeActor ${ACTOR}`,
+    ]);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
+    expect(h.router.pushes).toEqual([]);
+  });
+
+  it("never asks a guard about a sandbox that is gone", async () => {
+    const h = harness();
+    let asked = false;
+    const guard = {
+      proceed: async () => {
+        asked = true;
+        return true;
+      },
+      stillIdle: async () => true,
+    };
+    expect(await h.driver.lifecycle.pause("session", SESSION, guard)).toBe(
+      "skipped",
+    );
+    expect(await h.driver.lifecycle.suspend("session", SESSION, guard)).toBe(
+      "skipped",
+    );
+    expect(asked).toBe(false);
+  });
+
+  it("suspends only when its guard proceeds", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
+    expect(
+      await h.driver.lifecycle.suspend("session", SESSION, {
+        proceed: async () => false,
+      }),
+    ).toBe("skipped");
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.PAUSED);
+    expect(
+      await h.driver.lifecycle.suspend("session", SESSION, {
+        proceed: async (actor) => actor.state === "paused",
+      }),
+    ).toBe("done");
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
+  });
+
+  it("runs one pass of upkeep over the caller's listing", async () => {
+    const h = harness();
+    await h.driver.lifecycle.prepare();
+    const current = h.driver.internals.keeper.name;
+    h.advance(20 * 60_000);
+    h.substrate.putTemplate("stigmer-runner-aaaaaaaaaaaa", {
+      createTime: new Date(h.now() - 60 * 60_000),
+    });
+    h.substrate.put({
+      name: "sbx-ses-000000000001",
+      state: ActorState.DELETING,
+      template: current,
+    });
+    h.substrate.put({
+      name: "sbx-ses-000000000002",
+      state: ActorState.SUSPENDED,
+      template: "stigmer-runner-aaaaaaaaaaaa",
+    });
+    h.substrate.put({
+      name: "sbx-ses-000000000003",
+      state: ActorState.SUSPENDED,
+      template: current,
+    });
+    h.substrate.put({
+      name: "sbx-wfx-000000000004",
+      state: ActorState.RUNNING,
+      template: current,
+      policy: [],
+    });
+    h.substrate.put({
+      name: "sbx-ses-000000000005",
+      state: ActorState.PAUSED,
+      template: current,
+    });
+    const listed = await h.driver.lifecycle.list();
+    expect(await h.driver.lifecycle.maintain(listed)).toEqual({
+      redeleted: 1,
+      egressReconciled: 2,
+      moved: 1,
+      retired: 1,
+    });
+    expect(h.substrate.actors.has("sbx-ses-000000000001")).toBe(false);
+    expect(h.substrate.actors.get("sbx-ses-000000000002")?.template).toBe(
+      current,
+    );
+    expect(h.substrate.calls.filter((c) => c.startsWith("moveActor"))).toEqual([
+      "moveActor sbx-ses-000000000002",
+    ]);
+    expect(
+      h.substrate.actors.get("sbx-wfx-000000000004")?.policy?.length,
+    ).toBeGreaterThan(0);
+    expect(h.substrate.templates.has("stigmer-runner-aaaaaaaaaaaa")).toBe(
+      false,
+    );
+    // The egress policy is made current once per process.
+    expect(
+      (await h.driver.lifecycle.maintain(await h.driver.lifecycle.list()))
+        .egressReconciled,
+    ).toBe(0);
+  });
+
+  it("moves a sleeping sandbox only if it is still asleep when its turn in the queue comes", async () => {
+    const h = harness();
+    await h.driver.lifecycle.prepare();
+    const sleeping = h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDED,
+      template: "stigmer-runner-old",
+    });
+    const listed = await h.driver.lifecycle.list();
+    sleeping.state = ActorState.RUNNING;
+    expect((await h.driver.lifecycle.maintain(listed)).moved).toBe(0);
+    expect(h.substrate.calls).not.toContain(`moveActor ${ACTOR}`);
+  });
+
+  it("skips a sandbox whose upkeep fails, and stops before retiring when asked", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: "sbx-ses-000000000001",
+      state: ActorState.DELETING,
+      template: "t",
+    });
+    h.substrate.put({
+      name: "sbx-ses-000000000002",
+      state: ActorState.DELETING,
+      template: "t",
+    });
+    h.substrate.fail("deleteActor", new Error("Substrate unavailable"));
+    const listed = await h.driver.lifecycle.list();
+    expect((await h.driver.lifecycle.maintain(listed)).redeleted).toBe(1);
+    expect(h.substrate.actors.size).toBe(1);
+    const second = await h.driver.lifecycle.list();
+    const before = h.substrate.calls.length;
+    let checks = 0;
+    expect(
+      await h.driver.lifecycle.maintain(second, {
+        stopping: () => (checks += 1) > 1,
+      }),
+    ).toEqual({ redeleted: 1, egressReconciled: 0, moved: 0, retired: 0 });
+    expect(h.substrate.calls.slice(before)).not.toContain("listTemplates ");
+  });
+
+  it("prepares the template, and logs instead of rejecting when it cannot", async () => {
+    const h = harness();
+    h.substrate.fail("ensureAtespace", new Error("no Substrate"));
+    await expect(h.driver.lifecycle.prepare()).resolves.toBeUndefined();
+    expect(h.driver.internals.keeper.readyNow()).toBe(false);
+    await h.driver.lifecycle.prepare();
+    expect(h.driver.internals.keeper.readyNow()).toBe(true);
   });
 });
 

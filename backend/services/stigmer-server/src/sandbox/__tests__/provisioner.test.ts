@@ -11,7 +11,8 @@
  *     resource-id alphabets;
  *   - the queue each scope's sandbox serves, as minted by its own domain,
  *     is SANDBOX_QUEUE_PREFIXES' prefix plus the id (the table the
- *     runner's attach waiter checks its own against).
+ *     runner's attach waiter checks its own against), and sandboxTaskQueue
+ *     names exactly that queue.
  */
 import { describe, expect, it } from "vitest";
 
@@ -19,7 +20,11 @@ import { createLogger } from "../../boot/logger.js";
 import { connectTaskQueueFor } from "../../temporal/mcpserver/names.js";
 import { formatSessionTaskQueue } from "../../temporal/agentexecution/dispatch.js";
 import { formatWfExecTaskQueue } from "../../temporal/workflowexecution/names.js";
-import { SANDBOX_QUEUE_PREFIXES, sandboxBaseName } from "../naming.js";
+import {
+  SANDBOX_QUEUE_PREFIXES,
+  sandboxBaseName,
+  sandboxTaskQueue,
+} from "../naming.js";
 import type {
   SandboxDriverConfig,
   SandboxProvisioner,
@@ -165,6 +170,18 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
     );
     expect(connectTaskQueueFor("mcx_1")).toBe(
       `${SANDBOX_QUEUE_PREFIXES.connect}mcx_1`,
+    );
+  });
+
+  it("is what sandboxTaskQueue names for each scope", () => {
+    expect(sandboxTaskQueue("session", "ses_1")).toBe(
+      formatSessionTaskQueue("ses_1"),
+    );
+    expect(sandboxTaskQueue("workflow", "wex_1")).toBe(
+      formatWfExecTaskQueue("wex_1"),
+    );
+    expect(sandboxTaskQueue("connect", "mcx_1")).toBe(
+      connectTaskQueueFor("mcx_1"),
     );
   });
 });

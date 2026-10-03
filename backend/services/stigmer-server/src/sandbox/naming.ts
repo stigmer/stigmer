@@ -47,6 +47,15 @@ export const SANDBOX_QUEUE_PREFIXES: Readonly<Record<SandboxScope, string>> = {
   connect: "mcpconnect:",
 };
 
+/**
+ * The one queue a scope's sandbox serves (SANDBOX_QUEUE_PREFIXES). A
+ * composition that pushes to a running sandbox outside a turn (a renewed
+ * token) names its queue here rather than restating the prefix.
+ */
+export function sandboxTaskQueue(scope: SandboxScope, id: string): string {
+  return `${SANDBOX_QUEUE_PREFIXES[scope]}${id}`;
+}
+
 /** sbx-<code>-<12-hex> (SandboxObjectNaming.java's derivation, kept exactly). */
 export function sandboxBaseName(scope: SandboxScope, id: string): string {
   const digest = createHash("sha256").update(id).digest("hex").slice(0, 12);
