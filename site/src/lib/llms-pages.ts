@@ -95,7 +95,7 @@ const CODE_FENCE_RE = /```[\s\S]*?```/g;
  * Rewrite each `<Still id alt />` into a plain markdown image so the still
  * survives into every text channel — llms-full.txt, the per-page .md export,
  * and the Copy-as-Markdown button (which fetches that .md). Without this,
- * stills would be the dangling-tag defect DD-01 names: a JSX tag that means
+ * stills would be a dangling tag: a JSX tag that means
  * nothing to a markdown consumer.
  *
  * Fence-aware, for the same reason `extractScenarEmbedIds` in

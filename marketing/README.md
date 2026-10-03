@@ -1,6 +1,6 @@
 # @stigmer/marketing
 
-Remotion workspace for Stigmer marketing films. The first film is **Intro to Stigmer** (`films/intro/`), produced under stigmer-cloud project `20260902.01.stigmer-intro-video`.
+Remotion workspace for Stigmer marketing films. The first film is **Intro to Stigmer** (`films/intro/`).
 
 ## Model
 

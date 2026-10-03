@@ -12,8 +12,8 @@
 #   diataxis  tutorial | how-to | explanation | reference | landing
 #   teaches   One sentence: what the reader walks away knowing or having done.
 #   medium    none | diagram | still | screenshot-journey | animated-tour |
-#             interactive — the page's TARGET demonstration centerpiece
-#             (DD-01 in the 20260727.01.docs-revamp project). Prose and code
+#             interactive — the page's TARGET demonstration centerpiece.
+#             Prose and code
 #             are the substrate of every page, not a medium. `still` and
 #             `screenshot-journey` are Scenar-rendered `<Still>`s (see
 #             docs/STYLE.md "Stills") — never hand-captured screenshots.
@@ -138,9 +138,8 @@ pages:
     medium: animated-tour
     why:
       The payoff is the chat streaming inside a third-party product; the motion
-      is the demonstration (owner-ratified deviation from the
-      screenshot-journey default for getting-started pages, T03 review
-      2026-08-23).
+      is the demonstration (a deliberate deviation from the
+      screenshot-journey default for getting-started pages, 2026-08-23).
     embeds:
       embed-agent-tour: keep
 

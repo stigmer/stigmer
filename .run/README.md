@@ -8,7 +8,7 @@ This directory contains run configurations for IntelliJ IDEA to make development
 
 - **build-protos** - Generate protobuf stubs using `make protos`
 
-(The Go server/CLI launch and remote-debug configs retired with the Go server — go-server-retirement, D4 #25. The `gazelle` config retired with Bazel — 20260904.04 Stage A; Go packages need no BUILD files now, so there is nothing to regenerate after adding Go code. The TypeScript server runs via `make build-server && node dist/main.js`, or through `stigmer up`.)
+(The Go server/CLI launch and remote-debug configs retired with the Go server. The `gazelle` config retired with Bazel; Go packages need no BUILD files now, so there is nothing to regenerate after adding Go code. The TypeScript server runs via `make build-server && node dist/main.js`, or through `stigmer up`.)
 
 ## Usage
 

@@ -9,7 +9,7 @@
  * The public surface is deliberately the two settled `UseMcpServerReturn`
  * states rather than the builders: a tour injects a state through the
  * view's `mcpServerState` prop (no `getByReference` fires, every beat
- * paints correct data on its first frame — scenar-cloud DD-006), and a
+ * paints correct data on its first frame), and a
  * surface that can't be re-built can't be half-built into a drifted
  * variant.
  *

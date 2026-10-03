@@ -23,7 +23,7 @@ interface StillProps {
   /**
    * Screen description for readers who get text instead of pixels — it lands
    * verbatim in llms-full.txt, the per-page .md export, and Copy-as-Markdown.
-   * Describe the screen, don't repeat the narration (DD-02: two texts).
+   * Describe the screen, don't repeat the narration: the two are different texts.
    * Required here and enforced in CI, since MDX is never typechecked.
    */
   alt: string;

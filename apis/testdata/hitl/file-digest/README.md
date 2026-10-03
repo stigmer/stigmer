@@ -3,12 +3,12 @@
 This directory pins the **canonical digest** of a captured file change so the
 file-review enforcement gate ("what you approve is what gets applied") computes
 byte-identically in every edition. A `FileDecision.expected_digest` is matched
-against these digests by the runner's reconcile (Phase 2); a Go/Java mismatch
-would silently let one edition approve content the other would reject.
+against these digests by the runner's reconcile; a mismatch between
+implementations would silently let one approve content the other would reject.
 
-> Phase 1 scope: the digest functions are **defined, computed, and locked**.
-> The runner that produces the captured changes and the reconcile that enforces
-> the digest land in Phase 2; this corpus locks the determinism first.
+> Scope: the digest functions are **defined, computed, and locked** here. The
+> runner produces the captured changes and its reconcile enforces the digest;
+> this corpus locks the determinism both depend on.
 
 ## The functions
 

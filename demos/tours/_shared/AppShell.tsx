@@ -57,7 +57,7 @@ interface AppShellProps {
  * under a reader's stray click.
  *
  * One scale factor per frame: the shell lays out at real application
- * metrics and only the viewport boundary scales it (scenar-cloud DD-008).
+ * metrics and only the viewport boundary scales it.
  * The shell is the browser page, not a card: it fills its container
  * edge-to-edge. Window chrome belongs to whatever frames the shell.
  */

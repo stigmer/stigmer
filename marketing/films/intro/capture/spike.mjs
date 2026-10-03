@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Capture-quality spike (production plan, phase 2): records the same
+ * Capture-quality spike: records the same
  * short console drive in the two candidate configurations and drops the
  * webm files in assets/recordings/spike/ for frame inspection:
  *

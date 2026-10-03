@@ -7,9 +7,9 @@
  * from `@stigmer/react`, styled by the compiled SDK stylesheet — there is
  * no replica CSS left to drift (stigmer/stigmer#317).
  *
- * Layout is plain CSS — Tailwind utilities no-op under `scenar pack`
- * (scenar-cloud DD-003). Colors come from the same `--stgm-*` tokens the
- * console consumes. One scale factor per frame — no zoom.
+ * Layout is plain CSS — Tailwind utilities no-op under `scenar pack`.
+ * Colors come from the same `--stgm-*` tokens the console consumes. One
+ * scale factor per frame — no zoom.
  */
 .resource-page {
   display: flex;

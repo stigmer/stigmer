@@ -10,9 +10,9 @@ another). The fix is to canonicalize at exactly one layer, deterministically,
 and to lock that determinism with cross-language vectors so Go, Java, and TS all
 agree byte-for-byte.
 
-> Phase 1 scope: the canonical form is **defined and computed** only. It is not
-> yet hashed. The approval fingerprint (an HMAC keyed on a Stigmer secret) is
-> introduced in Phase 2 and consumes this canonical string. Nothing here is an
+> Scope: the canonical form is **defined and computed** here, not hashed. The
+> approval fingerprint (an HMAC keyed on a Stigmer secret, pinned in
+> `../fingerprint/`) consumes this canonical string. Nothing here is an
 > enforcement key.
 
 ## The pass (in order)
@@ -50,6 +50,6 @@ dependency.
 
 `canonicalToolActionJson(input)` must equal `expected` for every vector, in
 every edition. The TS implementation lives at
-`backend/services/runner/src/shared/approval-canonicalize.ts`; Go/Java
-implementations added in Phase 2 must load this same file and pass it. Secret
+`backend/services/runner/src/shared/approval-canonicalize.ts`; any other
+implementation must load this same file and pass it. Secret
 redaction is verified by language-local tests (digests are not hand-writable).

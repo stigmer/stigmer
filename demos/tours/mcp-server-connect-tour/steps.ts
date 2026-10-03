@@ -10,7 +10,7 @@
  * all sourced from `_shared/order-management-mcp.ts` so the embeds on the
  * same docs page cannot drift apart.
  *
- * Determinism (scenar-cloud DD-006): the resource that CHANGES across the
+ * Determinism (the fixture-determinism rule, demos/README.md): the resource that CHANGES across the
  * timeline — the server before vs after discovery — is data this tour owns.
  * `index.tsx` passes frozen `McpServer` snapshots into the view through its
  * `mcpServerState` prop, so no beat depends on an RPC resolving; the router

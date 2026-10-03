@@ -11,7 +11,7 @@
  * (`_shared/quickstart-workspace.ts`) — the same workspace
  * `connect-tools-tour` continues on a later page.
  *
- * DD-004 note: beat 0 depicts the API Keys page exactly as it ships in the
+ * Honest depiction: beat 0 depicts the API Keys page exactly as it ships in the
  * reveal state — `ApiKeysSection` hides its "+ New API key" button while
  * the created-key alert is showing, so this tour renders no create button
  * (the inline demo it replaces got that wrong).

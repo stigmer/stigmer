@@ -2,9 +2,7 @@
  * Typed view over manifest.json — the single source of truth for the Intro to
  * Stigmer film. The narration pipeline (scripts/narrate.mjs) reads the JSON
  * directly; the composition imports this module. One file feeds both, so the
- * script can never drift between audio and picture. The prose was approved at
- * the owner script gate on 2026-09-02 (stigmer-cloud project
- * 20260902.01.stigmer-intro-video, script v1).
+ * script can never drift between audio and picture.
  */
 import manifest from "./manifest.json";
 
@@ -150,7 +148,7 @@ export const FPS: number = manifest.fps;
 export const WIDTH: number = manifest.width;
 export const HEIGHT: number = manifest.height;
 
-/** ElevenLabs premade voice cast at the owner casting gate ("Sarah"). */
+/** The ElevenLabs premade voice the film is cast with ("Sarah"). */
 export const VOICE_ID: string = manifest.voiceId;
 
 export const MUSIC: MusicSpec = manifest.music;
