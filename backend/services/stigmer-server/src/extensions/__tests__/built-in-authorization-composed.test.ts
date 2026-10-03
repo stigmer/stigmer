@@ -700,7 +700,7 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
             AgentExecutionQueryController,
             anonymous,
           ).getOrgUsageReport({
-            orgId: MISSING_ORG,
+            org: MISSING_ORG,
             fromDate: "2026-09-01",
             toDate: "2026-09-30",
           }),

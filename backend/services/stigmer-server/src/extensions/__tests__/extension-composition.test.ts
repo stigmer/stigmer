@@ -188,7 +188,7 @@ describe("extension composition (composed server)", () => {
         // (that is C5's job, years of entries away).
         router.service(BillingQueryController, {
           getBillingAccount: (input) =>
-            create(BillingAccountSchema, { orgId: input.orgId }),
+            create(BillingAccountSchema, { org: input.org }),
         });
       },
     ],
@@ -223,8 +223,8 @@ describe("extension composition (composed server)", () => {
   it("serves the extension service on the bound port, through the interceptor chain", async () => {
     const before = logLines.length;
     const client = createClient(BillingQueryController, portTransport);
-    const account = await client.getBillingAccount({ orgId: "org-serving" });
-    expect(account.orgId).toBe("org-serving");
+    const account = await client.getBillingAccount({ org: "org-serving" });
+    expect(account.org).toBe("org-serving");
 
     // The logging interceptor (chain position 2) records every completed
     // RPC — its line for the billing procedure proves the extension
@@ -244,8 +244,8 @@ describe("extension composition (composed server)", () => {
       BillingQueryController,
       server.inProcessTransport,
     );
-    const account = await client.getBillingAccount({ orgId: "org-inprocess" });
-    expect(account.orgId).toBe("org-inprocess");
+    const account = await client.getBillingAccount({ org: "org-inprocess" });
+    expect(account.org).toBe("org-inprocess");
 
     const completed = logLines
       .slice(before)

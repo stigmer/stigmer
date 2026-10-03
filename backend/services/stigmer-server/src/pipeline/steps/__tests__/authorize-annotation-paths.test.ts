@@ -131,8 +131,8 @@ describe("the check bites (mutation proofs over the same function)", () => {
   });
 
   it("a field_path naming no field is reported, by method and path", () => {
-    expect(unresolvedPaths(create, { fieldPath: "resource.org_id", resourceKindPath: "" })).toEqual([
-      `${name} field_path "resource.org_id" names no field "org_id" of ai.stigmer.iam.iampolicy.v1.ApiResourceRef`,
+    expect(unresolvedPaths(create, { fieldPath: "resource.missing", resourceKindPath: "" })).toEqual([
+      `${name} field_path "resource.missing" names no field "missing" of ai.stigmer.iam.iampolicy.v1.ApiResourceRef`,
     ]);
   });
 

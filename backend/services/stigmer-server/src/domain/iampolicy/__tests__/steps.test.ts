@@ -521,7 +521,7 @@ describe("owner is assigned by owners", () => {
   ): RequestContext<typeof RevokeOrgAccessInputSchema> {
     return new RequestContext(
       RevokeOrgAccessInputSchema,
-      create(RevokeOrgAccessInputSchema, { identityAccountId: accountId, organizationId: "acme" }),
+      create(RevokeOrgAccessInputSchema, { identityAccountId: accountId, org: "acme" }),
       identity,
       ApiResourceKind.iam_policy,
     );

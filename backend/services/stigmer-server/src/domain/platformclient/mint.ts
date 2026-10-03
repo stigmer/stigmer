@@ -5,7 +5,7 @@
  *
  * The contract is the cloud's, refusal for refusal and in the same order
  * (constants.ts carries the copy): the credentials, then the secret's
- * expiry (unset means never), then the `org_id` confirmation (a token is
+ * expiry (unset means never), then the `org` confirmation (a token is
  * always scoped to the client's owning organization), then the user.
  *
  * The user is keyed `stgm_pc|<org>|<user_id>`, so every client of one
@@ -155,7 +155,7 @@ export async function mintUserToken(
   const client = await authenticateClient(deps, request);
   const owningOrg = client.metadata?.org ?? "";
   // A confirmation, never a selector: a token is scoped to the owning org.
-  if (request.orgId !== "" && request.orgId !== owningOrg) {
+  if (request.org !== "" && request.org !== owningOrg) {
     throw new ConnectError(
       organizationMismatchMessage(owningOrg),
       Code.InvalidArgument,

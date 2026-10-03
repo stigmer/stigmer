@@ -281,7 +281,7 @@ export function newRevokeOrgAccessStep(
     ): Promise<void> {
       return grantPath.revokeOrgAccess(
         ctx.input.identityAccountId,
-        ctx.input.organizationId,
+        ctx.input.org,
         ctx.callerIdentity,
       );
     },
@@ -369,7 +369,7 @@ export function orgAccessOwnerRoleChange(
   ctx: RequestContext<typeof RevokeOrgAccessInputSchema>,
 ) => Promise<OwnerRoleChange | undefined> {
   return async (ctx) => {
-    const { identityAccountId, organizationId } = ctx.input;
+    const { identityAccountId, org: organizationId } = ctx.input;
     const owners = await organizationOwners(ctx, policies, organizationId);
     return owners.has(identityAccountId)
       ? { organizationId, accountId: identityAccountId }

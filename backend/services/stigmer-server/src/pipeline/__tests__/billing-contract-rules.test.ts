@@ -217,7 +217,7 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
   row({
     name: "a limit of zero, which is never what an operator meant",
     schema: EntitlementLimitsSchema,
-    init: { maxOrganizations: 0 },
+    init: { maxOrgs: 0 },
     refusedBy: "int32.gt",
   }),
   row({

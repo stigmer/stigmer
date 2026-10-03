@@ -339,7 +339,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
     expect(checks[0]?.resourceId).toBe("acme");
   });
 
-  it("revokeOrgAccess names the organization statically and its id by field_path (organization_id)", async () => {
+  it("revokeOrgAccess names the organization statically and its id by field_path (org)", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
     const method = IamPolicyCommandController.method.revokeOrgAccess;
     const step = newAuthorizeStep(method, authorizer);
@@ -347,7 +347,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
       method.input,
       create(method.input, {
         identityAccountId: "ida_alice",
-        organizationId: "acme",
+        org: "acme",
       }),
       testCallerIdentity(),
     );
