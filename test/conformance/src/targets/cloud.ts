@@ -85,7 +85,7 @@ export class CloudTarget implements TargetProfile {
     // target.
     skillArtifactTransferLane: true,
     workflowChildApprovalForwarding: true,
-    // The hermetic cloud env boots Temporal and the Java service runs the
+    // The hermetic cloud env boots Temporal and the composition runs the
     // schedule clock — triggers fire for real.
     scheduleFiring: true,
     // The cloud-execution runner is an embedded runner bootstrapped as the
@@ -121,8 +121,7 @@ export class CloudTarget implements TargetProfile {
     // refusal the open-source chassis gives.
     requiresAuthentication: true,
     // The platform tenant's tokens are verified and their subject resolved to
-    // the ida_ at position 1: Java's Auth0 decoder + RequestCallerIdentityMapper
-    // natively, the composition's direct-idp verifier.
+    // the ida_ at position 1 by the composition's direct-idp verifier.
     directLogin: true,
     // The cloud-iam unit composes the IdentityFederation capability, so the
     // four federation RPCs are served for real; the OSS UNIMPLEMENTED pins
