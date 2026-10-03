@@ -333,7 +333,7 @@ jobs:
   # publish-server. This is the lane a cross-repo seam change rides: once the
   # OSS pull request has merged, dispatch this workflow on `main`, and the
   # cloud composition's PR pins the `X.Y.Z-dev.<stamp>.g<sha>` it prints and
-  # merges on it (the cloud checks that the named commit is on `main`).
+  # merges on it (the cloud is expected to refuse a commit not on `main`).
   # Same publish-standalone.mjs sequence as production; the consumer-install
   # smoke boots the staged install against a Temporal dev server and requires
   # every worker to start.
@@ -632,11 +632,11 @@ jobs:
               echo '```'
               echo "The \`dev\` dist-tag always resolves to the newest dev build."
               echo ""
-              echo "## npm (@stigmer/server library — a composition's PR branch)"
+              echo "## npm (@stigmer/server library — a composition's pin)"
               echo '```json'
-              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\""
+              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\""
               echo '```'
-              echo "Exact versions, all three equal (the cloud's pin guard requires it). Re-pin to the release before merging to main."
+              echo "Exact versions, all equal. Built from \`main\`, this is a build a composition may merge on; built from a branch, its commit is not on \`main\`, so it is for trying, not for merging."
               echo ""
             fi
 

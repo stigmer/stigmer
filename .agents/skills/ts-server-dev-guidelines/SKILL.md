@@ -220,7 +220,8 @@ version. A change that the cloud needs therefore follows one order:
    (`release.dev.yaml`, `targets=npm`); its version names the commit it was
    built from (`X.Y.Z-dev.<stamp>.g<sha>`).
 3. The cloud pull request pins that build and merges on it, without waiting for
-   a release; the cloud checks that the named commit is on `main`.
+   a release; the cloud is expected to refuse a build whose named commit is not
+   on `main`.
 4. A release reaches production through the cloud's re-pin to it, which comes
    before anything deploys.
 
