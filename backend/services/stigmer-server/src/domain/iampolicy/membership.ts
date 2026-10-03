@@ -92,16 +92,20 @@
  *   carry a method only one edition calls, and this act is open source's.
  *
  *   ensureRolesOnServerOrganization() — the same pass, over the server's
- *   organization, ONCE per database (SERVER_ORGANIZATION_ROLES_KEY). The
- *   server records it in `start()` (and on an empty store makes it there),
- *   after the reconciliation above has run, so a store upgraded with people
+ *   organization, ONCE per database (SERVER_ORGANIZATION_ROLES_KEY), and
+ *   only when the server made that organization on an empty store (the boot
+ *   step marks the pass SERVER_ORGANIZATION_ROLES_OWED before the create).
+ *   The server makes it in `start()`, after the reconciliation above has
+ *   run, so a store upgraded with people
  *   but no organization (someone signed in and never made one) would hold
  *   an organization no account holds a role on, with the limit refusing a
  *   second and the delete refusing this one. The arms run for every person
  *   account on that organization only, as each account, in creation order,
  *   and the marker is written after the last; a fault leaves it unset and
  *   the next boot converges. Nothing while the server holds none: the
- *   marker waits for the organization. On a fresh install there is nobody
+ *   marker waits for the organization. A store that already held its
+ *   organization owes nothing: the marker is written and no role granted,
+ *   so a member an admin removed there is not handed back. On a fresh install there is nobody
  *   yet, the marker is written, and every later person gets their role at
  *   their first sign-in.
  *
@@ -168,6 +172,7 @@ import {
   BLUEPRINT_KINDS,
   ROLES_RECONCILED_KEY,
   SERVER_ORGANIZATION_ROLES_KEY,
+  SERVER_ORGANIZATION_ROLES_OWED,
 } from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
 import { organizationRole, relationOf } from "./specs.js";
@@ -555,9 +560,10 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
     },
 
     async ensureRolesOnServerOrganization(): Promise<void> {
-      if (
-        (await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY)) !== ""
-      ) {
+      const marker = await store.bootstrapState.get(
+        SERVER_ORGANIZATION_ROLES_KEY,
+      );
+      if (marker !== "" && marker !== SERVER_ORGANIZATION_ROLES_OWED) {
         return;
       }
       const serverOrganization = await store.bootstrapState.get(SINGLE_ORG_KEY);
@@ -567,7 +573,10 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       const organizations = (await scan(ApiResourceKind.organization)).filter(
         (organization) => organization.id === serverOrganization,
       );
-      const accounts = await scanPersonAccounts();
+      const accounts =
+        marker === SERVER_ORGANIZATION_ROLES_OWED
+          ? await scanPersonAccounts()
+          : [];
       if (organizations.length > 0 && accounts.length > 0) {
         const world: ScannedWorld = {
           organizations,

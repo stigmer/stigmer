@@ -3,6 +3,9 @@
  * (boot/single-organization.ts), driven directly over a composed library
  * server's in-process transport so each store shape can be set up first:
  *
+ *   - an empty store is marked, before the create, as owing the people it
+ *     holds their roles on the organization (the membership rules' pass);
+ *     a store that already holds one is not;
  *   - an empty store gets `stigmer`, made as the caller given (under
  *     sign-in the server acting as nobody, so the stamp is "system"), its
  *     id recorded under SINGLE_ORG_KEY, and the holder settled to it;
@@ -44,6 +47,10 @@ import {
   ORGANIZATION_LIMIT_REACHED,
   SINGLE_ORG_KEY,
 } from "../../domain/organization/limit.js";
+import {
+  SERVER_ORGANIZATION_ROLES_KEY,
+  SERVER_ORGANIZATION_ROLES_OWED,
+} from "../../domain/iampolicy/constants.js";
 import type { GateSlotName } from "../../extensions/gate-slots.js";
 import { baseConfig } from "../../extensions/__tests__/composed-support.js";
 import type { ServerExtension } from "../../extensions/registry.js";
@@ -139,6 +146,37 @@ describe("ensureSingleOrganization", () => {
   afterEach(async () => {
     await server.shutdown();
     rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("an empty store is marked as owing its people their roles before the create; a store that holds one is not", async () => {
+    await composeWith();
+    let markedBeforeCreate = "";
+    await ensureSingleOrganization({
+      store: server.store,
+      creator: {
+        createAsCaller: async () => {
+          markedBeforeCreate = await server.store.bootstrapState.get(
+            SERVER_ORGANIZATION_ROLES_KEY,
+          );
+          await seedOrganization("stigmer");
+          throw new ConnectError(
+            "Organization already exists",
+            Code.AlreadyExists,
+          );
+        },
+      },
+      caller: serverActingFor(SYSTEM_OPERATOR_IDENTITY_ID),
+      holder: newSingleOrganizationHolder(),
+      logger,
+    });
+    expect(markedBeforeCreate).toBe(SERVER_ORGANIZATION_ROLES_OWED);
+
+    await server.store.bootstrapState.delete(SERVER_ORGANIZATION_ROLES_KEY);
+    const { run } = ensure();
+    await run();
+    expect(
+      await server.store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
+    ).toBe("");
   });
 
   it("an empty store gets `stigmer`, made as nobody, recorded, and filled", async () => {

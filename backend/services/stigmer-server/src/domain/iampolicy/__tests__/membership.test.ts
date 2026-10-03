@@ -79,6 +79,7 @@ import {
   BLUEPRINT_KINDS,
   ROLES_RECONCILED_KEY,
   SERVER_ORGANIZATION_ROLES_KEY,
+  SERVER_ORGANIZATION_ROLES_OWED,
 } from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import type { IamPolicyGrantPath } from "../grant-path.js";
@@ -1056,7 +1057,11 @@ describe("membership rules", () => {
       ).toBe("");
     });
 
-    it("gives the people the store held their roles on that organization only, in sign-in order, and the marker", async () => {
+    it("owed (the server made it on this store), gives the people the store held their roles on that organization only, in sign-in order, and the marker", async () => {
+      await store.bootstrapState.set(
+        SERVER_ORGANIZATION_ROLES_KEY,
+        SERVER_ORGANIZATION_ROLES_OWED,
+      );
       await seedOrg("stigmer", "system");
       await seedOrg("acme", "system");
       await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
@@ -1083,6 +1088,10 @@ describe("membership rules", () => {
     });
 
     it("a second call is a no-op: a role revoked after the marker is not handed back", async () => {
+      await store.bootstrapState.set(
+        SERVER_ORGANIZATION_ROLES_KEY,
+        SERVER_ORGANIZATION_ROLES_OWED,
+      );
       await seedOrg("stigmer", "system");
       await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
       await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
@@ -1092,6 +1101,20 @@ describe("membership rules", () => {
       await rules.ensureRolesOnServerOrganization();
 
       expect(policies.rows.size).toBe(0);
+    });
+
+    it("a store that already held its organization owes nothing: no role granted, and the marker written", async () => {
+      await seedOrg("acme", "auth0|founder");
+      await store.bootstrapState.set(SINGLE_ORG_KEY, "acme");
+      await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
+      await seedAccount("auth0|removed", "removed@example.com", 200);
+
+      await rules.ensureRolesOnServerOrganization();
+
+      expect(policies.rows.size).toBe(0);
+      expect(
+        await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
+      ).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
     });
 
     it("with nobody in the store, writes nothing and still sets the marker: later people get their roles at sign-in", async () => {

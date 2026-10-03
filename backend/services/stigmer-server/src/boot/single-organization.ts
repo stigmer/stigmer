@@ -36,6 +36,12 @@
  * turns the fill on; any other count leaves it off for the process, with one
  * warning: the count when it holds several, the cause when it holds none.
  *
+ * On an empty store, before the create, the step marks the membership
+ * rules' pass over the server's organization as owed
+ * (SERVER_ORGANIZATION_ROLES_OWED, domain/iampolicy/constants.ts): the
+ * people that store already held get their roles on the organization made
+ * for them, and no other store's people do.
+ *
  * One failure is not fatal. A store whose ledger retired the slug and that
  * holds no organization (a laptop that deleted it before the server made
  * its own) cannot get it back: the step warns, the fill stays off, and the
@@ -62,6 +68,10 @@ import {
   SINGLE_ORG_KEY,
 } from "../domain/organization/limit.js";
 import { ORGANIZATION_SLUG_RESERVED } from "../domain/organization/slug-ledger.js";
+import {
+  SERVER_ORGANIZATION_ROLES_KEY,
+  SERVER_ORGANIZATION_ROLES_OWED,
+} from "../domain/iampolicy/constants.js";
 import type { Store } from "../store/interface.js";
 
 /** The in-process edge that makes the organization: the whole create chain, as the given caller. */
@@ -85,10 +95,22 @@ export async function ensureSingleOrganization(
   deps: SingleOrganizationBootDeps,
 ): Promise<void> {
   const { store, logger } = deps;
-  const outcome: CreateOutcome =
-    (await store.listResources(ApiResourceKind.organization)).length === 0
-      ? await createSingleOrganization(deps)
-      : "present";
+  const empty =
+    (await store.listResources(ApiResourceKind.organization)).length === 0;
+  if (
+    empty &&
+    (await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY)) === ""
+  ) {
+    // Before the create, so a start that dies after it still owes the
+    // people this store already held their roles (iampolicy/constants.ts).
+    await store.bootstrapState.set(
+      SERVER_ORGANIZATION_ROLES_KEY,
+      SERVER_ORGANIZATION_ROLES_OWED,
+    );
+  }
+  const outcome: CreateOutcome = empty
+    ? await createSingleOrganization(deps)
+    : "present";
   const [only, ...others] = (
     await store.listResources(ApiResourceKind.organization)
   ).map((bytes) => fromBinary(OrganizationSchema, bytes).metadata?.id ?? "");

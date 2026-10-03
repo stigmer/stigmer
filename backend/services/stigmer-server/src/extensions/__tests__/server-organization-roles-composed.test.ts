@@ -26,6 +26,10 @@
  * or CLI): the one organization a server holds is the server's, whoever
  * made it.
  *
+ * And a sign-in install upgraded with its one organization: a member an
+ * admin removed before the upgrade stays removed after it. Only a store the
+ * server made its organization on owes its people their roles.
+ *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
  * require-authentication posture with no Authorizer (composed-support.ts),
  * the open-source sign-in shape role-reconciliation-composed.test.ts boots;
@@ -306,5 +310,72 @@ describe("an older release's laptop organization when sign-in is turned on (comp
     const roles = await rolesIn(server.store);
     expect(roles).toContain(`${firstId()}:owner@acme|by:${firstId()}`);
     expect(roles).toContain(`${secondId()}:member@acme|by:${secondId()}`);
+  });
+});
+
+describe("a sign-in install upgraded with its one organization (composed server, OIDC with any number, then OIDC with one)", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let port: number;
+
+  const anyNumber: ServerExtension = {
+    name: "fake-oidc-only",
+    requireAuthentication: true,
+    identityVerifiers: [fakeVerifier],
+  };
+
+  async function boot(unit: ServerExtension): Promise<void> {
+    server = await composeServer({
+      config: loadConfig(baseConfig(dir)),
+      logger: silentLogger,
+      extensions: [unit],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+  }
+
+  const asFirst = () => transportFor(port, fakeJwt(FIRST, "first@example.com"));
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "upgraded-sign-in-"));
+    await boot(anyNumber);
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("a member removed before the upgrade is not handed a role back by it", async () => {
+    await createClient(
+      IdentityAccountCommandController,
+      asFirst(),
+    ).provisionMyAccount({});
+    await createClient(OrganizationCommandController, asFirst()).create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: "acme", slug: "acme", org: "" },
+      spec: { description: "founded under sign-in" },
+    });
+    await createClient(
+      IdentityAccountCommandController,
+      transportFor(port, fakeJwt(SECOND, "second@example.com")),
+    ).provisionMyAccount({});
+    await createClient(IamPolicyCommandController, asFirst()).revokeOrgAccess({
+      identityAccountId: secondId(),
+      org: "acme",
+    });
+    expect(await rolesIn(server.store)).toEqual([
+      `${firstId()}:owner@acme|by:${firstId()}`,
+    ]);
+    await server.shutdown();
+
+    await boot({ ...anyNumber, orgLimit: 1 });
+
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("acme");
+    expect(await rolesIn(server.store)).toEqual([
+      `${firstId()}:owner@acme|by:${firstId()}`,
+    ]);
   });
 });
