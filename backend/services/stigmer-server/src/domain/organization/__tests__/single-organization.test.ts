@@ -279,8 +279,10 @@ describe("a declared limit above one (the count alone)", () => {
       await server.store.listResources(ApiResourceKind.organization),
     ).toHaveLength(0);
     expect((await platform.getServerInfo({})).singleOrg).toBe(false);
-    const refusal = await grpcError(() => agents.create(agentInput("Nowhere")));
-    expect(refusal.code).toBe(Code.InvalidArgument);
+    // Trusted-local admits an empty org as a platform-scoped write; the point
+    // is that nothing filled one in.
+    const agent = await agents.create(agentInput("Nowhere"));
+    expect(agent.metadata?.org).toBe("");
   });
 
   it("admits creates up to the limit, refuses the next, and lets one be deleted", async () => {

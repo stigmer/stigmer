@@ -150,21 +150,21 @@ describe("resolveOrganization", () => {
     );
   });
 
-  it("defaults to the stigmer org in local mode when nothing is configured", () => {
-    expect(resolveOrganization(localConfig())).toBe("stigmer");
+  it("names no organization in local mode when nothing is configured: the server fills its one", () => {
+    expect(resolveOrganization(localConfig())).toBe("");
   });
 
-  it("defaults to the stigmer org on a selfhost backend (it IS the OSS server)", () => {
-    expect(resolveOrganization(selfhostConfig())).toBe("stigmer");
+  it("names no organization on a selfhost backend when nothing is configured", () => {
+    expect(resolveOrganization(selfhostConfig())).toBe("");
   });
 
-  it("prefers an explicit context org over the local default", () => {
+  it("uses an explicit context org", () => {
     expect(
       resolveOrganization(localConfig({ org: "my-local-org" })),
     ).toBe("my-local-org");
   });
 
-  it("does not apply the local default in cloud mode (org stays empty)", () => {
+  it("names no organization in cloud mode either when nothing is configured", () => {
     expect(resolveOrganization(cloudConfig({ endpoint: undefined }))).toBe("");
   });
 

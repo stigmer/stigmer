@@ -147,7 +147,7 @@ describe("config context set --org", () => {
     const outcome = await run("--org", "");
     expect(outcome.exitCode).toBe(ExitCode.Success);
     expect(lookups).toBe(1);
-    expect(resolveOrganization(load())).toBe("stigmer");
+    expect(resolveOrganization(load())).toBe("");
   });
 
   it("is a usage error without --org", async () => {

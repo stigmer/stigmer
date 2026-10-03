@@ -8,8 +8,7 @@
  *   - SIGTERM runs the composed shutdown and exits 0, and a second signal
  *     does nothing more;
  *   - a failed start is logged and exits 1, with no ready line;
- *   - a config failure rejects before any logger exists, for the entry to
- *     report on stderr.
+ *   - a composition failure rejects, for the entry to report on stderr.
  *
  * The shipped entry itself (main.ts) is proven on the built artifact by
  * scripts/verify-boot.mjs.
@@ -24,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
+import { READY_LINE_KEY } from "../ready-line.js";
 import { runServer } from "../run.js";
 import type { ProcessHost } from "../run.js";
 import { openSourceEdition } from "../../editions/open-source.js";
@@ -91,9 +91,9 @@ describe("runServer", () => {
     expect(host.stdout).toHaveLength(1);
     const ready = JSON.parse(host.stdout[0] ?? "") as Record<
       string,
-      { grpc: number }
+      { grpcPort: number }
     >;
-    const grpcPort = Object.values(ready)[0]?.grpc ?? 0;
+    const grpcPort = ready[READY_LINE_KEY]?.grpcPort ?? 0;
     expect(grpcPort).toBeGreaterThan(0);
 
     const organizations = createClient(
@@ -128,10 +128,11 @@ describe("runServer", () => {
     expect(host.stdout).toEqual([]);
   });
 
-  it("a config failure rejects for the entry to report", async () => {
-    vi.stubEnv("GRPC_PORT", "not-a-port");
+  it("a composition failure rejects for the entry to report", async () => {
     const host = recordingHost();
-    await expect(runServer({ extensions: [], host })).rejects.toThrow();
+    await expect(
+      runServer({ extensions: [{ name: "odd", orgLimit: 0 }], host }),
+    ).rejects.toThrow(/declares orgLimit 0/);
     expect(host.exits).toEqual([]);
   });
 });
