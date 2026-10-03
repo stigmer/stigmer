@@ -10,10 +10,13 @@
  * serves (the executions' `session` list-index key; the keyset page by
  * id), so this module adds no query pattern and no index.
  *
- * The activity clock uses only stamps the server writes itself: an
- * execution's creation (`status.audit.spec_audit.created_at`) and, once
- * it ends, its completion (`status.completed_at`). An execution that has
- * not ended is in an active phase, which makes the session busy, so its
+ * The activity clock is an execution's creation
+ * (`status.audit.spec_audit.created_at`, stamped by the server) and, once it
+ * ends, its completion (`status.completed_at`, which the server stamps on
+ * its own transitions and copies from the runner's status report
+ * otherwise). A stamp later than now is read as now, so a runner whose
+ * clock runs ahead cannot keep its sandbox awake. An execution that has not
+ * ended is in an active phase, which makes the session busy, so its
  * progress never needs a clock.
  */
 import { fromBinary } from "@bufbuild/protobuf";
@@ -35,6 +38,7 @@ const SESSION_PAGE_SIZE = 500;
 export function newStoreSessionActivityReader(
   store: Store,
   logger: Logger,
+  now: () => number = Date.now,
 ): SessionActivityReader {
   return {
     async activity(sessionId: string): Promise<SessionActivity> {
@@ -52,7 +56,7 @@ export function newStoreSessionActivityReader(
           });
         }
       }
-      return sessionActivityOf(executions);
+      return sessionActivityOf(executions, now());
     },
 
     async *sessionIds(): AsyncIterable<string> {
@@ -75,14 +79,17 @@ export function newStoreSessionActivityReader(
   };
 }
 
-/** Busy and the latest server-written stamp over one session's executions. */
+/** Busy and the latest stamp over one session's executions, none later than `nowMs`. */
 export function sessionActivityOf(
   executions: readonly AgentExecution[],
+  nowMs: number,
 ): SessionActivity {
   let busy = false;
   let last: number | undefined;
-  const seen = (ms: number | undefined): void => {
-    if (ms !== undefined && (last === undefined || ms > last)) {
+  const seen = (stamp: number | undefined): void => {
+    if (stamp === undefined) return;
+    const ms = Math.min(stamp, nowMs);
+    if (last === undefined || ms > last) {
       last = ms;
     }
   };

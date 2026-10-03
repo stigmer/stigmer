@@ -6,6 +6,8 @@
  *     waiting for approval or paused; idle once every one has ended;
  *   - the activity clock is the latest creation or completion stamp the
  *     server wrote, never another session's;
+ *   - a stamp later than now counts as now, so a clock running ahead
+ *     cannot keep a sandbox awake;
  *   - a session with no executions has no clock;
  *   - every session id is paged out, past one page.
  */
@@ -30,6 +32,9 @@ import {
   newStoreSessionActivityReader,
   sessionActivityOf,
 } from "../session-activity.js";
+
+/** The reader's clock: after every stamp the tests write, unless one is meant to be later. */
+const NOW = () => Date.parse("2026-10-03T13:00:00Z");
 
 const silentLogger = createLogger({
   level: "error",
@@ -100,7 +105,7 @@ describe("activity(sessionId)", () => {
         new Date("2026-10-01T09:00:00Z"),
       ),
     );
-    const reader = newStoreSessionActivityReader(store, silentLogger);
+    const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
     expect((await reader.activity("ses_a")).busy).toBe(true);
   });
 
@@ -128,7 +133,7 @@ describe("activity(sessionId)", () => {
         new Date("2026-10-03T12:01:00Z"),
       ),
     );
-    const reader = newStoreSessionActivityReader(store, silentLogger);
+    const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
     expect(await reader.activity("ses_a")).toEqual({
       busy: false,
       lastActiveAt: new Date("2026-10-03T10:07:30Z"),
@@ -136,7 +141,7 @@ describe("activity(sessionId)", () => {
   });
 
   it("has no clock for a session with no executions", async () => {
-    const reader = newStoreSessionActivityReader(store, silentLogger);
+    const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
     expect(await reader.activity("ses_none")).toEqual({
       busy: false,
       lastActiveAt: undefined,
@@ -169,7 +174,7 @@ describe("a row that does not decode", () => {
         },
       ],
     } as unknown as Store;
-    const reader = newStoreSessionActivityReader(stub, logger);
+    const reader = newStoreSessionActivityReader(stub, logger, NOW);
     expect((await reader.activity("ses_a")).busy).toBe(true);
     expect(warnings).toContain("Failed to unmarshal execution, skipping");
   });
@@ -178,22 +183,44 @@ describe("a row that does not decode", () => {
 describe("sessionActivityOf", () => {
   it("falls back to the creation stamp when an execution has no completion, and ignores an unparsable one", () => {
     expect(
-      sessionActivityOf([
-        execution(
-          "aex_1",
-          "s",
-          ExecutionPhase.EXECUTION_CANCELLED,
-          new Date("2026-10-03T08:00:00Z"),
-        ),
-        create(AgentExecutionSchema, {
-          status: {
-            phase: ExecutionPhase.EXECUTION_COMPLETED,
-            completedAt: "not a time",
-          },
-        }),
-        create(AgentExecutionSchema, {}),
-      ]),
+      sessionActivityOf(
+        [
+          execution(
+            "aex_1",
+            "s",
+            ExecutionPhase.EXECUTION_CANCELLED,
+            new Date("2026-10-03T08:00:00Z"),
+          ),
+          create(AgentExecutionSchema, {
+            status: {
+              phase: ExecutionPhase.EXECUTION_COMPLETED,
+              completedAt: "not a time",
+            },
+          }),
+          create(AgentExecutionSchema, {}),
+        ],
+        NOW(),
+      ),
     ).toEqual({ busy: false, lastActiveAt: new Date("2026-10-03T08:00:00Z") });
+  });
+});
+
+describe("a stamp later than now", () => {
+  it("counts as now, so a clock running ahead cannot keep a sandbox awake", () => {
+    expect(
+      sessionActivityOf(
+        [
+          execution(
+            "aex_1",
+            "s",
+            ExecutionPhase.EXECUTION_COMPLETED,
+            new Date("2026-10-03T08:00:00Z"),
+            new Date("2026-10-04T08:00:00Z"),
+          ),
+        ],
+        NOW(),
+      ),
+    ).toEqual({ busy: false, lastActiveAt: new Date(NOW()) });
   });
 });
 
@@ -210,7 +237,7 @@ describe("sessionIds()", () => {
         create(SessionSchema, { metadata: { id, name: id, org: "org-a" } }),
       );
     }
-    const reader = newStoreSessionActivityReader(store, silentLogger);
+    const reader = newStoreSessionActivityReader(store, silentLogger, NOW);
     const seen: string[] = [];
     for await (const id of reader.sessionIds()) seen.push(id);
     expect(seen.sort()).toEqual(ids);

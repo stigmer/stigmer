@@ -60,6 +60,13 @@
  * egress switched off reaches existing sandboxes after a restart rather
  * than only new ones.
  *
+ * A waiter woken from storage has accepted no push but the driver's, so
+ * a refusal there saying it already serves other secrets, another token or
+ * another queue means a push from elsewhere won its first, unauthenticated
+ * push: the driver suspends the sandbox, which stops that runner, and
+ * fails the ensure. The router being reachable by this server alone is
+ * what keeps that from happening (egress.ts); this catches it if it does.
+ *
  * One limit stays: a RUNNING runner that refuses rotated secrets also
  * refuses the push's fresh token, so it restarts, if it crashes, with the
  * last token it accepted. A runner crash-looping on an expired token
@@ -77,6 +84,7 @@ import {
 
 import type { Logger } from "../../boot/logger.js";
 import { SANDBOX_QUEUE_PREFIXES, sandboxBaseName } from "../naming.js";
+import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
 import type {
   SandboxDriverConfig,
   SandboxEnvironment,
@@ -85,7 +93,6 @@ import type {
   SandboxScope,
 } from "../provisioner.js";
 import type { SubstrateDriverSettings } from "./config.js";
-import { ATTACH_SECRET_NAMES } from "./attach-secrets.js";
 import { delay } from "./delay.js";
 import { buildEgressRules } from "./egress.js";
 import { ActorState, type EgressRule } from "./gen/ateapipb/ateapi_pb.js";
@@ -95,7 +102,10 @@ import {
   type SubstrateActorView,
   type SubstrateGateway,
 } from "./gateway.js";
-import { MAX_IN_PLACE_PAUSE_SECONDS } from "./limits.js";
+import {
+  CLOCK_SKEW_ALLOWANCE_MS,
+  MAX_IN_PLACE_PAUSE_SECONDS,
+} from "./limits.js";
 import { pushAttach, type PushResult } from "./push.js";
 import {
   buildRunnerTemplate,
@@ -204,6 +214,13 @@ const TEMPORAL_SECRET_NAMES: readonly string[] = [
   TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
 ];
 
+/** The refusals that say a waiter already took another push (attach, fresh). */
+const ATTACHED_ELSEWHERE: ReadonlySet<string> = new Set([
+  "secrets_changed",
+  "token_mismatch",
+  "other_queue",
+]);
+
 const TRANSITIONAL: ReadonlySet<ActorState> = new Set([
   ActorState.RESUMING,
   ActorState.PAUSING,
@@ -226,11 +243,11 @@ export function validateSubstrateDriverConfig(
     );
   }
   const unknown = Object.keys(config.runnerSecretEnv).filter(
-    (name) => !ATTACH_SECRET_NAMES.includes(name),
+    (name) => !RUNNER_SECRET_NAMES.includes(name),
   );
   if (unknown.length > 0) {
     throw new Error(
-      `sandbox provisioner 'substrate' cannot push ${unknown.join(", ")} from STIGMER_SANDBOX_RUNNER_SECRETS: a sandbox's runner accepts only its own secret variables (${ATTACH_SECRET_NAMES.join(", ")}); give anything else to the runner as a plain setting (STIGMER_SANDBOX_RUNNER_ENV) or through the run's environment`,
+      `sandbox provisioner 'substrate' cannot push ${unknown.join(", ")} from STIGMER_SANDBOX_RUNNER_SECRETS: a sandbox's runner accepts only its own secret variables (${RUNNER_SECRET_NAMES.join(", ")}); give anything else to the runner as a plain setting (STIGMER_SANDBOX_RUNNER_ENV) or through the run's environment`,
     );
   }
   if (!config.runnerImage.includes("@sha256:")) {
@@ -407,12 +424,12 @@ export function newSubstrateSandboxDriverOverGateway(
           }
           switch (actor.state) {
             case ActorState.SUSPENDED: {
-              // A wake from storage starts a fresh waiter, so its first
-              // push starts the runner and cannot meet rotated secrets.
+              // A wake from storage starts a fresh waiter, so this push is
+              // its first: a refusal means another push won it (attach).
               await moveToCurrent(actor);
               await reconcileEgress(name, true);
               await gateway.resumeActor(name);
-              await attach(scope, name, env);
+              await attach(scope, name, env, { fresh: true });
               logger.info("Substrate sandbox ensured", {
                 scope,
                 id,
@@ -426,7 +443,7 @@ export function newSubstrateSandboxDriverOverGateway(
               // A PAUSED actor's update time is the moment it paused.
               const pausedAt = actor.updateTime?.getTime() ?? 0;
               if (
-                pausedAt < processStartedAt ||
+                pausedAt < processStartedAt + CLOCK_SKEW_ALLOWANCE_MS ||
                 now() - pausedAt > MAX_IN_PLACE_PAUSE_SECONDS * 1000
               ) {
                 await gateway.suspendActor(name);
@@ -494,9 +511,20 @@ export function newSubstrateSandboxDriverOverGateway(
     scope: SandboxScope,
     name: string,
     env: SandboxEnvironment,
+    options: { readonly fresh?: boolean } = {},
   ): Promise<void> {
     const result = await push(name, env);
     if (result.ok) return;
+    if (options.fresh === true && ATTACHED_ELSEWHERE.has(result.code)) {
+      // A waiter woken from storage has accepted no push but this one, so a
+      // refusal that says it already serves other secrets, another token or
+      // another queue means a push from somewhere else won the waiter's
+      // first, unauthenticated push. Its runner is stopped, never served.
+      await gateway.suspendActor(name);
+      throw new Error(
+        `sandbox ${name} was attached by another push before this one (${result.code}); it has been suspended, and its next wake starts it fresh`,
+      );
+    }
     if (result.code === "secrets_changed") {
       logger.warn(
         "Runner secrets rotated; the sandbox keeps its running runner and takes them at its next fresh start",

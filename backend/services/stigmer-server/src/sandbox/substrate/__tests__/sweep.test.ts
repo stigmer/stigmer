@@ -10,11 +10,12 @@
  *   - each action is re-decided from fresh reads inside the actor's queue;
  *   - a sandbox this process never ensured is named by a scan of every
  *     session; one no later scan names is an orphan, suspended and never
- *     deleted; one created since the last scan is left alone, and scans
- *     are rate-limited;
+ *     deleted; one created since the last scan (leaning by the clock-skew
+ *     allowance) is left alone, and scans are rate-limited;
  *   - a sandbox left DELETING is deleted again; a suspended one on an older
  *     template is moved; unused templates are retired;
- *   - start runs a pass at once and stop waits for it.
+ *   - start runs a pass at once; a stopping sweep ends its pass after the
+ *     sandbox in hand.
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -29,6 +30,7 @@ import { FakeSubstrate, fakeRouter } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import { newSubstrateSandboxDriverOverGateway } from "../driver.js";
 import { ActorState } from "../gen/ateapipb/ateapi_pb.js";
+import { CLOCK_SKEW_ALLOWANCE_MS } from "../limits.js";
 import {
   newSweepState,
   runSweepPass,
@@ -307,6 +309,20 @@ describe("sandboxes this process never ensured", () => {
     expect(h.substrate.actors.get(name)?.state).toBe(ActorState.SUSPENDED);
   });
 
+  it("one created within the clock-skew allowance before a scan began is not taken for an orphan by it", async () => {
+    const h = harness();
+    const name = sandboxBaseName("session", "ses_new");
+    h.substrate.put({
+      name,
+      state: ActorState.RUNNING,
+      template: "t",
+      createTime: new Date(h.t() - CLOCK_SKEW_ALLOWANCE_MS + 1_000),
+    });
+    await h.pass();
+    expect(h.sessions.scans).toBe(1);
+    expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);
+  });
+
   it("a session created through another replica is named by the next scan and kept running while busy", async () => {
     const h = harness();
     const name = sandboxBaseName("session", "ses_elsewhere");
@@ -383,15 +399,34 @@ describe("housekeeping", () => {
     );
   });
 
-  it("start runs a pass at once and prepares the template; stop waits for the pass", async () => {
+  it("start runs a pass at once and prepares the template", async () => {
     const h = harness();
     const name = known(h, "ses_a", ActorState.RUNNING, 6 * MIN);
     const handle = startSubstrateSweep(h.options);
+    await vi.waitFor(() => {
+      expect(h.substrate.actors.get(name)?.state).toBe(ActorState.PAUSED);
+    });
     await handle.stop();
-    expect(h.substrate.actors.get(name)?.state).toBe(ActorState.PAUSED);
     expect(h.substrate.calls.some((c) => c.startsWith("createTemplate"))).toBe(
       true,
     );
+  });
+
+  it("a stopping sweep finishes the sandbox in hand and ends the pass there", async () => {
+    const h = harness();
+    const first = known(h, "ses_a", ActorState.RUNNING, 6 * MIN);
+    const second = known(h, "ses_b", ActorState.RUNNING, 6 * MIN);
+    let stopping = false;
+    const pause = h.substrate.pauseActor.bind(h.substrate);
+    h.substrate.pauseActor = async (name) => {
+      stopping = true;
+      return pause(name);
+    };
+    await runSweepPass(h.state, { ...h.options, stopping: () => stopping });
+    const states = [first, second].map((n) => h.substrate.actors.get(n)?.state);
+    expect(states.filter((s) => s === ActorState.PAUSED)).toHaveLength(1);
+    expect(states.filter((s) => s === ActorState.RUNNING)).toHaveLength(1);
+    expect(h.substrate.calls).not.toContain("listTemplates ");
   });
 });
 

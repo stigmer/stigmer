@@ -9,7 +9,8 @@
  * the boot on a contradiction, and its own suite pins each rule; here the
  * config only has to carry its result. The sandbox runner lists are a
  * second exception, pinned below: a listed variable the server does not
- * have, a name on both lists, or a name a driver sets itself fails the boot.
+ * have, a name on both lists, a runner secret on the plain list, or a name
+ * a driver sets itself fails the boot.
  */
 import { describe, expect, it } from "vitest";
 
@@ -230,11 +231,14 @@ describe("loadConfig", () => {
       );
     });
 
-    it("fail the boot on a name in both lists, a malformed name, or a name a driver sets itself", () => {
+    it("fail the boot on a name in both lists, a malformed name, a secret listed as plain, or a name a driver sets itself", () => {
       expect(() =>
         loadConfig({ STIGMER_SANDBOX_RUNNER_ENV: "K", STIGMER_SANDBOX_RUNNER_SECRETS: "K", K: "v" }),
       ).toThrow(/in both/);
       expect(() => loadConfig({ STIGMER_SANDBOX_RUNNER_ENV: "NOT-A-NAME" })).toThrow(/not an environment variable name/);
+      expect(() => loadConfig({ STIGMER_SANDBOX_RUNNER_ENV: "ANTHROPIC_API_KEY", ANTHROPIC_API_KEY: "sk" })).toThrow(
+        /one of the runner's secrets/,
+      );
       for (const owned of ["STIGMER_TOKEN", "STIGMER_TASK_QUEUE", "STIGMER_TEMPORAL_API_KEY"]) {
         expect(() => loadConfig({ STIGMER_SANDBOX_RUNNER_SECRETS: owned, [owned]: "x" })).toThrow(
           /every sandbox driver sets itself/,

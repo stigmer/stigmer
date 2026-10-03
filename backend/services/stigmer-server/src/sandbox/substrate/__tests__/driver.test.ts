@@ -12,8 +12,11 @@
  *   - RUNNING → pushed only; CRASHED → reverted first; DELETING → refused;
  *   - ABORTED → re-read, whether contention or a crash; no free worker →
  *     thrown at once;
- *   - a pause from before this server process is started fresh, never
- *     thawed; a running runner refusing rotated secrets keeps running;
+ *   - a pause from before this server process, or within the clock-skew
+ *     allowance after its start, is started fresh, never thawed; a running
+ *     runner refusing rotated secrets keeps running;
+ *   - a waiter woken from storage that refuses the driver's first push as
+ *     already attached is suspended, and the ensure fails;
  *   - a waiter refusal throws with its code; a mismatched queue throws
  *     before any call;
  *   - one actor's operations never interleave;
@@ -35,7 +38,10 @@ import {
 } from "../driver.js";
 import { ActorState } from "../gen/ateapipb/ateapi_pb.js";
 import { SubstrateAbortedError, SubstrateNoWorkerError } from "../gateway.js";
-import { MAX_IN_PLACE_PAUSE_SECONDS } from "../limits.js";
+import {
+  CLOCK_SKEW_ALLOWANCE_MS,
+  MAX_IN_PLACE_PAUSE_SECONDS,
+} from "../limits.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -239,6 +245,8 @@ describe("ensure, from each state", () => {
 
   it("PAUSED briefly: resumes in place", async () => {
     const h = harness();
+    // Paused by this process, past the clock-skew allowance after its start.
+    h.advance(CLOCK_SKEW_ALLOWANCE_MS);
     h.substrate.put({
       name: ACTOR,
       state: ActorState.PAUSED,
@@ -644,6 +652,47 @@ describe("deprovision, probe, lifecycle", () => {
         "stigmer-runner-cccccccccccc",
       ].sort(),
     );
+  });
+});
+
+describe("a waiter another push reached first", () => {
+  it("on a wake from storage, a refusal of the driver's first push suspends the sandbox and fails", async () => {
+    for (const code of ["secrets_changed", "token_mismatch", "other_queue"]) {
+      const h = harness(() => ({
+        status: 409,
+        body: { code, error: "taken" },
+      }));
+      h.substrate.put({
+        name: ACTOR,
+        state: ActorState.SUSPENDED,
+        template: "stigmer-runner-old",
+      });
+      await expect(
+        h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      ).rejects.toThrow(
+        new RegExp(`attached by another push before this one \\(${code}\\)`),
+      );
+      expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
+    }
+  });
+});
+
+describe("a pause close to this process's start", () => {
+  it("is started fresh within the clock-skew allowance, thawed in place after it", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(h.substrate.calls).toContain(`suspendActor ${ACTOR}`);
+
+    const later = harness();
+    later.advance(CLOCK_SKEW_ALLOWANCE_MS + 1);
+    later.substrate.put({
+      name: ACTOR,
+      state: ActorState.PAUSED,
+      template: "t",
+    });
+    await later.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(later.substrate.calls).not.toContain(`suspendActor ${ACTOR}`);
   });
 });
 

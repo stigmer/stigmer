@@ -14,8 +14,8 @@
  *     tokenless lane) passes;
  *   - every refusal carries its stable code;
  *   - the secret names a push may carry are the server's copy of them
- *     (`stigmer-server/src/sandbox/substrate/attach-secrets.ts`), which
- *     the server checks an operator's runner secrets against at boot.
+ *     (`stigmer-server/src/sandbox/runner-secret-names.ts`), which the
+ *     server checks an operator's runner lists against at boot.
  */
 import { describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -75,15 +75,15 @@ describe("sandboxNameForQueue", () => {
 });
 
 describe("the secret names a push may carry", () => {
-  it("are exactly the names the server's substrate driver lets an operator push", async () => {
+  it("are the runner's secret names as the server knows them", async () => {
     const path = resolve(
       import.meta.dirname,
-      "../../../../stigmer-server/src/sandbox/substrate/attach-secrets.ts",
+      "../../../../stigmer-server/src/sandbox/runner-secret-names.ts",
     );
-    const { ATTACH_SECRET_NAMES } = (await import(pathToFileURL(path).href)) as {
-      ATTACH_SECRET_NAMES: readonly string[];
+    const { RUNNER_SECRET_NAMES } = (await import(pathToFileURL(path).href)) as {
+      RUNNER_SECRET_NAMES: readonly string[];
     };
-    expect([...ATTACH_SECRET_NAMES].sort()).toEqual([...RUNNER_SECRET_ENV_KEYS].sort());
+    expect([...RUNNER_SECRET_NAMES].sort()).toEqual([...RUNNER_SECRET_ENV_KEYS].sort());
   });
 });
 

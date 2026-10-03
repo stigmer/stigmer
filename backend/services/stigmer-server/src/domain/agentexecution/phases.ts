@@ -46,9 +46,8 @@ export function isTranscriptTerminalPhase(phase: ExecutionPhase): boolean {
 /**
  * Pending, in progress, waiting for approval, or paused. WAITING_FOR_APPROVAL
  * and PAUSED are deliberately included: the execution is logically alive
- * and expected to resume. The phase set of the cloud edition's
- * AgentExecutionRepo.countActiveBySessionId (Go isActiveExecutionPhase,
- * default-false switch).
+ * and expected to resume. The hosted edition counts the same set as a
+ * session's active runs.
  */
 export function isActiveExecutionPhase(phase: ExecutionPhase): boolean {
   switch (phase) {

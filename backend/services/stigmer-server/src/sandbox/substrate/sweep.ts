@@ -56,6 +56,7 @@ import type {
 import { ActorState } from "./gen/ateapipb/ateapi_pb.js";
 import type { SubstrateActorView } from "./gateway.js";
 import { decideIdle, type IdleAction } from "./idle-decision.js";
+import { CLOCK_SKEW_ALLOWANCE_MS } from "./limits.js";
 
 /** The fewest milliseconds between two scans of every session id. */
 export const SCAN_INTERVAL_MS = 10 * 60_000;
@@ -68,6 +69,8 @@ export interface SubstrateSweepOptions {
   readonly sessions: SessionActivityReader;
   readonly logger: Logger;
   readonly now?: () => number;
+  /** True once the sweep is stopping: a pass ends between sandboxes. */
+  readonly stopping?: () => boolean;
 }
 
 /** What one sweep keeps between passes. */
@@ -102,7 +105,7 @@ export function startSubstrateSweep(
 
   const tick = (): void => {
     if (stopped || running !== undefined) return;
-    running = runSweepPass(state, options)
+    running = runSweepPass(state, { ...options, stopping: () => stopped })
       .catch((error: unknown) => {
         logger.error("Substrate idle sweep pass failed", {
           error: error instanceof Error ? error.message : String(error),
@@ -156,6 +159,8 @@ export async function runSweepPass(
   }
 
   for (const actor of actors) {
+    // A shutdown waits for the sandbox in hand, never for the whole pass.
+    if (options.stopping?.() === true) return;
     try {
       if (actor.state === ActorState.DELETING) {
         // A delete that failed part-way leaves the actor DELETING; deleting
@@ -214,12 +219,15 @@ export async function runSweepPass(
     }
   }
 
+  if (options.stopping?.() === true) return;
   await options.lifecycle.retireTemplates();
 }
 
+/** Whether a sandbox may be newer than `instant`, leaning that way by the clock-skew allowance. */
 function createdAfter(actor: SubstrateActorView, instant: number): boolean {
   return (
-    actor.createTime === undefined || actor.createTime.getTime() >= instant
+    actor.createTime === undefined ||
+    actor.createTime.getTime() >= instant - CLOCK_SKEW_ALLOWANCE_MS
   );
 }
 

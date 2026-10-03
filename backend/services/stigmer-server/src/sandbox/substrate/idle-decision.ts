@@ -1,8 +1,8 @@
 /**
  * The idle ladder's decision for one session's sandbox, as a pure
- * function (the cloud edition's idle-policy.ts shape): what the sweep
- * should do to it now, from its state, whether its session is busy, and
- * when the session was last active.
+ * function kept apart from the calls it leads to, so every case is a row
+ * in a table test: what the sweep should do to it now, from its state,
+ * whether its session is busy, and when the session was last active.
  *
  *   - A busy session is never touched: a run that is pending, running,
  *     waiting on a person or paused keeps its sandbox running.

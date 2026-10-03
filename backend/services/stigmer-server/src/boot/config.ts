@@ -29,6 +29,7 @@ import {
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
 import { SANDBOX_DRIVER_OWNED_RUNNER_ENV } from "../sandbox/provisioner.js";
+import { RUNNER_SECRET_NAMES } from "../sandbox/runner-secret-names.js";
 
 export interface ServerConfig {
   /** Unified transport port: gRPC, gRPC-Web, Connect, and the REST lanes. */
@@ -553,7 +554,8 @@ function defaultArtifactPath(): string {
  * The two sandbox runner lists — boot-FATAL on the misconfigurations a
  * lenient read would turn into a runner that boots without its key and
  * fails every turn at its first model call: a listed name with no value
- * here, and a name on both lists (plain and secret at once). Names are
+ * here, a name on both lists (plain and secret at once), and one of the
+ * runner's secrets on the plain list (sandbox/runner-secret-names.ts). Names are
  * environment variable names, and never one a driver sets itself
  * (SANDBOX_DRIVER_OWNED_RUNNER_ENV and the Temporal connection names): a
  * list must not be able to replace a sandbox's queue, token or endpoints.
@@ -564,6 +566,13 @@ function loadSandboxRunnerEnv(env: NodeJS.ProcessEnv): {
 } {
   const plain = sandboxRunnerList(env, "STIGMER_SANDBOX_RUNNER_ENV");
   const secret = sandboxRunnerList(env, "STIGMER_SANDBOX_RUNNER_SECRETS");
+  for (const name of Object.keys(plain)) {
+    if (RUNNER_SECRET_NAMES.includes(name)) {
+      throw new Error(
+        `STIGMER_SANDBOX_RUNNER_ENV lists ${name}, one of the runner's secrets — a driver writes plain settings where anyone reading the sandbox's definition sees them; list it in STIGMER_SANDBOX_RUNNER_SECRETS`,
+      );
+    }
+  }
   for (const name of Object.keys(plain)) {
     if (name in secret) {
       throw new Error(
