@@ -19,8 +19,8 @@ const EMERALD = "#10b981";
 
 // ---------------------------------------------------------------------------
 // Inline page content — the embedded-Stigmer dashboard. Rebuilt with
-// --scenar-* tokens (no Tailwind utilities, which no-op under `scenar pack`);
-// see coding-guidelines/tailwind-to-scenar-tokens.md. The neutral "primary"
+// --scenar-* tokens (no Tailwind utilities, which no-op under `scenar pack`).
+// The neutral "primary"
 // maps to --scenar-primary (the docs --primary is itself near-black/white).
 // ---------------------------------------------------------------------------
 

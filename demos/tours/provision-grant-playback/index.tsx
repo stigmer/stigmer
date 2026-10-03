@@ -33,9 +33,8 @@ const FILE_TREE: FileTreeEntry[] = [
 
 // ---------------------------------------------------------------------------
 // Inline page content — signup card. Rebuilt with --scenar-* tokens (no
-// Tailwind utilities, which no-op under `scenar pack`); see
-// coding-guidelines/tailwind-to-scenar-tokens.md. The neutral "primary" pairs
-// --scenar-primary (fill) with --scenar-surface (contrasting text).
+// Tailwind utilities, which no-op under `scenar pack`). The neutral "primary"
+// pairs --scenar-primary (fill) with --scenar-surface (contrasting text).
 // ---------------------------------------------------------------------------
 
 const labelStyle: CSSProperties = {

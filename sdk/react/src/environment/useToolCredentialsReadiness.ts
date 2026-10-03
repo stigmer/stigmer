@@ -41,7 +41,7 @@ const NEEDS_CREDENTIALS: ToolCredentialsReadiness = { status: "needs-credentials
  * connection's users, and this hook says so explicitly
  * (`needs-credentials`) instead of staying silent — the gap that made a
  * share misconfiguration invisible until a visitor's first message
- * failed (sharing project, session 12).
+ * failed.
  *
  * `applicable` is the caller's predicate: connection kinds differ in
  * when the check matters (shares add an audience arm; channels do not),
