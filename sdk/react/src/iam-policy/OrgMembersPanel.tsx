@@ -76,15 +76,15 @@ export interface OrgMembersPanelProps {
  * ```
  */
 export function OrgMembersPanel({
-  org,
+  org: orgId,
   onRefetchRef,
   className,
 }: OrgMembersPanelProps) {
-  const resource = org ? { kind: "organization", id: org } : null;
+  const resource = orgId ? { kind: "organization", id: orgId } : null;
   const { members, isLoading, error, refetch } = useResourceAccess(resource);
   const { account: currentAccount } = useWhoAmI();
   const currentAccountId = currentAccount?.metadata?.id ?? null;
-  const { canAssignOwner, unassignable } = useOwnerAssignment(org || null);
+  const { canAssignOwner, unassignable } = useOwnerAssignment(orgId || null);
 
   const [actionMemberId, setActionMemberId] = useState<string | null>(null);
   const [productUsersOpen, setProductUsersOpen] = useState(false);
@@ -113,7 +113,7 @@ export function OrgMembersPanel({
       <MemberRow
         key={memberId}
         entry={entry}
-        org={org}
+        orgId={orgId}
         audience={audience}
         isSelf={memberId === currentAccountId}
         canAssignOwner={canAssignOwner}
@@ -224,7 +224,7 @@ type MemberAudience = "member" | "productUser";
 
 function MemberRow({
   entry,
-  org,
+  orgId,
   audience,
   isSelf,
   canAssignOwner,
@@ -235,7 +235,7 @@ function MemberRow({
   onMutated,
 }: {
   entry: PrincipalAccess;
-  org: string;
+  orgId: string;
   audience: MemberAudience;
   isSelf: boolean;
   /** Whether the caller may grant, revoke or remove the owner role here. */
@@ -278,7 +278,7 @@ function MemberRow({
       <RemoveConfirmation
         memberId={memberId}
         memberName={name}
-        org={org}
+        orgId={orgId}
         audience={audience}
         onDone={() => {
           cancelAction();
@@ -293,7 +293,7 @@ function MemberRow({
     return (
       <ChangeRoleRow
         entry={entry}
-        org={org}
+        orgId={orgId}
         omitRoles={unassignable}
         onDone={() => {
           cancelAction();
@@ -409,14 +409,14 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
 function RemoveConfirmation({
   memberId,
   memberName,
-  org,
+  orgId,
   audience,
   onDone,
   onCancel,
 }: {
   memberId: string;
   memberName: string;
-  org: string;
+  orgId: string;
   audience: MemberAudience;
   onDone: () => void;
   onCancel: () => void;
@@ -425,12 +425,12 @@ function RemoveConfirmation({
 
   const handleConfirm = useCallback(async () => {
     try {
-      await revoke(memberId, org);
+      await revoke(memberId, orgId);
       onDone();
     } catch {
       // error state is surfaced via the hook
     }
-  }, [memberId, org, revoke, onDone]);
+  }, [memberId, orgId, revoke, onDone]);
 
   return (
     <div
@@ -522,13 +522,13 @@ function RemoveCopy({
 
 function ChangeRoleRow({
   entry,
-  org,
+  orgId,
   omitRoles,
   onDone,
   onCancel,
 }: {
   entry: PrincipalAccess;
-  org: string;
+  orgId: string;
   /** The roles the caller may not assign, left out of the picker. */
   omitRoles: readonly IamRole[];
   onDone: () => void;
@@ -567,7 +567,7 @@ function ChangeRoleRow({
         }),
         resource: create(ApiResourceRefSchema, {
           kind: "organization",
-          id: org,
+          id: orgId,
         }),
         relation: iamRoleToString(selectedRole),
       });
@@ -580,7 +580,7 @@ function ChangeRoleRow({
         }),
         resource: create(ApiResourceRefSchema, {
           kind: "organization",
-          id: org,
+          id: orgId,
         }),
         relation: currentRoleCode,
       });
@@ -594,7 +594,7 @@ function ChangeRoleRow({
     selectedRole,
     currentRoleCode,
     memberId,
-    org,
+    orgId,
     deletePolicy,
     createPolicy,
     onDone,

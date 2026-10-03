@@ -76,11 +76,11 @@ export interface UseGranteeCandidatesReturn {
  * ```
  */
 export function useGranteeCandidates({
-  org,
+  org: orgId,
   includeTeams,
 }: UseGranteeCandidatesOptions): UseGranteeCandidatesReturn {
-  const access = useResourceAccess(org ? { kind: "organization", id: org } : null);
-  const teamList = useTeamList(includeTeams ? org : null);
+  const access = useResourceAccess(orgId ? { kind: "organization", id: orgId } : null);
+  const teamList = useTeamList(includeTeams ? orgId : null);
 
   const people = useMemo(() => {
     const byId = new Map<string, PersonCandidate>();

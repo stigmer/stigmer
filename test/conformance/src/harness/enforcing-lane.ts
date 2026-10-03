@@ -297,6 +297,7 @@ export async function newSiblingEnforcingLane(
     accountId: string,
     spare: string | undefined,
   ): Promise<void> {
+    /* v8 ignore start -- @preserve: the open-source sibling lane runs this in the conformance suites, and a conformance run does not count toward this package's coverage (test/README.md, the coverage layers) */
     for (const organizationId of organizationsToRevoke(
       await founderOrganizationIds(),
       spare,
@@ -306,6 +307,7 @@ export async function newSiblingEnforcingLane(
         org: organizationId,
       });
     }
+    /* v8 ignore stop -- @preserve */
   }
 
   const lane: EnforcingLane = {

@@ -8,7 +8,7 @@ import { useOrg } from "../organization/OrgProvider.js";
 export function UsageSection() {
   const headingId = useId();
   const { activeOrg } = useOrg();
-  const org = activeOrg?.metadata?.id ?? "";
+  const orgId = activeOrg?.metadata?.id ?? "";
 
   return (
     <section aria-labelledby={headingId}>
@@ -23,12 +23,12 @@ export function UsageSection() {
         your organization.
       </p>
 
-      {!org ? (
+      {!orgId ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to view usage.
         </p>
       ) : (
-        <OrgUsagePanel org={org} />
+        <OrgUsagePanel org={orgId} />
       )}
     </section>
   );

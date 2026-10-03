@@ -80,7 +80,7 @@ export function BillingSection({
   const headingId = useId();
   const { activeOrg } = useOrg();
   const mode = useDeploymentMode();
-  const org = activeOrg?.metadata?.id ?? "";
+  const orgId = activeOrg?.metadata?.id ?? "";
   const managed = activeOrg?.spec?.managementMode === ManagementMode.platform_managed;
 
   return (
@@ -101,13 +101,13 @@ export function BillingSection({
           mode uses your own LLM API keys directly — no Stigmer credits
           needed.
         </CloudFeatureNotice>
-      ) : !org ? (
+      ) : !orgId ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to view billing.
         </p>
       ) : (
         <BillingContent
-          org={org}
+          org={orgId}
           managed={managed}
           checkoutSuccess={checkoutSuccess}
           onDismissCheckoutSuccess={onDismissCheckoutSuccess}
@@ -125,7 +125,7 @@ export function BillingSection({
 // ---------------------------------------------------------------------------
 
 function BillingContent({
-  org,
+  org: orgId,
   managed,
   checkoutSuccess,
   onDismissCheckoutSuccess,
@@ -141,7 +141,7 @@ function BillingContent({
   onResumeHandled?: () => void;
   redirect?: BillingRedirect;
 }) {
-  const { account, isLoading, error, refetch } = useBillingAccount(org, {
+  const { account, isLoading, error, refetch } = useBillingAccount(orgId, {
     refetchOnWindowFocus: redirect?.openUrl !== undefined,
   });
   const { createSession, isSubmitting, error: checkoutError, clearError } = useCreateCheckoutSession(redirect);
@@ -158,7 +158,7 @@ function BillingContent({
       const billingPath = billingReturnUrl({ returnUrl });
 
       createSession({
-        org,
+        org: orgId,
         packId,
         successUrl: `${billingPath}?checkout=success`,
         cancelUrl: billingPath,
@@ -166,7 +166,7 @@ function BillingContent({
         setPurchasingPackId(null);
       });
     },
-    [org, createSession, clearError, returnUrl],
+    [orgId, createSession, clearError, returnUrl],
   );
 
   if (isLoading) {
@@ -216,7 +216,7 @@ function BillingContent({
       />
 
       <PlanSection
-        org={org}
+        org={orgId}
         managed={managed}
         hasPaymentMethod={hasPaymentMethod}
         onRefreshAccount={refetch}
@@ -231,9 +231,9 @@ function BillingContent({
         paymentMethod={account.defaultPaymentMethod}
         accountStatus={account.status}
         isPortalLoading={isPortalLoading}
-        onManage={() => openPortal(org)}
+        onManage={() => openPortal(orgId)}
         onAdd={() => {
-          setup.addPaymentMethod(org).catch(() => undefined);
+          setup.addPaymentMethod(orgId).catch(() => undefined);
         }}
         isAdding={setup.isSubmitting}
       />
@@ -244,7 +244,7 @@ function BillingContent({
       )}
 
       <AutoRechargeCard
-        org={org}
+        org={orgId}
         autoRecharge={account.autoRecharge}
         hasPaymentMethod={hasPaymentMethod}
         accountStatus={account.status}
@@ -263,7 +263,7 @@ function BillingContent({
         </p>
       )}
 
-      <CreditLedgerTable org={org} />
+      <CreditLedgerTable org={orgId} />
     </div>
   );
 }

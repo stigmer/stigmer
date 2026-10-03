@@ -598,7 +598,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 
   it("[billing.rpc.create-credit-checkout-session.reuses-existing-customer] [rpc:BillingCommandController.createCreditCheckoutSession] a second checkout for the same org creates no second Stripe customer", async () => {
     const { org } = await unfundedOrg();
-    const input = { orgId: org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/cancel" };
+    const input = { org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/cancel" };
     await clients.billingCommand.createCreditCheckoutSession(input);
     await clients.billingCommand.createCreditCheckoutSession(input);
     const customers = (await control.stripe.requests()).filter((r) => r.path === "/v1/customers" && r.method === "POST");
@@ -657,7 +657,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 
   it("[billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session] [rpc:BillingCommandController.createPaymentMethodSetupSession] a setup session saves a card for an org that never purchased, charging nothing", async () => {
     const { org } = await unfundedOrg();
-    const input = { orgId: org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" };
+    const input = { org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" };
     const first = await clients.billingCommand.createPaymentMethodSetupSession(input);
     expect(first.setupUrl).toMatch(/^https:\/\/checkout\.stripe\.test\//);
     expect(first.checkoutSessionId).not.toBe("");
@@ -689,7 +689,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
 
   it("[billing.rpc.set-auto-recharge-config.persists-and-validates] [rpc:BillingCommandController.setAutoRechargeConfig] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
     const { org } = await unfundedOrg();
-    const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ orgId: org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
+    const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
 
     // Disabled writes the amounts as given and reads back at once.
     const disabled = await clients.billingCommand.setAutoRechargeConfig(config(false, 7_000_000n, 25_000_000n, 50_000_000n));

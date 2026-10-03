@@ -348,6 +348,7 @@ export class CloudTarget implements TargetProfile {
   // fund, so the refusal names the credential instead of failing later on an
   // empty wallet.
   async fundTenancy(org: string): Promise<void> {
+    /* v8 ignore start -- @preserve: only the cloud target runs this, in stigmer-cloud's make cloud-conformance; a conformance run does not count toward this package's coverage (test/README.md, the coverage layers) */
     await this.clients().billingCommand.getOrCreateBillingAccount({ org });
     await this.creditIssuer().billingCommand.adjustCredits({
       org,
@@ -355,6 +356,7 @@ export class CloudTarget implements TargetProfile {
       reason: "conformance execution tenancy seed",
       idempotencyKey: `conformance-seed-${org}`,
     });
+    /* v8 ignore stop -- @preserve */
   }
 
   // The clients that may add credit: the operator's. Exposed for the suites
