@@ -7,18 +7,19 @@
  * + display fields), and instant revocation (delete visible on the very
  * next verify — the no-cache posture).
  *
- * Since 20260911.11 (T01_1_review.md A6) the creator stamp is resolved
- * to the owner's account (`accountForStamp`): by account id, the stamp
- * every key minted since 3.15.0 carries, then as the raw subject a key
- * minted before its owner was provisioned carries, which answers the
- * owner's ACCOUNT id once one exists. No cache, and an account-stamped
- * key makes one read. The caller is then named by the account row
- * (stigmer/stigmer#1226): the row's email and display name win over the
- * stamp's, which fill only what the row leaves empty, so a key minted
- * over a session whose token carried no profile claims still names its
- * owner. The account store is the REAL open-source adapter over the same
- * SQLite store the keys live in, so what is pinned is the production
- * pair; only the fault and counting arms substitute a lookup.
+ * The creator stamp is resolved to the owner's account
+ * (`accountForStamp`): by account id, the stamp of every key a
+ * provisioned owner mints, then as the raw subject a key minted before
+ * its owner was provisioned carries, which answers the owner's ACCOUNT
+ * id once one exists. No cache, and an account-stamped key makes one
+ * read. The caller is then named by the account row
+ * (stigmer/stigmer#1226): the row's email and person name win over the
+ * stamp's, and the stamp's name stands in only where the row has no
+ * person name, so a key minted over a session whose token carried no
+ * profile claims still names its owner. The account store is the REAL
+ * open-source adapter over the same SQLite store the keys live in, so
+ * what is pinned is the production pair; only the fault and counting
+ * arms substitute a lookup.
  *
  * A key whose account-id stamp names no account is a deleted owner's,
  * refused with the unknown-key copy, logged with the key's and the
@@ -283,7 +284,7 @@ describe("verification arms", () => {
   });
 });
 
-describe("creator stamp → account resolution (20260911.11 A6)", () => {
+describe("creator stamp → account resolution", () => {
   it("a key minted BEFORE its owner was provisioned resolves to the owner's account once one exists, named by its row", async () => {
     const { plaintext } = await seedKey({
       ownerId: "auth0|early-adopter",
