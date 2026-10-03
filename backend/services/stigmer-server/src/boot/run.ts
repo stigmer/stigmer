@@ -86,12 +86,10 @@ export async function runServer(options: RunServerOptions): Promise<void> {
     server
       .shutdown()
       .then(() => host.exit(0))
-      /* v8 ignore start -- a composed server's shutdown does not throw on any path a test can drive; the arm reports the fault and exits 1 */
       .catch((error: unknown) => {
         logger.error("shutdown failed", { error: String(error) });
         host.exit(1);
       });
-    /* v8 ignore stop */
   };
   host.onSignal("SIGTERM", () => shutdown("SIGTERM"));
   host.onSignal("SIGINT", () => shutdown("SIGINT"));

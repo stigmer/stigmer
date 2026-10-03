@@ -6,7 +6,7 @@
  *     the bound ports; the open-source unit's server holds its one
  *     organization by then;
  *   - SIGTERM runs the composed shutdown and exits 0, and a second signal
- *     does nothing more;
+ *     does nothing more; a shutdown that fails is logged and exits 1;
  *   - a failed start is logged and exits 1, with no ready line;
  *   - a composition failure rejects, for the entry to report on stderr.
  *
@@ -27,6 +27,7 @@ import { READY_LINE_KEY } from "../ready-line.js";
 import { runServer } from "../run.js";
 import type { ProcessHost } from "../run.js";
 import { openSourceEdition } from "../../editions/open-source.js";
+import type { SandboxProvisioner } from "../../sandbox/provisioner.js";
 import { resetOperatorIdentityForTests } from "../../pipeline/steps/defaults.js";
 
 interface RecordingHost extends ProcessHost {
@@ -110,6 +111,50 @@ describe("runServer", () => {
     host.signals.get("SIGINT")?.();
     expect(await host.exited).toBe(0);
     expect(host.exits).toEqual([0]);
+  });
+
+  it("a shutdown that fails is logged and exits 1", async () => {
+    // A unit's sandbox driver whose background work cannot stop: the
+    // composed shutdown awaits it, so its rejection reaches runServer.
+    vi.stubEnv("SANDBOX_PROVISIONER_TYPE", "failing-stop");
+    vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "session");
+    const provisioner = {
+      startBackground() {
+        return {
+          stop: () => Promise.reject(new Error("the sandboxes will not stop")),
+        };
+      },
+    } as unknown as SandboxProvisioner;
+    const stderr: string[] = [];
+    const write = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        stderr.push(String(chunk));
+        return true;
+      });
+    try {
+      const host = recordingHost();
+      await runServer({
+        extensions: [
+          {
+            name: "failing-stop-sandboxes",
+            drivers: {
+              sandboxProvisionerDrivers: new Map([
+                ["failing-stop", () => provisioner],
+              ]),
+            },
+          },
+        ],
+        host,
+      });
+      host.signals.get("SIGTERM")?.();
+
+      expect(await host.exited).toBe(1);
+      expect(host.exits).toEqual([1]);
+      expect(stderr.join("")).toContain("shutdown failed");
+    } finally {
+      write.mockRestore();
+    }
   });
 
   it("a failed start is logged and exits 1, with no ready line", async () => {
