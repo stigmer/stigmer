@@ -3,8 +3,10 @@
  *
  * It starts the attach waiter and nothing else; `waiter.ts` says why a
  * sandbox snapshot holds a waiter and never a runner, and `entry.ts` holds
- * the configuration and the signal handling. It imports none of the runner's
- * modules, so the snapshot holds a small idle process. This file is only the
+ * the configuration and the signal handling. It loads none of the runner's
+ * machinery, only Node built-ins and two leaf modules (the secret-name list
+ * and the claim reader; `__tests__/import-graph.test.ts` pins the graph), so
+ * the snapshot holds a small idle process. This file is only the
  * process boundary; `scripts/verify-attach-boot.mjs` boots it under plain
  * Node.
  */

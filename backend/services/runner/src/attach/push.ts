@@ -20,8 +20,9 @@
  *      `mcpconnect:`), and the sandbox serving it must be the one the server
  *      names for that scope and id: `sbx-<code>-<first 12 hex of sha256(id)>`,
  *      byte-identical to the server's `sandboxBaseName`
- *      (`stigmer-server/src/sandbox/naming.ts`; both packages pin the same
- *      vectors in their tests). A queue pushed to another sandbox is refused,
+ *      (`stigmer-server/src/sandbox/naming.ts`, the one home of the
+ *      derivation; this package's test loads that module and compares the two,
+ *      since the runner imports nothing from the server). A queue pushed to another sandbox is refused,
  *      so one session's work never runs on another session's workspace. The
  *      binding reads no token, so it holds on every edition, including one
  *      whose tokens name an execution rather than a session, or that runs

@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/temporal-codecs",
   "version": "0.0.0-dev",
-  "description": "The Temporal plumbing Stigmer's TypeScript Temporal processes share — AES-256-GCM payload encryption and claim-check offloading (the one home for the cross-language envelope contract), and the connection-security settings every Temporal connection reads",
+  "description": "The Temporal plumbing Stigmer's TypeScript Temporal processes share \u2014 AES-256-GCM payload encryption and claim-check offloading (the one home for the cross-language envelope contract), and the connection-security settings every Temporal connection reads",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./connection": {
+      "types": "./dist/connection/config.d.ts",
+      "import": "./dist/connection/config.js",
+      "default": "./dist/connection/config.js"
     }
   },
   "scripts": {
@@ -41,6 +46,11 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
         "default": "./dist/index.js"
+      },
+      "./connection": {
+        "types": "./dist/connection/config.d.ts",
+        "import": "./dist/connection/config.js",
+        "default": "./dist/connection/config.js"
       }
     }
   },

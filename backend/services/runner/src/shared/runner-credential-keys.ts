@@ -28,10 +28,13 @@
  * ambient aws/gcloud auth), and on a local backend the shell can read the
  * credential files off disk regardless (owner ruling on #385).
  */
+// The connection subpath, not the package root: it loads nothing but
+// `node:fs`, so a module that only needs these names (the attach waiter,
+// `src/attach/push.ts`) does not load the codecs' Temporal protobufs.
 import {
   TEMPORAL_API_KEY_ENV,
   TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
-} from "@stigmer/temporal-codecs";
+} from "@stigmer/temporal-codecs/connection";
 
 export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // Derives HITL approval fingerprints (fingerprint-secret.ts) — an agent

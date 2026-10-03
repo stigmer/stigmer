@@ -9,8 +9,7 @@
  *     can never shadow a built-in name;
  *   - sandboxBaseName is the Java SandboxObjectNaming derivation
  *     (sbx-<code>-<12-hex-sha256>), deterministic and DNS-1123-safe for
- *     resource-id alphabets, and byte-identical to the runner attach
- *     waiter's own derivation (shared vectors).
+ *     resource-id alphabets.
  */
 import { describe, expect, it } from "vitest";
 
@@ -145,15 +144,5 @@ describe("sandboxBaseName (the Java SandboxObjectNaming derivation)", () => {
       const name = sandboxBaseName(scope, "wfx_01J_UNDERSCORED.id");
       expect(name).toMatch(new RegExp(`^sbx-${code}-[0-9a-f]{12}$`));
     }
-  });
-
-  // The runner's attach waiter derives the same name from the queue it is
-  // pushed and refuses a queue whose name is not its own sandbox's; it imports
-  // nothing from the server, so both packages pin these vectors
-  // (backend/services/runner/src/attach/__tests__/push.test.ts).
-  it("matches the vectors the runner's attach waiter pins", () => {
-    expect(sandboxBaseName("session", "ses_01m3zkdb7wxbe2gx0ezmf8fmaq")).toBe("sbx-ses-4e918096d317");
-    expect(sandboxBaseName("workflow", "wfx_01m3zk8zjqdj5jsep1zngaawxq")).toBe("sbx-wfx-6406dd0a36ee");
-    expect(sandboxBaseName("connect", "aex_01m3zkdb6zbg983x4yvttsysyy")).toBe("sbx-mcp-aa8898c8a32c");
   });
 });

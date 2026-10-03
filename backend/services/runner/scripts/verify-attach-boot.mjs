@@ -9,10 +9,15 @@
  * free port and a scratch sandbox-name file, then proves it serves: readiness
  * answers 200, a push for a queue that is not this sandbox's is refused with
  * 403 (so the push checks loaded), and SIGTERM ends it with exit code 0. No
- * runner is started. Needs `npm run build` first; runs in about a second.
+ * runner is started. First it loads the entry's module graph in a child Node
+ * with a resolve hook and refuses any module of the runner proper or of
+ * `@temporalio`: the snapshot holds this process, so it must stay small (the
+ * same rule `src/attach/__tests__/import-graph.test.ts` pins on the source).
+ * Needs `npm run build` first and Node 22.15 or later (`module.registerHooks`);
+ * runs in about a second.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -28,6 +33,22 @@ function fail(message) {
 }
 
 if (!existsSync(entry)) fail(`${entry} not found — run \`npm run build\` first`);
+
+// The module graph, loaded without starting the entry: entry.js exports the
+// logic, main.js only calls it.
+const graphCheck = spawnSync(process.execPath, ["--input-type=module", "-e", `
+  import { registerHooks } from "node:module";
+  if (typeof registerHooks !== "function") { console.log("NO_HOOKS"); process.exit(0); }
+  const seen = [];
+  registerHooks({ resolve(specifier, context, next) { const r = next(specifier, context); seen.push(r.url); return r; } });
+  await import(${JSON.stringify(new URL("../dist/attach/entry.js", import.meta.url).href)});
+  console.log(JSON.stringify(seen));
+`], { encoding: "utf8" });
+if (graphCheck.status !== 0) fail(`loading the entry's module graph failed:\n${graphCheck.stderr}`);
+if (graphCheck.stdout.trim() === "NO_HOOKS") fail("this Node has no module.registerHooks; run it on Node 22.15 or later (.nvmrc)");
+const loaded = JSON.parse(graphCheck.stdout);
+const heavy = loaded.filter((url) => /@temporalio|\/dist\/(main|runner|runner-manager|worker)\.js$|\/dist\/(harness|activities)\//.test(url));
+if (heavy.length > 0) fail(`the attach entry loads modules a snapshot must not hold:\n${heavy.join("\n")}`);
 
 const port = await new Promise((resolve, reject) => {
   const probe = createServer();
@@ -83,4 +104,4 @@ proc.kill("SIGTERM");
 const { code, signal } = await exited;
 clearTimeout(timer);
 if (code !== 0) fail(`SIGTERM ended the entry with code ${code} (signal ${signal}).\n${output.slice(-2000)}`);
-console.log("verify-attach-boot: PASS — dist/attach/main.js served readiness, refused a foreign push and stopped cleanly");
+console.log(`verify-attach-boot: PASS — dist/attach loads ${loaded.length} modules, none of the runner or @temporalio; it served readiness, refused a foreign push and stopped cleanly`);

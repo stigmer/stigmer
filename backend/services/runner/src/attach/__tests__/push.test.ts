@@ -1,9 +1,11 @@
 /**
  * Pins the attach push's checks (push.ts):
  *
- *   - the sandbox name derived from a queue is byte-identical to the server's
- *     `sandboxBaseName`, by vectors both packages pin
- *     (stigmer-server `src/sandbox/__tests__/provisioner.test.ts`);
+ *   - the sandbox name derived from a queue is the server's own
+ *     `sandboxBaseName` for that scope and id: the test loads the server's
+ *     module (`stigmer-server/src/sandbox/naming.ts`, the one home of the
+ *     derivation) and compares the two over generated ids, so a change on
+ *     either side turns it red;
  *   - a queue pushed to a sandbox whose name is not the one derived from it is
  *     refused, on all three queue kinds, without reading the token;
  *   - the push can set only the runner's secret variables;
@@ -11,6 +13,9 @@
  *     tokenless lane) passes.
  */
 import { describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 
 import { sandboxNameForQueue, verifyAttachPush } from "../push.js";
 
@@ -25,11 +30,35 @@ function jwt(payload: Record<string, unknown>): string {
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
 
+type ServerScope = "session" | "workflow" | "connect";
+interface ServerNaming {
+  sandboxBaseName(scope: ServerScope, id: string): string;
+}
+
+/**
+ * The server's naming module, loaded by URL so the runner's typecheck does not
+ * follow the server's imports; the runner imports nothing from the server.
+ */
+async function serverNaming(): Promise<ServerNaming> {
+  const path = resolve(import.meta.dirname, "../../../../stigmer-server/src/sandbox/naming.ts");
+  return (await import(pathToFileURL(path).href)) as ServerNaming;
+}
+
 describe("sandboxNameForQueue", () => {
-  it("matches the server's sandboxBaseName vectors for every queue kind", () => {
+  it("is the server's sandboxBaseName for every queue kind", async () => {
+    const { sandboxBaseName } = await serverNaming();
+    const kinds: ReadonlyArray<[string, ServerScope]> = [
+      ["session:", "session"],
+      ["wfexec:", "workflow"],
+      ["mcpconnect:", "connect"],
+    ];
+    const ids = ["ses_01m3zkdb7wxbe2gx0ezmf8fmaq", "wfx_01J_UNDERSCORED.id", ...Array.from({ length: 50 }, () => randomUUID())];
+    for (const [prefix, scope] of kinds) {
+      for (const id of ids) {
+        expect(sandboxNameForQueue(`${prefix}${id}`)).toBe(sandboxBaseName(scope, id));
+      }
+    }
     expect(sandboxNameForQueue(SESSION_QUEUE)).toBe(SESSION_SANDBOX);
-    expect(sandboxNameForQueue("wfexec:wfx_01m3zk8zjqdj5jsep1zngaawxq")).toBe("sbx-wfx-6406dd0a36ee");
-    expect(sandboxNameForQueue("mcpconnect:aex_01m3zkdb6zbg983x4yvttsysyy")).toBe("sbx-mcp-aa8898c8a32c");
   });
 
   it("names no sandbox for a queue a sandbox does not serve", () => {
