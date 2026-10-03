@@ -16,7 +16,7 @@
 // entries of RECORD_CODE_PATTERNS, looked up by name so a renamed entry fails
 // here instead of silently dropping out. Importing them means the gate and
 // this guard can never disagree about what a planning reference looks like.
-// RECORD_CODE_PATTERNS' bare short code (`C2`) and bare stage label
+// RECORD_CODE_PATTERNS' bare short code (`Z9`) and bare stage label
 // (`Stage 3`) are not used: they collide with ordinary names (Amazon S3, a
 // build's own steps), so they are left to review.
 //
@@ -144,18 +144,18 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
   const fixtures = new Map([
     ["planning-record path", "see _projects/2026-01/some-record"],
     ["planning-record id", "record 20260101.07 chose it"],
-    ["task file id", "per T01_0_plan.md"],
-    ["decision id", "the DD-12 posture"],
-    ["ruling id", "ruled at Q-AB-1"],
-    ["finding id", "closes F-12"],
-    ["task id", "// @since T13"],
-    ["decision number", "chose it in decision 013"],
-    ["design document number", "per design doc 12"],
-    ["finding number", "as finding 16 showed"],
-    ["record stage", "landed in C2 Stage 4"],
-    ["private repository reference", "tracked as stigmer-cloud#12"],
-    ["entry name", "decided in sp.some-entry"],
-    ["record section", "the §4a lane"],
+    ["task file id", "per T09_9_plan.md"],
+    ["decision id", "the DD-98 posture"],
+    ["ruling id", "ruled at Q-ZZ-9"],
+    ["finding id", "closes F-98"],
+    ["task id", "// @since T19z"],
+    ["decision number", "chose it in decision 998"],
+    ["design document number", "per design doc 98"],
+    ["finding number", "as finding 98 showed"],
+    ["record stage", "landed in Z9 Stage 7"],
+    ["private repository reference", "tracked as stigmer-cloud#0"],
+    ["entry name", "decided in sp.example-entry"],
+    ["record section", "the §9z lane"],
   ]);
   for (const { name } of patterns) {
     const text = fixtures.get(name);
@@ -181,8 +181,8 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
 });
 
 test("a planted reference is reported with its line and shape", () => {
-  assert.deepEqual(planningReferences("const a = 1;\n// see DD-13 for why\n", patterns), [
-    { line: 2, name: "decision id", match: "DD-13" },
+  assert.deepEqual(planningReferences("const a = 1;\n// see DD-97 for why\n", patterns), [
+    { line: 2, name: "decision id", match: "DD-97" },
   ]);
   assert.throws(() => guardPatterns(LEAK_PATTERNS, []), /no RECORD_CODE_PATTERNS entry named "entry name"/);
 });

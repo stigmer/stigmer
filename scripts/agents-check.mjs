@@ -173,20 +173,20 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * tree (its path, and a record's `YYYYMMDD.NN` folder id) and are the ones a
  * private repository may cite (`privateOk`), because a record path carries its
  * id and the cited-path check then proves the record exists. The record-internal
- * ids follow (task files `T01_` and bare tasks `T07` or `T13b`, decisions
- * `DD-012`, `DD-12` or `DD-AB-1` but never a date format such as `DD-MM`,
- * `DD-MMM` or `DD-YYYY`, rulings `Q-AB-1` or `Q-AB`, findings `F-CD-2` or
- * `F-12` but never `F-1` (the F-1 score), the same ids spelled out
- * (`decision 013`, `design doc 12`, `finding 16`, though a public issue's
+ * ids follow (task files `T09_` and bare tasks `T00` or `T19z`, decisions
+ * `DD-998`, `DD-98` or `DD-ZZ-9` but never a date format such as `DD-MM`,
+ * `DD-MMM` or `DD-YYYY`, rulings `Q-ZZ-9` or `Q-ZZ`, findings `F-ZZ-9` or
+ * `F-98` but never `F-1` (the F-1 score), the same ids spelled out
+ * (`decision 998`, `design doc 98`, `finding 98`, though a public issue's
  * `#778 finding 3` is not one),
- * and a short code's stage `C2 Stage 4`): only a holder of the records can
+ * and a short code's stage `Z9 Stage 7`): only a holder of the records can
  * resolve them, and they stay findings everywhere. A bare `Stage 3` is not one
  * of them, because a build's own steps are named that way. Last, a private
- * repository's issue or URL (`stigmer-cloud#12`): a public reader cannot open
- * it, and the private repository may cite its own (`privateOk`). The shapes are
- * illustrative; none of these examples names a real record. Exported so a
- * source guard over files a repository publishes refuses the same shapes
- * instead of restating them.
+ * repository's issue or URL (`stigmer-cloud#0`): a public reader cannot open
+ * it, and the private repository may cite its own (`privateOk`). The examples
+ * are synthetic, chosen to match no id this repository has ever cited.
+ * Exported so a source guard over files a repository publishes refuses the
+ * same shapes instead of restating them.
  */
 export const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },

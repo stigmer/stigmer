@@ -777,9 +777,9 @@ export async function resolveMcpServersAndPolicies(
 
 /**
  * Phase 5 (between the tool surface and the attachments): mount the skills
- * under the session's
- * platform dir, reachable from the workspace through its `.stigmer` link,
- * and return what a prompt renders, per owner (`shared/skill-resolver.ts`).
+ * under the session's platform dir, reachable from the workspace through its
+ * `.stigmer` link, and return what a prompt renders, per owner
+ * (`shared/skill-resolver.ts`).
  * Reads the control plane, which is why it is the runtime's and not a
  * harness's; each harness places the returned metadata in its own prompt
  * shapes — the root's in its system prompt, a sub-agent's in that

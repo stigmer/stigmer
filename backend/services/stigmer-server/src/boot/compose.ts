@@ -238,9 +238,8 @@ export interface ComposedServer {
    * one-pointer posture). Exposed for compositions whose extensions run
    * maintenance lanes over stored ciphertext — the secret-convergence
    * sweep's reencrypt door and the encryption-state census: a twin
-   * facade built from the
-   * same codec map would duplicate KEK caches and silently drift from
-   * the boot-resolved write version.
+   * facade built from the same codec map would duplicate KEK caches and
+   * silently drift from the boot-resolved write version.
    */
   secrets: SecretService;
   /**

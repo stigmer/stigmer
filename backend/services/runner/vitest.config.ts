@@ -17,10 +17,12 @@ export default defineConfig({
         "**/__test-utils__/**",
         "**/__fixtures__/**",
         "**/__mocks__/**",
-        // Workflow modules no test imports: the Temporal suites run them
-        // inside the workflow sandbox, a bundle V8 coverage never maps back to
-        // these files, so they would read as unrun and refuse every edit made
-        // inside them. A workflow module a test imports directly stays measured.
+        // Workflow modules whose functions run only inside the Temporal
+        // workflow sandbox: the suites reach them through the worker's bundle,
+        // which V8 coverage never maps back to these files, so their bodies
+        // would read as unrun and refuse every edit made inside them. The list
+        // names files, not a rule: a module whose functions a test calls
+        // in-process comes off the list, so it is measured again.
         "src/workflows/call-agent-orchestrator.ts",
         "src/workflows/human-input-orchestrator.ts",
         "src/workflows/listen-orchestrator.ts",
