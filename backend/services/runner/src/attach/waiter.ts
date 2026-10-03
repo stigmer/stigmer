@@ -121,15 +121,19 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
   const firstDelay = options.restartDelayMs ?? 1000;
   const maxDelay = options.maxRestartDelayMs ?? 30_000;
 
-  let attached: { taskQueue: string; env: NodeJS.ProcessEnv } | undefined;
+  // The queue this sandbox serves, once attached, and the environment the
+  // runner (re)starts with: the latest accepted push's.
+  let attachedQueue: string | undefined;
+  let runnerEnv: NodeJS.ProcessEnv = {};
   let child: ChildProcess | undefined;
   let restartTimer: NodeJS.Timeout | undefined;
   let nextDelay = firstDelay;
   let stopping = false;
 
+  // Called by the first accepted push and by a restart; close() clears a
+  // pending restart, so neither runs once the waiter is stopping.
   function startRunner(): void {
-    if (!attached || stopping) return;
-    const started = spawnRunner(options.runnerEntry, attached.env);
+    const started = spawnRunner(options.runnerEntry, runnerEnv);
     child = started;
     const startedAt = Date.now();
     let settled = false;
@@ -169,16 +173,15 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
       return;
     }
     const { push } = verdict;
-    if (stopping) {
-      reply(res, 503, { error: "the sandbox is stopping" });
+    // One sandbox serves one queue for its life. The name binding already
+    // ties a queue to one sandbox; this holds even if two queues' names met.
+    if (attachedQueue !== undefined && attachedQueue !== push.taskQueue) {
+      reply(res, 409, { error: `this sandbox serves ${attachedQueue}` });
       return;
     }
-    if (attached && attached.taskQueue !== push.taskQueue) {
-      reply(res, 409, { error: `this sandbox serves ${attached.taskQueue}` });
-      return;
-    }
-    const first = attached === undefined;
-    attached = { taskQueue: push.taskQueue, env: runnerEnvFor(options.baseEnv, push) };
+    const first = attachedQueue === undefined;
+    attachedQueue = push.taskQueue;
+    runnerEnv = runnerEnvFor(options.baseEnv, push);
     if (first) {
       log(`[attach] attached to ${push.taskQueue}; starting the runner`);
       startRunner();
@@ -215,7 +218,7 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
   return {
     server,
     port,
-    attachedQueue: () => attached?.taskQueue,
+    attachedQueue: () => attachedQueue,
     async close(): Promise<void> {
       stopping = true;
       if (restartTimer) clearTimeout(restartTimer);

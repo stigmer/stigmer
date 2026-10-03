@@ -10,14 +10,20 @@
  *     restarts with the latest pushed environment;
  *   - a push for another sandbox's queue, a malformed push and a wrong method
  *     start nothing;
+ *   - a runner that cannot be started at all is retried once per failure,
+ *     even when the platform reports both an error and an exit;
+ *   - a sandbox serves one queue for life (409), an unreadable sandbox name
+ *     answers 500, an unknown path 404;
  *   - closing the waiter stops the runner and waits for it.
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { EventEmitter } from "node:events";
+import type { ChildProcess } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { startAttachWaiter, type AttachWaiter } from "../waiter.js";
+import { startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
 
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
@@ -173,5 +179,67 @@ describe("attach waiter", () => {
     waiter = undefined;
     const pid = started()[0]!.replace(".json", "");
     expect(readFileSync(join(outDir, "sigterm.log"), "utf8").trim()).toBe(pid);
+  });
+
+  it("logs to the console when no logger is given", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      waiter = await startAttachWaiter({ port: 0, readSandboxName: () => SESSION_SANDBOX, runnerEntry: entry, baseEnv: {} });
+      await push(waiter, { taskQueue: "session:ses_other", secrets: {} });
+      expect(warn.mock.calls.flat().join(" ")).toMatch(/push refused \(403\)/);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("retries a runner that cannot be started once per failure, even when error and exit both arrive", async () => {
+    const logs: string[] = [];
+    let spawns = 0;
+    const failing: RunnerSpawner = () => {
+      spawns += 1;
+      const fake = new EventEmitter() as unknown as ChildProcess;
+      setImmediate(() => {
+        fake.emit("error", new Error("spawn ENOENT"));
+        fake.emit("exit", null, null);
+      });
+      return fake;
+    };
+    waiter = await startAttachWaiter({
+      port: 0,
+      readSandboxName: () => SESSION_SANDBOX,
+      runnerEntry: entry,
+      baseEnv: {},
+      spawnRunner: failing,
+      restartDelayMs: 1000,
+      log: (m) => logs.push(m),
+    });
+    await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} });
+    await until(() => logs.some((m) => m.includes("restarting")));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(spawns).toBe(1);
+    expect(logs.filter((m) => m.includes("restarting"))).toEqual(["[attach] runner failed to start (spawn ENOENT); restarting in 1000ms"]);
+  });
+
+  it("serves one queue for life, answers 500 when its name cannot be read, and 404 elsewhere", async () => {
+    const names = ["sbx-ses-4e918096d317", "sbx-ses-245a956f6110"];
+    let reads = 0;
+    let unreadable = false;
+    waiter = await startAttachWaiter({
+      port: 0,
+      readSandboxName: () => {
+        if (unreadable) throw new Error("ENOENT: /run/ate/actor-name");
+        return names[Math.min(reads++, 1)]!;
+      },
+      runnerEntry: entry,
+      baseEnv: { PATH: process.env.PATH, OUT_DIR: outDir },
+      log: () => {},
+    });
+    expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).status).toBe(200);
+    // A second queue whose name this sandbox now carries still finds it taken.
+    const second = await push(waiter, { taskQueue: "session:ses_second", secrets: {} });
+    expect(second).toEqual({ status: 409, body: { error: `this sandbox serves ${SESSION_QUEUE}` } });
+    unreadable = true;
+    expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).status).toBe(500);
+    expect((await fetch(`http://127.0.0.1:${waiter.port}/nope`)).status).toBe(404);
   });
 });
