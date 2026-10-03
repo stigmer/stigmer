@@ -28,7 +28,7 @@ const (
 //
 // ProviderStandingQueryController serves the operator console's read-only
 // view of platform provider standing: the canary-probe verdicts the
-// cloud#370 detection core records hourly (health, billing/auth
+// detection core records hourly (health, billing/auth
 // rejections, latency, bounded error summaries).
 //
 // Platform-gated and view-only: provider account health is
@@ -64,7 +64,7 @@ func (c *providerStandingQueryControllerClient) GetProviderStandingView(ctx cont
 //
 // ProviderStandingQueryController serves the operator console's read-only
 // view of platform provider standing: the canary-probe verdicts the
-// cloud#370 detection core records hourly (health, billing/auth
+// detection core records hourly (health, billing/auth
 // rejections, latency, bounded error summaries).
 //
 // Platform-gated and view-only: provider account health is

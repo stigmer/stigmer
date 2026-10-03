@@ -27,8 +27,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * Examples:
  * - mount_path: "/inputs/config.yaml" -&gt; file at /inputs/config.yaml
  * - mount_path: "/workspace/data/" -&gt; directory extracted at /workspace/data/
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Outputs)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.Attachment}
@@ -606,8 +604,6 @@ private static final long serialVersionUID = 0L;
    * Examples:
    * - mount_path: "/inputs/config.yaml" -&gt; file at /inputs/config.yaml
    * - mount_path: "/workspace/data/" -&gt; directory extracted at /workspace/data/
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Outputs)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.Attachment}

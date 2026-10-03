@@ -103,14 +103,14 @@ const (
 	// account): reserved labels carry platform semantics the server acts
 	// on (the personal-environment marker, the default-instance marker,
 	// plugin membership and lineage) — so ordinary requests may echo or
-	// remove them but never write them (cloud#320).
+	// remove them but never write them.
 	IamPermission_can_write_reserved_labels IamPermission = 37
 	// Platform-level permission to view platform provider standing: the
 	// canary-probe verdicts (health, billing/auth rejections, latency) for
 	// the platform's own LLM provider accounts. Read-only and gated to
 	// platform operators — provider account health is platform-internal,
 	// never org-visible. Deliberately distinct from the manage-class
-	// platform permissions: the standing console only observes (cloud#447).
+	// platform permissions: the standing console only observes.
 	IamPermission_can_view_provider_standing IamPermission = 38
 	// Organization-level permission to install a plugin: push an Agent
 	// Plugins archive that the server materialises into skills, MCP servers,

@@ -10,8 +10,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * FileCaptureClass records how a file was captured, which governs which
  * substrate (git tree ref vs CAS) holds its bytes and whether it is reviewable
  * before CAS lands.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileCaptureClass}
@@ -45,7 +43,7 @@ public enum FileCaptureClass
   FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED(2),
   /**
    * <pre>
-   * A gitignored file captured via CAS (Phase 3).
+   * A gitignored file captured via CAS.
    * </pre>
    *
    * <code>FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED = 3;</code>
@@ -53,7 +51,7 @@ public enum FileCaptureClass
   FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED(3),
   /**
    * <pre>
-   * A file in a non-git workspace captured via CAS (Phase 3).
+   * A file in a non-git workspace captured via CAS.
    * </pre>
    *
    * <code>FILE_CAPTURE_CLASS_NON_GIT_CAS = 4;</code>
@@ -97,7 +95,7 @@ public enum FileCaptureClass
   public static final int FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED_VALUE = 2;
   /**
    * <pre>
-   * A gitignored file captured via CAS (Phase 3).
+   * A gitignored file captured via CAS.
    * </pre>
    *
    * <code>FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED = 3;</code>
@@ -105,7 +103,7 @@ public enum FileCaptureClass
   public static final int FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED_VALUE = 3;
   /**
    * <pre>
-   * A file in a non-git workspace captured via CAS (Phase 3).
+   * A file in a non-git workspace captured via CAS.
    * </pre>
    *
    * <code>FILE_CAPTURE_CLASS_NON_GIT_CAS = 4;</code>

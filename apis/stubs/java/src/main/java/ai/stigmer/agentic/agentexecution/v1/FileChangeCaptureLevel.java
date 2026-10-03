@@ -9,8 +9,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * <pre>
  * FileChangeCaptureLevel describes how complete a FileChange's captured content
  * is, so clients render whole-file vs hunk-only diffs honestly per harness.
- *
- * &#64;since First-Class Diff Review (#186)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel}

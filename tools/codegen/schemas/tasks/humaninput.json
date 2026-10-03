@@ -55,7 +55,7 @@
           "kind": "string"
         }
       },
-      "description": "Approver identifiers — who is allowed to respond to this task.\n\n Supports user IDs, team slugs, and role names. Format examples:\n   - \"user:jane@acme.com\" — specific user\n   - \"team:engineering-leads\" — any member of the team\n   - \"role:content-admin\" — any user with the role\n\n When empty, any authenticated user can respond.\n Resolution of these identifiers is a runtime concern (T13).",
+      "description": "Approver identifiers — who is allowed to respond to this task.\n\n Supports user IDs, team slugs, and role names. Format examples:\n   - \"user:jane@acme.com\" — specific user\n   - \"team:engineering-leads\" — any member of the team\n   - \"role:content-admin\" — any user with the role\n\n When empty, any authenticated user can respond.\n Resolution of these identifiers is a runtime concern.",
       "required": false
     },
     {
@@ -98,7 +98,7 @@
           "kind": "string"
         }
       },
-      "description": "Channel identifiers for sending approval request notifications.\n\n When the task starts, the runtime sends notifications through these\n channels to alert potential approvers. Format examples:\n   - \"slack:#approvals\" — Slack channel\n   - \"email:ops@acme.com\" — email address\n   - \"teams:#incident-response\" — Microsoft Teams channel\n\n The format and routing of notifications is a runtime concern (T13).\n The proto carries the identifiers; the runtime resolves them to\n actual notification providers configured in the workflow instance's\n environment.",
+      "description": "Channel identifiers for sending approval request notifications.\n\n When the task starts, the runtime sends notifications through these\n channels to alert potential approvers. Format examples:\n   - \"slack:#approvals\" — Slack channel\n   - \"email:ops@acme.com\" — email address\n   - \"teams:#incident-response\" — Microsoft Teams channel\n\n The format and routing of notifications is a runtime concern.\n The proto carries the identifiers; the runtime resolves them to\n actual notification providers configured in the workflow instance's\n environment.",
       "required": false
     },
     {

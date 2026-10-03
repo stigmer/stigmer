@@ -32,7 +32,7 @@ public interface ListRecentActivityRequestOrBuilder extends
    * workflow executions opt in to org observability per instance — so org
    * membership alone must never substitute for the per-resource check. An
    * earlier "org member = query by org directly" fast path leaked session
-   * titles to every org member (stigmer-cloud#258).
+   * titles to every org member.
    *
    * When empty, results span every organization the caller has resource
    * access in.
@@ -58,7 +58,7 @@ public interface ListRecentActivityRequestOrBuilder extends
    * workflow executions opt in to org observability per instance — so org
    * membership alone must never substitute for the per-resource check. An
    * earlier "org member = query by org directly" fast path leaked session
-   * titles to every org member (stigmer-cloud#258).
+   * titles to every org member.
    *
    * When empty, results span every organization the caller has resource
    * access in.

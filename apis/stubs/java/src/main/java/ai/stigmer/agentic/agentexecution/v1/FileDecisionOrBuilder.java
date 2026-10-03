@@ -214,7 +214,7 @@ public interface FileDecisionOrBuilder extends
    * <pre>
    * Which authority authored this decision: a human reviewer (USER; also the
    * reading for UNSPECIFIED pre-origin records) or the approved-command
-   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * auto-keep policy. Audit provenance only — never enforcement, never
    * correlation, never folded into any digest. See FileDecisionOrigin.
    * </pre>
    *
@@ -226,7 +226,7 @@ public interface FileDecisionOrBuilder extends
    * <pre>
    * Which authority authored this decision: a human reviewer (USER; also the
    * reading for UNSPECIFIED pre-origin records) or the approved-command
-   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * auto-keep policy. Audit provenance only — never enforcement, never
    * correlation, never folded into any digest. See FileDecisionOrigin.
    * </pre>
    *

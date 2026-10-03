@@ -195,7 +195,7 @@ export enum ApiResourceVisibility {
    * without granting access to all authenticated users.
    *
    * FGA tuple: resource#viewer@organization:<org>#viewer
-   * (Before cloud#257 the tuple targeted organization#member, which
+   * (The tuple once targeted organization#member, which
    * excluded viewer-role users; the authorization model no longer admits
    * that shape.)
    *

@@ -79,7 +79,7 @@ public enum ToolCallStatus
   TOOL_CALL_FAILED(4),
   /**
    * <pre>
-   * Blocked on user approval (HITL Phase 1).
+   * Blocked on user approval.
    *
    * The tool requires user consent before execution. This status is set when:
    * - Tool has requires_approval=true (from approval policy chain)
@@ -105,7 +105,7 @@ public enum ToolCallStatus
   TOOL_CALL_WAITING_APPROVAL(5),
   /**
    * <pre>
-   * User skipped this tool (HITL Phase 1).
+   * User skipped this tool.
    *
    * Terminal state indicating the user chose not to execute this tool.
    * When a tool is skipped:
@@ -211,7 +211,7 @@ public enum ToolCallStatus
   public static final int TOOL_CALL_FAILED_VALUE = 4;
   /**
    * <pre>
-   * Blocked on user approval (HITL Phase 1).
+   * Blocked on user approval.
    *
    * The tool requires user consent before execution. This status is set when:
    * - Tool has requires_approval=true (from approval policy chain)
@@ -237,7 +237,7 @@ public enum ToolCallStatus
   public static final int TOOL_CALL_WAITING_APPROVAL_VALUE = 5;
   /**
    * <pre>
-   * User skipped this tool (HITL Phase 1).
+   * User skipped this tool.
    *
    * Terminal state indicating the user chose not to execute this tool.
    * When a tool is skipped:

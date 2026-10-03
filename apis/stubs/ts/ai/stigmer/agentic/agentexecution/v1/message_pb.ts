@@ -395,8 +395,6 @@ export const ToolCallSchema: GenMessage<ToolCall> = /*@__PURE__*/
  * bytes live in artifact storage (R2 in the cloud, locally served in dev);
  * only this reference is persisted in the execution status.
  *
- * @since Durable Executions (tool-output offload)
- *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
  */
 export type ToolCallOutputRef = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef"> & {
@@ -468,8 +466,6 @@ export const ToolCallOutputRefSchema: GenMessage<ToolCallOutputRef> = /*@__PURE_
  * ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
  * clients how complete the content is so they render whole-file vs hunk-only
  * diffs honestly per harness.
- *
- * @since First-Class Diff Review (#186)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.FileChange
  */
@@ -570,8 +566,6 @@ export const FileChangeSchema: GenMessage<FileChange> = /*@__PURE__*/
  * storage and referenced via the existing tool-output offload envelope. Exactly
  * one of inline or ref is set; when offloaded, the head preview lives in
  * ref.truncated_preview and the full size in ref.size_bytes.
- *
- * @since First-Class Diff Review (#186)
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.FileContent
  */

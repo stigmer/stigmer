@@ -484,7 +484,7 @@
         {
           "name": "max_parallelism",
           "displayName": "Max Parallelism",
-          "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves pre-T17 behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
+          "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves the original behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
           "type": "int32",
           "required": false,
           "fieldNumber": 4
@@ -500,7 +500,7 @@
         {
           "name": "on_error",
           "displayName": "On Error",
-          "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting (pre-T17 behavior).",
+          "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting.",
           "type": "enum",
           "required": false,
           "enumValues": [
@@ -617,11 +617,11 @@
             "type": "string"
           },
           "max_parallelism": {
-            "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves pre-T17 behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
+            "description": "Maximum number of iterations to execute concurrently. 0 (default): sequential execution — iterations run one at a time in input order. This preserves the original behavior. 1: effectively sequential (one at a time, but uses the parallel execution path — useful for testing). N \u003e 1: up to N iterations run concurrently using Temporal workflow goroutines with a semaphore-based concurrency limiter. Results are always reassembled in original input order regardless of completion order.",
             "type": "integer"
           },
           "on_error": {
-            "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting (pre-T17 behavior).",
+            "description": "Policy for handling individual iteration failures. Default: FOR_EACH_FAIL_FAST (stop on first error). Only meaningful when max_parallelism \u003e 0; in sequential mode, any failure stops the loop regardless of this setting.",
             "enum": [
               "FOR_EACH_FAIL_FAST",
               "FOR_EACH_CONTINUE",
@@ -859,7 +859,7 @@
                 "type": "string"
               },
               "compensate": {
-                "description": "Whether to run compensation tasks for already-completed try tasks before executing the catch do block. When true, the runtime walks the compensation stack (completed tasks that declared a `compensate` block) in reverse order and executes each task's compensation actions. After all compensations complete (or fail), the catch `do` block runs as normal. Compensation failures do not prevent the catch block from running. They are logged and included in the task output for diagnostics. Default: false (no compensation — preserves pre-T17 behavior).",
+                "description": "Whether to run compensation tasks for already-completed try tasks before executing the catch do block. When true, the runtime walks the compensation stack (completed tasks that declared a `compensate` block) in reverse order and executes each task's compensation actions. After all compensations complete (or fail), the catch `do` block runs as normal. Compensation failures do not prevent the catch block from running. They are logged and included in the task output for diagnostics. Default: false (no compensation).",
                 "type": "boolean"
               },
               "do": {
@@ -2156,7 +2156,7 @@
         {
           "name": "approvers",
           "displayName": "Approvers",
-          "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13).",
+          "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern.",
           "type": "repeated",
           "required": false,
           "groupId": "access",
@@ -2193,7 +2193,7 @@
         {
           "name": "notification_channels",
           "displayName": "Notification Channels",
-          "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+          "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern. The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
           "type": "repeated",
           "required": false,
           "groupId": "access",
@@ -2243,7 +2243,7 @@
         "additionalProperties": false,
         "properties": {
           "approvers": {
-            "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13).",
+            "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern.",
             "items": {
               "type": "string"
             },
@@ -2254,7 +2254,7 @@
             "type": "object"
           },
           "notification_channels": {
-            "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+            "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern. The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
             "items": {
               "type": "string"
             },
@@ -2807,7 +2807,7 @@
         {
           "name": "template",
           "displayName": "Template",
-          "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern (T13).",
+          "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern.",
           "type": "string",
           "required": false,
           "groupId": "template",
@@ -2872,7 +2872,7 @@
             "type": "string"
           },
           "template": {
-            "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern (T13).",
+            "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern.",
             "type": "string"
           }
         },

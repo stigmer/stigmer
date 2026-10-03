@@ -63,8 +63,6 @@ type AgentCallTaskConfig struct {
 	// reliable downstream routing via switch_case expressions.
 	//
 	// When not set, the task output contains the agent's raw text response.
-	//
-	// @since T02 (Structured Agent Output Model)
 	Output *AgentCallOutputContract `protobuf:"bytes,5,opt,name=output,proto3" json:"output,omitempty"`
 	// Execution harness for the agent invocation.
 	//
@@ -231,8 +229,6 @@ func (x *AgentCallTaskConfig) GetEnvironmentRefs() []*apiresource.ApiResourceRef
 //	  on_invalid: ON_INVALID_RETRY
 //	  max_retries: 2
 //	  fallback_task: human_review
-//
-// @since T02 (Structured Agent Output Model)
 type AgentCallOutputContract struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// JSON Schema that the agent's structured output must conform to.

@@ -12,8 +12,6 @@ package ai.stigmer.agentic.artifact.v1;
  * The content field contains the artifact bytes (up to max_bytes). For text
  * artifacts, clients decode as UTF-8. The content_type field is the type
  * recorded at creation (ArtifactSpec.content_type).
- *
- * &#64;since Review Payloads (stigmer/stigmer#234)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse}
@@ -363,8 +361,6 @@ private static final long serialVersionUID = 0L;
    * The content field contains the artifact bytes (up to max_bytes). For text
    * artifacts, clients decode as UTF-8. The content_type field is the type
    * recorded at creation (ArtifactSpec.content_type).
-   *
-   * &#64;since Review Payloads (stigmer/stigmer#234)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse}

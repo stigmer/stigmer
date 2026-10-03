@@ -12,8 +12,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * The minimal set that covers the overwhelming majority of edits; COPY /
  * MODE_CHANGE / SYMLINK_CHANGE are deferred (adding enum values later is
  * non-breaking).
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileChangeKind}

@@ -200,8 +200,6 @@ type ApiResourceMetadataVersion struct {
 	// Optional tag to assign to this version at creation time.
 	// Only applicable to versioned resources (Skills, Workflows).
 	// Examples: "stable", "v1.0", "production"
-	//
-	// @since Workflow Versioning
 	Tag           string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -20,8 +20,6 @@ export const file_ai_stigmer_agentic_workflow_v1_task_kind_descriptor: GenFile =
  * Fields within the same group are rendered together in a collapsible section.
  * Groups are ordered by their position in the TaskKindDescriptor.field_groups list.
  *
- * @since T04 (Task Schema Registry)
- *
  * @generated from message ai.stigmer.agentic.workflow.v1.TaskFieldGroup
  */
 export type TaskFieldGroup = Message<"ai.stigmer.agentic.workflow.v1.TaskFieldGroup"> & {
@@ -60,8 +58,6 @@ export const TaskFieldGroupSchema: GenMessage<TaskFieldGroup> = /*@__PURE__*/
  * Provides enough metadata for UI form renderers to generate appropriate
  * input controls, validation messages, and documentation without needing
  * access to the raw proto descriptor.
- *
- * @since T04 (Task Schema Registry)
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.TaskFieldDescriptor
  */
@@ -183,8 +179,6 @@ export const TaskFieldDescriptorSchema: GenMessage<TaskFieldDescriptor> = /*@__P
  * - Validate task configs client-side (config_json_schema)
  * - Display task output shapes in the execution viewer (output_json_schema)
  * - Generate documentation (description, yaml_examples, documentation_url)
- *
- * @since T04 (Task Schema Registry)
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.TaskKindDescriptor
  */
@@ -351,8 +345,6 @@ export const GetTaskKindRegistryResponseSchema: GenMessage<GetTaskKindRegistryRe
  * Used by the UI to render task palettes with grouped categories, and by
  * documentation generators to organize task reference pages.
  *
- * @since T04 (Task Schema Registry)
- *
  * @generated from enum ai.stigmer.agentic.workflow.v1.TaskKindCategory
  */
 export enum TaskKindCategory {
@@ -419,8 +411,6 @@ export const TaskKindCategorySchema: GenEnum<TaskKindCategory> = /*@__PURE__*/
 /**
  * TaskFieldType represents the data type of a task configuration field
  * as understood by UI form renderers and schema validators.
- *
- * @since T04 (Task Schema Registry)
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.TaskFieldType
  */

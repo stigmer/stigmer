@@ -208,7 +208,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -226,7 +226,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -243,7 +243,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -261,7 +261,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -320,7 +320,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.
@@ -341,7 +341,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.
@@ -361,7 +361,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.
@@ -382,7 +382,7 @@ public interface HumanInputTaskConfigOrBuilder extends
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.

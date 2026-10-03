@@ -12,8 +12,6 @@ package ai.stigmer.agentic.workflow.v1;
  * Tags are mutable pointers — calling tagVersion with an existing tag name
  * moves it from the previous version to the specified version. A version can
  * have at most one tag (set at apply time or via this RPC).
- *
- * &#64;since Workflow Versioning
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput}
@@ -387,8 +385,6 @@ private static final long serialVersionUID = 0L;
    * Tags are mutable pointers — calling tagVersion with an existing tag name
    * moves it from the previous version to the specified version. A version can
    * have at most one tag (set at apply time or via this RPC).
-   *
-   * &#64;since Workflow Versioning
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput}

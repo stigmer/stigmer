@@ -28,7 +28,7 @@ public enum ForEachErrorPolicy
    * <pre>
    * Stop on first error, cancel in-flight iterations.
    * This is the default and preserves backward compatibility with the
-   * pre-T17 sequential behavior.
+   * original sequential behavior.
    * </pre>
    *
    * <code>FOR_EACH_FAIL_FAST = 1;</code>
@@ -82,7 +82,7 @@ public enum ForEachErrorPolicy
    * <pre>
    * Stop on first error, cancel in-flight iterations.
    * This is the default and preserves backward compatibility with the
-   * pre-T17 sequential behavior.
+   * original sequential behavior.
    * </pre>
    *
    * <code>FOR_EACH_FAIL_FAST = 1;</code>

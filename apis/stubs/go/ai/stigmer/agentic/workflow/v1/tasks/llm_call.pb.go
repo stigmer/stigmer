@@ -102,16 +102,12 @@ type LlmCallTaskConfig struct {
 	// exceeds this limit, independent of the workflow-level budget.
 	// The runtime checks both: per-task limit first, then workflow remaining budget.
 	// Optional — when 0, no per-task cost limit is enforced.
-	//
-	// @since T05 (Workflow-Level Budget Primitives)
 	MaxCostMicros int64 `protobuf:"varint,11,opt,name=max_cost_micros,json=maxCostMicros,proto3" json:"max_cost_micros,omitempty"`
 	// Per-task token cap (input + output tokens combined).
 	// When set, the runtime terminates this specific LLM call if total tokens
 	// exceed this limit. Complements max_tokens (field 6), which limits only
 	// the output token count as a generation parameter.
 	// Optional — when 0, no per-task total token limit is enforced.
-	//
-	// @since T05 (Workflow-Level Budget Primitives)
 	MaxTotalTokens int64 `protobuf:"varint,12,opt,name=max_total_tokens,json=maxTotalTokens,proto3" json:"max_total_tokens,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache

@@ -320,7 +320,7 @@ private static final long serialVersionUID = 0L;
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -340,7 +340,7 @@ private static final long serialVersionUID = 0L;
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -359,7 +359,7 @@ private static final long serialVersionUID = 0L;
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -379,7 +379,7 @@ private static final long serialVersionUID = 0L;
    * - "role:content-admin" — any user with the role
    *
    * When empty, any authenticated user can respond.
-   * Resolution of these identifiers is a runtime concern (T13).
+   * Resolution of these identifiers is a runtime concern.
    * </pre>
    *
    * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -456,7 +456,7 @@ private static final long serialVersionUID = 0L;
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.
@@ -501,7 +501,7 @@ private static final long serialVersionUID = 0L;
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.
@@ -524,7 +524,7 @@ private static final long serialVersionUID = 0L;
    * - "email:ops&#64;acme.com" — email address
    * - "teams:#incident-response" — Microsoft Teams channel
    *
-   * The format and routing of notifications is a runtime concern (T13).
+   * The format and routing of notifications is a runtime concern.
    * The proto carries the identifiers; the runtime resolves them to
    * actual notification providers configured in the workflow instance's
    * environment.
@@ -2181,7 +2181,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2202,7 +2202,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2221,7 +2221,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2241,7 +2241,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2262,7 +2262,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2289,7 +2289,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2315,7 +2315,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2341,7 +2341,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2364,7 +2364,7 @@ private static final long serialVersionUID = 0L;
      * - "role:content-admin" — any user with the role
      *
      * When empty, any authenticated user can respond.
-     * Resolution of these identifiers is a runtime concern (T13).
+     * Resolution of these identifiers is a runtime concern.
      * </pre>
      *
      * <code>repeated string approvers = 4 [json_name = "approvers"];</code>
@@ -2544,7 +2544,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2568,7 +2568,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2590,7 +2590,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2613,7 +2613,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2637,7 +2637,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2667,7 +2667,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2696,7 +2696,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2725,7 +2725,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.
@@ -2751,7 +2751,7 @@ private static final long serialVersionUID = 0L;
      * - "email:ops&#64;acme.com" — email address
      * - "teams:#incident-response" — Microsoft Teams channel
      *
-     * The format and routing of notifications is a runtime concern (T13).
+     * The format and routing of notifications is a runtime concern.
      * The proto carries the identifiers; the runtime resolves them to
      * actual notification providers configured in the workflow instance's
      * environment.

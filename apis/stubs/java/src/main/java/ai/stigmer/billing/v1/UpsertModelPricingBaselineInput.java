@@ -16,8 +16,8 @@ package ai.stigmer.billing.v1;
  * RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
  * status, supersedes_baseline_id, decided_by/at, created_at) are
  * server-owned and ignored; pricing effective_at is stamped server-side so
- * baseline edits always win DD-003 Decision 6 staleness against older
- * ledger-derived overrides.
+ * baseline edits always win the staleness check against older
+ * ledger-derived overrides (see ModelPricingBaseline.effective_at).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.UpsertModelPricingBaselineInput}
@@ -322,8 +322,8 @@ private static final long serialVersionUID = 0L;
    * RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
    * status, supersedes_baseline_id, decided_by/at, created_at) are
    * server-owned and ignored; pricing effective_at is stamped server-side so
-   * baseline edits always win DD-003 Decision 6 staleness against older
-   * ledger-derived overrides.
+   * baseline edits always win the staleness check against older
+   * ledger-derived overrides (see ModelPricingBaseline.effective_at).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.UpsertModelPricingBaselineInput}

@@ -83,7 +83,7 @@ export type PricingBlock = Message<"ai.stigmer.billing.v1.PricingBlock"> & {
   sourceNote: string;
 
   /**
-   * When these rates took effect. DD-003 Decision 6 reads this field:
+   * When these rates took effect. The override staleness check reads this field:
    * an ACTIVE override whose derivation window ended before this instant
    * is stale and gets superseded — baseline edits always stamp it fresh.
    *
@@ -256,7 +256,7 @@ export const ModelCapabilitiesSchema: GenMessage<ModelCapabilities> = /*@__PURE_
 /**
  * ModelPricingBaseline is one versioned catalog-and-list-price entry of the
  * model registry — the human-governed half of the effective registry
- * (baseline ⊕ ACTIVE overrides, DD-003/DD-004).
+ * (baseline ⊕ ACTIVE overrides).
  *
  * Documents are append-only: operator edits supersede the previous ACTIVE
  * document for the same (model_id, provider, harness) key. The composition

@@ -207,7 +207,7 @@ public interface ModelPricingGovernanceEntryOrBuilder extends
    * <pre>
    * Whether an external provider ledger can verify this entry's rates.
    * False for OSS/self-hosted models and Cursor first-party models — those
-   * are manually governed by the registry baseline (DD-003 Decision 7).
+   * are manually governed by the registry baseline.
    * </pre>
    *
    * <code>bool ledger_reconcilable = 18 [json_name = "ledgerReconcilable"];</code>

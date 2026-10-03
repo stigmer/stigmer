@@ -7,8 +7,8 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * The runner's turn facts backing the approved-command auto-keep policy
- * (DD-28): its assertion that EVERY mutation in the candidate was produced by
+ * The runner's turn facts backing the approved-command auto-keep policy:
+ * its assertion that EVERY mutation in the candidate was produced by
  * executed shell commands the human had already authorized, with the consent
  * evidence the backend can verify.
  * </pre>
@@ -324,8 +324,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The runner's turn facts backing the approved-command auto-keep policy
-   * (DD-28): its assertion that EVERY mutation in the candidate was produced by
+   * The runner's turn facts backing the approved-command auto-keep policy:
+   * its assertion that EVERY mutation in the candidate was produced by
    * executed shell commands the human had already authorized, with the consent
    * evidence the backend can verify.
    * </pre>

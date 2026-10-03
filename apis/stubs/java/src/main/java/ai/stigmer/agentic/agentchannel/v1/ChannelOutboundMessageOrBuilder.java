@@ -96,7 +96,7 @@ public interface ChannelOutboundMessageOrBuilder extends
 
   /**
    * <pre>
-   * How the send was authorized (DD-002 D9's surface-aware policy).
+   * How the send was authorized (the surface-aware recipient policy).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>
@@ -105,7 +105,7 @@ public interface ChannelOutboundMessageOrBuilder extends
   int getOriginValue();
   /**
    * <pre>
-   * How the send was authorized (DD-002 D9's surface-aware policy).
+   * How the send was authorized (the surface-aware recipient policy).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5 [json_name = "origin"];</code>

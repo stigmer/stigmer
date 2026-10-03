@@ -39,7 +39,7 @@ type WorkflowSpec struct {
 	// Keys are variable names; values describe their metadata and optionality.
 	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Budget limits for this workflow execution.
-	// When set, the runtime (T13) enforces cost, token, and duration limits
+	// When set, the runtime enforces cost, token, and duration limits
 	// across all tasks. The existing org-level billing reservation system
 	// (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
 	// for overall credit exhaustion; workflow budgets prevent individual

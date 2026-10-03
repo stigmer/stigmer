@@ -13,8 +13,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * decided — it is never an enforcement input, never a correlation key, and
  * never folded into any digest. UNSPECIFIED (decisions authored before this
  * field existed) reads as a human decision, the only author that existed then.
- *
- * &#64;since File-Change HITL Redesign (DD-28 approved-command auto-keep)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin}
@@ -24,7 +22,7 @@ public enum FileDecisionOrigin
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default value: a pre-DD-28 decision with no recorded origin. Treated as
+   * Default value: a decision recorded before origins existed. Treated as
    * USER by every consumer (the only author that existed before origins).
    * </pre>
    *
@@ -44,7 +42,7 @@ public enum FileDecisionOrigin
    * Platform policy auto-kept the set because every mutation in its turn came
    * from commands the human explicitly authorized (per-command approval,
    * APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified
-   * against server-authored approval records before authoring (DD-28). The
+   * against server-authored approval records before authoring. The
    * decision's actor is "policy", never the user.
    * </pre>
    *
@@ -65,7 +63,7 @@ public enum FileDecisionOrigin
   }
   /**
    * <pre>
-   * Default value: a pre-DD-28 decision with no recorded origin. Treated as
+   * Default value: a decision recorded before origins existed. Treated as
    * USER by every consumer (the only author that existed before origins).
    * </pre>
    *
@@ -85,7 +83,7 @@ public enum FileDecisionOrigin
    * Platform policy auto-kept the set because every mutation in its turn came
    * from commands the human explicitly authorized (per-command approval,
    * APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified
-   * against server-authored approval records before authoring (DD-28). The
+   * against server-authored approval records before authoring. The
    * decision's actor is "policy", never the user.
    * </pre>
    *

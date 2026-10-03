@@ -9,8 +9,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
  * optionally scoped to a single workflow.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest}
@@ -142,8 +140,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * When set, scopes the summary to executions of this workflow only.
    * When empty, aggregates across all workflows in the organization.
-   *
-   * &#64;since T12 (Overview Page Redesign)
    * </pre>
    *
    * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
@@ -166,8 +162,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * When set, scopes the summary to executions of this workflow only.
    * When empty, aggregates across all workflows in the organization.
-   *
-   * &#64;since T12 (Overview Page Redesign)
    * </pre>
    *
    * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
@@ -368,8 +362,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
    * optionally scoped to a single workflow.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest}
@@ -714,8 +706,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When set, scopes the summary to executions of this workflow only.
      * When empty, aggregates across all workflows in the organization.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
@@ -737,8 +727,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When set, scopes the summary to executions of this workflow only.
      * When empty, aggregates across all workflows in the organization.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
@@ -761,8 +749,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When set, scopes the summary to executions of this workflow only.
      * When empty, aggregates across all workflows in the organization.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
@@ -781,8 +767,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When set, scopes the summary to executions of this workflow only.
      * When empty, aggregates across all workflows in the organization.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>string workflow_id = 3 [json_name = "workflowId"];</code>
@@ -798,8 +782,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * When set, scopes the summary to executions of this workflow only.
      * When empty, aggregates across all workflows in the organization.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>string workflow_id = 3 [json_name = "workflowId"];</code>

@@ -108,7 +108,7 @@ public interface ForTaskConfigOrBuilder extends
    * Maximum number of iterations to execute concurrently.
    *
    * 0 (default): sequential execution — iterations run one at a time
-   * in input order. This preserves pre-T17 behavior.
+   * in input order. This preserves the original behavior.
    *
    * 1: effectively sequential (one at a time, but uses the parallel
    * execution path — useful for testing).
@@ -117,8 +117,6 @@ public interface ForTaskConfigOrBuilder extends
    * goroutines with a semaphore-based concurrency limiter. Results are
    * always reassembled in original input order regardless of completion
    * order.
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
    * </pre>
    *
    * <code>int32 max_parallelism = 4 [json_name = "maxParallelism", (.buf.validate.field) = { ... }</code>
@@ -138,8 +136,6 @@ public interface ForTaskConfigOrBuilder extends
    * max_parallelism iterations run concurrently.
    *
    * Only meaningful when max_parallelism &gt; 0; ignored in sequential mode.
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
    * </pre>
    *
    * <code>int32 batch_size = 5 [json_name = "batchSize", (.buf.validate.field) = { ... }</code>
@@ -153,9 +149,7 @@ public interface ForTaskConfigOrBuilder extends
    *
    * Default: FOR_EACH_FAIL_FAST (stop on first error).
    * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
-   * failure stops the loop regardless of this setting (pre-T17 behavior).
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
+   * failure stops the loop regardless of this setting.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
@@ -168,9 +162,7 @@ public interface ForTaskConfigOrBuilder extends
    *
    * Default: FOR_EACH_FAIL_FAST (stop on first error).
    * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
-   * failure stops the loop regardless of this setting (pre-T17 behavior).
-   *
-   * &#64;since T17 (Advanced Agentic Orchestration)
+   * failure stops the loop regardless of this setting.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>

@@ -17,8 +17,6 @@ package ai.stigmer.agentic.workflow.v1;
  * - Validate task configs client-side (config_json_schema)
  * - Display task output shapes in the execution viewer (output_json_schema)
  * - Generate documentation (description, yaml_examples, documentation_url)
- *
- * &#64;since T04 (Task Schema Registry)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TaskKindDescriptor}
@@ -1014,8 +1012,6 @@ private static final long serialVersionUID = 0L;
    * - Validate task configs client-side (config_json_schema)
    * - Display task output shapes in the execution viewer (output_json_schema)
    * - Generate documentation (description, yaml_examples, documentation_url)
-   *
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.TaskKindDescriptor}

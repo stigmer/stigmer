@@ -57,8 +57,8 @@ public interface CursorMemberSpendOrBuilder extends
   /**
    * <pre>
    * Percent (0–100) of the member's blended usage allowance consumed
-   * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
-   * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+   * (Cursor's totalPercentUsed, live-verified 2026-07-22 — a probe
+   * observed 22.35 for a member at 22%). 0 when Cursor omits it
    * (non-tiered/Enterprise teams). Caution: removed members report a
    * flat 100 here regardless of real usage — roster state, not this
    * field, decides "removed".
@@ -84,7 +84,7 @@ public interface CursorMemberSpendOrBuilder extends
    * <pre>
    * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
    * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
-   * usage-guard metric: the pools diverge hard in practice (T06
+   * usage-guard metric: the pools diverge hard in practice (a probe
    * observed api=100 while total=22.35), so the blended figure must
    * never gate selection.
    * </pre>

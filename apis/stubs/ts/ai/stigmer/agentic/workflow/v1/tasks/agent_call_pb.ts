@@ -86,8 +86,6 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    *
    * When not set, the task output contains the agent's raw text response.
    *
-   * @since T02 (Structured Agent Output Model)
-   *
    * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5;
    */
   output?: AgentCallOutputContract;
@@ -189,8 +187,6 @@ export const AgentCallTaskConfigSchema: GenMessage<AgentCallTaskConfig> = /*@__P
  *     on_invalid: ON_INVALID_RETRY
  *     max_retries: 2
  *     fallback_task: human_review
- *
- * @since T02 (Structured Agent Output Model)
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
  */

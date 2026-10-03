@@ -352,8 +352,6 @@ java.lang.String defaultValue) {
    * reliable downstream routing via switch_case expressions.
    *
    * When not set, the task output contains the agent's raw text response.
-   *
-   * &#64;since T02 (Structured Agent Output Model)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -373,8 +371,6 @@ java.lang.String defaultValue) {
    * reliable downstream routing via switch_case expressions.
    *
    * When not set, the task output contains the agent's raw text response.
-   *
-   * &#64;since T02 (Structured Agent Output Model)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -394,8 +390,6 @@ java.lang.String defaultValue) {
    * reliable downstream routing via switch_case expressions.
    *
    * When not set, the task output contains the agent's raw text response.
-   *
-   * &#64;since T02 (Structured Agent Output Model)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -1867,8 +1861,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -1887,8 +1879,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -1911,8 +1901,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -1940,8 +1928,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -1967,8 +1953,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -2001,8 +1985,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -2027,8 +2009,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -2048,8 +2028,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>
@@ -2072,8 +2050,6 @@ java.lang.String defaultValue) {
      * reliable downstream routing via switch_case expressions.
      *
      * When not set, the task output contains the agent's raw text response.
-     *
-     * &#64;since T02 (Structured Agent Output Model)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 5 [json_name = "output"];</code>

@@ -23,8 +23,6 @@
 // - Lifecycle-independent: artifact retention is separate from execution retention
 // - Auto-promoted: the runtime transparently externalizes outputs exceeding
 //   the size threshold (default: 256KB), replacing inline data with artifact refs
-//
-// @since T07 (Artifact Store)
 
 package artifactv1
 

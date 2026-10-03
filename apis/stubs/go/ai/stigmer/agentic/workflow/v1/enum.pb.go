@@ -149,11 +149,9 @@ func (WorkflowTaskKind) EnumDescriptor() ([]byte, []int) {
 // BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
 // budget limit is exceeded.
 //
-// The runtime (T13) evaluates this policy at task boundaries: after each task
+// The runtime evaluates this policy at task boundaries: after each task
 // completes, accumulated costs and tokens are compared against the declared
 // budget. If a limit is breached, the policy determines what happens next.
-//
-// @since T05 (Workflow-Level Budget Primitives)
 type BudgetExceededPolicy int32
 
 const (
@@ -166,7 +164,7 @@ const (
 	// Pause the workflow and request human review via a system-generated
 	// approval gate. The reviewer can approve continued execution (with
 	// an increased budget) or confirm termination.
-	// Depends on the human_input runtime (T13). If human_input runtime
+	// Depends on the human_input runtime. If human_input runtime
 	// is not available, falls back to terminate with a descriptive error.
 	BudgetExceededPolicy_budget_exceeded_human_review BudgetExceededPolicy = 2
 	// Log a warning but allow the workflow to continue executing.

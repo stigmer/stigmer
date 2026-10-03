@@ -144,7 +144,7 @@
       "type": {
         "kind": "int64"
       },
-      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this specific LLM call if its cost\n exceeds this limit, independent of the workflow-level budget.\n The runtime checks both: per-task limit first, then workflow remaining budget.\n Optional — when 0, no per-task cost limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this specific LLM call if its cost\n exceeds this limit, independent of the workflow-level budget.\n The runtime checks both: per-task limit first, then workflow remaining budget.\n Optional — when 0, no per-task cost limit is enforced.",
       "required": false
     },
     {
@@ -154,7 +154,7 @@
       "type": {
         "kind": "int64"
       },
-      "description": "Per-task token cap (input + output tokens combined).\n When set, the runtime terminates this specific LLM call if total tokens\n exceed this limit. Complements max_tokens (field 6), which limits only\n the output token count as a generation parameter.\n Optional — when 0, no per-task total token limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "description": "Per-task token cap (input + output tokens combined).\n When set, the runtime terminates this specific LLM call if total tokens\n exceed this limit. Complements max_tokens (field 6), which limits only\n the output token count as a generation parameter.\n Optional — when 0, no per-task total token limit is enforced.",
       "required": false
     }
   ]

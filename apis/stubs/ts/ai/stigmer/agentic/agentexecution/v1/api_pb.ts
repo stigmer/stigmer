@@ -215,8 +215,6 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
    * - **Cost optimization**: Identify executions with excessive summarization
    * - **UX**: Show users their context window health
    *
-   * @since Phase 3 (Context Summarization Architecture)
-   *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14;
    */
   contextInfo?: ContextInfo;
@@ -233,8 +231,6 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
    *
    * Ordered by creation time (oldest first).
    *
-   * @since Artifact Lifecycle (Attachments & Artifacts)
-   *
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15;
    */
   artifacts: ExecutionArtifact[];
@@ -250,8 +246,6 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
    * Populated during post-execution processing. Each entry tracks the
    * write-back lifecycle (committed -> pushed -> PR created) and carries
    * the PR URL for UI display.
-   *
-   * @since Platform-Owned Git Write-Back
    *
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17;
    */

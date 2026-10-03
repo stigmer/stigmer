@@ -695,8 +695,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * - **Debugging**: Understand why an execution hit context limits
    * - **Cost optimization**: Identify executions with excessive summarization
    * - **UX**: Show users their context window health
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -721,8 +719,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * - **Debugging**: Understand why an execution hit context limits
    * - **Cost optimization**: Identify executions with excessive summarization
    * - **UX**: Show users their context window health
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -747,8 +743,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * - **Debugging**: Understand why an execution hit context limits
    * - **Cost optimization**: Identify executions with excessive summarization
    * - **UX**: Show users their context window health
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -773,8 +767,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Use the execution download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -795,8 +787,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Use the execution download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -818,8 +808,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Use the execution download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -840,8 +828,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Use the execution download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -862,8 +848,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Use the execution download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -889,8 +873,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Populated during post-execution processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
-   *
-   * &#64;since Platform-Owned Git Write-Back
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -911,8 +893,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Populated during post-execution processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
-   *
-   * &#64;since Platform-Owned Git Write-Back
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -934,8 +914,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Populated during post-execution processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
-   *
-   * &#64;since Platform-Owned Git Write-Back
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -956,8 +934,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Populated during post-execution processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
-   *
-   * &#64;since Platform-Owned Git Write-Back
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -978,8 +954,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * Populated during post-execution processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
-   *
-   * &#64;since Platform-Owned Git Write-Back
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -4651,8 +4625,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4676,8 +4648,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4705,8 +4675,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4739,8 +4707,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4771,8 +4737,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4810,8 +4774,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4841,8 +4803,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4867,8 +4827,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4896,8 +4854,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * - **Debugging**: Understand why an execution hit context limits
      * - **Cost optimization**: Identify executions with excessive summarization
      * - **UX**: Show users their context window health
-     *
-     * &#64;since Phase 3 (Context Summarization Architecture)
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
@@ -4940,8 +4896,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -4965,8 +4919,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -4990,8 +4942,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5015,8 +4965,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5047,8 +4995,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5076,8 +5022,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5107,8 +5051,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5139,8 +5081,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5168,8 +5108,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5197,8 +5135,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5227,8 +5163,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5255,8 +5189,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5283,8 +5215,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5305,8 +5235,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5330,8 +5258,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5356,8 +5282,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5378,8 +5302,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5401,8 +5323,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Use the execution download endpoint to refresh expired URLs.
      *
      * Ordered by creation time (oldest first).
-     *
-     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact artifacts = 15 [json_name = "artifacts"];</code>
@@ -5450,8 +5370,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5475,8 +5393,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5500,8 +5416,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5525,8 +5439,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5557,8 +5469,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5586,8 +5496,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5617,8 +5525,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5649,8 +5555,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5678,8 +5582,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5707,8 +5609,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5737,8 +5637,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5765,8 +5663,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5793,8 +5689,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5815,8 +5709,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5840,8 +5732,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5866,8 +5756,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5888,8 +5776,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
@@ -5911,8 +5797,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * Populated during post-execution processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
      * the PR URL for UI display.
-     *
-     * &#64;since Platform-Owned Git Write-Back
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>

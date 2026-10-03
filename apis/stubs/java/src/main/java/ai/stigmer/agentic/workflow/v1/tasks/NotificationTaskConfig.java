@@ -348,7 +348,7 @@ private static final long serialVersionUID = 0L;
    * cannot be resolved.
    *
    * Examples: "incident-alert", "order-confirmation", "approval-request"
-   * Template resolution and rendering is a runtime concern (T13).
+   * Template resolution and rendering is a runtime concern.
    * </pre>
    *
    * <code>string template = 5 [json_name = "template"];</code>
@@ -376,7 +376,7 @@ private static final long serialVersionUID = 0L;
    * cannot be resolved.
    *
    * Examples: "incident-alert", "order-confirmation", "approval-request"
-   * Template resolution and rendering is a runtime concern (T13).
+   * Template resolution and rendering is a runtime concern.
    * </pre>
    *
    * <code>string template = 5 [json_name = "template"];</code>
@@ -1589,7 +1589,7 @@ java.lang.String defaultValue) {
      * cannot be resolved.
      *
      * Examples: "incident-alert", "order-confirmation", "approval-request"
-     * Template resolution and rendering is a runtime concern (T13).
+     * Template resolution and rendering is a runtime concern.
      * </pre>
      *
      * <code>string template = 5 [json_name = "template"];</code>
@@ -1616,7 +1616,7 @@ java.lang.String defaultValue) {
      * cannot be resolved.
      *
      * Examples: "incident-alert", "order-confirmation", "approval-request"
-     * Template resolution and rendering is a runtime concern (T13).
+     * Template resolution and rendering is a runtime concern.
      * </pre>
      *
      * <code>string template = 5 [json_name = "template"];</code>
@@ -1644,7 +1644,7 @@ java.lang.String defaultValue) {
      * cannot be resolved.
      *
      * Examples: "incident-alert", "order-confirmation", "approval-request"
-     * Template resolution and rendering is a runtime concern (T13).
+     * Template resolution and rendering is a runtime concern.
      * </pre>
      *
      * <code>string template = 5 [json_name = "template"];</code>
@@ -1668,7 +1668,7 @@ java.lang.String defaultValue) {
      * cannot be resolved.
      *
      * Examples: "incident-alert", "order-confirmation", "approval-request"
-     * Template resolution and rendering is a runtime concern (T13).
+     * Template resolution and rendering is a runtime concern.
      * </pre>
      *
      * <code>string template = 5 [json_name = "template"];</code>
@@ -1689,7 +1689,7 @@ java.lang.String defaultValue) {
      * cannot be resolved.
      *
      * Examples: "incident-alert", "order-confirmation", "approval-request"
-     * Template resolution and rendering is a runtime concern (T13).
+     * Template resolution and rendering is a runtime concern.
      * </pre>
      *
      * <code>string template = 5 [json_name = "template"];</code>

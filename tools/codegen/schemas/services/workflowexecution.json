@@ -792,7 +792,7 @@
             "kind": "message",
             "messageType": "ExecutionFilterCriteria"
           },
-          "description": "Structured filter criteria for advanced filtering.\n\n When set, applies AND-conjunction with the existing `phase` and `tags` fields.\n If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.\n\n @since T13 (Execution History)",
+          "description": "Structured filter criteria for advanced filtering.\n\n When set, applies AND-conjunction with the existing `phase` and `tags` fields.\n If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.",
           "required": false
         },
         {
@@ -809,7 +809,7 @@
               "EXECUTION_SORT_FIELD_STATUS"
             ]
           },
-          "description": "Sort field: unspecified is newest created first and pages by\n page_token, any other sorts the whole matching set and returns its\n first page_size entries with no token.\n\n @since T13 (Execution History)",
+          "description": "Sort field: unspecified is newest created first and pages by\n page_token, any other sorts the whole matching set and returns its\n first page_size entries with no token.",
           "required": false
         },
         {
@@ -819,7 +819,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "When true, sorts in ascending order. Default (false) is descending.\n Read only with a sort field other than the default.\n\n @since T13 (Execution History)",
+          "description": "When true, sorts in ascending order. Default (false) is descending.\n Read only with a sort field other than the default.",
           "required": false
         },
         {
@@ -923,7 +923,7 @@
             "kind": "message",
             "messageType": "ExecutionFilterCriteria"
           },
-          "description": "Structured filter criteria for advanced filtering.\n\n @since T13 (Execution History)",
+          "description": "Structured filter criteria for advanced filtering.",
           "required": false
         },
         {
@@ -940,7 +940,7 @@
               "EXECUTION_SORT_FIELD_STATUS"
             ]
           },
-          "description": "Sort field: unspecified is newest created first and pages by\n page_token, any other sorts the whole matching set and returns its\n first page_size entries with no token.\n\n @since T13 (Execution History)",
+          "description": "Sort field: unspecified is newest created first and pages by\n page_token, any other sorts the whole matching set and returns its\n first page_size entries with no token.",
           "required": false
         },
         {
@@ -950,7 +950,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "When true, sorts in ascending order. Default (false) is descending.\n Read only with a sort field other than the default.\n\n @since T13 (Execution History)",
+          "description": "When true, sorts in ascending order. Default (false) is descending.\n Read only with a sort field other than the default.",
           "required": false
         }
       ]
@@ -1516,7 +1516,7 @@
     },
     {
       "name": "GetExecutionSummaryRequest",
-      "description": "GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,\n optionally scoped to a single workflow.\n\n @since T14 (Dashboard Integration)",
+      "description": "GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,\n optionally scoped to a single workflow.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -1557,14 +1557,14 @@
           "type": {
             "kind": "string"
           },
-          "description": "When set, scopes the summary to executions of this workflow only.\n When empty, aggregates across all workflows in the organization.\n\n @since T12 (Overview Page Redesign)",
+          "description": "When set, scopes the summary to executions of this workflow only.\n When empty, aggregates across all workflows in the organization.",
           "required": false
         }
       ]
     },
     {
       "name": "ExecutionSummary",
-      "description": "ExecutionSummary contains aggregated statistics for workflow executions.\n\n All counts, costs, and durations are scoped to the requested time window.\n\n @since T14 (Dashboard Integration)",
+      "description": "ExecutionSummary contains aggregated statistics for workflow executions.\n\n All counts, costs, and durations are scoped to the requested time window.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -1651,7 +1651,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Total number of executions in the time window (sum of all phase_counts values).\n\n @since T12 (Overview Page Redesign)",
+          "description": "Total number of executions in the time window (sum of all phase_counts values).",
           "required": false
         },
         {
@@ -1661,14 +1661,14 @@
           "type": {
             "kind": "double"
           },
-          "description": "Success rate as a ratio (0.0 to 1.0).\n Computed as completed / (completed + failed). Returns -1.0 when no\n completed or failed executions exist in the time window.\n\n @since T12 (Overview Page Redesign)",
+          "description": "Success rate as a ratio (0.0 to 1.0).\n Computed as completed / (completed + failed). Returns -1.0 when no\n completed or failed executions exist in the time window.",
           "required": false
         }
       ]
     },
     {
       "name": "ListPendingApprovalsRequest",
-      "description": "ListPendingApprovalsRequest fetches workflow executions that have active\n human_input tasks awaiting reviewer decisions.\n\n @since T14 (Dashboard Integration)",
+      "description": "ListPendingApprovalsRequest fetches workflow executions that have active\n human_input tasks awaiting reviewer decisions.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -1709,7 +1709,7 @@
     },
     {
       "name": "PendingApprovalsList",
-      "description": "PendingApprovalsList contains one page of pending approvals.\n\n @since T14 (Dashboard Integration)",
+      "description": "PendingApprovalsList contains one page of pending approvals.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -1780,7 +1780,7 @@
     },
     {
       "name": "FileDecisionScope",
-      "description": "FileDecisionScope is the granularity a FileDecision applies to.\n\n HUNK is intentionally deferred — per-hunk approval is a derived approved\n snapshot, not a new lease, and ships after file-level is stable.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "FileDecisionScope is the granularity a FileDecision applies to.\n\n HUNK is intentionally deferred — per-hunk approval is a derived approved\n snapshot, not a new lease, and ships after file-level is stable.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionScope",
       "values": [
         {
@@ -1797,7 +1797,7 @@
     },
     {
       "name": "FileDecisionAction",
-      "description": "FileDecisionAction is a user's verdict on a change set or file.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "description": "FileDecisionAction is a user's verdict on a change set or file.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionAction",
       "values": [
         {
@@ -1856,7 +1856,7 @@
     },
     {
       "name": "ExecutionSortField",
-      "description": "ExecutionSortField defines the column to sort execution lists by.\n\n @since T13 (Execution History)",
+      "description": "ExecutionSortField defines the column to sort execution lists by.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSortField",
       "values": [
         {
@@ -1995,7 +1995,7 @@
     },
     {
       "name": "SummaryTimeWindow",
-      "description": "SummaryTimeWindow controls the time range for aggregated dashboard queries.\n\n @since T14 (Dashboard Integration)",
+      "description": "SummaryTimeWindow controls the time range for aggregated dashboard queries.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow",
       "values": [
         {
@@ -2093,7 +2093,7 @@
         {
           "name": "TOOL_KIND_MEMORY",
           "number": 14,
-          "description": "Propose a durable fact about the user for the platform to remember\n (the first-party remember tool, injected via the synthesized memory\n attachment when the execution's recall snapshot is enabled — DD-005).\n Both harnesses: remember. Rendered as a memory-proposal consent chip\n (verbatim fact + Confirm/Reject), not the generic tool result view —\n the record it creates stays \"proposed\" until the user decides."
+          "description": "Propose a durable fact about the user for the platform to remember\n (the first-party remember tool, injected via the synthesized memory\n attachment when the execution's recall snapshot is enabled).\n Both harnesses: remember. Rendered as a memory-proposal consent chip\n (verbatim fact + Confirm/Reject), not the generic tool result view —\n the record it creates stays \"proposed\" until the user decides."
         }
       ]
     },
@@ -2241,7 +2241,7 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (Before cloud#257 the tuple targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: everyone in the org sees all executions via inheritance\n once the instance opts in."
         },
         {
           "name": "visibility_platform",
@@ -2407,23 +2407,23 @@
         {
           "name": "EXECUTION_TERMINATED",
           "number": 8,
-          "description": "Execution was stopped by the platform.\n\n Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected\n error), TERMINATED means the platform intentionally stopped this\n execution — either via automated safety mechanisms or user-initiated\n force-kill.\n\n Terminal state — execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field contains the termination reason\n\n Trigger paths:\n - Internal (activity-level): stall timeout (agent unresponsive),\n   tool-call budget exhausted (GraphRecursionError). LangGraph\n   checkpoint is valid; the user can continue via follow-up message.\n - External (Terminate RPC): user or system force-kills the Temporal\n   workflow. LangGraph checkpoint may be incomplete.\n\n Use Cases:\n - Agent stalled — no events for the configured timeout\n - Agent exhausted its tool-call budget (recursion limit)\n - Force-stop stuck agents that don't respond to cancellation\n - Kill agents consuming excessive resources\n\n Terminated vs Cancelled vs Failed:\n - Terminated: Platform stopped it (automated or force-kill)\n - Cancelled: User gracefully stopped it (checkpoint saved)\n - Failed: Something broke unexpectedly (exception, crash)\n\n @since Agent Execution Lifecycle"
+          "description": "Execution was stopped by the platform.\n\n Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected\n error), TERMINATED means the platform intentionally stopped this\n execution — either via automated safety mechanisms or user-initiated\n force-kill.\n\n Terminal state — execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field contains the termination reason\n\n Trigger paths:\n - Internal (activity-level): stall timeout (agent unresponsive),\n   tool-call budget exhausted (GraphRecursionError). LangGraph\n   checkpoint is valid; the user can continue via follow-up message.\n - External (Terminate RPC): user or system force-kills the Temporal\n   workflow. LangGraph checkpoint may be incomplete.\n\n Use Cases:\n - Agent stalled — no events for the configured timeout\n - Agent exhausted its tool-call budget (recursion limit)\n - Force-stop stuck agents that don't respond to cancellation\n - Kill agents consuming excessive resources\n\n Terminated vs Cancelled vs Failed:\n - Terminated: Platform stopped it (automated or force-kill)\n - Cancelled: User gracefully stopped it (checkpoint saved)\n - Failed: Something broke unexpectedly (exception, crash)"
         },
         {
           "name": "EXECUTION_WAITING_FOR_APPROVAL",
           "number": 6,
-          "description": "Blocked on tool approval (HITL Phase 1).\n\n The agent has encountered a tool that requires user approval before execution.\n When in this phase:\n - status.pending_approval contains details about the tool awaiting approval\n - User must call SubmitApproval RPC to continue\n\n This is NOT a terminal state - execution resumes after approval decision:\n - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS\n - SKIP: Tool returns a neutral \"skipped\" message, phase returns to EXECUTION_IN_PROGRESS\n - REJECT: Tool is denied and the user's objection is fed back to the model;\n   the tool does NOT execute and phase returns to EXECUTION_IN_PROGRESS. REJECT\n   denies a single tool call, it does NOT fail the run — the model adapts and\n   the execution continues to EXECUTION_COMPLETED. To stop the whole execution,\n   use Cancel (EXECUTION_CANCELLED) or Terminate (EXECUTION_TERMINATED).\n\n UI should show distinct treatment for this phase (e.g., approval dialog)."
+          "description": "Blocked on tool approval.\n\n The agent has encountered a tool that requires user approval before execution.\n When in this phase:\n - status.pending_approval contains details about the tool awaiting approval\n - User must call SubmitApproval RPC to continue\n\n This is NOT a terminal state - execution resumes after approval decision:\n - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS\n - SKIP: Tool returns a neutral \"skipped\" message, phase returns to EXECUTION_IN_PROGRESS\n - REJECT: Tool is denied and the user's objection is fed back to the model;\n   the tool does NOT execute and phase returns to EXECUTION_IN_PROGRESS. REJECT\n   denies a single tool call, it does NOT fail the run — the model adapts and\n   the execution continues to EXECUTION_COMPLETED. To stop the whole execution,\n   use Cancel (EXECUTION_CANCELLED) or Terminate (EXECUTION_TERMINATED).\n\n UI should show distinct treatment for this phase (e.g., approval dialog)."
         },
         {
           "name": "EXECUTION_PAUSED",
           "number": 7,
-          "description": "Execution was paused by user and can be resumed.\n\n The execution was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED\n\n Resume flow:\n EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Execution continues from where it was paused\n\n @since Gap A3 (Pause/Resume Propagation)"
+          "description": "Execution was paused by user and can be resumed.\n\n The execution was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED\n\n Resume flow:\n EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Execution continues from where it was paused"
         }
       ]
     },
     {
       "name": "BudgetExceededPolicy",
-      "description": "BudgetExceededPolicy defines the runtime behavior when a workflow or per-task\n budget limit is exceeded.\n\n The runtime (T13) evaluates this policy at task boundaries: after each task\n completes, accumulated costs and tokens are compared against the declared\n budget. If a limit is breached, the policy determines what happens next.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "description": "BudgetExceededPolicy defines the runtime behavior when a workflow or per-task\n budget limit is exceeded.\n\n The runtime evaluates this policy at task boundaries: after each task\n completes, accumulated costs and tokens are compared against the declared\n budget. If a limit is breached, the policy determines what happens next.",
       "protoType": "ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy",
       "values": [
         {
@@ -2434,7 +2434,7 @@
         {
           "name": "budget_exceeded_human_review",
           "number": 2,
-          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime (T13). If human_input runtime\n is not available, falls back to terminate with a descriptive error."
+          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime. If human_input runtime\n is not available, falls back to terminate with a descriptive error."
         },
         {
           "name": "budget_exceeded_warn",

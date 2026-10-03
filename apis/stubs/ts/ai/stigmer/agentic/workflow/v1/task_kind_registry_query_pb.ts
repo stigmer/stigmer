@@ -26,8 +26,6 @@ export const file_ai_stigmer_agentic_workflow_v1_task_kind_registry_query: GenFi
  * It does not require authentication — task metadata is public knowledge about
  * the platform's capabilities, not user-specific data.
  *
- * @since T04 (Task Schema Registry)
- *
  * @generated from service ai.stigmer.agentic.workflow.v1.TaskKindRegistryQueryController
  */
 export const TaskKindRegistryQueryController: GenService<{

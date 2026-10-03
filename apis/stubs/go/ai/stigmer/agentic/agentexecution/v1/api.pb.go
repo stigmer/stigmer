@@ -172,8 +172,6 @@ type AgentExecutionStatus struct {
 	// - **Debugging**: Understand why an execution hit context limits
 	// - **Cost optimization**: Identify executions with excessive summarization
 	// - **UX**: Show users their context window health
-	//
-	// @since Phase 3 (Context Summarization Architecture)
 	ContextInfo *ContextInfo `protobuf:"bytes,14,opt,name=context_info,json=contextInfo,proto3" json:"context_info,omitempty"`
 	// Files/directories published by the agent for download.
 	//
@@ -185,8 +183,6 @@ type AgentExecutionStatus struct {
 	// Use the execution download endpoint to refresh expired URLs.
 	//
 	// Ordered by creation time (oldest first).
-	//
-	// @since Artifact Lifecycle (Attachments & Artifacts)
 	Artifacts []*ExecutionArtifact `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
 	// Git write-back outcomes for workspace entries that had changes.
 	//
@@ -198,8 +194,6 @@ type AgentExecutionStatus struct {
 	// Populated during post-execution processing. Each entry tracks the
 	// write-back lifecycle (committed -> pushed -> PR created) and carries
 	// the PR URL for UI display.
-	//
-	// @since Platform-Owned Git Write-Back
 	WorkspaceWriteBacks []*WorkspaceWriteBack `protobuf:"bytes,17,rep,name=workspace_write_backs,json=workspaceWriteBacks,proto3" json:"workspace_write_backs,omitempty"`
 	// Real-time setup progress reported by the runner during EXECUTION_PENDING.
 	// Populated progressively as the worker completes setup steps (sandbox init,

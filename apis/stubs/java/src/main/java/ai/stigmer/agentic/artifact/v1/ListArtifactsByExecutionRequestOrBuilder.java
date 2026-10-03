@@ -61,7 +61,7 @@ public interface ListArtifactsByExecutionRequestOrBuilder extends
    *
    * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_size is deprecated.
-   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=86
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=78
    * @return The pageSize.
    */
   @java.lang.Deprecated int getPageSize();
@@ -73,7 +73,7 @@ public interface ListArtifactsByExecutionRequestOrBuilder extends
    *
    * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=81
    * @return The pageToken.
    */
   @java.lang.Deprecated java.lang.String getPageToken();
@@ -84,7 +84,7 @@ public interface ListArtifactsByExecutionRequestOrBuilder extends
    *
    * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=89
+   *     See ai/stigmer/agentic/artifact/v1/io.proto;l=81
    * @return The bytes for pageToken.
    */
   @java.lang.Deprecated com.google.protobuf.ByteString

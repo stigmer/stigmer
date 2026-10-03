@@ -12,8 +12,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * One of git / cas is set per kind; HYBRID carries both (git-tracked files via
  * the tree ref, ignored/non-git files via the CAS manifest). Snapshots are
  * captured by the runner and are idempotent under Temporal retries.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.SnapshotRef}
@@ -129,7 +127,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Content-addressed manifest reference for ignored/non-git paths; set when
-   * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+   * kind is CAS_MANIFEST or HYBRID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -142,7 +140,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Content-addressed manifest reference for ignored/non-git paths; set when
-   * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+   * kind is CAS_MANIFEST or HYBRID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -155,7 +153,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Content-addressed manifest reference for ignored/non-git paths; set when
-   * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+   * kind is CAS_MANIFEST or HYBRID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -360,8 +358,6 @@ private static final long serialVersionUID = 0L;
    * One of git / cas is set per kind; HYBRID carries both (git-tracked files via
    * the tree ref, ignored/non-git files via the CAS manifest). Snapshots are
    * captured by the runner and are idempotent under Temporal retries.
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.SnapshotRef}
@@ -785,7 +781,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -797,7 +793,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -813,7 +809,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -834,7 +830,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -853,7 +849,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -879,7 +875,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -897,7 +893,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -910,7 +906,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>
@@ -926,7 +922,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Content-addressed manifest reference for ignored/non-git paths; set when
-     * kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+     * kind is CAS_MANIFEST or HYBRID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CasManifestRef cas = 3 [json_name = "cas"];</code>

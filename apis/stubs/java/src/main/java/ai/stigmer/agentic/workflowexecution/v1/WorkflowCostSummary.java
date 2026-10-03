@@ -8,8 +8,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
 /**
  * <pre>
  * WorkflowCostSummary aggregates token and dollar costs.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummary}
@@ -273,8 +271,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowCostSummary aggregates token and dollar costs.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummary}

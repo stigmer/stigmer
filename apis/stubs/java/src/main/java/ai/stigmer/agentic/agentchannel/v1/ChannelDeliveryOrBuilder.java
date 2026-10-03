@@ -114,7 +114,7 @@ public interface ChannelDeliveryOrBuilder extends
 
   /**
    * <pre>
-   * Provider-neutral conversation key (decision 005: the DM thread
+   * Provider-neutral conversation key (the DM thread
    * timestamp or the mention thread_ts, per mapping).
    * </pre>
    *
@@ -124,7 +124,7 @@ public interface ChannelDeliveryOrBuilder extends
   java.lang.String getConversationKey();
   /**
    * <pre>
-   * Provider-neutral conversation key (decision 005: the DM thread
+   * Provider-neutral conversation key (the DM thread
    * timestamp or the mention thread_ts, per mapping).
    * </pre>
    *

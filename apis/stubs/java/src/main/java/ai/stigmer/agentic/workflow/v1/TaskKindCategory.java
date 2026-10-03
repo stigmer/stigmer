@@ -11,8 +11,6 @@ package ai.stigmer.agentic.workflow.v1;
  *
  * Used by the UI to render task palettes with grouped categories, and by
  * documentation generators to organize task reference pages.
- *
- * &#64;since T04 (Task Schema Registry)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.TaskKindCategory}

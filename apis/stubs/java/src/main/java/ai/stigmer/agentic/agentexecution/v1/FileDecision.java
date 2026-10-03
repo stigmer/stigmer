@@ -14,8 +14,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * saw, so "what you approve is what gets applied". expected_digest is an
  * ENFORCEMENT gate, never a correlation key — correlation is by change_set_id
  * (+ file_change_id for FILE scope).
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileDecision}
@@ -484,7 +482,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Which authority authored this decision: a human reviewer (USER; also the
    * reading for UNSPECIFIED pre-origin records) or the approved-command
-   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * auto-keep policy. Audit provenance only — never enforcement, never
    * correlation, never folded into any digest. See FileDecisionOrigin.
    * </pre>
    *
@@ -498,7 +496,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Which authority authored this decision: a human reviewer (USER; also the
    * reading for UNSPECIFIED pre-origin records) or the approved-command
-   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * auto-keep policy. Audit provenance only — never enforcement, never
    * correlation, never folded into any digest. See FileDecisionOrigin.
    * </pre>
    *
@@ -777,8 +775,6 @@ private static final long serialVersionUID = 0L;
    * saw, so "what you approve is what gets applied". expected_digest is an
    * ENFORCEMENT gate, never a correlation key — correlation is by change_set_id
    * (+ file_change_id for FILE scope).
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.FileDecision}
@@ -1919,7 +1915,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Which authority authored this decision: a human reviewer (USER; also the
      * reading for UNSPECIFIED pre-origin records) or the approved-command
-     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * auto-keep policy. Audit provenance only — never enforcement, never
      * correlation, never folded into any digest. See FileDecisionOrigin.
      * </pre>
      *
@@ -1933,7 +1929,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Which authority authored this decision: a human reviewer (USER; also the
      * reading for UNSPECIFIED pre-origin records) or the approved-command
-     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * auto-keep policy. Audit provenance only — never enforcement, never
      * correlation, never folded into any digest. See FileDecisionOrigin.
      * </pre>
      *
@@ -1952,7 +1948,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Which authority authored this decision: a human reviewer (USER; also the
      * reading for UNSPECIFIED pre-origin records) or the approved-command
-     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * auto-keep policy. Audit provenance only — never enforcement, never
      * correlation, never folded into any digest. See FileDecisionOrigin.
      * </pre>
      *
@@ -1968,7 +1964,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Which authority authored this decision: a human reviewer (USER; also the
      * reading for UNSPECIFIED pre-origin records) or the approved-command
-     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * auto-keep policy. Audit provenance only — never enforcement, never
      * correlation, never folded into any digest. See FileDecisionOrigin.
      * </pre>
      *
@@ -1987,7 +1983,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Which authority authored this decision: a human reviewer (USER; also the
      * reading for UNSPECIFIED pre-origin records) or the approved-command
-     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * auto-keep policy. Audit provenance only — never enforcement, never
      * correlation, never folded into any digest. See FileDecisionOrigin.
      * </pre>
      *

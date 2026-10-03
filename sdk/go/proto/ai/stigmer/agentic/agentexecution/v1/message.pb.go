@@ -509,8 +509,6 @@ func (x *ToolCall) GetFileChangeSetId() string {
 // internal spillover of a tool's result, not a user-facing deliverable. The
 // bytes live in artifact storage (R2 in the cloud, locally served in dev);
 // only this reference is persisted in the execution status.
-//
-// @since Durable Executions (tool-output offload)
 type ToolCallOutputRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Storage location of the full output bytes.
@@ -618,8 +616,6 @@ func (x *ToolCallOutputRef) GetTruncatedPreview() string {
 // ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
 // clients how complete the content is so they render whole-file vs hunk-only
 // diffs honestly per harness.
-//
-// @since First-Class Diff Review (#186)
 type FileChange struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workspace-root-relative path for display, e.g. "src/app/main.ts".
@@ -763,8 +759,6 @@ func (x *FileChange) GetRenameFrom() string {
 // storage and referenced via the existing tool-output offload envelope. Exactly
 // one of inline or ref is set; when offloaded, the head preview lives in
 // ref.truncated_preview and the full size in ref.size_bytes.
-//
-// @since First-Class Diff Review (#186)
 type FileContent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The body of this side — inline when small, an offload pointer when large.

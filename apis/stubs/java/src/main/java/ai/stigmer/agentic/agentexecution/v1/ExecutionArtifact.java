@@ -22,8 +22,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  *
  * Directories are automatically archived as ZIP files before storage.
  * The kind field indicates DIRECTORY so clients know to extract after download.
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact}
@@ -796,8 +794,6 @@ private static final long serialVersionUID = 0L;
    *
    * Directories are automatically archived as ZIP files before storage.
    * The kind field indicates DIRECTORY so clients know to extract after download.
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact}

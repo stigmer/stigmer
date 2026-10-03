@@ -63,10 +63,10 @@ func (*GetProviderStandingViewInput) Descriptor() ([]byte, []int) {
 
 // The latest observed standing of one platform LLM provider account — the
 // most recent canary-probe verdict, upserted per provider by the hourly
-// probe (cloud#370). Deliberately a lightweight status snapshot, not an
+// probe. Deliberately a lightweight status snapshot, not an
 // API resource: platform provider accounts have no resource surface, and
 // the console page is a read-only mirror of what the probe already
-// records (design ruling on cloud#370, carried into cloud#447).
+// records.
 type ProviderStandingEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Lowercase provider name ("anthropic", "openai"). Cursor is

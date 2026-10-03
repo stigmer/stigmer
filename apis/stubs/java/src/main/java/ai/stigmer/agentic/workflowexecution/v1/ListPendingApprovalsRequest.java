@@ -9,8 +9,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * ListPendingApprovalsRequest fetches workflow executions that have active
  * human_input tasks awaiting reviewer decisions.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest}
@@ -351,8 +349,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ListPendingApprovalsRequest fetches workflow executions that have active
    * human_input tasks awaiting reviewer decisions.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest}

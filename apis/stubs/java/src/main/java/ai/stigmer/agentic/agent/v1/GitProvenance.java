@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agent.v1;
 /**
  * <pre>
  * GitProvenance tracks the git origin of an agent version.
- *
- * &#64;since Agent Versioning (future)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.GitProvenance}
@@ -403,8 +401,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GitProvenance tracks the git origin of an agent version.
-   *
-   * &#64;since Agent Versioning (future)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.GitProvenance}

@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GitTreeRef}
@@ -323,8 +321,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
-   *
-   * &#64;since File-Change HITL Redesign (Phase 1)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.GitTreeRef}

@@ -3,7 +3,7 @@
   "additionalProperties": false,
   "properties": {
     "approvers": {
-      "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13).",
+      "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern.",
       "items": {
         "type": "string"
       },
@@ -14,7 +14,7 @@
       "type": "object"
     },
     "notification_channels": {
-      "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+      "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern. The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
       "items": {
         "type": "string"
       },

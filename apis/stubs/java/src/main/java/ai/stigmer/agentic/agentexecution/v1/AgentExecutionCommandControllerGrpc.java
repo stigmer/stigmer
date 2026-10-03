@@ -521,7 +521,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Submit a keep/discard decision on a file change set (or a single file).
      * Records a FILE_DECIDED event in the append-only file_review stream;
      * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
      * - Execution must exist and be non-terminal
@@ -719,7 +719,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Submit a keep/discard decision on a file change set (or a single file).
      * Records a FILE_DECIDED event in the append-only file_review stream;
      * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
      * - Execution must exist and be non-terminal
@@ -904,7 +904,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Submit a keep/discard decision on a file change set (or a single file).
      * Records a FILE_DECIDED event in the append-only file_review stream;
      * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
      * - Execution must exist and be non-terminal
@@ -1082,7 +1082,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Submit a keep/discard decision on a file change set (or a single file).
      * Records a FILE_DECIDED event in the append-only file_review stream;
      * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
      * - Execution must exist and be non-terminal
@@ -1265,7 +1265,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Submit a keep/discard decision on a file change set (or a single file).
      * Records a FILE_DECIDED event in the append-only file_review stream;
      * FileChangeSet.decisions is the derived projection. The runner reconciles
-     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
      * - Execution must exist and be non-terminal

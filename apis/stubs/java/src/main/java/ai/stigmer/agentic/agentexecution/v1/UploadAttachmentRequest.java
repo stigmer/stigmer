@@ -44,8 +44,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * {
  * "storage_key": "attachments/01HGXXX.../dataset.csv"
  * }
- *
- * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest}
@@ -453,8 +451,6 @@ private static final long serialVersionUID = 0L;
    * {
    * "storage_key": "attachments/01HGXXX.../dataset.csv"
    * }
-   *
-   * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest}

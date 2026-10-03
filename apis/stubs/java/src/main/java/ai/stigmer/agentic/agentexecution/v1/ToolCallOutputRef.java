@@ -16,8 +16,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * internal spillover of a tool's result, not a user-facing deliverable. The
  * bytes live in artifact storage (R2 in the cloud, locally served in dev);
  * only this reference is persisted in the execution status.
- *
- * &#64;since Durable Executions (tool-output offload)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef}
@@ -526,8 +524,6 @@ private static final long serialVersionUID = 0L;
    * internal spillover of a tool's result, not a user-facing deliverable. The
    * bytes live in artifact storage (R2 in the cloud, locally served in dev);
    * only this reference is persisted in the execution status.
-   *
-   * &#64;since Durable Executions (tool-output offload)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef}

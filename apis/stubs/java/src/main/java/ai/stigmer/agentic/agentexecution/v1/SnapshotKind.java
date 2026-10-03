@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * SnapshotKind is the substrate backing a SnapshotRef.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.SnapshotKind}
@@ -35,7 +33,7 @@ public enum SnapshotKind
   SNAPSHOT_KIND_GIT_TREE_REF(1),
   /**
    * <pre>
-   * A content-addressed manifest (ignored/non-git paths; Phase 3).
+   * A content-addressed manifest (ignored/non-git paths).
    * </pre>
    *
    * <code>SNAPSHOT_KIND_CAS_MANIFEST = 2;</code>
@@ -79,7 +77,7 @@ public enum SnapshotKind
   public static final int SNAPSHOT_KIND_GIT_TREE_REF_VALUE = 1;
   /**
    * <pre>
-   * A content-addressed manifest (ignored/non-git paths; Phase 3).
+   * A content-addressed manifest (ignored/non-git paths).
    * </pre>
    *
    * <code>SNAPSHOT_KIND_CAS_MANIFEST = 2;</code>

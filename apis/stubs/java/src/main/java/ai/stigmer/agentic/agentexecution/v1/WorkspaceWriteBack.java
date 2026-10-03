@@ -19,8 +19,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * pr_created. If any step fails, the phase is set to FAILED with the
  * error message, and processing continues to the next workspace entry.
  * One failed write-back does not block others.
- *
- * &#64;since Platform-Owned Git Write-Back
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack}
@@ -715,8 +713,6 @@ private static final long serialVersionUID = 0L;
    * pr_created. If any step fails, the phase is set to FAILED with the
    * error message, and processing continues to the next workspace entry.
    * One failed write-back does not block others.
-   *
-   * &#64;since Platform-Owned Git Write-Back
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack}

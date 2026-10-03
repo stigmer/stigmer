@@ -122,8 +122,6 @@ public enum ExecutionPhase
    * - Terminated: Platform stopped it (automated or force-kill)
    * - Cancelled: User gracefully stopped it (checkpoint saved)
    * - Failed: Something broke unexpectedly (exception, crash)
-   *
-   * &#64;since Agent Execution Lifecycle
    * </pre>
    *
    * <code>EXECUTION_TERMINATED = 8;</code>
@@ -131,7 +129,7 @@ public enum ExecutionPhase
   EXECUTION_TERMINATED(8),
   /**
    * <pre>
-   * Blocked on tool approval (HITL Phase 1).
+   * Blocked on tool approval.
    *
    * The agent has encountered a tool that requires user approval before execution.
    * When in this phase:
@@ -177,8 +175,6 @@ public enum ExecutionPhase
    * - Activity is re-invoked with same thread_id
    * - LangGraph loads from checkpoint automatically
    * - Execution continues from where it was paused
-   *
-   * &#64;since Gap A3 (Pause/Resume Propagation)
    * </pre>
    *
    * <code>EXECUTION_PAUSED = 7;</code>
@@ -276,8 +272,6 @@ public enum ExecutionPhase
    * - Terminated: Platform stopped it (automated or force-kill)
    * - Cancelled: User gracefully stopped it (checkpoint saved)
    * - Failed: Something broke unexpectedly (exception, crash)
-   *
-   * &#64;since Agent Execution Lifecycle
    * </pre>
    *
    * <code>EXECUTION_TERMINATED = 8;</code>
@@ -285,7 +279,7 @@ public enum ExecutionPhase
   public static final int EXECUTION_TERMINATED_VALUE = 8;
   /**
    * <pre>
-   * Blocked on tool approval (HITL Phase 1).
+   * Blocked on tool approval.
    *
    * The agent has encountered a tool that requires user approval before execution.
    * When in this phase:
@@ -331,8 +325,6 @@ public enum ExecutionPhase
    * - Activity is re-invoked with same thread_id
    * - LangGraph loads from checkpoint automatically
    * - Execution continues from where it was paused
-   *
-   * &#64;since Gap A3 (Pause/Resume Propagation)
    * </pre>
    *
    * <code>EXECUTION_PAUSED = 7;</code>

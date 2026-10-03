@@ -50,7 +50,7 @@ export type ForTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForTas
    * Maximum number of iterations to execute concurrently.
    *
    * 0 (default): sequential execution — iterations run one at a time
-   * in input order. This preserves pre-T17 behavior.
+   * in input order. This preserves the original behavior.
    *
    * 1: effectively sequential (one at a time, but uses the parallel
    * execution path — useful for testing).
@@ -59,8 +59,6 @@ export type ForTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForTas
    * goroutines with a semaphore-based concurrency limiter. Results are
    * always reassembled in original input order regardless of completion
    * order.
-   *
-   * @since T17 (Advanced Agentic Orchestration)
    *
    * @generated from field: int32 max_parallelism = 4;
    */
@@ -78,8 +76,6 @@ export type ForTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForTas
    *
    * Only meaningful when max_parallelism > 0; ignored in sequential mode.
    *
-   * @since T17 (Advanced Agentic Orchestration)
-   *
    * @generated from field: int32 batch_size = 5;
    */
   batchSize: number;
@@ -89,9 +85,7 @@ export type ForTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.ForTas
    *
    * Default: FOR_EACH_FAIL_FAST (stop on first error).
    * Only meaningful when max_parallelism > 0; in sequential mode, any
-   * failure stops the loop regardless of this setting (pre-T17 behavior).
-   *
-   * @since T17 (Advanced Agentic Orchestration)
+   * failure stops the loop regardless of this setting.
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6;
    */
@@ -122,7 +116,7 @@ export enum ForEachErrorPolicy {
   /**
    * Stop on first error, cancel in-flight iterations.
    * This is the default and preserves backward compatibility with the
-   * pre-T17 sequential behavior.
+   * original sequential behavior.
    *
    * @generated from enum value: FOR_EACH_FAIL_FAST = 1;
    */

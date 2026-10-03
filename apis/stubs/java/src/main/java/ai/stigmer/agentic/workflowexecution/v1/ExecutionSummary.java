@@ -10,8 +10,6 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * ExecutionSummary contains aggregated statistics for workflow executions.
  *
  * All counts, costs, and durations are scoped to the requested time window.
- *
- * &#64;since T14 (Dashboard Integration)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary}
@@ -420,8 +418,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Total number of executions in the time window (sum of all phase_counts values).
-   *
-   * &#64;since T12 (Overview Page Redesign)
    * </pre>
    *
    * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -439,8 +435,6 @@ private static final long serialVersionUID = 0L;
    * Success rate as a ratio (0.0 to 1.0).
    * Computed as completed / (completed + failed). Returns -1.0 when no
    * completed or failed executions exist in the time window.
-   *
-   * &#64;since T12 (Overview Page Redesign)
    * </pre>
    *
    * <code>double success_rate = 8 [json_name = "successRate"];</code>
@@ -727,8 +721,6 @@ private static final long serialVersionUID = 0L;
    * ExecutionSummary contains aggregated statistics for workflow executions.
    *
    * All counts, costs, and durations are scoped to the requested time window.
-   *
-   * &#64;since T14 (Dashboard Integration)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary}
@@ -2346,8 +2338,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Total number of executions in the time window (sum of all phase_counts values).
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -2360,8 +2350,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Total number of executions in the time window (sum of all phase_counts values).
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -2378,8 +2366,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Total number of executions in the time window (sum of all phase_counts values).
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -2398,8 +2384,6 @@ private static final long serialVersionUID = 0L;
      * Success rate as a ratio (0.0 to 1.0).
      * Computed as completed / (completed + failed). Returns -1.0 when no
      * completed or failed executions exist in the time window.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>double success_rate = 8 [json_name = "successRate"];</code>
@@ -2414,8 +2398,6 @@ private static final long serialVersionUID = 0L;
      * Success rate as a ratio (0.0 to 1.0).
      * Computed as completed / (completed + failed). Returns -1.0 when no
      * completed or failed executions exist in the time window.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>double success_rate = 8 [json_name = "successRate"];</code>
@@ -2434,8 +2416,6 @@ private static final long serialVersionUID = 0L;
      * Success rate as a ratio (0.0 to 1.0).
      * Computed as completed / (completed + failed). Returns -1.0 when no
      * completed or failed executions exist in the time window.
-     *
-     * &#64;since T12 (Overview Page Redesign)
      * </pre>
      *
      * <code>double success_rate = 8 [json_name = "successRate"];</code>

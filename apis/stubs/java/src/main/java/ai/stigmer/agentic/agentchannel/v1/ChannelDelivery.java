@@ -351,7 +351,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object conversationKey_ = "";
   /**
    * <pre>
-   * Provider-neutral conversation key (decision 005: the DM thread
+   * Provider-neutral conversation key (the DM thread
    * timestamp or the mention thread_ts, per mapping).
    * </pre>
    *
@@ -373,7 +373,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Provider-neutral conversation key (decision 005: the DM thread
+   * Provider-neutral conversation key (the DM thread
    * timestamp or the mention thread_ts, per mapping).
    * </pre>
    *
@@ -2207,7 +2207,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object conversationKey_ = "";
     /**
      * <pre>
-     * Provider-neutral conversation key (decision 005: the DM thread
+     * Provider-neutral conversation key (the DM thread
      * timestamp or the mention thread_ts, per mapping).
      * </pre>
      *
@@ -2228,7 +2228,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider-neutral conversation key (decision 005: the DM thread
+     * Provider-neutral conversation key (the DM thread
      * timestamp or the mention thread_ts, per mapping).
      * </pre>
      *
@@ -2250,7 +2250,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider-neutral conversation key (decision 005: the DM thread
+     * Provider-neutral conversation key (the DM thread
      * timestamp or the mention thread_ts, per mapping).
      * </pre>
      *
@@ -2268,7 +2268,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider-neutral conversation key (decision 005: the DM thread
+     * Provider-neutral conversation key (the DM thread
      * timestamp or the mention thread_ts, per mapping).
      * </pre>
      *
@@ -2283,7 +2283,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider-neutral conversation key (decision 005: the DM thread
+     * Provider-neutral conversation key (the DM thread
      * timestamp or the mention thread_ts, per mapping).
      * </pre>
      *

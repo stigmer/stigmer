@@ -8,8 +8,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 /**
  * <pre>
  * FileDecisionAction is a user's verdict on a change set or file.
- *
- * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileDecisionAction}

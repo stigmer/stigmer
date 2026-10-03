@@ -11,8 +11,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  *
  * Distinct from ToolKind, which classifies the tool: a single tool call may
  * produce several FileChanges of different types (multi-file edits).
- *
- * &#64;since First-Class Diff Review (#186)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.FileChangeType}

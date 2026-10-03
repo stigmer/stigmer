@@ -10,10 +10,9 @@ package ai.stigmer.agentic.agentexecution.v1;
  * ApprovalEventType is the kind of event in the append-only approval-event
  * stream (see ApprovalEvent in approval.proto).
  *
- * The event stream is the future single source of truth for HITL approvals. In
- * Phase 1 of the approval re-architecture it is computed in *shadow* beside the
- * existing message-scan projection (PendingApproval) and compared for parity in
- * CI — it never feeds the UI yet, so introducing it changes no behavior.
+ * The event stream is the single source of truth for HITL approvals:
+ * PendingApproval is projected from it, with the message scan kept as a
+ * cross-check that must agree.
  *
  * The set covers every way an approval request resolves: the three user
  * decisions (APPROVED / REJECTED / SKIPPED) plus RETRACTED — the platform

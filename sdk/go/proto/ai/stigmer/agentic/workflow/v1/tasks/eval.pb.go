@@ -275,8 +275,6 @@ type EvalTaskConfig struct {
 	// When set, the runtime terminates this eval call if its cost exceeds
 	// this limit, independent of the workflow-level budget.
 	// Optional — when 0, no per-task cost limit is enforced.
-	//
-	// @since T05 (Workflow-Level Budget Primitives)
 	MaxCostMicros int64 `protobuf:"varint,10,opt,name=max_cost_micros,json=maxCostMicros,proto3" json:"max_cost_micros,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -118,14 +118,12 @@ export enum ExecutionPhase {
    * - Cancelled: User gracefully stopped it (checkpoint saved)
    * - Failed: Something broke unexpectedly (exception, crash)
    *
-   * @since Agent Execution Lifecycle
-   *
    * @generated from enum value: EXECUTION_TERMINATED = 8;
    */
   EXECUTION_TERMINATED = 8,
 
   /**
-   * Blocked on tool approval (HITL Phase 1).
+   * Blocked on tool approval.
    *
    * The agent has encountered a tool that requires user approval before execution.
    * When in this phase:
@@ -170,8 +168,6 @@ export enum ExecutionPhase {
    * - Activity is re-invoked with same thread_id
    * - LangGraph loads from checkpoint automatically
    * - Execution continues from where it was paused
-   *
-   * @since Gap A3 (Pause/Resume Propagation)
    *
    * @generated from enum value: EXECUTION_PAUSED = 7;
    */
@@ -310,7 +306,7 @@ export enum ToolCallStatus {
   TOOL_CALL_FAILED = 4,
 
   /**
-   * Blocked on user approval (HITL Phase 1).
+   * Blocked on user approval.
    *
    * The tool requires user consent before execution. This status is set when:
    * - Tool has requires_approval=true (from approval policy chain)
@@ -335,7 +331,7 @@ export enum ToolCallStatus {
   TOOL_CALL_WAITING_APPROVAL = 5,
 
   /**
-   * User skipped this tool (HITL Phase 1).
+   * User skipped this tool.
    *
    * Terminal state indicating the user chose not to execute this tool.
    * When a tool is skipped:
@@ -523,7 +519,7 @@ export enum ToolKind {
   /**
    * Propose a durable fact about the user for the platform to remember
    * (the first-party remember tool, injected via the synthesized memory
-   * attachment when the execution's recall snapshot is enabled — DD-005).
+   * attachment when the execution's recall snapshot is enabled).
    * Both harnesses: remember. Rendered as a memory-proposal consent chip
    * (verbatim fact + Confirm/Reject), not the generic tool result view —
    * the record it creates stays "proposed" until the user decides.
@@ -654,8 +650,6 @@ export enum SubAgentStatus {
    * When this status is reached:
    * - completed_at timestamp is set
    * - error field contains: "Cancelled: parent execution was cancelled"
-   *
-   * @since Sub-Agent Execution Streamline
    *
    * @generated from enum value: SUB_AGENT_CANCELLED = 5;
    */
@@ -1093,10 +1087,9 @@ export const ApprovalPolicySourceSchema: GenEnum<ApprovalPolicySource> = /*@__PU
  * ApprovalEventType is the kind of event in the append-only approval-event
  * stream (see ApprovalEvent in approval.proto).
  *
- * The event stream is the future single source of truth for HITL approvals. In
- * Phase 1 of the approval re-architecture it is computed in *shadow* beside the
- * existing message-scan projection (PendingApproval) and compared for parity in
- * CI — it never feeds the UI yet, so introducing it changes no behavior.
+ * The event stream is the single source of truth for HITL approvals:
+ * PendingApproval is projected from it, with the message scan kept as a
+ * cross-check that must agree.
  *
  * The set covers every way an approval request resolves: the three user
  * decisions (APPROVED / REJECTED / SKIPPED) plus RETRACTED — the platform
@@ -1466,8 +1459,6 @@ export const ThinkingModeSchema: GenEnum<ThinkingMode> = /*@__PURE__*/
  * Distinct from ToolKind, which classifies the tool: a single tool call may
  * produce several FileChanges of different types (multi-file edits).
  *
- * @since First-Class Diff Review (#186)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeType
  */
 export enum FileChangeType {
@@ -1517,8 +1508,6 @@ export const FileChangeTypeSchema: GenEnum<FileChangeType> = /*@__PURE__*/
  * FileChangeCaptureLevel describes how complete a FileChange's captured content
  * is, so clients render whole-file vs hunk-only diffs honestly per harness.
  *
- * @since First-Class Diff Review (#186)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
  */
 export enum FileChangeCaptureLevel {
@@ -1555,8 +1544,6 @@ export const FileChangeCaptureLevelSchema: GenEnum<FileChangeCaptureLevel> = /*@
 /**
  * FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its
  * file-review events (never stored-mutable).
- *
- * @since File-Change HITL Redesign (Phase 1)
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
  */
@@ -1621,8 +1608,6 @@ export const FileChangeSetStatusSchema: GenEnum<FileChangeSetStatus> = /*@__PURE
  * MODE_CHANGE / SYMLINK_CHANGE are deferred (adding enum values later is
  * non-breaking).
  *
- * @since File-Change HITL Redesign (Phase 1)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeKind
  */
 export enum FileChangeKind {
@@ -1682,8 +1667,6 @@ export const FileChangeKindSchema: GenEnum<FileChangeKind> = /*@__PURE__*/
  * substrate (git tree ref vs CAS) holds its bytes and whether it is reviewable
  * before CAS lands.
  *
- * @since File-Change HITL Redesign (Phase 1)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
  */
 export enum FileCaptureClass {
@@ -1709,14 +1692,14 @@ export enum FileCaptureClass {
   GIT_UNTRACKED_CAPTURED = 2,
 
   /**
-   * A gitignored file captured via CAS (Phase 3).
+   * A gitignored file captured via CAS.
    *
    * @generated from enum value: FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED = 3;
    */
   GIT_IGNORED_CAPTURED = 3,
 
   /**
-   * A file in a non-git workspace captured via CAS (Phase 3).
+   * A file in a non-git workspace captured via CAS.
    *
    * @generated from enum value: FILE_CAPTURE_CLASS_NON_GIT_CAS = 4;
    */
@@ -1738,8 +1721,6 @@ export const FileCaptureClassSchema: GenEnum<FileCaptureClass> = /*@__PURE__*/
  * enforcement boundary — the backend gate always re-derives the keep-all
  * condition from the per-file changes so a stale or mislabeled rollup can never
  * widen what may be approved.
- *
- * @since File-Change HITL Redesign (Phase 1)
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
  */
@@ -1791,8 +1772,6 @@ export const DiffCompletenessSchema: GenEnum<DiffCompleteness> = /*@__PURE__*/
 /**
  * SnapshotKind is the substrate backing a SnapshotRef.
  *
- * @since File-Change HITL Redesign (Phase 1)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.SnapshotKind
  */
 export enum SnapshotKind {
@@ -1811,7 +1790,7 @@ export enum SnapshotKind {
   GIT_TREE_REF = 1,
 
   /**
-   * A content-addressed manifest (ignored/non-git paths; Phase 3).
+   * A content-addressed manifest (ignored/non-git paths).
    *
    * @generated from enum value: SNAPSHOT_KIND_CAS_MANIFEST = 2;
    */
@@ -1836,8 +1815,6 @@ export const SnapshotKindSchema: GenEnum<SnapshotKind> = /*@__PURE__*/
  *
  * HUNK is intentionally deferred — per-hunk approval is a derived approved
  * snapshot, not a new lease, and ships after file-level is stable.
- *
- * @since File-Change HITL Redesign (Phase 1)
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
  */
@@ -1872,8 +1849,6 @@ export const FileDecisionScopeSchema: GenEnum<FileDecisionScope> = /*@__PURE__*/
 
 /**
  * FileDecisionAction is a user's verdict on a change set or file.
- *
- * @since File-Change HITL Redesign (Phase 1)
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
  */
@@ -1914,13 +1889,11 @@ export const FileDecisionActionSchema: GenEnum<FileDecisionAction> = /*@__PURE__
  * never folded into any digest. UNSPECIFIED (decisions authored before this
  * field existed) reads as a human decision, the only author that existed then.
  *
- * @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin
  */
 export enum FileDecisionOrigin {
   /**
-   * Default value: a pre-DD-28 decision with no recorded origin. Treated as
+   * Default value: a decision recorded before origins existed. Treated as
    * USER by every consumer (the only author that existed before origins).
    *
    * @generated from enum value: FILE_DECISION_ORIGIN_UNSPECIFIED = 0;
@@ -1938,7 +1911,7 @@ export enum FileDecisionOrigin {
    * Platform policy auto-kept the set because every mutation in its turn came
    * from commands the human explicitly authorized (per-command approval,
    * APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified
-   * against server-authored approval records before authoring (DD-28). The
+   * against server-authored approval records before authoring. The
    * decision's actor is "policy", never the user.
    *
    * @generated from enum value: FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND = 2;
@@ -1956,8 +1929,6 @@ export const FileDecisionOriginSchema: GenEnum<FileDecisionOrigin> = /*@__PURE__
  * FileReviewEventType is the kind of event in the append-only file-review
  * stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle
  * bucket; failure fidelity lives on FileReviewFailure.kind.
- *
- * @since File-Change HITL Redesign (Phase 1)
  *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
  */
@@ -2017,8 +1988,6 @@ export const FileReviewEventTypeSchema: GenEnum<FileReviewEventType> = /*@__PURE
  * event (FileReviewFailure.kind). Audit/control metadata for the failure
  * lifecycle.
  *
- * @since File-Change HITL Redesign (Phase 1)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
  */
 export enum FileReviewFailureKind {
@@ -2073,8 +2042,6 @@ export const FileReviewFailureKindSchema: GenEnum<FileReviewFailureKind> = /*@__
  * Binary changes are conveyed by FileContent.is_binary, not here, so there is no
  * BINARY value (it would duplicate a signal the wire already carries).
  *
- * @since File-Change HITL Redesign (Phase 4)
- *
  * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
  */
 export enum FileReviewBlockReason {
@@ -2087,7 +2054,7 @@ export enum FileReviewBlockReason {
   UNSPECIFIED = 0,
 
   /**
-   * A secret-like path (doc 12, DD-E): the bytes were deliberately never
+   * A secret-like path: the bytes were deliberately never
    * captured, so there is nothing to review. Authored content-less by the runner.
    *
    * @generated from enum value: FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD = 1;

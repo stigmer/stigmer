@@ -98,8 +98,6 @@ func (WorkspaceWriteBackPhase) EnumDescriptor() ([]byte, []int) {
 // pr_created. If any step fails, the phase is set to FAILED with the
 // error message, and processing continues to the next workspace entry.
 // One failed write-back does not block others.
-//
-// @since Platform-Owned Git Write-Back
 type WorkspaceWriteBack struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Name of the workspace entry this write-back corresponds to.

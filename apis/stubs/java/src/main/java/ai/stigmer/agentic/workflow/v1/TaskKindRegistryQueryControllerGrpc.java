@@ -13,7 +13,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * The registry is a static catalog derived from proto definitions at build time.
  * It does not require authentication — task metadata is public knowledge about
  * the platform's capabilities, not user-specific data.
- * &#64;since T04 (Task Schema Registry)
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -125,7 +124,6 @@ public final class TaskKindRegistryQueryControllerGrpc {
    * The registry is a static catalog derived from proto definitions at build time.
    * It does not require authentication — task metadata is public knowledge about
    * the platform's capabilities, not user-specific data.
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    */
   public interface AsyncService {
@@ -157,7 +155,6 @@ public final class TaskKindRegistryQueryControllerGrpc {
    * The registry is a static catalog derived from proto definitions at build time.
    * It does not require authentication — task metadata is public knowledge about
    * the platform's capabilities, not user-specific data.
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    */
   public static abstract class TaskKindRegistryQueryControllerImplBase
@@ -180,7 +177,6 @@ public final class TaskKindRegistryQueryControllerGrpc {
    * The registry is a static catalog derived from proto definitions at build time.
    * It does not require authentication — task metadata is public knowledge about
    * the platform's capabilities, not user-specific data.
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    */
   public static final class TaskKindRegistryQueryControllerStub
@@ -224,7 +220,6 @@ public final class TaskKindRegistryQueryControllerGrpc {
    * The registry is a static catalog derived from proto definitions at build time.
    * It does not require authentication — task metadata is public knowledge about
    * the platform's capabilities, not user-specific data.
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    */
   public static final class TaskKindRegistryQueryControllerBlockingV2Stub
@@ -267,7 +262,6 @@ public final class TaskKindRegistryQueryControllerGrpc {
    * The registry is a static catalog derived from proto definitions at build time.
    * It does not require authentication — task metadata is public knowledge about
    * the platform's capabilities, not user-specific data.
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    */
   public static final class TaskKindRegistryQueryControllerBlockingStub
@@ -310,7 +304,6 @@ public final class TaskKindRegistryQueryControllerGrpc {
    * The registry is a static catalog derived from proto definitions at build time.
    * It does not require authentication — task metadata is public knowledge about
    * the platform's capabilities, not user-specific data.
-   * &#64;since T04 (Task Schema Registry)
    * </pre>
    */
   public static final class TaskKindRegistryQueryControllerFutureStub

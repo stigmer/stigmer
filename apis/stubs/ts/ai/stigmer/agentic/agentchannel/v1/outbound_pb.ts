@@ -56,7 +56,7 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.agentchannel.v1
   sessionId: string;
 
   /**
-   * How the send was authorized (DD-002 D9's surface-aware policy).
+   * How the send was authorized (the surface-aware recipient policy).
    *
    * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin origin = 5;
    */

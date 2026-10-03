@@ -137,7 +137,7 @@
       "type": {
         "kind": "int64"
       },
-      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this eval call if its cost exceeds\n this limit, independent of the workflow-level budget.\n Optional — when 0, no per-task cost limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this eval call if its cost exceeds\n this limit, independent of the workflow-level budget.\n Optional — when 0, no per-task cost limit is enforced.",
       "required": false
     }
   ]

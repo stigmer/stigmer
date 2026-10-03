@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * Input for submitting an approval decision (HITL Phase 1).
+ * Input for submitting an approval decision.
  *
  * All required fields must be provided. The handler validates:
  * 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
@@ -442,7 +442,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Input for submitting an approval decision (HITL Phase 1).
+   * Input for submitting an approval decision.
    *
    * All required fields must be provided. The handler validates:
    * 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase

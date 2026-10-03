@@ -217,7 +217,7 @@ type HumanInputTaskConfig struct {
 	//   - "role:content-admin" — any user with the role
 	//
 	// When empty, any authenticated user can respond.
-	// Resolution of these identifiers is a runtime concern (T13).
+	// Resolution of these identifiers is a runtime concern.
 	Approvers []string `protobuf:"bytes,4,rep,name=approvers,proto3" json:"approvers,omitempty"`
 	// Timeout in seconds before the on_timeout policy applies.
 	// Default: 0 (no timeout — the task waits indefinitely).
@@ -239,7 +239,7 @@ type HumanInputTaskConfig struct {
 	//   - "email:ops@acme.com" — email address
 	//   - "teams:#incident-response" — Microsoft Teams channel
 	//
-	// The format and routing of notifications is a runtime concern (T13).
+	// The format and routing of notifications is a runtime concern.
 	// The proto carries the identifiers; the runtime resolves them to
 	// actual notification providers configured in the workflow instance's
 	// environment.

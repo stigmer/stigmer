@@ -9,8 +9,6 @@ package ai.stigmer.agentic.workflow.v1;
  * <pre>
  * TaskFieldType represents the data type of a task configuration field
  * as understood by UI form renderers and schema validators.
- *
- * &#64;since T04 (Task Schema Registry)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.TaskFieldType}

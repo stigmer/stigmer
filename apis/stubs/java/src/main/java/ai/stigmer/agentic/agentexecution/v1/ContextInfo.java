@@ -33,8 +33,6 @@ package ai.stigmer.agentic.agentexecution.v1;
  * - **Alerts**: Notify when utilization consistently exceeds thresholds
  * - **Analytics**: Track summarization frequency across agent fleet
  * - **Debugging**: Understand context-related failures
- *
- * &#64;since Phase 3 (Context Summarization Architecture)
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ContextInfo}
@@ -563,8 +561,6 @@ private static final long serialVersionUID = 0L;
    * - **Alerts**: Notify when utilization consistently exceeds thresholds
    * - **Analytics**: Track summarization frequency across agent fleet
    * - **Debugging**: Understand context-related failures
-   *
-   * &#64;since Phase 3 (Context Summarization Architecture)
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ContextInfo}

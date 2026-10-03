@@ -15,7 +15,7 @@ package ai.stigmer.billing.v1;
  * `sequence`. A report that is redelivered under the same identity records
  * nothing new; two reports for the same execution with distinct call ids
  * are two calls even when they share a sequence number (a proxy that
- * restarted mid-execution numbers from 1 again — stigmer-cloud#659).
+ * restarted mid-execution numbers from 1 again).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.RecordLlmCallUsageInput}
@@ -1336,7 +1336,7 @@ private static final long serialVersionUID = 0L;
    * `sequence`. A report that is redelivered under the same identity records
    * nothing new; two reports for the same execution with distinct call ids
    * are two calls even when they share a sequence number (a proxy that
-   * restarted mid-execution numbers from 1 again — stigmer-cloud#659).
+   * restarted mid-execution numbers from 1 again).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.RecordLlmCallUsageInput}
