@@ -178,7 +178,6 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       logger.info("Docker sandbox restarted", { scope, id, container: name });
       return;
     }
-    /* v8 ignore start -- the docker CLI call, which only the opt-in Docker smoke (docker.test.ts) reaches; buildDockerRun's own test pins what it is handed */
     const run = buildDockerRun(scope, id, env, config);
     await docker(
       run.args,
@@ -186,7 +185,6 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
         ? { ...process.env, ...run.secretEnv }
         : undefined,
     );
-    /* v8 ignore stop */
     logger.info("Docker sandbox provisioned", {
       scope,
       id,
