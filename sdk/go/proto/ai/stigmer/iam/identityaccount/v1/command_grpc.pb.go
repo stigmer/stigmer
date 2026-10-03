@@ -45,7 +45,8 @@ type IdentityAccountCommandControllerClient interface {
 	//
 	// Called by platform backends (via API key) when a new user signs up on their
 	// platform. The platform provides the user's OIDC subject identifier and profile
-	// data. The account must be created before the user can authenticate via the IdP.
+	// data. Under a provider in manual mode the account must exist before the user
+	// can authenticate; a just-in-time or SSO provider creates it on first sign-in.
 	//
 	// Returns the full identity account including its ID, which the platform uses
 	// to grant roles via IAM policies.
@@ -74,6 +75,9 @@ type IdentityAccountCommandControllerClient interface {
 	// Looks up the account by natural key (identity_provider_ref + external_sub).
 	// When delete_account is false, revokes all IAM policies in the organization.
 	// When delete_account is true, revokes policies and deletes the account.
+	// Under a just-in-time or SSO provider, a deleted account is created again at
+	// the user's next sign-in, with any role the provider grants automatically; a
+	// revoked account that is kept is never granted a role at sign-in.
 	//
 	// Called by platform backends during user offboarding.
 	//
@@ -190,7 +194,8 @@ type IdentityAccountCommandControllerServer interface {
 	//
 	// Called by platform backends (via API key) when a new user signs up on their
 	// platform. The platform provides the user's OIDC subject identifier and profile
-	// data. The account must be created before the user can authenticate via the IdP.
+	// data. Under a provider in manual mode the account must exist before the user
+	// can authenticate; a just-in-time or SSO provider creates it on first sign-in.
 	//
 	// Returns the full identity account including its ID, which the platform uses
 	// to grant roles via IAM policies.
@@ -219,6 +224,9 @@ type IdentityAccountCommandControllerServer interface {
 	// Looks up the account by natural key (identity_provider_ref + external_sub).
 	// When delete_account is false, revokes all IAM policies in the organization.
 	// When delete_account is true, revokes policies and deletes the account.
+	// Under a just-in-time or SSO provider, a deleted account is created again at
+	// the user's next sign-in, with any role the provider grants automatically; a
+	// revoked account that is kept is never granted a role at sign-in.
 	//
 	// Called by platform backends during user offboarding.
 	//

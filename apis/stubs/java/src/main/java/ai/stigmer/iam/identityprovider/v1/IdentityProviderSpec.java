@@ -11,9 +11,10 @@ package ai.stigmer.iam.identityprovider.v1;
  *
  * An IdentityProvider represents an external platform's trust relationship with Stigmer.
  * It is owned by an organization (e.g., "planton") and configures how Stigmer validates
- * tokens from that platform. When a user authenticates with a JWT issued by this provider,
- * Stigmer validates the token signature against the configured JWKS and resolves the
- * user's federated identity account by the JWT's sub claim and this provider's reference.
+ * tokens from that platform. Each request presents the provider's own JWT: Stigmer routes
+ * it by its issuer and audience, validates the token signature against the configured
+ * JWKS, and resolves the user's federated identity account by the JWT's sub claim and
+ * this provider's reference.
  *
  * Three provisioning modes control how federated accounts are created:
  *
@@ -204,7 +205,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object jwksUri_ = "";
   /**
    * <pre>
-   * JWKS endpoint URL for validating tokens presented during token exchange.
+   * JWKS endpoint URL for validating the tokens this provider's users present.
    * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
    * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
    * from this URL for JWT signature verification.
@@ -234,7 +235,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * JWKS endpoint URL for validating tokens presented during token exchange.
+   * JWKS endpoint URL for validating the tokens this provider's users present.
    * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
    * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
    * from this URL for JWT signature verification.
@@ -436,8 +437,9 @@ private static final long serialVersionUID = 0L;
   private int rateLimitBudget_ = 0;
   /**
    * <pre>
-   * Shared rate limit budget across all organizations managed via this identity provider.
-   * Expressed as requests per minute. 0 means no limit.
+   * A requests-per-minute budget that no server enforces.
+   * The value is accepted and stored, and it has no effect on sign-in or on
+   * request rates.
    * </pre>
    *
    * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
@@ -453,10 +455,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object userinfoEndpoint_ = "";
   /**
    * <pre>
-   * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-   * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-   * to retrieve the user's email, name, and picture for the federated identity account.
-   * Profile data is updated on every token exchange to keep it fresh.
+   * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+   * When Stigmer auto-provisions a federated account from a token that carries
+   * no email claim, it calls this endpoint with that token (as a Bearer token)
+   * to read the user's email, name, and picture. An account that already
+   * exists is not refreshed from it.
    *
    * This is the standard "userinfo_endpoint" metadata field defined in
    * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -486,10 +489,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-   * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-   * to retrieve the user's email, name, and picture for the federated identity account.
-   * Profile data is updated on every token exchange to keep it fresh.
+   * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+   * When Stigmer auto-provisions a federated account from a token that carries
+   * no email claim, it calls this endpoint with that token (as a Bearer token)
+   * to read the user's email, name, and picture. An account that already
+   * exists is not refreshed from it.
    *
    * This is the standard "userinfo_endpoint" metadata field defined in
    * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -633,9 +637,9 @@ private static final long serialVersionUID = 0L;
    * platforms full control over which of their users can access Stigmer resources.
    *
    * When true, Stigmer creates the IdentityAccount automatically on first
-   * authentication, using profile data from the JWT claims and the
-   * userinfo_endpoint (if configured). Subsequent authentications refresh
-   * the profile data.
+   * authentication, using profile data from the JWT claims, or from the
+   * userinfo_endpoint when the token carries no email claim. Later
+   * authentications do not refresh the profile.
    *
    * This field is independent of is_sso_provider. SSO providers always
    * auto-provision accounts regardless of this setting. For non-SSO identity
@@ -1122,9 +1126,10 @@ private static final long serialVersionUID = 0L;
    *
    * An IdentityProvider represents an external platform's trust relationship with Stigmer.
    * It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-   * tokens from that platform. When a user authenticates with a JWT issued by this provider,
-   * Stigmer validates the token signature against the configured JWKS and resolves the
-   * user's federated identity account by the JWT's sub claim and this provider's reference.
+   * tokens from that platform. Each request presents the provider's own JWT: Stigmer routes
+   * it by its issuer and audience, validates the token signature against the configured
+   * JWKS, and resolves the user's federated identity account by the JWT's sub claim and
+   * this provider's reference.
    *
    * Three provisioning modes control how federated accounts are created:
    *
@@ -1598,7 +1603,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object jwksUri_ = "";
     /**
      * <pre>
-     * JWKS endpoint URL for validating tokens presented during token exchange.
+     * JWKS endpoint URL for validating the tokens this provider's users present.
      * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
      * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
      * from this URL for JWT signature verification.
@@ -1627,7 +1632,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * JWKS endpoint URL for validating tokens presented during token exchange.
+     * JWKS endpoint URL for validating the tokens this provider's users present.
      * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
      * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
      * from this URL for JWT signature verification.
@@ -1657,7 +1662,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * JWKS endpoint URL for validating tokens presented during token exchange.
+     * JWKS endpoint URL for validating the tokens this provider's users present.
      * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
      * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
      * from this URL for JWT signature verification.
@@ -1683,7 +1688,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * JWKS endpoint URL for validating tokens presented during token exchange.
+     * JWKS endpoint URL for validating the tokens this provider's users present.
      * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
      * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
      * from this URL for JWT signature verification.
@@ -1706,7 +1711,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * JWKS endpoint URL for validating tokens presented during token exchange.
+     * JWKS endpoint URL for validating the tokens this provider's users present.
      * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
      * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
      * from this URL for JWT signature verification.
@@ -2133,8 +2138,9 @@ private static final long serialVersionUID = 0L;
     private int rateLimitBudget_ ;
     /**
      * <pre>
-     * Shared rate limit budget across all organizations managed via this identity provider.
-     * Expressed as requests per minute. 0 means no limit.
+     * A requests-per-minute budget that no server enforces.
+     * The value is accepted and stored, and it has no effect on sign-in or on
+     * request rates.
      * </pre>
      *
      * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
@@ -2146,8 +2152,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Shared rate limit budget across all organizations managed via this identity provider.
-     * Expressed as requests per minute. 0 means no limit.
+     * A requests-per-minute budget that no server enforces.
+     * The value is accepted and stored, and it has no effect on sign-in or on
+     * request rates.
      * </pre>
      *
      * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
@@ -2163,8 +2170,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Shared rate limit budget across all organizations managed via this identity provider.
-     * Expressed as requests per minute. 0 means no limit.
+     * A requests-per-minute budget that no server enforces.
+     * The value is accepted and stored, and it has no effect on sign-in or on
+     * request rates.
      * </pre>
      *
      * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
@@ -2180,10 +2188,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object userinfoEndpoint_ = "";
     /**
      * <pre>
-     * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-     * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-     * to retrieve the user's email, name, and picture for the federated identity account.
-     * Profile data is updated on every token exchange to keep it fresh.
+     * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+     * When Stigmer auto-provisions a federated account from a token that carries
+     * no email claim, it calls this endpoint with that token (as a Bearer token)
+     * to read the user's email, name, and picture. An account that already
+     * exists is not refreshed from it.
      *
      * This is the standard "userinfo_endpoint" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -2212,10 +2221,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-     * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-     * to retrieve the user's email, name, and picture for the federated identity account.
-     * Profile data is updated on every token exchange to keep it fresh.
+     * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+     * When Stigmer auto-provisions a federated account from a token that carries
+     * no email claim, it calls this endpoint with that token (as a Bearer token)
+     * to read the user's email, name, and picture. An account that already
+     * exists is not refreshed from it.
      *
      * This is the standard "userinfo_endpoint" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -2245,10 +2255,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-     * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-     * to retrieve the user's email, name, and picture for the federated identity account.
-     * Profile data is updated on every token exchange to keep it fresh.
+     * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+     * When Stigmer auto-provisions a federated account from a token that carries
+     * no email claim, it calls this endpoint with that token (as a Bearer token)
+     * to read the user's email, name, and picture. An account that already
+     * exists is not refreshed from it.
      *
      * This is the standard "userinfo_endpoint" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -2274,10 +2285,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-     * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-     * to retrieve the user's email, name, and picture for the federated identity account.
-     * Profile data is updated on every token exchange to keep it fresh.
+     * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+     * When Stigmer auto-provisions a federated account from a token that carries
+     * no email claim, it calls this endpoint with that token (as a Bearer token)
+     * to read the user's email, name, and picture. An account that already
+     * exists is not refreshed from it.
      *
      * This is the standard "userinfo_endpoint" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -2300,10 +2312,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-     * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-     * to retrieve the user's email, name, and picture for the federated identity account.
-     * Profile data is updated on every token exchange to keep it fresh.
+     * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+     * When Stigmer auto-provisions a federated account from a token that carries
+     * no email claim, it calls this endpoint with that token (as a Bearer token)
+     * to read the user's email, name, and picture. An account that already
+     * exists is not refreshed from it.
      *
      * This is the standard "userinfo_endpoint" metadata field defined in
      * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -2576,9 +2589,9 @@ private static final long serialVersionUID = 0L;
      * platforms full control over which of their users can access Stigmer resources.
      *
      * When true, Stigmer creates the IdentityAccount automatically on first
-     * authentication, using profile data from the JWT claims and the
-     * userinfo_endpoint (if configured). Subsequent authentications refresh
-     * the profile data.
+     * authentication, using profile data from the JWT claims, or from the
+     * userinfo_endpoint when the token carries no email claim. Later
+     * authentications do not refresh the profile.
      *
      * This field is independent of is_sso_provider. SSO providers always
      * auto-provision accounts regardless of this setting. For non-SSO identity
@@ -2608,9 +2621,9 @@ private static final long serialVersionUID = 0L;
      * platforms full control over which of their users can access Stigmer resources.
      *
      * When true, Stigmer creates the IdentityAccount automatically on first
-     * authentication, using profile data from the JWT claims and the
-     * userinfo_endpoint (if configured). Subsequent authentications refresh
-     * the profile data.
+     * authentication, using profile data from the JWT claims, or from the
+     * userinfo_endpoint when the token carries no email claim. Later
+     * authentications do not refresh the profile.
      *
      * This field is independent of is_sso_provider. SSO providers always
      * auto-provision accounts regardless of this setting. For non-SSO identity
@@ -2644,9 +2657,9 @@ private static final long serialVersionUID = 0L;
      * platforms full control over which of their users can access Stigmer resources.
      *
      * When true, Stigmer creates the IdentityAccount automatically on first
-     * authentication, using profile data from the JWT claims and the
-     * userinfo_endpoint (if configured). Subsequent authentications refresh
-     * the profile data.
+     * authentication, using profile data from the JWT claims, or from the
+     * userinfo_endpoint when the token carries no email claim. Later
+     * authentications do not refresh the profile.
      *
      * This field is independent of is_sso_provider. SSO providers always
      * auto-provision accounts regardless of this setting. For non-SSO identity
