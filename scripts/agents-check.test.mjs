@@ -288,7 +288,7 @@ test("single-digit decisions, two-letter codes, waves and lettered slices fail p
       // Near-misses: arithmetic, a score, a curve, encodings and date formats, a
       // method call, a word ending in "wave", and the record-internal ids whose
       // tail must not be found a second time.
-      "Turn N-1, the F-1 score, P-256, UTF-8, ISO-8601, MM-DD-YYYY, text.slice(1), a microwave 3 times, Q-ZZ-9 and DD-ZZ-9.",
+      "Turn N-1, the F-1 score, P-256, ES-256, UTF-8, ISO-8601, MM-DD-YYYY, text.slice(1), a microwave 3 times, Q-ZZ-9 and DD-ZZ-9.",
     ].join("\n"),
   });
   try {

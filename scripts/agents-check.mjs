@@ -177,7 +177,8 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * `DD-998`, `DD-98`, `DD-9` or `DD-ZZ-9` but never a date format such as
  * `DD-MM`, `DD-MMM` or `DD-YYYY`, rulings `Q-ZZ-9` or `Q-ZZ`, findings `F-ZZ-9`
  * or `F-98` but never `F-1` (the F-1 score), any other two-letter code with a
- * number (`ZQ-9`, `ZQ-09b`), the same ids spelled out (`decision 998`,
+ * one- or two-digit number (`ZQ-9`, `ZQ-09b`; a longer tail, as in `ES-256`,
+ * names an algorithm), the same ids spelled out (`decision 998`,
  * `Design doc 98`, `finding 98`, in either case, though a public issue's
  * `#778 finding 3` is not one), a short code's stage `Z9 Stage 7`, a wave
  * `Wave 9` and a lettered slice `Slice Z`): only a holder of the records can
