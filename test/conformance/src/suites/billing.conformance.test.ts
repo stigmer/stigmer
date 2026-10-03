@@ -100,9 +100,9 @@ const COPY = {
 // The engine's OWN validation copy — service code, not a proto option, so a
 // different provenance from COPY above and pinned in its own table: the
 // composition carries the domain exactly, and the console / SDKs surface
-// these strings to the user, which makes the bytes the contract. Sources are
-// the Java
-// `domain/billing` service classes named on each line.
+// these strings to the user, which makes the bytes the contract. Each line
+// names the service method the string was first read from, in the retired
+// Java service; the composition carries the same copy.
 const DOMAIN_COPY = {
   // BillingAccountService.setAutoRechargeConfig (validation runs in this order when enabling)
   autoRechargeNeedsPaymentMethod: "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.",
