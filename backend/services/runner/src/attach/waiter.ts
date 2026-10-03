@@ -39,6 +39,13 @@
  *     the latest pushed environment. Stopping the waiter stops the runner
  *     first and waits for its graceful shutdown.
  *
+ * One limit, the same as a pod's: a restart uses the latest PUSHED token, not
+ * the one the live runner renewed in-process (`sandbox-token-renewal.ts`).
+ * A runner that crashes after that token has expired restarts with a dead
+ * credential and retries at the delay cap until the driver's next push. So a
+ * driver pushes on every wakeup, and again before the pushed token's
+ * lifetime ends while the sandbox runs.
+ *
  * Neither the token nor any secret is ever logged.
  */
 
