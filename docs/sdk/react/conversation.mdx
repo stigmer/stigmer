@@ -55,9 +55,8 @@ function useConversation(agentChannelId: string, conversationKey: string, option
 ### useConversationList
 
 Data hook for the org-wide conversation list: newest activity first
-across every channel the caller can
-view, optionally narrowed to one channel and/or a server-evaluated
-predicate (`ChannelConversationListFilter`).
+across every channel the caller can view, optionally narrowed to one
+channel and/or a server-evaluated predicate (`ChannelConversationListFilter`).
 
 The head page rides `useFetch` and polls; older pages accumulate via
 `UseConversationListReturn.loadMore` and are merged with head
@@ -126,9 +125,8 @@ via `stigmer.agentChannel.getMediaDownloadUrl()`.
 Addressed by `(channel, conversation, item_id)` — never a storage key:
 the server resolves the blob from its own row, so the read path stays
 conversation-viewer-scoped by construction and blob capabilities never
-ride the wire. The URL expires (about an
-hour); minting at view time keeps it always valid, the
-`useArtifactDownloadUrl` rationale.
+ride the wire. The URL expires (about an hour); minting at view time
+keeps it always valid, the `useArtifactDownloadUrl` rationale.
 
 The URL is cached cross-mount by the item's full address, so
 the 5s timeline poll's re-renders and a lightbox opened from a
@@ -175,10 +173,9 @@ return url ? <img src={url} alt={item.media?.filename} /> : null;
 ### useConversationParticipation
 
 Behavior hook for the participation commands on one conversation:
-reply, takeOver,
-handBack, clearAttention — each keyed independently so a slow reply
-and a takeover can be in flight at once with attributable spinners
-and errors.
+reply, takeOver, handBack, clearAttention — each keyed
+independently so a slow reply and a takeover can be in flight at
+once with attributable spinners and errors.
 
 Every command re-throws its failure after recording it in
 `UseConversationParticipationReturn.commandErrors`, so callers
@@ -253,8 +250,8 @@ function useConversationsWantsHumanCount(org: string | null, options?: UseConver
 ### useConversationTimeline
 
 Data hook for one conversation's customer-visible timeline:
-newest-first cursor pages from the
-server, accumulated into one chronological list for a chat view.
+newest-first cursor pages from the server, accumulated into one
+chronological list for a chat view.
 
 The accumulation is an UPSERT by `item_id`, not head/tail
 concatenation, for two verified server behaviors:
@@ -312,9 +309,9 @@ function useConversationTimeline(agentChannelId: string, conversationKey: string
 
 ### ConversationAttentionBanner
 
-The needs-attention banner: the
-escalating agent's reason, verbatim, with the escalation's ANSWER
-beside its false-alarm dismissal.
+The needs-attention banner: the escalating agent's reason,
+verbatim, with the escalation's ANSWER beside its false-alarm
+dismissal.
 
 Take over is the primary action because the human arriving IS the
 answer to an escalation — taking over clears attention structurally
@@ -393,9 +390,9 @@ control that caused them.
 
 ### ConversationListPane
 
-The conversation inbox pane: every
-conversation across the org's channels, newest activity first, with
-control, attention, and awaiting-reply indicators.
+The conversation inbox pane: every conversation across the org's
+channels, newest activity first, with control, attention, and
+awaiting-reply indicators.
 
 Presentational — pair with `useConversationList` and
 `useOrgAgentChannelList`, or compose via `ConversationsWorkbench`.
@@ -556,11 +553,10 @@ one, because "waiting" means different things per holder.
 
 The awaiting-reply indicator for a conversation: `"strong"` when a
 human holds it — the agent will not answer, so a person must — and
-`"muted"` when the
-agent holds it: the agent is about to answer, and if its turn dies the
-conversation stays visibly waiting, which is the built-in recovery
-path. `null` when the customer's last message has been
-answered (or the customer has not written).
+`"muted"` when the agent holds it: the agent is about to answer, and
+if its turn dies the conversation stays visibly waiting, which is the
+built-in recovery path. `null` when the customer's last message has
+been answered (or the customer has not written).
 
 The fact itself is server-derived (`awaiting_reply` rides the wire as
 a boolean precisely so no client re-implements the NULL-and-compare
@@ -733,9 +729,8 @@ The provider's receipt report, in render vocabulary. `null` until the
 provider reports (and always on items with no receipt axis).
 
 A SECOND axis beside [`sendAttemptOf`](#sendattemptof), never collapsed into it:
-"we handed it to WhatsApp" and
-"it reached the phone" are different facts — an item can be
-`delivered` + `receipt_failed`.
+"we handed it to WhatsApp" and "it reached the phone" are different
+facts — an item can be `delivered` + `receipt_failed`.
 
 
 ### receiptOf
@@ -769,10 +764,9 @@ function sendAttemptOf(item: ConversationTimelineItem): SendAttemptKind | null
 ### serviceWindowOf
 
 Estimate whether the provider's free-form reply window is open.
-Provider-aware like
-[`conversationLabelOf`](#conversationlabelof): WhatsApp is the only windowed provider, so
-every other provider answers `null` — no window, no claim — as does a
-conversation whose customer has never written
+Provider-aware like [`conversationLabelOf`](#conversationlabelof): WhatsApp is the only
+windowed provider, so every other provider answers `null` — no window,
+no claim — as does a conversation whose customer has never written
 (`last_customer_message_at` unset; that conversation takes the
 composer's disabled branch instead).
 

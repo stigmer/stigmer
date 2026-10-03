@@ -2878,13 +2878,13 @@ The mapping is derived from three proto signals, in order:
    `is_binary` on its blob ref. `is_binary` is preserved when a large body is
    offloaded from an inline value to a storage ref, so this holds regardless
    of offload. Binary is therefore derived here, never duplicated onto the
-   block reason (doc 15).
+   block reason.
 3. otherwise → `"unavailable"` with the honest cause from
    `blocked_reason`: `SECRET_WITHHELD → "secret"`, `SIZE_ELIDED → "size"`,
-   else `"unknown"`. Before doc 15 this bucket was cause-agnostic (the wire
-   could not prove secret-withheld vs size-dropped); the runner now records
-   the cause at capture time, so the UI can say *why* rather than only *that*
-   the diff is unavailable.
+   else `"unknown"`. Before the runner recorded it, this bucket was
+   cause-agnostic (the wire could not prove secret-withheld vs
+   size-dropped); the runner now records the cause at capture time, so the
+   UI can say *why* rather than only *that* the diff is unavailable.
 
 ```tsx
 function fileReviewability(change: CapturedFileChange): FileReviewability
@@ -2946,7 +2946,7 @@ Each non-reviewable file is labeled honestly by [`fileReviewability`](#filerevie
 `binary` change has no text diff to review; an `unavailable` change is one
 whose diff isn't available at all, with the honest cause the runner recorded
 (a secret path whose bytes were never captured, or a diff dropped to bound the
-status — doc 15). Both are discard-only, and their Keep affordance is disabled
+status). Both are discard-only, and their Keep affordance is disabled
 with the reason associated via `aria-describedby`. Files captured outside
 normal git tracking (gitignored / non-git CAS) carry a small provenance badge
 so the reviewer knows the change is not part of the repo's tracked history.
