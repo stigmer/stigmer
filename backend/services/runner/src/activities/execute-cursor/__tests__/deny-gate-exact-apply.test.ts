@@ -1,5 +1,5 @@
 /**
- * @regression file-hitl-phase0 — pins the no-storage deny-gate exact-apply
+ * @regression file-hitl-gate — pins the no-storage deny-gate exact-apply
  * composition: the exact approved bytes are applied AND excluded from the
  * resource grants, so a further write to that path is re-gated while a
  * co-approved shell still flows.

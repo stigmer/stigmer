@@ -176,17 +176,17 @@ the viewport boundary owns it.
   sidebar — which made every component read oversized.) The docs embed re-states this viewport as its
   pre-handshake aspect pin (`site/src/components/docs/scenar-embed.tsx`);
   gate invariant 9 holds the two in lockstep.
-- **The iframe is the canonical viewport** (M2, iframe-as-screen — landed
-  with `@scenar/embed`'s scale-at-the-boundary mode). The embed host lays
-  the iframe out at the canonical size the bundle reports over the `ready`
-  handshake and scales it as one unit, so CSS media queries resolve against
-  the 1440px canvas and every `lg:`-conditional style renders the same
-  variant a real console window shows. The pre-M2 debt class (embeds
-  rendering narrow variants — `ResourceCards` at 2 columns instead of 3,
-  `max-lg:hidden` computing to `display:none`) is retired. `SessionView`
-  still passes `SessionViewerLayout` `responsive={false}`: the authoring
-  preview (`scenar serve`) is not an embed, and the conversation pane must
-  survive open-panel beats there too.
+- **The iframe is the canonical viewport** (`@scenar/embed`'s
+  scale-at-the-boundary mode). The embed host lays the iframe out at the
+  canonical size the bundle reports over the `ready` handshake and scales
+  it as one unit, so CSS media queries resolve against the 1440px canvas
+  and every `lg:`-conditional style renders the same variant a real
+  console window shows. The earlier failure (embeds rendering narrow
+  variants — `ResourceCards` at 2 columns instead of 3, `max-lg:hidden`
+  computing to `display:none`) is retired. `SessionView` still passes
+  `SessionViewerLayout` `responsive={false}`: the authoring preview
+  (`scenar serve`) is not an embed, and the conversation pane must survive
+  open-panel beats there too.
 - **Author at the console's real metrics.** The sidebar needs no
   transcription — the shells render the SDK's own sidebar components
   so its metrics are the console's by construction. What the

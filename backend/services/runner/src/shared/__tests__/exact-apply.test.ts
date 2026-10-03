@@ -1,5 +1,5 @@
 /**
- * @regression file-hitl-phase0 — pins exact-apply: the runner applies the exact
+ * @regression file-hitl-gate — pins exact-apply: the runner applies the exact
  * approved whole-file bytes, never model-regenerated ones.
  *
  * Unit tests for resume-time exact-apply (the HITL "what you approve is what gets

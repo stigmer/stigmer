@@ -1,5 +1,5 @@
 /**
- * @regression file-hitl-phase0 — pins four rules of the file-edit gate: one
+ * @regression file-hitl-gate — pins four rules of the file-edit gate: one
  * approval gate per turn (a distinct co-pending sibling defers to SKIPPED);
  * decisions bind to the active turn's ledger, never a stale one; the executed
  * capture supersedes the model's proposal; the hook-captured input is
