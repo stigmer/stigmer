@@ -1032,7 +1032,7 @@ describe("extension composition (gate slots + status hooks)", () => {
     expect(refused?.rawMessage).toBe("fake tuple seeding failed");
 
     // The slot sits AFTER Persist: the row was committed before the gate
-    // refused — healed by idempotent retry, never rolled back (V1).
+    // refused — healed by idempotent retry, never rolled back.
     const org = await query.get({ value: REFUSED_ORG_SLUG });
     expect(org.metadata?.slug).toBe(REFUSED_ORG_SLUG);
   });
