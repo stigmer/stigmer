@@ -3,11 +3,10 @@
 // The ISOLATION arms the instrument never had: every prior list test
 // asserts containment ("my rows are present"); these assert the inverse —
 // an OUTSIDER's list/search/activity NEVER contains the owner's rows.
-// Both multi-tenant editions must pass identically: the Java edition
-// through listAuthorizedResourceIds, the composition through the
-// ListReadScope driver over FGA ListObjects — the arms are the shared
-// contract, so the hermetic Java target validates them before the
-// composition is measured against them.
+// Both multi-tenant editions must pass identically: the open-source
+// server through its built-in ListReadScope driver, the hosted
+// composition through the ListReadScope driver over FGA ListObjects —
+// the arms are the shared contract.
 //
 // One lane per consumer family (the seam's per-lane logic is pinned in
 // the OSS unit suites; this is the wire-level tenant-isolation contract):

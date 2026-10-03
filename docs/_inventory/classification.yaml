@@ -1,4 +1,5 @@
-# The docs inventory classification — the docs revamp's source of truth.
+# The docs inventory classification — the source of truth for every page's
+# fate, kind and medium.
 #
 # One entry per hand-authored page, keyed by extension-less docs-relative
 # path (the docs root is "index"). Generated pages are covered by the

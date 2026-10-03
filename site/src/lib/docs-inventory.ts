@@ -3,14 +3,13 @@
  * (docs/_inventory/classification.yaml) against the docs tree and computes
  * the invariants that `make check-docs-inventory` enforces in CI.
  *
- * The classification is the docs revamp's source of truth for three
- * per-page decisions — fate (does the page survive), diataxis (what kind
- * of page it is), and medium (its demonstration centerpiece). Generated
- * pages are covered by directory-prefix cohort rules instead of per-page
- * entries, because their classification belongs to the generator, not the
- * page.
+ * The classification is the source of truth for three per-page
+ * decisions — fate (does the page survive), diataxis (what kind of page
+ * it is), and medium (its demonstration centerpiece). Generated pages are
+ * covered by directory-prefix cohort rules instead of per-page entries,
+ * because their classification belongs to the generator, not the page.
  *
- * Three invariants keep the record honest while the revamp runs:
+ * Three invariants keep the record honest:
  *
  *   1. Completeness — every hand-authored page ON DISK has an entry, and
  *      every generated page is covered by a cohort. The universe is a disk
