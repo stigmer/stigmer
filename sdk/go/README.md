@@ -77,13 +77,13 @@ without a purchase (`AdjustCredits`, `GrantCredits`) requires
 funding identities Stigmer makes credit issuers:
 
 ```go
-balance, err := client.Billing.GetCreditBalance(ctx, orgID)
+balance, err := client.Billing.GetCreditBalance(ctx, org)
 
 entry, err := client.Billing.AdjustCredits(ctx, &stigmer.AdjustCreditsParams{
-    OrgID:          orgID,
+    Org:            org,
     AmountMicros:   25_000_000, // +$25.00
     Reason:         "support credit for an outage",
-    IdempotencyKey: "support-" + orgID + "-2026-09",
+    IdempotencyKey: "support-" + org + "-2026-09",
 })
 ```
 

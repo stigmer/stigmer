@@ -162,7 +162,7 @@ export function toLicenseInput(draft: LicenseDraft): LicenseInput {
       id: draft.customer.id,
       displayName: collapse(draft.customer.displayName),
       contactEmail: draft.customer.contactEmail.trim(),
-      ...(organization ? { organization } : {}),
+      ...(organization ? { org: organization } : {}),
     },
     entitlements: {
       ...(Object.keys(limits).length > 0 && { limits }),

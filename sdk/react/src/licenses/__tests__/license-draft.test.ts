@@ -83,6 +83,12 @@ describe("toLicenseInput", () => {
     notes: "  PO 4411  ",
   };
 
+  it("names the customer's cloud organization as org when the draft has one", () => {
+    const input = toLicenseInput({ ...draft, customer: { ...draft.customer, org: " acme " } });
+    expect(input.customer).toMatchObject({ org: "acme" });
+    expect(input.customer).not.toHaveProperty("organization");
+  });
+
   it("sets expiry to 00:00 UTC after the last covered day and grace after that", () => {
     const input = toLicenseInput(draft);
     expect(input.expiresAt).toEqual(new Date("2027-09-23T00:00:00Z"));

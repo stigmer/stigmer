@@ -562,11 +562,11 @@ together; nothing outside it sees them.
   `GetCreditBalanceInput.org`), `<role>_org` for a second one in the same
   message (`ProviderKey.inherited_from_org`), `orgs` for a list
   (`CursorAccount.orgs`), `org_<attribute>` for something that describes one
-  (`InvitationPreview.org_name`), and `orgs` in a count or an amount
-  (`max_orgs`, `per_extra_org_micros`). RPCs and requests that filter by one say
-  `Org` (`listByOrg`, `getForOrg`). The kind itself, and the messages and RPCs
-  that return it, keep the full word (`Organization`, `findMyOrganizations`), as
-  `Agent` does.
+  (`InvitationPreview.org_name`), `orgs` in a count (`max_orgs`), and `org` in a
+  per-organization amount (`per_extra_org_micros`). RPCs and requests that
+  filter by one say `Org` (`listByOrg`, `getForOrg`). The kind itself, and the
+  messages and RPCs that return it, keep the full word (`Organization`,
+  `findMyOrganizations`), as `Agent` does.
 - **Key fields**: `description`, `logo_url`, `preferences`, `is_personal`, and
   the child-organization fields `management_mode`, `identity_provider_ref` and
   `external_org_id`.
