@@ -41,7 +41,7 @@
           "kind": "string"
         }
       },
-      "description": "JWT issuer values that Stigmer will accept from this platform.\n Each JWT's `iss` claim must match one of these values.\n For Auth0-based integrators, this is the Auth0 tenant URL\n (e.g., \"https://planton-prod.us.auth0.com/\").\n Supports multiple values for key rotation or multi-environment scenarios.\n\n Each issuer must publish an OpenID Connect Discovery document whose\n `issuer` equals it. An issuer and expected_audience together identify\n this provider: no two identity providers share an issuer and audience\n pair, so organizations that federate with the same issuer each register\n an audience of their own. The issuer a deployment signs its own users in\n with cannot be registered.",
+      "description": "JWT issuer values that Stigmer will accept from this platform.\n Each JWT's `iss` claim must match one of these values.\n For Auth0-based integrators, this is the Auth0 tenant URL\n (e.g., \"https://planton-prod.us.auth0.com/\").\n Several values are accepted only when every issuer's discovery document\n names the same jwks_uri (and the same userinfo_endpoint when one is set);\n an environment with its own tenant and keys is its own identity provider.\n\n Each issuer must publish an OpenID Connect Discovery document whose\n `issuer` equals it. An issuer and expected_audience together identify\n this provider: no two identity providers share an issuer and audience\n pair, so organizations that federate with the same issuer each register\n an audience of their own. The issuer a deployment signs its own users in\n with cannot be registered.",
       "required": false,
       "validation": {
         "maxItems": 10

@@ -76,7 +76,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
@@ -97,7 +99,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
@@ -117,7 +121,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
@@ -138,7 +144,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
