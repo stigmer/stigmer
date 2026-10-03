@@ -604,7 +604,7 @@ describe("CursorAccountsConsole", () => {
     // negates into the proto field.
     expect(submitted.onDemandUsageDisabled).toBe(false);
     // The deprecated default flag is never written by current clients —
-    // the shared pool is derived from empty orgs (DD-008).
+    // the shared pool is derived from empty orgs.
     expect(submitted.isPlatformDefault).toBe(false);
   });
 

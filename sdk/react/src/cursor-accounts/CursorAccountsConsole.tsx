@@ -224,7 +224,7 @@ function AccountRow({
           <span className="stg:block stg:truncate stg:font-medium stg:text-foreground">
             {account.displayName}
           </span>
-          {/* Account class is DERIVED from orgs (DD-008): no org
+          {/* Account class is DERIVED from orgs: no org
               assignment means the account belongs to the shared pool. */}
           {account.orgs.length === 0 && (
             <span className="stg:block stg:text-[11px] stg:text-muted-foreground">

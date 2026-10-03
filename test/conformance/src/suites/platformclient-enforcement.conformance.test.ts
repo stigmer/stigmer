@@ -396,7 +396,7 @@ describe.skipIf(!enforcementServed)(
             client.credentials,
             uniqueName("enforcement-user"),
             {
-              orgId: `${context.org}-elsewhere`,
+              org: `${context.org}-elsewhere`,
             },
           ),
         Code.InvalidArgument,
