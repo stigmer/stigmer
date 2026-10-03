@@ -75,7 +75,11 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
 import { accountIdFor } from "../../identityaccount/constants.js";
 import { SINGLE_ORG_KEY } from "../../organization/limit.js";
-import { BLUEPRINT_KINDS, ROLES_RECONCILED_KEY } from "../constants.js";
+import {
+  BLUEPRINT_KINDS,
+  ROLES_RECONCILED_KEY,
+  SERVER_MADE_ORGANIZATION_ROLES_KEY,
+} from "../constants.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import type { IamPolicyGrantPath } from "../grant-path.js";
 import {
@@ -974,6 +978,70 @@ describe("membership rules", () => {
       await rules.ensureRolesForExistingAccounts();
       expect(policies.rows.size).toBe(0);
       expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).not.toBe("");
+    });
+  });
+
+  describe("ensureRolesOnServerMadeOrganization", () => {
+    it("waits while the server has made none: no rows and no marker", async () => {
+      await seedOrg("acme", "system");
+      await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
+
+      await rules.ensureRolesOnServerMadeOrganization();
+
+      expect(policies.rows.size).toBe(0);
+      expect(
+        await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY),
+      ).toBe("");
+    });
+
+    it("gives the people the store held their roles on that organization only, in sign-in order, and the marker", async () => {
+      await seedOrg("stigmer", "system");
+      await seedOrg("acme", "system");
+      await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
+      const stranger = await seedAccount(
+        "auth0|stranger",
+        "stranger@example.com",
+        100,
+      );
+      const operator = await seedAccount("auth0|operator", OPERATOR_EMAIL, 200);
+
+      await rules.ensureRolesOnServerMadeOrganization();
+
+      // An operator email is configured: the stranger, first, is admin
+      // (arm 4), and the operator owns it (arm 3).
+      expect(rolesOf(stranger.metadata!.id)).toEqual(["admin@stigmer"]);
+      expect(rolesOf(operator.metadata!.id)).toEqual(["owner@stigmer"]);
+      expect(actorsOf()).toEqual([
+        stranger.metadata!.id,
+        operator.metadata!.id,
+      ]);
+      expect(
+        await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY),
+      ).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    });
+
+    it("a second call is a no-op: a role revoked after the marker is not handed back", async () => {
+      await seedOrg("stigmer", "system");
+      await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
+      await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
+      await rules.ensureRolesOnServerMadeOrganization();
+      policies.rows.clear();
+
+      await rules.ensureRolesOnServerMadeOrganization();
+
+      expect(policies.rows.size).toBe(0);
+    });
+
+    it("with nobody in the store, writes nothing and still sets the marker: later people get their roles at sign-in", async () => {
+      await seedOrg("stigmer", "system");
+      await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
+
+      await rules.ensureRolesOnServerMadeOrganization();
+
+      expect(policies.rows.size).toBe(0);
+      expect(
+        await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY),
+      ).not.toBe("");
     });
   });
 

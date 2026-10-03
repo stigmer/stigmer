@@ -7,7 +7,9 @@
  *     sign-in the server acting as nobody, so the stamp is "system"), its
  *     id recorded under SINGLE_ORG_KEY, and the holder settled to it;
  *   - a store that holds one organization is left alone and filled with
- *     it, with nothing recorded (the server did not make it);
+ *     it, with nothing recorded (the server did not make it), unless it is
+ *     the server's own `stigmer`, stamped "system", left unrecorded by a
+ *     start that died between the create and the record;
  *   - a store that holds several fills nothing and warns with the count;
  *   - a store whose ledger retired the slug, holding none, warns and fills
  *     nothing, and boots;
@@ -82,7 +84,7 @@ describe("ensureSingleOrganization", () => {
     });
   }
 
-  async function seedOrganization(slug: string): Promise<void> {
+  async function seedOrganization(slug: string, createdBy = ""): Promise<void> {
     await server.store.saveResource(
       ApiResourceKind.organization,
       slug,
@@ -91,6 +93,7 @@ describe("ensureSingleOrganization", () => {
         apiVersion: "tenancy.stigmer.ai/v1",
         kind: "Organization",
         metadata: { id: slug, slug, name: slug },
+        status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
       }),
     );
   }
@@ -170,6 +173,28 @@ describe("ensureSingleOrganization", () => {
     ]);
     expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
     expect(holder.current()).toBe("acme");
+  });
+
+  it('a start that died before recording finds the server\'s own `stigmer`, stamped "system", and records it', async () => {
+    await composeWith();
+    await seedOrganization("stigmer", SYSTEM_OPERATOR_IDENTITY_ID);
+    const { holder, run } = ensure();
+    await run();
+
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe(
+      "stigmer",
+    );
+    expect(holder.current()).toBe("stigmer");
+  });
+
+  it("a person's `stigmer` (a laptop's CLI-made one) is filled but never recorded as the server's", async () => {
+    await composeWith();
+    await seedOrganization("stigmer", "ida_operator");
+    const { holder, run } = ensure();
+    await run();
+
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    expect(holder.current()).toBe("stigmer");
   });
 
   it("a store that holds several fills nothing and warns with the count", async () => {

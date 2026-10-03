@@ -247,6 +247,8 @@ These kinds are owned by a person, not an organization, yet these methods take a
 
 ## Not filled
 
+One of these still needs its organization named. An execution context belongs to no organization, but an outside caller's `create` or `apply` of one is permitted by the organization it will run in, read from `metadata.org` (`AuthorizeCreate`, `src/domain/executioncontext/steps.ts`), so on this server too a request that names none is refused. No shipped client makes that call: the agent and workflow execution machinery creates execution contexts in-process, authorized by the run it serves.
+
 | Method | Fills |
 |---|---|
 | ExecutionContextCommandController.apply | not filled: kind belongs to no organization |

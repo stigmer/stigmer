@@ -6,8 +6,8 @@
  * no unit registered an Authorizer); a composition with its own
  * Authorizer has its own onboarding and never constructs this.
  *
- * Three moments, one set of arms (`roleFor`, the pure function the first
- * and third share):
+ * Four moments, one set of arms (`roleFor`, the pure function the first,
+ * third and fourth share):
  *
  *   onAccountCreated(account, caller) — a person's FIRST provisioning, and
  *   only that (the identity-account domain's AccountCreatedHook, run by
@@ -82,6 +82,20 @@
  *   port carries no enumeration, by its own rule that a port does not
  *   carry a method only one edition calls, and this act is open source's.
  *
+ *   ensureRolesOnServerMadeOrganization() — the same pass, over the one
+ *   organization a one-organization server made itself, ONCE per database
+ *   (SERVER_MADE_ORGANIZATION_ROLES_KEY). The server makes it in `start()`,
+ *   after the reconciliation above has run, so a store upgraded with people
+ *   but no organization (someone signed in and never made one) would hold
+ *   an organization no account holds a role on, with the limit refusing a
+ *   second and the delete refusing this one. The arms run for every person
+ *   account on that organization only, as each account, in creation order,
+ *   and the marker is written after the last; a fault leaves it unset and
+ *   the next boot converges. Nothing while the server has made none: the
+ *   marker waits for the organization. On a fresh install there is nobody
+ *   yet, the marker is written, and every later person gets their role at
+ *   their first sign-in.
+ *
  * What a creator stamp is. The rules read `status.audit.spec_audit
  * .created_by.id` off organizations and blueprints. That stamp is the
  * caller's identityId at the time: a provisioned caller's ACCOUNT id, an
@@ -140,7 +154,11 @@ import { rfc3339Seconds } from "../../store/rfc3339.js";
 import { accountAsCaller } from "../identityaccount/actor.js";
 import type { AccountCreatedHook } from "../identityaccount/provisioning.js";
 import type { PolicyChangeCause } from "./change.js";
-import { BLUEPRINT_KINDS, ROLES_RECONCILED_KEY } from "./constants.js";
+import {
+  BLUEPRINT_KINDS,
+  ROLES_RECONCILED_KEY,
+  SERVER_MADE_ORGANIZATION_ROLES_KEY,
+} from "./constants.js";
 import type { IamPolicyGrantPath } from "./grant-path.js";
 import { organizationRole, relationOf } from "./specs.js";
 import type { IamPolicyStore } from "./store.js";
@@ -159,6 +177,8 @@ export interface MembershipRules extends AccountCreatedHook {
   ensureOperatorOwnership(operator: IdentityAccount): Promise<void>;
   /** The built-in posture's boot reconciliation: the arms for every person provisioned before the rules existed, once per database. */
   ensureRolesForExistingAccounts(): Promise<void>;
+  /** The same arms for every person account on the organization the server made itself (SINGLE_ORG_KEY), once per database. */
+  ensureRolesOnServerMadeOrganization(): Promise<void>;
 }
 
 /**
@@ -469,6 +489,43 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       // idempotent; an organization already held is skipped).
       await store.bootstrapState.set(
         ROLES_RECONCILED_KEY,
+        rfc3339Seconds(new Date()),
+      );
+    },
+
+    async ensureRolesOnServerMadeOrganization(): Promise<void> {
+      if (
+        (await store.bootstrapState.get(SERVER_MADE_ORGANIZATION_ROLES_KEY)) !==
+        ""
+      ) {
+        return;
+      }
+      const serverMade = await store.bootstrapState.get(SINGLE_ORG_KEY);
+      if (serverMade === "") {
+        return;
+      }
+      const organizations = (await scan(ApiResourceKind.organization)).filter(
+        (organization) => organization.id === serverMade,
+      );
+      const accounts = await scanPersonAccounts();
+      if (organizations.length > 0 && accounts.length > 0) {
+        const world: ScannedWorld = {
+          organizations,
+          blueprints: await scanBlueprints(),
+          serverMadeOrganization: serverMade,
+        };
+        for (const account of accounts) {
+          await applyRulesTo(
+            account,
+            accountAsCaller(account),
+            world,
+            "role_reconciliation",
+          );
+        }
+      }
+      // After the last account, as the reconciliation above writes its own.
+      await store.bootstrapState.set(
+        SERVER_MADE_ORGANIZATION_ROLES_KEY,
         rfc3339Seconds(new Date()),
       );
     },

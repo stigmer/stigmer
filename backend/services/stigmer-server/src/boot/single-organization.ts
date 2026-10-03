@@ -59,6 +59,8 @@ import {
   SINGLE_ORG_KEY,
 } from "../domain/organization/limit.js";
 import { ORGANIZATION_SLUG_RESERVED } from "../domain/organization/slug-ledger.js";
+import { SYSTEM_OPERATOR_IDENTITY_ID } from "../pipeline/interceptors/auth.js";
+import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
 
 /** The in-process edge that makes the organization: the whole create chain, as the given caller. */
@@ -86,13 +88,20 @@ export async function ensureSingleOrganization(
     (await store.listResources(ApiResourceKind.organization)).length === 0
       ? await createSingleOrganization(deps)
       : "present";
-  const [only, ...others] = (
+  const [onlyOrganization, ...others] = (
     await store.listResources(ApiResourceKind.organization)
-  ).map((bytes) => fromBinary(OrganizationSchema, bytes).metadata?.id ?? "");
-  if (only !== undefined && only !== "" && others.length === 0) {
-    // Recorded from the store's own answer, and only by the start that made
-    // it: a replica that lost the race leaves the record to the winner.
-    if (outcome === "made") {
+  ).map((bytes) => fromBinary(OrganizationSchema, bytes));
+  const only = onlyOrganization?.metadata?.id ?? "";
+  if (onlyOrganization !== undefined && only !== "" && others.length === 0) {
+    // Recorded from the store's own answer, by the start that made it (a
+    // replica that lost the race leaves the record to the winner), or by a
+    // later start that finds the server's own organization unrecorded: a
+    // start that died between the create and this write.
+    if (
+      outcome === "made" ||
+      ((await store.bootstrapState.get(SINGLE_ORG_KEY)) === "" &&
+        isServerMade(onlyOrganization))
+    ) {
       await store.bootstrapState.set(SINGLE_ORG_KEY, only);
     }
     deps.holder.settle(only);
@@ -113,6 +122,20 @@ export async function ensureSingleOrganization(
       { slug: SINGLE_ORGANIZATION_SLUG },
     );
   }
+}
+
+/**
+ * Whether an organization is the one this step makes under sign-in, made as
+ * nobody: the slug, stamped "system". A person's organization (a laptop's
+ * CLI-made `stigmer`, stamped by its operator) is never recorded as the
+ * server's.
+ */
+function isServerMade(organization: Organization): boolean {
+  return (
+    organization.metadata?.slug === SINGLE_ORGANIZATION_SLUG &&
+    auditOf(OrganizationSchema, organization)?.specAudit?.createdBy?.id ===
+      SYSTEM_OPERATOR_IDENTITY_ID
+  );
 }
 
 /**

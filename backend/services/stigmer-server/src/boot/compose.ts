@@ -2040,6 +2040,12 @@ export async function composeServer(
           holder: singleOrganization,
           logger,
         });
+        // Under sign-in the organization is made as nobody, after the
+        // role reconciliation above ran: the people a store already held
+        // get their roles on it here, once (domain/iampolicy/membership.ts).
+        if (authorizationPosture === "built-in" && membership !== undefined) {
+          await membership.ensureRolesOnServerMadeOrganization();
+        }
       }
       // Temporal boot is NON-fatal end to end (Go server.go): a failed
       // initial connect leaves the engine unavailable and the monitor
