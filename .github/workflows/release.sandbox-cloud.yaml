@@ -237,7 +237,7 @@ jobs:
       - name: Start a Temporal dev server
         run: |
           nohup temporal server start-dev --headless --log-level error >/dev/null 2>&1 &
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             temporal operator cluster health >/dev/null 2>&1 && exit 0
             sleep 1
           done
