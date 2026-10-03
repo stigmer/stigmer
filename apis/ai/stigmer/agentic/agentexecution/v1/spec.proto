@@ -174,7 +174,6 @@ message AgentExecutionSpec {
   // ```
   //
   // References:
-  // - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
   // - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
   bytes callback_token = 6;
 

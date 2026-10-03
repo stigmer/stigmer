@@ -125,6 +125,9 @@ describe("docker driver ensure", () => {
     const made = calls();
     expect(made[0]).toBe(`inspect --format {{.State.Running}} ${name}`);
     expect(made[1]?.startsWith(`run --detach --name ${name} `)).toBe(true);
+    // The token travels by a value-less --env, so it is never on the command line.
+    expect(made[1]).toMatch(/ --env STIGMER_TOKEN( |$)/);
+    expect(made.join("\n")).not.toContain(ENV.stigmerToken);
     expect(made.some((c) => c.startsWith("start "))).toBe(false);
   });
 });

@@ -77,8 +77,6 @@ enum ForEachErrorPolicy {
 //                 uri: "https://api.example.com/process"
 //               body:
 //                 item: ${ $data.item }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
 message ForTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "for_each";
 

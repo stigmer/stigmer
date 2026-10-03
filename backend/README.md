@@ -155,8 +155,6 @@ workflow execution events, bootstrap state) — see
 proto layer); queries by anything other than `(kind, id)` scan — fine for
 local datasets.
 
-**See**: [ADR-007: Generic Resource Storage Strategy](../docs/adr/2026-01/2026-01-19-170000-sqllite-with-json-data.md)
-
 ## Design Principles
 
 ### 1. Cloud parity with local simplicity

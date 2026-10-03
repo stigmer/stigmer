@@ -177,7 +177,7 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * `DD-998`, `DD-98` or `DD-ZZ-9` but never a date format such as `DD-MM`,
  * `DD-MMM` or `DD-YYYY`, rulings `Q-ZZ-9` or `Q-ZZ`, findings `F-ZZ-9` or
  * `F-98` but never `F-1` (the F-1 score), the same ids spelled out
- * (`decision 998`, `design doc 98`, `finding 98`, though a public issue's
+ * (`decision 998`, `Design doc 98`, `finding 98`, in either case, though a public issue's
  * `#778 finding 3` is not one),
  * and a short code's stage `Z9 Stage 7`): only a holder of the records can
  * resolve them, and they stay findings everywhere. A bare `Stage 3` is not one
@@ -196,9 +196,9 @@ export const LEAK_PATTERNS = [
   { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?\b/, privateOk: false },
   { name: "finding id", re: /\bF-(?:[A-Z][A-Z0-9]*-[0-9]+|[0-9]{2,})\b/, privateOk: false },
   { name: "task id", re: /\bT[01][0-9][a-z]?\b(?!:[0-9])/, privateOk: false },
-  { name: "decision number", re: /\b(?:design[- ])?decisions? [0-9]{3}\b/, privateOk: false },
-  { name: "design document number", re: /\bdesign docs? [0-9]{1,3}\b/, privateOk: false },
-  { name: "finding number", re: /(?<!#[0-9]{1,6} )\bfindings? [0-9]+\b/, privateOk: false },
+  { name: "decision number", re: /\b(?:[Dd]esign[- ])?[Dd]ecisions? [0-9]{3}\b/, privateOk: false },
+  { name: "design document number", re: /\b[Dd]esign docs? [0-9]{1,3}\b/, privateOk: false },
+  { name: "finding number", re: /(?<!#[0-9]{1,6} )\b[Ff]indings? [0-9]+\b/, privateOk: false },
   { name: "record stage", re: /\b[A-Z][0-9]{1,2}[ -](?:[Ss]tage|[Ss]lice)[ -]?[0-9]/, privateOk: false },
   {
     name: "private repository reference",

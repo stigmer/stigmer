@@ -95,8 +95,9 @@ export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
 export const READ_HARNESS_STATE_ID_ACTIVITY_NAME = "ReadHarnessStateId";
 
 /**
- * The async activity completion lane (token handshake ADR
- * 20260122-async-agent-execution-temporal-token-handshake).
+ * The async activity completion lane: the runner finishes the execution's
+ * activity by its callback token, Temporal's asynchronous activity
+ * completion.
  */
 export const COMPLETE_EXTERNAL_ACTIVITY_NAME =
   "stigmer/system/complete-external-activity";

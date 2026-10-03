@@ -20,8 +20,6 @@ import "google/protobuf/struct.proto";
 //           Authorization: "Bearer ${TOKEN}"
 //         body:
 //           field1: value
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
 message HttpCallTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "http_call";
 

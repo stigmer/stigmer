@@ -25,8 +25,6 @@ import "buf/validate/validate.proto";
 //               do:
 //                 - task2:
 //                     call: http
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
 message ForkTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "fork";
 

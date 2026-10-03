@@ -107,7 +107,6 @@ message AgentExecutionStatus {
   //
   // References:
   // - WorkflowExecution.spec.callback_token (field 7) - Same pattern
-  // - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
   bytes callback_token = 10;
 
   // Field 12 held `ResolvedExecutionContext resolved_context` — a snapshot of

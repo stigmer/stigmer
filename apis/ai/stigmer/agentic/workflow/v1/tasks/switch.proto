@@ -16,8 +16,6 @@ import "buf/validate/validate.proto";
 //             then: highValueTask
 //         - defaultCase:
 //             then: unknownTask
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
 message SwitchTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "switch_case";
 

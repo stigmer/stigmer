@@ -1,6 +1,6 @@
 /**
  * Secret backing-state cleanup — the OSS half of the Java
- * SecretValueCleanup contract (secrets-vault migration). When a resource
+ * SecretValueCleanup contract. When a resource
  * carrying sealed secrets is deleted — or a secret-bearing key is
  * dropped by an update — the stored ciphertext's EXTERNAL backing state
  * must be destroyed: for enc:v3 values that is a KV entry in the vault;

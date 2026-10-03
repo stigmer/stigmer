@@ -3,9 +3,8 @@
  * query sides). Organization is the top-level tenancy container; all
  * resources scope under it.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character;
- * see the domain row in blueprint/01-domain-inventory.md. Proven by
- * organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
+ * Pipeline per RPC mirrors the Go step chains character-for-character.
+ * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/organization.test.ts.
  *
  * getByExternalOrgId is implemented ONLY when the composed

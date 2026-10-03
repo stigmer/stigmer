@@ -17,8 +17,6 @@ import "google/protobuf/struct.proto";
 //         method: "GetUser"
 //         request:
 //           userId: ${ .userId }
-//
-// Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
 message GrpcCallTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "grpc_call";
 

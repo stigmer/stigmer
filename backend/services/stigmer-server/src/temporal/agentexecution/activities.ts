@@ -225,8 +225,8 @@ export function createAgentExecutionActivities(
     },
 
     /**
-     * Completes an external Temporal activity via its task token (the
-     * async activity completion pattern — token handshake ADR). Empty
+     * Completes an external Temporal activity via its task token
+     * (Temporal's asynchronous activity completion). Empty
      * token is a warn-and-skip (backward compatibility, Go parity).
      */
     [COMPLETE_EXTERNAL_ACTIVITY_NAME]: async (

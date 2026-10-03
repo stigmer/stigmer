@@ -323,7 +323,7 @@ const failurePathActivities = proxyActivities<
   retry: { maximumAttempts: 3, initialInterval: "2s" },
 });
 
-/** The async activity completion lane (token handshake ADR). */
+/** The async activity completion lane (Temporal's asynchronous activity completion). */
 const completionActivities = proxyActivities<
   Pick<ServerActivities, typeof COMPLETE_EXTERNAL_ACTIVITY_NAME>
 >({

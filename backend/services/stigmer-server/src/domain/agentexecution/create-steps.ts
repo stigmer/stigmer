@@ -860,8 +860,8 @@ export function newStartWorkflowStep(deps: {
         throw unavailableError(ENGINE_UNAVAILABLE_MESSAGE);
       }
 
-      // Log callback token presence (async activity completion pattern —
-      // the token handshake ADR); Base64 preview only, never the bytes.
+      // Log callback token presence (Temporal's asynchronous activity
+      // completion); Base64 preview only, never the bytes.
       const callbackToken = execution.spec?.callbackToken ?? new Uint8Array();
       if (callbackToken.length > 0) {
         const tokenBase64 = Buffer.from(callbackToken).toString("base64");

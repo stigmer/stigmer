@@ -220,5 +220,4 @@ The token is logged at creation time (Base64-encoded, first 20 characters only) 
 - Proto definition: `spec.callback_token` in `ai/stigmer/agentic/agentexecution/v1/spec.proto`
 - Status field: `status.callback_token` in `ai/stigmer/agentic/agentexecution/v1/api.proto`
 - Parent workflow notification: `status.parent_workflow_id`, `ChildApprovalNotification` in `api.proto`
-- ADR: `docs/adr/20260122-async-agent-execution-temporal-token-handshake.md`
 - Temporal docs: https://docs.temporal.io/activities#asynchronous-activity-completion
