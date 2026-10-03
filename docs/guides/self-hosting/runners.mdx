@@ -181,8 +181,15 @@ reads from its own process at boot: `STIGMER_SANDBOX_RUNNER_SECRETS` for secrets
 delivers the way it delivers the runner's token, and
 `STIGMER_SANDBOX_RUNNER_ENV` for plain settings (`ANTHROPIC_BASE_URL`). The
 server refuses to boot when a listed variable is unset, when one name is on both
-lists, or when a list names a variable the driver sets itself, such as
-`STIGMER_TOKEN`.
+lists, when the plain list names one of the runner's own secrets, or when a list
+names a variable the driver sets itself, such as `STIGMER_TOKEN`.
+
+The runner keeps its own secrets (the model and Cursor keys, and its Temporal
+and payload-encryption keys) out of every process an Agent starts. Any other
+name on the secrets list, `GITHUB_TOKEN` say, is delivered as a secret but
+reaches the runner as an ordinary variable, without that protection. On the
+`substrate` driver the server refuses such a name at boot, because a Substrate
+sandbox's runner takes only its own secrets.
 
 A provisioner changes how runs are routed. Each Session gets its own queue,
 `session:<id>`, which is `STIGMER_ACTIVITY_ROUTING=session`; and a Session is
