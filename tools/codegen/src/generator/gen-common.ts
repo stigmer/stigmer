@@ -400,9 +400,10 @@ export function hasExplicitPresence(f: FieldSchema): boolean {
     case "bool":
     case "float":
     case "double":
-    case "bytes":
       return true;
     default:
+      // bytes is left out: its emitters have no presence branch yet, and an
+      // optional bytes field keeps the plain path until one is written.
       return false;
   }
 }

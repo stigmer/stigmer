@@ -38,12 +38,15 @@ function field(kind: string, oneofGroup?: string): FieldSchema {
 }
 
 describe("hasExplicitPresence", () => {
-  const scalars = ["string", "int32", "uint32", "int64", "bool", "float", "double", "bytes"];
+  const scalars = ["string", "int32", "uint32", "int64", "bool", "float", "double"];
   for (const kind of scalars) {
     it(`is true for an optional ${kind}`, () => {
       expect(hasExplicitPresence(field(kind, "_f"))).toBe(true);
     });
   }
+  it("is false for an optional bytes, which no emitter carries presence for yet", () => {
+    expect(hasExplicitPresence(field("bytes", "_f"))).toBe(false);
+  });
   it("is false for an optional message, whose presence is its own", () => {
     expect(hasExplicitPresence(field("message", "_f"))).toBe(false);
   });
