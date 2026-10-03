@@ -428,6 +428,20 @@ describe("housekeeping", () => {
     expect(states.filter((s) => s === ActorState.RUNNING)).toHaveLength(1);
     expect(h.substrate.calls).not.toContain("listTemplates ");
   });
+
+  it("a sweep that stops on its last sandbox retires no template", async () => {
+    const h = harness();
+    const only = known(h, "ses_a", ActorState.RUNNING, 6 * MIN);
+    let stopping = false;
+    const pause = h.substrate.pauseActor.bind(h.substrate);
+    h.substrate.pauseActor = async (name) => {
+      stopping = true;
+      return pause(name);
+    };
+    await runSweepPass(h.state, { ...h.options, stopping: () => stopping });
+    expect(h.substrate.actors.get(only)?.state).toBe(ActorState.PAUSED);
+    expect(h.substrate.calls).not.toContain("listTemplates ");
+  });
 });
 
 describe("failures and races", () => {
