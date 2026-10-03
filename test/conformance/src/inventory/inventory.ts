@@ -1,22 +1,23 @@
 // The cloud-capability behavior inventory: schema, parsing and coverage.
-// Domain: conformance inventory (DD-012's "behavior inventory, not a test count").
+// Domain: conformance inventory (a behavior inventory, not a test count).
 //
-// `inventory/cloud-capabilities.yaml` enumerates, from the Java service's
-// code, every behavior of the surfaces the TS composition must reproduce
-// before the X1 cutover — the billing engine, the side-channel proxy and the
-// public REST lane. Each row carries a DISPOSITION saying where that behavior
-// is proven; only `conformance` rows are proven HERE, by a test whose name
-// carries the row id as a `[billing.rpc.foo.bar]` tag. This
-// module turns "every row is covered" from a sentence into a computed fact:
-// parse the YAML against a strict schema, scan the suite sources for tags,
-// and report every row that lacks a test and every tag that names no row.
+// `inventory/cloud-capabilities.yaml` enumerates every behavior of the
+// surfaces only the hosted edition serves — the billing engine, the
+// side-channel proxy and the public REST lane — first read from the retired
+// Java service's code, and held against the composition that replaced it.
+// Each row carries a DISPOSITION saying where that behavior is proven; only
+// `conformance` rows are proven HERE, by a test whose name carries the row id
+// as a `[billing.rpc.foo.bar]` tag. This module turns "every row is covered"
+// from a sentence into a computed fact: parse the YAML against a strict
+// schema, scan the suite sources for tags, and report every row that lacks a
+// test and every tag that names no row.
 //
 // Deliberately static: it reads files, never boots a target. The CI lanes run
 // it before the expensive boot so an uncovered row fails in seconds.
 //
 // The docs inventory (`docs/_inventory/classification.yaml`, checked by
-// `make check-docs-inventory`) is the precedent: a YAML the owner rules on,
-// machine-checked against the tree it describes.
+// `make check-docs-inventory`) is the precedent: a YAML the maintainers decide
+// on, machine-checked against the tree it describes.
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { load } from "js-yaml";
@@ -38,15 +39,15 @@ export type Surface = (typeof SURFACES)[number];
 export const DISPOSITIONS = [
   // A test in this suite observes it against the composition.
   "conformance",
-  // Pure logic (parsing, rating, arithmetic) whose home is an edition-internal
-  // unit table the composition must carry; `java_test` names the Java table.
+  // Pure logic (parsing, rating, arithmetic) whose home is the hosted
+  // edition's own unit tables.
   "unit",
   // Needs a live upstream or a real account (the Cursor relay, real Stripe):
-  // a live-smoke line owned by the implementing entry, on the X1 checklist.
+  // a live smoke the hosted edition owns.
   "smoke",
-  // Proposed for the owner to cut as Java-only debris; awaits the ruling.
+  // Proposed as debris, a behavior not to carry forward; awaits the decision.
   "debris-candidate",
-  // Ruled debris by the owner: recorded so the cut is visible, never tested.
+  // Decided debris: recorded so the cut is visible, never tested.
   "debris",
 ] as const;
 export type Disposition = (typeof DISPOSITIONS)[number];
@@ -56,18 +57,18 @@ export type Disposition = (typeof DISPOSITIONS)[number];
 // A set, not a comparison, so a second proven-here disposition is one entry.
 export const TESTED_DISPOSITIONS: ReadonlySet<Disposition> = new Set(["conformance"]);
 
-// What kind of contract the row states. `carve-out` marks a DD-012
+// What kind of contract the row states. `carve-out` marks a
 // byte-identical carve-out (status codes, console-rendered typed fields, the
 // API-key hash, `*_micros`, Stripe ids / idempotency / signature, Temporal
 // vocabulary, the public lane's site contract) — the suite pins bytes there
 // and behavior elsewhere.
 export const ROW_CLASSES = ["behavior", "carve-out", "adversarial"] as const;
 
-// Whether the hermetic Java launcher can show the behavior. The launcher
-// boots Java in production security mode (entry 20260907.02), so every
+// Whether the behavior is observable from outside on the environment the
+// cloud suites run against (`launcher`; src/harness/cloud-env.ts). Every
 // edge-authentication row is `launcher` like any other observable row; there
-// is deliberately no value for "the launcher cannot observe this edge" — a
-// row that needed one would be a launcher defect to fix, not a state to
+// is deliberately no value for "the environment cannot observe this edge" — a
+// row that needed one would be an environment defect to fix, not a state to
 // record.
 export const OBSERVABILITY = ["launcher", "composition-only", "none"] as const;
 
@@ -79,8 +80,6 @@ const rowSchema = z
     surface: z.enum(SURFACES),
     lane: z.string().min(1),
     behavior: z.string().min(1),
-    java_source: z.string().min(1),
-    java_test: z.string().min(1),
     class: z.enum(ROW_CLASSES),
     disposition: z.enum(DISPOSITIONS),
     observability: z.enum(OBSERVABILITY),
@@ -96,25 +95,19 @@ const rowSchema = z
 
 export type InventoryRow = z.infer<typeof rowSchema>;
 
-// The metric inventory DD-012 asks of C5 and C6 at their plan gates (checklist
-// line 80): every Java `stigmer.*` metric in their domain is a row here,
-// `ported` (the composition emits the byte-exact name) or `dropped` (its
-// mechanism retires with Java — the note says which). `alerts` names the
-// SigNoz alert files that read the series, so "re-pointed before X1" is a
-// list, not a sentence. One inventory mechanism for the program, not two.
+// The metric inventory: every `stigmer.*` metric the retired Java service
+// emitted in these domains is a row here, `ported` (the composition emits the
+// byte-exact name) or `dropped` (its mechanism retired with Java — the note
+// says which). `alerts` names the hosted edition's alert rules that read the
+// series.
 //
-// `platform` (2026-09-09, the alert-roster reconciliation, stigmer-cloud
-// entry 20260909.01) is the surface for Java metrics that belong to no lane
-// — the HTTP edge filter, the secret-cleanup counter — whose alert rules
-// read them all the same. stigmer-cloud's `check-x1-parity-dispositions.sh`
-// reads this list at the submodule pin and refuses an alert re-point that
-// cites a row which is not `ported` or does not name the alert back, so a
-// metric the roster watches needs a row here whatever its lane.
+// `platform` is the surface for metrics that belong to no lane — the HTTP
+// edge, the gRPC edge, the secret-cleanup counter — whose alert rules read
+// them all the same.
 const metricRowSchema = z
   .object({
     name: z.string().regex(/^stigmer\.[a-z0-9_.]+$/, "a Java stigmer.* metric name, byte-exact"),
     surface: z.enum(["billing", "proxy", "platform"]),
-    java_source: z.string().min(1),
     disposition: z.enum(["ported", "dropped"]),
     alerts: z.array(z.string().min(1)).optional(),
     note: z.string().optional(),
