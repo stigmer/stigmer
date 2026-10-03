@@ -12,8 +12,8 @@
  *   - RUNNING → pushed only; CRASHED → reverted first; DELETING → refused;
  *   - ABORTED → re-read, whether contention or a crash; no free worker →
  *     thrown at once;
- *   - a rotated secret restarts a runner just woken from PAUSED and leaves
- *     a running one alone;
+ *   - a pause from before this server process is started fresh, never
+ *     thawed; a running runner refusing rotated secrets keeps running;
  *   - a waiter refusal throws with its code; a mismatched queue throws
  *     before any call;
  *   - one actor's operations never interleave;
@@ -436,42 +436,31 @@ describe("failures", () => {
   });
 });
 
-describe("a rotated runner secret", () => {
-  const rotated = () => {
-    let first = true;
-    return () => {
-      if (first) {
-        first = false;
-        return {
-          status: 409,
-          body: { code: "secrets_changed", error: "ANTHROPIC_API_KEY differs" },
-        };
-      }
-      return { status: 200, body: { started: true } };
-    };
-  };
-
-  it("just woken from PAUSED: suspended and started fresh, then pushed again", async () => {
-    const h = harness(rotated());
+describe("a pause from before this server process", () => {
+  it("is started fresh, never thawed, so a runner with old secrets cannot take the turn", async () => {
+    const h = harness();
     h.substrate.put({
       name: ACTOR,
       state: ActorState.PAUSED,
       template: "stigmer-runner-old",
+      updateTime: new Date(h.now() - 1_000),
     });
     await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
-    expect(h.router.pushes).toHaveLength(2);
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
-      `resumeActor ${ACTOR}`,
       `suspendActor ${ACTOR}`,
       `getActor ${ACTOR}`,
       `ensureEgressPolicy ${ACTOR}`,
       `resumeActor ${ACTOR}`,
     ]);
+    expect(h.router.pushes).toHaveLength(1);
   });
 
-  it("RUNNING: left running; the next fresh start takes the new secrets", async () => {
-    const h = harness(rotated());
+  it("a running runner refusing rotated secrets keeps running, and the turn goes on", async () => {
+    const h = harness(() => ({
+      status: 409,
+      body: { code: "secrets_changed", error: "ANTHROPIC_API_KEY differs" },
+    }));
     h.substrate.put({
       name: ACTOR,
       state: ActorState.RUNNING,
@@ -479,7 +468,7 @@ describe("a rotated runner secret", () => {
     });
     await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
     expect(h.router.pushes).toHaveLength(1);
-    expect(h.substrate.calls).not.toContain(`suspendActor ${ACTOR}`);
+    expect(h.substrate.calls).toEqual([`getActor ${ACTOR}`]);
   });
 });
 

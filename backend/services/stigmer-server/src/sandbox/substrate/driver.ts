@@ -24,8 +24,9 @@
  *     files); write its egress policy, which is idempotent and repairs an
  *     actor whose creator died before writing it (an actor without one
  *     reaches nothing); resume; push.
- *   - PAUSED for longer than MAX_IN_PLACE_PAUSE_SECONDS: suspend first and
- *     start fresh (limits.ts says why). Otherwise resume and push.
+ *   - PAUSED by this server process within MAX_IN_PLACE_PAUSE_SECONDS: resume
+ *     in place and push. Paused for longer (limits.ts says why), or before
+ *     this process started: suspend first and start fresh (below).
  *   - RUNNING: push; the waiter keeps its runner and takes the fresh token
  *     for a restart.
  *   - CRASHED: revert, then from the state that leaves.
@@ -40,11 +41,16 @@
  *
  * A rotated secret: the waiter keeps its first push's secrets for the
  * runner's life and refuses a push that changes them (`secrets_changed`),
- * because a process inside the sandbox can reach the waiter too. When the
- * driver has just woken the actor from PAUSED no turn can be in flight on
- * it, so it suspends the actor and starts it fresh with the new secrets;
- * a RUNNING actor keeps its runner and takes the new secrets at its next
- * fresh start, after its next idle suspend.
+ * because a process inside the sandbox can reach the waiter too. The
+ * driver's secrets change only when this server restarts with new
+ * settings, so a pause older than this process may hold a runner with old
+ * secrets, and it is started fresh rather than thawed: a thawed runner
+ * polls its queue at once and would take the very turn that woke it, which
+ * a restart would then kill mid-flight (measured on kind, 2026-10-03: the
+ * turn's activity went to the thawed runner and waited out its 30-second
+ * StartToClose timeout before a retry). A RUNNING actor keeps its runner,
+ * logs the refusal, and takes the new secrets at its next fresh start,
+ * after its next idle suspend.
  *
  * Every ensure, delete and lifecycle operation on one actor runs through
  * one in-process queue, so a turn and the idle sweep (sweep.ts) never
@@ -213,6 +219,8 @@ export function newSubstrateSandboxDriverOverGateway(
   validateSubstrateDriverConfig(config);
   const now = options.now ?? Date.now;
   const wait = options.sleep ?? delay;
+  /** Pauses from before this instant may hold another configuration's secrets (module header). */
+  const processStartedAt = now();
 
   const temporalSecretEnv: Record<string, string> = {};
   const temporalPlainEnv: Record<string, string> = {};
@@ -360,7 +368,7 @@ export function newSubstrateSandboxDriverOverGateway(
               await moveToCurrent(actor);
               await gateway.ensureEgressPolicy(name, egressRules);
               await gateway.resumeActor(name);
-              await attach(scope, name, env, false);
+              await attach(scope, name, env);
               logger.info("Substrate sandbox ensured", {
                 scope,
                 id,
@@ -371,19 +379,17 @@ export function newSubstrateSandboxDriverOverGateway(
               return;
             }
             case ActorState.PAUSED: {
-              const pausedMs =
-                actor.updateTime === undefined
-                  ? 0
-                  : now() - actor.updateTime.getTime();
-              if (pausedMs > MAX_IN_PLACE_PAUSE_SECONDS * 1000) {
+              // A PAUSED actor's update time is the moment it paused.
+              const pausedAt = actor.updateTime?.getTime() ?? 0;
+              if (
+                pausedAt < processStartedAt ||
+                now() - pausedAt > MAX_IN_PLACE_PAUSE_SECONDS * 1000
+              ) {
                 await gateway.suspendActor(name);
                 continue;
               }
               await gateway.resumeActor(name);
-              if ((await attach(scope, name, env, true)) === "restart") {
-                await gateway.suspendActor(name);
-                continue;
-              }
+              await attach(scope, name, env);
               logger.info("Substrate sandbox ensured", {
                 scope,
                 id,
@@ -394,7 +400,7 @@ export function newSubstrateSandboxDriverOverGateway(
               return;
             }
             case ActorState.RUNNING: {
-              await attach(scope, name, env, false);
+              await attach(scope, name, env);
               logger.info("Substrate sandbox ensured", {
                 scope,
                 id,
@@ -437,31 +443,20 @@ export function newSubstrateSandboxDriverOverGateway(
     });
   }
 
-  /**
-   * Pushes the attachment; "restart" when a rotated secret should start a
-   * fresh runner now (module header).
-   */
+  /** Pushes the attachment; a rotated secret on a running runner is logged (module header). */
   async function attach(
     scope: SandboxScope,
     name: string,
     env: SandboxEnvironment,
-    wokeFromPause: boolean,
-  ): Promise<"done" | "restart"> {
+  ): Promise<void> {
     const result = await push(name, env);
-    if (result.ok) return "done";
+    if (result.ok) return;
     if (result.code === "secrets_changed") {
-      if (scope === "session" && wokeFromPause) {
-        logger.info(
-          "Runner secrets rotated; starting the sandbox's runner fresh",
-          { actor: name },
-        );
-        return "restart";
-      }
       logger.warn(
         "Runner secrets rotated; the sandbox keeps its running runner and takes them at its next fresh start",
         { scope, actor: name },
       );
-      return "done";
+      return;
     }
     throw new Error(
       `sandbox ${name} refused its attach push (${result.status} ${result.code}): ${result.error}`,
