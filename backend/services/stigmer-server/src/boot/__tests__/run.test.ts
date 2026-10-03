@@ -1,0 +1,137 @@
+/**
+ * Pins the process body both entries share (boot/run.ts), driven in-process
+ * through a recording ProcessHost:
+ *
+ *   - it composes the given units, starts, and prints the ready line with
+ *     the bound ports; the open-source unit's server holds its one
+ *     organization by then;
+ *   - SIGTERM runs the composed shutdown and exits 0, and a second signal
+ *     does nothing more;
+ *   - a failed start is logged and exits 1, with no ready line;
+ *   - a config failure rejects before any logger exists, for the entry to
+ *     report on stderr.
+ *
+ * The shipped entry itself (main.ts) is proven on the built artifact by
+ * scripts/verify-boot.mjs.
+ */
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { createClient } from "@connectrpc/connect";
+import { createGrpcTransport } from "@connectrpc/connect-node";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+
+import { runServer } from "../run.js";
+import type { ProcessHost } from "../run.js";
+import { openSourceEdition } from "../../editions/open-source.js";
+import { resetOperatorIdentityForTests } from "../../pipeline/steps/defaults.js";
+
+interface RecordingHost extends ProcessHost {
+  readonly signals: Map<string, () => void>;
+  readonly exits: number[];
+  readonly stdout: string[];
+  /** Resolves with the first exit code. */
+  readonly exited: Promise<number>;
+}
+
+function recordingHost(): RecordingHost {
+  const signals = new Map<string, () => void>();
+  const exits: number[] = [];
+  const stdout: string[] = [];
+  let resolveExit: (code: number) => void = () => {};
+  const exited = new Promise<number>((resolve) => {
+    resolveExit = resolve;
+  });
+  return {
+    signals,
+    exits,
+    stdout,
+    exited,
+    onSignal: (signal, handler) => {
+      signals.set(signal, handler);
+    },
+    exit: (code) => {
+      exits.push(code);
+      resolveExit(code);
+    },
+    writeStdout: (text) => {
+      stdout.push(text);
+    },
+  };
+}
+
+describe("runServer", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "run-server-test-"));
+    vi.stubEnv("STIGMER_MODEL_REGISTRY_REFRESH", "off");
+    vi.stubEnv("TEMPORAL_HOST_PORT", "127.0.0.1:1");
+    vi.stubEnv("DB_PATH", path.join(dir, "stigmer.db"));
+    vi.stubEnv("STORAGE_PATH", path.join(dir, "storage"));
+    vi.stubEnv("ARTIFACT_LOCAL_BASE_PATH", path.join(dir, "artifacts"));
+    vi.stubEnv("GRPC_PORT", "0");
+    vi.stubEnv("STIGMER_READY_LINE", "stdout");
+    vi.stubEnv("LOG_LEVEL", "error");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetOperatorIdentityForTests();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("starts the composed units, prints the ready line, and exits 0 on SIGTERM once", async () => {
+    const host = recordingHost();
+    await runServer({ extensions: [openSourceEdition], host });
+
+    expect(host.stdout).toHaveLength(1);
+    const ready = JSON.parse(host.stdout[0] ?? "") as Record<
+      string,
+      { grpc: number }
+    >;
+    const grpcPort = Object.values(ready)[0]?.grpc ?? 0;
+    expect(grpcPort).toBeGreaterThan(0);
+
+    const organizations = createClient(
+      OrganizationQueryController,
+      createGrpcTransport({ baseUrl: `http://127.0.0.1:${grpcPort}` }),
+    );
+    expect(
+      (await organizations.findMyOrganizations({})).entries.map(
+        (org) => org.metadata?.id,
+      ),
+    ).toEqual(["stigmer"]);
+
+    host.signals.get("SIGTERM")?.();
+    host.signals.get("SIGINT")?.();
+    expect(await host.exited).toBe(0);
+    expect(host.exits).toEqual([0]);
+  });
+
+  it("a failed start is logged and exits 1, with no ready line", async () => {
+    const host = recordingHost();
+    await runServer({
+      extensions: [
+        {
+          name: "broken",
+          start: () => Promise.reject(new Error("the unit cannot start")),
+        },
+      ],
+      host,
+    });
+
+    expect(host.exits).toEqual([1]);
+    expect(host.stdout).toEqual([]);
+  });
+
+  it("a config failure rejects for the entry to report", async () => {
+    vi.stubEnv("GRPC_PORT", "not-a-port");
+    const host = recordingHost();
+    await expect(runServer({ extensions: [], host })).rejects.toThrow();
+    expect(host.exits).toEqual([]);
+  });
+});

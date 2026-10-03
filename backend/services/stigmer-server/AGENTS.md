@@ -22,6 +22,8 @@ advances. This guide is an index; the files it names are the truth.
   discipline.
 - `src/query/README.md`: the two read-side services that are not domains.
 - `docs/authorization-coverage.md`: every entry point's authorization posture.
+- `docs/single-organization.md`: which field a server that holds one
+  organization fills, per method.
 - `fga/model/README.md`: the authorization model and its compiled file's
   contract.
 - `test/conformance/README.md`: the cross-edition suite this server is held to.

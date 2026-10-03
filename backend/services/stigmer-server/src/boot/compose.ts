@@ -169,7 +169,18 @@ import { kindEnumName } from "../pipeline/apiresource-meta.js";
 import { quoteJoin } from "../domain/mcpserver/enabledtools/enabledtools.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import { KeyedSerializer } from "../pipeline/keyed-serializer.js";
-import { createVerifierChainInterceptor } from "../pipeline/interceptors/auth.js";
+import {
+  SYSTEM_OPERATOR_IDENTITY_ID,
+  createVerifierChainInterceptor,
+  serverActingFor,
+} from "../pipeline/interceptors/auth.js";
+import type { CallerIdentity } from "../extensions/identity.js";
+import {
+  createSingleOrganizationInterceptor,
+  newSingleOrganizationHolder,
+} from "../pipeline/interceptors/single-organization.js";
+import { accountAsCaller } from "../domain/identityaccount/actor.js";
+import { ensureSingleOrganization } from "./single-organization.js";
 import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
 import { createRequestMetricsInterceptor } from "../pipeline/interceptors/request-metrics.js";
@@ -372,9 +383,10 @@ export async function composeServer(
   // select Postgres (config.ts documents the contract). Either driver
   // opens with the list indexes (list-indexes.ts) and reconciles them
   // before it returns. A failure here is a loud boot throw, never a
-  // degraded server. The operator identity (#400) is installed by main.ts
-  // — once per PROCESS, before any writer exists — not here: composeServer
-  // is re-entrant for tests, the identity seam deliberately is not.
+  // degraded server. The operator identity (#400) is installed by the
+  // process body (boot/run.ts) — once per PROCESS, before any writer
+  // exists — not here: composeServer is re-entrant for tests, the
+  // identity seam deliberately is not.
   let store: Store;
   const storeOptions = { listIndexes: LIST_INDEXES };
   if (config.databaseUrl !== "") {
@@ -515,6 +527,12 @@ export async function composeServer(
   // arm (which also applies under an authentication posture — the
   // operator who signs in through OIDC is admin of what the laptop has).
   const operatorIdentity = operatorIdentitySnapshot();
+  // A composition that declares one organization fills it into every
+  // serving request that names none, from the holder start() settles
+  // (pipeline/interceptors/single-organization.ts); getServerInfo reports
+  // the same holder. Undefined everywhere else: no fill, `single_org` false.
+  const singleOrganization =
+    extensions.orgLimit === 1 ? newSingleOrganizationHolder() : undefined;
   const membership = builtInAuthorization
     ? newMembershipRules({
         grantPath: iamPolicyGrantPath,
@@ -674,6 +692,14 @@ export async function composeServer(
   // resource is new here; it earns its place because it is the truth of
   // that posture, and a failure is a loud boot throw like the storage
   // stage's own.
+  // A composition that declares one organization makes it in start() as
+  // the caller named here (boot/single-organization.ts): the operator's
+  // account under trusted-local, so the role lifecycle makes them its
+  // owner; under sign-in the server acting as nobody, so the membership
+  // rules decide its owner from the recorded fact, never a stamp.
+  let singleOrganizationCaller: CallerIdentity = serverActingFor(
+    SYSTEM_OPERATOR_IDENTITY_ID,
+  );
   if (!requireAuthentication) {
     const operator = await ensureOperatorAccount(
       { accounts: identityAccounts, createAccount: createIdentityAccount },
@@ -682,6 +708,7 @@ export async function composeServer(
     logger.info("trusted-local operator account ensured", {
       accountId: operator.metadata?.id ?? "",
     });
+    singleOrganizationCaller = accountAsCaller(operator);
     // The laptop's one principal owns what the laptop has:
     // `owner` on every organization with no owner row, create-if-absent,
     // so the Members page tells the truth from the first boot after roles
@@ -1369,6 +1396,8 @@ export async function composeServer(
       // composed drivers, or open source's under the built-in posture.
       authorizationLifecycle: roleLifecycle,
       organizationDirectory,
+      // The composition's organization count (ServerExtension.orgLimit).
+      orgLimit: extensions.orgLimit,
     });
     // ApiKey is the first domain born AFTER the Go port (the apikey
     // contract is wholly OSS), so it has no Go
@@ -1742,6 +1771,7 @@ export async function composeServer(
       edition: extensions.edition,
       version: options.version ?? SERVER_VERSION,
       authenticationRequired: requireAuthentication,
+      singleOrganization,
       // The built-in `absent` answer installs here, at the consumer, when
       // no unit registered a license-status provider: open source and the
       // cloud hold no key, and only an Enterprise unit ever has one.
@@ -1915,6 +1945,12 @@ export async function composeServer(
           extensions.drivers.visitorErrorPolicy,
         ),
         requestMetrics: createRequestMetricsInterceptor(),
+        ...(singleOrganization === undefined
+          ? {}
+          : {
+              singleOrganization:
+                createSingleOrganizationInterceptor(singleOrganization),
+            }),
       },
     ),
     taskKindRegistryLane: registryLanes.taskKindRegistryLane,
@@ -1982,6 +2018,19 @@ export async function composeServer(
             { cause: error },
           );
         }
+      }
+      // The one organization of a composition that declares one, made
+      // before any background work reads the store and before the port
+      // (boot/single-organization.ts). A failure is a boot throw, except a
+      // retired slug, which leaves the fill off with a warning.
+      if (singleOrganization !== undefined) {
+        await ensureSingleOrganization({
+          store,
+          creator: inProcessWiring.clients.singleOrganizationCreator,
+          caller: singleOrganizationCaller,
+          holder: singleOrganization,
+          logger,
+        });
       }
       // Temporal boot is NON-fatal end to end (Go server.go): a failed
       // initial connect leaves the engine unavailable and the monitor

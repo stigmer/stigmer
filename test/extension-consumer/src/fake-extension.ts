@@ -1287,6 +1287,9 @@ const organizationDirectory: OrganizationDirectory = {
 export const fakeExtension: ServerExtension = {
   name: "consumer-fake",
   edition: ServerEdition.cloud,
+  // The organization-limit point: how many organizations the server may
+  // hold. A positive integer; the domain refuses a create at the limit.
+  orgLimit: 50,
   // The require-authentication point: the unit's verifiers are its only admission
   // path, so tokenless non-public requests are refused. Typed as the
   // literal `true` — `false` does not compile; omit the field instead.

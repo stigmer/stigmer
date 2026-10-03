@@ -67,6 +67,7 @@ import type {
   GetServerInfoOutput,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
+import type { SingleOrganization } from "../../pipeline/interceptors/single-organization.js";
 import type { Logger } from "../../boot/logger.js";
 import type { LicenseStatusProvider } from "../../extensions/license-status.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
@@ -119,6 +120,15 @@ export interface PlatformControllerDeps {
    */
   readonly authenticationRequired: boolean;
   /**
+   * The organization a one-organization server fills
+   * (pipeline/interceptors/single-organization.ts), read at answer time:
+   * `single_org` is true exactly when the fill is on, so a client hides
+   * organizations only where the server fills them. Undefined on a
+   * composition that declares no single organization, which always answers
+   * false.
+   */
+  readonly singleOrganization: SingleOrganization | undefined;
+  /**
    * What license this server holds (extensions/license-status.ts). The
    * composition root installs the built-in `absent` provider when no unit
    * registers one, so the field is required: a server that cannot answer
@@ -148,12 +158,13 @@ export function registerPlatformServices(
   });
 }
 
-/** Go GetServerInfo: the server edition, release version and authentication posture. */
+/** Go GetServerInfo: the server edition, release version, authentication posture and whether it fills one organization. */
 function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
     edition: deps.edition,
     version: deps.version,
     authenticationRequired: deps.authenticationRequired,
+    singleOrg: deps.singleOrganization?.current() !== undefined,
   });
 }
 

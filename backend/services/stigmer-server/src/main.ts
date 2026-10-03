@@ -8,62 +8,20 @@
  *
  * SIGTERM/SIGINT run the composed shutdown (NOT_SERVING → drain → exit) —
  * the daemon stops components with signals, and in-flight requests get the
- * drain budget rather than a mid-write connection reset.
+ * drain budget rather than a mid-write connection reset. The body is
+ * boot/run.ts, which the test harness's library entry shares; this entry
+ * composes the open-source edition's unit (editions/open-source.ts), so the
+ * shipped server holds one organization.
  *
- * The async main() wrapper (not top-level await) is load-bearing: the slim
- * artifact bundles this entry as CJS (scripts/bundle-slim.mjs), where
- * top-level await cannot exist.
+ * A promise chain, not top-level await, is load-bearing: the slim artifact
+ * bundles this entry as CJS (scripts/bundle-slim.mjs), where top-level
+ * await cannot exist.
  */
-import { loadConfig } from "./boot/config.js";
-import { composeServer } from "./boot/compose.js";
-import { createLogger } from "./boot/logger.js";
-import { announceReady } from "./boot/ready-line.js";
-import { setOperatorIdentity } from "./pipeline/steps/defaults.js";
+import { runServer } from "./boot/run.js";
+import { openSourceEdition } from "./editions/open-source.js";
 
-async function main(): Promise<void> {
-  const config = loadConfig();
-  const logger = createLogger({
-    level: config.logLevel,
-    pretty: config.env === "local",
-  });
-  // Once per process, before any writer exists (#400) — the one-shot guard
-  // makes a duplicate install a loud boot bug.
-  setOperatorIdentity(config.operatorEmail, config.operatorName);
-  const server = await composeServer({ config, logger });
-
-  let shuttingDown = false;
-  const shutdown = (signal: string): void => {
-    if (shuttingDown) {
-      return;
-    }
-    shuttingDown = true;
-    logger.info("shutting down", { signal });
-    server
-      .shutdown()
-      .then(() => process.exit(0))
-      .catch((error: unknown) => {
-        logger.error("shutdown failed", { error: String(error) });
-        process.exit(1);
-      });
-  };
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
-
-  try {
-    await server.start();
-  } catch (error) {
-    logger.error("boot failed", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    process.exit(1);
-  }
-  /* v8 ignore next -- @preserve: main.ts runs only as the process entry, never under vitest; scripts/verify-boot.mjs proves this call on the built artifact */
-  announceReady(config.readyLine, server.boundPorts(), (line) =>
-    process.stdout.write(line),
-  );
-}
-
-main().catch((error: unknown) => {
+/* v8 ignore start -- main.ts runs only as the process entry, never under vitest; runServer's own tests drive the body, and scripts/verify-boot.mjs proves this entry on the built artifact */
+runServer({ extensions: [openSourceEdition] }).catch((error: unknown) => {
   // The logger may not exist yet (config/compose failures) — stderr is the
   // one channel that always does.
   console.error(
@@ -72,3 +30,4 @@ main().catch((error: unknown) => {
   );
   process.exit(1);
 });
+/* v8 ignore stop */

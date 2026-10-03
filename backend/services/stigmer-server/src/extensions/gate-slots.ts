@@ -47,9 +47,11 @@
  * must leave nothing behind: `org-create:post-persist` runs after the row
  * is written, so a limit enforced there would leave the organization it
  * refused. The Cloud refuses a platform-managed organization its
- * integrator's plan does not admit; a licensed deployment's organization
- * limit belongs here too. `apply` delegates to create on its create arm,
- * so the slot fires there as well.
+ * integrator's plan does not admit. An edition's organization count is not
+ * a slot step: the composition declares it (`ServerExtension.orgLimit`)
+ * and the chain's own OrganizationLimit step holds it at this seat, just
+ * before the slot's steps (domain/organization/limit.ts). `apply`
+ * delegates to create on its create arm, so the slot fires there as well.
  *
  * The tenth, `org-delete:pre-delete`: the organization delete chain after
  * LoadExistingForDelete and before any write, so the organization exists

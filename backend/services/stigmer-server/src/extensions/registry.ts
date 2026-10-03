@@ -128,6 +128,18 @@ export interface ServerExtension {
    */
   readonly edition?: ServerEdition;
   /**
+   * How many organizations the server may hold (single-declaration point,
+   * the edition's shape). Exactly one unit may declare it, a positive
+   * integer; undeclared compositions hold any number. The organization
+   * domain refuses a create at the limit with ORGANIZATION_LIMIT_REACHED,
+   * before anything is written (its own `OrganizationLimit` step, at the
+   * `org-create:pre-side-effect-gate` seat). A composition that declares 1
+   * also makes its organization at boot, fills it into every serving
+   * request that names none, and refuses to delete it: the open-source
+   * edition's unit (editions/open-source.ts).
+   */
+  readonly orgLimit?: number;
+  /**
    * The require-authentication admission posture (single-declaration
    * point, the edition's shape). Declaring it turns
    * the serving chain's tokenless-refusal arm on INDEPENDENTLY of the OSS
@@ -208,6 +220,8 @@ export interface ResolvedExtensions {
   readonly unitNames: ReadonlyArray<string>;
   /** Defaults to ServerEdition.oss when no unit declares one. */
   readonly edition: ServerEdition;
+  /** The declared organization limit, or undefined when no unit declares one (any number). */
+  readonly orgLimit: number | undefined;
   /**
    * The unit-declared require-authentication posture, or undefined when
    * no unit declares it (the OSS trusted-local posture — unless the OIDC
@@ -387,6 +401,8 @@ export function resolveExtensions(
 
   let edition: ServerEdition | undefined;
   let editionDeclaredBy: string | undefined;
+  let orgLimit: number | undefined;
+  let orgLimitDeclaredBy: string | undefined;
   let requireAuthenticationDeclaredBy: string | undefined;
   let authorizer: Authorizer | undefined;
   let authorizerDeclaredBy: string | undefined;
@@ -473,6 +489,21 @@ export function resolveExtensions(
       }
       edition = unit.edition;
       editionDeclaredBy = unit.name;
+    }
+
+    if (unit.orgLimit !== undefined) {
+      if (!Number.isSafeInteger(unit.orgLimit) || unit.orgLimit < 1) {
+        throw new Error(
+          `extension '${unit.name}' declares orgLimit ${unit.orgLimit} — declare a positive integer or omit the field`,
+        );
+      }
+      if (orgLimitDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' declares the organization limit, but '${orgLimitDeclaredBy}' already did — exactly one extension may declare it`,
+        );
+      }
+      orgLimit = unit.orgLimit;
+      orgLimitDeclaredBy = unit.name;
     }
 
     if (unit.requireAuthentication !== undefined) {
@@ -838,6 +869,7 @@ export function resolveExtensions(
   return {
     unitNames,
     edition: edition ?? ServerEdition.oss,
+    orgLimit,
     requireAuthentication:
       requireAuthenticationDeclaredBy !== undefined
         ? { declaredBy: requireAuthenticationDeclaredBy }

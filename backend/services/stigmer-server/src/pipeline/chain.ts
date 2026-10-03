@@ -11,6 +11,11 @@
  *                         identity refusal is position 1's own record,
  *                         never a counted error)
  *   2. logging          — level-tiered per outcome
+ *      single-org fill  — SERVING chain only, and only on a composition
+ *                         that declares one organization
+ *                         (interceptors/single-organization.ts: an empty
+ *                         `org` is the server's one organization, filled
+ *                         before validation and the handler read it)
  *   3. protovalidate    — boundary validation before any handler
  *   4. apiresource      — kind context from the service option
  *
@@ -43,6 +48,8 @@ import { createProtovalidateInterceptor } from "./interceptors/protovalidate.js"
 export interface ServingChainInterceptors {
   readonly errorBoundary: Interceptor;
   readonly requestMetrics: Interceptor;
+  /** Present only when the composition declares one organization. */
+  readonly singleOrganization?: Interceptor;
 }
 
 export function buildInterceptorChain(
@@ -55,6 +62,9 @@ export function buildInterceptorChain(
     identitySource,
     ...(serving === undefined ? [] : [serving.requestMetrics]),
     createLoggingInterceptor(logger),
+    ...(serving?.singleOrganization === undefined
+      ? []
+      : [serving.singleOrganization]),
     createProtovalidateInterceptor(),
     createApiResourceInterceptor(),
   ];

@@ -150,9 +150,10 @@ export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
  * a database whose accounts were provisioned before the rules existed is
  * reconciled once, at the first boot under the built-in authorization
  * posture, and never again — the value is the RFC 3339 time it finished.
- * Lives in `store.bootstrapState`, the store's one-shot boot state, and is
- * the one key this server writes there; deleting it makes the next boot
- * reconcile again, which is the operator's deliberate act and nobody else's.
+ * Lives in `store.bootstrapState`, the store's one-shot boot state, beside
+ * the organization domain's SINGLE_ORG_KEY (domain/organization/limit.ts);
+ * deleting it makes the next boot reconcile again, which is the operator's
+ * deliberate act and nobody else's.
  */
 export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
 

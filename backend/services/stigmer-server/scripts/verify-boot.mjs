@@ -8,9 +8,10 @@
  * boot and this gate with it.
  *
  * The ready line (STIGMER_READY_LINE=stdout, src/boot/ready-line.ts) is what
- * the test harnesses read the bound ports from, and main.ts is the only
- * place that prints it. No unit test runs main.ts, so this gate is where the
- * line is proven on the artifact: one JSON line on stdout, both ports
+ * the test harnesses read the bound ports from, and the process body main.ts
+ * runs (src/boot/run.ts) is the only place that prints it. Its unit tests
+ * drive that body in-process; no unit test runs main.ts, so this gate is
+ * where the line is proven on the artifact: one JSON line on stdout, both ports
  * non-zero, and the gRPC port the one the listening log line names.
  *
  * Why this gate exists (the runner's #399 lesson): vitest/tsx module

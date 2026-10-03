@@ -107,6 +107,10 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import {
+  newOrganizationLimitStep,
+  newRefuseDeletingSingleOrganizationStep,
+} from "./limit.js";
 import { organizationSearchExtractor } from "./search-extractor.js";
 import {
   newClaimOrganizationSlugStep,
@@ -132,6 +136,12 @@ export interface OrganizationControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed query directory — undefined = OSS single-tenant behavior. */
   readonly organizationDirectory: OrganizationDirectory | undefined;
+  /**
+   * The composition's declared organization limit (ServerExtension.orgLimit),
+   * or undefined for any number. Set, the create chain counts against it;
+   * at 1, the delete chain also refuses to delete the one (limit.ts).
+   */
+  readonly orgLimit: number | undefined;
 }
 
 /** Registers both organization services on the router (routes stage). */
@@ -179,8 +189,10 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  *
  * The pre-side-effect gate slot splices before Persist, after the last pure
  * step, the session chain's position: every step above it only reads, so a
- * refusal there leaves no organization behind. It is where a limit on
- * which organizations may exist is enforced.
+ * refusal there leaves no organization behind. It is where a unit refuses
+ * an organization it does not admit. The composition's organization count
+ * runs at the same seat, just before the slot, as this chain's own
+ * OrganizationLimit step (limit.ts).
  *
  * ClaimOrganizationSlug follows the slot, immediately before Persist: the
  * slug is claimed in the ledger atomically, so of two concurrent creates of
@@ -224,7 +236,18 @@ async function createOrganization(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newCopySlugToIdStep());
-  // The pre-side-effect gate slot (see the doc comment above). Empty in OSS.
+  // The composition's organization count, at the slot's seat and before its
+  // steps: the chain's own rule, not a unit's (limit.ts).
+  if (deps.orgLimit !== undefined) {
+    builder.addStep(
+      newOrganizationLimitStep<typeof OrganizationSchema>(
+        deps.store,
+        deps.orgLimit,
+      ),
+    );
+  }
+  // The pre-side-effect gate slot (see the doc comment above). No unit
+  // fills it in OSS.
   for (const step of stepsForSlot<typeof OrganizationSchema>(
     deps.gateSteps,
     "org-create:pre-side-effect-gate",
@@ -355,6 +378,9 @@ async function apply(
  * goes before its row, and a fault stops the delete with the organization
  * intact, so nothing it granted outlives it. After the load:
  *
+ *   0. under a declared limit of 1, RefuseDeletingSingleOrganization: the
+ *      server's only organization is never deleted, refused before any
+ *      write (limit.ts);
  *   1. RetireOrganizationSlug, the slug marked retired in the ledger, so it
  *      is retired before the row can go;
  *   2. the `org-delete:pre-delete` slot, where an edition refuses or
@@ -389,9 +415,15 @@ async function deleteOrganization(
     )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
-    .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema))
-    .addStep(newRetireOrganizationSlugStep<DeleteInput>(deps.store));
-  // The pre-delete gate slot (see the doc comment above). Empty in OSS.
+    .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema));
+  // A server that holds one organization never deletes it, refused before
+  // the first write (limit.ts).
+  if (deps.orgLimit === 1) {
+    builder.addStep(newRefuseDeletingSingleOrganizationStep<DeleteInput>());
+  }
+  builder.addStep(newRetireOrganizationSlugStep<DeleteInput>(deps.store));
+  // The pre-delete gate slot (see the doc comment above). No unit fills it
+  // in OSS.
   for (const step of stepsForSlot<DeleteInput>(
     deps.gateSteps,
     "org-delete:pre-delete",

@@ -27,6 +27,7 @@ import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
@@ -85,6 +86,7 @@ import {
 } from "../pipeline/interceptors/auth.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { Logger } from "./logger.js";
+import type { SingleOrganizationCreator } from "./single-organization.js";
 import type { CallOptions } from "@connectrpc/connect";
 
 /** The narrow in-process surfaces the domains consume. */
@@ -163,6 +165,14 @@ export interface InProcessClients {
    * guards pass structurally.
    */
   readonly pluginMaterializer: PluginMaterializer;
+  /**
+   * The boot step of a composition that declares one organization
+   * (boot/single-organization.ts): the organization's FULL create chain AS
+   * THE CALLER compose.ts names (the operator's account under trusted-local,
+   * the server acting as nobody under sign-in), so the role lifecycle and the
+   * creator stamp say who made it.
+   */
+  readonly singleOrganizationCreator: SingleOrganizationCreator;
 }
 
 /**
@@ -237,6 +247,10 @@ export function createInProcessClients(
   );
   const agentCommand = createClient(AgentCommandController, transport);
   const workflowCommand = createClient(WorkflowCommandController, transport);
+  const organizationCommand = createClient(
+    OrganizationCommandController,
+    transport,
+  );
   const mcpServerCommand = createClient(McpServerCommandController, transport);
   const skillCommand = createClient(SkillCommandController, transport);
 
@@ -413,6 +427,10 @@ export function createInProcessClients(
         updateVisibilityByKind(kind, resourceId, visibility, asCaller(caller)),
       deleteByKind: (kind, resourceId, caller) =>
         deleteByKind(kind, resourceId, asCaller(caller)),
+    },
+    singleOrganizationCreator: {
+      createAsCaller: (organization, caller) =>
+        organizationCommand.create(organization, asCaller(caller)),
     },
   };
 

@@ -33,7 +33,15 @@
  *                   over either;
  *     5. `member` — everyone else.
  *   Arms 3 and 4 both answer `admin`; 3 is checked first because it is a
- *   string compare and 4 reads the organization's rows. `user`-class
+ *   string compare and 4 reads the organization's rows. On the one
+ *   organization a one-organization server made itself (the id recorded
+ *   under SINGLE_ORG_KEY, domain/organization/limit.ts — a recorded fact,
+ *   never a stamp, because under sign-in the server makes it as nobody),
+ *   the person who set the server up owns it, as they would had they
+ *   created it in the console: arm 3 answers `owner`, and arm 4 answers
+ *   `owner` when no operator email is configured. With one configured, arm
+ *   4 keeps `admin` there, so a stranger who signs in before the operator
+ *   never owns it. `user`-class
  *   callers only: a runner, a machine or the in-process class
  *   never earns a role. Nothing on an organization the account already
  *   holds a row on, so a run that faulted midway converges on the next.
@@ -121,6 +129,7 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
+import { SINGLE_ORG_KEY } from "../organization/limit.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { SYSTEM_OPERATOR_IDENTITY_ID } from "../../pipeline/interceptors/auth.js";
@@ -232,6 +241,8 @@ export interface RoleQuestion {
   readonly blueprintsInOrganization: ReadonlyArray<ScannedResource>;
   /** Whether ANY role row exists on the organization — arm 4's "zero rows", read by the caller through the port. */
   readonly organizationHasRows: boolean;
+  /** Whether this is the organization the server made itself (SINGLE_ORG_KEY), where arms 3 and 4 may answer `owner`. */
+  readonly serverMadeOrganization: boolean;
 }
 
 /**
@@ -250,6 +261,7 @@ export function roleFor(question: RoleQuestion): IamRole {
     organization,
     blueprintsInOrganization,
     organizationHasRows,
+    serverMadeOrganization,
   } = question;
   const isMine = (stamp: string): boolean =>
     stamp !== "" && (stamp === subject || stamp === accountId);
@@ -260,14 +272,16 @@ export function roleFor(question: RoleQuestion): IamRole {
     return IamRole.admin;
   }
   if (operatorEmail !== "" && email === operatorEmail) {
-    return IamRole.admin;
+    return serverMadeOrganization ? IamRole.owner : IamRole.admin;
   }
   const anotherPersonStamped = [
     organization.createdBy,
     ...blueprintsInOrganization.map((b) => b.createdBy),
   ].some((stamp) => isPersonStamp(stamp) && !isMine(stamp));
   if (!anotherPersonStamped && !organizationHasRows) {
-    return IamRole.admin;
+    return serverMadeOrganization && operatorEmail === ""
+      ? IamRole.owner
+      : IamRole.admin;
   }
   return IamRole.member;
 }
@@ -276,6 +290,8 @@ export function roleFor(question: RoleQuestion): IamRole {
 interface ScannedWorld {
   readonly organizations: ReadonlyArray<ScannedResource>;
   readonly blueprints: ReadonlyArray<ScannedResource>;
+  /** The id under SINGLE_ORG_KEY, "" when the server made no organization itself. */
+  readonly serverMadeOrganization: string;
 }
 
 /** `spec_audit.created_at` in epoch milliseconds; a row with no stamp sorts first (it is the oldest thing we know nothing about). */
@@ -334,6 +350,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
     return {
       organizations: await scan(ApiResourceKind.organization),
       blueprints: await scanBlueprints(),
+      serverMadeOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
     };
   }
 
@@ -374,6 +391,9 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         organizationHasRows:
           (await policies.findByResource(ORGANIZATION, organization.id))
             .length > 0,
+        serverMadeOrganization:
+          world.serverMadeOrganization !== "" &&
+          organization.id === world.serverMadeOrganization,
       });
       await grantPath.grant(
         organizationRole(accountId, role, organization.id),
@@ -415,7 +435,11 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       await applyRulesTo(
         account,
         caller,
-        { organizations, blueprints: await scanBlueprints() },
+        {
+          organizations,
+          blueprints: await scanBlueprints(),
+          serverMadeOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
+        },
         "first_sign_in",
       );
     },

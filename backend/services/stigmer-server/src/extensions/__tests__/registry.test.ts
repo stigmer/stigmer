@@ -135,6 +135,7 @@ describe("resolveExtensions — defaults", () => {
     const resolved = resolveExtensions();
     expect(resolved.unitNames).toEqual([]);
     expect(resolved.edition).toBe(ServerEdition.oss);
+    expect(resolved.orgLimit).toBeUndefined();
     expect(resolved.requireAuthentication).toBeUndefined();
     expect(resolved.authorizer).toBeUndefined();
     expect(resolved.identityVerifiers).toEqual([]);
@@ -404,6 +405,32 @@ describe("resolveExtensions — loud-fail throws", () => {
       /extension 'second-posture' declares the require-authentication posture, but 'first-posture' already did/,
     );
   });
+
+  it("resolves the one declared organization limit", () => {
+    expect(
+      resolveExtensions([{ name: "open-source", orgLimit: 1 }]).orgLimit,
+    ).toBe(1);
+  });
+
+  it("throws on a second organization limit, naming both units", () => {
+    expect(() =>
+      resolveExtensions([
+        { name: "first-limit", orgLimit: 1 },
+        { name: "second-limit", orgLimit: 5 },
+      ]),
+    ).toThrowError(
+      /extension 'second-limit' declares the organization limit, but 'first-limit' already did/,
+    );
+  });
+
+  it.each([0, -1, 1.5, Number.NaN])(
+    "throws on an organization limit that is not a positive integer (%s)",
+    (orgLimit) => {
+      expect(() => resolveExtensions([{ name: "odd", orgLimit }])).toThrowError(
+        /extension 'odd' declares orgLimit .* — declare a positive integer or omit the field/,
+      );
+    },
+  );
 
   it("throws on a declared-but-unspecified edition", () => {
     expect(() =>
