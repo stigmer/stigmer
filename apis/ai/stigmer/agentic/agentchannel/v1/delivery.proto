@@ -10,12 +10,11 @@ import "google/protobuf/timestamp.proto";
 // @internal
 // Infrastructure-only. Not a public API resource — no kind, no apiVersion,
 // no CRUD RPCs, no FGA (the OAuthGrant / ExecutionReservation pattern).
-// Stored in an internal Mongo collection with a hand-written repo;
-// the reply lane's correctness backbone. Created at webhook time in the same
-// motion as the Session/AgentExecution; claimed atomically by the delivery
-// worker (status-guarded findAndModify, the atomicIncrementConsumed idiom);
-// swept by a Temporal Schedule for executions whose terminal write raced
-// or bypassed the hook.
+// Stored by the serving edition's channel runtime; the reply lane's
+// correctness backbone. Created at webhook time in the same motion as the
+// Session/AgentExecution; claimed atomically by the delivery worker with a
+// status-guarded update; swept for executions whose terminal write raced or
+// bypassed the hook.
 message ChannelDelivery {
   // Unique delivery identifier.
   string delivery_id = 1;

@@ -9,8 +9,7 @@
  * secondary-lookup surface: indexability is guaranteed at the interface
  * and physical indexing is the driver's concern. No cache, on
  * purpose — a direct read makes key deletion take effect on the very next
- * request, where the cloud's Redis introspector holds revoked keys for up
- * to its 1h TTL (server-internal posture, not wire contract).
+ * request (server-internal posture, not wire contract).
  */
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
