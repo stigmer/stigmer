@@ -185,6 +185,11 @@ executions. Its slug is reserved for good, so no organization can be created
 with it again, the same organization included; a create of that slug is
 refused with `ORGANIZATION_SLUG_RESERVED`.
 
+On a server that holds one organization, the open-source edition, that
+organization cannot be deleted at all: the delete is refused with
+`ORGANIZATION_IS_SINGLE` before anything is written. The same server refuses
+a second organization with `ORGANIZATION_LIMIT_REACHED`.
+
 ```bash
 # Verify contents before deleting
 stigmer list agents --org my-org

@@ -159,8 +159,22 @@ type GetServerInfoOutput struct {
 	// feature and lets the server's own answer decide, rather than reading an
 	// older server as one that trusts every request.
 	AuthenticationRequired *bool `protobuf:"varint,3,opt,name=authentication_required,json=authenticationRequired,proto3,oneof" json:"authentication_required,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Whether this server holds one organization and fills it into any
+	// request that names none.
+	//
+	// True on a server composed to hold exactly one organization (the
+	// open-source edition) whose store held exactly one when it started:
+	// every `org` a request leaves empty is that organization, so a client
+	// never shows, asks for or prints one. False on every server that holds
+	// several, and on a one-organization server whose store holds several
+	// from before it held one: there an empty `org` is refused, and a client
+	// shows organizations.
+	//
+	// Every server that knows the field sets it. Absent means the server
+	// predates it: a client shows organizations.
+	SingleOrg     *bool `protobuf:"varint,4,opt,name=single_org,json=singleOrg,proto3,oneof" json:"single_org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetServerInfoOutput) Reset() {
@@ -210,6 +224,13 @@ func (x *GetServerInfoOutput) GetVersion() string {
 func (x *GetServerInfoOutput) GetAuthenticationRequired() bool {
 	if x != nil && x.AuthenticationRequired != nil {
 		return *x.AuthenticationRequired
+	}
+	return false
+}
+
+func (x *GetServerInfoOutput) GetSingleOrg() bool {
+	if x != nil && x.SingleOrg != nil {
+		return *x.SingleOrg
 	}
 	return false
 }
@@ -825,12 +846,15 @@ var File_ai_stigmer_platform_v1_server_info_proto protoreflect.FileDescriptor
 const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\n" +
 	"(ai/stigmer/platform/v1/server_info.proto\x12\x16ai.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/platform/v1/license.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
-	"\x12GetServerInfoInput\"\xca\x01\n" +
+	"\x12GetServerInfoInput\"\xfd\x01\n" +
 	"\x13GetServerInfoOutput\x12?\n" +
 	"\aedition\x18\x01 \x01(\x0e2%.ai.stigmer.platform.v1.ServerEditionR\aedition\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12<\n" +
-	"\x17authentication_required\x18\x03 \x01(\bH\x00R\x16authenticationRequired\x88\x01\x01B\x1a\n" +
-	"\x18_authentication_required\"\x17\n" +
+	"\x17authentication_required\x18\x03 \x01(\bH\x00R\x16authenticationRequired\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"single_org\x18\x04 \x01(\bH\x01R\tsingleOrg\x88\x01\x01B\x1a\n" +
+	"\x18_authentication_requiredB\r\n" +
+	"\v_single_org\"\x17\n" +
 	"\x15GetLicenseStatusInput\"\xe5\x01\n" +
 	"\x16GetLicenseStatusOutput\x12:\n" +
 	"\x05state\x18\x01 \x01(\x0e2$.ai.stigmer.platform.v1.LicenseStateR\x05state\x12=\n" +

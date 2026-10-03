@@ -256,10 +256,12 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-   * then the configured context, then the "stigmer" organization, which the
-   * CLI's bootstrap creates).
-   * In Cloud Mode: Required and enforced by the Authorization Service.
+   * On a server that holds one organization (the open-source edition,
+   * GetServerInfoOutput.single_org), an empty org is that organization:
+   * the server makes it the first time it starts and fills it into every
+   * request that leaves it empty.
+   * On a server that holds several: required, and enforced by
+   * authorization.
    * All resources belong to exactly one organization.
    * </pre>
    *
@@ -282,10 +284,12 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Organization that owns this resource.
-   * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-   * then the configured context, then the "stigmer" organization, which the
-   * CLI's bootstrap creates).
-   * In Cloud Mode: Required and enforced by the Authorization Service.
+   * On a server that holds one organization (the open-source edition,
+   * GetServerInfoOutput.single_org), an empty org is that organization:
+   * the server makes it the first time it starts and fills it into every
+   * request that leaves it empty.
+   * On a server that holds several: required, and enforced by
+   * authorization.
    * All resources belong to exactly one organization.
    * </pre>
    *
@@ -1589,10 +1593,12 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-     * then the configured context, then the "stigmer" organization, which the
-     * CLI's bootstrap creates).
-     * In Cloud Mode: Required and enforced by the Authorization Service.
+     * On a server that holds one organization (the open-source edition,
+     * GetServerInfoOutput.single_org), an empty org is that organization:
+     * the server makes it the first time it starts and fills it into every
+     * request that leaves it empty.
+     * On a server that holds several: required, and enforced by
+     * authorization.
      * All resources belong to exactly one organization.
      * </pre>
      *
@@ -1614,10 +1620,12 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-     * then the configured context, then the "stigmer" organization, which the
-     * CLI's bootstrap creates).
-     * In Cloud Mode: Required and enforced by the Authorization Service.
+     * On a server that holds one organization (the open-source edition,
+     * GetServerInfoOutput.single_org), an empty org is that organization:
+     * the server makes it the first time it starts and fills it into every
+     * request that leaves it empty.
+     * On a server that holds several: required, and enforced by
+     * authorization.
      * All resources belong to exactly one organization.
      * </pre>
      *
@@ -1640,10 +1648,12 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-     * then the configured context, then the "stigmer" organization, which the
-     * CLI's bootstrap creates).
-     * In Cloud Mode: Required and enforced by the Authorization Service.
+     * On a server that holds one organization (the open-source edition,
+     * GetServerInfoOutput.single_org), an empty org is that organization:
+     * the server makes it the first time it starts and fills it into every
+     * request that leaves it empty.
+     * On a server that holds several: required, and enforced by
+     * authorization.
      * All resources belong to exactly one organization.
      * </pre>
      *
@@ -1662,10 +1672,12 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-     * then the configured context, then the "stigmer" organization, which the
-     * CLI's bootstrap creates).
-     * In Cloud Mode: Required and enforced by the Authorization Service.
+     * On a server that holds one organization (the open-source edition,
+     * GetServerInfoOutput.single_org), an empty org is that organization:
+     * the server makes it the first time it starts and fills it into every
+     * request that leaves it empty.
+     * On a server that holds several: required, and enforced by
+     * authorization.
      * All resources belong to exactly one organization.
      * </pre>
      *
@@ -1681,10 +1693,12 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Organization that owns this resource.
-     * In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-     * then the configured context, then the "stigmer" organization, which the
-     * CLI's bootstrap creates).
-     * In Cloud Mode: Required and enforced by the Authorization Service.
+     * On a server that holds one organization (the open-source edition,
+     * GetServerInfoOutput.single_org), an empty org is that organization:
+     * the server makes it the first time it starts and fills it into every
+     * request that leaves it empty.
+     * On a server that holds several: required, and enforced by
+     * authorization.
      * All resources belong to exactly one organization.
      * </pre>
      *

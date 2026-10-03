@@ -175,6 +175,57 @@ private static final long serialVersionUID = 0L;
     return authenticationRequired_;
   }
 
+  public static final int SINGLE_ORG_FIELD_NUMBER = 4;
+  private boolean singleOrg_ = false;
+  /**
+   * <pre>
+   * Whether this server holds one organization and fills it into any
+   * request that names none.
+   *
+   * True on a server composed to hold exactly one organization (the
+   * open-source edition) whose store held exactly one when it started:
+   * every `org` a request leaves empty is that organization, so a client
+   * never shows, asks for or prints one. False on every server that holds
+   * several, and on a one-organization server whose store holds several
+   * from before it held one: there an empty `org` is refused, and a client
+   * shows organizations.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client shows organizations.
+   * </pre>
+   *
+   * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+   * @return Whether the singleOrg field is set.
+   */
+  @java.lang.Override
+  public boolean hasSingleOrg() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Whether this server holds one organization and fills it into any
+   * request that names none.
+   *
+   * True on a server composed to hold exactly one organization (the
+   * open-source edition) whose store held exactly one when it started:
+   * every `org` a request leaves empty is that organization, so a client
+   * never shows, asks for or prints one. False on every server that holds
+   * several, and on a one-organization server whose store holds several
+   * from before it held one: there an empty `org` is refused, and a client
+   * shows organizations.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client shows organizations.
+   * </pre>
+   *
+   * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+   * @return The singleOrg.
+   */
+  @java.lang.Override
+  public boolean getSingleOrg() {
+    return singleOrg_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -198,6 +249,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeBool(3, authenticationRequired_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeBool(4, singleOrg_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -217,6 +271,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(3, authenticationRequired_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(4, singleOrg_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -241,6 +299,11 @@ private static final long serialVersionUID = 0L;
       if (getAuthenticationRequired()
           != other.getAuthenticationRequired()) return false;
     }
+    if (hasSingleOrg() != other.hasSingleOrg()) return false;
+    if (hasSingleOrg()) {
+      if (getSingleOrg()
+          != other.getSingleOrg()) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -260,6 +323,11 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + AUTHENTICATION_REQUIRED_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
           getAuthenticationRequired());
+    }
+    if (hasSingleOrg()) {
+      hash = (37 * hash) + SINGLE_ORG_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+          getSingleOrg());
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -399,6 +467,7 @@ private static final long serialVersionUID = 0L;
       edition_ = 0;
       version_ = "";
       authenticationRequired_ = false;
+      singleOrg_ = false;
       return this;
     }
 
@@ -443,6 +512,10 @@ private static final long serialVersionUID = 0L;
         result.authenticationRequired_ = authenticationRequired_;
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.singleOrg_ = singleOrg_;
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -468,6 +541,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasAuthenticationRequired()) {
         setAuthenticationRequired(other.getAuthenticationRequired());
+      }
+      if (other.hasSingleOrg()) {
+        setSingleOrg(other.getSingleOrg());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -510,6 +586,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
+            case 32: {
+              singleOrg_ = input.readBool();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -783,6 +864,110 @@ private static final long serialVersionUID = 0L;
     public Builder clearAuthenticationRequired() {
       bitField0_ = (bitField0_ & ~0x00000004);
       authenticationRequired_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean singleOrg_ ;
+    /**
+     * <pre>
+     * Whether this server holds one organization and fills it into any
+     * request that names none.
+     *
+     * True on a server composed to hold exactly one organization (the
+     * open-source edition) whose store held exactly one when it started:
+     * every `org` a request leaves empty is that organization, so a client
+     * never shows, asks for or prints one. False on every server that holds
+     * several, and on a one-organization server whose store holds several
+     * from before it held one: there an empty `org` is refused, and a client
+     * shows organizations.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client shows organizations.
+     * </pre>
+     *
+     * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+     * @return Whether the singleOrg field is set.
+     */
+    @java.lang.Override
+    public boolean hasSingleOrg() {
+      return ((bitField0_ & 0x00000008) != 0);
+    }
+    /**
+     * <pre>
+     * Whether this server holds one organization and fills it into any
+     * request that names none.
+     *
+     * True on a server composed to hold exactly one organization (the
+     * open-source edition) whose store held exactly one when it started:
+     * every `org` a request leaves empty is that organization, so a client
+     * never shows, asks for or prints one. False on every server that holds
+     * several, and on a one-organization server whose store holds several
+     * from before it held one: there an empty `org` is refused, and a client
+     * shows organizations.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client shows organizations.
+     * </pre>
+     *
+     * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+     * @return The singleOrg.
+     */
+    @java.lang.Override
+    public boolean getSingleOrg() {
+      return singleOrg_;
+    }
+    /**
+     * <pre>
+     * Whether this server holds one organization and fills it into any
+     * request that names none.
+     *
+     * True on a server composed to hold exactly one organization (the
+     * open-source edition) whose store held exactly one when it started:
+     * every `org` a request leaves empty is that organization, so a client
+     * never shows, asks for or prints one. False on every server that holds
+     * several, and on a one-organization server whose store holds several
+     * from before it held one: there an empty `org` is refused, and a client
+     * shows organizations.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client shows organizations.
+     * </pre>
+     *
+     * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+     * @param value The singleOrg to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSingleOrg(boolean value) {
+
+      singleOrg_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this server holds one organization and fills it into any
+     * request that names none.
+     *
+     * True on a server composed to hold exactly one organization (the
+     * open-source edition) whose store held exactly one when it started:
+     * every `org` a request leaves empty is that organization, so a client
+     * never shows, asks for or prints one. False on every server that holds
+     * several, and on a one-organization server whose store holds several
+     * from before it held one: there an empty `org` is refused, and a client
+     * shows organizations.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client shows organizations.
+     * </pre>
+     *
+     * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSingleOrg() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      singleOrg_ = false;
       onChanged();
       return this;
     }

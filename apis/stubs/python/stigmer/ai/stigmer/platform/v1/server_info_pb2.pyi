@@ -28,14 +28,16 @@ class GetServerInfoInput(_message.Message):
     def __init__(self) -> None: ...
 
 class GetServerInfoOutput(_message.Message):
-    __slots__ = ("edition", "version", "authentication_required")
+    __slots__ = ("edition", "version", "authentication_required", "single_org")
     EDITION_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     AUTHENTICATION_REQUIRED_FIELD_NUMBER: _ClassVar[int]
+    SINGLE_ORG_FIELD_NUMBER: _ClassVar[int]
     edition: ServerEdition
     version: str
     authentication_required: bool
-    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ...) -> None: ...
+    single_org: bool
+    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ..., single_org: bool = ...) -> None: ...
 
 class GetLicenseStatusInput(_message.Message):
     __slots__ = ()

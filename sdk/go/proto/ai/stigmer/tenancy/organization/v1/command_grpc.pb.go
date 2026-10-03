@@ -32,6 +32,9 @@ const (
 // OrganizationCommandController handles write operations for organizations.
 type OrganizationCommandControllerClient interface {
 	// Create or update an organization.
+	//
+	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+	// included.
 	Apply(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Create an organization.
 	//
@@ -53,11 +56,28 @@ type OrganizationCommandControllerClient interface {
 	//   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
 	//     include the feature. Metadata: feature ("managed_organizations"),
 	//     org (the integrator organization).
+	//
+	// A server composed to hold a limited number of organizations (the
+	// open-source edition holds one, which it makes the first time it
+	// starts) refuses a create once it holds that many, with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), before anything is written:
+	//
+	//   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+	//     as it is composed to. Metadata: limit.
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an existing organization.
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Delete an organization. Its slug stays reserved: no organization can be
 	// created with it again.
+	//
+	// A server that holds one organization (GetServerInfoOutput.single_org's
+	// composition) refuses to delete it with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+	// written:
+	//
+	//   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+	//     deleted. Metadata: org.
 	Delete(ctx context.Context, in *OrganizationId, opts ...grpc.CallOption) (*Organization, error)
 }
 
@@ -116,6 +136,9 @@ func (c *organizationCommandControllerClient) Delete(ctx context.Context, in *Or
 // OrganizationCommandController handles write operations for organizations.
 type OrganizationCommandControllerServer interface {
 	// Create or update an organization.
+	//
+	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+	// included.
 	Apply(context.Context, *Organization) (*Organization, error)
 	// Create an organization.
 	//
@@ -137,11 +160,28 @@ type OrganizationCommandControllerServer interface {
 	//   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
 	//     include the feature. Metadata: feature ("managed_organizations"),
 	//     org (the integrator organization).
+	//
+	// A server composed to hold a limited number of organizations (the
+	// open-source edition holds one, which it makes the first time it
+	// starts) refuses a create once it holds that many, with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), before anything is written:
+	//
+	//   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+	//     as it is composed to. Metadata: limit.
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an existing organization.
 	Update(context.Context, *Organization) (*Organization, error)
 	// Delete an organization. Its slug stays reserved: no organization can be
 	// created with it again.
+	//
+	// A server that holds one organization (GetServerInfoOutput.single_org's
+	// composition) refuses to delete it with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+	// written:
+	//
+	//   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+	//     deleted. Metadata: org.
 	Delete(context.Context, *OrganizationId) (*Organization, error)
 }
 

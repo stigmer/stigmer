@@ -208,6 +208,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+     * included.
      * </pre>
      */
     default void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -233,6 +235,13 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org (the integrator organization).
+     * A server composed to hold a limited number of organizations (the
+     * open-source edition holds one, which it makes the first time it
+     * starts) refuses a create once it holds that many, with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), before anything is written:
+     *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+     *     as it is composed to. Metadata: limit.
      * </pre>
      */
     default void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -254,6 +263,12 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
+     * A server that holds one organization (GetServerInfoOutput.single_org's
+     * composition) refuses to delete it with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+     *     deleted. Metadata: org.
      * </pre>
      */
     default void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -298,6 +313,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+     * included.
      * </pre>
      */
     public void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -324,6 +341,13 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org (the integrator organization).
+     * A server composed to hold a limited number of organizations (the
+     * open-source edition holds one, which it makes the first time it
+     * starts) refuses a create once it holds that many, with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), before anything is written:
+     *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+     *     as it is composed to. Metadata: limit.
      * </pre>
      */
     public void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -347,6 +371,12 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
+     * A server that holds one organization (GetServerInfoOutput.single_org's
+     * composition) refuses to delete it with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+     *     deleted. Metadata: org.
      * </pre>
      */
     public void delete(ai.stigmer.tenancy.organization.v1.OrganizationId request,
@@ -378,6 +408,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+     * included.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -403,6 +435,13 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org (the integrator organization).
+     * A server composed to hold a limited number of organizations (the
+     * open-source edition holds one, which it makes the first time it
+     * starts) refuses a create once it holds that many, with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), before anything is written:
+     *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+     *     as it is composed to. Metadata: limit.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -424,6 +463,12 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
+     * A server that holds one organization (GetServerInfoOutput.single_org's
+     * composition) refuses to delete it with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+     *     deleted. Metadata: org.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) throws io.grpc.StatusException {
@@ -454,6 +499,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+     * included.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -479,6 +526,13 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org (the integrator organization).
+     * A server composed to hold a limited number of organizations (the
+     * open-source edition holds one, which it makes the first time it
+     * starts) refuses a create once it holds that many, with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), before anything is written:
+     *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+     *     as it is composed to. Metadata: limit.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -500,6 +554,12 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
+     * A server that holds one organization (GetServerInfoOutput.single_org's
+     * composition) refuses to delete it with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+     *     deleted. Metadata: org.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization delete(ai.stigmer.tenancy.organization.v1.OrganizationId request) {
@@ -530,6 +590,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+     * included.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> apply(
@@ -556,6 +618,13 @@ public final class OrganizationCommandControllerGrpc {
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
      *     org (the integrator organization).
+     * A server composed to hold a limited number of organizations (the
+     * open-source edition holds one, which it makes the first time it
+     * starts) refuses a create once it holds that many, with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), before anything is written:
+     *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+     *     as it is composed to. Metadata: limit.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> create(
@@ -579,6 +648,12 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Delete an organization. Its slug stays reserved: no organization can be
      * created with it again.
+     * A server that holds one organization (GetServerInfoOutput.single_org's
+     * composition) refuses to delete it with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+     *     deleted. Metadata: org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> delete(

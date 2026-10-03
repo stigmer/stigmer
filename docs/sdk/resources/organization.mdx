@@ -223,6 +223,8 @@ Organizations organizations = client.organizations().findMyOrganizations();
 
 Create or update an organization.
 
+Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED included.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -309,6 +311,10 @@ An organization's slug is its id, and it is the organization's for good: a slug 
 On Stigmer Cloud, creating a platform-managed organization is a plan feature of its integrator. An integrator whose plan lacks it is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
 
 - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not include the feature. Metadata: feature ("managed_organizations"), org (the integrator organization).
+
+A server composed to hold a limited number of organizations (the open-source edition holds one, which it makes the first time it starts) refuses a create once it holds that many, with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
+
+- ORGANIZATION_LIMIT_REACHED — the server holds as many organizations as it is composed to. Metadata: limit.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -467,6 +473,10 @@ Organization organization = client.organizations().update(OrganizationInput.buil
 ### delete
 
 Delete an organization. Its slug stays reserved: no organization can be created with it again.
+
+A server that holds one organization (GetServerInfoOutput.single_org's composition) refuses to delete it with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
+
+- ORGANIZATION_IS_SINGLE — the server's only organization cannot be deleted. Metadata: org.
 
 <SDKTabs>
 <Tab value="TypeScript">

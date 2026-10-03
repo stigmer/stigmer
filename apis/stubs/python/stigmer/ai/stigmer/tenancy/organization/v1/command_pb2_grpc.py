@@ -44,6 +44,9 @@ class OrganizationCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an organization.
+
+        Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
+        included.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -70,6 +73,15 @@ class OrganizationCommandControllerServicer(object):
         - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
         include the feature. Metadata: feature ("managed_organizations"),
         org (the integrator organization).
+
+        A server composed to hold a limited number of organizations (the
+        open-source edition holds one, which it makes the first time it
+        starts) refuses a create once it holds that many, with
+        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai"), before anything is written:
+
+        - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
+        as it is composed to. Metadata: limit.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -85,6 +97,14 @@ class OrganizationCommandControllerServicer(object):
     def delete(self, request, context):
         """Delete an organization. Its slug stays reserved: no organization can be
         created with it again.
+
+        A server that holds one organization (GetServerInfoOutput.single_org's
+        composition) refuses to delete it with FAILED_PRECONDITION carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+        written:
+
+        - ORGANIZATION_IS_SINGLE — the server's only organization cannot be
+        deleted. Metadata: org.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

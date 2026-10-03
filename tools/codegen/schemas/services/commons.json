@@ -47,7 +47,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization that owns this resource.\n In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,\n then the configured context, then the \"stigmer\" organization, which the\n CLI's bootstrap creates).\n In Cloud Mode: Required and enforced by the Authorization Service.\n All resources belong to exactly one organization.",
+          "description": "Organization that owns this resource.\n On a server that holds one organization (the open-source edition,\n GetServerInfoOutput.single_org), an empty org is that organization:\n the server makes it the first time it starts and fills it into every\n request that leaves it empty.\n On a server that holds several: required, and enforced by\n authorization.\n All resources belong to exactly one organization.",
           "required": false
         },
         {

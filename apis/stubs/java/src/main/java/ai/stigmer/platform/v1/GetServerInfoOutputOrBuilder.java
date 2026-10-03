@@ -87,4 +87,47 @@ public interface GetServerInfoOutputOrBuilder extends
    * @return The authenticationRequired.
    */
   boolean getAuthenticationRequired();
+
+  /**
+   * <pre>
+   * Whether this server holds one organization and fills it into any
+   * request that names none.
+   *
+   * True on a server composed to hold exactly one organization (the
+   * open-source edition) whose store held exactly one when it started:
+   * every `org` a request leaves empty is that organization, so a client
+   * never shows, asks for or prints one. False on every server that holds
+   * several, and on a one-organization server whose store holds several
+   * from before it held one: there an empty `org` is refused, and a client
+   * shows organizations.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client shows organizations.
+   * </pre>
+   *
+   * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+   * @return Whether the singleOrg field is set.
+   */
+  boolean hasSingleOrg();
+  /**
+   * <pre>
+   * Whether this server holds one organization and fills it into any
+   * request that names none.
+   *
+   * True on a server composed to hold exactly one organization (the
+   * open-source edition) whose store held exactly one when it started:
+   * every `org` a request leaves empty is that organization, so a client
+   * never shows, asks for or prints one. False on every server that holds
+   * several, and on a one-organization server whose store holds several
+   * from before it held one: there an empty `org` is refused, and a client
+   * shows organizations.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client shows organizations.
+   * </pre>
+   *
+   * <code>optional bool single_org = 4 [json_name = "singleOrg"];</code>
+   * @return The singleOrg.
+   */
+  boolean getSingleOrg();
 }

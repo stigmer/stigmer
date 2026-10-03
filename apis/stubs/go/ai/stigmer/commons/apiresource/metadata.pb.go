@@ -50,10 +50,12 @@ type ApiResourceMetadata struct {
 	// so one grant can only ever be one row.
 	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	// Organization that owns this resource.
-	// In Local Mode: the CLI resolves it (the --org flag, then STIGMER_ORG,
-	// then the configured context, then the "stigmer" organization, which the
-	// CLI's bootstrap creates).
-	// In Cloud Mode: Required and enforced by the Authorization Service.
+	// On a server that holds one organization (the open-source edition,
+	// GetServerInfoOutput.single_org), an empty org is that organization:
+	// the server makes it the first time it starts and fills it into every
+	// request that leaves it empty.
+	// On a server that holds several: required, and enforced by
+	// authorization.
 	// All resources belong to exactly one organization.
 	Org string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
 	// Visibility controls who can read this resource.

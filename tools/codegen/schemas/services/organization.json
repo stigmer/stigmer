@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create or update an organization."
+          "description": "Create or update an organization.\n\n Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED\n included."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create an organization.\n\n An organization's slug is its id, and it is the organization's for good:\n a slug any organization has ever held, one since deleted included, is\n never taken again. A create of a held slug is refused with\n ALREADY_EXISTS; a create of a slug whose organization was deleted is\n refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,\n     and a slug is never reused. Metadata: slug.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org (the integrator organization)."
+          "description": "Create an organization.\n\n An organization's slug is its id, and it is the organization's for good:\n a slug any organization has ever held, one since deleted included, is\n never taken again. A create of a held slug is refused with\n ALREADY_EXISTS; a create of a slug whose organization was deleted is\n refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,\n     and a slug is never reused. Metadata: slug.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org (the integrator organization).\n\n A server composed to hold a limited number of organizations (the\n open-source edition holds one, which it makes the first time it\n starts) refuses a create once it holds that many, with\n FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"), before anything is written:\n\n   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations\n     as it is composed to. Metadata: limit."
         },
         {
           "name": "Update",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Delete an organization. Its slug stays reserved: no organization can be\n created with it again."
+          "description": "Delete an organization. Its slug stays reserved: no organization can be\n created with it again.\n\n A server that holds one organization (GetServerInfoOutput.single_org's\n composition) refuses to delete it with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - ORGANIZATION_IS_SINGLE — the server's only organization cannot be\n     deleted. Metadata: org."
         }
       ]
     },
