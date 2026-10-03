@@ -7,8 +7,8 @@ import {
 } from "../LegacyWorkflowRedirects";
 
 // These components exist because a server-side redirect() cannot carry
-// dynamic params in a static export (it bakes its target at build time —
-// cloud#274). The tests pin the client-side recovery: the real org/slug/id
+// dynamic params in a static export (it bakes its target at build time).
+// The tests pin the client-side recovery: the real org/slug/id
 // are read from the browser URL at mount.
 
 let replaceSpy: ReturnType<typeof vi.fn>;

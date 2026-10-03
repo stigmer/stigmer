@@ -67,7 +67,7 @@ export function writeFileBlock(
  * A single `execute` block (the deepagents built-in shell tool, approval
  * category `shell` — gated fail-closed in EVERY stack shape, capture substrate
  * or not). The approval-FLOW specs seed with this: since apply-then-review
- * (phase-7 capture mode) file writes no longer gate on a substrate-backed
+ * (capture mode) file writes no longer gate on a substrate-backed
  * stack, shell is the stable interactive-gate vehicle there. The file-write
  * GATE surface itself is pinned by tool-card-ux.spec.ts against the file-gate
  * stack (STIGMER_E2E_FILE_GATES), where writes still gate pre-execution.

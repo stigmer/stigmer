@@ -2,7 +2,7 @@
 /* Enter/exit animation utilities for this app's OWN components (AppShell,
    tooltip). Before #454 these classes were silently dead here: they only
    ever rendered where a build included tw-animate-css, and this app's build
-   never did. (The web console had it all along — a DD-016 parity gap.) */
+   never did. (The web console had it all along.) */
 @import "tw-animate-css";
 @import "@stigmer/theme/tokens.css";
 @import "@stigmer/theme/presets/corporate.css";

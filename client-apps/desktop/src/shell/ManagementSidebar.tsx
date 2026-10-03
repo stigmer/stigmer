@@ -35,7 +35,7 @@ export function ManagementSidebar({
   );
 
   // Org switch leaves the settings zone for the org-neutral Dashboard
-  // (matching web and the workspace sidebar, DD-016). Landing on
+  // (matching web and the workspace sidebar). Landing on
   // "/dashboard" also overwrites the persisted stigmer:lastRoute so the
   // previous org's deep link can't be restored on next launch.
   const handleOrgChanged = useCallback(() => navigate("/dashboard"), [navigate]);

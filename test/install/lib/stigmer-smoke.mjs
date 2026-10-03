@@ -233,8 +233,8 @@ export async function waitForServing(baseUrl, timeoutMs) {
  * (transport/console/__tests__/handler.test.ts). `apiUrl` and `appUrl` are
  * EMPTY by contract: the console resolves them to its own origin, because the
  * lane that serves it also serves the API on the same port and cannot know the
- * scheme and host the browser reached it by (a TLS proxy, a LAN address;
- * 20260913.02 Q-CL-3). There is no edition-specific value here: a `stigmer up`
+ * scheme and host the browser reached it by (a TLS proxy, a LAN address).
+ * There is no edition-specific value here: a `stigmer up`
  * laptop, the compose stack, the server image and the all-in-one image all
  * serve this one document. Four gates once pinned a Host-derived
  * `http://<host>` inline instead and went red together when the server stopped

@@ -277,7 +277,7 @@ describe("readSkillArchive", () => {
     expect(archive.totalSize).toBeGreaterThan(0);
   });
 
-  it("rejects an archive whose SKILL.md is only nested (root-only contract, DD-018)", () => {
+  it("rejects an archive whose SKILL.md is only nested (root-only contract)", () => {
     const archivePath = writeArchive({ "my-skill/SKILL.md": SKILL_MD });
     expect(() => readSkillArchive(archivePath)).toThrow(/root of/);
   });

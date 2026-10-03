@@ -113,7 +113,7 @@ describe("resolveServerNode", () => {
   it("rejects a Node whose sqlite lacks FTS5, naming the capability (the 23.4 trap)", () => {
     // The shape of a REAL 23.4 binary: node:sqlite present (the module probe
     // would pass), FTS5 absent (the fts5 probe fails) — pinning that the
-    // server resolution dispatches the STRONGER probe (D4 #14).
+    // server resolution dispatches the STRONGER probe.
     process.env.STIGMER_NODE_BIN = fakeNodeBinary({ version: "v23.4.0", hasSqlite: true, hasFts5: false });
 
     expect(() => resolveServerNode()).toThrow(/FTS5/);

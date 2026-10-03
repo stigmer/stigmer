@@ -123,7 +123,7 @@ export async function prepareAgentExec(
   validateThinking(flags.thinking);
   validateHarness(flags.harness);
 
-  // Layered seeds (oss#293, DD-003): explicit flag > account preference
+  // Layered seeds (oss#293): explicit flag > account preference
   // (where the server serves identity accounts) > platform default. Harness resolves first because the model
   // fill is harness-aware: a cursor session fills from default_cursor_model,
   // everything else from default_native_model. `run` always creates a NEW

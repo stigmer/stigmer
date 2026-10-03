@@ -1,6 +1,6 @@
 // Dotted-key access for the generic `config get|set|list` commands. Only the
-// fields the TS CLI owns in Wave 1 are exposed; daemon/local settings are
-// managed by their own (later) commands and preserved opaquely on save.
+// fields this CLI owns are exposed; daemon/local settings are not, and are
+// preserved opaquely on save.
 
 import { UsageError } from "../errors/usage-error.js";
 import {

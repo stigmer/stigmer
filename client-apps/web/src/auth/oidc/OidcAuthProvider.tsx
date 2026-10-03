@@ -63,7 +63,7 @@ function resolveActiveManager(auth0Config: OidcConfig) {
  * **Any standards-compliant issuer**: the provider is configured from the
  * runtime config the deployment publishes — Stigmer Cloud's Auth0 tenant,
  * or a self-hosted server's own issuer (Keycloak, Okta, Dex, …) through
- * `STIGMER_OIDC_CONSOLE_CLIENT_ID` (20260913.02, stigmer#924). Nothing in
+ * `STIGMER_OIDC_CONSOLE_CLIENT_ID` (stigmer#924). Nothing in
  * here is vendor-shaped: discovery, PKCE, refresh and sign-out are the
  * OIDC standard's, so the same code signs in against every one of them.
  *

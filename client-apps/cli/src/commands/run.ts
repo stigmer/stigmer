@@ -222,7 +222,7 @@ async function runResolvedAgent(
 // Workflow path: create the execution, then either detach (print IDs + return,
 // Go parity) or stream it live over the canonical event stream. Mirrors Go's
 // routeRun workflow branch's guards. `--json` now produces a real NDJSON event
-// stream (fix for D-WF-1: Go silently ignored run workflow --json).
+// stream (Go silently ignored run workflow --json).
 async function runWorkflow(
   reference: string,
   options: RunFlags,
@@ -299,7 +299,8 @@ function stderrProgress(): (line: string) => void {
 
 // Mount the agent picker; on selection, run the chosen agent through the
 // existing resolved-agent stack. Cancel (Esc/Ctrl+C → undefined) returns
-// cleanly so the command exits 0. Loaded lazily to honor the DD-001 boundary.
+// cleanly so the command exits 0. Loaded lazily, so React/Ink load only on
+// this path.
 async function browseAndRunAgent(
   initialQuery: string,
   options: RunFlags,

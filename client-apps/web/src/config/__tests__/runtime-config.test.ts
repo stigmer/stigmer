@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // runtime-config — the /config.json contract the served console reads
 //
-// Two rules land here with sp.console-login:
+// Two rules land here:
 //
 //   - `apiUrl: ""` in /config.json means "the browser's own origin", the
 //     rule `appUrl` already follows. The server serves the console

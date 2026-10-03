@@ -58,7 +58,7 @@ export function useDesktopGitHubConnection(
 ): UseGitHubConnectionReturn {
   const deploymentMode = useDeploymentMode();
   // The hosted OAuth callback (the stigmer:// deep link) is a cloud-only
-  // facility (editions program, DD-001); every other edition completes the
+  // facility; every other edition completes the
   // flow through the localhost callback server.
   const isCloud = deploymentMode === "cloud";
 

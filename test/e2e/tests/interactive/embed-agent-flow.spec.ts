@@ -39,7 +39,7 @@ let server: Server;
 let hostOrigin: string;
 let hostPageAttributes = "";
 
-// Sharing is an AgentShare resource (decision 011): apply upserts the
+// Sharing is an AgentShare resource: apply upserts the
 // canonical share by (org, slug) — creating it on first use, exactly the
 // commit path the Share dialog and CLI use.
 async function enableSharing(

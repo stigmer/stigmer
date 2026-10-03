@@ -4,13 +4,12 @@
 // the supervised daemon, the Temporal manager, and the status/logs commands.
 // Keeping them in one module is what lets a coding agent change a port or a
 // queue name in exactly one place and trust that server-dispatch and
-// runner-poll can never drift (see the T05 plan's "Critical correctness
-// finding").
+// runner-poll can never drift.
 
 /**
  * Port `stigmer-server` listens on (gRPC). Matches the Go CLI's `DaemonPort`.
  *
- * This is also the web console's origin: since DD-012 the server serves the
+ * This is also the web console's origin: the server serves the
  * console's static export on this same unified port (lane 4), so the Go-era
  * WEB_CONSOLE_PORT (8234, a separate CLI-embedded listener) is retired —
  * one process, one origin, no CORS hop.

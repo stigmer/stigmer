@@ -76,7 +76,7 @@ export default function LibraryLanding() {
       </div>
 
       {/* Declarative entry point — wired identically to the web Library
-          landing (DD-016 parity). */}
+          landing. */}
       <button
         type="button"
         onClick={() => setApplyYamlOpen(true)}

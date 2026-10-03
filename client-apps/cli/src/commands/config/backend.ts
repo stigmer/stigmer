@@ -1,5 +1,5 @@
 // `stigmer config backend status|set|add|use|list|remove` — the named-backend
-// surface (O3, 20260827.06; the kubectl-context model). `status` and
+// surface (the kubectl-context model). `status` and
 // `set <local|cloud>` predate named backends and stay as the simple view:
 // set is sugar for `use` over the two reserved names.
 

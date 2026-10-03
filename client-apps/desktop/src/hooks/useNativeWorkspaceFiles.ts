@@ -31,11 +31,11 @@ const TRUNCATION_MARKER: WorkspaceFileEntry = {
  * - Returns `null` for non-local entries (git entries are not listable
  *   on desktop — the runner clones them at execution time).
  * - When the walker caps the folder, appends a {@link TRUNCATION_MARKER} so the
- *   SDK surfaces the same incomplete-listing banner the web (GitHub) lister does
- *   (DD-11 desktop parity).
+ *   SDK surfaces the same incomplete-listing banner the web (GitHub) lister
+ *   does.
  *
  * Designed to be passed as the `workspaceFileLister` prop to
- * `SessionViewer` / `NewSessionViewer` (DD-016 parity with web).
+ * `SessionViewer` / `NewSessionViewer` (parity with web).
  */
 export function useNativeWorkspaceFiles(): WorkspaceFileLister {
   return useCallback(async (entry: WorkspaceEntry) => {

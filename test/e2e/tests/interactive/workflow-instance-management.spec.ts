@@ -141,8 +141,8 @@ test.describe("Workflow Instance Management", () => {
       .click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
 
-    // Instance deletion does NOT cascade to executions (oss#582 owner
-    // ruling): the confirmation says so instead of claiming history is
+    // Instance deletion does NOT cascade to executions (oss#582): the
+    // confirmation says so instead of claiming history is
     // destroyed.
     await expect(
       page.getByText(

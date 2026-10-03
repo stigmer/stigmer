@@ -1,4 +1,4 @@
-// DD-001 boundary guard: React/Ink must load lazily so non-streaming commands
+// Lazy-loading guard: React/Ink must load lazily so non-streaming commands
 // and `--help` never pay for them. This codifies the boundary structurally so a
 // regression (a stray static import) fails CI instead of silently slowing every
 // command. The one allowed static importer is ink.tsx, which is itself only ever

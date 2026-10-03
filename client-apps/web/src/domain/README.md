@@ -41,7 +41,7 @@ Ask one question: **"Would a platform builder embedding Stigmer need this?"**
    They do not contain domain logic, state management, or complex orchestration.
 2. **No cross-domain imports.** `domain/settings/` should not import from
    `domain/session/`. Shared concerns live in `domain/_shared/`.
-3. **SDK first (DD-001).** If a component could be useful to platform builders,
+3. **SDK first.** If a component could be useful to platform builders,
    build it in `@stigmer/react` and consume it from here.
 4. **Console components stay Console-specific.** This directory is for code that
    depends on Next.js routing, Console auth, or app shell context — things that

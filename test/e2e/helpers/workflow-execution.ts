@@ -151,7 +151,7 @@ export function getExecutionThread(page: Page): Locator {
 
 /**
  * All task cards in the thread, in execution order. One card per STARTED
- * task — pending tasks render no card (D-T02-5).
+ * task — pending tasks render no card.
  */
 export function getThreadTaskCards(page: Page): Locator {
   return getExecutionThread(page).locator(

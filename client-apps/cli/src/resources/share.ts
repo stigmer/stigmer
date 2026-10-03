@@ -1,7 +1,7 @@
 // `share agent` dispatch: enable or disable sharing for an agent and report
 // the hosted chat link + embed snippet.
 //
-// Sharing lives in its own AgentShare resource (decision 011) — the agent is
+// Sharing lives in its own AgentShare resource — the agent is
 // never modified. This module resolves the agent, reads its canonical share,
 // and commits changes via `agentShare.apply`, an idempotent upsert keyed on
 // the share's (org, slug) identity: the first enable creates the share, later
@@ -210,7 +210,7 @@ function audienceFromProto(audience: AgentShareAudience | undefined): ShareAudie
 // was never shared before). Identity comes from the existing share when one
 // exists — a manifest-created share may carry a non-default slug, and
 // applying with the agent's slug would create a SECOND share — and from the
-// agent's org + the agent's slug otherwise (the server's own D2 default,
+// agent's org + the agent's slug otherwise (the server's own default,
 // made explicit). The audience is written explicitly — never left
 // unspecified — so a console-managed org share can't drift back to public.
 function preservingShareInput(

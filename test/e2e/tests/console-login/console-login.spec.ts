@@ -3,9 +3,9 @@ import { OIDC_ISSUER, OIDC_STACK } from "../../fixtures/oidc";
 
 /**
  * Console login against an authenticated self-hosted server
- * (20260913.02, sp.console-login; stigmer#924).
+ * (stigmer#924).
  *
- * The one flow this project exists to prove, end to end and hermetically:
+ * The one flow this suite exists to prove, end to end and hermetically:
  * a browser opens the console against a server booted in the OIDC posture
  * (`STIGMER_OIDC_ISSUER` / `_AUDIENCE` pointing at the harness's local
  * issuer, which auto-consents as its configured person), is sent to the

@@ -1,7 +1,7 @@
 // Capability gate for the interactive resource pickers (`run` agent browse,
 // `resume` session browse). Deliberately free of any React/Ink imports so the
 // command can decide whether to take the interactive path *before* paying the
-// dynamic-import cost of picker/ink.tsx (DD-001 lazy boundary).
+// dynamic-import cost of picker/ink.tsx.
 
 import { isInkSupported } from "../stream/tty.js";
 

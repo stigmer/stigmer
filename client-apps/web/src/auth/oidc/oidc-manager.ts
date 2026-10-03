@@ -8,8 +8,8 @@
 // The two URIs below are the pair an operator registers at their identity
 // provider for the console (docs/guides/self-hosting/authentication.mdx):
 // the redirect URI `/auth/callback` and the post-logout URI `/login`, both
-// on the console's own origin (20260913.02 Q-CL-9: one signed-out landing
-// for both sign-out arms).
+// on the console's own origin (one signed-out landing for both sign-out
+// arms).
 //
 // The `audience` extra query parameter is how Auth0 is told to mint a JWT
 // access token for the API instead of an opaque one; standards-compliant

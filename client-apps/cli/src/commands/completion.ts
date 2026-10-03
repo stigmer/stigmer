@@ -1,10 +1,8 @@
 // `stigmer completion <shell>` — emit a shell completion script.
 //
-// Wave 1 provides top-level command completion derived from the live commander
+// Completion covers the top-level commands, derived from the live commander
 // tree (so new commands appear automatically — the tree is the source of
-// truth). Flag-level and dynamic resource completion are a T06 enhancement;
-// DD-001 records completion parity as a T04/T06 checklist item, not a
-// framework-selection concern.
+// truth). Flag-level and dynamic resource completion are not implemented.
 
 import type { Command } from "commander";
 

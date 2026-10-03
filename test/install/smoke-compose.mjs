@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * The compose-stack gate smoke (DD-013, Phase-2 P5) — the ONE smoke,
+ * The compose-stack gate smoke — the ONE smoke,
  * shared by three consumers so their proofs cannot drift:
  *
  *   - local dev:        make smoke-compose            (build-from-source)
@@ -15,7 +15,8 @@
  *      (the image HEALTHCHECK via compose depends_on, then the real
  *      health service answering SERVING over Connect JSON);
  *   2. the console is served on the unified port (/config.json contract +
- *      / answers HTML) — DD-012 must survive the compose topology;
+ *      / answers HTML) — the one-origin console must survive the compose
+ *      topology;
  *   3. the artifact file server is published and answering on 7235 (the
  *      0.0.0.0 bind + port publish — a 404 from it IS the proof of life);
  *   4. the env file's STIGMER_PUBLIC_URL reached the server through the
@@ -27,8 +28,8 @@
  *      instead of storing it (#1484);
  *   6. one END-TO-END RUN: a deterministic `set_vars` workflow execution
  *      travels server → Temporal → runner → COMPLETED, with zero LLM
- *      keys (the gate ruling Q-C; the ci.conformance-execution precedent).
- *      This is the line the phase gate draws: the runner container
+ *      keys (the ci.conformance-execution precedent). This is the line
+ *      that matters: the runner container
  *      polled the queue and executed real work;
  *   7. one AGENT RUN answered by a model: the stack is configured the way
  *      the guide tells a user to (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL
@@ -161,7 +162,7 @@ async function main() {
     const refusal = await assertMissingOrganizationRefused(baseUrl);
     log(`missing organization: refused (HTTP ${refusal.status} ${refusal.code}: ${refusal.message})`);
 
-    // 6. The end-to-end run — the phase gate's line: it only completes if the
+    // 6. The end-to-end run — the line that matters: it only completes if the
     // runner container connected to Temporal and polled the queue.
     const { executionId } = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
     log(`end-to-end run: execution ${executionId} COMPLETED through the runner`);

@@ -1,6 +1,6 @@
 // Pins two probes every self-host smoke shares. The console lane: /config.json
 // under the trusted-local posture is ONE document (apiUrl and appUrl empty,
-// meaning "the console's own origin" — 20260913.02 Q-CL-3; sign-in disabled;
+// meaning "the console's own origin"; sign-in disabled;
 // no OIDC coordinates), asserted whole, and / answers HTML. The document is
 // spelled out here rather than imported so a drift in the library's constant
 // is caught, not mirrored. The Host-derived arm is the #1087 incident: four

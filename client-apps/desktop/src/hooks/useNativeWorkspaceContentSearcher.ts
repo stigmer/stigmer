@@ -22,8 +22,8 @@ import type {
  *   to the caller — never collapsed into `null`.
  *
  * Designed to be passed as the `workspaceContentSearcher` prop to
- * `SessionViewer` / `NewSessionViewer` (DD-016 parity with web, which leaves it
- * undefined until a branch-accurate backend search exists — DD-09).
+ * `SessionViewer` / `NewSessionViewer` (parity with web, which leaves it
+ * undefined until a branch-accurate backend search exists).
  */
 export function useNativeWorkspaceContentSearcher(): WorkspaceContentSearcher {
   return useCallback(

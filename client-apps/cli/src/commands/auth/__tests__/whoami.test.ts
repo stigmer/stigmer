@@ -1,12 +1,12 @@
-// Unit tests for `stigmer auth whoami`'s result (commands/auth/whoami.ts;
-// 20260911.11 A3): the command runs the SDK's ensureMyIdentityAccount — the
+// Unit tests for `stigmer auth whoami`'s result (commands/auth/whoami.ts):
+// the command runs the SDK's ensureMyIdentityAccount — the
 // same first-sign-in flow the console runs — and RENDERS what it learned.
 // whoamiResult is the pure half: given the account and whether this call
 // created it, the CommandResult a person reads. A first sign-in says so
 // (visibility of system status); a missing organization is a hint, not a
 // failure; an empty profile (the unconfigured laptop's operator) renders
 // only the fields it has. Accounts are built with the generated schema
-// (DD-007: the generated type is the contract; refinement 12, slice 4).
+// (the generated type is the contract).
 
 import { create } from "@bufbuild/protobuf";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
