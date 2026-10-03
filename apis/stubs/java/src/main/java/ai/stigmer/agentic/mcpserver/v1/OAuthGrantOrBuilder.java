@@ -34,7 +34,7 @@ public interface OAuthGrantOrBuilder extends
    * <pre>
    * System-generated ID (metadata.id) of the API resource this grant
    * provides OAuth tokens for. Part of the composite key:
-   * (identity_account_id, resource_id, org_id).
+   * (identity_account_id, resource_id, org).
    * </pre>
    *
    * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -45,7 +45,7 @@ public interface OAuthGrantOrBuilder extends
    * <pre>
    * System-generated ID (metadata.id) of the API resource this grant
    * provides OAuth tokens for. Part of the composite key:
-   * (identity_account_id, resource_id, org_id).
+   * (identity_account_id, resource_id, org).
    * </pre>
    *
    * <code>string resource_id = 2 [json_name = "resourceId"];</code>
@@ -231,24 +231,24 @@ public interface OAuthGrantOrBuilder extends
   /**
    * <pre>
    * Organization context for this grant. Part of the composite key:
-   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * (identity_account_id, resource_id, org). Enables the same user to
    * maintain separate OAuth connections for a shared resource across orgs.
    * </pre>
    *
-   * <code>string org_id = 11 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 11 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * Organization context for this grant. Part of the composite key:
-   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * (identity_account_id, resource_id, org). Enables the same user to
    * maintain separate OAuth connections for a shared resource across orgs.
    * </pre>
    *
-   * <code>string org_id = 11 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 11 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 }

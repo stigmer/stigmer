@@ -10,9 +10,9 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class BillingAccount(_message.Message):
-    __slots__ = ("id", "org_id", "status", "balance", "auto_recharge", "stripe_customer_id", "allowed_negative_balance_micros", "low_balance_threshold_micros", "default_payment_method", "created_at", "updated_at")
+    __slots__ = ("id", "org", "status", "balance", "auto_recharge", "stripe_customer_id", "allowed_negative_balance_micros", "low_balance_threshold_micros", "default_payment_method", "created_at", "updated_at")
     ID_FIELD_NUMBER: _ClassVar[int]
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     BALANCE_FIELD_NUMBER: _ClassVar[int]
     AUTO_RECHARGE_FIELD_NUMBER: _ClassVar[int]
@@ -23,7 +23,7 @@ class BillingAccount(_message.Message):
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
     id: str
-    org_id: str
+    org: str
     status: _enum_pb2.BillingAccountStatus
     balance: CreditBalance
     auto_recharge: AutoRechargeConfig
@@ -33,7 +33,7 @@ class BillingAccount(_message.Message):
     default_payment_method: PaymentMethodSummary
     created_at: _timestamp_pb2.Timestamp
     updated_at: _timestamp_pb2.Timestamp
-    def __init__(self, id: _Optional[str] = ..., org_id: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.BillingAccountStatus, str]] = ..., balance: _Optional[_Union[CreditBalance, _Mapping]] = ..., auto_recharge: _Optional[_Union[AutoRechargeConfig, _Mapping]] = ..., stripe_customer_id: _Optional[str] = ..., allowed_negative_balance_micros: _Optional[int] = ..., low_balance_threshold_micros: _Optional[int] = ..., default_payment_method: _Optional[_Union[PaymentMethodSummary, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., org: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.BillingAccountStatus, str]] = ..., balance: _Optional[_Union[CreditBalance, _Mapping]] = ..., auto_recharge: _Optional[_Union[AutoRechargeConfig, _Mapping]] = ..., stripe_customer_id: _Optional[str] = ..., allowed_negative_balance_micros: _Optional[int] = ..., low_balance_threshold_micros: _Optional[int] = ..., default_payment_method: _Optional[_Union[PaymentMethodSummary, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class CreditBalance(_message.Message):
     __slots__ = ("available_micros", "reserved_micros", "promotional_micros", "purchased_micros", "total_micros")

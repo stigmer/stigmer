@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
       "options.proto\032%ai/stigmer/iam/iampolicy/" +
       "v1/api.proto\032$ai/stigmer/iam/iampolicy/v" +
-      "1/io.proto2\240\013\n\030IamPolicyQueryController\022" +
+      "1/io.proto2\235\013\n\030IamPolicyQueryController\022" +
       "\205\001\n\003get\022(.ai.stigmer.iam.iampolicy.v1.Ia" +
       "mPolicyId\032&.ai.stigmer.iam.iampolicy.v1." +
       "IamPolicy\",\302\270\030(\010\005*$unauthorized to view " +
@@ -72,16 +72,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "incipalResourceInput\0323.ai.stigmer.iam.ia" +
       "mpolicy.v1.PrincipalResourceRoles\"H\302\270\030D\010" +
       "\005\032\rresource.kind\"\013resource.id*$unauthori" +
-      "zed to view principal roles\022\261\001\n\022getPrinc" +
+      "zed to view principal roles\022\256\001\n\022getPrinc" +
       "ipalsCount\0224.ai.stigmer.iam.iampolicy.v1" +
       ".GetPrincipalsCountInput\032,.ai.stigmer.ia" +
-      "m.iampolicy.v1.PrincipalsCount\"7\302\270\0303\010\005\020\036" +
-      "\"\006org_id*%unauthorized to view principal" +
-      "s count\032\004\240\377+\nB\235\001B\nQueryProtoP\001\242\002\004ASII\252\002\033" +
-      "Ai.Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer" +
-      "\\Iam\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampo" +
-      "licy\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Iam::" +
-      "Iampolicy::V1b\006proto3"
+      "m.iampolicy.v1.PrincipalsCount\"4\302\270\0300\010\005\020\036" +
+      "\"\003org*%unauthorized to view principals c" +
+      "ount\032\004\240\377+\nB\235\001B\nQueryProtoP\001\242\002\004ASII\252\002\033Ai." +
+      "Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\Ia" +
+      "m\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolic" +
+      "y\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Iam::Iam" +
+      "policy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

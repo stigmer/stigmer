@@ -232,7 +232,7 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
-     *     org_id (the integrator organization).
+     *     org (the integrator organization).
      * </pre>
      */
     default void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -323,7 +323,7 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
-     *     org_id (the integrator organization).
+     *     org (the integrator organization).
      * </pre>
      */
     public void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -402,7 +402,7 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
-     *     org_id (the integrator organization).
+     *     org (the integrator organization).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -478,7 +478,7 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
-     *     org_id (the integrator organization).
+     *     org (the integrator organization).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -555,7 +555,7 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
      *     include the feature. Metadata: feature ("managed_organizations"),
-     *     org_id (the integrator organization).
+     *     org (the integrator organization).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> create(

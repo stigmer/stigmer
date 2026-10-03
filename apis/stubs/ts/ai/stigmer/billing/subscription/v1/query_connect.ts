@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetEntitlementsInput, GetEntitlementsOutput, GetPeriodEstimateInput, GetSubscriptionForOrganizationInput, PeriodEstimate } from "./io_pbjs";
+import { GetEntitlementsInput, GetEntitlementsOutput, GetPeriodEstimateInput, GetSubscriptionForOrgInput, PeriodEstimate } from "./io_pbjs";
 import { Subscription } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -27,11 +27,11 @@ export const SubscriptionQueryController = {
      * is not a row. Callers that only need what the organization may do
      * should call getEntitlements, which answers for every organization.
      *
-     * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getForOrganization
+     * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getForOrg
      */
-    getForOrganization: {
-      name: "getForOrganization",
-      I: GetSubscriptionForOrganizationInput,
+    getForOrg: {
+      name: "getForOrg",
+      I: GetSubscriptionForOrgInput,
       O: Subscription,
       kind: MethodKind.Unary,
     },

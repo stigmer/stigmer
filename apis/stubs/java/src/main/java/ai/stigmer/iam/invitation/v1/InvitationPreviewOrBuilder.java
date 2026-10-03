@@ -15,60 +15,60 @@ public interface InvitationPreviewOrBuilder extends
    * Display name of the organization.
    * </pre>
    *
-   * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-   * @return The organizationName.
+   * <code>string org_name = 1 [json_name = "orgName"];</code>
+   * @return The orgName.
    */
-  java.lang.String getOrganizationName();
+  java.lang.String getOrgName();
   /**
    * <pre>
    * Display name of the organization.
    * </pre>
    *
-   * <code>string organization_name = 1 [json_name = "organizationName"];</code>
-   * @return The bytes for organizationName.
+   * <code>string org_name = 1 [json_name = "orgName"];</code>
+   * @return The bytes for orgName.
    */
   com.google.protobuf.ByteString
-      getOrganizationNameBytes();
+      getOrgNameBytes();
 
   /**
    * <pre>
    * URL-friendly identifier of the organization.
    * </pre>
    *
-   * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-   * @return The organizationSlug.
+   * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+   * @return The orgSlug.
    */
-  java.lang.String getOrganizationSlug();
+  java.lang.String getOrgSlug();
   /**
    * <pre>
    * URL-friendly identifier of the organization.
    * </pre>
    *
-   * <code>string organization_slug = 2 [json_name = "organizationSlug"];</code>
-   * @return The bytes for organizationSlug.
+   * <code>string org_slug = 2 [json_name = "orgSlug"];</code>
+   * @return The bytes for orgSlug.
    */
   com.google.protobuf.ByteString
-      getOrganizationSlugBytes();
+      getOrgSlugBytes();
 
   /**
    * <pre>
    * URL to the organization's logo image.
    * </pre>
    *
-   * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-   * @return The organizationLogoUrl.
+   * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+   * @return The orgLogoUrl.
    */
-  java.lang.String getOrganizationLogoUrl();
+  java.lang.String getOrgLogoUrl();
   /**
    * <pre>
    * URL to the organization's logo image.
    * </pre>
    *
-   * <code>string organization_logo_url = 3 [json_name = "organizationLogoUrl"];</code>
-   * @return The bytes for organizationLogoUrl.
+   * <code>string org_logo_url = 3 [json_name = "orgLogoUrl"];</code>
+   * @return The bytes for orgLogoUrl.
    */
   com.google.protobuf.ByteString
-      getOrganizationLogoUrlBytes();
+      getOrgLogoUrlBytes();
 
   /**
    * <pre>

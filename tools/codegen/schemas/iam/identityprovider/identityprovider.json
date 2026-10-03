@@ -62,16 +62,6 @@
       }
     },
     {
-      "name": "RateLimitBudget",
-      "jsonName": "rateLimitBudget",
-      "protoField": "rate_limit_budget",
-      "type": {
-        "kind": "int32"
-      },
-      "description": "A requests-per-minute budget that no server enforces.\n The value is accepted and stored, and it has no effect on sign-in or on\n request rates.",
-      "required": false
-    },
-    {
       "name": "UserinfoEndpoint",
       "jsonName": "userinfoEndpoint",
       "protoField": "userinfo_endpoint",

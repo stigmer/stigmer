@@ -61,7 +61,7 @@ type MintUserTokenRequest struct {
 	// supported. When set, this value must equal that owning organization;
 	// any other value is rejected INVALID_ARGUMENT before the user is
 	// resolved or provisioned. When empty, the owning organization applies.
-	OrgId         string `protobuf:"bytes,6,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string `protobuf:"bytes,6,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -131,9 +131,9 @@ func (x *MintUserTokenRequest) GetUserName() string {
 	return ""
 }
 
-func (x *MintUserTokenRequest) GetOrgId() string {
+func (x *MintUserTokenRequest) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -378,7 +378,7 @@ var File_ai_stigmer_iam_platformclient_v1_token_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/platformclient/v1/token.proto\x12 ai.stigmer.iam.platformclient.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"\xf6\x01\n" +
+	",ai/stigmer/iam/platformclient/v1/token.proto\x12 ai.stigmer.iam.platformclient.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"\xf1\x01\n" +
 	"\x14MintUserTokenRequest\x12$\n" +
 	"\tclient_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
 	"\rclient_secret\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fclientSecret\x12#\n" +
@@ -386,8 +386,8 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x06userId\x12'\n" +
 	"\n" +
 	"user_email\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xc0\x02R\tuserEmail\x12%\n" +
-	"\tuser_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\buserName\x12\x15\n" +
-	"\x06org_id\x18\x06 \x01(\tR\x05orgId\"x\n" +
+	"\tuser_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\buserName\x12\x10\n" +
+	"\x03org\x18\x06 \x01(\tR\x03org\"x\n" +
 	"\x15MintUserTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
 	"\n" +

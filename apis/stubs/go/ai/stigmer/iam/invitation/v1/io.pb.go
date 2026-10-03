@@ -270,11 +270,11 @@ func (x *RedeemInvitationInput) GetToken() string {
 type InvitationPreview struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Display name of the organization.
-	OrganizationName string `protobuf:"bytes,1,opt,name=organization_name,json=organizationName,proto3" json:"organization_name,omitempty"`
+	OrgName string `protobuf:"bytes,1,opt,name=org_name,json=orgName,proto3" json:"org_name,omitempty"`
 	// URL-friendly identifier of the organization.
-	OrganizationSlug string `protobuf:"bytes,2,opt,name=organization_slug,json=organizationSlug,proto3" json:"organization_slug,omitempty"`
+	OrgSlug string `protobuf:"bytes,2,opt,name=org_slug,json=orgSlug,proto3" json:"org_slug,omitempty"`
 	// URL to the organization's logo image.
-	OrganizationLogoUrl string `protobuf:"bytes,3,opt,name=organization_logo_url,json=organizationLogoUrl,proto3" json:"organization_logo_url,omitempty"`
+	OrgLogoUrl string `protobuf:"bytes,3,opt,name=org_logo_url,json=orgLogoUrl,proto3" json:"org_logo_url,omitempty"`
 	// The role that will be granted upon redemption.
 	Role v1.IamRole `protobuf:"varint,4,opt,name=role,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"role,omitempty"`
 	// When this invitation expires.
@@ -321,23 +321,23 @@ func (*InvitationPreview) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_invitation_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *InvitationPreview) GetOrganizationName() string {
+func (x *InvitationPreview) GetOrgName() string {
 	if x != nil {
-		return x.OrganizationName
+		return x.OrgName
 	}
 	return ""
 }
 
-func (x *InvitationPreview) GetOrganizationSlug() string {
+func (x *InvitationPreview) GetOrgSlug() string {
 	if x != nil {
-		return x.OrganizationSlug
+		return x.OrgSlug
 	}
 	return ""
 }
 
-func (x *InvitationPreview) GetOrganizationLogoUrl() string {
+func (x *InvitationPreview) GetOrgLogoUrl() string {
 	if x != nil {
-		return x.OrganizationLogoUrl
+		return x.OrgLogoUrl
 	}
 	return ""
 }
@@ -391,11 +391,12 @@ const file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc = "" +
 	"\x14InvitationTokenInput\x12\x1d\n" +
 	"\x05token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05token\"6\n" +
 	"\x15RedeemInvitationInput\x12\x1d\n" +
-	"\x05token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05token\"\xe4\x02\n" +
-	"\x11InvitationPreview\x12+\n" +
-	"\x11organization_name\x18\x01 \x01(\tR\x10organizationName\x12+\n" +
-	"\x11organization_slug\x18\x02 \x01(\tR\x10organizationSlug\x122\n" +
-	"\x15organization_logo_url\x18\x03 \x01(\tR\x13organizationLogoUrl\x12.\n" +
+	"\x05token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05token\"\xae\x02\n" +
+	"\x11InvitationPreview\x12\x19\n" +
+	"\borg_name\x18\x01 \x01(\tR\aorgName\x12\x19\n" +
+	"\borg_slug\x18\x02 \x01(\tR\aorgSlug\x12 \n" +
+	"\forg_logo_url\x18\x03 \x01(\tR\n" +
+	"orgLogoUrl\x12.\n" +
 	"\x04role\x18\x04 \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x04role\x129\n" +
 	"\n" +
 	"expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x14\n" +

@@ -37,7 +37,7 @@ private static final long serialVersionUID = 0L;
   }
   private ExecutionReservation() {
     reservationId_ = "";
-    orgId_ = "";
+    org_ = "";
     executionId_ = "";
     status_ = 0;
   }
@@ -108,27 +108,27 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ORG_ID_FIELD_NUMBER = 2;
+  public static final int ORG_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object orgId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * Organization that owns this reservation.
    * </pre>
    *
-   * <code>string org_id = 2 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrgId() {
-    java.lang.Object ref = orgId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      orgId_ = s;
+      org_ = s;
       return s;
     }
   }
@@ -137,18 +137,18 @@ private static final long serialVersionUID = 0L;
    * Organization that owns this reservation.
    * </pre>
    *
-   * <code>string org_id = 2 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgIdBytes() {
-    java.lang.Object ref = orgId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      orgId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -339,8 +339,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reservationId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, reservationId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, executionId_);
@@ -372,8 +372,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reservationId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, reservationId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, executionId_);
@@ -415,8 +415,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getReservationId()
         .equals(other.getReservationId())) return false;
-    if (!getOrgId()
-        .equals(other.getOrgId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getExecutionId()
         .equals(other.getExecutionId())) return false;
     if (getReservedMicros()
@@ -447,8 +447,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + RESERVATION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getReservationId().hashCode();
-    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (37 * hash) + EXECUTION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getExecutionId().hashCode();
     hash = (37 * hash) + RESERVED_MICROS_FIELD_NUMBER;
@@ -614,7 +614,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       reservationId_ = "";
-      orgId_ = "";
+      org_ = "";
       executionId_ = "";
       reservedMicros_ = 0L;
       consumedMicros_ = 0L;
@@ -666,7 +666,7 @@ private static final long serialVersionUID = 0L;
         result.reservationId_ = reservationId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.orgId_ = orgId_;
+        result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.executionId_ = executionId_;
@@ -713,8 +713,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getOrgId().isEmpty()) {
-        orgId_ = other.orgId_;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000002;
         onChanged();
       }
@@ -770,7 +770,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 10
             case 18: {
-              orgId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
@@ -917,22 +917,22 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object orgId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * Organization that owns this reservation.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @return The orgId.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @return The org.
      */
-    public java.lang.String getOrgId() {
-      java.lang.Object ref = orgId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        orgId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -943,17 +943,17 @@ private static final long serialVersionUID = 0L;
      * Organization that owns this reservation.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @return The bytes for orgId.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrgIdBytes() {
-      java.lang.Object ref = orgId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        orgId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -964,14 +964,14 @@ private static final long serialVersionUID = 0L;
      * Organization that owns this reservation.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @param value The orgId to set.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
@@ -981,11 +981,11 @@ private static final long serialVersionUID = 0L;
      * Organization that owns this reservation.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
+     * <code>string org = 2 [json_name = "org"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgId() {
-      orgId_ = getDefaultInstance().getOrgId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
@@ -995,15 +995,15 @@ private static final long serialVersionUID = 0L;
      * Organization that owns this reservation.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @param value The bytes for orgId to set.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;

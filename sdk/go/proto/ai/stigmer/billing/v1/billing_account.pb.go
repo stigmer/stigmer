@@ -36,7 +36,7 @@ type BillingAccount struct {
 	// Unique identifier for the billing account.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Organization that owns this billing account.
-	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Current lifecycle status.
 	Status BillingAccountStatus `protobuf:"varint,3,opt,name=status,proto3,enum=ai.stigmer.billing.v1.BillingAccountStatus" json:"status,omitempty"`
 	// Real-time credit balance breakdown.
@@ -97,9 +97,9 @@ func (x *BillingAccount) GetId() string {
 	return ""
 }
 
-func (x *BillingAccount) GetOrgId() string {
+func (x *BillingAccount) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -446,10 +446,10 @@ var File_ai_stigmer_billing_v1_billing_account_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/v1/billing_account.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9b\x05\n" +
+	"+ai/stigmer/billing/v1/billing_account.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\x05\n" +
 	"\x0eBillingAccount\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
-	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12C\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12C\n" +
 	"\x06status\x18\x03 \x01(\x0e2+.ai.stigmer.billing.v1.BillingAccountStatusR\x06status\x12>\n" +
 	"\abalance\x18\x04 \x01(\v2$.ai.stigmer.billing.v1.CreditBalanceR\abalance\x12N\n" +
 	"\rauto_recharge\x18\x05 \x01(\v2).ai.stigmer.billing.v1.AutoRechargeConfigR\fautoRecharge\x12,\n" +

@@ -111,10 +111,10 @@ public interface GetAgentUsageReportInputOrBuilder extends
    * aggregated. The caller must hold can_view on the organization.
    * </pre>
    *
-   * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The orgId.
+   * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * Organization scope for the report: usage of this agent within this
@@ -122,9 +122,9 @@ public interface GetAgentUsageReportInputOrBuilder extends
    * aggregated. The caller must hold can_view on the organization.
    * </pre>
    *
-   * <code>string org_id = 6 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for orgId.
+   * <code>string org = 6 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 }

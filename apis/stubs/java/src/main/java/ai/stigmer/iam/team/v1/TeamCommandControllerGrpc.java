@@ -185,7 +185,7 @@ public final class TeamCommandControllerGrpc {
      * lacks them is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-     *     the feature. Metadata: feature ("teams"), org_id.
+     *     the feature. Metadata: feature ("teams"), org.
      * </pre>
      */
     default void create(ai.stigmer.iam.team.v1.Team request,
@@ -259,7 +259,7 @@ public final class TeamCommandControllerGrpc {
      * lacks them is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-     *     the feature. Metadata: feature ("teams"), org_id.
+     *     the feature. Metadata: feature ("teams"), org.
      * </pre>
      */
     public void create(ai.stigmer.iam.team.v1.Team request,
@@ -320,7 +320,7 @@ public final class TeamCommandControllerGrpc {
      * lacks them is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-     *     the feature. Metadata: feature ("teams"), org_id.
+     *     the feature. Metadata: feature ("teams"), org.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team create(ai.stigmer.iam.team.v1.Team request) throws io.grpc.StatusException {
@@ -378,7 +378,7 @@ public final class TeamCommandControllerGrpc {
      * lacks them is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-     *     the feature. Metadata: feature ("teams"), org_id.
+     *     the feature. Metadata: feature ("teams"), org.
      * </pre>
      */
     public ai.stigmer.iam.team.v1.Team create(ai.stigmer.iam.team.v1.Team request) {
@@ -436,7 +436,7 @@ public final class TeamCommandControllerGrpc {
      * lacks them is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-     *     the feature. Metadata: feature ("teams"), org_id.
+     *     the feature. Metadata: feature ("teams"), org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.team.v1.Team> create(

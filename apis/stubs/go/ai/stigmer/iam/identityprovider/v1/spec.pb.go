@@ -163,10 +163,6 @@ type IdentityProviderSpec struct {
 	// names, such as its userinfo endpoint, which the issuer may add to every
 	// token it mints.
 	ExpectedAudience string `protobuf:"bytes,4,opt,name=expected_audience,json=expectedAudience,proto3" json:"expected_audience,omitempty"`
-	// A requests-per-minute budget that no server enforces.
-	// The value is accepted and stored, and it has no effect on sign-in or on
-	// request rates.
-	RateLimitBudget int32 `protobuf:"varint,5,opt,name=rate_limit_budget,json=rateLimitBudget,proto3" json:"rate_limit_budget,omitempty"`
 	// OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
 	// When Stigmer auto-provisions a federated account from a token that carries
 	// no email claim, it calls this endpoint with that token (as a Bearer token)
@@ -364,13 +360,6 @@ func (x *IdentityProviderSpec) GetExpectedAudience() string {
 	return ""
 }
 
-func (x *IdentityProviderSpec) GetRateLimitBudget() int32 {
-	if x != nil {
-		return x.RateLimitBudget
-	}
-	return 0
-}
-
 func (x *IdentityProviderSpec) GetUserinfoEndpoint() string {
 	if x != nil {
 		return x.UserinfoEndpoint
@@ -424,15 +413,14 @@ var File_ai_stigmer_iam_identityprovider_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xc3\a\n" +
+	"-ai/stigmer/iam/identityprovider/v1/spec.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\a\n" +
 	"\x14IdentityProviderSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
 	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12:\n" +
 	"\x0fallowed_issuers\x18\x03 \x03(\tB\x11\xbaH\x0e\x92\x01\v\x10\n" +
 	"\"\ar\x05\x10\x01\x18\x80\x10R\x0eallowedIssuers\x127\n" +
 	"\x11expected_audience\x18\x04 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\xc8\x01R\x10expectedAudience\x12*\n" +
-	"\x11rate_limit_budget\x18\x05 \x01(\x05R\x0frateLimitBudget\x125\n" +
+	"\xbaH\ar\x05\x10\x01\x18\xc8\x01R\x10expectedAudience\x125\n" +
 	"\x11userinfo_endpoint\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x10userinfoEndpoint\x12&\n" +
 	"\x0fis_sso_provider\x18\a \x01(\bR\risSsoProvider\x12.\n" +
 	"\x0eoidc_client_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\foidcClientId\x126\n" +
@@ -442,7 +430,7 @@ const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\x0fauto_grant_role\x18\v \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x122\n" +
 	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaim:\xcd\x02\xbaH\xc9\x02\x1a\x9d\x01\n" +
 	"+identity_provider.auto_grant_role_not_owner\x12Sauto_grant_role cannot be owner; organization ownership must be assigned explicitly\x1a\x19this.auto_grant_role != 1\x1a\xa6\x01\n" +
-	"0identity_provider.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''B\xc0\x02\n" +
+	"0identity_provider.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''J\x04\b\x05\x10\x06R\x11rate_limit_budgetB\xc0\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (

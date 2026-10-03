@@ -1,6 +1,6 @@
 {
   "name": "Entitlements",
-  "description": "What the platform permits a tenant: a set of limits and a set of features.\n\n An entitlement is what the platform permits; a subscription and a license\n are the two instruments that grant it. The cloud derives an organization's\n entitlements from its subscription's plan and the Enterprise server reads\n them from the signed claims of its license, so this message lives under\n platform, where both editions can import it, and never under billing,\n which only the cloud composes. Entitlements are derived on read and never\n stored as truth; there is no Entitlement resource kind.",
+  "description": "What an edition permits its customer: a set of limits and a set of features.\n\n An entitlement is what the platform permits; a subscription and a license\n are the two instruments that grant it. The cloud derives an organization's\n entitlements from its subscription's plan and the Enterprise server reads\n them from the signed claims of its license, so this message lives under\n platform, where both editions can import it, and never under billing,\n which only the cloud composes. Entitlements are derived on read and never\n stored as truth; there is no Entitlement resource kind.",
   "protoType": "ai.stigmer.platform.v1.Entitlements",
   "protoFile": "apis/ai/stigmer/platform/v1/entitlement.proto",
   "fields": [

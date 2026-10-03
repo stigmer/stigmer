@@ -46,7 +46,7 @@ public final class OauthProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n+ai/stigmer/agentic/mcpserver/v1/oauth." +
-      "proto\022\037ai.stigmer.agentic.mcpserver.v1\"\300" +
+      "proto\022\037ai.stigmer.agentic.mcpserver.v1\"\273" +
       "\003\n\nOAuthGrant\022.\n\023identity_account_id\030\001 \001" +
       "(\tR\021identityAccountId\022\037\n\013resource_id\030\002 \001" +
       "(\tR\nresourceId\0225\n\027access_token_expires_a" +
@@ -57,16 +57,16 @@ public final class OauthProto extends com.google.protobuf.GeneratedFile {
       "R\021accessTokenEnvVar\0221\n\025refresh_token_env" +
       "_var\030\010 \001(\tR\022refreshTokenEnvVar\022%\n\016enviro" +
       "nment_id\030\t \001(\tR\renvironmentId\022#\n\rresourc" +
-      "e_kind\030\n \001(\tR\014resourceKind\022\025\n\006org_id\030\013 \001" +
-      "(\tR\005orgId\"\221\001\n\020OAuthAppOverride\022\037\n\013resour" +
-      "ce_id\030\001 \001(\tR\nresourceId\022#\n\rresource_kind" +
-      "\030\002 \001(\tR\014resourceKind\022\025\n\006org_id\030\003 \001(\tR\005or" +
-      "gId\022 \n\014oauth_app_id\030\004 \001(\tR\noauthAppIdB\255\001" +
-      "B\nOauthProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agent" +
-      "ic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcp" +
-      "server\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver" +
-      "\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::" +
-      "Mcpserver::V1b\006proto3"
+      "e_kind\030\n \001(\tR\014resourceKind\022\020\n\003org\030\013 \001(\tR" +
+      "\003org\"\214\001\n\020OAuthAppOverride\022\037\n\013resource_id" +
+      "\030\001 \001(\tR\nresourceId\022#\n\rresource_kind\030\002 \001(" +
+      "\tR\014resourceKind\022\020\n\003org\030\003 \001(\tR\003org\022 \n\014oau" +
+      "th_app_id\030\004 \001(\tR\noauthAppIdB\255\001B\nOauthPro" +
+      "toP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserv" +
+      "er.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342" +
+      "\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMet" +
+      "adata\352\002#Ai::Stigmer::Agentic::Mcpserver:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -77,13 +77,13 @@ public final class OauthProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthGrant_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthGrant_descriptor,
-        new java.lang.String[] { "IdentityAccountId", "ResourceId", "AccessTokenExpiresAt", "ClientId", "AuthMethod", "TokenEndpoint", "AccessTokenEnvVar", "RefreshTokenEnvVar", "EnvironmentId", "ResourceKind", "OrgId", });
+        new java.lang.String[] { "IdentityAccountId", "ResourceId", "AccessTokenExpiresAt", "ClientId", "AuthMethod", "TokenEndpoint", "AccessTokenEnvVar", "RefreshTokenEnvVar", "EnvironmentId", "ResourceKind", "Org", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthAppOverride_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthAppOverride_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_OAuthAppOverride_descriptor,
-        new java.lang.String[] { "ResourceId", "ResourceKind", "OrgId", "OauthAppId", });
+        new java.lang.String[] { "ResourceId", "ResourceKind", "Org", "OauthAppId", });
     descriptor.resolveAllFeaturesImmutable();
   }
 

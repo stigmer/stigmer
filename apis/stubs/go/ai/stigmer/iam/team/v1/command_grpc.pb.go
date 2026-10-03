@@ -41,7 +41,7 @@ type TeamCommandControllerClient interface {
 	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
 	//
 	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-	//     the feature. Metadata: feature ("teams"), org_id.
+	//     the feature. Metadata: feature ("teams"), org.
 	Create(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
 	// Update a team's name or description.
 	Update(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
@@ -105,7 +105,7 @@ type TeamCommandControllerServer interface {
 	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
 	//
 	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-	//     the feature. Metadata: feature ("teams"), org_id.
+	//     the feature. Metadata: feature ("teams"), org.
 	Create(context.Context, *Team) (*Team, error)
 	// Update a team's name or description.
 	Update(context.Context, *Team) (*Team, error)

@@ -53,7 +53,7 @@ export const OrganizationCommandController: GenService<{
    *
    *   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not
    *     include the feature. Metadata: feature ("managed_organizations"),
-   *     org_id (the integrator organization).
+   *     org (the integrator organization).
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.create
    */

@@ -262,20 +262,20 @@ class GetSessionUsageReportOutput(_message.Message):
     def __init__(self, session_id: _Optional[str] = ..., execution_count: _Optional[int] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., executions: _Optional[_Iterable[_Union[ExecutionUsageSummary, _Mapping]]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., first_execution_at: _Optional[str] = ..., last_execution_at: _Optional[str] = ..., is_estimated: bool = ...) -> None: ...
 
 class GetAgentUsageReportInput(_message.Message):
-    __slots__ = ("agent_id", "from_date", "to_date", "page_size", "page_token", "org_id")
+    __slots__ = ("agent_id", "from_date", "to_date", "page_size", "page_token", "org")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     FROM_DATE_FIELD_NUMBER: _ClassVar[int]
     TO_DATE_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     from_date: str
     to_date: str
     page_size: int
     page_token: str
-    org_id: str
-    def __init__(self, agent_id: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., org_id: _Optional[str] = ...) -> None: ...
+    org: str
+    def __init__(self, agent_id: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
 class GetAgentUsageReportOutput(_message.Message):
     __slots__ = ("agent_id", "agent_name", "total_usage", "model_breakdown", "sessions", "total_sessions", "total_executions", "total_billable_cost_micros", "next_page_token")
@@ -300,18 +300,18 @@ class GetAgentUsageReportOutput(_message.Message):
     def __init__(self, agent_id: _Optional[str] = ..., agent_name: _Optional[str] = ..., total_usage: _Optional[_Union[_usage_pb2.UsageReportAggregate, _Mapping]] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., sessions: _Optional[_Iterable[_Union[SessionUsageSummary, _Mapping]]] = ..., total_sessions: _Optional[int] = ..., total_executions: _Optional[int] = ..., total_billable_cost_micros: _Optional[int] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class GetOrgUsageReportInput(_message.Message):
-    __slots__ = ("org_id", "from_date", "to_date")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "from_date", "to_date")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     FROM_DATE_FIELD_NUMBER: _ClassVar[int]
     TO_DATE_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     from_date: str
     to_date: str
-    def __init__(self, org_id: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., from_date: _Optional[str] = ..., to_date: _Optional[str] = ...) -> None: ...
 
 class GetOrgUsageReportOutput(_message.Message):
-    __slots__ = ("org_id", "total_agents", "total_sessions", "total_executions", "total_billable_cost_micros", "model_breakdown", "top_agents_by_cost", "daily_costs", "harness_breakdown")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "total_agents", "total_sessions", "total_executions", "total_billable_cost_micros", "model_breakdown", "top_agents_by_cost", "daily_costs", "harness_breakdown")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     TOTAL_AGENTS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_SESSIONS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_EXECUTIONS_FIELD_NUMBER: _ClassVar[int]
@@ -320,7 +320,7 @@ class GetOrgUsageReportOutput(_message.Message):
     TOP_AGENTS_BY_COST_FIELD_NUMBER: _ClassVar[int]
     DAILY_COSTS_FIELD_NUMBER: _ClassVar[int]
     HARNESS_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     total_agents: int
     total_sessions: int
     total_executions: int
@@ -329,7 +329,7 @@ class GetOrgUsageReportOutput(_message.Message):
     top_agents_by_cost: _containers.RepeatedCompositeFieldContainer[AgentUsageSummary]
     daily_costs: _containers.RepeatedCompositeFieldContainer[DailyCostEntry]
     harness_breakdown: _containers.RepeatedCompositeFieldContainer[HarnessCostSummary]
-    def __init__(self, org_id: _Optional[str] = ..., total_agents: _Optional[int] = ..., total_sessions: _Optional[int] = ..., total_executions: _Optional[int] = ..., total_billable_cost_micros: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., top_agents_by_cost: _Optional[_Iterable[_Union[AgentUsageSummary, _Mapping]]] = ..., daily_costs: _Optional[_Iterable[_Union[DailyCostEntry, _Mapping]]] = ..., harness_breakdown: _Optional[_Iterable[_Union[HarnessCostSummary, _Mapping]]] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., total_agents: _Optional[int] = ..., total_sessions: _Optional[int] = ..., total_executions: _Optional[int] = ..., total_billable_cost_micros: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[_usage_pb2.ModelUsage, _Mapping]]] = ..., top_agents_by_cost: _Optional[_Iterable[_Union[AgentUsageSummary, _Mapping]]] = ..., daily_costs: _Optional[_Iterable[_Union[DailyCostEntry, _Mapping]]] = ..., harness_breakdown: _Optional[_Iterable[_Union[HarnessCostSummary, _Mapping]]] = ...) -> None: ...
 
 class ExecutionUsageSummary(_message.Message):
     __slots__ = ("execution_id", "started_at", "completed_at", "input_tokens", "output_tokens", "cache_read_input_tokens", "billable_cost_micros", "primary_model", "sub_agent_count", "phase", "is_estimated")

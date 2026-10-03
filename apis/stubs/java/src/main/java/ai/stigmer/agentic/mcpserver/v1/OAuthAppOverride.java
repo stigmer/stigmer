@@ -35,7 +35,7 @@ private static final long serialVersionUID = 0L;
   private OAuthAppOverride() {
     resourceId_ = "";
     resourceKind_ = "";
-    orgId_ = "";
+    org_ = "";
     oauthAppId_ = "";
   }
 
@@ -63,7 +63,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-generated ID (metadata.id) of the API resource this override
-   * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+   * applies to. Part of the composite key: (resource_id, resource_kind, org).
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -85,7 +85,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-generated ID (metadata.id) of the API resource this override
-   * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+   * applies to. Part of the composite key: (resource_id, resource_kind, org).
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -157,9 +157,9 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ORG_ID_FIELD_NUMBER = 3;
+  public static final int ORG_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object orgId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * Organization that owns this override. Part of the composite key.
@@ -167,19 +167,19 @@ private static final long serialVersionUID = 0L;
    * shared (platform-scoped) resource.
    * </pre>
    *
-   * <code>string org_id = 3 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrgId() {
-    java.lang.Object ref = orgId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      orgId_ = s;
+      org_ = s;
       return s;
     }
   }
@@ -190,18 +190,18 @@ private static final long serialVersionUID = 0L;
    * shared (platform-scoped) resource.
    * </pre>
    *
-   * <code>string org_id = 3 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgIdBytes() {
-    java.lang.Object ref = orgId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      orgId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -279,8 +279,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, resourceKind_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(oauthAppId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, oauthAppId_);
@@ -300,8 +300,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, resourceKind_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(oauthAppId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, oauthAppId_);
@@ -325,8 +325,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getResourceId())) return false;
     if (!getResourceKind()
         .equals(other.getResourceKind())) return false;
-    if (!getOrgId()
-        .equals(other.getOrgId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getOauthAppId()
         .equals(other.getOauthAppId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -344,8 +344,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getResourceId().hashCode();
     hash = (37 * hash) + RESOURCE_KIND_FIELD_NUMBER;
     hash = (53 * hash) + getResourceKind().hashCode();
-    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (37 * hash) + OAUTH_APP_ID_FIELD_NUMBER;
     hash = (53 * hash) + getOauthAppId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -486,7 +486,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       resourceId_ = "";
       resourceKind_ = "";
-      orgId_ = "";
+      org_ = "";
       oauthAppId_ = "";
       return this;
     }
@@ -528,7 +528,7 @@ private static final long serialVersionUID = 0L;
         result.resourceKind_ = resourceKind_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.orgId_ = orgId_;
+        result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.oauthAppId_ = oauthAppId_;
@@ -557,8 +557,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getOrgId().isEmpty()) {
-        orgId_ = other.orgId_;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -604,7 +604,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 18
             case 26: {
-              orgId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
@@ -634,7 +634,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-generated ID (metadata.id) of the API resource this override
-     * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+     * applies to. Part of the composite key: (resource_id, resource_kind, org).
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -655,7 +655,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-generated ID (metadata.id) of the API resource this override
-     * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+     * applies to. Part of the composite key: (resource_id, resource_kind, org).
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -677,7 +677,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-generated ID (metadata.id) of the API resource this override
-     * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+     * applies to. Part of the composite key: (resource_id, resource_kind, org).
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -695,7 +695,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-generated ID (metadata.id) of the API resource this override
-     * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+     * applies to. Part of the composite key: (resource_id, resource_kind, org).
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -710,7 +710,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-generated ID (metadata.id) of the API resource this override
-     * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+     * applies to. Part of the composite key: (resource_id, resource_kind, org).
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -829,7 +829,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object orgId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * Organization that owns this override. Part of the composite key.
@@ -837,16 +837,16 @@ private static final long serialVersionUID = 0L;
      * shared (platform-scoped) resource.
      * </pre>
      *
-     * <code>string org_id = 3 [json_name = "orgId"];</code>
-     * @return The orgId.
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @return The org.
      */
-    public java.lang.String getOrgId() {
-      java.lang.Object ref = orgId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        orgId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -859,17 +859,17 @@ private static final long serialVersionUID = 0L;
      * shared (platform-scoped) resource.
      * </pre>
      *
-     * <code>string org_id = 3 [json_name = "orgId"];</code>
-     * @return The bytes for orgId.
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrgIdBytes() {
-      java.lang.Object ref = orgId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        orgId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -882,14 +882,14 @@ private static final long serialVersionUID = 0L;
      * shared (platform-scoped) resource.
      * </pre>
      *
-     * <code>string org_id = 3 [json_name = "orgId"];</code>
-     * @param value The orgId to set.
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
@@ -901,11 +901,11 @@ private static final long serialVersionUID = 0L;
      * shared (platform-scoped) resource.
      * </pre>
      *
-     * <code>string org_id = 3 [json_name = "orgId"];</code>
+     * <code>string org = 3 [json_name = "org"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgId() {
-      orgId_ = getDefaultInstance().getOrgId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
@@ -917,15 +917,15 @@ private static final long serialVersionUID = 0L;
      * shared (platform-scoped) resource.
      * </pre>
      *
-     * <code>string org_id = 3 [json_name = "orgId"];</code>
-     * @param value The bytes for orgId to set.
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

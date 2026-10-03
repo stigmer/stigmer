@@ -441,23 +441,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int RATE_LIMIT_BUDGET_FIELD_NUMBER = 5;
-  private int rateLimitBudget_ = 0;
-  /**
-   * <pre>
-   * A requests-per-minute budget that no server enforces.
-   * The value is accepted and stored, and it has no effect on sign-in or on
-   * request rates.
-   * </pre>
-   *
-   * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
-   * @return The rateLimitBudget.
-   */
-  @java.lang.Override
-  public int getRateLimitBudget() {
-    return rateLimitBudget_;
-  }
-
   public static final int USERINFO_ENDPOINT_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private volatile java.lang.Object userinfoEndpoint_ = "";
@@ -882,9 +865,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expectedAudience_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, expectedAudience_);
     }
-    if (rateLimitBudget_ != 0) {
-      output.writeInt32(5, rateLimitBudget_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userinfoEndpoint_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, userinfoEndpoint_);
     }
@@ -931,10 +911,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expectedAudience_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, expectedAudience_);
-    }
-    if (rateLimitBudget_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(5, rateLimitBudget_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userinfoEndpoint_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, userinfoEndpoint_);
@@ -984,8 +960,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAllowedIssuersList())) return false;
     if (!getExpectedAudience()
         .equals(other.getExpectedAudience())) return false;
-    if (getRateLimitBudget()
-        != other.getRateLimitBudget()) return false;
     if (!getUserinfoEndpoint()
         .equals(other.getUserinfoEndpoint())) return false;
     if (getIsSsoProvider()
@@ -1020,8 +994,6 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + EXPECTED_AUDIENCE_FIELD_NUMBER;
     hash = (53 * hash) + getExpectedAudience().hashCode();
-    hash = (37 * hash) + RATE_LIMIT_BUDGET_FIELD_NUMBER;
-    hash = (53 * hash) + getRateLimitBudget();
     hash = (37 * hash) + USERINFO_ENDPOINT_FIELD_NUMBER;
     hash = (53 * hash) + getUserinfoEndpoint().hashCode();
     hash = (37 * hash) + IS_SSO_PROVIDER_FIELD_NUMBER;
@@ -1269,7 +1241,6 @@ private static final long serialVersionUID = 0L;
       allowedIssuers_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       expectedAudience_ = "";
-      rateLimitBudget_ = 0;
       userinfoEndpoint_ = "";
       isSsoProvider_ = false;
       oidcClientId_ = "";
@@ -1324,27 +1295,24 @@ private static final long serialVersionUID = 0L;
         result.expectedAudience_ = expectedAudience_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.rateLimitBudget_ = rateLimitBudget_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.userinfoEndpoint_ = userinfoEndpoint_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.isSsoProvider_ = isSsoProvider_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.oidcClientId_ = oidcClientId_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.autoProvisionAccounts_ = autoProvisionAccounts_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.autoGrantOnOrg_ = autoGrantOnOrg_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.autoGrantRole_ = autoGrantRole_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.tenantOrgClaim_ = tenantOrgClaim_;
       }
     }
@@ -1386,12 +1354,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000008;
         onChanged();
       }
-      if (other.getRateLimitBudget() != 0) {
-        setRateLimitBudget(other.getRateLimitBudget());
-      }
       if (!other.getUserinfoEndpoint().isEmpty()) {
         userinfoEndpoint_ = other.userinfoEndpoint_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       if (other.getIsSsoProvider() != false) {
@@ -1399,7 +1364,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getOidcClientId().isEmpty()) {
         oidcClientId_ = other.oidcClientId_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       if (other.getAutoProvisionAccounts() != false) {
@@ -1413,7 +1378,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getTenantOrgClaim().isEmpty()) {
         tenantOrgClaim_ = other.tenantOrgClaim_;
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1462,44 +1427,39 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
-            case 40: {
-              rateLimitBudget_ = input.readInt32();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             case 50: {
               userinfoEndpoint_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 50
             case 56: {
               isSsoProvider_ = input.readBool();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 56
             case 66: {
               oidcClientId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 66
             case 72: {
               autoProvisionAccounts_ = input.readBool();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 72
             case 80: {
               autoGrantOnOrg_ = input.readBool();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 80
             case 88: {
               autoGrantRole_ = input.readEnum();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 88
             case 98: {
               tenantOrgClaim_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 98
             default: {
@@ -2169,56 +2129,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int rateLimitBudget_ ;
-    /**
-     * <pre>
-     * A requests-per-minute budget that no server enforces.
-     * The value is accepted and stored, and it has no effect on sign-in or on
-     * request rates.
-     * </pre>
-     *
-     * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
-     * @return The rateLimitBudget.
-     */
-    @java.lang.Override
-    public int getRateLimitBudget() {
-      return rateLimitBudget_;
-    }
-    /**
-     * <pre>
-     * A requests-per-minute budget that no server enforces.
-     * The value is accepted and stored, and it has no effect on sign-in or on
-     * request rates.
-     * </pre>
-     *
-     * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
-     * @param value The rateLimitBudget to set.
-     * @return This builder for chaining.
-     */
-    public Builder setRateLimitBudget(int value) {
-
-      rateLimitBudget_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * A requests-per-minute budget that no server enforces.
-     * The value is accepted and stored, and it has no effect on sign-in or on
-     * request rates.
-     * </pre>
-     *
-     * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearRateLimitBudget() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      rateLimitBudget_ = 0;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object userinfoEndpoint_ = "";
     /**
      * <pre>
@@ -2313,7 +2223,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       userinfoEndpoint_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2340,7 +2250,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearUserinfoEndpoint() {
       userinfoEndpoint_ = getDefaultInstance().getUserinfoEndpoint();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
@@ -2371,7 +2281,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       userinfoEndpoint_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2431,7 +2341,7 @@ private static final long serialVersionUID = 0L;
     public Builder setIsSsoProvider(boolean value) {
 
       isSsoProvider_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2459,7 +2369,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearIsSsoProvider() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       isSsoProvider_ = false;
       onChanged();
       return this;
@@ -2550,7 +2460,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       oidcClientId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2574,7 +2484,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearOidcClientId() {
       oidcClientId_ = getDefaultInstance().getOidcClientId();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -2602,7 +2512,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       oidcClientId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2672,7 +2582,7 @@ private static final long serialVersionUID = 0L;
     public Builder setAutoProvisionAccounts(boolean value) {
 
       autoProvisionAccounts_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2705,7 +2615,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearAutoProvisionAccounts() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       autoProvisionAccounts_ = false;
       onChanged();
       return this;
@@ -2778,7 +2688,7 @@ private static final long serialVersionUID = 0L;
     public Builder setAutoGrantOnOrg(boolean value) {
 
       autoGrantOnOrg_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2812,7 +2722,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearAutoGrantOnOrg() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       autoGrantOnOrg_ = false;
       onChanged();
       return this;
@@ -2870,7 +2780,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setAutoGrantRoleValue(int value) {
       autoGrantRole_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -2926,7 +2836,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setAutoGrantRole(ai.stigmer.iam.v1.IamRole value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       autoGrantRole_ = value.getNumber();
       onChanged();
       return this;
@@ -2954,7 +2864,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearAutoGrantRole() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       autoGrantRole_ = 0;
       onChanged();
       return this;
@@ -3099,7 +3009,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       tenantOrgClaim_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3141,7 +3051,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearTenantOrgClaim() {
       tenantOrgClaim_ = getDefaultInstance().getTenantOrgClaim();
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
     }
@@ -3187,7 +3097,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       tenantOrgClaim_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }

@@ -35,9 +35,9 @@ class SubscriptionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_for_organization(self, input: io_pb2.GetSubscriptionForOrganizationInput) -> api_pb2.Subscription:
+    def get_for_org(self, input: io_pb2.GetSubscriptionForOrgInput) -> api_pb2.Subscription:
         try:
-            return self._query.getForOrganization(input)
+            return self._query.getForOrg(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

@@ -11,10 +11,10 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/entitlement.proto.
  */
 export const file_ai_stigmer_platform_v1_entitlement: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAi2gEKEUVudGl0bGVtZW50TGltaXRzEicKEW1heF9vcmdhbml6YXRpb25zGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESNAoeaW5jbHVkZWRfbWFuYWdlZF9vcmdhbml6YXRpb25zGAMgASgFQge6SAQaAiAASAKIAQFCFAoSX21heF9vcmdhbml6YXRpb25zQgwKCl9tYXhfdXNlcnNCIQofX2luY2x1ZGVkX21hbmFnZWRfb3JnYW5pemF0aW9ucyqkAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxAHQhJCEEVudGl0bGVtZW50UHJvdG9iBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAiyAEKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESNAoeaW5jbHVkZWRfbWFuYWdlZF9vcmdhbml6YXRpb25zGAMgASgFQge6SAQaAiAASAKIAQFCCwoJX21heF9vcmdzQgwKCl9tYXhfdXNlcnNCIQofX2luY2x1ZGVkX21hbmFnZWRfb3JnYW5pemF0aW9ucyqkAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEhkKFW1hbmFnZWRfb3JnYW5pemF0aW9ucxAHQhJCEEVudGl0bGVtZW50UHJvdG9iBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
- * What the platform permits a tenant: a set of limits and a set of features.
+ * What an edition permits its customer: a set of limits and a set of features.
  *
  * An entitlement is what the platform permits; a subscription and a license
  * are the two instruments that grant it. The cloud derives an organization's
@@ -62,17 +62,17 @@ export const EntitlementsSchema: GenMessage<Entitlements> = /*@__PURE__*/
  */
 export type EntitlementLimits = Message<"ai.stigmer.platform.v1.EntitlementLimits"> & {
   /**
-   * The most organizations the tenant may hold at once. Read by a license
+   * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
    * a subscription (a Business plan counts the managed organizations it
    * includes).
    *
-   * @generated from field: optional int32 max_organizations = 1;
+   * @generated from field: optional int32 max_orgs = 1;
    */
-  maxOrganizations?: number;
+  maxOrgs?: number;
 
   /**
-   * The most identity accounts the tenant may hold at once. Read by both
+   * The most identity accounts the customer may hold at once. Read by both
    * instruments.
    *
    * @generated from field: optional int32 max_users = 2;
@@ -127,7 +127,7 @@ export enum Feature {
 
   /**
    * Gates nothing: every edition serves PlatformClient credentials to every
-   * tenant, so a plan or license that lists it grants nothing more.
+   * customer, so a plan or license that lists it grants nothing more.
    * It is the one value named before its gate was ruled out, and it stays
    * because licenses already issued carry it and an enum value is a wire
    * identifier. A new plan or license does not list it.
@@ -137,7 +137,7 @@ export enum Feature {
   platform_client = 2,
 
   /**
-   * Bringing the tenant's own LLM provider keys instead of the platform's
+   * Bringing the customer's own LLM provider keys instead of the platform's
    * metered proxy credentials.
    *
    * @generated from enum value: byo_provider_keys = 3;

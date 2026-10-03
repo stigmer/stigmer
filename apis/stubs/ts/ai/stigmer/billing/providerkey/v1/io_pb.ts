@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/io.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSJ3ChNTZXRQcm92aWRlcktleUlucHV0EhcKBm9yZ19pZBgBIAEoCUIHukgEcgIQARIqCghwcm92aWRlchgCIAEoCUIYukgVchNSCWFudGhyb3BpY1IGb3BlbmFpEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQiXQoWRGVsZXRlUHJvdmlkZXJLZXlJbnB1dBIXCgZvcmdfaWQYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haSIwChVMaXN0UHJvdmlkZXJLZXlzSW5wdXQSFwoGb3JnX2lkGAEgASgJQge6SARyAhABIlYKFkxpc3RQcm92aWRlcktleXNPdXRwdXQSPAoEa2V5cxgBIAMoCzIuLmFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MS5Qcm92aWRlcktleWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSJ0ChNTZXRQcm92aWRlcktleUlucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIqCghwcm92aWRlchgCIAEoCUIYukgVchNSCWFudGhyb3BpY1IGb3BlbmFpEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQiWgoWRGVsZXRlUHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haSItChVMaXN0UHJvdmlkZXJLZXlzSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABIlYKFkxpc3RQcm92aWRlcktleXNPdXRwdXQSPAoEa2V5cxgBIAMoCzIuLmFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MS5Qcm92aWRlcktleWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
 
 /**
  * Save the organization's key for a provider, replacing any key it holds for
@@ -23,9 +23,9 @@ export const file_ai_stigmer_billing_providerkey_v1_io: GenFile = /*@__PURE__*/
  */
 export type SetProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.SetProviderKeyInput"> & {
   /**
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 
   /**
    * @generated from field: string provider = 2;
@@ -54,9 +54,9 @@ export const SetProviderKeyInputSchema: GenMessage<SetProviderKeyInput> = /*@__P
  */
 export type DeleteProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.DeleteProviderKeyInput"> & {
   /**
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 
   /**
    * @generated from field: string provider = 2;
@@ -78,9 +78,9 @@ export const DeleteProviderKeyInputSchema: GenMessage<DeleteProviderKeyInput> = 
  */
 export type ListProviderKeysInput = Message<"ai.stigmer.billing.providerkey.v1.ListProviderKeysInput"> & {
   /**
-   * @generated from field: string org_id = 1;
+   * @generated from field: string org = 1;
    */
-  orgId: string;
+  org: string;
 };
 
 /**

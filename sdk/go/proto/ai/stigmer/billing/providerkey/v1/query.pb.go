@@ -25,9 +25,9 @@ var File_ai_stigmer_billing_providerkey_v1_query_proto protoreflect.FileDescript
 
 const file_ai_stigmer_billing_providerkey_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/billing/providerkey/v1/query.proto\x12!ai.stigmer.billing.providerkey.v1\x1a*ai/stigmer/billing/providerkey/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe6\x01\n" +
-	"\x1aProviderKeyQueryController\x12\xc7\x01\n" +
-	"\x04list\x128.ai.stigmer.billing.providerkey.v1.ListProviderKeysInput\x1a9.ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput\"J¸\x18F\b\x1b\x10\x1e\"\x06org_id*8unauthorized to view provider keys for this organizationB\xb8\x02\n" +
+	"-ai/stigmer/billing/providerkey/v1/query.proto\x12!ai.stigmer.billing.providerkey.v1\x1a*ai/stigmer/billing/providerkey/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe3\x01\n" +
+	"\x1aProviderKeyQueryController\x12\xc4\x01\n" +
+	"\x04list\x128.ai.stigmer.billing.providerkey.v1.ListProviderKeysInput\x1a9.ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput\"G¸\x18C\b\x1b\x10\x1e\"\x03org*8unauthorized to view provider keys for this organizationB\xb8\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\n" +
 	"QueryProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 

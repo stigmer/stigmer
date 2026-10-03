@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Create an organization.\n\n An organization's slug is its id, and it is the organization's for good:\n a slug any organization has ever held, one since deleted included, is\n never taken again. A create of a held slug is refused with\n ALREADY_EXISTS; a create of a slug whose organization was deleted is\n refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,\n     and a slug is never reused. Metadata: slug.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org_id (the integrator organization)."
+          "description": "Create an organization.\n\n An organization's slug is its id, and it is the organization's for good:\n a slug any organization has ever held, one since deleted included, is\n never taken again. A create of a held slug is refused with\n ALREADY_EXISTS; a create of a slug whose organization was deleted is\n refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ORGANIZATION_SLUG_RESERVED — a deleted organization held the slug,\n     and a slug is never reused. Metadata: slug.\n\n On Stigmer Cloud, creating a platform-managed organization is a plan\n feature of its integrator. An integrator whose plan lacks it is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the integrator organization's plan does not\n     include the feature. Metadata: feature (\"managed_organizations\"),\n     org (the integrator organization)."
         },
         {
           "name": "Update",
@@ -333,7 +333,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+          "description": "The boundary that holds people, Agents, Workflows, Sessions and secrets\n together; nothing outside it sees them.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",

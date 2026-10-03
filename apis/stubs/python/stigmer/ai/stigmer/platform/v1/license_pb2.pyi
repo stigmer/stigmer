@@ -56,13 +56,13 @@ class LicenseClaims(_message.Message):
     def __init__(self, license_id: _Optional[str] = ..., customer: _Optional[_Union[LicenseCustomer, _Mapping]] = ..., term: _Optional[_Union[LicenseTerm, str]] = ..., entitlements: _Optional[_Union[_entitlement_pb2.Entitlements, _Mapping]] = ..., issued_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., grace_until: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class LicenseCustomer(_message.Message):
-    __slots__ = ("id", "display_name", "contact_email", "organization")
+    __slots__ = ("id", "display_name", "contact_email", "org")
     ID_FIELD_NUMBER: _ClassVar[int]
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     CONTACT_EMAIL_FIELD_NUMBER: _ClassVar[int]
-    ORGANIZATION_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     id: str
     display_name: str
     contact_email: str
-    organization: str
-    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., contact_email: _Optional[str] = ..., organization: _Optional[str] = ...) -> None: ...
+    org: str
+    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., contact_email: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/cursoraccount/v1/cursor_account.proto.
  */
 export const file_ai_stigmer_platform_cursoraccount_v1_cursor_account: GenFile = /*@__PURE__*/
-  fileDesc("CjlhaS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvY3Vyc29yX2FjY291bnQucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSK/AwoNQ3Vyc29yQWNjb3VudBISCgphY2NvdW50X2lkGAEgASgJEiEKDGRpc3BsYXlfbmFtZRgCIAEoCUILukgIyAEBcgMYgAESFQoNYWRtaW5fYXBpX2tleRgDIAEoCRIPCgdlbmFibGVkGAQgASgIEh8KE2lzX3BsYXRmb3JtX2RlZmF1bHQYBSABKAhCAhgBEh4KB29yZ19pZHMYBiADKAlCDbpICpIBByIFcgMYgAESSgoLbWVtYmVyX2tleXMYByADKAsyNS5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyS2V5EhIKCmNyZWF0ZWRfYnkYCCABKAkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKdXBkYXRlZF9ieRgKIAEoCRIuCgp1cGRhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIgChhvbl9kZW1hbmRfdXNhZ2VfZGlzYWJsZWQYDCABKAgSGAoQdGVhbV9pbnZpdGVfbGluaxgNIAEoCSLhAQoPQ3Vyc29yTWVtYmVyS2V5Eg4KBmtleV9pZBgBIAEoCRIPCgdhcGlfa2V5GAIgASgJEhcKBWxhYmVsGAMgASgJQgi6SAVyAxiAARITCgtib3VuZF9lbWFpbBgEIAEoCRIVCg1ib3VuZF91c2VyX2lkGAUgASgJEhcKD2N1cnNvcl9rZXlfbmFtZRgGIAEoCRIPCgdlbmFibGVkGAcgASgIEhAKCGFkZGVkX2J5GAggASgJEiwKCGFkZGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJOChBDdXJzb3JUZWFtTWVtYmVyEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRyb2xlGAQgASgJItsBChFDdXJzb3JNZW1iZXJTcGVuZBIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEioKGWluY2x1ZGVkX3NwZW5kX3VzZF9taWNyb3MYAyABKANCB7pIBCICKAASKQoYb3ZlcmFnZV9zcGVuZF91c2RfbWljcm9zGAQgASgDQge6SAQiAigAEhoKEnRvdGFsX3BlcmNlbnRfdXNlZBgFIAEoARIZChFhdXRvX3BlcmNlbnRfdXNlZBgGIAEoARIYChBhcGlfcGVyY2VudF91c2VkGAcgASgBIrQCChlDdXJzb3JBY2NvdW50U3luY1NuYXBzaG90EhIKCmFjY291bnRfaWQYASABKAkSLQoJc3luY2VkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJHCgdtZW1iZXJzGAMgAygLMjYuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvclRlYW1NZW1iZXISRgoFc3BlbmQYBCADKAsyNy5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyU3BlbmQSLwoLY3ljbGVfc3RhcnQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCnN5bmNfZXJyb3IYBiABKAliBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CjlhaS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvY3Vyc29yX2FjY291bnQucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSK8AwoNQ3Vyc29yQWNjb3VudBISCgphY2NvdW50X2lkGAEgASgJEiEKDGRpc3BsYXlfbmFtZRgCIAEoCUILukgIyAEBcgMYgAESFQoNYWRtaW5fYXBpX2tleRgDIAEoCRIPCgdlbmFibGVkGAQgASgIEh8KE2lzX3BsYXRmb3JtX2RlZmF1bHQYBSABKAhCAhgBEhsKBG9yZ3MYBiADKAlCDbpICpIBByIFcgMYgAESSgoLbWVtYmVyX2tleXMYByADKAsyNS5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyS2V5EhIKCmNyZWF0ZWRfYnkYCCABKAkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKdXBkYXRlZF9ieRgKIAEoCRIuCgp1cGRhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIgChhvbl9kZW1hbmRfdXNhZ2VfZGlzYWJsZWQYDCABKAgSGAoQdGVhbV9pbnZpdGVfbGluaxgNIAEoCSLhAQoPQ3Vyc29yTWVtYmVyS2V5Eg4KBmtleV9pZBgBIAEoCRIPCgdhcGlfa2V5GAIgASgJEhcKBWxhYmVsGAMgASgJQgi6SAVyAxiAARITCgtib3VuZF9lbWFpbBgEIAEoCRIVCg1ib3VuZF91c2VyX2lkGAUgASgJEhcKD2N1cnNvcl9rZXlfbmFtZRgGIAEoCRIPCgdlbmFibGVkGAcgASgIEhAKCGFkZGVkX2J5GAggASgJEiwKCGFkZGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJOChBDdXJzb3JUZWFtTWVtYmVyEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRyb2xlGAQgASgJItsBChFDdXJzb3JNZW1iZXJTcGVuZBIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEioKGWluY2x1ZGVkX3NwZW5kX3VzZF9taWNyb3MYAyABKANCB7pIBCICKAASKQoYb3ZlcmFnZV9zcGVuZF91c2RfbWljcm9zGAQgASgDQge6SAQiAigAEhoKEnRvdGFsX3BlcmNlbnRfdXNlZBgFIAEoARIZChFhdXRvX3BlcmNlbnRfdXNlZBgGIAEoARIYChBhcGlfcGVyY2VudF91c2VkGAcgASgBIrQCChlDdXJzb3JBY2NvdW50U3luY1NuYXBzaG90EhIKCmFjY291bnRfaWQYASABKAkSLQoJc3luY2VkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJHCgdtZW1iZXJzGAMgAygLMjYuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvclRlYW1NZW1iZXISRgoFc3BlbmQYBCADKAsyNy5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyU3BlbmQSLwoLY3ljbGVfc3RhcnQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCnN5bmNfZXJyb3IYBiABKAliBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * CursorAccount is one managed Cursor team: the platform-operator resource
@@ -36,14 +36,14 @@ export const file_ai_stigmer_platform_cursoraccount_v1_cursor_account: GenFile =
  * Consequently an account with no enabled member keys is visible but NOT
  * routable — no execution traffic can be sent under it.
  *
- * Org assignment — two account classes, derived from org_ids alone:
+ * Org assignment — two account classes, derived from orgs alone:
  *
- *   - DEDICATED (org_ids non-empty): the account is a cost boundary for
+ *   - DEDICATED (orgs non-empty): the account is a cost boundary for
  *     exactly those organizations. Their sessions are served only by this
  *     account's keys; when it has no usable keys, sessions fail with an
  *     explicit operator-actionable error rather than silently spending
  *     another team's quota (DD-008).
- *   - SHARED POOL (org_ids empty + enabled): the account is part of the
+ *   - SHARED POOL (orgs empty + enabled): the account is part of the
  *     platform-operated pool serving every org with no dedicated account.
  *     Pool sessions may move across pool accounts when their current
  *     account is depleted — all pool teams bill to the platform operator,
@@ -107,7 +107,7 @@ export type CursorAccount = Message<"ai.stigmer.platform.cursoraccount.v1.Cursor
 
   /**
    * Deprecated: superseded by the derived shared pool (DD-008). Every
-   * enabled account with empty org_ids now serves unassigned orgs; a
+   * enabled account with empty orgs now serves unassigned orgs; a
    * single "default" marker is meaningless under that rule, so selection
    * and the console ignore this field. Kept on the wire for old clients;
    * never written by current ones.
@@ -123,9 +123,9 @@ export type CursorAccount = Message<"ai.stigmer.platform.cursoraccount.v1.Cursor
    * (unique-multikey-index-enforced). Empty = shared-pool account (see
    * the message doc for the two account classes).
    *
-   * @generated from field: repeated string org_ids = 6;
+   * @generated from field: repeated string orgs = 6;
    */
-  orgIds: string[];
+  orgs: string[];
 
   /**
    * Execution-capable member keys. Selection picks among enabled entries

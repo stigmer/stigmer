@@ -33,7 +33,7 @@ type CreditLedgerEntry struct {
 	// Unique identifier for this ledger entry.
 	EntryId string `protobuf:"bytes,1,opt,name=entry_id,json=entryId,proto3" json:"entry_id,omitempty"`
 	// Organization that owns this entry.
-	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Classification of the balance change.
 	Type LedgerEntryType `protobuf:"varint,3,opt,name=type,proto3,enum=ai.stigmer.billing.v1.LedgerEntryType" json:"type,omitempty"`
 	// Amount in micro-USD. Positive for credits, negative for debits.
@@ -89,9 +89,9 @@ func (x *CreditLedgerEntry) GetEntryId() string {
 	return ""
 }
 
-func (x *CreditLedgerEntry) GetOrgId() string {
+func (x *CreditLedgerEntry) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -296,7 +296,7 @@ type CreditGrant struct {
 	// Unique identifier for this grant.
 	GrantId string `protobuf:"bytes,1,opt,name=grant_id,json=grantId,proto3" json:"grant_id,omitempty"`
 	// Organization that owns this grant.
-	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// How these credits were acquired.
 	Kind CreditGrantKind `protobuf:"varint,3,opt,name=kind,proto3,enum=ai.stigmer.billing.v1.CreditGrantKind" json:"kind,omitempty"`
 	// Original amount when the grant was created.
@@ -350,9 +350,9 @@ func (x *CreditGrant) GetGrantId() string {
 	return ""
 }
 
-func (x *CreditGrant) GetOrgId() string {
+func (x *CreditGrant) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -495,7 +495,7 @@ type ExecutionReservation struct {
 	// Unique identifier for this reservation.
 	ReservationId string `protobuf:"bytes,1,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
 	// Organization that owns this reservation.
-	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Agent execution this reservation is for.
 	ExecutionId string `protobuf:"bytes,3,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Total micro-USD reserved at execution start.
@@ -548,9 +548,9 @@ func (x *ExecutionReservation) GetReservationId() string {
 	return ""
 }
 
-func (x *ExecutionReservation) GetOrgId() string {
+func (x *ExecutionReservation) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -610,7 +610,7 @@ type CreditPurchase struct {
 	// Unique identifier for this purchase.
 	PurchaseId string `protobuf:"bytes,1,opt,name=purchase_id,json=purchaseId,proto3" json:"purchase_id,omitempty"`
 	// Organization purchasing credits.
-	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Credit pack being purchased (e.g., "starter", "growth", "team").
 	PackId string `protobuf:"bytes,3,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
 	// Price paid in micro-USD.
@@ -668,9 +668,9 @@ func (x *CreditPurchase) GetPurchaseId() string {
 	return ""
 }
 
-func (x *CreditPurchase) GetOrgId() string {
+func (x *CreditPurchase) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -755,7 +755,7 @@ type AutoRechargeEvent struct {
 	// Unique identifier for this recharge event.
 	EventId string `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	// Organization being recharged.
-	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Amount charged to the payment method in micro-USD.
 	AmountMicros int64 `protobuf:"varint,3,opt,name=amount_micros,json=amountMicros,proto3" json:"amount_micros,omitempty"`
 	// Credits to provision upon successful payment in micro-USD.
@@ -815,9 +815,9 @@ func (x *AutoRechargeEvent) GetEventId() string {
 	return ""
 }
 
-func (x *AutoRechargeEvent) GetOrgId() string {
+func (x *AutoRechargeEvent) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -889,10 +889,10 @@ var File_ai_stigmer_billing_v1_credit_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"\n" +
-	"\"ai/stigmer/billing/v1/credit.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\"ai/stigmer/billing/v1/policy.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc2\x03\n" +
+	"\"ai/stigmer/billing/v1/credit.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\"ai/stigmer/billing/v1/policy.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbd\x03\n" +
 	"\x11CreditLedgerEntry\x12\x19\n" +
-	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12\x15\n" +
-	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12:\n" +
+	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12:\n" +
 	"\x04type\x18\x03 \x01(\x0e2&.ai.stigmer.billing.v1.LedgerEntryTypeR\x04type\x12#\n" +
 	"\ramount_micros\x18\x04 \x01(\x03R\famountMicros\x120\n" +
 	"\x14balance_after_micros\x18\x05 \x01(\x03R\x12balanceAfterMicros\x12'\n" +
@@ -915,10 +915,10 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"\x0ereservation_id\x18\a \x01(\tR\rreservationId\x12\x1f\n" +
 	"\vadjusted_by\x18\b \x01(\tR\n" +
 	"adjustedBy\x12 \n" +
-	"\vdescription\x18\t \x01(\tR\vdescription\"\xfb\x02\n" +
+	"\vdescription\x18\t \x01(\tR\vdescription\"\xf6\x02\n" +
 	"\vCreditGrant\x12\x19\n" +
-	"\bgrant_id\x18\x01 \x01(\tR\agrantId\x12\x15\n" +
-	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12:\n" +
+	"\bgrant_id\x18\x01 \x01(\tR\agrantId\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12:\n" +
 	"\x04kind\x18\x03 \x01(\x0e2&.ai.stigmer.billing.v1.CreditGrantKindR\x04kind\x124\n" +
 	"\x16original_amount_micros\x18\x04 \x01(\x03R\x14originalAmountMicros\x126\n" +
 	"\x17remaining_amount_micros\x18\x05 \x01(\x03R\x15remainingAmountMicros\x129\n" +
@@ -933,10 +933,10 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12!\n" +
 	"\fprice_micros\x18\x03 \x01(\x03R\vpriceMicros\x12%\n" +
 	"\x0ecredits_micros\x18\x04 \x01(\x03R\rcreditsMicros\x12\x16\n" +
-	"\x06active\x18\x05 \x01(\bR\x06active\"\x81\x03\n" +
+	"\x06active\x18\x05 \x01(\bR\x06active\"\xfc\x02\n" +
 	"\x14ExecutionReservation\x12%\n" +
-	"\x0ereservation_id\x18\x01 \x01(\tR\rreservationId\x12\x15\n" +
-	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12!\n" +
+	"\x0ereservation_id\x18\x01 \x01(\tR\rreservationId\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12!\n" +
 	"\fexecution_id\x18\x03 \x01(\tR\vexecutionId\x12'\n" +
 	"\x0freserved_micros\x18\x04 \x01(\x03R\x0ereservedMicros\x12'\n" +
 	"\x0fconsumed_micros\x18\x05 \x01(\x03R\x0econsumedMicros\x12@\n" +
@@ -944,11 +944,11 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"\x8a\x04\n" +
+	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"\x85\x04\n" +
 	"\x0eCreditPurchase\x12\x1f\n" +
 	"\vpurchase_id\x18\x01 \x01(\tR\n" +
-	"purchaseId\x12\x15\n" +
-	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12\x17\n" +
+	"purchaseId\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12\x17\n" +
 	"\apack_id\x18\x03 \x01(\tR\x06packId\x12,\n" +
 	"\x12amount_paid_micros\x18\x04 \x01(\x03R\x10amountPaidMicros\x124\n" +
 	"\x16credits_granted_micros\x18\x05 \x01(\x03R\x14creditsGrantedMicros\x12C\n" +
@@ -960,10 +960,10 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xfd\x03\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xf8\x03\n" +
 	"\x11AutoRechargeEvent\x12\x19\n" +
-	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x15\n" +
-	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12#\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12#\n" +
 	"\ramount_micros\x18\x03 \x01(\x03R\famountMicros\x12%\n" +
 	"\x0ecredits_micros\x18\x04 \x01(\x03R\rcreditsMicros\x12*\n" +
 	"\x11payment_intent_id\x18\x05 \x01(\tR\x0fpaymentIntentId\x12F\n" +

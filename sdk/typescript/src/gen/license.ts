@@ -75,7 +75,7 @@ export interface LicenseCustomerInput {
   id: string;
   displayName: string;
   contactEmail: string;
-  organization?: string;
+  org?: string;
 }
 
 /** SDK input type for Entitlements. */
@@ -86,7 +86,7 @@ export interface EntitlementsInput {
 
 /** SDK input type for EntitlementLimits. */
 export interface EntitlementLimitsInput {
-  maxOrganizations?: number;
+  maxOrgs?: number;
   maxUsers?: number;
   includedManagedOrganizations?: number;
 }
@@ -96,13 +96,13 @@ function buildLicenseCustomerProto(input: LicenseCustomerInput) {
     id: input.id,
     displayName: input.displayName,
     contactEmail: input.contactEmail,
-    organization: input.organization,
+    org: input.org,
   }));
 }
 
 function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
   return Object.assign(create(EntitlementLimitsSchema), stripUndefined({
-    maxOrganizations: input.maxOrganizations,
+    maxOrgs: input.maxOrgs,
     maxUsers: input.maxUsers,
     includedManagedOrganizations: input.includedManagedOrganizations,
   }));

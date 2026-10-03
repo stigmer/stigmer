@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/invitation/v1/io.proto.
  */
 export const file_ai_stigmer_iam_invitation_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxIiUKDEludml0YXRpb25JZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIkgKC0ludml0YXRpb25zEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb24iMQoZTGlzdEludml0YXRpb25zQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAEiLgoUSW52aXRhdGlvblRva2VuSW5wdXQSFgoFdG9rZW4YASABKAlCB7pIBHICEAEiLwoVUmVkZWVtSW52aXRhdGlvbklucHV0EhYKBXRva2VuGAEgASgJQge6SARyAhABIvsBChFJbnZpdGF0aW9uUHJldmlldxIZChFvcmdhbml6YXRpb25fbmFtZRgBIAEoCRIZChFvcmdhbml6YXRpb25fc2x1ZxgCIAEoCRIdChVvcmdhbml6YXRpb25fbG9nb191cmwYAyABKAkSKAoEcm9sZRgEIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGUSLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFbGFiZWwYBiABKAkSEAoIaXNfdmFsaWQYByABKAgSFgoOaW52YWxpZF9yZWFzb24YCCABKAliBnByb3RvMw", [file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxIiUKDEludml0YXRpb25JZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIkgKC0ludml0YXRpb25zEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb24iMQoZTGlzdEludml0YXRpb25zQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAEiLgoUSW52aXRhdGlvblRva2VuSW5wdXQSFgoFdG9rZW4YASABKAlCB7pIBHICEAEiLwoVUmVkZWVtSW52aXRhdGlvbklucHV0EhYKBXRva2VuGAEgASgJQge6SARyAhABIuABChFJbnZpdGF0aW9uUHJldmlldxIQCghvcmdfbmFtZRgBIAEoCRIQCghvcmdfc2x1ZxgCIAEoCRIUCgxvcmdfbG9nb191cmwYAyABKAkSKAoEcm9sZRgEIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGUSLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFbGFiZWwYBiABKAkSEAoIaXNfdmFsaWQYByABKAgSFgoOaW52YWxpZF9yZWFzb24YCCABKAliBnByb3RvMw", [file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * InvitationId identifies an invitation by its unique identifier.
@@ -145,23 +145,23 @@ export type InvitationPreview = Message<"ai.stigmer.iam.invitation.v1.Invitation
   /**
    * Display name of the organization.
    *
-   * @generated from field: string organization_name = 1;
+   * @generated from field: string org_name = 1;
    */
-  organizationName: string;
+  orgName: string;
 
   /**
    * URL-friendly identifier of the organization.
    *
-   * @generated from field: string organization_slug = 2;
+   * @generated from field: string org_slug = 2;
    */
-  organizationSlug: string;
+  orgSlug: string;
 
   /**
    * URL to the organization's logo image.
    *
-   * @generated from field: string organization_logo_url = 3;
+   * @generated from field: string org_logo_url = 3;
    */
-  organizationLogoUrl: string;
+  orgLogoUrl: string;
 
   /**
    * The role that will be granted upon redemption.

@@ -51,7 +51,7 @@ class TeamCommandControllerServicer(object):
         google.rpc.ErrorInfo detail (domain "stigmer.ai"):
 
         - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-        the feature. Metadata: feature ("teams"), org_id.
+        the feature. Metadata: feature ("teams"), org.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

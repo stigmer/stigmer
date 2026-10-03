@@ -7,7 +7,7 @@ import ai.stigmer.billing.subscription.v1.ChangePlanInput;
 import ai.stigmer.billing.subscription.v1.GetEntitlementsInput;
 import ai.stigmer.billing.subscription.v1.GetEntitlementsOutput;
 import ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput;
-import ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput;
+import ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput;
 import ai.stigmer.billing.subscription.v1.PeriodEstimate;
 import ai.stigmer.billing.subscription.v1.Subscription;
 import ai.stigmer.billing.subscription.v1.SubscriptionCommandControllerGrpc;
@@ -37,9 +37,9 @@ public final class SubscriptionClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Subscription getForOrganization(GetSubscriptionForOrganizationInput input) {
+    public Subscription getForOrg(GetSubscriptionForOrgInput input) {
         try {
-            return query.getForOrganization(input);
+            return query.getForOrg(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

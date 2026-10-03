@@ -5,15 +5,15 @@
   "protoFile": "apis/ai/stigmer/platform/v1/entitlement.proto",
   "fields": [
     {
-      "name": "MaxOrganizations",
-      "jsonName": "maxOrganizations",
-      "protoField": "max_organizations",
+      "name": "MaxOrgs",
+      "jsonName": "maxOrgs",
+      "protoField": "max_orgs",
       "type": {
         "kind": "int32"
       },
-      "description": "The most organizations the tenant may hold at once. Read by a license\n (an Enterprise deployment counts its organizations against it) and by\n a subscription (a Business plan counts the managed organizations it\n includes).",
+      "description": "The most organizations the customer may hold at once. Read by a license\n (an Enterprise deployment counts its organizations against it) and by\n a subscription (a Business plan counts the managed organizations it\n includes).",
       "required": false,
-      "oneofGroup": "_max_organizations"
+      "oneofGroup": "_max_orgs"
     },
     {
       "name": "MaxUsers",
@@ -22,7 +22,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "The most identity accounts the tenant may hold at once. Read by both\n instruments.",
+      "description": "The most identity accounts the customer may hold at once. Read by both\n instruments.",
       "required": false,
       "oneofGroup": "_max_users"
     },

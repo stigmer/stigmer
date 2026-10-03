@@ -35,18 +35,18 @@ public interface RevokeOrgAccessInputOrBuilder extends
    * The organization from which access is being revoked
    * </pre>
    *
-   * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-   * @return The organizationId.
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
    */
-  java.lang.String getOrganizationId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * The organization from which access is being revoked
    * </pre>
    *
-   * <code>string organization_id = 2 [json_name = "organizationId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for organizationId.
+   * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrganizationIdBytes();
+      getOrgBytes();
 }

@@ -11,7 +11,7 @@ package ai.stigmer.agentic.mcpserver.v1;
  * was resolved from.
  *
  * The resolution chain is the same one the OAuth connect flow evaluates:
- * 1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE
+ * 1. OAuthAppOverride for (resource_id, resource_kind, org) → ORG_OVERRIDE
  * 2. McpServerAuth.oauth_app_ref → PLATFORM
  * 3. Neither exists → NONE
  *

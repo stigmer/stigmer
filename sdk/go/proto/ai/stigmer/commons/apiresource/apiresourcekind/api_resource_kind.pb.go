@@ -217,7 +217,8 @@ const (
 	ApiResourceKind_platform_client ApiResourceKind = 23
 	// Named group of an organization's people that access is shared with as one.
 	ApiResourceKind_team ApiResourceKind = 24
-	// Top-level tenant that owns and manages resources.
+	// The boundary that holds people, Agents, Workflows, Sessions and secrets
+	// together; nothing outside it sees them.
 	//
 	// Organization is the one resource whose metadata.id equals its metadata.slug
 	// (set by the create pipeline), not a minted org_<ulid>. It is the immutable,

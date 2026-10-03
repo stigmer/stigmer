@@ -147,10 +147,10 @@ public interface MintUserTokenRequestOrBuilder extends
    * resolved or provisioned. When empty, the owning organization applies.
    * </pre>
    *
-   * <code>string org_id = 6 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 6 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * Optional confirmation of the organization the token is scoped to.
@@ -162,9 +162,9 @@ public interface MintUserTokenRequestOrBuilder extends
    * resolved or provisioned. When empty, the owning organization applies.
    * </pre>
    *
-   * <code>string org_id = 6 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 6 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 }

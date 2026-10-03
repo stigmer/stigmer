@@ -35,7 +35,7 @@ export const SubscriptionCommandController = {
      *   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
      *     no saved payment method, which every period is collected from;
      *     BillingCommandController.createPaymentMethodSetupSession saves one.
-     *     Metadata: org_id.
+     *     Metadata: org.
      *
      * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionCommandController.changePlan
      */

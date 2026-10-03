@@ -30,15 +30,15 @@
       }
     },
     {
-      "name": "PerExtraOrganizationMicros",
-      "jsonName": "perExtraOrganizationMicros",
-      "protoField": "per_extra_organization_micros",
+      "name": "PerExtraOrgMicros",
+      "jsonName": "perExtraOrgMicros",
+      "protoField": "per_extra_org_micros",
       "type": {
         "kind": "int64"
       },
       "description": "What a subscription plan bills per month for each platform-managed\n organization beyond the ones its entitlements include, in micro-USD.\n Absent when the plan includes no managed organizations.",
       "required": false,
-      "oneofGroup": "_per_extra_organization_micros"
+      "oneofGroup": "_per_extra_org_micros"
     },
     {
       "name": "AnnualPriceMicros",

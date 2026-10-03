@@ -97,7 +97,6 @@ export interface IdentityProviderInput {
   jwksUri?: string;
   allowedIssuers?: string[];
   expectedAudience?: string;
-  rateLimitBudget?: number;
   userinfoEndpoint?: string;
   isSsoProvider?: boolean;
   oidcClientId?: string;
@@ -124,7 +123,6 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
       jwksUri: input.jwksUri,
       allowedIssuers: input.allowedIssuers,
       expectedAudience: input.expectedAudience,
-      rateLimitBudget: input.rateLimitBudget,
       userinfoEndpoint: input.userinfoEndpoint,
       isSsoProvider: input.isSsoProvider,
       oidcClientId: input.oidcClientId,
@@ -165,7 +163,6 @@ export function toIdentityProviderUpdateInput(resource: IdentityProvider): Ident
     jwksUri: spec.jwksUri || undefined,
     allowedIssuers: spec.allowedIssuers?.length ? [...spec.allowedIssuers] : undefined,
     expectedAudience: spec.expectedAudience || undefined,
-    rateLimitBudget: spec.rateLimitBudget || undefined,
     userinfoEndpoint: spec.userinfoEndpoint || undefined,
     isSsoProvider: spec.isSsoProvider || undefined,
     oidcClientId: spec.oidcClientId || undefined,

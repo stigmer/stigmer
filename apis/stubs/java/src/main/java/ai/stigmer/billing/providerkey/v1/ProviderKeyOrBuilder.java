@@ -15,20 +15,20 @@ public interface ProviderKeyOrBuilder extends
    * The organization the key serves.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * The organization the key serves.
    * </pre>
    *
-   * <code>string org_id = 1 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 1 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 
   /**
    * <pre>
@@ -183,10 +183,10 @@ public interface ProviderKeyOrBuilder extends
    * Such a row is read-only here; it is managed on the integrator.
    * </pre>
    *
-   * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-   * @return The inheritedFromOrgId.
+   * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+   * @return The inheritedFromOrg.
    */
-  java.lang.String getInheritedFromOrgId();
+  java.lang.String getInheritedFromOrg();
   /**
    * <pre>
    * Set when the row is the integrator organization's key, serving this
@@ -194,9 +194,9 @@ public interface ProviderKeyOrBuilder extends
    * Such a row is read-only here; it is managed on the integrator.
    * </pre>
    *
-   * <code>string inherited_from_org_id = 9 [json_name = "inheritedFromOrgId"];</code>
-   * @return The bytes for inheritedFromOrgId.
+   * <code>string inherited_from_org = 9 [json_name = "inheritedFromOrg"];</code>
+   * @return The bytes for inheritedFromOrg.
    */
   com.google.protobuf.ByteString
-      getInheritedFromOrgIdBytes();
+      getInheritedFromOrgBytes();
 }

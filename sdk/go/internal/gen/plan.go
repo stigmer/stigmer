@@ -67,10 +67,10 @@ type PlanInput struct {
 
 // PlanTermsInput is the SDK input type for PlanTerms.
 type PlanTermsInput struct {
-	MonthlyMinimumMicros       int64
-	UsageShareBasisPoints      int32
-	PerExtraOrganizationMicros int64
-	AnnualPriceMicros          int64
+	MonthlyMinimumMicros  int64
+	UsageShareBasisPoints int32
+	PerExtraOrgMicros     int64
+	AnnualPriceMicros     int64
 }
 
 func (i *PlanInput) toProto() (*planv1.Plan, error) {
@@ -140,7 +140,7 @@ func planTermsInputFromProto(p *planv1.PlanTerms) *PlanTermsInput {
 	input := &PlanTermsInput{}
 	input.MonthlyMinimumMicros = p.GetMonthlyMinimumMicros()
 	input.UsageShareBasisPoints = p.GetUsageShareBasisPoints()
-	input.PerExtraOrganizationMicros = p.GetPerExtraOrganizationMicros()
+	input.PerExtraOrgMicros = p.GetPerExtraOrgMicros()
 	input.AnnualPriceMicros = p.GetAnnualPriceMicros()
 	return input
 }

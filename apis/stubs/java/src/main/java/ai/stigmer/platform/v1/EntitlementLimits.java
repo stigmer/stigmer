@@ -57,44 +57,44 @@ private static final long serialVersionUID = 0L;
   }
 
   private int bitField0_;
-  public static final int MAX_ORGANIZATIONS_FIELD_NUMBER = 1;
-  private int maxOrganizations_ = 0;
+  public static final int MAX_ORGS_FIELD_NUMBER = 1;
+  private int maxOrgs_ = 0;
   /**
    * <pre>
-   * The most organizations the tenant may hold at once. Read by a license
+   * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
    * a subscription (a Business plan counts the managed organizations it
    * includes).
    * </pre>
    *
-   * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return Whether the maxOrganizations field is set.
+   * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
+   * @return Whether the maxOrgs field is set.
    */
   @java.lang.Override
-  public boolean hasMaxOrganizations() {
+  public boolean hasMaxOrgs() {
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * The most organizations the tenant may hold at once. Read by a license
+   * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
    * a subscription (a Business plan counts the managed organizations it
    * includes).
    * </pre>
    *
-   * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return The maxOrganizations.
+   * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
+   * @return The maxOrgs.
    */
   @java.lang.Override
-  public int getMaxOrganizations() {
-    return maxOrganizations_;
+  public int getMaxOrgs() {
+    return maxOrgs_;
   }
 
   public static final int MAX_USERS_FIELD_NUMBER = 2;
   private int maxUsers_ = 0;
   /**
    * <pre>
-   * The most identity accounts the tenant may hold at once. Read by both
+   * The most identity accounts the customer may hold at once. Read by both
    * instruments.
    * </pre>
    *
@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The most identity accounts the tenant may hold at once. Read by both
+   * The most identity accounts the customer may hold at once. Read by both
    * instruments.
    * </pre>
    *
@@ -173,7 +173,7 @@ private static final long serialVersionUID = 0L;
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
     if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeInt32(1, maxOrganizations_);
+      output.writeInt32(1, maxOrgs_);
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeInt32(2, maxUsers_);
@@ -192,7 +192,7 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(1, maxOrganizations_);
+        .computeInt32Size(1, maxOrgs_);
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -217,10 +217,10 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.platform.v1.EntitlementLimits other = (ai.stigmer.platform.v1.EntitlementLimits) obj;
 
-    if (hasMaxOrganizations() != other.hasMaxOrganizations()) return false;
-    if (hasMaxOrganizations()) {
-      if (getMaxOrganizations()
-          != other.getMaxOrganizations()) return false;
+    if (hasMaxOrgs() != other.hasMaxOrgs()) return false;
+    if (hasMaxOrgs()) {
+      if (getMaxOrgs()
+          != other.getMaxOrgs()) return false;
     }
     if (hasMaxUsers() != other.hasMaxUsers()) return false;
     if (hasMaxUsers()) {
@@ -243,9 +243,9 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (hasMaxOrganizations()) {
-      hash = (37 * hash) + MAX_ORGANIZATIONS_FIELD_NUMBER;
-      hash = (53 * hash) + getMaxOrganizations();
+    if (hasMaxOrgs()) {
+      hash = (37 * hash) + MAX_ORGS_FIELD_NUMBER;
+      hash = (53 * hash) + getMaxOrgs();
     }
     if (hasMaxUsers()) {
       hash = (37 * hash) + MAX_USERS_FIELD_NUMBER;
@@ -394,7 +394,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      maxOrganizations_ = 0;
+      maxOrgs_ = 0;
       maxUsers_ = 0;
       includedManagedOrganizations_ = 0;
       return this;
@@ -432,7 +432,7 @@ private static final long serialVersionUID = 0L;
       int from_bitField0_ = bitField0_;
       int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.maxOrganizations_ = maxOrganizations_;
+        result.maxOrgs_ = maxOrgs_;
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
@@ -458,8 +458,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.platform.v1.EntitlementLimits other) {
       if (other == ai.stigmer.platform.v1.EntitlementLimits.getDefaultInstance()) return this;
-      if (other.hasMaxOrganizations()) {
-        setMaxOrganizations(other.getMaxOrganizations());
+      if (other.hasMaxOrgs()) {
+        setMaxOrgs(other.getMaxOrgs());
       }
       if (other.hasMaxUsers()) {
         setMaxUsers(other.getMaxUsers());
@@ -494,7 +494,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 8: {
-              maxOrganizations_ = input.readInt32();
+              maxOrgs_ = input.readInt32();
               bitField0_ |= 0x00000001;
               break;
             } // case 8
@@ -525,70 +525,70 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private int maxOrganizations_ ;
+    private int maxOrgs_ ;
     /**
      * <pre>
-     * The most organizations the tenant may hold at once. Read by a license
+     * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
      * a subscription (a Business plan counts the managed organizations it
      * includes).
      * </pre>
      *
-     * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
-     * @return Whether the maxOrganizations field is set.
+     * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
+     * @return Whether the maxOrgs field is set.
      */
     @java.lang.Override
-    public boolean hasMaxOrganizations() {
+    public boolean hasMaxOrgs() {
       return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <pre>
-     * The most organizations the tenant may hold at once. Read by a license
+     * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
      * a subscription (a Business plan counts the managed organizations it
      * includes).
      * </pre>
      *
-     * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
-     * @return The maxOrganizations.
+     * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
+     * @return The maxOrgs.
      */
     @java.lang.Override
-    public int getMaxOrganizations() {
-      return maxOrganizations_;
+    public int getMaxOrgs() {
+      return maxOrgs_;
     }
     /**
      * <pre>
-     * The most organizations the tenant may hold at once. Read by a license
+     * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
      * a subscription (a Business plan counts the managed organizations it
      * includes).
      * </pre>
      *
-     * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
-     * @param value The maxOrganizations to set.
+     * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
+     * @param value The maxOrgs to set.
      * @return This builder for chaining.
      */
-    public Builder setMaxOrganizations(int value) {
+    public Builder setMaxOrgs(int value) {
 
-      maxOrganizations_ = value;
+      maxOrgs_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The most organizations the tenant may hold at once. Read by a license
+     * The most organizations the customer may hold at once. Read by a license
      * (an Enterprise deployment counts its organizations against it) and by
      * a subscription (a Business plan counts the managed organizations it
      * includes).
      * </pre>
      *
-     * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
+     * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearMaxOrganizations() {
+    public Builder clearMaxOrgs() {
       bitField0_ = (bitField0_ & ~0x00000001);
-      maxOrganizations_ = 0;
+      maxOrgs_ = 0;
       onChanged();
       return this;
     }
@@ -596,7 +596,7 @@ private static final long serialVersionUID = 0L;
     private int maxUsers_ ;
     /**
      * <pre>
-     * The most identity accounts the tenant may hold at once. Read by both
+     * The most identity accounts the customer may hold at once. Read by both
      * instruments.
      * </pre>
      *
@@ -609,7 +609,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most identity accounts the tenant may hold at once. Read by both
+     * The most identity accounts the customer may hold at once. Read by both
      * instruments.
      * </pre>
      *
@@ -622,7 +622,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most identity accounts the tenant may hold at once. Read by both
+     * The most identity accounts the customer may hold at once. Read by both
      * instruments.
      * </pre>
      *
@@ -639,7 +639,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most identity accounts the tenant may hold at once. Read by both
+     * The most identity accounts the customer may hold at once. Read by both
      * instruments.
      * </pre>
      *

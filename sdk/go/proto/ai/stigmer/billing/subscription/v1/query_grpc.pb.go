@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SubscriptionQueryController_GetForOrganization_FullMethodName = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrganization"
-	SubscriptionQueryController_GetEntitlements_FullMethodName    = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getEntitlements"
-	SubscriptionQueryController_GetPeriodEstimate_FullMethodName  = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getPeriodEstimate"
+	SubscriptionQueryController_GetForOrg_FullMethodName         = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrg"
+	SubscriptionQueryController_GetEntitlements_FullMethodName   = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getEntitlements"
+	SubscriptionQueryController_GetPeriodEstimate_FullMethodName = "/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getPeriodEstimate"
 )
 
 // SubscriptionQueryControllerClient is the client API for SubscriptionQueryController service.
@@ -40,7 +40,7 @@ type SubscriptionQueryControllerClient interface {
 	// NOT_FOUND when the organization has none: it is on the Free plan, which
 	// is not a row. Callers that only need what the organization may do
 	// should call getEntitlements, which answers for every organization.
-	GetForOrganization(ctx context.Context, in *GetSubscriptionForOrganizationInput, opts ...grpc.CallOption) (*Subscription, error)
+	GetForOrg(ctx context.Context, in *GetSubscriptionForOrgInput, opts ...grpc.CallOption) (*Subscription, error)
 	// Resolve what the organization is permitted right now.
 	//
 	// The answer is derived, never stored: the entitlements of the plan the
@@ -75,10 +75,10 @@ func NewSubscriptionQueryControllerClient(cc grpc.ClientConnInterface) Subscript
 	return &subscriptionQueryControllerClient{cc}
 }
 
-func (c *subscriptionQueryControllerClient) GetForOrganization(ctx context.Context, in *GetSubscriptionForOrganizationInput, opts ...grpc.CallOption) (*Subscription, error) {
+func (c *subscriptionQueryControllerClient) GetForOrg(ctx context.Context, in *GetSubscriptionForOrgInput, opts ...grpc.CallOption) (*Subscription, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Subscription)
-	err := c.cc.Invoke(ctx, SubscriptionQueryController_GetForOrganization_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, SubscriptionQueryController_GetForOrg_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ type SubscriptionQueryControllerServer interface {
 	// NOT_FOUND when the organization has none: it is on the Free plan, which
 	// is not a row. Callers that only need what the organization may do
 	// should call getEntitlements, which answers for every organization.
-	GetForOrganization(context.Context, *GetSubscriptionForOrganizationInput) (*Subscription, error)
+	GetForOrg(context.Context, *GetSubscriptionForOrgInput) (*Subscription, error)
 	// Resolve what the organization is permitted right now.
 	//
 	// The answer is derived, never stored: the entitlements of the plan the
@@ -155,8 +155,8 @@ type SubscriptionQueryControllerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSubscriptionQueryControllerServer struct{}
 
-func (UnimplementedSubscriptionQueryControllerServer) GetForOrganization(context.Context, *GetSubscriptionForOrganizationInput) (*Subscription, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetForOrganization not implemented")
+func (UnimplementedSubscriptionQueryControllerServer) GetForOrg(context.Context, *GetSubscriptionForOrgInput) (*Subscription, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetForOrg not implemented")
 }
 func (UnimplementedSubscriptionQueryControllerServer) GetEntitlements(context.Context, *GetEntitlementsInput) (*GetEntitlementsOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEntitlements not implemented")
@@ -184,20 +184,20 @@ func RegisterSubscriptionQueryControllerServer(s grpc.ServiceRegistrar, srv Subs
 	s.RegisterService(&SubscriptionQueryController_ServiceDesc, srv)
 }
 
-func _SubscriptionQueryController_GetForOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSubscriptionForOrganizationInput)
+func _SubscriptionQueryController_GetForOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubscriptionForOrgInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SubscriptionQueryControllerServer).GetForOrganization(ctx, in)
+		return srv.(SubscriptionQueryControllerServer).GetForOrg(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SubscriptionQueryController_GetForOrganization_FullMethodName,
+		FullMethod: SubscriptionQueryController_GetForOrg_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SubscriptionQueryControllerServer).GetForOrganization(ctx, req.(*GetSubscriptionForOrganizationInput))
+		return srv.(SubscriptionQueryControllerServer).GetForOrg(ctx, req.(*GetSubscriptionForOrgInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -246,8 +246,8 @@ var SubscriptionQueryController_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*SubscriptionQueryControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "getForOrganization",
-			Handler:    _SubscriptionQueryController_GetForOrganization_Handler,
+			MethodName: "getForOrg",
+			Handler:    _SubscriptionQueryController_GetForOrg_Handler,
 		},
 		{
 			MethodName: "getEntitlements",
