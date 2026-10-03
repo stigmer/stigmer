@@ -303,7 +303,7 @@ export async function newSiblingEnforcingLane(
     )) {
       await founder.clients.iamPolicyCommand.revokeOrgAccess({
         identityAccountId: accountId,
-        organizationId,
+        org: organizationId,
       });
     }
   }

@@ -546,7 +546,7 @@ rows:
     lane: >-
       rpc.Subscription.getEntitlements
     behavior: >-
-      For an organization that never subscribed, getEntitlements answers an empty plan_id and Free's features, exactly [channels, sharing]; getForOrganization answers NOT_FOUND.
+      For an organization that never subscribed, getEntitlements answers an empty plan_id and Free's features, exactly [channels, sharing]; getForOrg answers NOT_FOUND.
     java_source: >-
       none (added with apis billing/subscription/v1, served by the Cloud composition)
     java_test: >-
@@ -561,7 +561,7 @@ rows:
     lane: >-
       rpc.Subscription.changePlan
     behavior: >-
-      changePlan to a subscription plan for an organization with no saved payment method answers FAILED_PRECONDITION "A saved payment method is required to subscribe to a plan. Add a payment method first." with a google.rpc.ErrorInfo detail (reason PAYMENT_METHOD_REQUIRED, domain stigmer.ai, metadata org_id); afterwards getForOrganization still answers NOT_FOUND, getEntitlements an empty plan_id, and no request reached Stripe.
+      changePlan to a subscription plan for an organization with no saved payment method answers FAILED_PRECONDITION "A saved payment method is required to subscribe to a plan. Add a payment method first." with a google.rpc.ErrorInfo detail (reason PAYMENT_METHOD_REQUIRED, domain stigmer.ai, metadata org); afterwards getForOrg still answers NOT_FOUND, getEntitlements an empty plan_id, and no request reached Stripe.
     java_source: >-
       none (added with apis billing/subscription/v1, served by the Cloud composition)
     java_test: >-
