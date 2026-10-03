@@ -35,7 +35,7 @@ import {
   makeEnvironmentSpec,
   type EnvironmentSpecOptions,
 } from "../support/environments";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
 // The server's secret-preservation sentinel. This is a documented behavioral
 // contract — not a proto field — that lets a client round-trip a redacted
@@ -637,5 +637,86 @@ describe("[rpc:EnvironmentCommandController.create] Environment conformance — 
     expect(inA.metadata?.org).toBe(a.org);
     expect(inB.metadata?.org).toBe(b.org);
     expect(inA.metadata?.id).not.toBe(inB.metadata?.id);
+  });
+});
+
+// A personal environment is one person's own: each member of an
+// organization may save one, beside a teammate's, and none is ever
+// org-visible — not by updateVisibility, not created so, not labelled so
+// after it was shared. The two-person arm runs on the enforcing lane; the
+// visibility arms hold on every target.
+describe("Environment conformance — personal environments are a person's own", () => {
+  const PERSONAL = { "stigmer.ai/personal": "true" };
+  const SHARE_RESTRICTED =
+    "personal environments cannot be shared with the organization - " +
+    "create a dedicated environment with only the credentials the agent needs";
+
+  it("[rpc:EnvironmentCommandController.create] a member saves their own personal environment beside the owner's; the owner's second is refused", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) {
+      ctx.skip(enforcing.reason);
+      return;
+    }
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    const member = await lane.provisionMember(tenancy);
+    const personal = (name: string) => ({
+      apiVersion: ENVIRONMENT_API_VERSION,
+      kind: ENVIRONMENT_KIND,
+      metadata: { name: uniqueName(name), org: tenancy.org, labels: PERSONAL },
+      spec: makeEnvironmentSpec(),
+    });
+
+    const owners = await lane.clients.environmentCommand.create(personal("owner-personal"));
+    fixtures.defer(() => lane.clients.environmentCommand.delete({ resourceId: owners.metadata!.id }));
+    const members = await member.environmentCommand.create(personal("member-personal"));
+    fixtures.defer(() => member.environmentCommand.delete({ resourceId: members.metadata!.id }));
+    expect(members.metadata?.id).not.toBe(owners.metadata?.id);
+
+    await expectGrpcCode(
+      () => lane.clients.environmentCommand.create(personal("owner-personal-again")),
+      Code.AlreadyExists,
+      "the owner's second personal environment",
+    );
+  });
+
+  it("[rpc:EnvironmentCommandController.create] a personal environment cannot be created org-visible", async () => {
+    const { org } = await target.provisionTenancy();
+    const refused = await expectGrpcCode(
+      () =>
+        clients.environmentCommand.create({
+          apiVersion: ENVIRONMENT_API_VERSION,
+          kind: ENVIRONMENT_KIND,
+          metadata: {
+            name: uniqueName("personal-shared"),
+            org,
+            labels: PERSONAL,
+            visibility: ApiResourceVisibility.visibility_org,
+          },
+          spec: makeEnvironmentSpec(),
+        }),
+      Code.FailedPrecondition,
+      "create an org-visible personal environment",
+    );
+    expect(refused.rawMessage).toBe(SHARE_RESTRICTED);
+  });
+
+  it("[rpc:EnvironmentCommandController.update] an org-visible environment cannot take the personal label", async () => {
+    const { org } = await target.provisionTenancy();
+    const shared = await createEnvironment(org, uniqueName("shared-env"));
+    const widened = await clients.environmentCommand.updateVisibility({
+      resourceId: shared.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    const refused = await expectGrpcCode(
+      () =>
+        clients.environmentCommand.update({
+          ...widened,
+          metadata: { ...widened.metadata!, labels: PERSONAL },
+        }),
+      Code.FailedPrecondition,
+      "label an org-visible environment personal",
+    );
+    expect(refused.rawMessage).toBe(SHARE_RESTRICTED);
   });
 });

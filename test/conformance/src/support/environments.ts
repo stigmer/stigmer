@@ -117,15 +117,16 @@ export function makeEnvironment(opts: EnvironmentOptions): InitShape<typeof Envi
   };
 }
 
-// The label that marks an organization's PERSONAL environment — the one the
-// server draws an MCP connect's declared credentials from (and an agent
-// run's, before its own environment refs). A wire constant pinned on the
-// server side (`stigmer.ai/personal`); at most one such environment exists
-// per organization, which the environment suite pins.
+// The label that marks a person's PERSONAL environment in an organization —
+// the one the server draws that person's MCP connect credentials from, and
+// their own runs' session-server keys and workspace token. A wire constant
+// pinned on the server side (`stigmer.ai/personal`); at most one such
+// environment exists per person in an organization, never org-visible,
+// which the environment suite pins.
 export const PERSONAL_ENVIRONMENT_LABEL = "stigmer.ai/personal";
 
-// The organization's personal environment holding `data` — what a person
-// saves before connecting an MCP server that declares credentials. Pass the
+// A person's personal environment holding `data` — what a person saves
+// before connecting an MCP server that declares credentials. Pass the
 // credential as a secret entry: the point of the fixture is to exercise the
 // encrypt-at-rest and decrypt-for-the-runner path, not a plain value.
 export function makePersonalEnvironment(
