@@ -59,12 +59,9 @@ tests:
         object: platform:stigmer
         assertions:
           operator: false
-          can_impersonate: false
           can_bootstrap_iam: false
-          can_manage_identity_accounts: false
           can_grant_access: false
           can_view_access: false
-          can_update_usage: false
           can_execute_billing_ops: false
           can_manage_model_pricing: false
           can_manage_cursor_accounts: false

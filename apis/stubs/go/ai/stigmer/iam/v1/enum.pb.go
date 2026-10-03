@@ -66,21 +66,9 @@ const (
 	// Secret access permission.
 	IamPermission_can_read_secrets IamPermission = 16
 	// Platform-level permissions.
-	IamPermission_can_bootstrap_iam            IamPermission = 17
-	IamPermission_can_manage_identity_accounts IamPermission = 18
-	// Back-office access permission.
-	IamPermission_login_to_back_office IamPermission = 20
+	IamPermission_can_bootstrap_iam IamPermission = 17
 	// MCP server connect permission.
 	IamPermission_can_connect IamPermission = 22
-	// Organization-level runner create permission.
-	IamPermission_can_create_runner IamPermission = 25
-	// Deprecated: session deletion is authorized via can_delete on the
-	// session itself (owner-only). This platform-level permission is no
-	// longer referenced by any RPC or FGA relation; the value is retained
-	// because enum value removal is a breaking change.
-	//
-	// Deprecated: Marked as deprecated in ai/stigmer/iam/v1/enum.proto.
-	IamPermission_can_delete_session IamPermission = 26
 	// Billing permissions (org-scoped).
 	IamPermission_can_view_billing   IamPermission = 27
 	IamPermission_can_manage_billing IamPermission = 28
@@ -182,11 +170,7 @@ var (
 		15: "can_execute",
 		16: "can_read_secrets",
 		17: "can_bootstrap_iam",
-		18: "can_manage_identity_accounts",
-		20: "login_to_back_office",
 		22: "can_connect",
-		25: "can_create_runner",
-		26: "can_delete_session",
 		27: "can_view_billing",
 		28: "can_manage_billing",
 		29: "can_execute_billing_ops",
@@ -206,50 +190,46 @@ var (
 		46: "can_manage_credits",
 	}
 	IamPermission_value = map[string]int32{
-		"unspecified":                  0,
-		"can_view":                     1,
-		"can_edit":                     2,
-		"can_delete":                   3,
-		"can_grant_access":             4,
-		"can_view_access":              5,
-		"can_assign_roles":             47,
-		"can_manage_audience":          48,
-		"can_create_agent":             6,
-		"can_create_workflow":          7,
-		"can_create_session":           8,
-		"can_create_skill":             9,
-		"can_create_idp":               11,
-		"can_create_environment":       12,
-		"can_create_identity_account":  21,
-		"can_create_oauth_app":         23,
-		"can_create_platform_client":   24,
-		"can_create_execution_in":      13,
-		"can_create_instance":          14,
-		"can_execute":                  15,
-		"can_read_secrets":             16,
-		"can_bootstrap_iam":            17,
-		"can_manage_identity_accounts": 18,
-		"login_to_back_office":         20,
-		"can_connect":                  22,
-		"can_create_runner":            25,
-		"can_delete_session":           26,
-		"can_view_billing":             27,
-		"can_manage_billing":           28,
-		"can_execute_billing_ops":      29,
-		"can_create_agent_share":       30,
-		"can_create_channel_app":       31,
-		"can_manage_model_pricing":     32,
-		"can_manage_cursor_accounts":   35,
-		"can_participate":              36,
-		"can_write_reserved_labels":    37,
-		"can_view_provider_standing":   38,
-		"can_create_plugin":            40,
-		"can_manage_plans":             41,
-		"can_issue_license":            42,
-		"can_create_mcp_server":        43,
-		"can_create_agent_instance":    44,
-		"can_create_team":              45,
-		"can_manage_credits":           46,
+		"unspecified":                 0,
+		"can_view":                    1,
+		"can_edit":                    2,
+		"can_delete":                  3,
+		"can_grant_access":            4,
+		"can_view_access":             5,
+		"can_assign_roles":            47,
+		"can_manage_audience":         48,
+		"can_create_agent":            6,
+		"can_create_workflow":         7,
+		"can_create_session":          8,
+		"can_create_skill":            9,
+		"can_create_idp":              11,
+		"can_create_environment":      12,
+		"can_create_identity_account": 21,
+		"can_create_oauth_app":        23,
+		"can_create_platform_client":  24,
+		"can_create_execution_in":     13,
+		"can_create_instance":         14,
+		"can_execute":                 15,
+		"can_read_secrets":            16,
+		"can_bootstrap_iam":           17,
+		"can_connect":                 22,
+		"can_view_billing":            27,
+		"can_manage_billing":          28,
+		"can_execute_billing_ops":     29,
+		"can_create_agent_share":      30,
+		"can_create_channel_app":      31,
+		"can_manage_model_pricing":    32,
+		"can_manage_cursor_accounts":  35,
+		"can_participate":             36,
+		"can_write_reserved_labels":   37,
+		"can_view_provider_standing":  38,
+		"can_create_plugin":           40,
+		"can_manage_plans":            41,
+		"can_issue_license":           42,
+		"can_create_mcp_server":       43,
+		"can_create_agent_instance":   44,
+		"can_create_team":             45,
+		"can_manage_credits":          46,
 	}
 )
 
@@ -366,7 +346,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb0\t\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb4\t\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -390,12 +370,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x13can_create_instance\x10\x0e\x12\x0f\n" +
 	"\vcan_execute\x10\x0f\x12\x14\n" +
 	"\x10can_read_secrets\x10\x10\x12\x15\n" +
-	"\x11can_bootstrap_iam\x10\x11\x12 \n" +
-	"\x1ccan_manage_identity_accounts\x10\x12\x12\x18\n" +
-	"\x14login_to_back_office\x10\x14\x12\x0f\n" +
-	"\vcan_connect\x10\x16\x12\x15\n" +
-	"\x11can_create_runner\x10\x19\x12\x1a\n" +
-	"\x12can_delete_session\x10\x1a\x1a\x02\b\x01\x12\x14\n" +
+	"\x11can_bootstrap_iam\x10\x11\x12\x0f\n" +
+	"\vcan_connect\x10\x16\x12\x14\n" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
 	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
@@ -412,9 +388,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x15can_create_mcp_server\x10+\x12\x1d\n" +
 	"\x19can_create_agent_instance\x10,\x12\x13\n" +
 	"\x0fcan_create_team\x10-\x12\x16\n" +
-	"\x12can_manage_credits\x10.\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x12can_manage_credits\x10.\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*n\n" +
+	"\"\x04\b'\x10'*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*n\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

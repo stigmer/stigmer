@@ -25,6 +25,19 @@
  *     act that asked it would be hidden from its owner there; those ask
  *     `can_manage_audience`.
  *
+ * And the reverse, so the model never carries a rule nobody can ask: every
+ * `can_*` relation is an `IamPermission` value or is named by the rewrite
+ * of a relation that is itself reachable, and every `IamPermission` value
+ * is defined by some type. The Authorizer seam and the self-check take
+ * only enum values, so a `can_*` relation outside the enum is reachable
+ * only through another relation's rewrite; one named only by its own
+ * rewrite, or only by other unreachable `can_*` relations, is unreachable
+ * in every edition. The rule is by name on purpose: whether code asks a given
+ * permission on a given kind is not something this package can see (the
+ * console asks the CRUD triple of any kind by name, and an edition's own
+ * code asks from outside this repository), so that question stays a
+ * review's.
+ *
  * Outside the pin, as in the annotation-completeness precedent: `is_public`
  * and `is_skip_authorization` methods (their annotation is never
  * resolved), and a `config` that names no kind (`IamPolicyQueryController.get`,
@@ -56,10 +69,11 @@ import {
   is_public,
   is_skip_authorization,
 } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamPermission, IamPermissionSchema } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { grantableRolesFor, kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { builtInModel } from "../model/index.js";
+import type { Rewrite } from "../model/rewrite.js";
 
 /**
  * Today's disagreements between the contract and the model, each with its
@@ -207,5 +221,98 @@ describe("the contract asks the model only what the model defines", () => {
     }
 
     expect(gaps.sort()).toEqual([...KNOWN_GAPS].sort());
+  });
+});
+
+/**
+ * The relations a rewrite on `type` refers to. Where the rewrite names the
+ * type it lands on (a computed relation of the same type, a userset
+ * subject, a tupleset of the same type), the reference is `type#relation`.
+ * A `from` arm's relation lands on whatever types the tupleset links to,
+ * which the rewrite does not name, so that one is kept by name alone.
+ */
+function relationsNamedBy(
+  rewrite: Rewrite,
+  type: string,
+  named: { readonly keys: Set<string>; readonly names: Set<string> },
+): void {
+  switch (rewrite.node) {
+    case "this":
+      for (const subject of rewrite.subjects) {
+        if (subject.form === "userset") {
+          named.keys.add(`${subject.type}#${subject.relation}`);
+        }
+      }
+      return;
+    case "computed":
+      named.keys.add(`${type}#${rewrite.relation}`);
+      return;
+    case "from":
+      named.keys.add(`${type}#${rewrite.tupleset}`);
+      named.names.add(rewrite.relation);
+      return;
+    case "union":
+    case "intersection":
+      for (const member of rewrite.members) {
+        relationsNamedBy(member, type, named);
+      }
+      return;
+    default: {
+      const exhaustive: never = rewrite;
+      throw new Error(`unknown rewrite node ${JSON.stringify(exhaustive)}`);
+    }
+  }
+}
+
+describe("the model defines only what the contract can ask", () => {
+  const permissionNames = new Set(
+    IamPermissionSchema.values
+      .filter((value) => value.number !== IamPermission.unspecified)
+      .map((value) => value.name),
+  );
+
+  it("names every can_* relation in the contract's IamPermission, or in the rewrite of a relation that is itself reachable", () => {
+    // The suspects start as every can_* relation outside the enum. A
+    // suspect is cleared when a relation that is not a suspect names it
+    // (as `type#relation`, or by name through a `from` arm), until nothing
+    // changes: a suspect's own rewrite, and a ring of suspects naming each
+    // other, never clear one.
+    let unaskable = new Set<string>();
+    for (const declaration of builtInModel.declarations) {
+      for (const relation of declaration.relations.keys()) {
+        if (relation.startsWith("can_") && !permissionNames.has(relation)) {
+          unaskable.add(`${declaration.type}#${relation}`);
+        }
+      }
+    }
+    for (;;) {
+      const named = { keys: new Set<string>(), names: new Set<string>() };
+      for (const declaration of builtInModel.declarations) {
+        for (const [relation, rewrite] of declaration.relations) {
+          if (!unaskable.has(`${declaration.type}#${relation}`)) {
+            relationsNamedBy(rewrite, declaration.type, named);
+          }
+        }
+      }
+      const still = new Set(
+        [...unaskable].filter(
+          (key) => !named.keys.has(key) && !named.names.has(key.slice(key.indexOf("#") + 1)),
+        ),
+      );
+      if (still.size === unaskable.size) {
+        break;
+      }
+      unaskable = still;
+    }
+
+    expect([...unaskable].sort()).toEqual([]);
+  });
+
+  it("defines every IamPermission value on at least one type", () => {
+    const defined = new Set(
+      builtInModel.declarations.flatMap((declaration) => [...declaration.relations.keys()]),
+    );
+
+    expect([...permissionNames].filter((name) => !defined.has(name)).sort()).toEqual([]);
   });
 });

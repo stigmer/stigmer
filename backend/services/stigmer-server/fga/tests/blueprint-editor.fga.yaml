@@ -59,13 +59,13 @@ tests:
     check:
       - user: identity_account:ed
         object: agent:bot
-        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_create_instance: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
+        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_create_instance: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
       - user: identity_account:ed
         object: workflow:flow
-        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
+        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_execute: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
       - user: identity_account:ed
         object: mcp_server:tools
-        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_use: true, can_connect: true, can_clone: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
+        assertions: {editor: true, viewer: true, owner: false, can_view: true, can_edit: true, can_connect: true, can_view_access: true, can_delete: false, can_grant_access: false, can_manage_audience: false}
   - name: an editor runs the agent through its default instance, as its viewers do
     check:
       - user: identity_account:ed

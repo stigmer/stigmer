@@ -175,7 +175,6 @@ tests:
         object: skill:research
         assertions:
           can_view: true
-          can_use: true
           can_edit: false
 
   - name: platform-shared workflow is viewable and executable by managed-org members
@@ -192,7 +191,6 @@ tests:
         object: mcp_server:github
         assertions:
           can_view: true
-          can_use: true
           can_connect: true
 
   - name: platform owner retains full control of shared blueprints

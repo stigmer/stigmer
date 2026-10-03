@@ -27,7 +27,7 @@ public interface VisibilityConfigOrBuilder extends
   /**
    * <pre>
    * Whether resources of this kind can be set to visibility_org.
-   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
    *
    * Historically org support was inferred from supports_public, which made
    * it impossible to declare "org but not public" and silently skipped org

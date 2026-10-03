@@ -13,7 +13,7 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * FGA tuple reconciliation (each level maps to exactly one tuple shape):
  *
  * - visibility_private: no visibility tuple (owner + explicit grants only)
- * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#member
+ * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#viewer
  * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
  * (the "private catalog" primitive: grants access to
  * all members of all platform_managed orgs linked to
@@ -112,7 +112,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether resources of this kind can be set to visibility_org.
-   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+   * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
    *
    * Historically org support was inferred from supports_public, which made
    * it impossible to declare "org but not public" and silently skipped org
@@ -358,7 +358,7 @@ private static final long serialVersionUID = 0L;
    * FGA tuple reconciliation (each level maps to exactly one tuple shape):
    *
    * - visibility_private: no visibility tuple (owner + explicit grants only)
-   * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#member
+   * - visibility_org:     resource#viewer&#64;organization:&lt;org&gt;#viewer
    * - visibility_platform: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
    * (the "private catalog" primitive: grants access to
    * all members of all platform_managed orgs linked to
@@ -610,7 +610,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether resources of this kind can be set to visibility_org.
-     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
      *
      * Historically org support was inferred from supports_public, which made
      * it impossible to declare "org but not public" and silently skipped org
@@ -627,7 +627,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether resources of this kind can be set to visibility_org.
-     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
      *
      * Historically org support was inferred from supports_public, which made
      * it impossible to declare "org but not public" and silently skipped org
@@ -648,7 +648,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether resources of this kind can be set to visibility_org.
-     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#member
+     * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
      *
      * Historically org support was inferred from supports_public, which made
      * it impossible to declare "org but not public" and silently skipped org

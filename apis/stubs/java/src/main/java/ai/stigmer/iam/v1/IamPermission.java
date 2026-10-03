@@ -151,18 +151,6 @@ public enum IamPermission
    */
   can_bootstrap_iam(17),
   /**
-   * <code>can_manage_identity_accounts = 18;</code>
-   */
-  can_manage_identity_accounts(18),
-  /**
-   * <pre>
-   * Back-office access permission.
-   * </pre>
-   *
-   * <code>login_to_back_office = 20;</code>
-   */
-  login_to_back_office(20),
-  /**
    * <pre>
    * MCP server connect permission.
    * </pre>
@@ -170,26 +158,6 @@ public enum IamPermission
    * <code>can_connect = 22;</code>
    */
   can_connect(22),
-  /**
-   * <pre>
-   * Organization-level runner create permission.
-   * </pre>
-   *
-   * <code>can_create_runner = 25;</code>
-   */
-  can_create_runner(25),
-  /**
-   * <pre>
-   * Deprecated: session deletion is authorized via can_delete on the
-   * session itself (owner-only). This platform-level permission is no
-   * longer referenced by any RPC or FGA relation; the value is retained
-   * because enum value removal is a breaking change.
-   * </pre>
-   *
-   * <code>can_delete_session = 26 [deprecated = true];</code>
-   */
-  @java.lang.Deprecated
-  can_delete_session(26),
   /**
    * <pre>
    * Billing permissions (org-scoped).
@@ -502,18 +470,6 @@ public enum IamPermission
    */
   public static final int can_bootstrap_iam_VALUE = 17;
   /**
-   * <code>can_manage_identity_accounts = 18;</code>
-   */
-  public static final int can_manage_identity_accounts_VALUE = 18;
-  /**
-   * <pre>
-   * Back-office access permission.
-   * </pre>
-   *
-   * <code>login_to_back_office = 20;</code>
-   */
-  public static final int login_to_back_office_VALUE = 20;
-  /**
    * <pre>
    * MCP server connect permission.
    * </pre>
@@ -521,25 +477,6 @@ public enum IamPermission
    * <code>can_connect = 22;</code>
    */
   public static final int can_connect_VALUE = 22;
-  /**
-   * <pre>
-   * Organization-level runner create permission.
-   * </pre>
-   *
-   * <code>can_create_runner = 25;</code>
-   */
-  public static final int can_create_runner_VALUE = 25;
-  /**
-   * <pre>
-   * Deprecated: session deletion is authorized via can_delete on the
-   * session itself (owner-only). This platform-level permission is no
-   * longer referenced by any RPC or FGA relation; the value is retained
-   * because enum value removal is a breaking change.
-   * </pre>
-   *
-   * <code>can_delete_session = 26 [deprecated = true];</code>
-   */
-  @java.lang.Deprecated public static final int can_delete_session_VALUE = 26;
   /**
    * <pre>
    * Billing permissions (org-scoped).
@@ -761,11 +698,7 @@ public enum IamPermission
       case 15: return can_execute;
       case 16: return can_read_secrets;
       case 17: return can_bootstrap_iam;
-      case 18: return can_manage_identity_accounts;
-      case 20: return login_to_back_office;
       case 22: return can_connect;
-      case 25: return can_create_runner;
-      case 26: return can_delete_session;
       case 27: return can_view_billing;
       case 28: return can_manage_billing;
       case 29: return can_execute_billing_ops;

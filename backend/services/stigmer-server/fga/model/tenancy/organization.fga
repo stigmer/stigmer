@@ -9,8 +9,9 @@ module tenancy
 #
 # Permission hierarchy: owner > admin > member > viewer
 #
-# Platform operators access organizations via can_impersonate
-# (on-behalf-of), not through transitive FGA relations.
+# Platform operators hold no relation on an organization: a platform act
+# is an explicit permission on platform:stigmer (platform.fga), never a
+# transitive path into organizations.
 #
 # FGA tuples on org creation:
 # - organization:acme#owner@identity_account:alice
@@ -32,7 +33,8 @@ type organization
     # FGA tuple: organization:<org_id>#member@identity_account:<user_id>
     define member: [identity_account] or admin
     
-    # Organization viewers (read-only access, no cost exposure)
+    # Organization viewers (read-only access, the organization's billing
+    # included: can_view_billing is viewer's)
     # FGA tuple: organization:<org_id>#viewer@identity_account:<user_id>
     define viewer: [identity_account] or member
 
@@ -70,7 +72,6 @@ type organization
     # ========================================
     # MEMBER MANAGEMENT
     # ========================================
-    define can_manage_members: admin
     # Granting, revoking or removing the owner role. The IamPolicy lanes and
     # the invitation lane ask it whenever a change touches owner, on top of
     # can_grant_access: an admin grants every role up to admin, and only an
@@ -99,8 +100,8 @@ type organization
     # like can_create_oauth_app.
     define can_create_channel_app: admin
     define can_create_execution_in: member or guest
-    # Asked on every agent share create, beside can_edit on the shared
-    # agent: a share spends THIS org's credits on the open internet, an
+    # Asked on every agent share create, beside can_manage_audience on the
+    # shared agent: a share spends THIS org's credits on the open internet, an
     # admin-level act, whichever agent it offers. A share's agent lives in
     # the share's own organization since the public level retired
     # (stigmer#1211), so the two questions are always one organization's.

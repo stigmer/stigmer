@@ -29,13 +29,6 @@ type api_key
     define can_delete: owner
     
     # ========================================
-    # API KEY OPERATIONS
-    # ========================================
-    define can_rotate: owner
-    define can_revoke: owner
-    define can_use: owner
-    
-    # ========================================
     # IAM POLICY MANAGEMENT
     # ========================================
     define can_grant_access: owner

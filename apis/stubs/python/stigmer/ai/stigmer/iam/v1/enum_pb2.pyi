@@ -28,11 +28,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_execute: _ClassVar[IamPermission]
     can_read_secrets: _ClassVar[IamPermission]
     can_bootstrap_iam: _ClassVar[IamPermission]
-    can_manage_identity_accounts: _ClassVar[IamPermission]
-    login_to_back_office: _ClassVar[IamPermission]
     can_connect: _ClassVar[IamPermission]
-    can_create_runner: _ClassVar[IamPermission]
-    can_delete_session: _ClassVar[IamPermission]
     can_view_billing: _ClassVar[IamPermission]
     can_manage_billing: _ClassVar[IamPermission]
     can_execute_billing_ops: _ClassVar[IamPermission]
@@ -82,11 +78,7 @@ can_create_instance: IamPermission
 can_execute: IamPermission
 can_read_secrets: IamPermission
 can_bootstrap_iam: IamPermission
-can_manage_identity_accounts: IamPermission
-login_to_back_office: IamPermission
 can_connect: IamPermission
-can_create_runner: IamPermission
-can_delete_session: IamPermission
 can_view_billing: IamPermission
 can_manage_billing: IamPermission
 can_execute_billing_ops: IamPermission

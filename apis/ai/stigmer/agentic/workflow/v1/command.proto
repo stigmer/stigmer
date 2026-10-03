@@ -61,8 +61,8 @@ service WorkflowCommandController {
   // (visibility_public is refused for every kind); the reference floor is a
   // pipeline step on this chain. Visibility transitions trigger FGA tuple
   // management in Cloud mode: - PRIVATE → ORG: creates
-  // workflow#viewer@organization:<org>#member - ORG → PRIVATE: deletes the org
-  // member viewer tuple
+  // workflow#viewer@organization:<org>#viewer - ORG → PRIVATE: deletes the org
+  // viewer tuple
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Workflow) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;

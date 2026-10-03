@@ -17,7 +17,7 @@ package ai.stigmer.commons.apiresource;
  * level maps to exactly one tuple shape; on a transition the tuple for the
  * old level is removed and the tuple for the new level is created:
  * - PRIVATE:  no visibility tuple (owner + explicit grants only)
- * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#member
+ * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#viewer
  * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
  *
  * Not all resources support all visibility levels — the supported set is
@@ -334,7 +334,7 @@ private static final long serialVersionUID = 0L;
    * level maps to exactly one tuple shape; on a transition the tuple for the
    * old level is removed and the tuple for the new level is created:
    * - PRIVATE:  no visibility tuple (owner + explicit grants only)
-   * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#member
+   * - ORG:      resource#viewer&#64;organization:&lt;org&gt;#viewer
    * - PLATFORM: resource#platform_viewer&#64;identity_provider:&lt;idp&gt;#platform_user
    *
    * Not all resources support all visibility levels — the supported set is

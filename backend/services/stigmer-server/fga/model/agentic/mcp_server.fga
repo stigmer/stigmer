@@ -26,7 +26,7 @@ module agentic
 # Platform visibility (visibility_platform):
 # - Grants view/use to members of all orgs managed by the owning org's
 #   IdentityProvider (see agent.fga for the full pattern docs). MCP servers
-#   have no can_execute; can_use/can_connect/can_clone derive from viewer.
+#   have no can_execute; can_connect derives from viewer.
 
 type mcp_server
   relations
@@ -67,12 +67,10 @@ type mcp_server
     # ========================================
     # organization#viewer is the shape VisibilityTupleReconciler writes — the
     # org's FULL read audience (roles flow downward: owner/admin/member all
-    # satisfy organization#viewer). organization#member is the legacy
-    # pre-2026-08-11 shape, accepted so tuples written before the flip keep
-    # resolving until the boot backfill converges them. team#member is an
-    # Enterprise team's grant: every member, bounded by the organization
-    # in team.fga.
-    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
+    # satisfy organization#viewer); a narrower role's userset is refused
+    # (README, "Shapes to Avoid"). team#member is an Enterprise team's
+    # grant: every member, bounded by the organization in team.fga.
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
     
     # ========================================
     # PERMISSIONS
@@ -80,8 +78,6 @@ type mcp_server
     define can_view: viewer
     define can_edit: owner or editor
     define can_delete: owner
-    define can_use: viewer
-    define can_clone: viewer
     define can_connect: viewer
     
     # ========================================

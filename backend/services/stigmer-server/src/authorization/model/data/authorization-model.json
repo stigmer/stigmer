@@ -8,14 +8,11 @@
           "can_bootstrap_iam": {},
           "can_execute_billing_ops": {},
           "can_grant_access": {},
-          "can_impersonate": {},
           "can_issue_license": {},
           "can_manage_credits": {},
           "can_manage_cursor_accounts": {},
-          "can_manage_identity_accounts": {},
           "can_manage_model_pricing": {},
           "can_manage_plans": {},
-          "can_update_usage": {},
           "can_view_access": {},
           "can_view_provider_standing": {},
           "can_write_reserved_labels": {},
@@ -54,11 +51,6 @@
             "relation": "operator"
           }
         },
-        "can_impersonate": {
-          "computedUserset": {
-            "relation": "operator"
-          }
-        },
         "can_issue_license": {
           "computedUserset": {
             "relation": "operator"
@@ -85,22 +77,12 @@
             "relation": "operator"
           }
         },
-        "can_manage_identity_accounts": {
-          "computedUserset": {
-            "relation": "operator"
-          }
-        },
         "can_manage_model_pricing": {
           "computedUserset": {
             "relation": "operator"
           }
         },
         "can_manage_plans": {
-          "computedUserset": {
-            "relation": "operator"
-          }
-        },
-        "can_update_usage": {
           "computedUserset": {
             "relation": "operator"
           }
@@ -401,9 +383,6 @@
           "can_delete": {},
           "can_edit": {},
           "can_grant_access": {},
-          "can_revoke": {},
-          "can_rotate": {},
-          "can_use": {},
           "can_view": {},
           "can_view_access": {},
           "owner": {
@@ -430,21 +409,6 @@
           }
         },
         "can_grant_access": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_revoke": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_rotate": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_use": {
           "computedUserset": {
             "relation": "owner"
           }
@@ -874,7 +838,6 @@
           "can_edit": {},
           "can_grant_access": {},
           "can_manage_billing": {},
-          "can_manage_members": {},
           "can_view": {},
           "can_view_access": {},
           "can_view_billing": {},
@@ -1056,11 +1019,6 @@
             "relation": "admin"
           }
         },
-        "can_manage_members": {
-          "computedUserset": {
-            "relation": "admin"
-          }
-        },
         "can_view": {
           "computedUserset": {
             "relation": "viewer"
@@ -1117,7 +1075,6 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_clone": {},
           "can_create_instance": {},
           "can_delete": {},
           "can_edit": {},
@@ -1165,10 +1122,6 @@
                 "type": "identity_account"
               },
               {
-                "relation": "member",
-                "type": "organization"
-              },
-              {
                 "relation": "viewer",
                 "type": "organization"
               },
@@ -1184,11 +1137,6 @@
         }
       },
       "relations": {
-        "can_clone": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
         "can_create_instance": {
           "computedUserset": {
             "relation": "can_execute"
@@ -1804,10 +1752,6 @@
                 "type": "identity_account"
               },
               {
-                "relation": "member",
-                "type": "organization"
-              },
-              {
                 "relation": "viewer",
                 "type": "organization"
               },
@@ -2170,10 +2114,6 @@
                 "type": "identity_account"
               },
               {
-                "relation": "member",
-                "type": "organization"
-              },
-              {
                 "relation": "viewer",
                 "type": "organization"
               }
@@ -2333,13 +2273,11 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_clone": {},
           "can_connect": {},
           "can_delete": {},
           "can_edit": {},
           "can_grant_access": {},
           "can_manage_audience": {},
-          "can_use": {},
           "can_view": {},
           "can_view_access": {},
           "editor": {
@@ -2381,10 +2319,6 @@
                 "type": "identity_account"
               },
               {
-                "relation": "member",
-                "type": "organization"
-              },
-              {
                 "relation": "viewer",
                 "type": "organization"
               },
@@ -2400,11 +2334,6 @@
         }
       },
       "relations": {
-        "can_clone": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
         "can_connect": {
           "computedUserset": {
             "relation": "viewer"
@@ -2439,11 +2368,6 @@
         "can_manage_audience": {
           "computedUserset": {
             "relation": "owner"
-          }
-        },
-        "can_use": {
-          "computedUserset": {
-            "relation": "viewer"
           }
         },
         "can_view": {
@@ -2640,7 +2564,6 @@
           "can_edit": {},
           "can_grant_access": {},
           "can_manage_audience": {},
-          "can_use": {},
           "can_view": {},
           "can_view_access": {},
           "organization": {
@@ -2669,10 +2592,6 @@
             "directly_related_user_types": [
               {
                 "type": "identity_account"
-              },
-              {
-                "relation": "member",
-                "type": "organization"
               },
               {
                 "relation": "viewer",
@@ -2708,11 +2627,6 @@
         "can_manage_audience": {
           "computedUserset": {
             "relation": "owner"
-          }
-        },
-        "can_use": {
-          "computedUserset": {
-            "relation": "viewer"
           }
         },
         "can_view": {
@@ -3122,12 +3036,10 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_clone": {},
           "can_delete": {},
           "can_edit": {},
           "can_grant_access": {},
           "can_manage_audience": {},
-          "can_use": {},
           "can_view": {},
           "can_view_access": {},
           "organization": {
@@ -3158,10 +3070,6 @@
                 "type": "identity_account"
               },
               {
-                "relation": "member",
-                "type": "organization"
-              },
-              {
                 "relation": "viewer",
                 "type": "organization"
               },
@@ -3177,11 +3085,6 @@
         }
       },
       "relations": {
-        "can_clone": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
         "can_delete": {
           "computedUserset": {
             "relation": "owner"
@@ -3200,11 +3103,6 @@
         "can_manage_audience": {
           "computedUserset": {
             "relation": "owner"
-          }
-        },
-        "can_use": {
-          "computedUserset": {
-            "relation": "viewer"
           }
         },
         "can_view": {
@@ -3300,7 +3198,6 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_clone": {},
           "can_delete": {},
           "can_edit": {},
           "can_execute": {},
@@ -3347,10 +3244,6 @@
                 "type": "identity_account"
               },
               {
-                "relation": "member",
-                "type": "organization"
-              },
-              {
                 "relation": "viewer",
                 "type": "organization"
               },
@@ -3366,11 +3259,6 @@
         }
       },
       "relations": {
-        "can_clone": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
         "can_delete": {
           "computedUserset": {
             "relation": "owner"
@@ -3544,10 +3432,6 @@
                 "type": "identity_account"
               },
               {
-                "relation": "member",
-                "type": "organization"
-              },
-              {
                 "relation": "viewer",
                 "type": "organization"
               }
@@ -3571,10 +3455,6 @@
             "directly_related_user_types": [
               {
                 "type": "identity_account"
-              },
-              {
-                "relation": "member",
-                "type": "organization"
               },
               {
                 "relation": "viewer",

@@ -52,7 +52,7 @@ type plugin
     # ========================================
     # team#member is an Enterprise team's grant: every member, bounded by
     # the organization in team.fga.
-    define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or platform_viewer
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or platform_viewer
 
     # ========================================
     # PERMISSIONS
@@ -60,7 +60,6 @@ type plugin
     define can_view: viewer
     define can_edit: owner
     define can_delete: owner
-    define can_use: viewer
 
     # ========================================
     # IAM POLICY MANAGEMENT

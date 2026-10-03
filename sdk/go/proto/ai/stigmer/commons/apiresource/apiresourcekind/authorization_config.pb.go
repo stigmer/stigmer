@@ -170,7 +170,7 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // FGA tuple reconciliation (each level maps to exactly one tuple shape):
 //
 //   - visibility_private: no visibility tuple (owner + explicit grants only)
-//   - visibility_org:     resource#viewer@organization:<org>#member
+//   - visibility_org:     resource#viewer@organization:<org>#viewer
 //   - visibility_platform: resource#platform_viewer@identity_provider:<idp>#platform_user
 //     (the "private catalog" primitive: grants access to
 //     all members of all platform_managed orgs linked to
@@ -210,7 +210,7 @@ type VisibilityConfig struct {
 	// Instance kinds are deliberately excluded to preserve tenant isolation.
 	SupportsPlatform bool `protobuf:"varint,2,opt,name=supports_platform,json=supportsPlatform,proto3" json:"supports_platform,omitempty"`
 	// Whether resources of this kind can be set to visibility_org.
-	// FGA tuple: resource#viewer@organization:<org>#member
+	// FGA tuple: resource#viewer@organization:<org>#viewer
 	//
 	// Historically org support was inferred from supports_public, which made
 	// it impossible to declare "org but not public" and silently skipped org

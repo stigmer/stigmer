@@ -21,7 +21,7 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  * FGA tuple reconciliation (each level maps to exactly one tuple shape):
  *
  * - visibility_private: no visibility tuple (owner + explicit grants only)
- * - visibility_org:     resource#viewer@organization:<org>#member
+ * - visibility_org:     resource#viewer@organization:<org>#viewer
  * - visibility_platform: resource#platform_viewer@identity_provider:<idp>#platform_user
  *                       (the "private catalog" primitive: grants access to
  *                       all members of all platform_managed orgs linked to
@@ -69,7 +69,7 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
 
   /**
    * Whether resources of this kind can be set to visibility_org.
-   * FGA tuple: resource#viewer@organization:<org>#member
+   * FGA tuple: resource#viewer@organization:<org>#viewer
    *
    * Historically org support was inferred from supports_public, which made
    * it impossible to declare "org but not public" and silently skipped org

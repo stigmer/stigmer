@@ -33,7 +33,7 @@ Instances support configurable visibility controlled by which tuples are written
 | Visibility | Tuple Written | Who Can View |
 |---|---|---|
 | **Private** | (none beyond owner) | Owner only |
-| **Org** | `resource#viewer@organization:<org>#viewer` | Everyone in the org (all roles incl. read-only viewers) + owner. `#member` is the legacy pre-2026-08-11 shape, still resolving until backfilled |
+| **Org** | `resource#viewer@organization:<org>#viewer` | Everyone in the org (all roles incl. read-only viewers) + owner |
 | **Platform** (blueprints only) | `resource#platform_viewer@identity_provider:<idp>#platform_user`, beside the org tuple | Every member of every organization the owning organization's identity provider manages |
 
 Individual grants (`resource#viewer@identity_account:<user>`) work at any visibility level.
@@ -73,31 +73,31 @@ Guest, channel and schedule sessions run as per-org system accounts that hold ex
 Templates discoverable by all org members, with optional platform visibility:
 
 ```fga
-define viewer: ([identity_account, organization#member, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
+define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or platform_viewer
 ```
 
 Resources: `agent`, `workflow`, `skill`, `mcp_server`, `plugin`
 
-### Personal Resource (Sessions, Environments)
+### Personal Resource (Sessions)
 
-Owner-only access. Org admins explicitly excluded (personal secrets/conversations):
+Owner-only access. Org admins explicitly excluded (personal conversations):
 
 ```fga
 define owner: [identity_account] and affiliated from organization
 define viewer: ([identity_account] and affiliated from organization) or owner
 ```
 
-Resources: `session`, `environment`
+Resources: `session`
 
 ### Configurable Visibility (Instances)
 
 Private by default, expandable to org via an additional tuple:
 
 ```fga
-define viewer: ([identity_account, organization#member, organization#viewer] and affiliated from organization) or owner or viewer from default_of
+define viewer: ([identity_account, organization#viewer] and affiliated from organization) or owner or viewer from default_of
 ```
 
-Resources: `agent_instance`, `workflow_instance`
+Resources: `agent_instance`, `workflow_instance`. An `environment` follows the same pattern with a narrower line, `([identity_account, organization#viewer] and affiliated from organization) or owner`: no `default_of` and no team grant. It is personal by default and shared with the organization by its visibility, and its owner arm keeps the organization's admins out of a personal one's secrets.
 
 ### Inherited Visibility (Executions)
 
@@ -174,7 +174,7 @@ owner ⊆ admin ⊆ member ⊆ viewer (organization roles)
 
 Permission checks reference the bottom of the hierarchy:
 - `can_view: viewer` (viewer includes owner)
-- `can_edit: owner`
+- `can_edit: owner` (`owner or editor` on the blueprints an editor can be granted)
 - `can_delete: owner`
 
 Authority to spend or create comes from an explicit permission checked at the door (`can_create_execution_in` on the organization, `can_create_<kind>`), never from the accidental shape of a read tuple: a read userset that happens to imply membership must not become the thing that lets a read-only viewer spend the organization's credits.
@@ -185,7 +185,7 @@ Platform capabilities live on `platform:stigmer`: one `operator` role, narrow ro
 
 - A relation used as a tupleset (`admin from organization` reads `organization`) must be direct: only `[type]` references, no `or`, `from` or `and`. Put a computed arm on each permission instead. OpenFGA refuses the model otherwise.
 - A tuple-to-userset (`viewer from workflow_instance`) works only if the parent type defines that relation; read the parent's file first.
-- A mid-chain role in a read grant is accepted and wrong: `resource#viewer@organization:acme#member` excludes every viewer-role user, and single sign-on provisions the viewer role by default. A read grant names the widest audience, `organization#viewer`.
+- A mid-chain role in a read grant is wrong, and no type admits one: `resource#viewer@organization:acme#member` would exclude every viewer-role user, and single sign-on provisions the viewer role by default. A read grant names the widest audience, `organization#viewer`.
 - A new file must be listed in `fga.mod`, in dependency order; the generator refuses a `.fga` file that `fga.mod` does not list.
 - A suite holds `check` and `list_objects` assertions only: the built-in evaluator's kit refuses any other key (`list_users` included), and an assertion it cannot run would be proven on one engine only.
 
@@ -208,6 +208,8 @@ The model defines every type, whichever edition serves it. Which kinds an editio
 ### Changing the model
 
 A change edits a `.fga` file and the suite under `../tests/` that pins it (a new relation, a new type or a new path gets its assertions), runs `make test-authorization-model` (it regenerates the JSON, runs every suite on the engine at the pinned `fga` CLI version, then through the built-in evaluator), and commits the regenerated JSON with the source. The engine version is pinned to the one production runs, and moves with it.
+
+A permission is added when something asks it and deleted when nothing does. Every `can_*` relation is an `IamPermission` value (so an RPC, a pipeline step or the self-check can ask it) or is named by the rewrite of a relation that is itself reachable, and every `IamPermission` value is defined by some type; `src/authorization/__tests__/wire-permissions.test.ts` fails otherwise. A role, a structural link or a type stays while code writes or reads it, and the model declares every open-source kind whether or not anything is granted on it. Removing a relation must change no answer anywhere: every edition answers a permission a kind's type does not define as a denial, never an engine error, and the IamPolicy conformance suite holds each edition to that by asking such a permission on a run.
 
 A model change's note is its pull request and its commit: what changed, why, and the suite that pins it. The release that carries it names it in its notes. The model's history is `git log` of this folder; it moved here from the hosted edition's private repository on 2026-09-26, and its history before that is not public.
 
@@ -310,7 +312,7 @@ fga/
 │       ├── agent_instance.fga      # Agent deployments (configurable visibility)
 │       ├── agent_execution.fga     # Agent runs (inherits from session)
 │       ├── artifact.fga            # Files a run produces (org and owner)
-│       ├── environment.fga         # Config and secrets (personal)
+│       ├── environment.fga         # Config and secrets (personal, shareable with the org)
 │       ├── execution_context.fga   # Ephemeral runtime contexts (owner-only)
 │       ├── mcp_server.fga          # MCP tool servers (open access)
 │       ├── memory.fga              # An identity's memories (subject-only)

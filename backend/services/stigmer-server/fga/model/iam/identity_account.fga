@@ -6,9 +6,10 @@ module iam
 # User accounts - no parent, created at platform level.
 # Each user owns their own identity account.
 #
-# Platform operators manage identity accounts via
-# platform:stigmer#can_manage_identity_accounts, not through
-# transitive FGA relations on this type.
+# No platform permission reaches an account. An account RPC asks the
+# account's own relations, or, for a federated account an organization
+# provisions, can_create_identity_account on that organization; an
+# operator holds neither.
 #
 # FGA tuples on account creation:
 # - identity_account:alice#owner@identity_account:alice

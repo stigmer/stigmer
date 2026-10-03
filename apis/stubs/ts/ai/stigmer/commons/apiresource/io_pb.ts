@@ -162,7 +162,7 @@ export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> 
  * level maps to exactly one tuple shape; on a transition the tuple for the
  * old level is removed and the tuple for the new level is created:
  * - PRIVATE:  no visibility tuple (owner + explicit grants only)
- * - ORG:      resource#viewer@organization:<org>#member
+ * - ORG:      resource#viewer@organization:<org>#viewer
  * - PLATFORM: resource#platform_viewer@identity_provider:<idp>#platform_user
  *
  * Not all resources support all visibility levels — the supported set is

@@ -21,9 +21,11 @@
  * query RPCs are direct handlers over `authorizeDirect` (the cloud's
  * shape; the identity-account lookups' precedent). No chain here splices
  * a tuple step: a policy is the authorization record, not a protected
- * resource — the cloud builds policies outside any chain, the FGA
- * `iam_policy` type is dead, and seeding scope links for a row would
- * recurse (the ts-server guideline records this exception).
+ * resource — the cloud builds policies outside any chain, no RPC
+ * authorizes against a policy (the model declares the `iam_policy` type
+ * only because it declares every open-source kind), and seeding scope
+ * links for a row would recurse (the ts-server guideline records this
+ * exception).
  *
  * What the cloud's handlers recorded as surprises, kept or corrected:
  *   - `delete` and `create` are idempotent (absent → the default instance;
