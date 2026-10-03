@@ -345,8 +345,9 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    *
    * If the JWT at that first sign-in does not contain this claim, or the
    * claim value does not resolve to a known platform-managed organization,
-   * the authentication request is rejected with a descriptive error and no
-   * account remains (the one being created is rolled back).
+   * the sign-in is refused as unauthenticated and no account remains (the one
+   * being created is rolled back). The refusal says that provisioning failed;
+   * it does not name the tenant.
    *
    * @generated from field: string tenant_org_claim = 12;
    */

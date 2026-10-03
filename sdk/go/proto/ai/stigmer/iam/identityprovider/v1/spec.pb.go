@@ -298,8 +298,9 @@ type IdentityProviderSpec struct {
 	//
 	// If the JWT at that first sign-in does not contain this claim, or the
 	// claim value does not resolve to a known platform-managed organization,
-	// the authentication request is rejected with a descriptive error and no
-	// account remains (the one being created is rolled back).
+	// the sign-in is refused as unauthenticated and no account remains (the one
+	// being created is rolled back). The refusal says that provisioning failed;
+	// it does not name the tenant.
 	TenantOrgClaim string `protobuf:"bytes,12,opt,name=tenant_org_claim,json=tenantOrgClaim,proto3" json:"tenant_org_claim,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
