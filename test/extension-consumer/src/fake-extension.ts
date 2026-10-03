@@ -187,7 +187,8 @@ import type {
 
 /**
  * A permissive Authorizer in the consumer's own code, with the
- * lane-admission arm a composition builds over the run gate: a runtime lane this consumer mints is admitted on the
+ * lane-admission arm a composition builds over the run gate: a runtime
+ * lane this consumer mints is admitted on the
  * run-gate checks — isRunGateCheck is the OSS-owned definition of that
  * set — and every other check falls to the consumer's own decision.
  */
@@ -222,7 +223,8 @@ const callerGuard: CallerGuard = {
 };
 
 /**
- * A consumer-shaped identity-account store driver: the PORT the identity-account domain writes and reads through
+ * A consumer-shaped identity-account store driver: the PORT the
+ * identity-account domain writes and reads through
  * when a composition registers one — the cloud's `cloud.iam_identity_account`
  * store takes this position. `save` is create-only in effect: a held id
  * raises the exported DuplicateAccountError so the domain's race arms
@@ -504,7 +506,8 @@ const consumerGuestTokenMinting: GuestTokenMinting = {
 };
 
 /**
- * A consumer-shaped IamPolicy store driver: the PORT the IamPolicy domain's grant path writes and reads through when
+ * A consumer-shaped IamPolicy store driver: the PORT the IamPolicy
+ * domain's grant path writes and reads through when
  * a composition registers one — the cloud's `cloud.iam_policy` store takes
  * this position (registered below as `drivers.iamPolicyStore`).
  * `save` is create-only in effect: a held id raises the exported
@@ -573,7 +576,8 @@ const consumerPolicyGrantScope: PolicyGrantScope = {
 };
 
 /**
- * A consumer-shaped authorization-query engine: the tuple-half questions only an authorization backend answers
+ * A consumer-shaped authorization-query engine: the tuple-half
+ * questions only an authorization backend answers
  * over its own graph. It speaks the contract's vocabulary (refs, specs,
  * the wire's relation and kind strings) and renders to its backend's
  * grammar itself; `false` and `[]` are real answers, an outage throws.
@@ -670,7 +674,8 @@ export function legacySubjectResolution(subject: string): Promise<string> {
 }
 
 /**
- * A consumer-shaped identity-federation capability: the four federated-account RPC arms the controller dispatches
+ * A consumer-shaped identity-federation capability: the four
+ * federated-account RPC arms the controller dispatches
  * to after its own shared checks, plus the IdP-exists probe. The arms
  * receive the RESOLVED reference and the authenticated caller; the
  * federated natural key and its rows stay on the consumer's own store.
@@ -967,7 +972,8 @@ const channelRuntime: ChannelRuntime = {
 };
 
 /**
- * A consumer-shaped vault-backed secret codec — one enc:v<N>: wire format registered by version
+ * A consumer-shaped vault-backed secret codec — one enc:v<N>: wire
+ * format registered by version
  * token through drivers.secretCodecs. The scope carries the tenancy a
  * per-org KEK keys by; the taxonomy split is contract: a bad VALUE is
  * InvalidCiphertextError (skippable per key), missing MACHINERY is
@@ -993,7 +999,8 @@ const consumerVaultCodec: SecretCodec = {
 };
 
 /**
- * A consumer-shaped schedule-fire caller mint — the identity a schedule fire acts as, minted per fire. The
+ * A consumer-shaped schedule-fire caller mint — the identity a schedule
+ * fire acts as, minted per fire. The
  * cloud edition's real driver mints a schedule JWT (sub = the org's
  * system-schedule account, claim = the firing Schedule id); this fake
  * proves the contract compiles from consumer code. The account's id is the
@@ -1293,7 +1300,8 @@ export const fakeExtension: ServerExtension = {
   // GateSlotName fails this compile (the loud-fail contract's compile-time layer).
   gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
     ["agent-execution-create:pre-side-effect-gate", [consumerGateStep()]],
-    // The recover slot consumes the exported loaded-execution key — the capacity-gate shape reads the resource off the
+    // The recover slot consumes the exported loaded-execution key — the
+    // capacity-gate shape reads the resource off the
     // metadata map there.
     [
       "agent-execution-recover:pre-side-effect-gate",

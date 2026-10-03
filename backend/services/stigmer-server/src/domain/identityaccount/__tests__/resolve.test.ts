@@ -27,7 +27,8 @@
  *   - a miss is the subject with its claims, an empty claim left out;
  *   - the same single read, the same faults.
  *
- * And the read in the other direction, `accountForCaller`: the account a CallerIdentity stands for, the two
+ * And the read in the other direction, `accountForCaller`: the account
+ * a CallerIdentity stands for, the two
  * primary-key reads whoAmI has always made, stated once so the built-in
  * role lifecycle and whoAmI cannot disagree:
  *

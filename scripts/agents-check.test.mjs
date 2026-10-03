@@ -286,7 +286,8 @@ test("bare task ids, two-digit decisions, bare rulings and findings, record stag
       "Closes F-12.",
       "Shipped in C2 Stage 4.",
       "Tracked as stigmer-cloud#12.",
-      // Near-misses: an ISO time, a timestamp, a bare build stage, a standard's section, a public issue.
+      // Near-misses: an ISO time, a timestamp, a bare build stage, a standard's
+      // section, a public issue.
       "At 2026-09-30T12:00, `${day}T00:00:00Z`, a DD-MM-YYYY or DD-HHmmss format, Stage 1 of make check, RFC 6749 §2.3.1, #1249 and stigmer#1249 are fine.",
     ].join("\n"),
   });

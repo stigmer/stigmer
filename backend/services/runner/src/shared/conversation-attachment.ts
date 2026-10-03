@@ -36,7 +36,8 @@
  *
  * Approval-free by construction, and FORCED, not convenient: channel
  * surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool resolves as
- * skip-and-adapt — a gated escalation would never fire. Empty approval maps + no McpServerUsage keep
+ * skip-and-adapt — a gated escalation would never fire. Empty approval
+ * maps + no McpServerUsage keep
  * the connect backfill structurally unable to gate it (see
  * synthesized-attachment.ts). Callers inject AFTER resolve + backfill.
  */

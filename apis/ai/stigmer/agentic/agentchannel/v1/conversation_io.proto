@@ -14,12 +14,14 @@ import "google/protobuf/timestamp.proto";
 // spanning sessions.
 //
 // @internal
-// The Conversation aggregate. Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery
+// The Conversation aggregate. Infrastructure aggregate — no kind, no
+// apiVersion (the ChannelDelivery
 // posture) — but WITH a public query/command surface, because the console
 // reads conversations and operates the control token (the
 // ChannelMessageQueryController precedent for channel-scoped public RPCs
 // without a kind). Identity is (agent_channel_id, conversation_key), the
-// same key channel_conversation_binding anchors; the binding stays a separate aggregate (the
+// same key channel_conversation_binding anchors; the binding stays a
+// separate aggregate (the
 // session pointer) and never carries participation state. Field ownership
 // is single-writer (the participation writer); last_activity_at is the documented
 // commutative-max exception.
@@ -143,7 +145,8 @@ enum ConversationItemAuthor {
   // acknowledgment), neither the agent's words nor a teammate's.
   //
   // @internal
-  // Acknowledgment rows carry the platform outbound origin; rendering them as the agent
+  // Acknowledgment rows carry the platform outbound origin; rendering
+  // them as the agent
   // would be a lie. The value exists from day one so the item vocabulary
   // never needs a patch when the first platform row appears.
   author_platform = 4;
@@ -155,7 +158,8 @@ enum ConversationItemAuthor {
 // Computed on read by stitching four
 // stores — inbound webhook events, reply deliveries (rendered from the
 // same extraction the delivery posted, never from execution transcripts),
-// the outbound ledger, and the internal-lane event store. item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
+// the outbound ledger, and the internal-lane event store. item_id is
+// source-prefixed ("wa:", "dl:", "ob:", "ev:"),
 // which makes cross-store collisions structurally impossible and gives
 // cursors a total order without a synthetic sequence.
 message ConversationTimelineItem {
@@ -183,7 +187,8 @@ message ConversationTimelineItem {
   // Non-text inbound is ignored by the reply pipeline today
   // (WhatsAppInboundEventProcessor marks "non_text:<type>"), but the
   // customer still sent it — a handoff timeline that hides it fails the
-  // product. Verbatim pass-through, never re-encoded; the UI renders known kinds as placeholders. Media content
+  // product. Verbatim pass-through, never re-encoded; the UI renders
+  // known kinds as placeholders. Media content
   // retrieval is a named non-goal of this slice.
   string provider_message_type = 6;
 
@@ -319,7 +324,8 @@ message ListChannelConversationsInput {
 // filter_wants_human expresses
 // EXACTLY the nav badge's union, and the badge count is the filtered
 // list's total_count — one predicate in one handler, so the count and the
-// list it opens can never disagree. Server-side deliberately: a client-side tab over one fetched page would
+// list it opens can never disagree. Server-side deliberately: a
+// client-side tab over one fetched page would
 // silently lie across pages. Values carry the filter_ prefix — proto3
 // enum values are package-scoped (the control_ precedent).
 enum ChannelConversationListFilter {

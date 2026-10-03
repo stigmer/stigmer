@@ -158,7 +158,8 @@ export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
 
 /**
  * The principal kinds a PERSON may grant a role to — the user `create`
- * lane's grantee vocabulary (since 2026-09-14): a person (the identity account) and a team
+ * lane's grantee vocabulary (since 2026-09-14): a person (the identity
+ * account) and a team
  * of people. A row whose principal is a RESOURCE
  * (`organization:A#organization@platform_client:X`, `#managed_org`) is a
  * structural link, and structural links are `bootstrapPolicy`'s — the

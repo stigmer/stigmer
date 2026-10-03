@@ -1,5 +1,6 @@
 /**
- * The console lane — lane 4 of the unified port: serves the web console's static export and
+ * The console lane — lane 4 of the unified port: serves the web
+ * console's static export and
  * synthesizes its runtime /config.json, restoring the local console the
  * June CLI migration lost. Routing decisions live in resolver.ts (pure,
  * nginx-equivalence-gated); this module owns the HTTP half: the lane

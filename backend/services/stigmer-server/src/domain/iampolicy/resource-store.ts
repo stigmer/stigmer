@@ -1,6 +1,7 @@
 /**
  * The open-source IamPolicyStore: the port (store.ts) over the generic
- * Store, rows of the `resources` table by kind. The composition root installs it when no extension registers
+ * Store, rows of the `resources` table by kind. The composition root
+ * installs it when no extension registers
  * `drivers.iamPolicyStore`.
  *
  * Reads. `findById` is a PRIMARY-KEY read. `findByPrincipal` is an

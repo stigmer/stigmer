@@ -67,7 +67,7 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
     expect(kinds).not.toContain(ApiResourceKind.memory);
   });
 
-  it("contains no kind above the open_source tier — the index is the core's (editions program)", () => {
+  it("contains no kind above the open_source tier — the index is the core's", () => {
     // Read from the descriptors, not a hand list: a kind re-tiered to
     // enterprise or cloud_only must drop out of the derivation whatever
     // its not_search_indexed flag says. Today every such kind is also

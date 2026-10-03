@@ -135,7 +135,8 @@ export interface WorkerFactoryDeps {
    * over the manager's NativeConnection, namespace, and decode-only codec
    * chain, so every worker — OSS and extension alike — is built by THIS
    * package's @temporalio/worker instance. Handing factories the raw
-   * NativeConnection instead was a trap: a composition's own @temporalio/worker copy pairs the
+   * NativeConnection instead was a trap: a composition's own
+   * @temporalio/worker copy pairs the
    * foreign connection with its own Tokio bridge, every extension poller
    * dies at boot with "there is no reactor running", and the worker still
    * reports RUNNING.

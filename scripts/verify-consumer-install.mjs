@@ -20,7 +20,8 @@
  * whose consumer-resolution breaks module loading fails here, in CI and
  * again in the release workflow right before `npm publish`.
  *
- * Hoisted from backend/services/runner/scripts when @stigmer/server became the second standalone package
+ * Hoisted from backend/services/runner/scripts when @stigmer/server
+ * became the second standalone package
  * to publish: one implementation, per-package facts declared in each
  * manifest under `stigmerPublish.consumerCheck`:
  *

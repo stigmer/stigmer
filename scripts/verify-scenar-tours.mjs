@@ -466,7 +466,8 @@ export const REPLICA_METRIC_PAIRS = [
     real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
     realNeedle: '"w-60"',
   },
-  // SessionView renders the SDK's own SessionViewerLayout, so the split and chip geometry need no pairs — there is no
+  // SessionView renders the SDK's own SessionViewerLayout, so the split
+  // and chip geometry need no pairs — there is no
   // replica. These two pin the geometry the demo still owns around it.
   {
     fact: "launcher column width (NewSessionViewer `max-w-2xl` = 42rem)",

@@ -10,7 +10,8 @@
  * that changes the run-observability axis after create (Update and Apply
  * keep the stored level) and tells a composed tuple driver the audience it
  * names, as create does — open source derives `execution_viewer` from the
- * row at check time, an edition that stores tuples writes it; Delete deliberately does NOT
+ * row at check time, an edition that stores tuples writes it; Delete
+ * deliberately does NOT
  * cascade executions (oss#582 — run history survives its instance).
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
@@ -481,7 +482,8 @@ function newSetInstanceVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
 // that changes it after create. Open source authorizes run reads from the
 // row itself (authorization/model/execution-viewer.ts), so the persisted
 // level is the grant; a composed tuple driver hears the audience the new
-// level names after the persist (UpdateExecutionVisibilityTuples) and makes its stored tuples match. Deliberately NOT
+// level names after the persist (UpdateExecutionVisibilityTuples) and makes
+// its stored tuples match. Deliberately NOT
 // guarded for default instances — cloud allows it on them too; do not
 // "fix" that.
 // ---------------------------------------------------------------------------

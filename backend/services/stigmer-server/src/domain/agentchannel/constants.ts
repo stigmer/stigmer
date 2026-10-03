@@ -16,7 +16,8 @@
 export const INSTALL_UNAVAILABLE_MESSAGE = "channel installs require Stigmer Cloud";
 
 /**
- * FailedPrecondition copy for the messaging surface — Go message.go proactiveMessagingUnavailableMessage.
+ * FailedPrecondition copy for the messaging surface — Go message.go
+ * proactiveMessagingUnavailableMessage.
  */
 export const PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE =
   "proactive channel messaging requires Stigmer Cloud";

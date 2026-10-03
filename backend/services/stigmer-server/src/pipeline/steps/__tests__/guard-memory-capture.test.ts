@@ -1,5 +1,6 @@
 /**
- * Pins the memory capture-eligibility gate: the authorizeMemoryCapture capability's three
+ * Pins the memory capture-eligibility gate: the authorizeMemoryCapture
+ * capability's three
  * verdicts (admit stashes the proved claims, refuse answers the
  * byte-pinned PERMISSION_DENIED copy, no-opinion falls through to the
  * first-party allow-list), the capture org handed to the capability, the

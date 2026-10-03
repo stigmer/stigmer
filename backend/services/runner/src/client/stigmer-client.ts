@@ -540,7 +540,8 @@ export class StigmerClient {
   /**
    * The channel's provider template registry, approved entries only —
    * the `<available_channel_templates>` prompt section's source.
-   * Entries carry the sendability verdict (`unsupportedReason`, empty means sendable);
+   * Entries carry the sendability verdict (`unsupportedReason`, empty
+   * means sendable);
    * the section formatter filters on it. Credential rules as
    * {@link listMessagingChannels}.
    */

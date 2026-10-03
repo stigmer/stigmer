@@ -41,7 +41,8 @@ service ChannelConversationCommandController {
   // receives it), exempt from the proactive caps and the proactive consent
   // lever (reply traffic inside the open service window; the authority
   // bar is the control). The existing-conversation precondition makes
-  // "a customer who already wrote to us" literal: without it, this lane would be an uncapped, lever-free
+  // "a customer who already wrote to us" literal: without it, this lane
+  // would be an uncapped, lever-free
   // cold-send reachable below the sendMessage authority bar. The
   // implicit-takeover flip orders before-or-with the send.
   rpc reply(ReplyToConversationInput) returns (SendChannelMessageOutput) {
@@ -76,7 +77,8 @@ service ChannelConversationCommandController {
   // CAS WHERE control='human'; any holder
   // of can_participate may hand back, not only the takeover holder (v1
   // single attention pool). Handback never touches the attention flag
-  // (attention is orthogonal to control). The missed-context digest is composed lazily at the
+  // (attention is orthogonal to control). The missed-context digest is
+  // composed lazily at the
   // next turn from the agent_witnessed_through watermark, not here.
   rpc handBack(ConversationControlInput) returns (ChannelConversation) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
@@ -109,7 +111,8 @@ service ChannelConversationCommandController {
   // @internal
   // Agent-audience only — session-bound
   // sandbox tokens; the conversation identity derives server-side from
-  // the session's channel labels (never caller-supplied), so the input carries only the reason. Appends an
+  // the session's channel labels (never caller-supplied), so the input
+  // carries only the reason. Appends an
   // internal-lane escalation event and updates the row projection through
   // the participation writer, idempotently. Approval-free by construction
   // (unattended surfaces skip gated tools — a gated escalation would

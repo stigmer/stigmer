@@ -101,7 +101,8 @@ export const AUTHORIZATION_DENIED_FALLBACK_MESSAGE = "permission denied";
 
 /**
  * The permissive single-team Authorizer: one trust domain,
- * every check allowed, the behavior before authorization existed. Kept for the suites
+ * every check allowed, the behavior before authorization existed. Kept
+ * for the suites
  * that need an Authorizer with no opinion at all; no posture composes it.
  * A server without sign-in composes the trusted-local driver
  * (authorization/trusted-local-authorizer.ts), which is this plus the

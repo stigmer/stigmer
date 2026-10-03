@@ -96,7 +96,8 @@ export interface PlatformControllerDeps {
    */
   readonly runnerAuthService: RunnerCredentialProvider;
   /**
-   * The served edition, composition-derived: the extension registry declares it and defaults to oss, so the
+   * The served edition, composition-derived: the extension registry
+   * declares it and defaults to oss, so the
    * cloud composition answers `cloud` without forking this controller.
    */
   readonly edition: ServerEdition;

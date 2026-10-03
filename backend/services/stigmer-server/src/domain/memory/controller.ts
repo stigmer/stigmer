@@ -10,7 +10,8 @@
  * Session/AgentExecution/Artifact family: records the platform creates
  * that users inspect and manage.
  *
- * Field ownership (provenance revised 2026-08-22): spec.content is the subject's after capture
+ * Field ownership (provenance revised 2026-08-22): spec.content is the
+ * subject's after capture
  * (editable via update); spec.subject_identity_account_id is
  * server-derived at create and immutable forever; spec.provenance is
  * capture-path-supplied at create (the remember tool threads it; direct

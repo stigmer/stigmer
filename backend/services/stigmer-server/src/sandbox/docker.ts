@@ -1,7 +1,8 @@
 /**
  * The Docker sandbox driver — the isolation ladder's second tier. Each
  * sandbox is one container running the published
- * runner image, polling exactly one task queue. Mechanism: the docker CLI via child_process — zero new
+ * runner image, polling exactly one task queue. Mechanism: the docker
+ * CLI via child_process — zero new
  * dependencies, present wherever this tier's audience (dev and small
  * self-host boxes) already has Docker; the driver seam keeps an
  * Engine-API swap mechanical if demand appears.

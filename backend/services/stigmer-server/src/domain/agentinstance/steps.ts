@@ -296,7 +296,8 @@ export function newRejectDefaultInstanceVisibilityUpdateStep<
 // ---------------------------------------------------------------------------
 // List filters — list.go and get_by_agent.go. Full scans with client-side
 // filtering, exactly Go (no pagination; no scope composed = no authorization
-// filtering). With a composed ListReadScope both lanes narrow to the caller's authorized instances; the org
+// filtering). With a composed ListReadScope both lanes narrow to the caller's
+// authorized instances; the org
 // filters below are contract parity in both editions.
 // ---------------------------------------------------------------------------
 

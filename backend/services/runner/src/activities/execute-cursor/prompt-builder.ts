@@ -163,7 +163,8 @@ export interface EnhancedPromptOptions {
    * consent-gated facts server-snapshotted onto the execution spec's
    * `recalled_memories` at create. Like the preferences, it lands in the
    * first message and persists in the cursor agent's own conversation
-   * store — deliberately frozen per Cursor session: repeating it every resumed turn would bloat the store
+   * store — deliberately frozen per Cursor session: repeating it every
+   * resumed turn would bloat the store
    * with identical content.
    */
   recalledMemories?: RecalledMemoriesContent;

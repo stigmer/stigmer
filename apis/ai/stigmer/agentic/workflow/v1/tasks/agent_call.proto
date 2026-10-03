@@ -205,7 +205,8 @@ message AgentCallTaskConfig {
   // Maps onto SessionSpec.workspace_entries of the session each call
   // creates. Surface constraint, enforced in workflow validation (both
   // editions): sources must be git_repo — no client is connected to
-  // serve a local_path when a workflow task fires. Credentials: the provisioner resolves GITHUB_TOKEN from the merged
+  // serve a local_path when a workflow task fires. Credentials: the
+  // provisioner resolves GITHUB_TOKEN from the merged
   // environment; for private repos the supported contract is an
   // org-visibility Environment holding GITHUB_TOKEN bound via
   // environment_refs. Public repos need no token.

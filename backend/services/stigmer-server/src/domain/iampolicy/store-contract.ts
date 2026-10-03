@@ -3,7 +3,8 @@
  * must satisfy identically, as cases a driver's test iterates. Open source
  * runs them over its own adapter (resource-store.ts) on sqlite and Postgres
  * in __tests__/resource-store.postgres.test.ts; a composition runs the SAME cases
- * over the store it registers as `drivers.iamPolicyStore`, so "the port holds" is one statement
+ * over the store it registers as `drivers.iamPolicyStore`, so "the port holds" is
+ * one statement
  * proven per driver, never restated per repository.
  *
  * Shape. A list of declarations over the port-contract runner

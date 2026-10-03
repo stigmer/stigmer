@@ -1,5 +1,6 @@
 // No file this repository publishes cites a private planning record.
-// Run via `node --test scripts/planning-references.test.mjs` (wired into root `npm test`).
+// Run via `node --test scripts/planning-references.test.mjs` (wired into root
+// `npm test`).
 //
 // The maintainers plan in a private repository, and its identifiers used to
 // leak into this one: a decision number in a comment, a record's folder id in

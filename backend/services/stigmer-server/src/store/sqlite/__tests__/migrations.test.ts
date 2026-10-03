@@ -5,7 +5,8 @@
  * consumer stores created lazily; a pending_oauth_state table that
  * predates Go's idempotent ALTERs gains its columns; a legacy pre-v2
  * database gets its prefix-based audit rows migrated. Rollback safety: a
- * v7 database re-opened by Go-shaped version checks (< 6) runs nothing. v10, the chain's first row-decoding step, moves
+ * v7 database re-opened by Go-shaped version checks (< 6) runs nothing.
+ * v10, the chain's first row-decoding step, moves
  * every row of the seven kinds that held the retired public level to org
  * and leaves every other row's bytes as they were; a row it cannot decode
  * fails the step and leaves the database at v9. v11 adds the list index's

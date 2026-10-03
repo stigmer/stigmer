@@ -6,7 +6,8 @@
  * decryption failed vs disabled — now the two-armed family of errors.ts),
  * and the fail-closed handling of future-version prefixes. Ports
  * pkg/encryption/encryption_test.go and adds adversarial arms. One
- * deliberate contract change came with the codec seam: an unregistered version now refuses as
+ * deliberate contract change came with the codec seam: an unregistered
+ * version now refuses as
  * EncryptionUnavailableError (the machinery is missing, the value may be
  * fine) instead of the accidental invalid-base64 arm — still fail-closed,
  * now the honest arm. The seam itself (registry dispatch, write-version
@@ -203,7 +204,8 @@ describe("isCiphertextShaped (the oss#395 boundary guard)", () => {
 });
 
 // The fixture is FROZEN: it was produced by the retired Go server's real
-// encryption code (its regen script is in git history). It permanently pins that values written by
+// encryption code (its regen script is in git history). It permanently
+// pins that values written by
 // pre-cutover databases stay decryptable.
 describe("cross-edition compatibility (Go-generated fixture)", () => {
   interface FixtureEntry {

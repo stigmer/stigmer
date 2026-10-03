@@ -5,7 +5,8 @@
  * sanitizer package. Go's push gate opens ZIPs through safearchive, which
  * rewrites the entry list BEFORE zip_extractor.go's validation loop sees
  * it — so the gate's accept/reject behavior includes this filter, and
- * local parity requires reproducing it (decided 2026-08-24). The cloud edition applies none of this; the
+ * local parity requires reproducing it (decided 2026-08-24). The cloud
+ * edition applies none of this; the
  * parity target is the Go server.
  *
  * The four observable behaviors, in safearchive's exact order per entry:

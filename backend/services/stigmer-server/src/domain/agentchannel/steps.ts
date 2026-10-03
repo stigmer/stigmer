@@ -335,7 +335,8 @@ export function newValidateChannelUpdateStep(
  * (channel-runtime.ts: credentials environment, OAuth grant, pending
  * deliveries). Spliced into the delete chain ONLY when a runtime is
  * composed, after LoadExistingForDelete and before DeleteResource —
- * dependent runtime state dies before the row, and a thrown teardown error leaves the row for an idempotent
+ * dependent runtime state dies before the row, and a thrown teardown
+ * error leaves the row for an idempotent
  * retry. The storing edition's delete chain is byte-identical to before
  * this seam existed.
  *

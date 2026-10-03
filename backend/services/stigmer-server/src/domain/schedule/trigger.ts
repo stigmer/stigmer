@@ -83,7 +83,8 @@ export const TRIGGER_NO_RUNNER_MESSAGE =
  * The narrow slice of the scheduling runtime the trigger needs (satisfied
  * by the clock's RunStarter): start one run through the full execution
  * create pipeline and answer with the real outcome. Deliberately NOT the
- * Clock — a manual fire needs no Temporal artifact: the artifact round-trip made the fire asynchronous, so the
+ * Clock — a manual fire needs no Temporal artifact: the artifact
+ * round-trip made the fire asynchronous, so the
  * RPC answered "started" before the launch gates ran — exactly the false
  * toast the owner hit (Go Runner).
  */
@@ -102,7 +103,8 @@ export const TRIGGER_RESULT_KEY = "trigger_result";
 
 /**
  * Refuses a disabled schedule (the owner's switch) — the ONE remaining
- * trigger refusal (paused schedules are triggerable, and the tick's revalidation no longer
+ * trigger refusal (paused schedules are triggerable, and the tick's
+ * revalidation no longer
  * guards manual fires because manual fires no longer pass through the
  * tick). Go validateTriggerableStep.
  */

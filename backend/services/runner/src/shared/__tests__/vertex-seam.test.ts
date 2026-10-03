@@ -3,7 +3,8 @@
  * seam — the integration the vertex backend adapter is built on.
  *
  * This is NOT a unit test of our code (the vertex backend adapter lives in
- * shared/llm-backend.ts). It pins the exact cross-package behavior production will rely on:
+ * shared/llm-backend.ts). It pins the exact cross-package behavior production
+ * will rely on:
  * the REAL `ChatAnthropic` (@langchain/anthropic) driving the REAL
  * `AnthropicVertex` client (@anthropic-ai/vertex-sdk), both resolving the
  * single override-pinned @anthropic-ai/sdk copy. If a future bump of

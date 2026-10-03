@@ -1,5 +1,6 @@
 /**
- * The permission vocabulary as the wire spells it: `checkMyPermission` carries its `relation` as a string — the
+ * The permission vocabulary as the wire spells it: `checkMyPermission`
+ * carries its `relation` as a string — the
  * FGA relation name, which is the `IamPermission` member name — while the
  * composed Authorizer's `AuthzCheck` carries the enum. This is the one
  * read from the first spelling to the second. A relation that names no

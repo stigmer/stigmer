@@ -9,7 +9,8 @@
  * pre-persist probe; OSS is one user on their own machine and has no probe
  * — a present-but-ignored knob would be a lie.
  *
- * Config lives with the clock, not the domain: every reader is clock-side — the agentexecution
+ * Config lives with the clock, not the domain: every reader is clock-side
+ * — the agentexecution
  * precedent of a domain-local config was driven by a domain-step consumer
  * (oss#397) that schedule does not have.
  */

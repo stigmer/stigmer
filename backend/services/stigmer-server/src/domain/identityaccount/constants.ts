@@ -1,5 +1,6 @@
 /**
- * Identity-account domain constants: the derived account id, the one function that turns a caller into
+ * Identity-account domain constants: the derived account id, the one
+ * function that turns a caller into
  * an issuer subject, and the byte-pinned wire copy.
  *
  * The derived id. A direct account's id is a pure function of its

@@ -27,7 +27,8 @@
  *     from the credential and nothing the child says.
  *
  * The capture context (org + agent/session/execution ids) is
- * attribution, never authorization (since 2026-08-22): the cloud create handler accepts it only
+ * attribution, never authorization (since 2026-08-22): the cloud create
+ * handler accepts it only
  * from a session-sandbox credential and overrides session/org with the
  * token's own claims; the OSS server under sign-in admits it from the
  * run's credential and proves the session off the run's row, and stores

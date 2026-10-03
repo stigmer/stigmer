@@ -207,7 +207,8 @@ export interface AgentExecutionControllerDeps {
   readonly artifactStorage: ArtifactStorage;
   /**
    * The composed runner-credential provider — RecordRunnerLineageLabels
-   * consults its vouchRunnerLineageLabels capability at create. The OSS default defines no capabilities, so the
+   * consults its vouchRunnerLineageLabels capability at create. The OSS
+   * default defines no capabilities, so the
    * step is a no-op with it.
    */
   readonly runnerCredentialProvider: RunnerCredentialProvider;

@@ -255,7 +255,8 @@ export function createInProcessClients(
     // The Apply RPC AS THE ORIGINAL CALLER (Java applyAsCaller): the default
     // instance's owner attribution lands on
     // the requesting user, so it stays manageable under an enforcing
-    // Authorizer. Before caller propagation this lane minted the internal class (Go's
+    // Authorizer. Before caller propagation this lane minted the
+    // internal class (Go's
     // ApplyAsSystem shape) — the recorded attribution gap.
     agentInstanceApplier: {
       applyAsCaller: (instance, caller) =>

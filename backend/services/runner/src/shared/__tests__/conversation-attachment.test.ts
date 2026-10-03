@@ -1,5 +1,6 @@
 /**
- * The conversation participation attachment: the label-keyed attachment decision, the HTTP-only
+ * The conversation participation attachment: the label-keyed attachment
+ * decision, the HTTP-only
  * shape (the deliberate no-stdio divergence from both siblings), the
  * structural approval-freedom, and the pinned strings. The route is the
  * cross-repo string — pinned here and in the mcp-server's conversation

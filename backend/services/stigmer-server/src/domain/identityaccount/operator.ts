@@ -1,5 +1,6 @@
 /**
- * The trusted-local operator account: under the posture with no authentication, the server knows its one
+ * The trusted-local operator account: under the posture with no
+ * authentication, the server knows its one
  * principal from config, so the server states the fact at boot instead of
  * asking three clients to provision it (the console's gate is off on the
  * laptop and the desktop has none).

@@ -1,9 +1,9 @@
 /**
  * IdentityAccount controller — the identity-account domain
- * served ONCE by @stigmer/server in every edition (the editions program's
- * tier truth: `identity_account` is open-source tier). The behavioural
- * reference is the cloud's iam/account/handlers.ts, whose twelve direct
- * handlers retire against this module; the byte-pinned copy moved with it
+ * served ONCE by @stigmer/server in every edition (`identity_account` is
+ * open-source tier). The behavioural reference was the cloud's former
+ * iam/account/handlers.ts, whose twelve direct handlers this module
+ * replaced; the byte-pinned copy moved with it
  * (constants.ts). The cloud keeps only what differs per edition — its row
  * store as `drivers.identityAccountStore`, the federated arms as
  * `drivers.identityFederation`, the personal organization as a gate on

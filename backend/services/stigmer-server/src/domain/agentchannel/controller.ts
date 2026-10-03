@@ -8,7 +8,8 @@
  * cross-org arm: the channel's org is the billing org and the credentials
  * org, and both must be the referenced agent's.
  *
- * Install posture (OSS, a deliberate divergence): initiateInstall and completeInstall validate, LOAD the
+ * Install posture (OSS, a deliberate divergence): initiateInstall and
+ * completeInstall validate, LOAD the
  * channel (byte-identical NOT_FOUND with cloud's LoadChannel step), then
  * refuse FailedPrecondition — this edition has no webhook receiver and no
  * delivery runtime, so an installed channel could never serve traffic.
@@ -421,7 +422,8 @@ async function loadChannelForInstall(
  * Delete — the connection's full teardown; disabling (update with
  * enabled=false) is the config-preserving pause. On the storing edition
  * there is no teardown cascade — none of that state can exist because the
- * install flow never runs (the install lane refuses). A composed runtime splices its cascade
+ * install flow never runs (the install lane refuses). A composed runtime
+ * splices its cascade
  * (TeardownChannelRuntime — credentials environment, OAuth grant, pending
  * deliveries) between the load and the row delete, so dependent runtime
  * state dies before the row.

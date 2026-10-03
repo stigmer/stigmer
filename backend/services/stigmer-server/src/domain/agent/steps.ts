@@ -317,7 +317,8 @@ export function newMergeMcpServerEnvSpecsStep(
  * the in-process client. Agent delete cascades the default instance, so
  * this normally routes to CREATE; the UPDATE route remains as self-heal for
  * pre-cascade legacy orphans (self-hosters upgrading from a release
- * before the cascade), which Apply recovers by re-pointing agent_id at the new agent.
+ * before the cascade), which Apply recovers by re-pointing agent_id at the
+ * new agent.
  *
  * Versus Go: no nil-client skip — the provider is a required dependency
  * (the staged composition root eliminates the nil-then-inject window whose

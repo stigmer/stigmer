@@ -7,7 +7,8 @@
  * serving GET /<key> as the exact bytes LocalArtifactStorage wrote. Unlike
  * Go, a bind failure fails the boot: the composition binds the lane before
  * SERVING and lets listen()'s rejection stand (stigmer#1089). The lane
- * lives in its owning domain — it is NOT a unified-port lane (Go runs it as a separate listener, and so does
+ * lives in its owning domain — it is NOT a unified-port lane (Go runs it
+ * as a separate listener, and so does
  * this port).
  *
  * Disposition contract (proven by the artifact suite's file-server block):

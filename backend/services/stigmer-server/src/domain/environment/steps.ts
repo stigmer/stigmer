@@ -564,7 +564,8 @@ export function newRemoveVariableKeysAndPersistStep(
 
 /**
  * DestroyDroppedEnvironmentSecrets — the Java
- * DestroyDroppedEnvironmentSecrets step: post-persist in the full-resource update chain,
+ * DestroyDroppedEnvironmentSecrets step: post-persist in the
+ * full-resource update chain,
  * destroys the external backing state of secret keys the update DROPPED.
  * Strictly dropped keys only — a key that survives with a rotated value
  * keeps its KV path (superseded versions age out via the store's

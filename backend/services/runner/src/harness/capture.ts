@@ -275,7 +275,8 @@ function isCompletedRow(tc: ToolCall): boolean {
 }
 
 /**
- * The runtime's two inputs to the shared approved-command rule (see the header). Pure
+ * The runtime's two inputs to the shared approved-command rule (see the
+ * header). Pure
  * over the status and the pre-turn snapshots; exported for its own tests.
  */
 export function deriveCommandProvenance(

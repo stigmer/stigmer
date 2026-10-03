@@ -199,7 +199,8 @@ export async function invokeWorkflowExecution(
     await deleteExecutionContext(executionId);
 
     // Only a TemporalFailure fails a TS workflow — a plain throw fails
-    // the workflow TASK, which the server retries forever. Go: temporal.NewApplicationError("Workflow execution
+    // the workflow TASK, which the server retries forever. Go:
+    // temporal.NewApplicationError("Workflow execution
     // failed", "", err).
     throw ApplicationFailure.create({
       message: "Workflow execution failed",

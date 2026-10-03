@@ -193,7 +193,8 @@ export function registerWorkflowServices(
     delete: (id, ctx) => deleteWorkflow(deps, id, ctx),
     // validateSpec deliberately evaluates NO authorization despite its
     // can_create_workflow annotation: nothing is loaded or persisted, and
-    // the caller only gets a verdict on their own submitted spec. The annotation mismatch is
+    // the caller only gets a verdict on their own submitted spec. The
+    // annotation mismatch is
     // recorded in docs/authorization-coverage.md.
     validateSpec: (workflow) => validateSpec(deps, workflow),
     tagVersion: (input, ctx) => tagVersion(deps, input, ctx),

@@ -23,7 +23,8 @@ service ChannelMessageQueryController {
   // truth; entries carry its vocabulary verbatim.
   //
   // @internal
-  // Same in-handler token-class reach as sendMessage: sandbox tokens resolve through the serving channel, direct
+  // Same in-handler token-class reach as sendMessage: sandbox tokens
+  // resolve through the serving channel, direct
   // principals through channel visibility; fail closed. The WABA id is
   // derived from the channel's phone_number_id on demand and cached —
   // never stored. A token missing the management scope

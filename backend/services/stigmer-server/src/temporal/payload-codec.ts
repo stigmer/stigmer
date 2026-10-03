@@ -14,7 +14,8 @@
  * (the runner encrypts with it). This wrapper delegates decode to it and
  * passes encode through untouched — the decode path only ever consults the
  * codec's accepted-keys set, so a symmetric inner codec is safe to hold.
- * A server-local wrapper mirrors Go's server-local DecryptionCodec; the published lib stays
+ * A server-local wrapper mirrors Go's server-local DecryptionCodec; the
+ * published lib stays
  * untouched.
  *
  * Enabled-iff-configured: no key in the environment means the codec is not

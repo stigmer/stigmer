@@ -7,7 +7,8 @@
  * → BroadcastToStreams. Go still does the merge as a separate
  * LoadExisting step followed by a plain SaveResource — a lost-update
  * window under concurrent updates. This port runs the SAME merge body
- * inside the store's atomic `updateResource` instead: Go's own agentexecution domain already calls that
+ * inside the store's atomic `updateResource` instead: Go's own
+ * agentexecution domain already calls that
  * discipline load-bearing, and this domain's per-child pending-gate merge
  * is exactly the concurrent-children write that the window can corrupt.
  * Wire-identical in sequential flows; strictly safer under concurrency;

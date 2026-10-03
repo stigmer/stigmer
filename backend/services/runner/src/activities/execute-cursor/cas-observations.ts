@@ -203,7 +203,8 @@ export function buildSecretClassifyScript(): string {
 /**
  * Build the standalone Node.js script the hook runs to observe a single
  * CAS-owned mutation — the disk-backed mirror of `CasCaptureFilesystemBackend`'s
- * `recordBefore` plus the secret gate (secret-paths.ts). Staging is mutation-agnostic: it
+ * `recordBefore` plus the secret gate (secret-paths.ts). Staging is
+ * mutation-agnostic: it
  * records the PRE-mutation bytes, so the hook runs it for a write/edit and —
  * issue #303 — for a delete (whose before-bytes exist only until the tool runs;
  * the boundary later reads after=null and authors the DELETE). The hook's

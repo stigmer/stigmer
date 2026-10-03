@@ -283,7 +283,8 @@ async function getByKeyHash(
 
 /**
  * FindAll — every stored key under the scope-less single-team posture;
- * with a composed ListReadScope the list narrows to the caller's can_view keys — the Java
+ * with a composed ListReadScope the list narrows to the caller's
+ * can_view keys — the Java
  * ApiKeyFindAllHandler baseline (no guest arm, no org intersection).
  * Stored hashes ride the response exactly as the cloud's do — the
  * plaintext exists nowhere. Newest first, as PlatformClient's listByOrg

@@ -1,5 +1,6 @@
 /**
- * IamPolicy controller — the ROW half of the IamPolicy contract served ONCE by @stigmer/server in
+ * IamPolicy controller — the ROW half of the IamPolicy contract served
+ * ONCE by @stigmer/server in
  * every edition, all fourteen RPCs. The behavioural reference is the
  * cloud's former iam/policy/handlers.ts (the Java pipelines rendered flat),
  * which this module replaced; the byte-pinned copy moved with it

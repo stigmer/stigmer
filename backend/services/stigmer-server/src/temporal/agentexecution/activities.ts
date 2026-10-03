@@ -41,7 +41,8 @@
  *
  * CompleteExternalActivity receives a live client PROVIDER instead of
  * Go's package-global (re-set on every reconnect); the input carries the
- * error as a serializable message string: Go's `Error error` field cannot survive its own JSON
+ * error as a serializable message string: Go's `Error error` field
+ * cannot survive its own JSON
  * round-trip, so its error-completion lane never delivers (oss#861). The
  * TS lane works; the divergence is disclosed.
  */

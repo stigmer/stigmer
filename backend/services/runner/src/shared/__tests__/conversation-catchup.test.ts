@@ -1,5 +1,6 @@
 /**
- * Unit tests for the conversation-catchup module. Unlike its metadata-keyed siblings there is no
+ * Unit tests for the conversation-catchup module. Unlike its metadata-keyed
+ * siblings there is no
  * string key to mirror-guard — the value rides the typed
  * `AgentExecutionSpec.conversation_catchup` proto field, so codegen enforces
  * the cross-repo contract. What IS pinned here: the blank-is-absent read

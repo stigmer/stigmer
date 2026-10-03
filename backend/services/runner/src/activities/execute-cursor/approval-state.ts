@@ -623,7 +623,8 @@ export function denialKindOf(entry: DeniedLedgerEntry): string {
  * The entries that pause the run for user approval — the ONLY kind
  * reconcileDeniedToolCalls may turn into WAITING_APPROVAL gates and the only
  * kind the first-denial stop may cancel the run for. Every other consumer
- * (capture stamping, approved-command provenance, foreign-hook attribution) wants the FULL
+ * (capture stamping, approved-command provenance, foreign-hook attribution)
+ * wants the FULL
  * ledger: all kinds mean "this action did not execute".
  */
 export function approvalDenials(entries: readonly DeniedLedgerEntry[]): DeniedLedgerEntry[] {

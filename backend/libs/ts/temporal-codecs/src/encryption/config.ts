@@ -45,7 +45,8 @@ export interface EncryptionKey {
 /**
  * Resolves decrypt-key material for a key id absent from the static
  * config (a hosting server may decode desktop-runner histories written
- * under server-managed per-identity `rpk_` keys, whose material lives in a database, not the environment).
+ * under server-managed per-identity `rpk_` keys, whose material lives in
+ * a database, not the environment).
  * Returns undefined when the id is unknown — the codec then fails closed
  * with its pinned unknown-key-id error. Implementations own their lookup
  * and unsealing; the codec caches every RESOLVED key for the process

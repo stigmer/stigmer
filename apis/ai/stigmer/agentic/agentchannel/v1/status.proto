@@ -104,7 +104,8 @@ message SlackInstallStatus {
   // spec.app_ref (sole writer, like every install fact). Discriminates
   // routing and workspace uniqueness once multiple apps can serve one
   // workspace: lookups key on (team_id, channel_app_id) and the
-  // partial-unique installed index is compound over both. Existing platform installs predate the
+  // partial-unique installed index is compound over both. Existing
+  // platform installs predate the
   // field; a missing value means the platform app — no backfill.
   string channel_app_id = 7;
 }

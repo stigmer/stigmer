@@ -110,7 +110,8 @@ const VERSION_TOKEN = /^v(\d+)$/;
  * Go IsCiphertextShaped: whether a value merely has the SHAPE of
  * ciphertext — the enc:v<N>: prefix — regardless of whether it is genuine.
  *
- * This is the request-boundary provenance test (oss#395): the prefix is a server-reserved sentinel, so client-supplied
+ * This is the request-boundary provenance test (oss#395): the prefix is a
+ * server-reserved sentinel, so client-supplied
  * values matching it must be rejected with INVALID_ARGUMENT before they
  * reach encrypt(), whose idempotent pass-through would otherwise persist
  * them verbatim (letting a client store forged ciphertext that

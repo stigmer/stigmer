@@ -1,6 +1,7 @@
 /**
  * McpServer controller — ports pkg/domain/mcpserver/controller whole:
- * the CRUD slice and the connect/OAuth slice. Registered methods: apply/create/update/delete/updateVisibility +
+ * the CRUD slice and the connect/OAuth slice. Registered methods:
+ * apply/create/update/delete/updateVisibility +
  * connect/startConnect/initiateOAuthConnect/completeOAuthConnect/
  * disconnectOAuth on the command side; get/getByReference/
  * getOAuthGrantStatus on the query side; plus the three org-OAuth RPCs as

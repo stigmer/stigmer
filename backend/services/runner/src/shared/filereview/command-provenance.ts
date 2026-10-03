@@ -26,7 +26,8 @@
  * runner cannot mint authorization it was never given.
  *
  * FAIL-CLOSED. Every uncertainty disqualifies (returns undefined → the set
- * reviews manually, exactly as before auto-keep existed): a file-tool call, an MCP tool, a
+ * reviews manually, exactly as before auto-keep existed): a file-tool call, an
+ * MCP tool, a
  * sub-agent delegation, an unrecognized tool name, or an executed shell command
  * with no provable consent source. Being conservative here costs only an extra
  * review; being permissive would silently waive one.

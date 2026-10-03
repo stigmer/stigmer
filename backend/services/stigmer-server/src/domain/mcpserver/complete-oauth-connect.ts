@@ -165,7 +165,8 @@ export async function completeOAuthConnect(
   }
 
   // Resolve the managed environment: reuse from an existing grant or
-  // create new — the create AS THE COMPLETING CALLER: ownership tuples land on the connecting user
+  // create new — the create AS THE COMPLETING CALLER: ownership tuples
+  // land on the connecting user
   // under a composed tuple-lifecycle driver, so the environment stays
   // visible in their scoped lists (the Java createAsCaller posture).
   const managedEnvId = await resolveOrCreateManagedEnvironment(

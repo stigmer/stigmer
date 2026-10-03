@@ -799,7 +799,8 @@ async function runWithPauseAndRecovery(
         pauseCycle,
       });
       // Re-assert IN_PROGRESS after resume (a deliberate TS-side divergence
-      // in the correct direction; oss#869 tracks the shared root cause). The PAUSED persist above carries no ordering
+      // in the correct direction; oss#869 tracks the shared root cause).
+      // The PAUSED persist above carries no ordering
       // information: on a fast pause→resume it can land AFTER the Resume
       // RPC's IN_PROGRESS write and resurrect PAUSED — and no later
       // writer exists until the turn's terminal persist, so the

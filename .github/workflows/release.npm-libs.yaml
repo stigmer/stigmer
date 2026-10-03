@@ -866,7 +866,8 @@ jobs:
             "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}"
 
   # ---------------------------------------------------------------------------
-  # The all-in-one evaluation image: ghcr.io/<owner>/stigmer. A pre-warmed `stigmer up`: every
+  # The all-in-one evaluation image: ghcr.io/<owner>/stigmer. A pre-warmed
+  # `stigmer up`: every
   # package the CLI would acquire, pre-installed into its own runtimes layout,
   # plus the CLI and the checksum-verified Temporal binary, run in the
   # foreground under tini. Stage once (the npm-shaped packages are
@@ -1179,7 +1180,8 @@ jobs:
   # images the same run is proving.
 
   # ---------------------------------------------------------------------------
-  # The Helm chart: oci://ghcr.io/<owner>/charts/stigmer. docker-compose.yml translated for
+  # The Helm chart: oci://ghcr.io/<owner>/charts/stigmer. docker-compose.yml
+  # translated for
   # Kubernetes, pinning the two images this same run pushed. Chart.yaml is
   # the fourth release pin (version == appVersion == the release version;
   # `make release` refuses to tag otherwise), verified here before anything

@@ -4,7 +4,8 @@
 # =============================================================================
 # One lane for the npm workspace (the TS counterpart of ci.go-sdk and
 # ci.java-sdk: one lane per language, where that language compiles). It
-# replaced three lanes on 2026-09-11: ci.ts-libs (backend/libs/ts), ci.ts-sdk (the SDK typecheck gate)
+# replaced three lanes on 2026-09-11: ci.ts-libs (backend/libs/ts), ci.ts-sdk
+# (the SDK typecheck gate)
 # and ci.frontend (SDK and client-app tests). Each of those carried a
 # hand-written `paths:` list that approximated the package graph and said so
 # in its comments ("sdk/react consumes @stigmer/theme workspace source, so a

@@ -1,5 +1,6 @@
 // The send_channel_message tool — the ONE tool of the channels roster
-// (its arguments mirror the ChannelOutboundPayload oneof: `text` | `template`, exactly
+// (its arguments mirror the ChannelOutboundPayload oneof: `text` |
+// `template`, exactly
 // one).
 //
 // Agent audience only, by construction: this roster is what the

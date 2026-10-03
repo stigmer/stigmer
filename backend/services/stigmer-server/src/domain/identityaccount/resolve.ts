@@ -37,7 +37,8 @@
  * oss#405 doctrine forbids, so it is a loud fault naming the subject.
  *
  * The same knowledge read in the caller's direction is `accountForCaller`:
- * the account a stamped CallerIdentity stands for. Two primary-key reads, the cloud's whoAmI order — the
+ * the account a stamped CallerIdentity stands for. Two primary-key
+ * reads, the cloud's whoAmI order — the
  * identityId AS an account id (a verifier that resolved), then the
  * caller's subject through the direct lookup (a verifier that did not:
  * the trusted-local interceptor, which stamps the operator's email and

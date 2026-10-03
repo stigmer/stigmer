@@ -1,6 +1,7 @@
 /**
  * The console static-export route resolver — the PURE routing half of the
- * unified port's console lane (lane 4). Given a decoded request path and an index of the
+ * unified port's console lane (lane 4). Given a decoded request path and
+ * an index of the
  * export's files, it answers WHICH document serves — no I/O, so the
  * contract is exhaustively unit-testable and machine-checkable against
  * the nginx model (see __tests__/nginx-equivalence.test.ts).

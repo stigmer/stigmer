@@ -148,7 +148,8 @@ describe("socket shapes that must not wedge the port", () => {
     //
     // The assertion demands a PING ACK — not merely a SETTINGS frame. An h2
     // server emits its SETTINGS before parsing the client preface (observed
-    // on a session that then died on "bad client magic"), so SETTINGS proves nothing about the replay path. A PING is
+    // on a session that then died on "bad client magic"), so SETTINGS
+    // proves nothing about the replay path. A PING is
     // only acknowledged by a session that accepted the preface and is
     // processing client frames.
     const socket = netConnect(port, "127.0.0.1");

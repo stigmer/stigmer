@@ -2,7 +2,8 @@
  * The channel messaging attachment:
  * discovery with the never-throw failure posture, both connection
  * shapes, the structural approval-freedom of synthesized attachments,
- * and the prompt section's filter/order/cap rules. The route is the cross-repo string, guarded here and in
+ * and the prompt section's filter/order/cap rules. The route is the
+ * cross-repo string, guarded here and in
  * the mcp-server integration test (the TOOL_CALL_LIMIT precedent); the
  * slug and roster are runner-internal and guarded here alone.
  */

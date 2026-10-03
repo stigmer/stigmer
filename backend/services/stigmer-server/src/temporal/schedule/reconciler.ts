@@ -16,7 +16,8 @@
  * Lifecycle in TS idiom: Go's
  * goroutine+channel loop becomes an unref'd interval plus a kick queue
  * with an explicit stop() called from the compose shutdown — nothing may
- * fire after shutdown. Semantics are preserved exactly: an immediate boot pass, periodic passes gated by the
+ * fire after shutdown. Semantics are preserved exactly: an immediate
+ * boot pass, periodic passes gated by the
  * env kill-switch, and kicked passes that ALWAYS run (reconnect
  * convergence is correctness, not hygiene).
  */

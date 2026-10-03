@@ -11,7 +11,8 @@
  * conformance suite and mirrored by the cloud edition. A client sending it
  * BACK on a write means "keep the existing secret" (the round-trip
  * contract; see preserveRedactedSecrets). The definition moved to the
- * encryption facade with the codec seam (reencrypt refuses the marker, and domain → encryption is the dependency
+ * encryption facade with the codec seam (reencrypt refuses the marker, and
+ * domain → encryption is the dependency
  * direction); re-exported here for the historical importers, byte
  * unchanged.
  */

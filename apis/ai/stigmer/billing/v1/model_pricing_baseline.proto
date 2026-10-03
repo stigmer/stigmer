@@ -124,7 +124,8 @@ message ModelCapabilities {
   //
   // @internal
   // Cursor-path values are established empirically — a nonce-bearing image
-  // probe per model (production executions, 2026-08-10) — because Cursor's own docs under-report: the server-side
+  // probe per model (production executions, 2026-08-10) — because Cursor's
+  // own docs under-report: the server-side
   // vision hand-off is undocumented behavior. If Cursor changes that
   // behavior, re-probe; do not re-read the docs. The OSS runner's vision
   // gate (attachment-vision.ts, stigmer#370) fails open — it degrades

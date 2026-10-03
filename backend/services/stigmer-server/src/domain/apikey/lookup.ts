@@ -1,6 +1,7 @@
 /**
  * API-key lookup by stored hash — the ONE read path shared by the
- * getByKeyHash RPC and the identity chassis's apikey verifier. The verifier deliberately calls this module, never the
+ * getByKeyHash RPC and the identity chassis's apikey verifier. The
+ * verifier deliberately calls this module, never the
  * RPC: an in-process auth hop for every request would be the cloud
  * edition's chicken-and-egg machinery (inProcessChannelAsSystem) ported
  * without its reason — the OSS store is right here.

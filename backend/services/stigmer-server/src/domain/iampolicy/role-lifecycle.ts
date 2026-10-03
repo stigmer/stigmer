@@ -1,5 +1,6 @@
 /**
- * The built-in role lifecycle: the ResourceAuthorizationLifecycle open source installs when
+ * The built-in role lifecycle: the ResourceAuthorizationLifecycle open
+ * source installs when
  * no unit registers one, under the built-in authorization posture
  * (boot/compose.ts `builtInAuthorization`). It is the ROW writer of that
  * posture at the resource lifecycle points — the one arm that makes an

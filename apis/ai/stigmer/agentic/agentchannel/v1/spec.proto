@@ -16,7 +16,8 @@ import "buf/validate/validate.proto";
 // status — a declarative apply can never clobber them.
 //
 // @internal
-// Honest modeling: the provider arms carry only genuinely user-declarable fields. For
+// Honest modeling: the provider arms carry only genuinely user-declarable
+// fields. For
 // the multi-tenant Slack app everything concrete (team_id, bot_user_id,
 // scopes, credentials env) is OAuth-observed → status. Owner-customizable
 // refusal copy (the AgentShareMessages analog) is deliberately deferred:

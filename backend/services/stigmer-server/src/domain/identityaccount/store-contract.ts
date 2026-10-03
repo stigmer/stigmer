@@ -1,5 +1,6 @@
 /**
- * The IdentityAccountStore PORT-CONTRACT KIT: every behavior an implementation of store.ts must satisfy
+ * The IdentityAccountStore PORT-CONTRACT KIT: every behavior an implementation of
+ * store.ts must satisfy
  * identically, as cases a driver's test iterates. Open source runs them
  * over its own adapter (resource-store.ts) on sqlite and Postgres in
  * __tests__/resource-store.postgres.test.ts; a composition runs the SAME cases over

@@ -49,7 +49,8 @@ export interface ConnectedExecutionEngine {
   /**
    * Starts the invoke-agent-execution workflow (Go's dispatch resolution
    * — ResolveActivityTaskQueue over the session + config — plus
-   * workflowCreator.Create, both temporal-slice code). Throws EngineDispatchError for dispatch-resolution failures
+   * workflowCreator.Create, both temporal-slice code). Throws
+   * EngineDispatchError for dispatch-resolution failures
    * (the create step maps them to FailedPrecondition, exactly Go's
    * boundary); any other throw marks the execution FAILED.
    */

@@ -1,6 +1,7 @@
 /**
  * TemporalManager lifecycle tests — pins the shutdown race and the
- * partial-start tracking, the availability posture, and the worker-construction capability:
+ * partial-start tracking, the availability posture, and the worker-construction
+ * capability:
  *
  *   - close() racing an in-flight reconnect must NOT resurrect the
  *     manager (fresh dial discarded; no workers recreated; no hooks

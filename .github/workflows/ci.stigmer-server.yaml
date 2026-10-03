@@ -167,7 +167,8 @@ jobs:
           done
           node scripts/verify-slim-artifact.mjs
 
-      # The consumer-install smoke for the LIBRARY (#786): pack @stigmer/server, install the tarball
+      # The consumer-install smoke for the LIBRARY (#786): pack
+      # @stigmer/server, install the tarball
       # into a fresh prefix the way the cloud composition does, and prove the
       # staged tree — one physical copy of @temporalio/proto, @bufbuild/
       # protobuf and @opentelemetry/api (a second copy splits a registry), the
@@ -356,7 +357,8 @@ jobs:
           done
           node scripts/verify-slim-artifact.mjs
 
-      # The arm64 half of the Docker image's both-arch acceptance: the tree bundled above IS linux-arm64 on this native
+      # The arm64 half of the Docker image's both-arch acceptance: the
+      # tree bundled above IS linux-arm64 on this native
       # runner, so the container smoke here is the exact platform proof —
       # no QEMU, no emulation blind spots (this job's founding posture).
       - name: Boot-smoke the Docker image (sqlite + volume, native arm64)

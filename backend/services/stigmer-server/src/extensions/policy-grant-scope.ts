@@ -1,5 +1,6 @@
 /**
- * The policy-grant-scope driver point: WHICH kinds a user may grant a role on in this
+ * The policy-grant-scope driver point: WHICH kinds a user may grant a role
+ * on in this
  * edition, and with which roles. Single instance, registered as
  * `drivers.policyGrantScope` (the identityFederation shape: a driver point
  * whose absence is open source's own behaviour). Absent, the composition

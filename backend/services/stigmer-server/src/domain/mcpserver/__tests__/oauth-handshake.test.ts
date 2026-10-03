@@ -9,7 +9,8 @@
  * domain behind the managed-env lifecycle.
  *
  * This composed server has NO Temporal behind it, and completeOAuthConnect
- * works anyway — a deliberate divergence from Go's composition gate. connect/startConnect
+ * works anyway — a deliberate divergence from Go's composition gate.
+ * connect/startConnect
  * refuse with the byte-pinned engine-unavailable copy on the same boot.
  */
 import { createServer } from "node:http";

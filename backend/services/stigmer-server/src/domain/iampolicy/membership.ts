@@ -1,5 +1,6 @@
 /**
- * The open-source membership rules: how organization roles come to exist on a self-host that has no
+ * The open-source membership rules: how organization roles come to exist
+ * on a self-host that has no
  * administrator to grant them. Core code, installed only under the
  * built-in authorization posture (boot/compose.ts `builtInAuthorization`:
  * no unit registered an Authorizer); a composition with its own
@@ -88,8 +89,10 @@
  * Reads. Policy rows through the IamPolicyStore PORT (`policies`, the
  * same instance the grant path writes through) — never around it.
  * Organizations and blueprints through the generic Store, decoded with
- * each kind's own schema (CREATOR_SCAN_SCHEMAS: the envelope shares its field numbers but each status carries its audit
- * under its own, so no generic decode exists). Cost: one scan of each of seven kinds and one row
+ * each kind's own schema (CREATOR_SCAN_SCHEMAS: the envelope shares its
+ * field numbers but each status carries its audit
+ * under its own, so no generic decode exists). Cost: one scan of each
+ * of seven kinds and one row
  * read per organization, once per account creation.
  *
  * The window this design accepts. A store fault after the

@@ -174,7 +174,8 @@ message IdentityAccountPreferences {
   // armed. Off by default — sessions prompt at each approval gate.
   //
   // @internal
-  // A CLIENT-READ seed like default_harness/default_*_model: clients read it to seed the session-scoped
+  // A CLIENT-READ seed like default_harness/default_*_model: clients read
+  // it to seed the session-scoped
   // auto-approve state, and an armed session rides each execution spec
   // explicitly (execution_config.auto_approve_all). The server NEVER reads
   // this field at execution create — it is a UI default, not a server-side
