@@ -32,8 +32,8 @@ service AgentShareCommandController {
   // the agent runtime. The standard org-scoped create tuples (owner =
   // creator) are written for the share itself; no visibility tuples are
   // written for visitors (guest admission is app-level by design — see
-  // AgentShareSpec). Phase A invariant enforced here: metadata.org must
-  // equal spec.agent_ref.org.
+  // AgentShareSpec). Enforced here: metadata.org must equal
+  // spec.agent_ref.org, so a share lives in its agent's organization.
   rpc create(AgentShare) returns (AgentShare) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

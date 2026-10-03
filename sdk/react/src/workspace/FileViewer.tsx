@@ -77,7 +77,7 @@ export interface FileViewerProps {
    * Whether to render the built-in header (file name, refresh, close). Defaults
    * to `true` for standalone use. Set `false` when an outer chrome owns the file
    * identity and controls — e.g. the workspace surface, whose editor toolbar
-   * (and, from Slice B, its tabs) show the name and collapse control, and where
+   * (and its tabs) show the name and collapse control, and where
    * a duplicate header would also collide with the floating `headerActions`
    * overlay. `onClose` still drives Escape-to-close even when the header (and
    * its close button) is hidden.

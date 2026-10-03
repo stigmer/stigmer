@@ -144,7 +144,7 @@ export function useWorkspaceFileSelection(
 }
 
 // ---------------------------------------------------------------------------
-// Workspace editors — the surface's open-editor group (Slice B)
+// Workspace editors — the surface's open-editor group
 // ---------------------------------------------------------------------------
 
 /**

@@ -20,8 +20,8 @@
 //     path are provider-shaped. NOTE the deliberate as-is pin: ChannelApp
 //     answers InvalidArgument here while its sibling AgentChannel answers
 //     FailedPrecondition for ITS provider rule — a verified cross-domain
-//     inconsistency, pinned exactly (parity doctrine; harmonization is a
-//     post-cutover both-editions candidate, recorded in the wave-2 PR).
+//     inconsistency, pinned exactly (harmonizing it would change both
+//     editions; recorded in #851).
 //   - The DELETE-BLOCK: deletion is refused with FailedPrecondition while
 //     any AgentChannel's spec.app_ref resolves to the app — a deleted app
 //     would break the referencing channels' webhook verification and any

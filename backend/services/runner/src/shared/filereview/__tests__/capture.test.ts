@@ -281,7 +281,7 @@ describe("capture orchestration — deep-agent harness", () => {
   });
 
   it("reconciles an APPROVED binary byte-exact — the digest gate accepts a byte-true binary", async () => {
-    // A binary is captured incomplete (no text diff); Slice B lets a user
+    // A binary is captured incomplete (no text diff); a user may
     // acknowledge-APPROVE it. This proves the runner half: the reconcile's digest
     // gate must ACCEPT the byte-true binary (never spuriously HASH_MISMATCH on a
     // body-less side) and re-apply the exact bytes from the git ref.

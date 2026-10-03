@@ -968,7 +968,7 @@ function ResetLinkControl({
  * consent act that makes a tool-using agent work for visitors (decision
  * 011: credentials belong to the channel, never to the agent's pristine
  * default instance). Public audience only; the section disappears for
- * org shares, whose member sessions carry no share linkage in Phase A.
+ * org shares, whose member sessions carry no share linkage.
  *
  * Expanded by default when the agent uses MCP tools — for those agents
  * this is essential configuration, not an advanced option.

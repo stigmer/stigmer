@@ -30,7 +30,7 @@ const STORAGE_KEY_HARNESS = "stigmer:session:harness";
  * This lives CLIENT-side deliberately — it is the only layer that can. The
  * SDK's guest audience covers both public visitors (guest tokens) and org
  * members chatting via an org-audience share (their own member tokens, which
- * carry no share linkage in Phase A) — the server cannot distinguish the
+ * carry no share linkage) — the server cannot distinguish the
  * latter from ordinary Console traffic, so share-surface policy must be
  * applied where the surface is known. Server-side guest-token gates own the
  * abuse controls (rate limits, bounded execution profile).
