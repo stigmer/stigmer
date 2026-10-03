@@ -1,5 +1,5 @@
 /**
- * The compile-proof fake extension (sub-project 20260826.09/O1, DD-005).
+ * The compile-proof fake extension.
  *
  * This module typechecks a consumer-shaped composition against the
  * @stigmer/server exports map ALONE — every server import below is the
@@ -11,10 +11,10 @@
  *
  * It exercises every extension point a consumer can touch today: the
  * seven-point unit shape (services, workers, edition, authorizer,
- * verifiers, status hooks, the O5 driver kinds, and gate-step
- * registrations into the O4-declared slot names — a misspelled slot fails
+ * verifiers, status hooks, the driver kinds, and gate-step
+ * registrations into the declared slot names — a misspelled slot fails
  * THIS compile via the GateSlotName union), a gate-step body built from
- * the pipeline primitives, the store-fault idiom, the 20260911.11
+ * the pipeline primitives, the store-fault idiom, the
  * identity-account seams (the store PORT, the federation capability, and
  * a verifier converging on the exported subject-resolution rule), and the
  * compose entry itself. It is never executed — the runtime behavior is pinned by the
@@ -186,9 +186,8 @@ import type {
 } from "@stigmer/server";
 
 /**
- * A permissive Authorizer in the consumer's own code (the O2 shape), with
- * the lane-admission arm a composition builds over the run gate (P1
- * sp.run-gate): a runtime lane this consumer mints is admitted on the
+ * A permissive Authorizer in the consumer's own code, with the
+ * lane-admission arm a composition builds over the run gate: a runtime lane this consumer mints is admitted on the
  * run-gate checks — isRunGateCheck is the OSS-owned definition of that
  * set — and every other check falls to the consumer's own decision.
  */
@@ -203,7 +202,7 @@ const authorizer: Authorizer = {
 };
 
 /**
- * A consumer-shaped caller guard (the 20260902.02 seam) — the
+ * A consumer-shaped caller guard — the
  * platform-client enforcement shape: skip logic lives entirely in the
  * guard (claim-less tokens, the load-bearing token_type exemption),
  * refusal is the guard's own ConnectError with byte-pinned copy, and the
@@ -223,8 +222,7 @@ const callerGuard: CallerGuard = {
 };
 
 /**
- * A consumer-shaped identity-account store driver (the 20260911.11 seam,
- * Q-IA-9): the PORT the identity-account domain writes and reads through
+ * A consumer-shaped identity-account store driver: the PORT the identity-account domain writes and reads through
  * when a composition registers one — the cloud's `cloud.iam_identity_account`
  * store takes this position. `save` is create-only in effect: a held id
  * raises the exported DuplicateAccountError so the domain's race arms
@@ -506,8 +504,7 @@ const consumerGuestTokenMinting: GuestTokenMinting = {
 };
 
 /**
- * A consumer-shaped IamPolicy store driver (the 20260913.01 seam, Q-OR-1):
- * the PORT the IamPolicy domain's grant path writes and reads through when
+ * A consumer-shaped IamPolicy store driver: the PORT the IamPolicy domain's grant path writes and reads through when
  * a composition registers one — the cloud's `cloud.iam_policy` store takes
  * this position (registered below as `drivers.iamPolicyStore`).
  * `save` is create-only in effect: a held id raises the exported
@@ -533,8 +530,7 @@ const consumerIamPolicyStore: IamPolicyStore = {
 };
 
 /**
- * The IamPolicy port-contract kit over the consumer's driver (the 2a A11
- * shape): a composition's driver test iterates these cases with its own
+ * The IamPolicy port-contract kit over the consumer's driver: a composition's driver test iterates these cases with its own
  * framework so the same contract the OSS adapter passes is what the driver
  * is held to. Compile-only here: this package proves the exported shape,
  * not a fake's behavior.
@@ -563,7 +559,7 @@ export async function runConsumerIamPolicyStoreContract(): Promise<void> {
 const consumerOutboundEgress: OutboundEgressPolicy = strictEgressPolicy();
 
 /**
- * A consumer-shaped policy grant scope (the 20260913.01 seam, Q-OR-3): which
+ * A consumer-shaped policy grant scope: which
  * kinds a user may grant on in this composition, with which roles. A scope
  * only NARROWS the proto's grantable roles, is total over the enum (an
  * unlisted kind answers none, never throws) and is synchronous — a fact
@@ -576,8 +572,7 @@ const consumerPolicyGrantScope: PolicyGrantScope = {
 };
 
 /**
- * A consumer-shaped authorization-query engine (the 20260913.01 seam,
- * Q-OR-8): the tuple-half questions only an authorization backend answers
+ * A consumer-shaped authorization-query engine: the tuple-half questions only an authorization backend answers
  * over its own graph. It speaks the contract's vocabulary (refs, specs,
  * the wire's relation and kind strings) and renders to its backend's
  * grammar itself; `false` and `[]` are real answers, an outage throws.
@@ -640,7 +635,7 @@ const consumerPrincipalDisplay: PrincipalDisplay = {
 };
 
 /**
- * A claim-or-pass verifier (the O2 chain-entry shape) that resolves its
+ * A claim-or-pass verifier (the chain-entry shape) that resolves its
  * subject the way the OSS sign-in lane does — through the exported
  * principalForSubject over the composition's own driver, so a provisioned
  * subject is stamped with its account id and the name its row carries,
@@ -674,8 +669,7 @@ export function legacySubjectResolution(subject: string): Promise<string> {
 }
 
 /**
- * A consumer-shaped identity-federation capability (the 20260911.11 seam,
- * Q-IA-9): the four federated-account RPC arms the controller dispatches
+ * A consumer-shaped identity-federation capability: the four federated-account RPC arms the controller dispatches
  * to after its own shared checks, plus the IdP-exists probe. The arms
  * receive the RESOLVED reference and the authenticated caller; the
  * federated natural key and its rows stay on the consumer's own store.
@@ -700,7 +694,7 @@ const consumerIdentityFederation: IdentityFederation = {
 /**
  * A gate-step body built from the exported pipeline primitives — the shape
  * every cloud gate (billing preflight, capacity, tier validation) takes
- * once O4 opens the slots. The store-fault idiom rides along: a typed
+ * in its slot. The store-fault idiom rides along: a typed
  * not-found maps to NotFound, anything else rethrows.
  */
 export function consumerGateStep(): PipelineStep<DescMessage> {
@@ -721,7 +715,7 @@ export function isStoreNotFound(error: unknown): boolean {
 }
 
 /**
- * A capacity-gate-shaped consumer of the C4 Stage 3 seams: the
+ * A capacity-gate-shaped consumer of the dispatch-policy seams: the
  * dispatch-policy configs read through their exported constructors (the
  * oss#397 one-definition rule consumed, never re-derived from env), and
  * the loaded execution read through the exported lifecycle context key —
@@ -757,7 +751,7 @@ const responseDecorator: AgentExecutionResponseDecorator = (
   response,
 ) => {
   void execution.metadata?.id;
-  // The control-signal field the §7 decorator contract names — it already
+  // The control-signal field the reply-decorator contract names — it already
   // exists on the shared reply schema.
   void response.signal;
 };
@@ -777,7 +771,7 @@ const workerFactory: WorkerFactory = (deps) =>
 
 /**
  * A consumer-shaped model-catalog provider built the way the cloud's
- * DB-resident baseline builds one (the C1 seam, 20260827.04): a document
+ * DB-resident baseline builds one: a document
  * from the consumer's own source, interpreted by the exported constructor
  * so the semantics stay OSS-owned. The interface remains implementable by
  * hand (ConsumerDriverBundle below keeps the type position covered).
@@ -788,7 +782,7 @@ const catalogProvider: ModelCatalogProvider =
   );
 
 /**
- * A consumer-shaped runner-credential provider (the O5 §6c shape). The
+ * A consumer-shaped runner-credential provider. The
  * per-arm fail posture is contract: verify failures collapse to
  * InvalidTokenError (callers fall closed to redaction); a provided lane
  * that cannot mint throws MintingDisabledError (mapped to the
@@ -805,7 +799,7 @@ const credentialProvider: RunnerCredentialProvider = {
   verify: (): string => {
     throw new InvalidTokenError();
   },
-  // The C4 capability methods (gate ruling Q1): the four edition-policy
+  // The optional capability methods: the four edition-policy
   // touchpoints a composition may take over — the platform exchange, the
   // bootstrap credential fields, the sandbox-provisioning mint, and the
   // ExecutionContext decrypt trust decision. All optional; this consumer
@@ -829,7 +823,7 @@ const credentialProvider: RunnerCredentialProvider = {
   // server-managed rpk_ payload keys the bootstrap arm above hands out.
   resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
     keyId === "rpk_fake" ? Buffer.from("a2V5", "base64") : undefined,
-  // The two parity-entry-20260830.05 capabilities: the workflow-lineage
+  // The two lineage and memory capabilities: the workflow-lineage
   // vouching decision (agentexecution create) and the memory
   // capture-eligibility decision (GuardMemoryCapture). Both classify the
   // caller by the implementation's OWN token vocabulary — the shapes
@@ -852,9 +846,9 @@ const credentialProvider: RunnerCredentialProvider = {
 };
 
 /**
- * A consumer-registered R2 driver built through the exported constructor
- * (the C1 seam, 20260827.04) — the cloud's per-domain-bucket registration
- * shape: the composition owns the config, OSS owns the S3 plumbing.
+ * A consumer-registered R2 driver built through the exported constructor —
+ * the cloud's per-domain-bucket registration shape: the composition owns
+ * the config, OSS owns the S3 plumbing.
  */
 const consumerR2Driver: ArtifactStorageDriverFactory = () =>
   newR2ArtifactStorage({
@@ -866,7 +860,7 @@ const consumerR2Driver: ArtifactStorageDriverFactory = () =>
   });
 
 /**
- * A consumer-registered blob driver (the O5 §6b registration shape) —
+ * A consumer-registered blob driver (the registration shape) —
  * lazy factory, typed not-found, the widened size/presignPut surface.
  */
 const consumerBlobDriver: ArtifactStorageDriverFactory =
@@ -887,9 +881,9 @@ const consumerBlobDriver: ArtifactStorageDriverFactory =
   });
 
 /**
- * A consumer-registered sandbox driver (the O6 §6d registration shape) —
+ * A consumer-registered sandbox driver (the registration shape) —
  * the full scoped contract: ensure-as-state-machine per scope, idempotent
- * teardown, the Q5 live-state probe. Selected at runtime through
+ * teardown, the live-state probe. Selected at runtime through
  * SANDBOX_PROVISIONER_TYPE naming the registered key. Reads all three
  * environment facts, the caller's class included, so a driver that
  * decides workspace durability by who asked is proven compilable here.
@@ -919,7 +913,7 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
 };
 
 /**
- * A consumer-shaped channel runtime (the C3 seam, 20260827.11 ruling Q1) —
+ * A consumer-shaped channel runtime —
  * the full grouped surface: install delegation, whole-method messaging
  * and conversation serving, and the two edition-split CRUD hooks. All
  * groups are required by the type, so a composition that forgets an arm
@@ -972,8 +966,7 @@ const channelRuntime: ChannelRuntime = {
 };
 
 /**
- * A consumer-shaped vault-backed secret codec (the 20260830.04 Stage 1
- * seam, ruling Q2) — one enc:v<N>: wire format registered by version
+ * A consumer-shaped vault-backed secret codec — one enc:v<N>: wire format registered by version
  * token through drivers.secretCodecs. The scope carries the tenancy a
  * per-org KEK keys by; the taxonomy split is contract: a bad VALUE is
  * InvalidCiphertextError (skippable per key), missing MACHINERY is
@@ -999,8 +992,7 @@ const consumerVaultCodec: SecretCodec = {
 };
 
 /**
- * A consumer-shaped schedule-fire caller mint (the stigmer-cloud#572
- * seam) — the identity a schedule fire acts as, minted per fire. The
+ * A consumer-shaped schedule-fire caller mint — the identity a schedule fire acts as, minted per fire. The
  * cloud edition's real driver mints a schedule JWT (sub = the org's
  * system-schedule account, claim = the firing Schedule id); this fake
  * proves the contract compiles from consumer code. The account's id is the
@@ -1020,7 +1012,7 @@ const consumerScheduleFireCaller: ScheduleFireCallerMint = {
 };
 
 /**
- * The secret-convergence sweep's exact shape (Stage 3 consumes it): page
+ * The secret-convergence sweep's exact shape: page
  * raw documents through the blessed maintenance verbs, reseal through the
  * facade's one upgrade door, and persist only when nothing interleaved —
  * the bytes-guarded compare-and-swap. Never executed; it pins that the
@@ -1054,10 +1046,10 @@ export async function consumerSweepPage(
 }
 
 /**
- * An extension-registered service handler built the OSS controller idiom
- * (C4 Stage 4): the verified caller read once via callerIdentityOf, then
+ * An extension-registered service handler built the OSS controller idiom:
+ * the verified caller read once via callerIdentityOf, then
  * a chain fronted by the exported Authorize (descriptor-driven from the
- * method's proto options — the ratified three-arm decision mapping and
+ * method's proto options — the three-arm decision mapping and
  * the internal-caller skip consumed, never re-derived) and ValidateProto
  * steps, executed by the exported pipeline (which owns the
  * sanitized-Internal error contract). This is the shape every cloud
@@ -1205,7 +1197,7 @@ const registerTeamService = (router: ConnectRouter): void => {
 };
 
 /**
- * A consumer tuple-lifecycle driver (the C2 seam, ruling Q2) — receives
+ * A consumer tuple-lifecycle driver — receives
  * fully-resolved events; the tuple writes are the consumer's own.
  */
 const authorizationLifecycle: ResourceAuthorizationLifecycle = {
@@ -1235,8 +1227,8 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
 };
 
 /**
- * A consumer list read scope (the 20260830.01 seam; its candidates carry
- * `authorizationParent` since stigmer-cloud 20260913.04 T04): the
+ * A consumer list read scope (its candidates can carry
+ * `authorizationParent`): the
  * restrict verb asks the consumer's authorization backend about the
  * parent when a candidate carries one and about the row itself otherwise
  * — the cloud driver's shape, typed against the barrel alone.
@@ -1266,7 +1258,7 @@ const listReadScope: ListReadScope = {
   },
 };
 
-/** A consumer organization directory (the C2 seam, ruling Q7). */
+/** A consumer organization directory. */
 const organizationDirectory: OrganizationDirectory = {
   refusesEnumeration: true,
   listMyOrganizationIds: (caller: CallerIdentity) => {
@@ -1287,28 +1279,27 @@ const organizationDirectory: OrganizationDirectory = {
 export const fakeExtension: ServerExtension = {
   name: "consumer-fake",
   edition: ServerEdition.cloud,
-  // The 20260904.02 point: the unit's verifiers are its only admission
+  // The require-authentication point: the unit's verifiers are its only admission
   // path, so tokenless non-public requests are refused. Typed as the
   // literal `true` — `false` does not compile; omit the field instead.
   requireAuthentication: true,
   authorizer,
   identityVerifiers: [verifier, consumerGuestTokenVerifier],
-  // The 20260902.02 seam: post-authentication caller guards, serving
+  // Post-authentication caller guards, serving
   // chain only.
   callerGuards: [callerGuard],
-  // The O4 slot vocabulary is typed: registering into a slot name outside
-  // GateSlotName fails this compile (the §2b contract's compile-time layer).
+  // The slot vocabulary is typed: registering into a slot name outside
+  // GateSlotName fails this compile (the loud-fail contract's compile-time layer).
   gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
     ["agent-execution-create:pre-side-effect-gate", [consumerGateStep()]],
-    // The recover slot consumes the exported loaded-execution key (C4
-    // Stage 3) — the capacity-gate shape reads the resource off the
+    // The recover slot consumes the exported loaded-execution key — the capacity-gate shape reads the resource off the
     // metadata map there.
     [
       "agent-execution-recover:pre-side-effect-gate",
       [consumerCapacityGateStep()],
     ],
     ["org-create:post-persist", [consumerGateStep()]],
-    // The sixth ratified slot (C4): the workflow-execution chains'
+    // The sixth declared slot: the workflow-execution chains'
     // capacity-gate position.
     ["sandbox-acquisition:gate", [consumerCapacityGateStep()]],
     // The seventh: after the caller's account is
@@ -1342,22 +1333,22 @@ export const fakeExtension: ServerExtension = {
     ]),
     resourceAuthorizationLifecycle: authorizationLifecycle,
     organizationDirectory,
-    // The 20260830.01 list read scope, carrying the T04 parent on its
+    // The list read scope, carrying the authorization parent on its
     // candidates.
     listReadScope,
-    // The C3 serving seam: a composed runtime flips the agentchannel
+    // The channel serving seam: a composed runtime flips the agentchannel
     // install/messaging/conversation arms from refusal to serving.
     channelRuntime,
-    // The 20260830.04 sealing seam: vault-backed wire formats registered
+    // The sealing seam: vault-backed wire formats registered
     // by version token ("v1" is the reserved built-in).
     secretCodecs: new Map([["v2", consumerVaultCodec]]),
-    // The stigmer-cloud#572 seam: who a schedule fire acts as.
+    // The schedule-fire caller seam: who a schedule fire acts as.
     scheduleFireCaller: consumerScheduleFireCaller,
-    // The 20260911.11 seams: the identity-account domain served over the
+    // The identity-account seams: the identity-account domain served over the
     // consumer's own store, and the federated arms only it can serve.
     identityAccountStore: consumerIdentityAccountStore,
     identityFederation: consumerIdentityFederation,
-    // The 20260913.01 seams: the IamPolicy domain served over the
+    // The IamPolicy seams: the IamPolicy domain served over the
     // consumer's own store, the kinds it grants on, and the tuple-half
     // queries only its authorization backend can answer.
     iamPolicyStore: consumerIamPolicyStore,
@@ -1385,7 +1376,7 @@ export const fakeExtension: ServerExtension = {
   workers: [workerFactory],
 };
 
-/** The thin composition program's exact shape (blueprint §2a). */
+/** The thin composition program's exact shape. */
 export async function composeFakeCloud(): Promise<ComposedServer> {
   return composeServer({
     config: loadConfig(),
@@ -1398,7 +1389,7 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
 }
 
 /**
- * The Stage-3 sweep's runtime wiring shape (20260830.04 gate ruling G2):
+ * The secret sweep's runtime wiring shape:
  * a composition's maintenance lane reaches the LIVE composed facade and
  * store off the compose return — never a twin facade built from the same
  * codec map, which would duplicate KEK caches and drift from the
@@ -1412,7 +1403,7 @@ export async function consumerSweepOverComposedServer(
 
 /**
  * The exported driver interfaces are consumable in extension signatures —
- * the O5 registrations above populate them; this bundle keeps the plain
+ * the driver registrations above populate them; this bundle keeps the plain
  * type positions covered too.
  */
 export interface ConsumerDriverBundle {

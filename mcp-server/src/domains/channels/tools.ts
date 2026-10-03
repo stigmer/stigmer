@@ -1,12 +1,11 @@
 // The send_channel_message tool — the ONE tool of the channels roster
-// (proactive-messaging DD-002 D7, arguments amended by DD-006 D5 to
-// mirror the ChannelOutboundPayload oneof: `text` | `template`, exactly
+// (its arguments mirror the ChannelOutboundPayload oneof: `text` | `template`, exactly
 // one).
 //
 // Agent audience only, by construction: this roster is what the
 // runner-synthesized channel attachment connects to, and a session-bound
-// caller's org derives from its token (an explicit org is rejected —
-// the records T05 R3 rule), so no `org` argument exists to invite
+// caller's org derives from its token (an explicit org is rejected,
+// as in the records domain), so no `org` argument exists to invite
 // rejected calls. A direct-audience variant on the full roster is
 // deliberately NOT registered: operators send through the console, CLI,
 // and SDK, which carry the org+channel addressing the direct reach path

@@ -43,7 +43,7 @@
  *     across cores inside vitest, and the react suite raised its timeouts for
  *     CI load once (sdk/react/vitest.config.ts); running ten vitest processes
  *     at once on a 4-core runner would trade wall time for flakes. Measured
- *     on ubuntu-latest, 2026-09-11 (stigmer-cloud project 20260904.04, T01_6):
+ *     on ubuntu-latest, 2026-09-11:
  *     the full set takes 5:07 / 5:34 / 5:17 at 1, 3:52 / 5:14 / 5:17 at 2,
  *     5:10 at 4. The react suite alone is ~309 s of that and already uses
  *     every core, so the other nine suites finish under it whatever the cap;
@@ -52,7 +52,7 @@
  *     on the same runner (sdk/react/vitest.config.ts, stigmer/stigmer#1060).
  *     A caller's own --concurrency replaces this default (turbo refuses a
  *     repeated flag).
- *   - Telemetry is off (owner ruling D3, 2026-09-10): Turborepo reports
+ *   - Telemetry is off (since 2026-09-10): Turborepo reports
  *     anonymous usage to Vercel by default from every machine and runner, and
  *     the only switches are per machine or this variable. Setting it here
  *     covers CI, developers and the Windows runner in one place.
@@ -245,7 +245,7 @@ function hasFlag(args, flag) {
   return args.some((arg) => arg === flag || arg.startsWith(`${flag}=`));
 }
 
-/** The environment turbo runs with: the caller's, plus telemetry off (D3). */
+/** The environment turbo runs with: the caller's, plus telemetry off. */
 export function turboEnv(env = process.env) {
   return { ...env, TURBO_TELEMETRY_DISABLED: "1" };
 }

@@ -1,5 +1,5 @@
 # =============================================================================
-# Helm Chart — the Kubernetes self-host gate (stigmer-cloud 20260914.02)
+# Helm Chart — the Kubernetes self-host gate
 # =============================================================================
 # Proves deploy/helm/stigmer, the compose stack translated for Kubernetes:
 #   - chart-checks: helm lint --strict and kubeconform on every CI values
@@ -114,7 +114,7 @@ jobs:
           helm version --short && kind version && kubectl version --client
 
       # make smoke-helm = build-server (stubs + deps + compile) + build-web
-      # (the console export bundle-slim stages, DD-012) +
+      # (the console export bundle-slim stages) +
       # stage-compose-runner-cli (the CLI tarballs the runner image
       # installs) + bundle-slim + test/install/smoke-helm.mjs --build (docker
       # compose build, kind create,

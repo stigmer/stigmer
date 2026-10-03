@@ -325,7 +325,7 @@ jobs:
           done
           cd dist-slim-pkgs/runner-slim && npm publish --access public --tag dev
 
-  # @stigmer/server as a library (stigmer-cloud project 20260910.04) — the
+  # @stigmer/server as a library — the
   # dev twin of release.npm-libs.yaml's publish-server. This is the lane a
   # cross-repo seam change rides: dispatch this workflow from the OSS feature
   # branch, and the cloud composition's PR pins the `X.Y.Z-dev.<stamp>` it

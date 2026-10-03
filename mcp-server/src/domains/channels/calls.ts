@@ -1,14 +1,14 @@
 // Channel-messaging RPC invocations for the send_channel_message tool —
 // a 1:1 projection of ChannelMessageCommandController.sendMessage
-// (proactive-messaging DD-006 D5: the tool layer adds no semantics;
+// (the tool layer adds no semantics;
 // reach, recipient policy, caps, and the template pre-check all live in
 // the cloud handler, and the OSS edition refuses with the documented
 // FAILED_PRECONDITION).
 //
 // The records-domain calls.ts shape: build request, call, marshal. The
 // typed outcome (accepted/queued/refused + detail) rides back VERBATIM
-// as proto JSON — a refusal is an ANSWER the model adapts to (DD-002
-// D4), never a tool error.
+// as proto JSON — a refusal is an ANSWER the model adapts to, never a
+// tool error.
 
 import { create } from "@bufbuild/protobuf";
 import {
@@ -48,8 +48,8 @@ export async function sendChannelMessage(
   const request = create(SendChannelMessageInputSchema, {
     channel: args.channel ?? "",
     // org is deliberately never sent: a session-bound caller's org is
-    // server-derived, and an explicit value is rejected (the records
-    // T05 R3 rule applied to messaging).
+    // server-derived, and an explicit value is rejected (as in the
+    // records domain).
     recipient: args.recipient,
     payload: buildPayload(args),
   });

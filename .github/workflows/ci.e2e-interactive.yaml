@@ -6,7 +6,7 @@
 # a Temporal dev server, and the Next.js web console — everything
 # test/e2e/global-setup.ts orchestrates. This is the lane issue #572 asked
 # for: the suite rotted undetected for three months (2026-05 → 2026-08,
-# #501/#570/#571) because nothing ran it; cloud#275's typecheck gate cannot
+# #501/#570/#571) because nothing ran it; a typecheck gate cannot
 # catch runtime validation, UI drift, or infra deadlocks.
 #
 # The e2e-approval job (below) runs the HITL approval projects the same way —
@@ -145,7 +145,7 @@ jobs:
 
   # The HITL approval suite (stigmer/stigmer#754): before this job the suite
   # ran NOWHERE automatically (Makefile target only), which is exactly how it
-  # rotted — the phase-7 apply-then-review change silently invalidated its
+  # rotted — the apply-then-review change silently invalidated its
   # write-gate premise, and a workspace-escape bug in the runner's legacy
   # path mode went unnoticed with it. Two serial invocations, two stack
   # shapes (one Playwright run boots exactly one stack; both use the shared
@@ -222,7 +222,7 @@ jobs:
           retention-days: 30
 
   # The served console signing in to an authenticated self-hosted server
-  # (20260913.02 sp.console-login; stigmer#924): a real browser through a
+  # (stigmer#924): a real browser through a
   # real PKCE code flow against the conformance harness's hermetic issuer,
   # verified by a real server in the OIDC posture. Its own stack shape, so
   # its own job (the approval job's precedent); no runner is needed — the

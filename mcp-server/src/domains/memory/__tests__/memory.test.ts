@@ -2,7 +2,7 @@
 // channels.test.ts pattern: real Connect backend with a
 // stubbed memory service, real MCP client over an in-memory transport).
 //
-// Verifies the DD-005 D1/D2 contract surface:
+// Verifies the memory roster's contract surface:
 //   - the memory-only roster is exactly remember with ONLY a fact
 //     argument (agent audience; org, subject, and provenance are never
 //     the model's to supply);

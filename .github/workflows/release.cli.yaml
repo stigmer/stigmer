@@ -2,8 +2,8 @@
 # on manual dispatch) plus curated release notes from the annotated tag.
 #
 # No binary assets ship here anymore: the Go stigmer-server tarballs this
-# workflow used to cross-compile and attach retired with the Go server
-# (go-server-retirement, D4 #25). The served implementation is acquired as
+# workflow used to cross-compile and attach retired with the Go server.
+# The served implementation is acquired as
 # the @stigmer/server-slim npm package (published by release.npm-libs.yaml),
 # and the CLI itself ships as the @stigmer/cli npm package.
 name: release.cli

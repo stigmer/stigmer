@@ -2,7 +2,7 @@
 //
 // Boots the real Streamable HTTP transport on an ephemeral port it reports
 // through `onListening` (never a probed one, stigmer#1469) and exercises the
-// additive surface added in Phase 6: the /health probe, RFC 9728 protected
+// additive HTTP surface: the /health probe, RFC 9728 protected
 // resource metadata (GET + CORS preflight), and the WWW-Authenticate challenge
 // on token-less requests. Token validation is never performed here — presence is
 // the only check (Go parity: internal/server/http.go).

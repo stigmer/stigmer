@@ -15,11 +15,11 @@ export type Transport = "stdio" | "http" | "both";
  * Which tool roster the server exposes.
  *
  * - "full": every domain (the default — external MCP clients).
- * - "channels": only send_channel_message (proactive-messaging DD-006
- *   D8) with the agent-facing argument surface. This is what the
+ * - "channels": only send_channel_message, with the agent-facing argument
+ *   surface. This is what the
  *   runner-synthesized channel attachment spawns over stdio; over HTTP
  *   the same roster is served on the /channels route.
- * - "memory": only remember (memory capture, DD-005 D1). What the
+ * - "memory": only remember (memory capture). What the
  *   runner-synthesized memory attachment spawns over stdio in local
  *   mode; over HTTP the same roster is served on the /memory route.
  */
@@ -30,7 +30,7 @@ export type Roster = "full" | "channels" | "memory";
  *
  * Purely additive: the server stays a stateless Bearer passthrough that never
  * validates tokens. Issuer values come from deployment config, never code, so
- * the OSS server is issuer-agnostic. (HTTP discovery wiring itself lands in T02.)
+ * the OSS server is issuer-agnostic.
  */
 export interface OAuthConfig {
   readonly enabled: boolean;

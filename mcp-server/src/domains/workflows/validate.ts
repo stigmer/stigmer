@@ -6,11 +6,10 @@
 // WorkflowCommandController.validateSpec — the same Temporal-based pipeline used
 // by workflow create/update.
 //
-// Parity note (Go D4): the Go server's taskKindNameToEnum map is an identity map
-// that omits `eval`, so Go rejects valid `eval` tasks. We derive the accepted
-// set directly from the WorkflowTaskKind enum's value names instead — identical
-// behavior for the other 19 kinds AND correct for `eval`. Flagged for the Go
-// side as a T03 follow-up.
+// Parity note: the retired Go server's taskKindNameToEnum map was an identity
+// map that omitted `eval`, so Go rejected valid `eval` tasks. We derive the
+// accepted set directly from the WorkflowTaskKind enum's value names instead —
+// identical behavior for the other 19 kinds AND correct for `eval`.
 
 import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

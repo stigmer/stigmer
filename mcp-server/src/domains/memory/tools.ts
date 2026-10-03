@@ -1,4 +1,4 @@
-// The remember tool — the ONE tool of the memory roster (DD-005 D1: the
+// The remember tool — the ONE tool of the memory roster (the
 // first-party capture verb both harnesses receive through the
 // runner-synthesized memory attachment).
 //

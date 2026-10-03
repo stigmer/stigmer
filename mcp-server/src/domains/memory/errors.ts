@@ -1,5 +1,5 @@
-// The memory-domain error mapper — the channels-domain sibling (DD-004
-// S-7's recorded posture: siblings share the idiom, never an abstraction
+// The memory-domain error mapper — the channels-domain sibling (siblings
+// share the idiom, never an abstraction
 // over it; each domain documents its own contract).
 //
 // Memory create errors carry agent-relayable messages that are contract

@@ -3,7 +3,7 @@
 // stubbed messaging service, real MCP client over an in-memory
 // transport).
 //
-// Verifies the DD-006 D5/D8 contract surface:
+// Verifies the channels roster's contract surface:
 //   - the channels-only roster is exactly send_channel_message with NO
 //     org argument (agent audience);
 //   - argument → request mapping mirrors the ChannelOutboundPayload
@@ -98,7 +98,7 @@ describe("channels roster", () => {
 
     // The agent audience gets no org argument — a session-bound
     // caller's org is server-derived, and offering the argument would
-    // only invite INVALID_ARGUMENT rejections (the records T05 R3 rule).
+    // only invite INVALID_ARGUMENT rejections.
     const properties = (tools[0].inputSchema as { properties?: Record<string, unknown> })
       .properties;
     expect(Object.keys(properties ?? {}).sort()).toEqual([
