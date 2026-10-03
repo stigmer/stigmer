@@ -1,5 +1,5 @@
 /**
- * Registry-lane tests, mirroring the CW-10 conformance suite's assertions
+ * Registry-lane tests, mirroring the conformance suite's assertions
  * (test/conformance/src/suites/registry-proxy.conformance.test.ts — the
  * self-declared gate for these lanes) against the FULLY composed server,
  * demux and lane router included, so the contract is enforced in this
@@ -69,7 +69,7 @@ const routes = [
   { path: "/v1/proxy/model-registry", topLevelKey: "models" },
 ] as const;
 
-describe("registry proxy lanes (CW-10 contract)", () => {
+describe("registry proxy lanes (the conformance contract)", () => {
   for (const { path, topLevelKey } of routes) {
     describe(`GET ${path}`, () => {
       it("answers cacheable JSON with allow-all CORS", async () => {

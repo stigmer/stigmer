@@ -65,7 +65,7 @@ export interface FileViewerProps {
   /**
    * Optional jump-to-line request (e.g. a content-search hit). When present the
    * viewer opens in the live **File** view — a line number refers to current
-   * source, not the diff (DR-1) — with the `Diff | File` toggle still available,
+   * source, not the diff — with the `Diff | File` toggle still available,
    * and the matched line is scrolled into view and highlighted. A new `nonce`
    * re-forces File view and re-scrolls even on an already-open file. No-op when
    * the file is not live-browsable (a DELETE, or no `reader`).
@@ -149,7 +149,7 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
   const canBrowseLive = reader !== undefined && change?.changeType !== FileChangeType.DELETE;
   const showViewToggle = change !== undefined && canBrowseLive;
   // A reveal (jump-to-line) opens in File view even for a changed file — the
-  // line number refers to current source, not the diff (DR-1). Absent a reveal,
+  // line number refers to current source, not the diff. Absent a reveal,
   // a changed file still defaults to the authoritative diff.
   const [viewMode, setViewMode] = useState<"diff" | "file">(
     reveal ? "file" : change !== undefined ? "diff" : "file",

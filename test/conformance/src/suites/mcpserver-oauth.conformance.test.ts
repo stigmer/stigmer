@@ -1,4 +1,4 @@
-// Conformance suite for the McpServer OAuth initiate lanes (CW-1, Class A).
+// Conformance suite for the McpServer OAuth initiate lanes (Class A).
 // Domain: agentic / mcpserver — the connect/OAuth facet, engine-free half.
 //
 // Pins initiateOAuthConnect (both arms: DCR and vendor), the Layer-1 input

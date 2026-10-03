@@ -18,7 +18,7 @@
  * stigmer-service interruption is retried and a hung connection cannot
  * stall an agent turn unboundedly (stigmer/stigmer#468).
  *
- * DD-6: No direct R2 backend. Local + Proxy only.
+ * No direct R2 backend: local and proxy only.
  */
 
 import { mkdir, writeFile, readFile, access, rm } from "node:fs/promises";

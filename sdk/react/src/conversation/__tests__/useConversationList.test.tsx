@@ -362,7 +362,7 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
     );
   });
 
-  it("sorted-inserts an unlisted row by activity, never at the head (G-2: a command answer is not a recency claim)", async () => {
+  it("sorted-inserts an unlisted row by activity, never at the head (a command answer is not a recency claim)", async () => {
     const newest = conversationAt("ach_1", "15550001111", "2026-08-07T12:00:00Z");
     const oldest = conversationAt("ach_1", "15550003333", "2026-08-07T10:00:00Z");
     const middle = conversationAt("ach_1", "15550002222", "2026-08-07T11:00:00Z", {

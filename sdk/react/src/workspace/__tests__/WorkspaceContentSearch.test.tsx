@@ -100,7 +100,7 @@ describe("WorkspaceContentSearch", () => {
     // tree/filename click uses — this is what makes a changed file honor the
     // FileViewer diff-default; see FileViewer diff-mode suite).
     fireEvent.click(options[0]);
-    // The hit's line rides along so the viewer jumps to it (DR-1/DR-2).
+    // The hit's line rides along so the viewer jumps to it.
     expect(onOpenFile).toHaveBeenCalledWith(entry.id, "src/app.ts", { line: 3 });
   });
 

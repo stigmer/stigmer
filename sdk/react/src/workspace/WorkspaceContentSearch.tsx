@@ -43,7 +43,7 @@ export interface WorkspaceContentSearchProps {
   /**
    * Opens a result's file in the viewer, jumping to the matched line. The
    * `options.line` carries the hit's 1-based line so the viewer scrolls to and
-   * highlights it (DR-1/DR-2).
+   * highlights it.
    */
   readonly onOpenFile: (
     entryId: string,
