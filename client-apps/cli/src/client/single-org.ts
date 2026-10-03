@@ -5,9 +5,9 @@
 // a self-hosted install) makes it at its first start and fills it into every
 // request that names none; its getServerInfo answers `single_org`. There the
 // CLI never asks for, invents or prints an organization. A server that holds
-// several refuses a request that names none, so a command that needs one says
-// so first, with the ways to set it, instead of relaying the server's
-// validation error.
+// several refuses a write or an organization-scoped read that names none, so
+// a command that needs one says so first, with the ways to set it, instead of
+// relaying the server's validation error.
 //
 // The answer is a fact about the server, asked once per client: concurrent
 // askers share the pending answer. A server that predates the field answers

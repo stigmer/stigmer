@@ -31,7 +31,7 @@
  * the limit or the slug claim refuses the loser, and its refusal is the lost
  * race), and a store from before this step may hold several. Exactly one
  * turns the fill on; any other count leaves it off for the process, with one
- * warning naming the count.
+ * warning: the count when it holds several, the cause when it holds none.
  *
  * One failure is not fatal. A store whose ledger retired the slug and that
  * holds no organization (a laptop that deleted it before the server made
@@ -82,16 +82,17 @@ export async function ensureSingleOrganization(
   deps: SingleOrganizationBootDeps,
 ): Promise<void> {
   const { store, logger } = deps;
-  const made =
-    (await store.listResources(ApiResourceKind.organization)).length === 0 &&
-    (await createSingleOrganization(deps));
+  const outcome: CreateOutcome =
+    (await store.listResources(ApiResourceKind.organization)).length === 0
+      ? await createSingleOrganization(deps)
+      : "present";
   const [only, ...others] = (
     await store.listResources(ApiResourceKind.organization)
   ).map((bytes) => fromBinary(OrganizationSchema, bytes).metadata?.id ?? "");
   if (only !== undefined && only !== "" && others.length === 0) {
     // Recorded from the store's own answer, and only by the start that made
     // it: a replica that lost the race leaves the record to the winner.
-    if (made) {
+    if (outcome === "made") {
       await store.bootstrapState.set(SINGLE_ORG_KEY, only);
     }
     deps.holder.settle(only);
@@ -104,13 +105,27 @@ export async function ensureSingleOrganization(
       "this server holds one organization, but its store holds several: requests must name their organization, and no organization can be added",
       { organizations: others.length + 1 },
     );
+  } else if (outcome === "lost") {
+    // Refused as a duplicate, yet nothing holds the slug's row: a slug claim
+    // left with no organization (the ledger never releases a claim).
+    logger.warn(
+      `this server cannot make its organization: its create was refused as a duplicate, but the store holds none; create an organization to start`,
+      { slug: SINGLE_ORGANIZATION_SLUG },
+    );
   }
 }
 
-/** Resolves true when this start made the organization, false when the store already had it or cannot. */
+/**
+ * What the create did: made the organization; lost it to another replica
+ * (refused as a duplicate or at the limit, whose row the store read finds);
+ * or found the slug retired, which it has already warned about. "present":
+ * the store already held one, so nothing was created.
+ */
+type CreateOutcome = "made" | "lost" | "reserved" | "present";
+
 async function createSingleOrganization(
   deps: SingleOrganizationBootDeps,
-): Promise<boolean> {
+): Promise<CreateOutcome> {
   try {
     await deps.creator.createAsCaller(
       create(OrganizationSchema, {
@@ -124,7 +139,7 @@ async function createSingleOrganization(
       }),
       deps.caller,
     );
-    return true;
+    return "made";
   } catch (error) {
     if (error instanceof ConnectError) {
       const reasons = error
@@ -138,7 +153,7 @@ async function createSingleOrganization(
           `this server cannot make its organization: the slug '${SINGLE_ORGANIZATION_SLUG}' belonged to a deleted organization, and a slug is never reused; create an organization to start`,
           { slug: SINGLE_ORGANIZATION_SLUG },
         );
-        return false;
+        return "reserved";
       }
       // Another replica made it first. Its row reached this create either at
       // the duplicate check (AlreadyExists) or, persisted a moment later, at
@@ -149,7 +164,7 @@ async function createSingleOrganization(
         (error.code === Code.FailedPrecondition &&
           reasons.includes(ORGANIZATION_LIMIT_REACHED))
       ) {
-        return false;
+        return "lost";
       }
     }
     throw new Error(

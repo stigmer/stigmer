@@ -57,8 +57,10 @@ Key properties:
   Organization (`ORGANIZATION_LIMIT_REACHED`) and refuses to delete its one
   (`ORGANIZATION_IS_SINGLE`). `getServerInfo` answers `single_org: true`, which
   is how a client knows.
-- **Enterprise and Stigmer Cloud** hold many. A request names its Organization,
-  and a request that names none is refused.
+- **Enterprise and Stigmer Cloud** hold many. A write or an organization-scoped
+  read names its Organization, and one that names none is refused. A
+  cross-organization read such as search accepts an empty `org` and spans every
+  Organization the caller can see.
 
 ### Plugins
 

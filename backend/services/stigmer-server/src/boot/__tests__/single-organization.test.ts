@@ -15,6 +15,8 @@
  *     duplicate check (AlreadyExists) or at the limit
  *     (ORGANIZATION_LIMIT_REACHED), finds the winner's organization, fills
  *     it, and leaves the record to the winner;
+ *   - a create refused as a duplicate that leaves the store with none (a
+ *     slug claim with no organization) warns, fills nothing, and boots;
  *   - any other failure of the create is a boot throw naming the cause.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -245,6 +247,35 @@ describe("ensureSingleOrganization", () => {
       expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
     },
   );
+
+  it("a create refused as a duplicate that leaves the store with none warns, fills nothing and boots", async () => {
+    await composeWith();
+    const holder = newSingleOrganizationHolder();
+    await ensureSingleOrganization({
+      store: server.store,
+      creator: {
+        createAsCaller: async () => {
+          throw new ConnectError(
+            "Organization already exists",
+            Code.AlreadyExists,
+          );
+        },
+      },
+      caller: serverActingFor(SYSTEM_OPERATOR_IDENTITY_ID),
+      holder,
+      logger,
+    });
+
+    expect(holder.current()).toBeUndefined();
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    expect(lines).toContainEqual(
+      expect.objectContaining({
+        level: "warn",
+        slug: "stigmer",
+        message: expect.stringContaining("refused as a duplicate"),
+      }),
+    );
+  });
 
   it("any other failure of the create is a boot throw naming the cause", async () => {
     const refuseEverything: PipelineStep<DescMessage> = {

@@ -97,9 +97,9 @@ public final class SearchClient {
             }
 
             /**
-             * Organization slug to scope the query. Leave it unset on a server
-             * that holds one organization, which fills it; a server that holds
-             * several refuses a search that names none.
+             * Organization slug to scope the query. Leave it unset to search
+             * every organization the caller can see; a server that holds one
+             * organization fills its own.
              */
             public Builder org(String org) {
                 this.org = Objects.requireNonNull(org);

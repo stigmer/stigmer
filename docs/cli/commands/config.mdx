@@ -169,7 +169,9 @@ every command that takes an organization uses `acme` unless `--org` or
 `STIGMER_ORG` names another. `--org ""` clears the context, and a command that
 needs an organization asks for one again. A server that holds one organization
 (a local or self-hosted open-source server) never needs this: it fills its own
-into every command that names none.
+into every command that names none. An open-source server older than the CLI
+does not, so against one set the context once with
+`stigmer config context set --org stigmer`.
 
 ### Check current organization context
 
