@@ -20,8 +20,11 @@
  *     duplicate check (AlreadyExists) or at the limit
  *     (ORGANIZATION_LIMIT_REACHED), finds the winner's organization, fills
  *     it, and records it as the winner does;
+ *   - a loser that reads the store before the winner's row is stored
+ *     re-reads for about a second and finds it;
  *   - a create refused as a duplicate that leaves the store with none (a
  *     slug claim with no organization) warns, fills nothing, and boots;
+ *   - a store that holds several clears an earlier record;
  *   - any other failure of the create is a boot throw naming the cause.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -236,15 +239,17 @@ describe("ensureSingleOrganization", () => {
     expect(holder.current()).toBe("acme");
   });
 
-  it("a store that holds several fills nothing and warns with the count", async () => {
+  it("a store that holds several fills nothing, clears an earlier record, and warns with the count", async () => {
     await composeWith();
     await seedOrganization("acme");
     await seedOrganization("globex");
+    await server.store.bootstrapState.set(SINGLE_ORG_KEY, "acme");
     const { holder, run } = ensure();
     await run();
 
     expect(await organizations()).toHaveLength(2);
     expect(holder.current()).toBeUndefined();
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
     expect(lines).toContainEqual(
       expect.objectContaining({ level: "warn", organizations: 2 }),
     );
@@ -313,6 +318,31 @@ describe("ensureSingleOrganization", () => {
       );
     },
   );
+
+  it("a create that loses the race before the winner's row is stored finds it on a re-read, and fills it", async () => {
+    await composeWith();
+    const holder = newSingleOrganizationHolder();
+    await ensureSingleOrganization({
+      store: server.store,
+      creator: {
+        createAsCaller: async () => {
+          // The winner has claimed the slug; its row lands a moment later.
+          setTimeout(() => {
+            void seedOrganization("stigmer");
+          }, 150);
+          throw new ConnectError(
+            "Organization already exists",
+            Code.AlreadyExists,
+          );
+        },
+      },
+      caller: serverActingFor(SYSTEM_OPERATOR_IDENTITY_ID),
+      holder,
+      logger,
+    });
+
+    expect(holder.current()).toBe("stigmer");
+  });
 
   it("a create refused as a duplicate that leaves the store with none warns, fills nothing and boots", async () => {
     await composeWith();

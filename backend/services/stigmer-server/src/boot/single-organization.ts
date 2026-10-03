@@ -32,8 +32,10 @@
  * step made, and a start that died before recording heals. Two replicas
  * racing on an empty store end with one organization (the duplicate check,
  * the limit or the slug claim refuses the loser, and its refusal is the lost
- * race), and a store from before this step may hold several. Exactly one
- * turns the fill on; any other count leaves it off for the process, with one
+ * race; the loser re-reads for about a second, since it can read the store
+ * between the winner's slug claim and its row), and a store from before
+ * this step may hold several. Exactly one turns the fill on; any other
+ * count leaves it off for the process, clears the record, and logs one
  * warning: the count when it holds several, the cause when it holds none.
  *
  * On an empty store, before the create, the step marks the membership
@@ -111,9 +113,19 @@ export async function ensureSingleOrganization(
   const outcome: CreateOutcome = empty
     ? await createSingleOrganization(deps)
     : "present";
-  const [only, ...others] = (
-    await store.listResources(ApiResourceKind.organization)
-  ).map((bytes) => fromBinary(OrganizationSchema, bytes).metadata?.id ?? "");
+  let ids = await organizationIds(store);
+  // A replica that lost the race can read the store after the winner
+  // claimed the slug and before it stored the row: it waits a moment for
+  // the row rather than boot a whole process without the fill.
+  for (
+    let attempt = 0;
+    outcome === "lost" && ids.length === 0 && attempt < LOST_RACE_READS;
+    attempt++
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, LOST_RACE_READ_MS));
+    ids = await organizationIds(store);
+  }
+  const [only, ...others] = ids;
   if (only !== undefined && only !== "" && others.length === 0) {
     // The server's organization, recorded from the store's own answer.
     if ((await store.bootstrapState.get(SINGLE_ORG_KEY)) !== only) {
@@ -124,6 +136,11 @@ export async function ensureSingleOrganization(
     return;
   }
   deps.holder.settle(undefined);
+  // The fill is off, so no organization is the server's: a record left by
+  // an earlier start must not keep the owner arms on one of several.
+  if ((await store.bootstrapState.get(SINGLE_ORG_KEY)) !== "") {
+    await store.bootstrapState.delete(SINGLE_ORG_KEY);
+  }
   if (others.length > 0) {
     logger.warn(
       "this server holds one organization, but its store holds several: requests must name their organization, and no organization can be added",
@@ -137,6 +154,16 @@ export async function ensureSingleOrganization(
       { slug: SINGLE_ORGANIZATION_SLUG },
     );
   }
+}
+
+/** How many times, and how far apart, a replica that lost the race re-reads the store for the winner's row: about a second in all. */
+const LOST_RACE_READS = 10;
+const LOST_RACE_READ_MS = 100;
+
+async function organizationIds(store: Store): Promise<string[]> {
+  return (await store.listResources(ApiResourceKind.organization)).map(
+    (bytes) => fromBinary(OrganizationSchema, bytes).metadata?.id ?? "",
+  );
 }
 
 /**
