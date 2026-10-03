@@ -315,7 +315,7 @@ describe("the three system RPCs (Q-OR-7, Q-S5-10)", () => {
       (h) =>
         h.command.bootstrapRevokeOrgAccess({
           identityAccountId: ALICE_ID,
-          organizationId: "acme",
+          org: "acme",
         }),
     ],
   ];
@@ -791,7 +791,7 @@ describe("the row reads", () => {
       (
         await refusal(() =>
           h.query.getPrincipalsCount({
-            orgId: "acme",
+            org: "acme",
             principalKind: "People",
           }),
         )
@@ -806,7 +806,7 @@ describe("the row reads", () => {
     await h.command.create(orgRole("ida_bob", "member", "acme"));
     h.authorizer.checks.length = 0;
     const count = await h.query.getPrincipalsCount({
-      orgId: "acme",
+      org: "acme",
       principalKind: "identity_account",
     });
     expect(count.count).toBe(2);
@@ -871,7 +871,7 @@ describe("the write lanes' order", () => {
     await h.command.create(orgRole(ALICE_ID, "member", "acme"));
     await h.command.revokeOrgAccess({
       identityAccountId: ALICE_ID,
-      organizationId: "acme",
+      org: "acme",
     });
     expect(h.authorizer.checks).toEqual([
       {
@@ -1027,7 +1027,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     expect(revoke.code).toBe(Code.PermissionDenied);
     expect(revoke.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
     const remove = await refusal(() =>
-      asAlice.command.revokeOrgAccess({ identityAccountId: "ida_rhea", organizationId: "acme" }),
+      asAlice.command.revokeOrgAccess({ identityAccountId: "ida_rhea", org: "acme" }),
     );
     expect(remove.code).toBe(Code.PermissionDenied);
     expect(remove.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
@@ -1041,14 +1041,14 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     await h.command.create(orgRole("ida_bob", "owner", "acme"));
     await h.command.delete(orgRole("ida_bob", "owner", "acme"));
     await h.command.create(orgRole("ida_bob", "owner", "acme"));
-    await h.command.revokeOrgAccess({ identityAccountId: "ida_bob", organizationId: "acme" });
+    await h.command.revokeOrgAccess({ identityAccountId: "ida_bob", org: "acme" });
     expect([...h.policies.rows.values()].map((row) => row.spec?.principal?.id)).toEqual(["ida_alice"]);
 
     const revoke = await refusal(() => h.command.delete(orgRole("ida_alice", "owner", "acme")));
     expect(revoke.code).toBe(Code.FailedPrecondition);
     expect(revoke.rawMessage).toBe(LAST_OWNER_MESSAGE);
     const remove = await refusal(() =>
-      h.command.revokeOrgAccess({ identityAccountId: "ida_alice", organizationId: "acme" }),
+      h.command.revokeOrgAccess({ identityAccountId: "ida_alice", org: "acme" }),
     );
     expect(remove.code).toBe(Code.FailedPrecondition);
     expect(remove.rawMessage).toBe(LAST_OWNER_MESSAGE);
@@ -1059,7 +1059,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     const h = await harness({ caller: machine });
     await acmeWith(h, [["ida_root", "owner"]]);
     h.authorizer.decision = adminOfAcme;
-    await h.command.bootstrapRevokeOrgAccess({ identityAccountId: "ida_root", organizationId: "acme" });
+    await h.command.bootstrapRevokeOrgAccess({ identityAccountId: "ida_root", org: "acme" });
     expect(h.policies.rows.size).toBe(0);
     expect(h.authorizer.checks.map((check) => check.permission)).not.toContain(IamPermission.can_assign_roles);
   });
@@ -1129,7 +1129,7 @@ describe("a wire kind string is refused BEFORE position 1 on every annotated lan
       "getPrincipalsCount",
       unknownPrincipalKindMessage("People"),
       (h) =>
-        h.query.getPrincipalsCount({ orgId: "acme", principalKind: "People" }),
+        h.query.getPrincipalsCount({ org: "acme", principalKind: "People" }),
     ],
   ];
 

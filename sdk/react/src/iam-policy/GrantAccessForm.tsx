@@ -45,7 +45,7 @@ export interface GrantAccessFormProps {
    * Organization whose people (and teams) can be granted access. Drives
    * the {@link PrincipalPicker} typeahead.
    */
-  readonly orgId: string;
+  readonly org: string;
   /**
    * Offer the organization's teams beside its people. Set it where the
    * resource can be shared with a team (`useShareFlow().canShareWithTeams`).
@@ -72,7 +72,7 @@ export interface GrantAccessFormProps {
  *   resourceKind={ApiResourceKind.agent}
  *   resourceKindString="agent"
  *   resourceId={agentId}
- *   orgId={orgId}
+ *   org={org}
  *   includeTeams={share.canShareWithTeams}
  *   onGranted={() => share.refetch()}
  *   onCancel={() => setShowForm(false)}
@@ -83,7 +83,7 @@ export function GrantAccessForm({
   resourceKind,
   resourceKindString,
   resourceId,
-  orgId,
+  org,
   includeTeams = false,
   excludeGrantees,
   onGranted,
@@ -150,7 +150,7 @@ export function GrantAccessForm({
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <div className="stg:space-y-3">
         <PrincipalPicker
-          orgId={orgId}
+          org={org}
           value={grantee}
           onChange={chooseGrantee}
           includeTeams={includeTeams}

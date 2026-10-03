@@ -124,7 +124,7 @@ describe("OrgMembersPanel and who is a member", () => {
       productUser("ida_pc_1", "Customer One"),
       member("ida_dave", "Dave", "member"),
     ];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     const people = within(screen.getByRole("list", { name: "Organization members" }));
     expect(people.getAllByRole("listitem").map((row) => row.textContent)).toEqual([
@@ -141,7 +141,7 @@ describe("OrgMembersPanel and who is a member", () => {
       productUser("ida_pc_1", "Customer One"),
       productUser("ida_pc_2", "Customer Two"),
     ];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     const toggle = screen.getByRole("button", { name: PRODUCT_GROUP });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
@@ -162,7 +162,7 @@ describe("OrgMembersPanel and who is a member", () => {
 
   it("says, before removing one of the product's users, that signing in again does not restore the access", () => {
     state.members = [member("ida_dave", "Dave", "member"), productUser("ida_pc_1", "Customer One")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     fireEvent.click(screen.getByRole("button", { name: PRODUCT_GROUP }));
     fireEvent.click(screen.getByRole("button", { name: "Remove Customer One" }));
@@ -176,7 +176,7 @@ describe("OrgMembersPanel and who is a member", () => {
 
   it("holds the owner rule in the product's group too", () => {
     state.members = [member("ida_dave", "Dave", "member"), productUser("ida_pc_owner", "Promoted", "owner")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     fireEvent.click(screen.getByRole("button", { name: PRODUCT_GROUP }));
     expect(screen.queryByRole("button", { name: "Remove Promoted" })).toBeNull();
@@ -185,12 +185,12 @@ describe("OrgMembersPanel and who is a member", () => {
 
   it("renders no group when no account came from the product, and says so when only such accounts hold a role", () => {
     state.members = [member("ida_dave", "Dave", "member")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
     expect(screen.queryByRole("button", { name: PRODUCT_GROUP })).toBeNull();
     cleanup();
 
     state.members = [productUser("ida_pc_1", "Customer One")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
     expect(screen.getByText("No members found.")).toBeTruthy();
     expect(membersBadge()).toBeNull();
     expect(screen.getByRole("button", { name: PRODUCT_GROUP })).toBeTruthy();
@@ -200,7 +200,7 @@ describe("OrgMembersPanel and who is a member", () => {
 describe("OrgMembersPanel and the owner role", () => {
   it("offers a caller who is no owner nothing on an owner's row, and no owner in the picker", () => {
     state.members = [member("ida_root", "Root", "owner"), member("ida_dave", "Dave", "member")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     expect(screen.queryByRole("button", { name: "Change role for Root" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Remove Root" })).toBeNull();
@@ -214,7 +214,7 @@ describe("OrgMembersPanel and the owner role", () => {
   it("offers an owner every control on every row, owner in the picker included", () => {
     state.canAssignOwner = true;
     state.members = [member("ida_root", "Root", "owner"), member("ida_dave", "Dave", "member")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     expect(screen.getByRole("button", { name: "Remove Root" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Change role for Dave" }));
@@ -224,7 +224,7 @@ describe("OrgMembersPanel and the owner role", () => {
   it("grants the new role before it revokes the old one", async () => {
     state.canAssignOwner = true;
     state.members = [member("ida_dave", "Dave", "member")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Change role for Dave" }));
     fireEvent.click(screen.getByRole("radio", { name: /^Admin/ }));
@@ -236,7 +236,7 @@ describe("OrgMembersPanel and the owner role", () => {
     state.canAssignOwner = true;
     state.createFails = true;
     state.members = [member("ida_dave", "Dave", "member")];
-    render(<OrgMembersPanel orgId="acme" />);
+    render(<OrgMembersPanel org="acme" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Change role for Dave" }));
     fireEvent.click(screen.getByRole("radio", { name: /^Owner/ }));

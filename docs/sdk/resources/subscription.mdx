@@ -13,7 +13,7 @@ subscription.
 Subscriptions are system-created: the payment system opens and moves them,
 and an organization's billing administrators change or cancel the plan through
 the command RPCs. You never author one as a manifest; the shape below is what
-`getForOrganization` returns.
+`getForOrg` returns.
 
 ```yaml
 apiVersion: billing.stigmer.ai/v1
@@ -34,7 +34,7 @@ status:
 | Method | Description |
 |--------|-------------|
 | [`getEntitlements`](#getentitlements) | Resolve what the organization is permitted right now. |
-| [`getForOrganization`](#getfororganization) | Get the organization's subscription. |
+| [`getForOrg`](#getfororg) | Get the organization's subscription. |
 | [`getPeriodEstimate`](#getperiodestimate) | Estimate what the organization's current period will be invoiced. |
 | [`cancel`](#cancel) | Cancel the organization's subscription. |
 | [`changePlan`](#changeplan) | Move the organization onto a plan. |
@@ -49,28 +49,28 @@ The answer is derived, never stored: the entitlements of the plan the organizati
 <Tab value="TypeScript">
 ```typescript
 const getEntitlementsOutput = await stigmer.subscription.getEntitlements({
-  orgId: "...",
+  org: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 getEntitlementsOutput, err := client.Subscription.GetEntitlements(ctx, &stigmer.GetEntitlementsInput{
-  OrgId: "...",
+  Org: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 get_entitlements_output = client.subscriptions.get_entitlements(GetEntitlementsInput(
-    org_id="...",
+    org="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 GetEntitlementsOutput getEntitlementsOutput = client.subscriptions().getEntitlements(GetEntitlementsInput.builder()
-    .orgId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -80,7 +80,7 @@ GetEntitlementsOutput getEntitlementsOutput = client.subscriptions().getEntitlem
 
 **Returns**: [`GetEntitlementsOutput`](#getentitlementsoutput)
 
-### getForOrganization
+### getForOrg
 
 Get the organization's subscription.
 
@@ -89,35 +89,35 @@ NOT_FOUND when the organization has none: it is on the Free plan, which is not a
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const subscription = await stigmer.subscription.getForOrganization({
-  orgId: "...",
+const subscription = await stigmer.subscription.getForOrg({
+  org: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-subscription, err := client.Subscription.GetForOrganization(ctx, &stigmer.GetSubscriptionForOrganizationInput{
-  OrgId: "...",
+subscription, err := client.Subscription.GetForOrg(ctx, &stigmer.GetSubscriptionForOrgInput{
+  Org: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-subscription = client.subscriptions.get_for_organization(GetSubscriptionForOrganizationInput(
-    org_id="...",
+subscription = client.subscriptions.get_for_org(GetSubscriptionForOrgInput(
+    org="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Subscription subscription = client.subscriptions().getForOrganization(GetSubscriptionForOrganizationInput.builder()
-    .orgId("...")
+Subscription subscription = client.subscriptions().getForOrg(GetSubscriptionForOrgInput.builder()
+    .org("...")
     .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`GetSubscriptionForOrganizationInput`](#getsubscriptionfororganizationinput)
+**Parameters**: [`GetSubscriptionForOrgInput`](#getsubscriptionfororginput)
 
 **Returns**: [`Subscription`](#subscription)
 
@@ -133,28 +133,28 @@ NOT_FOUND when the organization has no live subscription: it is on Free, or it i
 <Tab value="TypeScript">
 ```typescript
 const periodEstimate = await stigmer.subscription.getPeriodEstimate({
-  orgId: "...",
+  org: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 periodEstimate, err := client.Subscription.GetPeriodEstimate(ctx, &stigmer.GetPeriodEstimateInput{
-  OrgId: "...",
+  Org: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 period_estimate = client.subscriptions.get_period_estimate(GetPeriodEstimateInput(
-    org_id="...",
+    org="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 PeriodEstimate periodEstimate = client.subscriptions().getPeriodEstimate(GetPeriodEstimateInput.builder()
-    .orgId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -174,28 +174,28 @@ The organization keeps its plan to the end of the current period and is on Free 
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.cancel({
-  orgId: "...",
+  org: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 subscription, err := client.Subscription.Cancel(ctx, &stigmer.CancelSubscriptionInput{
-  OrgId: "...",
+  Org: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
 subscription = client.subscriptions.cancel(CancelSubscriptionInput(
-    org_id="...",
+    org="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
 Subscription subscription = client.subscriptions().cancel(CancelSubscriptionInput.builder()
-    .orgId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -213,13 +213,13 @@ Subscribes an organization that has no subscription, or changes the plan of one 
 
 Refusals a client should branch on carry a google.rpc.ErrorInfo detail (domain "stigmer.ai") on the standard grpc-status-details-bin trailer, alongside the human-readable FAILED_PRECONDITION message:
 
-- PAYMENT_METHOD_REQUIRED — the organization's billing account holds no saved payment method, which every period is collected from; BillingCommandController.createPaymentMethodSetupSession saves one. Metadata: org_id.
+- PAYMENT_METHOD_REQUIRED — the organization's billing account holds no saved payment method, which every period is collected from; BillingCommandController.createPaymentMethodSetupSession saves one. Metadata: org.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const subscription = await stigmer.subscription.changePlan({
-  orgId: "...",
+  org: "...",
   planId: "...",
 });
 ```
@@ -227,7 +227,7 @@ const subscription = await stigmer.subscription.changePlan({
 <Tab value="Go">
 ```go
 subscription, err := client.Subscription.ChangePlan(ctx, &stigmer.ChangePlanInput{
-  OrgId:  "...",
+  Org:    "...",
   PlanId: "...",
 })
 ```
@@ -235,7 +235,7 @@ subscription, err := client.Subscription.ChangePlan(ctx, &stigmer.ChangePlanInpu
 <Tab value="Python">
 ```python
 subscription = client.subscriptions.change_plan(ChangePlanInput(
-    org_id="...",
+    org="...",
     plan_id="...",
 ))
 ```
@@ -243,7 +243,7 @@ subscription = client.subscriptions.change_plan(ChangePlanInput(
 <Tab value="Java">
 ```java
 Subscription subscription = client.subscriptions().changePlan(ChangePlanInput.builder()
-    .orgId("...")
+    .org("...")
     .planId("...")
     .build());
 ```
@@ -276,7 +276,7 @@ ChangePlanInput moves an organization onto a plan.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "The organization's id.", required: true },
+    org: { type: "string", description: "The organization's id.", required: true },
     planId: { type: "string", description: "The id of the Plan to move onto.", required: true },
   }}
 />
@@ -287,17 +287,17 @@ CancelSubscriptionInput names the organization whose subscription is canceled.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "The organization's id.", required: true },
+    org: { type: "string", description: "The organization's id.", required: true },
   }}
 />
 
-### GetSubscriptionForOrganizationInput
+### GetSubscriptionForOrgInput
 
-GetSubscriptionForOrganizationInput names the organization whose subscription is read.
+GetSubscriptionForOrgInput names the organization whose subscription is read.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "The organization's id.", required: true },
+    org: { type: "string", description: "The organization's id.", required: true },
   }}
 />
 
@@ -307,7 +307,7 @@ GetEntitlementsInput names the organization whose entitlements are resolved.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "The organization's id.", required: true },
+    org: { type: "string", description: "The organization's id.", required: true },
   }}
 />
 
@@ -328,7 +328,7 @@ GetPeriodEstimateInput names the organization whose current period is estimated.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "The organization's id.", required: true },
+    org: { type: "string", description: "The organization's id.", required: true },
   }}
 />
 
@@ -394,8 +394,8 @@ A capability an entitlement can unlock.
 | Value | Description |
 |-------|-------------|
 | `sso_enforcement` | Enforcing sign-in through a registered identity provider, so members cannot use another login. |
-| `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every tenant, so a plan or license that lists it grants nothing more. |
-| `byo_provider_keys` | Bringing the tenant's own LLM provider keys instead of the platform's metered proxy credentials. |
+| `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every customer, so a plan or license that lists it grants nothing more. |
+| `byo_provider_keys` | Bringing the customer's own LLM provider keys instead of the platform's metered proxy credentials. |
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
 | `sharing` | Sharing an agent through hosted share links, with the sharing organization's members or with anyone who has the link. |
 | `teams` | Creating teams and adding members to them. |

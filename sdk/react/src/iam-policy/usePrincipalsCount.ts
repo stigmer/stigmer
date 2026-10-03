@@ -33,33 +33,33 @@ export interface UsePrincipalsCountReturn {
  * `isPlatformClientAccount` (from `@stigmer/sdk`) marks, as
  * `OrgMembersPanel` does.
  *
- * Pass `null` as `orgId` to skip fetching (stable no-op).
+ * Pass `null` as `org` to skip fetching (stable no-op).
  *
- * @param orgId         - Organization ID, or `null` to skip.
+ * @param org         - Organization ID, or `null` to skip.
  * @param principalKind - Kind of principals to count. Defaults to `"identity_account"`.
  *
  * @example
  * ```tsx
- * const { count, isLoading } = usePrincipalsCount(orgId);
+ * const { count, isLoading } = usePrincipalsCount(org);
  * // count = 5
  * ```
  */
 export function usePrincipalsCount(
-  orgId: string | null,
+  org: string | null,
   principalKind: string = "identity_account",
 ): UsePrincipalsCountReturn {
   const stigmer = useStigmer();
 
   const { data: count, isLoading, isRefetching, error, refetch } = useFetch(
-    orgId
+    org
       ? () =>
           stigmer.iamPolicy
             .getPrincipalsCount(
-              create(GetPrincipalsCountInputSchema, { orgId, principalKind }),
+              create(GetPrincipalsCountInputSchema, { org, principalKind }),
             )
             .then((r) => r.count)
       : null,
-    [orgId, principalKind, stigmer],
+    [org, principalKind, stigmer],
     0,
   );
 

@@ -163,7 +163,7 @@ export function ManageAccessDialog({
                   }}
                   resourceKindString={resource.kindString}
                   resourceKind={resource.kind}
-                  orgId={resource.org}
+                  org={resource.org}
                 />
               </AccessSection>
             )}

@@ -94,7 +94,7 @@ metadata:
 
 Every skill belongs to exactly one organization. The org is set at push time.
 
-The CLI resolves the organization through a priority chain: `--org` flag > `context.organization` in config > error. On first server start, a `default` organization is bootstrapped automatically.
+The CLI resolves the organization through a priority chain: `--org` flag > `context.org` in config > error. On first server start, a `default` organization is bootstrapped automatically.
 
 ## Spec Fields
 

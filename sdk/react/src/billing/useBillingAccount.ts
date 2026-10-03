@@ -41,13 +41,13 @@ export interface UseBillingAccountReturn {
  * the embedded `CreditBalance` with available, reserved,
  * promotional, and purchased breakdowns.
  *
- * Pass `null` as `orgId` to skip fetching (stable no-op).
+ * Pass `null` as `org` to skip fetching (stable no-op).
  *
- * @param orgId - Organization ID, or `null` to skip.
+ * @param org - Organization ID, or `null` to skip.
  *
  * @example
  * ```tsx
- * const { account, isLoading, error } = useBillingAccount(orgId);
+ * const { account, isLoading, error } = useBillingAccount(org);
  *
  * if (isLoading) return <Skeleton />;
  * if (error) return <ErrorMessage error={error} />;
@@ -57,17 +57,17 @@ export interface UseBillingAccountReturn {
  * ```
  */
 export function useBillingAccount(
-  orgId: string | null,
+  org: string | null,
   options?: UseBillingAccountOptions,
 ): UseBillingAccountReturn {
   const stigmer = useStigmer();
 
   const { data: account, isLoading, isRefetching, error, refetch } = useFetch(
-    orgId
+    org
       ? () =>
-          stigmer.billing.getOrCreateBillingAccount(orgId)
+          stigmer.billing.getOrCreateBillingAccount(org)
       : null,
-    [orgId, stigmer],
+    [org, stigmer],
     null as BillingAccount | null,
     { refetchOnWindowFocus: options?.refetchOnWindowFocus ?? false },
   );

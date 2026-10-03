@@ -19,13 +19,13 @@ additional RPC calls. Supports two formats:
 **Signature**
 
 ```tsx
-function useExportCSV(report: GetOrgUsageReportOutput | null, orgId: string): UseExportCSVReturn
+function useExportCSV(report: GetOrgUsageReportOutput | null, org: string): UseExportCSVReturn
 ```
 
 <TypeTable
   type={{
     report: { type: "GetOrgUsageReportOutput | null", description: "The org usage report data (from `useOrgUsageReport`).", required: true },
-    orgId: { type: "string", description: "Organization ID for the filename.", required: true },
+    org: { type: "string", description: "Organization ID for the filename.", required: true },
   }}
 />
 
@@ -47,18 +47,18 @@ Calls `stigmer.agentExecution.getOrgUsageReport` with the provided
 org ID and date range. The server returns aggregated totals, a
 per-model breakdown, the top agents by cost, and a daily cost trend.
 
-Pass `null` as `orgId` to skip fetching (stable no-op). Call
+Pass `null` as `org` to skip fetching (stable no-op). Call
 `refetch()` to re-query manually.
 
 **Signature**
 
 ```tsx
-function useOrgUsageReport(orgId: string | null, dateRange: DateRange): UseOrgUsageReportReturn
+function useOrgUsageReport(org: string | null, dateRange: DateRange): UseOrgUsageReportReturn
 ```
 
 <TypeTable
   type={{
-    orgId: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
+    org: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
     dateRange: { type: "DateRange", description: "Closed date range (YYYY-MM-DD strings).", required: true },
   }}
 />
@@ -77,7 +77,7 @@ function useOrgUsageReport(orgId: string | null, dateRange: DateRange): UseOrgUs
 
 ```tsx
 const range = dateRangeFromPreset("30d");
-const { report, isLoading, error } = useOrgUsageReport(orgId, range);
+const { report, isLoading, error } = useOrgUsageReport(org, range);
 
 if (isLoading) return <Skeleton />;
 if (error) return <ErrorMessage error={error} />;
@@ -185,12 +185,12 @@ Console dependencies — safe for platform builder embedding.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    orgId: { type: "string", description: "Organization ID (`metadata.id`) to fetch usage for.", required: true },
+    org: { type: "string", description: "Organization ID (`metadata.id`) to fetch usage for.", required: true },
   }}
 />
 
 ```tsx
-<OrgUsagePanel orgId={activeOrg.metadata.id} />
+<OrgUsagePanel org={activeOrg.metadata.id} />
 ```
 
 

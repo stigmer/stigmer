@@ -35,7 +35,7 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 /** Props for {@link OrgMembersPanel}. */
 export interface OrgMembersPanelProps {
   /** Organization ID (`metadata.id`) whose members to manage. */
-  readonly orgId: string;
+  readonly org: string;
   /** Exposed refetch for parent-triggered refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
   /** Additional CSS class names for the root container. */
@@ -72,11 +72,11 @@ export interface OrgMembersPanelProps {
  *
  * @example
  * ```tsx
- * <OrgMembersPanel orgId={activeOrg.metadata.id} />
+ * <OrgMembersPanel org={activeOrg.metadata.id} />
  * ```
  */
 export function OrgMembersPanel({
-  orgId,
+  org: orgId,
   onRefetchRef,
   className,
 }: OrgMembersPanelProps) {

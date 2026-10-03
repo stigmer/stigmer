@@ -32,8 +32,8 @@ export interface UseIdentityProviderListReturn {
  *
  * @example
  * ```tsx
- * function IdpSettings({ orgId }: { orgId: string }) {
- *   const { identityProviders, isLoading, error } = useIdentityProviderList(orgId);
+ * function IdpSettings({ org }: { org: string }) {
+ *   const { identityProviders, isLoading, error } = useIdentityProviderList(org);
  *
  *   if (isLoading) return <Skeleton />;
  *   if (error) return <ErrorMessage error={error} />;

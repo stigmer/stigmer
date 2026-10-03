@@ -69,7 +69,7 @@ function scenarAccount(overrides: Record<string, unknown> = {}) {
     displayName: "scenar team",
     adminApiKey: "***REDACTED***",
     enabled: true,
-    orgIds: ["org-a"],
+    orgs: ["org-a"],
     memberKeys: [
       create(CursorMemberKeySchema, {
         keyId: "k-1",
@@ -180,8 +180,8 @@ describe("CursorAccountsConsole", () => {
         displayName: "empty team",
         memberKeys: [],
         // No org assignment = shared-pool account (DD-008): the class is
-        // derived from org_ids, never from the deprecated default flag.
-        orgIds: [],
+        // derived from orgs, never from the deprecated default flag.
+        orgs: [],
       }),
       enabledKeyCount: 0,
     });
@@ -211,7 +211,7 @@ describe("CursorAccountsConsole", () => {
       account: scenarAccount({
         accountId: "acc-3",
         displayName: "drained team",
-        orgIds: [],
+        orgs: [],
       }),
       enabledKeyCount: 1,
       routableKeyCount: 0,
@@ -596,7 +596,7 @@ describe("CursorAccountsConsole", () => {
     const submitted = upsertAccount.mock.calls[0][0].account;
     expect(submitted.displayName).toBe("new team");
     expect(submitted.adminApiKey).toBe("key_admin_plain");
-    expect(submitted.orgIds).toEqual(["org-x", "org-y"]);
+    expect(submitted.orgs).toEqual(["org-x", "org-y"]);
     // Readable round-trip: the invite link submits as typed, no marker.
     expect(submitted.teamInviteLink).toBe("https://cursor.com/team-invite/abc");
     expect(submitted.enabled).toBe(true);
@@ -604,7 +604,7 @@ describe("CursorAccountsConsole", () => {
     // negates into the proto field.
     expect(submitted.onDemandUsageDisabled).toBe(false);
     // The deprecated default flag is never written by current clients —
-    // the shared pool is derived from empty org_ids (DD-008).
+    // the shared pool is derived from empty orgs.
     expect(submitted.isPlatformDefault).toBe(false);
   });
 

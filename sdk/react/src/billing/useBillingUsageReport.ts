@@ -26,16 +26,16 @@ export interface UseBillingUsageReportReturn {
  * Returns total provider cost, total billable amount, execution and LLM
  * call counts, and a per-model breakdown with cost tier attribution.
  *
- * Pass `null` as `orgId` to skip fetching (stable no-op).
+ * Pass `null` as `org` to skip fetching (stable no-op).
  *
- * @param orgId - Organization ID, or `null` to skip.
+ * @param org - Organization ID, or `null` to skip.
  * @param startTime - Start of the reporting period.
  * @param endTime - End of the reporting period.
  *
  * @example
  * ```tsx
  * const { report, isLoading } = useBillingUsageReport(
- *   orgId,
+ *   org,
  *   new Date("2026-05-01"),
  *   new Date("2026-05-31"),
  * );
@@ -47,7 +47,7 @@ export interface UseBillingUsageReportReturn {
  * ```
  */
 export function useBillingUsageReport(
-  orgId: string | null,
+  org: string | null,
   startTime: Date,
   endTime: Date,
 ): UseBillingUsageReportReturn {
@@ -57,15 +57,15 @@ export function useBillingUsageReport(
   const endKey = endTime.toISOString();
 
   const { data: report, isLoading, isRefetching, error, refetch } = useFetch(
-    orgId
+    org
       ? () =>
           stigmer.billing.getBillingUsageReport({
-            orgId,
+            org,
             startTime,
             endTime,
           })
       : null,
-    [orgId, startKey, endKey, stigmer],
+    [org, startKey, endKey, stigmer],
     null as BillingUsageReportResponse | null,
   );
 

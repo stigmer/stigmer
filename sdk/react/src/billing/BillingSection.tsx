@@ -107,7 +107,7 @@ export function BillingSection({
         </p>
       ) : (
         <BillingContent
-          orgId={orgId}
+          org={orgId}
           managed={managed}
           checkoutSuccess={checkoutSuccess}
           onDismissCheckoutSuccess={onDismissCheckoutSuccess}
@@ -125,7 +125,7 @@ export function BillingSection({
 // ---------------------------------------------------------------------------
 
 function BillingContent({
-  orgId,
+  org: orgId,
   managed,
   checkoutSuccess,
   onDismissCheckoutSuccess,
@@ -133,7 +133,7 @@ function BillingContent({
   onResumeHandled,
   redirect,
 }: {
-  orgId: string;
+  org: string;
   managed: boolean;
   checkoutSuccess?: boolean;
   onDismissCheckoutSuccess?: () => void;
@@ -158,7 +158,7 @@ function BillingContent({
       const billingPath = billingReturnUrl({ returnUrl });
 
       createSession({
-        orgId,
+        org: orgId,
         packId,
         successUrl: `${billingPath}?checkout=success`,
         cancelUrl: billingPath,
@@ -216,7 +216,7 @@ function BillingContent({
       />
 
       <PlanSection
-        orgId={orgId}
+        org={orgId}
         managed={managed}
         hasPaymentMethod={hasPaymentMethod}
         onRefreshAccount={refetch}
@@ -244,7 +244,7 @@ function BillingContent({
       )}
 
       <AutoRechargeCard
-        orgId={orgId}
+        org={orgId}
         autoRecharge={account.autoRecharge}
         hasPaymentMethod={hasPaymentMethod}
         accountStatus={account.status}
@@ -263,7 +263,7 @@ function BillingContent({
         </p>
       )}
 
-      <CreditLedgerTable orgId={orgId} />
+      <CreditLedgerTable org={orgId} />
     </div>
   );
 }

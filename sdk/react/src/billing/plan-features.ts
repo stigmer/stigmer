@@ -139,7 +139,7 @@ export function formatManagedOrganizations(
     return "";
   }
   const included = entitlements?.limits?.includedManagedOrganizations;
-  const fee = terms?.perExtraOrganizationMicros ?? ZERO;
+  const fee = terms?.perExtraOrgMicros ?? ZERO;
   if (included === undefined) {
     return "Unlimited managed organizations";
   }

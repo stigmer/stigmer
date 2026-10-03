@@ -31,7 +31,7 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 /** Props for {@link OrgUsagePanel}. */
 export interface OrgUsagePanelProps {
   /** Organization ID (`metadata.id`) to fetch usage for. */
-  readonly orgId: string;
+  readonly org: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -48,14 +48,14 @@ export interface OrgUsagePanelProps {
  *
  * @example
  * ```tsx
- * <OrgUsagePanel orgId={activeOrg.metadata.id} />
+ * <OrgUsagePanel org={activeOrg.metadata.id} />
  * ```
  */
-export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
+export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
   const [preset, setPreset] = useState<DateRangePreset>("30d");
   const dateRange = dateRangeFromPreset(preset);
-  const { report, isLoading, error } = useOrgUsageReport(orgId, dateRange);
-  const { exportCSV, isExporting } = useExportCSV(report, orgId);
+  const { report, isLoading, error } = useOrgUsageReport(org, dateRange);
+  const { exportCSV, isExporting } = useExportCSV(report, org);
   const daysInRange = Number.parseInt(preset, 10);
 
   if (isLoading) {

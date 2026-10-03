@@ -19,35 +19,35 @@ public final class SubscriptionQueryControllerGrpc {
   public static final java.lang.String SERVICE_NAME = "ai.stigmer.billing.subscription.v1.SubscriptionQueryController";
 
   // Static method descriptors that strictly reflect the proto.
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput,
-      ai.stigmer.billing.subscription.v1.Subscription> getGetForOrganizationMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput,
+      ai.stigmer.billing.subscription.v1.Subscription> getGetForOrgMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getForOrganization",
-      requestType = ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "getForOrg",
+      requestType = ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.class,
       responseType = ai.stigmer.billing.subscription.v1.Subscription.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput,
-      ai.stigmer.billing.subscription.v1.Subscription> getGetForOrganizationMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput, ai.stigmer.billing.subscription.v1.Subscription> getGetForOrganizationMethod;
-    if ((getGetForOrganizationMethod = SubscriptionQueryControllerGrpc.getGetForOrganizationMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput,
+      ai.stigmer.billing.subscription.v1.Subscription> getGetForOrgMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput, ai.stigmer.billing.subscription.v1.Subscription> getGetForOrgMethod;
+    if ((getGetForOrgMethod = SubscriptionQueryControllerGrpc.getGetForOrgMethod) == null) {
       synchronized (SubscriptionQueryControllerGrpc.class) {
-        if ((getGetForOrganizationMethod = SubscriptionQueryControllerGrpc.getGetForOrganizationMethod) == null) {
-          SubscriptionQueryControllerGrpc.getGetForOrganizationMethod = getGetForOrganizationMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput, ai.stigmer.billing.subscription.v1.Subscription>newBuilder()
+        if ((getGetForOrgMethod = SubscriptionQueryControllerGrpc.getGetForOrgMethod) == null) {
+          SubscriptionQueryControllerGrpc.getGetForOrgMethod = getGetForOrgMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput, ai.stigmer.billing.subscription.v1.Subscription>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getForOrganization"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getForOrg"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput.getDefaultInstance()))
+                  ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.billing.subscription.v1.Subscription.getDefaultInstance()))
-              .setSchemaDescriptor(new SubscriptionQueryControllerMethodDescriptorSupplier("getForOrganization"))
+              .setSchemaDescriptor(new SubscriptionQueryControllerMethodDescriptorSupplier("getForOrg"))
               .build();
         }
       }
     }
-    return getGetForOrganizationMethod;
+    return getGetForOrgMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.subscription.v1.GetEntitlementsInput,
@@ -190,9 +190,9 @@ public final class SubscriptionQueryControllerGrpc {
      * should call getEntitlements, which answers for every organization.
      * </pre>
      */
-    default void getForOrganization(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput request,
+    default void getForOrg(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.Subscription> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetForOrganizationMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetForOrgMethod(), responseObserver);
     }
 
     /**
@@ -282,10 +282,10 @@ public final class SubscriptionQueryControllerGrpc {
      * should call getEntitlements, which answers for every organization.
      * </pre>
      */
-    public void getForOrganization(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput request,
+    public void getForOrg(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.Subscription> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetForOrganizationMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getGetForOrgMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -359,9 +359,9 @@ public final class SubscriptionQueryControllerGrpc {
      * should call getEntitlements, which answers for every organization.
      * </pre>
      */
-    public ai.stigmer.billing.subscription.v1.Subscription getForOrganization(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput request) throws io.grpc.StatusException {
+    public ai.stigmer.billing.subscription.v1.Subscription getForOrg(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetForOrganizationMethod(), getCallOptions(), request);
+          getChannel(), getGetForOrgMethod(), getCallOptions(), request);
     }
 
     /**
@@ -433,9 +433,9 @@ public final class SubscriptionQueryControllerGrpc {
      * should call getEntitlements, which answers for every organization.
      * </pre>
      */
-    public ai.stigmer.billing.subscription.v1.Subscription getForOrganization(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput request) {
+    public ai.stigmer.billing.subscription.v1.Subscription getForOrg(ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetForOrganizationMethod(), getCallOptions(), request);
+          getChannel(), getGetForOrgMethod(), getCallOptions(), request);
     }
 
     /**
@@ -507,10 +507,10 @@ public final class SubscriptionQueryControllerGrpc {
      * should call getEntitlements, which answers for every organization.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.subscription.v1.Subscription> getForOrganization(
-        ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.subscription.v1.Subscription> getForOrg(
+        ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetForOrganizationMethod(), getCallOptions()), request);
+          getChannel().newCall(getGetForOrgMethod(), getCallOptions()), request);
     }
 
     /**
@@ -553,7 +553,7 @@ public final class SubscriptionQueryControllerGrpc {
     }
   }
 
-  private static final int METHODID_GET_FOR_ORGANIZATION = 0;
+  private static final int METHODID_GET_FOR_ORG = 0;
   private static final int METHODID_GET_ENTITLEMENTS = 1;
   private static final int METHODID_GET_PERIOD_ESTIMATE = 2;
 
@@ -574,8 +574,8 @@ public final class SubscriptionQueryControllerGrpc {
     @java.lang.SuppressWarnings("unchecked")
     public void invoke(Req request, io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
-        case METHODID_GET_FOR_ORGANIZATION:
-          serviceImpl.getForOrganization((ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput) request,
+        case METHODID_GET_FOR_ORG:
+          serviceImpl.getForOrg((ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.subscription.v1.Subscription>) responseObserver);
           break;
         case METHODID_GET_ENTITLEMENTS:
@@ -605,12 +605,12 @@ public final class SubscriptionQueryControllerGrpc {
   public static final io.grpc.ServerServiceDefinition bindService(AsyncService service) {
     return io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())
         .addMethod(
-          getGetForOrganizationMethod(),
+          getGetForOrgMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.billing.subscription.v1.GetSubscriptionForOrganizationInput,
+              ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput,
               ai.stigmer.billing.subscription.v1.Subscription>(
-                service, METHODID_GET_FOR_ORGANIZATION)))
+                service, METHODID_GET_FOR_ORG)))
         .addMethod(
           getGetEntitlementsMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -673,7 +673,7 @@ public final class SubscriptionQueryControllerGrpc {
         if (result == null) {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new SubscriptionQueryControllerFileDescriptorSupplier())
-              .addMethod(getGetForOrganizationMethod())
+              .addMethod(getGetForOrgMethod())
               .addMethod(getGetEntitlementsMethod())
               .addMethod(getGetPeriodEstimateMethod())
               .build();

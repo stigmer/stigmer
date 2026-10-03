@@ -65,7 +65,7 @@ export interface LicenseDraft {
   /** `undefined` means unlimited, as the contract reads an absent limit. */
   readonly maxUsers: number | undefined;
   /** `undefined` means unlimited, as the contract reads an absent limit. */
-  readonly maxOrganizations: number | undefined;
+  readonly maxOrgs: number | undefined;
   readonly features: readonly GrantableFeature[];
   /** Operator notes; never signed, never shown to the customer. */
   readonly notes: string;
@@ -148,9 +148,9 @@ export function toLicenseInput(draft: LicenseDraft): LicenseInput {
   const graceUntil = new Date(expiresAt.getTime() + draft.graceDays * DAY_MS);
   const limits: EntitlementLimitsInput = {
     ...(draft.maxUsers !== undefined && { maxUsers: draft.maxUsers }),
-    ...(draft.maxOrganizations !== undefined && { maxOrganizations: draft.maxOrganizations }),
+    ...(draft.maxOrgs !== undefined && { maxOrgs: draft.maxOrgs }),
   };
-  const organization = draft.customer.organization?.trim();
+  const organization = draft.customer.org?.trim();
   const notes = draft.notes.trim();
 
   return {
@@ -162,7 +162,7 @@ export function toLicenseInput(draft: LicenseDraft): LicenseInput {
       id: draft.customer.id,
       displayName: collapse(draft.customer.displayName),
       contactEmail: draft.customer.contactEmail.trim(),
-      ...(organization ? { organization } : {}),
+      ...(organization ? { org: organization } : {}),
     },
     entitlements: {
       ...(Object.keys(limits).length > 0 && { limits }),

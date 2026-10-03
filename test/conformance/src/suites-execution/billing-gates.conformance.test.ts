@@ -82,7 +82,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
   }
 
   async function balance(org: string) {
-    return clients.billingQuery.getCreditBalance({ orgId: org });
+    return clients.billingQuery.getCreditBalance({ org });
   }
 
   // Drives the org's available balance BELOW the point where the gates flip,
@@ -95,12 +95,12 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
   // `beyondMicros` is what to drain past -allowedNegative: the held
   // reservation plus one for the STOP arm, one for the re-arm arm.
   async function drainPast(org: string, beyondMicros: bigint): Promise<void> {
-    const account = await clients.billingQuery.getBillingAccount({ orgId: org });
+    const account = await clients.billingQuery.getBillingAccount({ org });
     const available = account.balance?.availableMicros ?? 0n;
     const allowedNegative = account.allowedNegativeBalanceMicros;
     const amount = -(available + allowedNegative + beyondMicros);
     await creditIssuer().billingCommand.adjustCredits({
-      orgId: org,
+      org,
       amountMicros: amount,
       reason: "conformance drain past the gate threshold",
       idempotencyKey: uniqueName("drain"),
@@ -113,7 +113,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
   // .idempotency-key-replays-once), so a refund must be its own adjustment.
   async function refund(org: string): Promise<void> {
     await creditIssuer().billingCommand.adjustCredits({
-      orgId: org,
+      org,
       amountMicros: 200_000_000n,
       reason: "conformance refund after drain",
       idempotencyKey: uniqueName("refund"),

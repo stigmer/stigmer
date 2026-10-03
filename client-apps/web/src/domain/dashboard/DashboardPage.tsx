@@ -14,7 +14,6 @@ import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 export function DashboardPage() {
   const { activeOrg } = useOrg();
   const org = activeOrg?.metadata?.slug ?? "";
-  const orgId = activeOrg?.metadata?.id;
   const { navigateToExecution } = useExecutionNavigation();
 
   const { summary: workflowSummary, isLoading: workflowSummaryLoading } =
@@ -45,7 +44,6 @@ export function DashboardPage() {
 
       <OperationalDashboard
         org={org}
-        orgId={orgId}
         onApprovalClick={handleApprovalClick}
         onFailedRunClick={handleFailedRunClick}
         className="mb-8"

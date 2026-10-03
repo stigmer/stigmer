@@ -100,7 +100,7 @@ public interface CursorAccountOrBuilder extends
   /**
    * <pre>
    * Deprecated: superseded by the derived shared pool (DD-008). Every
-   * enabled account with empty org_ids now serves unassigned orgs; a
+   * enabled account with empty orgs now serves unassigned orgs; a
    * single "default" marker is meaningless under that rule, so selection
    * and the console ignore this field. Kept on the wire for old clients;
    * never written by current ones.
@@ -121,11 +121,11 @@ public interface CursorAccountOrBuilder extends
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-   * @return A list containing the orgIds.
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the orgs.
    */
   java.util.List<java.lang.String>
-      getOrgIdsList();
+      getOrgsList();
   /**
    * <pre>
    * Stigmer organization ids this account is DEDICATED to. An org may
@@ -134,10 +134,10 @@ public interface CursorAccountOrBuilder extends
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
-   * @return The count of orgIds.
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
+   * @return The count of orgs.
    */
-  int getOrgIdsCount();
+  int getOrgsCount();
   /**
    * <pre>
    * Stigmer organization ids this account is DEDICATED to. An org may
@@ -146,11 +146,11 @@ public interface CursorAccountOrBuilder extends
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
    * @param index The index of the element to return.
-   * @return The orgIds at the given index.
+   * @return The orgs at the given index.
    */
-  java.lang.String getOrgIds(int index);
+  java.lang.String getOrgs(int index);
   /**
    * <pre>
    * Stigmer organization ids this account is DEDICATED to. An org may
@@ -159,12 +159,12 @@ public interface CursorAccountOrBuilder extends
    * the message doc for the two account classes).
    * </pre>
    *
-   * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
+   * <code>repeated string orgs = 6 [json_name = "orgs", (.buf.validate.field) = { ... }</code>
    * @param index The index of the value to return.
-   * @return The bytes of the orgIds at the given index.
+   * @return The bytes of the orgs at the given index.
    */
   com.google.protobuf.ByteString
-      getOrgIdsBytes(int index);
+      getOrgsBytes(int index);
 
   /**
    * <pre>

@@ -254,8 +254,8 @@ async function runWorkflow(
     envFiles: options.envFile,
     secretFiles: options.secretFile,
   });
-  if (runtimeEnv.STIGMER_ORG_ID === undefined && org !== "") {
-    runtimeEnv.STIGMER_ORG_ID = { value: org, isSecret: false };
+  if (runtimeEnv.STIGMER_ORG === undefined && org !== "") {
+    runtimeEnv.STIGMER_ORG = { value: org, isSecret: false };
   }
 
   const execution = await createWorkflowExecution(

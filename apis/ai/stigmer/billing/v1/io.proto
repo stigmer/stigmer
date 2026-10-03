@@ -19,13 +19,13 @@ import "google/protobuf/timestamp.proto";
 // GetOrCreateBillingAccountInput initiates billing for an organization.
 // Idempotent: returns the existing account if one already exists.
 message GetOrCreateBillingAccountInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 }
 
 // AdjustCreditsInput adds or removes an organization's credits by hand: a
 // platform operator's correction, or a credit issuer's funding.
 message AdjustCreditsInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // Positive to add credits, negative to remove.
   int64 amount_micros = 2;
@@ -45,7 +45,7 @@ message AdjustCreditsInput {
 // burn order), and whatever remains unconsumed at expiry is removed from the
 // balance with an expiry_debit ledger entry.
 message GrantCreditsInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // Amount to grant. Must be positive; grants never remove credits.
   int64 amount_micros = 2 [(buf.validate.field).int64.gt = 0];
@@ -68,7 +68,7 @@ message GrantCreditsInput {
 
 // AuthorizeExecutionInput requests a credit reservation before execution starts.
 message AuthorizeExecutionInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
   string execution_id = 2 [(buf.validate.field).required = true];
 
   // Execution harness ("native" or "cursor").
@@ -290,7 +290,7 @@ message RearmForRecoveryInput {
 // the client to redirect the user. The caller's email is resolved from
 // their identity account for Stripe Customer creation.
 message CreateCreditCheckoutSessionInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // Credit pack to purchase (e.g., "starter", "growth", "team").
   string pack_id = 2 [(buf.validate.field).required = true];
@@ -322,7 +322,7 @@ message CreateCreditCheckoutSessionResponse {
 // without leaving the Stigmer billing flow. The return_url controls where
 // Stripe redirects after the user finishes.
 message CreateBillingPortalSessionInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // URL to redirect to after the user exits the Stripe Customer Portal.
   string return_url = 2 [(buf.validate.field).required = true];
@@ -340,7 +340,7 @@ message CreateBillingPortalSessionResponse {
 // The caller's email is resolved from their identity account for Stripe
 // Customer creation, as for a credit checkout.
 message CreatePaymentMethodSetupSessionInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // URL to redirect to after the payment method is saved.
   string success_url = 2 [(buf.validate.field).required = true];
@@ -369,7 +369,7 @@ message CreatePaymentMethodSetupSessionResponse {
 // Enabling requires an active account with a saved payment method.
 // Disabling preserves the configuration for easy re-enablement.
 message SetAutoRechargeConfigInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // Whether to enable auto-recharge.
   bool enabled = 2;
@@ -390,17 +390,17 @@ message SetAutoRechargeConfigInput {
 
 // GetBillingAccountInput retrieves the billing account for an organization.
 message GetBillingAccountInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 }
 
 // GetCreditBalanceInput retrieves just the balance breakdown.
 message GetCreditBalanceInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 }
 
 // GetCreditLedgerInput retrieves paginated ledger entries with optional filters.
 message GetCreditLedgerInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // Pagination parameters.
   ai.stigmer.commons.rpc.PageInfo page = 2;
@@ -432,7 +432,7 @@ message CreditLedgerResponse {
 
 // GetBillingUsageReportInput requests an aggregated billing usage report.
 message GetBillingUsageReportInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // Start of the reporting period.
   google.protobuf.Timestamp start_time = 2 [(buf.validate.field).required = true];
@@ -473,7 +473,7 @@ message ModelBillingBreakdown {
 message GetCustomerModelPricingInput {
   // Organization ID. Used to resolve org-specific policy overrides.
   // When empty, returns default pricing.
-  string org_id = 1;
+  string org = 1;
 }
 
 // CustomerModelPricingResponse returns the customer-visible price for each model.
@@ -636,7 +636,7 @@ message CustomerModelPricingEntry {
 // PreviewAuthorizationInput asks whether an organization could fund an
 // execution right now, without writing a reservation.
 message PreviewAuthorizationInput {
-  string org_id = 1 [(buf.validate.field).required = true];
+  string org = 1 [(buf.validate.field).required = true];
 
   // Expected maximum cost. 0 means use the server-configured default cap,
   // exactly as authorizeExecution treats it.

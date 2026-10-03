@@ -60,7 +60,7 @@ function formatExpiry(month: number, year: number): string {
  * <PaymentMethodCard
  *   paymentMethod={account.defaultPaymentMethod}
  *   accountStatus={account.status}
- *   onManage={() => openPortal(orgId)}
+ *   onManage={() => openPortal(org)}
  * />
  * ```
  */

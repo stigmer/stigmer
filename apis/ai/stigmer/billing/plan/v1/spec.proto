@@ -15,7 +15,7 @@ import "buf/validate/validate.proto";
 // The instrument decides which terms a plan may carry, and the two rules
 // below refuse the cross: a license plan is invoiced for a term, so monthly
 // terms have no meaning on it; a subscription plan bills monthly, so an
-// annual price has none. per_extra_organization_micros is bound to the
+// annual price has none. per_extra_org_micros is bound to the
 // entitlements' managed organizations, not to the instrument, and stays free.
 //
 // @internal
@@ -95,7 +95,7 @@ message PlanTerms {
   // What a subscription plan bills per month for each platform-managed
   // organization beyond the ones its entitlements include, in micro-USD.
   // Absent when the plan includes no managed organizations.
-  optional int64 per_extra_organization_micros = 3 [(buf.validate.field).int64.gte = 0];
+  optional int64 per_extra_org_micros = 3 [(buf.validate.field).int64.gte = 0];
 
   // What a license plan invoices for a one-year term, in micro-USD. Absent on
   // a subscription plan.

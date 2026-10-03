@@ -11,16 +11,16 @@ public interface AdjustCreditsInputOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The orgId.
+   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
-   * <code>string org_id = 1 [json_name = "orgId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for orgId.
+   * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 
   /**
    * <pre>

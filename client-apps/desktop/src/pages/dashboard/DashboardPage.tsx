@@ -12,7 +12,6 @@ import {
 export default function DashboardPage() {
   const { activeOrg } = useOrg();
   const org = activeOrg?.metadata?.slug ?? "";
-  const orgId = activeOrg?.metadata?.id;
   const navigate = useNavigate();
 
   const { summary: workflowSummary, isLoading: workflowSummaryLoading } =
@@ -43,7 +42,6 @@ export default function DashboardPage() {
 
       <OperationalDashboard
         org={org}
-        orgId={orgId}
         onApprovalClick={handleApprovalClick}
         onFailedRunClick={handleFailedRunClick}
         className="mb-8"

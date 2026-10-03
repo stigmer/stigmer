@@ -91,7 +91,6 @@ class IdentityProviderInput:
     jwks_uri: str = ""
     allowed_issuers: list[str] = field(default_factory=list)
     expected_audience: str = ""
-    rate_limit_budget: int = 0
     userinfo_endpoint: str = ""
     is_sso_provider: bool = False
     oidc_client_id: str = ""
@@ -105,7 +104,6 @@ class IdentityProviderInput:
             display_name=self.display_name,
             jwks_uri=self.jwks_uri,
             expected_audience=self.expected_audience,
-            rate_limit_budget=self.rate_limit_budget,
             userinfo_endpoint=self.userinfo_endpoint,
             is_sso_provider=self.is_sso_provider,
             oidc_client_id=self.oidc_client_id,

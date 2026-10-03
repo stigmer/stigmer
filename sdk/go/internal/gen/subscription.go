@@ -33,8 +33,8 @@ func (s *SubscriptionClient) Cancel(ctx context.Context, input *subscriptionv1.C
 	return resp, wrapErr(err)
 }
 
-func (s *SubscriptionClient) GetForOrganization(ctx context.Context, input *subscriptionv1.GetSubscriptionForOrganizationInput) (*subscriptionv1.Subscription, error) {
-	resp, err := s.query.GetForOrganization(ctx, input)
+func (s *SubscriptionClient) GetForOrg(ctx context.Context, input *subscriptionv1.GetSubscriptionForOrgInput) (*subscriptionv1.Subscription, error) {
+	resp, err := s.query.GetForOrg(ctx, input)
 	return resp, wrapErr(err)
 }
 

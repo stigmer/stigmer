@@ -275,7 +275,7 @@ describe("IamPolicy conformance — the creator owns the organization", () => {
 
     // handlers.ts L331-348: distinct principals holding an assignable role.
     const count = await clients.iamPolicyQuery.getPrincipalsCount({
-      orgId: org,
+      org,
       principalKind: "identity_account",
     });
     expect(count.count).toBe(1);
@@ -299,7 +299,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     expect(first.spec).toEqual(spec);
     expect(await rolesOf(member, org)).toEqual(["member"]);
     const count = await clients.iamPolicyQuery.getPrincipalsCount({
-      orgId: org,
+      org,
       principalKind: "identity_account",
     });
     expect(count.count, "the creator and the member").toBe(2);
@@ -371,7 +371,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     // handlers.ts L164-179 → service.revokeOrgAccess.
     await clients.iamPolicyCommand.revokeOrgAccess({
       identityAccountId: person,
-      organizationId: org,
+      org,
     });
 
     expect(await rolesOf(person, org)).toEqual([]);
@@ -499,7 +499,7 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user (Q-
       (org: string) =>
         clients.iamPolicyCommand.bootstrapRevokeOrgAccess({
           identityAccountId: syntheticAccountId(),
-          organizationId: org,
+          org,
         }),
       BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
     ],
@@ -726,7 +726,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       "[rpc:IamPolicyQueryController.getPrincipalsCount] getPrincipalsCount",
       (org: string) =>
         clients.iamPolicyQuery.getPrincipalsCount({
-          orgId: org,
+          org,
           principalKind: GARBAGE_PRINCIPAL_KIND,
         }),
       unknownPrincipalKindMessage(GARBAGE_PRINCIPAL_KIND),
@@ -761,21 +761,21 @@ describe("IamPolicy conformance — revokeOrgAccess is idempotent", () => {
     // not an error — a Members page that retries a removal must not fail.
     await clients.iamPolicyCommand.revokeOrgAccess({
       identityAccountId: person,
-      organizationId: org,
+      org,
     });
     await clients.iamPolicyCommand.revokeOrgAccess({
       identityAccountId: person,
-      organizationId: org,
+      org,
     });
     await clients.iamPolicyCommand.revokeOrgAccess({
       identityAccountId: syntheticAccountId(),
-      organizationId: org,
+      org,
     });
 
     expect(await rolesOf(person, org)).toEqual([]);
     expect(await rolesOf(bystander, org)).toEqual(["member"]);
     const count = await clients.iamPolicyQuery.getPrincipalsCount({
-      orgId: org,
+      org,
       principalKind: "identity_account",
     });
     expect(count.count, "the creator and the bystander").toBe(2);
@@ -1110,7 +1110,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
       (using, org) =>
         using.iamPolicyCommand.revokeOrgAccess({
           identityAccountId: syntheticAccountId(),
-          organizationId: org,
+          org,
         }),
       REVOKE_ORG_ACCESS_DENIED_MESSAGE,
     ],
@@ -1145,7 +1145,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
       "[rpc:IamPolicyQueryController.getPrincipalsCount] getPrincipalsCount",
       (using, org) =>
         using.iamPolicyQuery.getPrincipalsCount({
-          orgId: org,
+          org,
           principalKind: "identity_account",
         }),
       VIEW_PRINCIPALS_COUNT_DENIED_MESSAGE,
@@ -1344,7 +1344,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
         () =>
           admin.clients.iamPolicyCommand.revokeOrgAccess({
             identityAccountId: founderId,
-            organizationId: org,
+            org,
           }),
         Code.PermissionDenied,
         "an admin removing the owner",
@@ -1373,7 +1373,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
       );
       await lane.clients.iamPolicyCommand.revokeOrgAccess({
         identityAccountId: second.id,
-        organizationId: org,
+        org,
       });
       expect(await rolesOf(second.id, org, lane.clients)).toEqual([]);
 
@@ -1390,7 +1390,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
         () =>
           lane.clients.iamPolicyCommand.revokeOrgAccess({
             identityAccountId: founderId,
-            organizationId: org,
+            org,
           }),
         Code.FailedPrecondition,
         "the last owner removing itself",
@@ -1550,7 +1550,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
 
     await founder.asPerson.iamPolicyCommand.revokeOrgAccess({
       identityAccountId: memberId,
-      organizationId: org,
+      org,
     });
     const again = await member.provision();
 

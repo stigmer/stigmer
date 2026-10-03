@@ -60,7 +60,7 @@ export interface MintUserTokenInput {
    * Organization to scope the token to. When empty, defaults to the
    * PlatformClient's owning organization.
    */
-  readonly orgId?: string;
+  readonly org?: string;
 }
 
 /**
@@ -151,7 +151,7 @@ export class PlatformClientAuth {
           userId: input.userId,
           userEmail: input.userEmail ?? "",
           userName: input.userName ?? "",
-          orgId: input.orgId ?? "",
+          org: input.org ?? "",
         }),
       );
 

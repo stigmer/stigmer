@@ -100,14 +100,14 @@ class PlanTermsInput:
 
     monthly_minimum_micros: int = 0
     usage_share_basis_points: int = 0
-    per_extra_organization_micros: int = 0
+    per_extra_org_micros: int = 0
     annual_price_micros: int = 0
 
     def _to_proto(self) -> spec_pb2.PlanTerms:
         msg = spec_pb2.PlanTerms(
             monthly_minimum_micros=self.monthly_minimum_micros,
             usage_share_basis_points=self.usage_share_basis_points,
-            per_extra_organization_micros=self.per_extra_organization_micros,
+            per_extra_org_micros=self.per_extra_org_micros,
             annual_price_micros=self.annual_price_micros,
         )
         return msg

@@ -120,7 +120,7 @@ AgentExecution agentExecution = client.agentExecutions().get(id);
 
 Get a usage report for an agent within an organization.
 
-Returns aggregated tokens, cost, and per-session breakdown for one organization's executions of the agent. Requires can_view on the organization named in org_id; executions outside that organization are never included, so the report is the per-agent drill-down of getOrgUsageReport.
+Returns aggregated tokens, cost, and per-session breakdown for one organization's executions of the agent. Requires can_view on the organization named in org; executions outside that organization are never included, so the report is the per-agent drill-down of getOrgUsageReport.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -131,7 +131,7 @@ const getAgentUsageReportOutput = await stigmer.agentExecution.getAgentUsageRepo
   toDate: "...",
   pageSize: 0,
   pageToken: "...",
-  orgId: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -143,7 +143,7 @@ getAgentUsageReportOutput, err := client.AgentExecution.GetAgentUsageReport(ctx,
   ToDate:    "...",
   PageSize:  0,
   PageToken: "...",
-  OrgId:     "...",
+  Org:       "...",
 })
 ```
 </Tab>
@@ -155,7 +155,7 @@ get_agent_usage_report_output = client.agent_executions.get_agent_usage_report(G
     to_date="...",
     page_size=0,
     page_token="...",
-    org_id="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -167,7 +167,7 @@ GetAgentUsageReportOutput getAgentUsageReportOutput = client.agentExecutions().g
     .toDate("...")
     .pageSize(0)
     .pageToken("...")
-    .orgId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -377,7 +377,7 @@ Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 <Tab value="TypeScript">
 ```typescript
 const getOrgUsageReportOutput = await stigmer.agentExecution.getOrgUsageReport({
-  orgId: "...",
+  org: "...",
   fromDate: "...",
   toDate: "...",
 });
@@ -386,7 +386,7 @@ const getOrgUsageReportOutput = await stigmer.agentExecution.getOrgUsageReport({
 <Tab value="Go">
 ```go
 getOrgUsageReportOutput, err := client.AgentExecution.GetOrgUsageReport(ctx, &stigmer.GetOrgUsageReportInput{
-  OrgId:    "...",
+  Org:      "...",
   FromDate: "...",
   ToDate:   "...",
 })
@@ -395,7 +395,7 @@ getOrgUsageReportOutput, err := client.AgentExecution.GetOrgUsageReport(ctx, &st
 <Tab value="Python">
 ```python
 get_org_usage_report_output = client.agent_executions.get_org_usage_report(GetOrgUsageReportInput(
-    org_id="...",
+    org="...",
     from_date="...",
     to_date="...",
 ))
@@ -404,7 +404,7 @@ get_org_usage_report_output = client.agent_executions.get_org_usage_report(GetOr
 <Tab value="Java">
 ```java
 GetOrgUsageReportOutput getOrgUsageReportOutput = client.agentExecutions().getOrgUsageReport(GetOrgUsageReportInput.builder()
-    .orgId("...")
+    .org("...")
     .fromDate("...")
     .toDate("...")
     .build());
@@ -1812,7 +1812,7 @@ GetAgentUsageReportInput requests a usage report for a specific agent within one
     toDate: { type: "string", description: "End of time range filter (ISO 8601, inclusive)." },
     pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
-    orgId: { type: "string", description: "Organization scope for the report: usage of this agent within this organization." },
+    org: { type: "string", description: "Organization scope for the report: usage of this agent within this organization." },
   }}
 />
 
@@ -1840,7 +1840,7 @@ GetOrgUsageReportInput requests a usage report for an entire organization.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "Organization ID." },
+    org: { type: "string", description: "Organization ID." },
     fromDate: { type: "string", description: "Start of time range filter (ISO 8601, inclusive, required)." },
     toDate: { type: "string", description: "End of time range filter (ISO 8601, inclusive, required)." },
   }}
@@ -1852,7 +1852,7 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "Organization identifier." },
+    org: { type: "string", description: "Organization identifier." },
     totalAgents: { type: "number", description: "Total distinct agents with executions in the time range." },
     totalSessions: { type: "number", description: "Total sessions across all agents in the time range." },
     totalExecutions: { type: "number", description: "Total executions across all agents in the time range." },

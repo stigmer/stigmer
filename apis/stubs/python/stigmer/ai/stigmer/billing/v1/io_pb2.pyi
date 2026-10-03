@@ -18,48 +18,48 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class GetOrCreateBillingAccountInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class AdjustCreditsInput(_message.Message):
-    __slots__ = ("org_id", "amount_micros", "reason", "idempotency_key")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "amount_micros", "reason", "idempotency_key")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     amount_micros: int
     reason: str
     idempotency_key: str
-    def __init__(self, org_id: _Optional[str] = ..., amount_micros: _Optional[int] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., amount_micros: _Optional[int] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
 
 class GrantCreditsInput(_message.Message):
-    __slots__ = ("org_id", "amount_micros", "expires_at", "reason", "idempotency_key")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "amount_micros", "expires_at", "reason", "idempotency_key")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     amount_micros: int
     expires_at: _timestamp_pb2.Timestamp
     reason: str
     idempotency_key: str
-    def __init__(self, org_id: _Optional[str] = ..., amount_micros: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., amount_micros: _Optional[int] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
 
 class AuthorizeExecutionInput(_message.Message):
-    __slots__ = ("org_id", "execution_id", "harness", "expected_cost_cap_micros")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "execution_id", "harness", "expected_cost_cap_micros")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
     EXPECTED_COST_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     execution_id: str
     harness: str
     expected_cost_cap_micros: int
-    def __init__(self, org_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., harness: _Optional[str] = ..., expected_cost_cap_micros: _Optional[int] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., execution_id: _Optional[str] = ..., harness: _Optional[str] = ..., expected_cost_cap_micros: _Optional[int] = ...) -> None: ...
 
 class AuthorizeExecutionResponse(_message.Message):
     __slots__ = ("authorized", "reservation_id", "reserved_micros", "available_balance_micros", "denial_reason")
@@ -172,16 +172,16 @@ class RearmForRecoveryInput(_message.Message):
     def __init__(self, execution_id: _Optional[str] = ...) -> None: ...
 
 class CreateCreditCheckoutSessionInput(_message.Message):
-    __slots__ = ("org_id", "pack_id", "success_url", "cancel_url")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "pack_id", "success_url", "cancel_url")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     PACK_ID_FIELD_NUMBER: _ClassVar[int]
     SUCCESS_URL_FIELD_NUMBER: _ClassVar[int]
     CANCEL_URL_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     pack_id: str
     success_url: str
     cancel_url: str
-    def __init__(self, org_id: _Optional[str] = ..., pack_id: _Optional[str] = ..., success_url: _Optional[str] = ..., cancel_url: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., pack_id: _Optional[str] = ..., success_url: _Optional[str] = ..., cancel_url: _Optional[str] = ...) -> None: ...
 
 class CreateCreditCheckoutSessionResponse(_message.Message):
     __slots__ = ("checkout_url", "purchase_id", "checkout_session_id")
@@ -194,12 +194,12 @@ class CreateCreditCheckoutSessionResponse(_message.Message):
     def __init__(self, checkout_url: _Optional[str] = ..., purchase_id: _Optional[str] = ..., checkout_session_id: _Optional[str] = ...) -> None: ...
 
 class CreateBillingPortalSessionInput(_message.Message):
-    __slots__ = ("org_id", "return_url")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "return_url")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     RETURN_URL_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     return_url: str
-    def __init__(self, org_id: _Optional[str] = ..., return_url: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., return_url: _Optional[str] = ...) -> None: ...
 
 class CreateBillingPortalSessionResponse(_message.Message):
     __slots__ = ("portal_url",)
@@ -208,14 +208,14 @@ class CreateBillingPortalSessionResponse(_message.Message):
     def __init__(self, portal_url: _Optional[str] = ...) -> None: ...
 
 class CreatePaymentMethodSetupSessionInput(_message.Message):
-    __slots__ = ("org_id", "success_url", "cancel_url")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "success_url", "cancel_url")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     SUCCESS_URL_FIELD_NUMBER: _ClassVar[int]
     CANCEL_URL_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     success_url: str
     cancel_url: str
-    def __init__(self, org_id: _Optional[str] = ..., success_url: _Optional[str] = ..., cancel_url: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., success_url: _Optional[str] = ..., cancel_url: _Optional[str] = ...) -> None: ...
 
 class CreatePaymentMethodSetupSessionResponse(_message.Message):
     __slots__ = ("setup_url", "checkout_session_id")
@@ -226,46 +226,46 @@ class CreatePaymentMethodSetupSessionResponse(_message.Message):
     def __init__(self, setup_url: _Optional[str] = ..., checkout_session_id: _Optional[str] = ...) -> None: ...
 
 class SetAutoRechargeConfigInput(_message.Message):
-    __slots__ = ("org_id", "enabled", "threshold_micros", "recharge_amount_micros", "monthly_cap_micros")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "enabled", "threshold_micros", "recharge_amount_micros", "monthly_cap_micros")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     THRESHOLD_MICROS_FIELD_NUMBER: _ClassVar[int]
     RECHARGE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
     MONTHLY_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     enabled: bool
     threshold_micros: int
     recharge_amount_micros: int
     monthly_cap_micros: int
-    def __init__(self, org_id: _Optional[str] = ..., enabled: bool = ..., threshold_micros: _Optional[int] = ..., recharge_amount_micros: _Optional[int] = ..., monthly_cap_micros: _Optional[int] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., enabled: bool = ..., threshold_micros: _Optional[int] = ..., recharge_amount_micros: _Optional[int] = ..., monthly_cap_micros: _Optional[int] = ...) -> None: ...
 
 class GetBillingAccountInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class GetCreditBalanceInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class GetCreditLedgerInput(_message.Message):
-    __slots__ = ("org_id", "page", "type_filter", "start_time", "end_time", "view")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "page", "type_filter", "start_time", "end_time", "view")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     PAGE_FIELD_NUMBER: _ClassVar[int]
     TYPE_FILTER_FIELD_NUMBER: _ClassVar[int]
     START_TIME_FIELD_NUMBER: _ClassVar[int]
     END_TIME_FIELD_NUMBER: _ClassVar[int]
     VIEW_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     page: _pagination_pb2.PageInfo
     type_filter: _containers.RepeatedScalarFieldContainer[_enum_pb2_1.LedgerEntryType]
     start_time: _timestamp_pb2.Timestamp
     end_time: _timestamp_pb2.Timestamp
     view: _enum_pb2_1.LedgerView
-    def __init__(self, org_id: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., type_filter: _Optional[_Iterable[_Union[_enum_pb2_1.LedgerEntryType, str]]] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., view: _Optional[_Union[_enum_pb2_1.LedgerView, str]] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., type_filter: _Optional[_Iterable[_Union[_enum_pb2_1.LedgerEntryType, str]]] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., view: _Optional[_Union[_enum_pb2_1.LedgerView, str]] = ...) -> None: ...
 
 class CreditLedgerResponse(_message.Message):
     __slots__ = ("entries", "total_pages")
@@ -276,14 +276,14 @@ class CreditLedgerResponse(_message.Message):
     def __init__(self, entries: _Optional[_Iterable[_Union[_credit_pb2.CreditLedgerEntry, _Mapping]]] = ..., total_pages: _Optional[int] = ...) -> None: ...
 
 class GetBillingUsageReportInput(_message.Message):
-    __slots__ = ("org_id", "start_time", "end_time")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "start_time", "end_time")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     START_TIME_FIELD_NUMBER: _ClassVar[int]
     END_TIME_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     start_time: _timestamp_pb2.Timestamp
     end_time: _timestamp_pb2.Timestamp
-    def __init__(self, org_id: _Optional[str] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class BillingUsageReportResponse(_message.Message):
     __slots__ = ("total_provider_cost_micros", "total_billable_amount_micros", "execution_count", "llm_call_count", "model_breakdown")
@@ -316,10 +316,10 @@ class ModelBillingBreakdown(_message.Message):
     def __init__(self, model: _Optional[str] = ..., harness: _Optional[str] = ..., cost_tier: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., billable_amount_micros: _Optional[int] = ..., call_count: _Optional[int] = ...) -> None: ...
 
 class GetCustomerModelPricingInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class CustomerModelPricingResponse(_message.Message):
     __slots__ = ("entries",)
@@ -448,12 +448,12 @@ class CustomerModelPricingEntry(_message.Message):
     def __init__(self, model_id: _Optional[str] = ..., display_name: _Optional[str] = ..., provider: _Optional[str] = ..., harness: _Optional[str] = ..., cost_tier: _Optional[str] = ..., input_price_micros_per_million: _Optional[int] = ..., output_price_micros_per_million: _Optional[int] = ..., cache_creation_price_micros_per_million: _Optional[int] = ..., cache_read_price_micros_per_million: _Optional[int] = ..., pricing_policy_id: _Optional[str] = ..., markup_basis_points: _Optional[int] = ...) -> None: ...
 
 class PreviewAuthorizationInput(_message.Message):
-    __slots__ = ("org_id", "expected_cost_cap_micros")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "expected_cost_cap_micros")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     EXPECTED_COST_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     expected_cost_cap_micros: int
-    def __init__(self, org_id: _Optional[str] = ..., expected_cost_cap_micros: _Optional[int] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., expected_cost_cap_micros: _Optional[int] = ...) -> None: ...
 
 class PreviewAuthorizationResponse(_message.Message):
     __slots__ = ("authorized", "denial_reason", "reserve_amount_micros")

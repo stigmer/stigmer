@@ -21,9 +21,9 @@ class SubscriptionQueryControllerStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.getForOrganization = channel.unary_unary(
-                '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrganization',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetSubscriptionForOrganizationInput.SerializeToString,
+        self.getForOrg = channel.unary_unary(
+                '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrg',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetSubscriptionForOrgInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_api__pb2.Subscription.FromString,
                 _registered_method=True)
         self.getEntitlements = channel.unary_unary(
@@ -47,7 +47,7 @@ class SubscriptionQueryControllerServicer(object):
     can_view_billing, the permission the billing account's reads use.
     """
 
-    def getForOrganization(self, request, context):
+    def getForOrg(self, request, context):
         """Get the organization's subscription.
 
         NOT_FOUND when the organization has none: it is on the Free plan, which
@@ -95,9 +95,9 @@ class SubscriptionQueryControllerServicer(object):
 
 def add_SubscriptionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'getForOrganization': grpc.unary_unary_rpc_method_handler(
-                    servicer.getForOrganization,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetSubscriptionForOrganizationInput.FromString,
+            'getForOrg': grpc.unary_unary_rpc_method_handler(
+                    servicer.getForOrg,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetSubscriptionForOrgInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_api__pb2.Subscription.SerializeToString,
             ),
             'getEntitlements': grpc.unary_unary_rpc_method_handler(
@@ -128,7 +128,7 @@ class SubscriptionQueryController(object):
     """
 
     @staticmethod
-    def getForOrganization(request,
+    def getForOrg(request,
             target,
             options=(),
             channel_credentials=None,
@@ -141,8 +141,8 @@ class SubscriptionQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrganization',
-            ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetSubscriptionForOrganizationInput.SerializeToString,
+            '/ai.stigmer.billing.subscription.v1.SubscriptionQueryController/getForOrg',
+            ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_io__pb2.GetSubscriptionForOrgInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_subscription_dot_v1_dot_api__pb2.Subscription.FromString,
             options,
             channel_credentials,

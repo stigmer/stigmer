@@ -733,7 +733,7 @@ async function getPrincipalsCount(
     () =>
       deps.policies.countDistinctPrincipalsByResource(
         kindEnumName(ApiResourceKind.organization),
-        input.orgId,
+        input.org,
         principalKind,
         assignableRelations(),
       ),

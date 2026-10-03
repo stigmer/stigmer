@@ -145,13 +145,13 @@ public final class LicenseInput {
         private final String id;
         private final String displayName;
         private final String contactEmail;
-        private final String organization;
+        private final String org;
 
         private LicenseCustomerInput(Builder builder) {
             this.id = builder.id;
             this.displayName = builder.displayName;
             this.contactEmail = builder.contactEmail;
-            this.organization = builder.organization;
+            this.org = builder.org;
         }
 
         LicenseCustomer toProto() {
@@ -165,8 +165,8 @@ public final class LicenseInput {
             if (this.contactEmail != null) {
                 builder.setContactEmail(this.contactEmail);
             }
-            if (this.organization != null) {
-                builder.setOrganization(this.organization);
+            if (this.org != null) {
+                builder.setOrg(this.org);
             }
             return builder.build();
         }
@@ -177,14 +177,14 @@ public final class LicenseInput {
             private String id;
             private String displayName;
             private String contactEmail;
-            private String organization;
+            private String org;
 
             private Builder() {}
 
             public Builder id(String id) { this.id = id; return this; }
             public Builder displayName(String displayName) { this.displayName = displayName; return this; }
             public Builder contactEmail(String contactEmail) { this.contactEmail = contactEmail; return this; }
-            public Builder organization(String organization) { this.organization = organization; return this; }
+            public Builder org(String org) { this.org = org; return this; }
 
             public LicenseCustomerInput build() { return new LicenseCustomerInput(this); }
         }
@@ -228,19 +228,19 @@ public final class LicenseInput {
 
     /** SDK input type for EntitlementLimits. */
     public static final class EntitlementLimitsInput {
-        private final int maxOrganizations;
+        private final int maxOrgs;
         private final int maxUsers;
         private final int includedManagedOrganizations;
 
         private EntitlementLimitsInput(Builder builder) {
-            this.maxOrganizations = builder.maxOrganizations;
+            this.maxOrgs = builder.maxOrgs;
             this.maxUsers = builder.maxUsers;
             this.includedManagedOrganizations = builder.includedManagedOrganizations;
         }
 
         EntitlementLimits toProto() {
             EntitlementLimits.Builder builder = EntitlementLimits.newBuilder();
-            builder.setMaxOrganizations(this.maxOrganizations);
+            builder.setMaxOrgs(this.maxOrgs);
             builder.setMaxUsers(this.maxUsers);
             builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
             return builder.build();
@@ -249,13 +249,13 @@ public final class LicenseInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private int maxOrganizations;
+            private int maxOrgs;
             private int maxUsers;
             private int includedManagedOrganizations;
 
             private Builder() {}
 
-            public Builder maxOrganizations(int maxOrganizations) { this.maxOrganizations = maxOrganizations; return this; }
+            public Builder maxOrgs(int maxOrgs) { this.maxOrgs = maxOrgs; return this; }
             public Builder maxUsers(int maxUsers) { this.maxUsers = maxUsers; return this; }
             public Builder includedManagedOrganizations(int includedManagedOrganizations) { this.includedManagedOrganizations = includedManagedOrganizations; return this; }
 

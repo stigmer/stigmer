@@ -12,17 +12,12 @@ import { StigmerContext } from "../../context";
 import { IdentityProviderDetailPanel } from "../IdentityProviderDetailPanel";
 
 /**
- * Pins three things about the detail panel:
+ * Pins two things about the detail panel:
  *
- *   - the full-spec-replace wipe bug: before the generated-mapper migration,
- *     this panel hand-built its update input and NEVER sent
- *     `rate_limit_budget`, so editing any field zeroed the provider's rate
- *     limit. The panel must spread `toIdentityProviderUpdateInput` and
- *     override only what it edits;
- *   - the panel never presents `rate_limit_budget` as a working control: no
- *     server enforces it (the field's contract comment says so), so a
- *     "N req/min" row would tell an admin their organizations are throttled
- *     when they are not;
+ *   - the save sends the whole spec: before the generated-mapper migration,
+ *     this panel hand-built its update input, so a field it did not list
+ *     was zeroed by every edit. The panel spreads
+ *     `toIdentityProviderUpdateInput` and overrides only what it edits;
  *   - the Edit button is offered only to a caller the server says holds
  *     `can_edit` on the provider, so a member who may view a provider is
  *     never handed a form the server would refuse.
@@ -40,7 +35,6 @@ const IDP: IdentityProvider = create(IdentityProviderSchema, {
     jwksUri: "https://acme.okta.example/jwks",
     allowedIssuers: ["https://acme.okta.example"],
     expectedAudience: "stigmer",
-    rateLimitBudget: 120,
     isSsoProvider: false,
     autoProvisionAccounts: true,
     autoGrantOnOrg: true,
@@ -69,7 +63,7 @@ function renderPanel(
 afterEach(cleanup);
 
 describe("IdentityProviderDetailPanel save payload", () => {
-  it("round-trips rate_limit_budget on a display-name edit (the wipe bug)", async () => {
+  it("sends the whole spec on a display-name edit, not only the edited field", async () => {
     const update = vi.fn(async (_input: IdentityProviderInput) => IDP);
     renderPanel(update);
 
@@ -81,27 +75,18 @@ describe("IdentityProviderDetailPanel save payload", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const input = update.mock.calls[0]![0];
 
-    // The wipe-bug guard: the form does not render the rate limit, yet it
-    // must survive the save.
-    expect(input.rateLimitBudget).toBe(120);
     // The edited field.
     expect(input.displayName).toBe("Acme Okta (renamed)");
+    // Fields the edit leaves alone travel with it.
+    expect(input.jwksUri).toBe("https://acme.okta.example/jwks");
+    expect(input.allowedIssuers).toEqual(["https://acme.okta.example"]);
+    expect(input.expectedAudience).toBe("stigmer");
     // JIT settings round-trip from the edit state.
     expect(input.autoGrantRole).toBe(IamRole.admin);
     expect(input.tenantOrgClaim).toBe("org_slug");
     // Addressing fields.
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("acme-okta");
-  });
-});
-
-describe("IdentityProviderDetailPanel read view", () => {
-  it("shows no rate limit even when the provider stores one, since nothing enforces it", async () => {
-    renderPanel(vi.fn());
-
-    expect(await screen.findByText("Expected audience")).toBeDefined();
-    expect(screen.queryByText("Rate limit")).toBeNull();
-    expect(screen.queryByText(/req\/min/)).toBeNull();
   });
 });
 

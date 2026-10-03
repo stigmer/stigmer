@@ -59,10 +59,10 @@ public interface PlanTermsOrBuilder extends
    * Absent when the plan includes no managed organizations.
    * </pre>
    *
-   * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
-   * @return Whether the perExtraOrganizationMicros field is set.
+   * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
+   * @return Whether the perExtraOrgMicros field is set.
    */
-  boolean hasPerExtraOrganizationMicros();
+  boolean hasPerExtraOrgMicros();
   /**
    * <pre>
    * What a subscription plan bills per month for each platform-managed
@@ -70,10 +70,10 @@ public interface PlanTermsOrBuilder extends
    * Absent when the plan includes no managed organizations.
    * </pre>
    *
-   * <code>optional int64 per_extra_organization_micros = 3 [json_name = "perExtraOrganizationMicros", (.buf.validate.field) = { ... }</code>
-   * @return The perExtraOrganizationMicros.
+   * <code>optional int64 per_extra_org_micros = 3 [json_name = "perExtraOrgMicros", (.buf.validate.field) = { ... }</code>
+   * @return The perExtraOrgMicros.
    */
-  long getPerExtraOrganizationMicros();
+  long getPerExtraOrgMicros();
 
   /**
    * <pre>

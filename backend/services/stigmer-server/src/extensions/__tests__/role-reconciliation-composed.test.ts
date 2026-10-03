@@ -191,10 +191,10 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
     const policies = createClient(IamPolicyCommandController, asFounder());
     await policies.revokeOrgAccess({
       identityAccountId: memberId,
-      organizationId: ORG,
+      org: ORG,
     });
     const lastOwner = await policies
-      .revokeOrgAccess({ identityAccountId: founderId, organizationId: ORG })
+      .revokeOrgAccess({ identityAccountId: founderId, org: ORG })
       .then(
         () => undefined,
         (error: unknown) => ConnectError.from(error),

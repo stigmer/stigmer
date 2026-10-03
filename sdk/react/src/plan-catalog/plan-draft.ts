@@ -81,7 +81,7 @@ export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
   }
   const managed = draft.features.includes(Feature.managed_organizations);
   let includedManagedOrganizations: number | undefined;
-  let perExtraOrganizationMicros: bigint | undefined;
+  let perExtraOrgMicros: bigint | undefined;
   if (managed && draft.includedManagedOrganizations.trim() !== "") {
     const included = Number(draft.includedManagedOrganizations.trim());
     if (!Number.isInteger(included) || included < 0) {
@@ -92,7 +92,7 @@ export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
     if (fee === null) {
       return { ok: false, field: "perExtraOrganizationUsd", message: "A dollar amount per organization, e.g. 25." };
     }
-    perExtraOrganizationMicros = fee;
+    perExtraOrgMicros = fee;
   }
   return {
     ok: true,
@@ -108,7 +108,7 @@ export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
       terms: {
         monthlyMinimumMicros: minimum,
         usageShareBasisPoints: share,
-        ...(perExtraOrganizationMicros === undefined ? {} : { perExtraOrganizationMicros }),
+        ...(perExtraOrgMicros === undefined ? {} : { perExtraOrgMicros }),
       },
     },
   };

@@ -48,7 +48,7 @@ type SubscriptionCommandControllerClient interface {
 	//   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
 	//     no saved payment method, which every period is collected from;
 	//     BillingCommandController.createPaymentMethodSetupSession saves one.
-	//     Metadata: org_id.
+	//     Metadata: org.
 	ChangePlan(ctx context.Context, in *ChangePlanInput, opts ...grpc.CallOption) (*Subscription, error)
 	// Cancel the organization's subscription.
 	//
@@ -110,7 +110,7 @@ type SubscriptionCommandControllerServer interface {
 	//   - PAYMENT_METHOD_REQUIRED — the organization's billing account holds
 	//     no saved payment method, which every period is collected from;
 	//     BillingCommandController.createPaymentMethodSetupSession saves one.
-	//     Metadata: org_id.
+	//     Metadata: org.
 	ChangePlan(context.Context, *ChangePlanInput) (*Subscription, error)
 	// Cancel the organization's subscription.
 	//

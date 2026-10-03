@@ -91,7 +91,7 @@ func (PlanInstrument) EnumDescriptor() ([]byte, []int) {
 // The instrument decides which terms a plan may carry, and the two rules
 // below refuse the cross: a license plan is invoiced for a term, so monthly
 // terms have no meaning on it; a subscription plan bills monthly, so an
-// annual price has none. per_extra_organization_micros is bound to the
+// annual price has none. per_extra_org_micros is bound to the
 // entitlements' managed organizations, not to the instrument, and stays free.
 type PlanSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -186,7 +186,7 @@ type PlanTerms struct {
 	// What a subscription plan bills per month for each platform-managed
 	// organization beyond the ones its entitlements include, in micro-USD.
 	// Absent when the plan includes no managed organizations.
-	PerExtraOrganizationMicros *int64 `protobuf:"varint,3,opt,name=per_extra_organization_micros,json=perExtraOrganizationMicros,proto3,oneof" json:"per_extra_organization_micros,omitempty"`
+	PerExtraOrgMicros *int64 `protobuf:"varint,3,opt,name=per_extra_org_micros,json=perExtraOrgMicros,proto3,oneof" json:"per_extra_org_micros,omitempty"`
 	// What a license plan invoices for a one-year term, in micro-USD. Absent on
 	// a subscription plan.
 	AnnualPriceMicros *int64 `protobuf:"varint,4,opt,name=annual_price_micros,json=annualPriceMicros,proto3,oneof" json:"annual_price_micros,omitempty"`
@@ -238,9 +238,9 @@ func (x *PlanTerms) GetUsageShareBasisPoints() int32 {
 	return 0
 }
 
-func (x *PlanTerms) GetPerExtraOrganizationMicros() int64 {
-	if x != nil && x.PerExtraOrganizationMicros != nil {
-		return *x.PerExtraOrganizationMicros
+func (x *PlanTerms) GetPerExtraOrgMicros() int64 {
+	if x != nil && x.PerExtraOrgMicros != nil {
+		return *x.PerExtraOrgMicros
 	}
 	return 0
 }
@@ -266,16 +266,16 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"\x05terms\x18\x03 \x01(\v2%.ai.stigmer.billing.plan.v1.PlanTermsR\x05terms\x12*\n" +
 	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\x8e\x03\xbaH\x8a\x03\x1a\xe6\x01\n" +
 	"&plan_spec.license_has_no_monthly_terms\x12La license plan carries no monthly_minimum_micros or usage_share_basis_points\x1anthis.instrument != 2 || (!has(this.terms.monthly_minimum_micros) && !has(this.terms.usage_share_basis_points))\x1a\x9e\x01\n" +
-	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\"\x9a\x03\n" +
+	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\"\xff\x02\n" +
 	"\tPlanTerms\x12B\n" +
 	"\x16monthly_minimum_micros\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12H\n" +
 	"\x18usage_share_basis_points\x18\x02 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\x90N(\x00H\x01R\x15usageShareBasisPoints\x88\x01\x01\x12O\n" +
-	"\x1dper_extra_organization_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x02R\x1aperExtraOrganizationMicros\x88\x01\x01\x12<\n" +
+	"\xbaH\a\x1a\x05\x18\x90N(\x00H\x01R\x15usageShareBasisPoints\x88\x01\x01\x12=\n" +
+	"\x14per_extra_org_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x02R\x11perExtraOrgMicros\x88\x01\x01\x12<\n" +
 	"\x13annual_price_micros\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x03R\x11annualPriceMicros\x88\x01\x01B\x19\n" +
 	"\x17_monthly_minimum_microsB\x1b\n" +
-	"\x19_usage_share_basis_pointsB \n" +
-	"\x1e_per_extra_organization_microsB\x16\n" +
+	"\x19_usage_share_basis_pointsB\x17\n" +
+	"\x15_per_extra_org_microsB\x16\n" +
 	"\x14_annual_price_micros*P\n" +
 	"\x0ePlanInstrument\x12\x1f\n" +
 	"\x1bplan_instrument_unspecified\x10\x00\x12\x10\n" +

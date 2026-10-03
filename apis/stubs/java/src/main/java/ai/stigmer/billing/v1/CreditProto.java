@@ -74,80 +74,79 @@ public final class CreditProto extends com.google.protobuf.GeneratedFile {
       ".stigmer.billing.v1\032 ai/stigmer/billing/" +
       "v1/enum.proto\032\"ai/stigmer/billing/v1/pol" +
       "icy.proto\032\037google/protobuf/timestamp.pro" +
-      "to\"\302\003\n\021CreditLedgerEntry\022\031\n\010entry_id\030\001 \001" +
-      "(\tR\007entryId\022\025\n\006org_id\030\002 \001(\tR\005orgId\022:\n\004ty" +
-      "pe\030\003 \001(\0162&.ai.stigmer.billing.v1.LedgerE" +
-      "ntryTypeR\004type\022#\n\ramount_micros\030\004 \001(\003R\014a" +
-      "mountMicros\0220\n\024balance_after_micros\030\005 \001(" +
-      "\003R\022balanceAfterMicros\022\'\n\017idempotency_key" +
-      "\030\006 \001(\tR\016idempotencyKey\022A\n\006rating\030\007 \001(\0132)" +
-      ".ai.stigmer.billing.v1.BillingUsageRatin" +
-      "gR\006rating\022A\n\006source\030\010 \001(\0132).ai.stigmer.b" +
-      "illing.v1.CreditLedgerSourceR\006source\0229\n\n" +
-      "created_at\030\t \001(\0132\032.google.protobuf.Times" +
-      "tampR\tcreatedAt\"\343\002\n\022CreditLedgerSource\022!" +
-      "\n\014execution_id\030\001 \001(\tR\013executionId\022\035\n\nses" +
-      "sion_id\030\002 \001(\tR\tsessionId\022\031\n\010agent_id\030\003 \001" +
-      "(\tR\007agentId\022*\n\021llm_call_sequence\030\004 \001(\005R\017" +
-      "llmCallSequence\022\036\n\013llm_call_id\030\n \001(\tR\tll" +
-      "mCallId\022\037\n\013purchase_id\030\005 \001(\tR\npurchaseId" +
-      "\022\031\n\010grant_id\030\006 \001(\tR\007grantId\022%\n\016reservati" +
-      "on_id\030\007 \001(\tR\rreservationId\022\037\n\013adjusted_b" +
-      "y\030\010 \001(\tR\nadjustedBy\022 \n\013description\030\t \001(\t" +
-      "R\013description\"\373\002\n\013CreditGrant\022\031\n\010grant_i" +
-      "d\030\001 \001(\tR\007grantId\022\025\n\006org_id\030\002 \001(\tR\005orgId\022" +
-      ":\n\004kind\030\003 \001(\0162&.ai.stigmer.billing.v1.Cr" +
-      "editGrantKindR\004kind\0224\n\026original_amount_m" +
-      "icros\030\004 \001(\003R\024originalAmountMicros\0226\n\027rem" +
-      "aining_amount_micros\030\005 \001(\003R\025remainingAmo" +
-      "untMicros\0229\n\nexpires_at\030\006 \001(\0132\032.google.p" +
-      "rotobuf.TimestampR\texpiresAt\022\032\n\010priority" +
-      "\030\007 \001(\005R\010priority\0229\n\ncreated_at\030\010 \001(\0132\032.g" +
-      "oogle.protobuf.TimestampR\tcreatedAt\"\252\001\n\n" +
-      "CreditPack\022\027\n\007pack_id\030\001 \001(\tR\006packId\022!\n\014d" +
-      "isplay_name\030\002 \001(\tR\013displayName\022!\n\014price_" +
-      "micros\030\003 \001(\003R\013priceMicros\022%\n\016credits_mic" +
-      "ros\030\004 \001(\003R\rcreditsMicros\022\026\n\006active\030\005 \001(\010" +
-      "R\006active\"\201\003\n\024ExecutionReservation\022%\n\016res" +
-      "ervation_id\030\001 \001(\tR\rreservationId\022\025\n\006org_" +
-      "id\030\002 \001(\tR\005orgId\022!\n\014execution_id\030\003 \001(\tR\013e" +
-      "xecutionId\022\'\n\017reserved_micros\030\004 \001(\003R\016res" +
-      "ervedMicros\022\'\n\017consumed_micros\030\005 \001(\003R\016co" +
-      "nsumedMicros\022@\n\006status\030\006 \001(\0162(.ai.stigme" +
-      "r.billing.v1.ReservationStatusR\006status\0229" +
-      "\n\ncreated_at\030\007 \001(\0132\032.google.protobuf.Tim" +
-      "estampR\tcreatedAt\0229\n\nexpires_at\030\010 \001(\0132\032." +
-      "google.protobuf.TimestampR\texpiresAt\"\212\004\n" +
-      "\016CreditPurchase\022\037\n\013purchase_id\030\001 \001(\tR\npu" +
-      "rchaseId\022\025\n\006org_id\030\002 \001(\tR\005orgId\022\027\n\007pack_" +
-      "id\030\003 \001(\tR\006packId\022,\n\022amount_paid_micros\030\004" +
-      " \001(\003R\020amountPaidMicros\0224\n\026credits_grante" +
-      "d_micros\030\005 \001(\003R\024creditsGrantedMicros\022C\n\006" +
-      "status\030\006 \001(\0162+.ai.stigmer.billing.v1.Cre" +
-      "ditPurchaseStatusR\006status\022,\n\022stripe_cust" +
-      "omer_id\030\007 \001(\tR\020stripeCustomerId\022.\n\023check" +
-      "out_session_id\030\010 \001(\tR\021checkoutSessionId\022" +
-      "*\n\021payment_intent_id\030\t \001(\tR\017paymentInten" +
-      "tId\0229\n\ncreated_at\030\n \001(\0132\032.google.protobu" +
-      "f.TimestampR\tcreatedAt\0229\n\nupdated_at\030\013 \001" +
-      "(\0132\032.google.protobuf.TimestampR\tupdatedA" +
-      "t\"\375\003\n\021AutoRechargeEvent\022\031\n\010event_id\030\001 \001(" +
-      "\tR\007eventId\022\025\n\006org_id\030\002 \001(\tR\005orgId\022#\n\ramo" +
-      "unt_micros\030\003 \001(\003R\014amountMicros\022%\n\016credit" +
-      "s_micros\030\004 \001(\003R\rcreditsMicros\022*\n\021payment" +
-      "_intent_id\030\005 \001(\tR\017paymentIntentId\022F\n\006sta" +
-      "tus\030\006 \001(\0162..ai.stigmer.billing.v1.AutoRe" +
-      "chargeEventStatusR\006status\022%\n\016failure_rea" +
-      "son\030\007 \001(\tR\rfailureReason\022\'\n\017idempotency_" +
-      "key\030\010 \001(\tR\016idempotencyKey\022,\n\022stripe_cust" +
-      "omer_id\030\t \001(\tR\020stripeCustomerId\0229\n\ncreat" +
-      "ed_at\030\n \001(\0132\032.google.protobuf.TimestampR" +
-      "\tcreatedAt\022=\n\014completed_at\030\013 \001(\0132\032.googl" +
-      "e.protobuf.TimestampR\013completedAtB\204\001B\013Cr" +
-      "editProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V" +
-      "1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\B" +
-      "illing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bil" +
-      "ling::V1b\006proto3"
+      "to\"\275\003\n\021CreditLedgerEntry\022\031\n\010entry_id\030\001 \001" +
+      "(\tR\007entryId\022\020\n\003org\030\002 \001(\tR\003org\022:\n\004type\030\003 " +
+      "\001(\0162&.ai.stigmer.billing.v1.LedgerEntryT" +
+      "ypeR\004type\022#\n\ramount_micros\030\004 \001(\003R\014amount" +
+      "Micros\0220\n\024balance_after_micros\030\005 \001(\003R\022ba" +
+      "lanceAfterMicros\022\'\n\017idempotency_key\030\006 \001(" +
+      "\tR\016idempotencyKey\022A\n\006rating\030\007 \001(\0132).ai.s" +
+      "tigmer.billing.v1.BillingUsageRatingR\006ra" +
+      "ting\022A\n\006source\030\010 \001(\0132).ai.stigmer.billin" +
+      "g.v1.CreditLedgerSourceR\006source\0229\n\ncreat" +
+      "ed_at\030\t \001(\0132\032.google.protobuf.TimestampR" +
+      "\tcreatedAt\"\343\002\n\022CreditLedgerSource\022!\n\014exe" +
+      "cution_id\030\001 \001(\tR\013executionId\022\035\n\nsession_" +
+      "id\030\002 \001(\tR\tsessionId\022\031\n\010agent_id\030\003 \001(\tR\007a" +
+      "gentId\022*\n\021llm_call_sequence\030\004 \001(\005R\017llmCa" +
+      "llSequence\022\036\n\013llm_call_id\030\n \001(\tR\tllmCall" +
+      "Id\022\037\n\013purchase_id\030\005 \001(\tR\npurchaseId\022\031\n\010g" +
+      "rant_id\030\006 \001(\tR\007grantId\022%\n\016reservation_id" +
+      "\030\007 \001(\tR\rreservationId\022\037\n\013adjusted_by\030\010 \001" +
+      "(\tR\nadjustedBy\022 \n\013description\030\t \001(\tR\013des" +
+      "cription\"\366\002\n\013CreditGrant\022\031\n\010grant_id\030\001 \001" +
+      "(\tR\007grantId\022\020\n\003org\030\002 \001(\tR\003org\022:\n\004kind\030\003 " +
+      "\001(\0162&.ai.stigmer.billing.v1.CreditGrantK" +
+      "indR\004kind\0224\n\026original_amount_micros\030\004 \001(" +
+      "\003R\024originalAmountMicros\0226\n\027remaining_amo" +
+      "unt_micros\030\005 \001(\003R\025remainingAmountMicros\022" +
+      "9\n\nexpires_at\030\006 \001(\0132\032.google.protobuf.Ti" +
+      "mestampR\texpiresAt\022\032\n\010priority\030\007 \001(\005R\010pr" +
+      "iority\0229\n\ncreated_at\030\010 \001(\0132\032.google.prot" +
+      "obuf.TimestampR\tcreatedAt\"\252\001\n\nCreditPack" +
+      "\022\027\n\007pack_id\030\001 \001(\tR\006packId\022!\n\014display_nam" +
+      "e\030\002 \001(\tR\013displayName\022!\n\014price_micros\030\003 \001" +
+      "(\003R\013priceMicros\022%\n\016credits_micros\030\004 \001(\003R" +
+      "\rcreditsMicros\022\026\n\006active\030\005 \001(\010R\006active\"\374" +
+      "\002\n\024ExecutionReservation\022%\n\016reservation_i" +
+      "d\030\001 \001(\tR\rreservationId\022\020\n\003org\030\002 \001(\tR\003org" +
+      "\022!\n\014execution_id\030\003 \001(\tR\013executionId\022\'\n\017r" +
+      "eserved_micros\030\004 \001(\003R\016reservedMicros\022\'\n\017" +
+      "consumed_micros\030\005 \001(\003R\016consumedMicros\022@\n" +
+      "\006status\030\006 \001(\0162(.ai.stigmer.billing.v1.Re" +
+      "servationStatusR\006status\0229\n\ncreated_at\030\007 " +
+      "\001(\0132\032.google.protobuf.TimestampR\tcreated" +
+      "At\0229\n\nexpires_at\030\010 \001(\0132\032.google.protobuf" +
+      ".TimestampR\texpiresAt\"\205\004\n\016CreditPurchase" +
+      "\022\037\n\013purchase_id\030\001 \001(\tR\npurchaseId\022\020\n\003org" +
+      "\030\002 \001(\tR\003org\022\027\n\007pack_id\030\003 \001(\tR\006packId\022,\n\022" +
+      "amount_paid_micros\030\004 \001(\003R\020amountPaidMicr" +
+      "os\0224\n\026credits_granted_micros\030\005 \001(\003R\024cred" +
+      "itsGrantedMicros\022C\n\006status\030\006 \001(\0162+.ai.st" +
+      "igmer.billing.v1.CreditPurchaseStatusR\006s" +
+      "tatus\022,\n\022stripe_customer_id\030\007 \001(\tR\020strip" +
+      "eCustomerId\022.\n\023checkout_session_id\030\010 \001(\t" +
+      "R\021checkoutSessionId\022*\n\021payment_intent_id" +
+      "\030\t \001(\tR\017paymentIntentId\0229\n\ncreated_at\030\n " +
+      "\001(\0132\032.google.protobuf.TimestampR\tcreated" +
+      "At\0229\n\nupdated_at\030\013 \001(\0132\032.google.protobuf" +
+      ".TimestampR\tupdatedAt\"\370\003\n\021AutoRechargeEv" +
+      "ent\022\031\n\010event_id\030\001 \001(\tR\007eventId\022\020\n\003org\030\002 " +
+      "\001(\tR\003org\022#\n\ramount_micros\030\003 \001(\003R\014amountM" +
+      "icros\022%\n\016credits_micros\030\004 \001(\003R\rcreditsMi" +
+      "cros\022*\n\021payment_intent_id\030\005 \001(\tR\017payment" +
+      "IntentId\022F\n\006status\030\006 \001(\0162..ai.stigmer.bi" +
+      "lling.v1.AutoRechargeEventStatusR\006status" +
+      "\022%\n\016failure_reason\030\007 \001(\tR\rfailureReason\022" +
+      "\'\n\017idempotency_key\030\010 \001(\tR\016idempotencyKey" +
+      "\022,\n\022stripe_customer_id\030\t \001(\tR\020stripeCust" +
+      "omerId\0229\n\ncreated_at\030\n \001(\0132\032.google.prot" +
+      "obuf.TimestampR\tcreatedAt\022=\n\014completed_a" +
+      "t\030\013 \001(\0132\032.google.protobuf.TimestampR\013com" +
+      "pletedAtB\204\001B\013CreditProtoP\001\242\002\003ASB\252\002\025Ai.St" +
+      "igmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1" +
+      "\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030A" +
+      "i::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -161,7 +160,7 @@ public final class CreditProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_v1_CreditLedgerEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CreditLedgerEntry_descriptor,
-        new java.lang.String[] { "EntryId", "OrgId", "Type", "AmountMicros", "BalanceAfterMicros", "IdempotencyKey", "Rating", "Source", "CreatedAt", });
+        new java.lang.String[] { "EntryId", "Org", "Type", "AmountMicros", "BalanceAfterMicros", "IdempotencyKey", "Rating", "Source", "CreatedAt", });
     internal_static_ai_stigmer_billing_v1_CreditLedgerSource_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_billing_v1_CreditLedgerSource_fieldAccessorTable = new
@@ -173,7 +172,7 @@ public final class CreditProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_v1_CreditGrant_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CreditGrant_descriptor,
-        new java.lang.String[] { "GrantId", "OrgId", "Kind", "OriginalAmountMicros", "RemainingAmountMicros", "ExpiresAt", "Priority", "CreatedAt", });
+        new java.lang.String[] { "GrantId", "Org", "Kind", "OriginalAmountMicros", "RemainingAmountMicros", "ExpiresAt", "Priority", "CreatedAt", });
     internal_static_ai_stigmer_billing_v1_CreditPack_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_billing_v1_CreditPack_fieldAccessorTable = new
@@ -185,19 +184,19 @@ public final class CreditProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_v1_ExecutionReservation_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ExecutionReservation_descriptor,
-        new java.lang.String[] { "ReservationId", "OrgId", "ExecutionId", "ReservedMicros", "ConsumedMicros", "Status", "CreatedAt", "ExpiresAt", });
+        new java.lang.String[] { "ReservationId", "Org", "ExecutionId", "ReservedMicros", "ConsumedMicros", "Status", "CreatedAt", "ExpiresAt", });
     internal_static_ai_stigmer_billing_v1_CreditPurchase_descriptor =
       getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_billing_v1_CreditPurchase_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CreditPurchase_descriptor,
-        new java.lang.String[] { "PurchaseId", "OrgId", "PackId", "AmountPaidMicros", "CreditsGrantedMicros", "Status", "StripeCustomerId", "CheckoutSessionId", "PaymentIntentId", "CreatedAt", "UpdatedAt", });
+        new java.lang.String[] { "PurchaseId", "Org", "PackId", "AmountPaidMicros", "CreditsGrantedMicros", "Status", "StripeCustomerId", "CheckoutSessionId", "PaymentIntentId", "CreatedAt", "UpdatedAt", });
     internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_descriptor =
       getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_descriptor,
-        new java.lang.String[] { "EventId", "OrgId", "AmountMicros", "CreditsMicros", "PaymentIntentId", "Status", "FailureReason", "IdempotencyKey", "StripeCustomerId", "CreatedAt", "CompletedAt", });
+        new java.lang.String[] { "EventId", "Org", "AmountMicros", "CreditsMicros", "PaymentIntentId", "Status", "FailureReason", "IdempotencyKey", "StripeCustomerId", "CreatedAt", "CompletedAt", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.v1.EnumProto.getDescriptor();
     ai.stigmer.billing.v1.PolicyProto.getDescriptor();

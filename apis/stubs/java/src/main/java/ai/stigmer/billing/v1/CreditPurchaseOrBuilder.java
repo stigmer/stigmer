@@ -35,20 +35,20 @@ public interface CreditPurchaseOrBuilder extends
    * Organization purchasing credits.
    * </pre>
    *
-   * <code>string org_id = 2 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * Organization purchasing credits.
    * </pre>
    *
-   * <code>string org_id = 2 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 
   /**
    * <pre>

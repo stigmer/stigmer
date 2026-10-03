@@ -116,8 +116,8 @@ export function LicenseDetail({
         <Row label="Customer">
           <span className="stg:block">{customer?.displayName}</span>
           <span className="stg:block stg:text-muted-foreground">{customer?.contactEmail}</span>
-          {customer?.organization && (
-            <span className="stg:block stg:text-muted-foreground">{`Cloud organization ${customer.organization}`}</span>
+          {customer?.org && (
+            <span className="stg:block stg:text-muted-foreground">{`Cloud organization ${customer.org}`}</span>
           )}
         </Row>
         <Row label="Term">{spec ? termLabel(spec.term) : "Unknown"}</Row>
@@ -140,8 +140,8 @@ export function LicenseDetail({
             {limits?.maxUsers !== undefined ? `${limits.maxUsers} users` : "Unlimited users"}
           </span>
           <span className="stg:block">
-            {limits?.maxOrganizations !== undefined
-              ? `${limits.maxOrganizations} organizations`
+            {limits?.maxOrgs !== undefined
+              ? `${limits.maxOrgs} organizations`
               : "Unlimited organizations"}
           </span>
         </Row>

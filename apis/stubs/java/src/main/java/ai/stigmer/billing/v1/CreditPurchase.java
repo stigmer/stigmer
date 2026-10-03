@@ -40,7 +40,7 @@ private static final long serialVersionUID = 0L;
   }
   private CreditPurchase() {
     purchaseId_ = "";
-    orgId_ = "";
+    org_ = "";
     packId_ = "";
     status_ = 0;
     stripeCustomerId_ = "";
@@ -114,27 +114,27 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ORG_ID_FIELD_NUMBER = 2;
+  public static final int ORG_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object orgId_ = "";
+  private volatile java.lang.Object org_ = "";
   /**
    * <pre>
    * Organization purchasing credits.
    * </pre>
    *
-   * <code>string org_id = 2 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The org.
    */
   @java.lang.Override
-  public java.lang.String getOrgId() {
-    java.lang.Object ref = orgId_;
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      orgId_ = s;
+      org_ = s;
       return s;
     }
   }
@@ -143,18 +143,18 @@ private static final long serialVersionUID = 0L;
    * Organization purchasing credits.
    * </pre>
    *
-   * <code>string org_id = 2 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getOrgIdBytes() {
-    java.lang.Object ref = orgId_;
+      getOrgBytes() {
+    java.lang.Object ref = org_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      orgId_ = b;
+      org_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -474,8 +474,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(purchaseId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, purchaseId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(packId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, packId_);
@@ -516,8 +516,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(purchaseId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, purchaseId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, orgId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, org_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(packId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, packId_);
@@ -568,8 +568,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getPurchaseId()
         .equals(other.getPurchaseId())) return false;
-    if (!getOrgId()
-        .equals(other.getOrgId())) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getPackId()
         .equals(other.getPackId())) return false;
     if (getAmountPaidMicros()
@@ -606,8 +606,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + PURCHASE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getPurchaseId().hashCode();
-    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (37 * hash) + PACK_ID_FIELD_NUMBER;
     hash = (53 * hash) + getPackId().hashCode();
     hash = (37 * hash) + AMOUNT_PAID_MICROS_FIELD_NUMBER;
@@ -782,7 +782,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       purchaseId_ = "";
-      orgId_ = "";
+      org_ = "";
       packId_ = "";
       amountPaidMicros_ = 0L;
       creditsGrantedMicros_ = 0L;
@@ -837,7 +837,7 @@ private static final long serialVersionUID = 0L;
         result.purchaseId_ = purchaseId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.orgId_ = orgId_;
+        result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.packId_ = packId_;
@@ -893,8 +893,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getOrgId().isEmpty()) {
-        orgId_ = other.orgId_;
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
         bitField0_ |= 0x00000002;
         onChanged();
       }
@@ -965,7 +965,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 10
             case 18: {
-              orgId_ = input.readStringRequireUtf8();
+              org_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
@@ -1127,22 +1127,22 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object orgId_ = "";
+    private java.lang.Object org_ = "";
     /**
      * <pre>
      * Organization purchasing credits.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @return The orgId.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @return The org.
      */
-    public java.lang.String getOrgId() {
-      java.lang.Object ref = orgId_;
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        orgId_ = s;
+        org_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1153,17 +1153,17 @@ private static final long serialVersionUID = 0L;
      * Organization purchasing credits.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @return The bytes for orgId.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @return The bytes for org.
      */
     public com.google.protobuf.ByteString
-        getOrgIdBytes() {
-      java.lang.Object ref = orgId_;
+        getOrgBytes() {
+      java.lang.Object ref = org_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        orgId_ = b;
+        org_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1174,14 +1174,14 @@ private static final long serialVersionUID = 0L;
      * Organization purchasing credits.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @param value The orgId to set.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgId(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
@@ -1191,11 +1191,11 @@ private static final long serialVersionUID = 0L;
      * Organization purchasing credits.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
+     * <code>string org = 2 [json_name = "org"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrgId() {
-      orgId_ = getDefaultInstance().getOrgId();
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
@@ -1205,15 +1205,15 @@ private static final long serialVersionUID = 0L;
      * Organization purchasing credits.
      * </pre>
      *
-     * <code>string org_id = 2 [json_name = "orgId"];</code>
-     * @param value The bytes for orgId to set.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrgIdBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      orgId_ = value;
+      org_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;

@@ -8,7 +8,7 @@ import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billi
 /** Input for {@link useSetAutoRechargeConfig}. */
 export interface SetAutoRechargeConfigInput {
   /** Organization ID to configure auto-recharge for. */
-  readonly orgId: string;
+  readonly org: string;
   /** Whether auto-recharge is enabled. */
   readonly enabled: boolean;
   /** Trigger threshold in micro-USD. */
@@ -46,7 +46,7 @@ export interface UseSetAutoRechargeConfigReturn {
  * const { setConfig, isSubmitting, error } = useSetAutoRechargeConfig();
  *
  * await setConfig({
- *   orgId,
+ *   org,
  *   enabled: true,
  *   thresholdMicros: BigInt(5_000_000),
  *   rechargeAmountMicros: BigInt(50_000_000),
@@ -68,7 +68,7 @@ export function useSetAutoRechargeConfig(): UseSetAutoRechargeConfigReturn {
 
       try {
         const account = await stigmer.billing.setAutoRechargeConfig({
-          orgId: input.orgId,
+          org: input.org,
           enabled: input.enabled,
           thresholdMicros: input.thresholdMicros,
           rechargeAmountMicros: input.rechargeAmountMicros,

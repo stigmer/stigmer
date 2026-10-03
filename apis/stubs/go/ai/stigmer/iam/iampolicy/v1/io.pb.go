@@ -381,9 +381,9 @@ type RevokeOrgAccessInput struct {
 	// The identity account whose access is being revoked
 	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
 	// The organization from which access is being revoked
-	OrganizationId string `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RevokeOrgAccessInput) Reset() {
@@ -423,9 +423,9 @@ func (x *RevokeOrgAccessInput) GetIdentityAccountId() string {
 	return ""
 }
 
-func (x *RevokeOrgAccessInput) GetOrganizationId() string {
+func (x *RevokeOrgAccessInput) GetOrg() string {
 	if x != nil {
-		return x.OrganizationId
+		return x.Org
 	}
 	return ""
 }
@@ -1335,7 +1335,7 @@ func (x *AuthorizedPrincipalIdsList) GetPrincipalIds() []string {
 type GetPrincipalsCountInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization ID to count principals for
-	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// The kind of principals to count (identity_account or team)
 	PrincipalKind string `protobuf:"bytes,2,opt,name=principal_kind,json=principalKind,proto3" json:"principal_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1372,9 +1372,9 @@ func (*GetPrincipalsCountInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescGZIP(), []int{22}
 }
 
-func (x *GetPrincipalsCountInput) GetOrgId() string {
+func (x *GetPrincipalsCountInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -1461,12 +1461,12 @@ const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v2+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\bresource\x12S\n" +
 	"\n" +
 	"principals\x18\x02 \x03(\v2+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"principals\"\x87\x01\n" +
+	"principals\"p\n" +
 	"\x14RevokeOrgAccessInput\x12:\n" +
 	"\x13identity_account_id\x18\x01 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x11identityAccountId\x123\n" +
-	"\x0forganization_id\x18\x02 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x0eorganizationId\"S\n" +
+	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x11identityAccountId\x12\x1c\n" +
+	"\x03org\x18\x02 \x01(\tB\n" +
+	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x03org\"S\n" +
 	"\x0fIamPoliciesList\x12@\n" +
 	"\aentries\x18\x01 \x03(\v2&.ai.stigmer.iam.iampolicy.v1.IamPolicyR\aentries\"\x97\x01\n" +
 	"\x17ListResourceAccessInput\x12O\n" +
@@ -1522,10 +1522,10 @@ const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\brelation\x12[\n" +
 	"\x13contextual_policies\x18\x04 \x03(\v2*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12contextualPolicies\"A\n" +
 	"\x1aAuthorizedPrincipalIdsList\x12#\n" +
-	"\rprincipal_ids\x18\x01 \x03(\tR\fprincipalIds\"o\n" +
-	"\x17GetPrincipalsCountInput\x12!\n" +
-	"\x06org_id\x18\x01 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x05orgId\x121\n" +
+	"\rprincipal_ids\x18\x01 \x03(\tR\fprincipalIds\"j\n" +
+	"\x17GetPrincipalsCountInput\x12\x1c\n" +
+	"\x03org\x18\x01 \x01(\tB\n" +
+	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x03org\x121\n" +
 	"\x0eprincipal_kind\x18\x02 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\rprincipalKind\"'\n" +
 	"\x0fPrincipalsCount\x12\x14\n" +

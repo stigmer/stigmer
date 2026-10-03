@@ -2246,7 +2246,7 @@ type GetAgentUsageReportInput struct {
 	// Organization scope for the report: usage of this agent within this
 	// organization. Only executions belonging to this organization are
 	// aggregated. The caller must hold can_view on the organization.
-	OrgId         string `protobuf:"bytes,6,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org           string `protobuf:"bytes,6,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2316,9 +2316,9 @@ func (x *GetAgentUsageReportInput) GetPageToken() string {
 	return ""
 }
 
-func (x *GetAgentUsageReportInput) GetOrgId() string {
+func (x *GetAgentUsageReportInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -2450,7 +2450,7 @@ func (x *GetAgentUsageReportOutput) GetNextPageToken() string {
 type GetOrgUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization ID.
-	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Start of time range filter (ISO 8601, inclusive, required).
 	// Example: "2026-03-01"
 	FromDate string `protobuf:"bytes,2,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
@@ -2491,9 +2491,9 @@ func (*GetOrgUsageReportInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{27}
 }
 
-func (x *GetOrgUsageReportInput) GetOrgId() string {
+func (x *GetOrgUsageReportInput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -2519,7 +2519,7 @@ func (x *GetOrgUsageReportInput) GetToDate() string {
 type GetOrgUsageReportOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization identifier.
-	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Total distinct agents with executions in the time range.
 	TotalAgents int32 `protobuf:"varint,2,opt,name=total_agents,json=totalAgents,proto3" json:"total_agents,omitempty"`
 	// Total sessions across all agents in the time range.
@@ -2570,9 +2570,9 @@ func (*GetOrgUsageReportOutput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{28}
 }
 
-func (x *GetOrgUsageReportOutput) GetOrgId() string {
+func (x *GetOrgUsageReportOutput) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -3425,15 +3425,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x0fmodel_breakdown\x18\x05 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12,\n" +
 	"\x12first_execution_at\x18\x06 \x01(\tR\x10firstExecutionAt\x12*\n" +
 	"\x11last_execution_at\x18\a \x01(\tR\x0flastExecutionAt\x12!\n" +
-	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xd0\x01\n" +
+	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xcb\x01\n" +
 	"\x18GetAgentUsageReportInput\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1b\n" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x03 \x01(\tR\x06toDate\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\x12\x1e\n" +
-	"\x06org_id\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\"\x9b\x04\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\x12\x19\n" +
+	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9b\x04\n" +
 	"\x19GetAgentUsageReportOutput\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
@@ -3445,13 +3445,13 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x0etotal_sessions\x18\x06 \x01(\x05R\rtotalSessions\x12)\n" +
 	"\x10total_executions\x18\a \x01(\x05R\x0ftotalExecutions\x12;\n" +
 	"\x1atotal_billable_cost_micros\x18\b \x01(\x03R\x17totalBillableCostMicros\x12&\n" +
-	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageToken\"\x80\x01\n" +
-	"\x16GetOrgUsageReportInput\x12\x1e\n" +
-	"\x06org_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x12$\n" +
+	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageToken\"{\n" +
+	"\x16GetOrgUsageReportInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tfrom_date\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfromDate\x12 \n" +
-	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\xe1\x04\n" +
-	"\x17GetOrgUsageReportOutput\x12\x15\n" +
-	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12!\n" +
+	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\xdc\x04\n" +
+	"\x17GetOrgUsageReportOutput\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\x12!\n" +
 	"\ftotal_agents\x18\x02 \x01(\x05R\vtotalAgents\x12%\n" +
 	"\x0etotal_sessions\x18\x03 \x01(\x05R\rtotalSessions\x12)\n" +
 	"\x10total_executions\x18\x04 \x01(\x05R\x0ftotalExecutions\x12;\n" +

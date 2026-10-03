@@ -28,7 +28,7 @@ const LOGO_URL_MAX_LEN = 2048;
 /** Props for {@link OrgProfilePanel}. */
 export interface OrgProfilePanelProps {
   /** The ID of the organization to display and edit. */
-  readonly orgId: string;
+  readonly org: string;
   /** Fired with the updated resource after a successful save. */
   readonly onUpdated?: (org: Organization) => void;
   /** Additional CSS class names for the root container. */
@@ -49,13 +49,13 @@ export interface OrgProfilePanelProps {
  * @example
  * ```tsx
  * <OrgProfilePanel
- *   orgId="org-id-123"
+ *   org="org-id-123"
  *   onUpdated={(org) => console.log("Saved:", org.metadata?.name)}
  * />
  * ```
  */
 export function OrgProfilePanel({
-  orgId,
+  org,
   onUpdated,
   className,
 }: OrgProfilePanelProps) {
@@ -65,7 +65,7 @@ export function OrgProfilePanel({
     isLoading: isFetching,
     error: fetchError,
     refetch,
-  } = useOrganization(orgId || null);
+  } = useOrganization(org || null);
 
   const {
     update,
@@ -342,7 +342,7 @@ export function OrgProfilePanel({
       </div>
 
       {/* -- Identity Providers summary -- */}
-      <IdentityProvidersSummary orgId={orgId} orgSlug={serverSlug} />
+      <IdentityProvidersSummary org={org} orgSlug={serverSlug} />
     </form>
   );
 }
@@ -357,10 +357,10 @@ export function OrgProfilePanel({
  * not create providers; otherwise it says who manages them.
  */
 function IdentityProvidersSummary({
-  orgId,
+  org,
   orgSlug,
 }: {
-  orgId: string;
+  org: string;
   orgSlug: string;
 }) {
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
@@ -368,7 +368,7 @@ function IdentityProvidersSummary({
     idpAvailable && orgSlug ? orgSlug : null,
   );
   const createCheck = useCheckPermission(
-    idpAvailable && orgId ? { kind: "organization", id: orgId } : null,
+    idpAvailable && org ? { kind: "organization", id: org } : null,
     "can_create_idp",
   );
   const deniedCreate = !createCheck.isLoading && !createCheck.allowed;

@@ -7,7 +7,7 @@ package ai.stigmer.platform.v1;
 
 /**
  * <pre>
- * What the platform permits a tenant: a set of limits and a set of features.
+ * What an edition permits its customer: a set of limits and a set of features.
  *
  * An entitlement is what the platform permits; a subscription and a license
  * are the two instruments that grant it. The cloud derives an organization's
@@ -378,7 +378,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * What the platform permits a tenant: a set of limits and a set of features.
+   * What an edition permits its customer: a set of limits and a set of features.
    *
    * An entitlement is what the platform permits; a subscription and a license
    * are the two instruments that grant it. The cloud derives an organization's

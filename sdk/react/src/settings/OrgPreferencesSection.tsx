@@ -28,7 +28,7 @@ export function OrgPreferencesSection() {
           Select an organization to view its preferences.
         </p>
       ) : (
-        <OrgPreferencesPanel orgId={orgId} />
+        <OrgPreferencesPanel org={orgId} />
       )}
     </section>
   );

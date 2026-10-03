@@ -12,32 +12,32 @@ public interface EntitlementLimitsOrBuilder extends
 
   /**
    * <pre>
-   * The most organizations the tenant may hold at once. Read by a license
+   * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
    * a subscription (a Business plan counts the managed organizations it
    * includes).
    * </pre>
    *
-   * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return Whether the maxOrganizations field is set.
+   * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
+   * @return Whether the maxOrgs field is set.
    */
-  boolean hasMaxOrganizations();
+  boolean hasMaxOrgs();
   /**
    * <pre>
-   * The most organizations the tenant may hold at once. Read by a license
+   * The most organizations the customer may hold at once. Read by a license
    * (an Enterprise deployment counts its organizations against it) and by
    * a subscription (a Business plan counts the managed organizations it
    * includes).
    * </pre>
    *
-   * <code>optional int32 max_organizations = 1 [json_name = "maxOrganizations", (.buf.validate.field) = { ... }</code>
-   * @return The maxOrganizations.
+   * <code>optional int32 max_orgs = 1 [json_name = "maxOrgs", (.buf.validate.field) = { ... }</code>
+   * @return The maxOrgs.
    */
-  int getMaxOrganizations();
+  int getMaxOrgs();
 
   /**
    * <pre>
-   * The most identity accounts the tenant may hold at once. Read by both
+   * The most identity accounts the customer may hold at once. Read by both
    * instruments.
    * </pre>
    *
@@ -47,7 +47,7 @@ public interface EntitlementLimitsOrBuilder extends
   boolean hasMaxUsers();
   /**
    * <pre>
-   * The most identity accounts the tenant may hold at once. Read by both
+   * The most identity accounts the customer may hold at once. Read by both
    * instruments.
    * </pre>
    *

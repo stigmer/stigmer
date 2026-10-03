@@ -40,22 +40,22 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "y.v1\032+ai/stigmer/billing/providerkey/v1/" +
       "api.proto\032*ai/stigmer/billing/providerke" +
       "y/v1/io.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\240\003\n\034ProviderKeyComman" +
-      "dController\022\273\001\n\003set\0226.ai.stigmer.billing" +
+      "thod_options.proto2\232\003\n\034ProviderKeyComman" +
+      "dController\022\270\001\n\003set\0226.ai.stigmer.billing" +
       ".providerkey.v1.SetProviderKeyInput\032..ai" +
       ".stigmer.billing.providerkey.v1.Provider" +
-      "Key\"L\302\270\030H\010\034\020\036\"\006org_id*:unauthorized to m" +
-      "anage provider keys for this organizatio" +
-      "n\022\301\001\n\006delete\0229.ai.stigmer.billing.provid" +
-      "erkey.v1.DeleteProviderKeyInput\032..ai.sti" +
-      "gmer.billing.providerkey.v1.ProviderKey\"" +
-      "L\302\270\030H\010\034\020\036\"\006org_id*:unauthorized to manag" +
-      "e provider keys for this organizationB\267\001" +
-      "B\014CommandProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Bil" +
-      "ling.Providerkey.V1\312\002!Ai\\Stigmer\\Billing" +
-      "\\Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\Pro" +
-      "viderkey\\V1\\GPBMetadata\352\002%Ai::Stigmer::B" +
-      "illing::Providerkey::V1b\006proto3"
+      "Key\"I\302\270\030E\010\034\020\036\"\003org*:unauthorized to mana" +
+      "ge provider keys for this organization\022\276" +
+      "\001\n\006delete\0229.ai.stigmer.billing.providerk" +
+      "ey.v1.DeleteProviderKeyInput\032..ai.stigme" +
+      "r.billing.providerkey.v1.ProviderKey\"I\302\270" +
+      "\030E\010\034\020\036\"\003org*:unauthorized to manage prov" +
+      "ider keys for this organizationB\267\001B\014Comm" +
+      "andProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Billing.P" +
+      "roviderkey.V1\312\002!Ai\\Stigmer\\Billing\\Provi" +
+      "derkey\\V1\342\002-Ai\\Stigmer\\Billing\\Providerk" +
+      "ey\\V1\\GPBMetadata\352\002%Ai::Stigmer::Billing" +
+      "::Providerkey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

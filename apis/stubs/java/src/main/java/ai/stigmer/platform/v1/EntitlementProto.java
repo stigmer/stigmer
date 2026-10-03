@@ -51,22 +51,21 @@ public final class EntitlementProto extends com.google.protobuf.GeneratedFile {
       "ts\030\001 \001(\0132).ai.stigmer.platform.v1.Entitl" +
       "ementLimitsR\006limits\022N\n\010features\030\002 \003(\0162\037." +
       "ai.stigmer.platform.v1.FeatureB\021\272H\016\222\001\013\030\001" +
-      "\"\007\202\001\004\020\001 \000R\010features\"\224\002\n\021EntitlementLimit" +
-      "s\0229\n\021max_organizations\030\001 \001(\005B\007\272H\004\032\002 \000H\000R" +
-      "\020maxOrganizations\210\001\001\022)\n\tmax_users\030\002 \001(\005B" +
-      "\007\272H\004\032\002 \000H\001R\010maxUsers\210\001\001\022R\n\036included_mana" +
-      "ged_organizations\030\003 \001(\005B\007\272H\004\032\002 \000H\002R\034incl" +
-      "udedManagedOrganizations\210\001\001B\024\n\022_max_orga" +
-      "nizationsB\014\n\n_max_usersB!\n\037_included_man" +
-      "aged_organizations*\244\001\n\007Feature\022\027\n\023featur" +
-      "e_unspecified\020\000\022\023\n\017sso_enforcement\020\001\022\023\n\017" +
-      "platform_client\020\002\022\025\n\021byo_provider_keys\020\003" +
-      "\022\014\n\010channels\020\004\022\013\n\007sharing\020\005\022\t\n\005teams\020\006\022\031" +
-      "\n\025managed_organizations\020\007B\215\001B\020Entitlemen" +
-      "tProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Platform.V1\312" +
-      "\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\Stigmer\\Pl" +
-      "atform\\V1\\GPBMetadata\352\002\031Ai::Stigmer::Pla" +
-      "tform::V1b\006proto3"
+      "\"\007\202\001\004\020\001 \000R\010features\"\371\001\n\021EntitlementLimit" +
+      "s\022\'\n\010max_orgs\030\001 \001(\005B\007\272H\004\032\002 \000H\000R\007maxOrgs\210" +
+      "\001\001\022)\n\tmax_users\030\002 \001(\005B\007\272H\004\032\002 \000H\001R\010maxUse" +
+      "rs\210\001\001\022R\n\036included_managed_organizations\030" +
+      "\003 \001(\005B\007\272H\004\032\002 \000H\002R\034includedManagedOrganiz" +
+      "ations\210\001\001B\013\n\t_max_orgsB\014\n\n_max_usersB!\n\037" +
+      "_included_managed_organizations*\244\001\n\007Feat" +
+      "ure\022\027\n\023feature_unspecified\020\000\022\023\n\017sso_enfo" +
+      "rcement\020\001\022\023\n\017platform_client\020\002\022\025\n\021byo_pr" +
+      "ovider_keys\020\003\022\014\n\010channels\020\004\022\013\n\007sharing\020\005" +
+      "\022\t\n\005teams\020\006\022\031\n\025managed_organizations\020\007B\215" +
+      "\001B\020EntitlementProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer" +
+      ".Platform.V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"" +
+      "Ai\\Stigmer\\Platform\\V1\\GPBMetadata\352\002\031Ai:" +
+      ":Stigmer::Platform::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -84,7 +83,7 @@ public final class EntitlementProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_v1_EntitlementLimits_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_EntitlementLimits_descriptor,
-        new java.lang.String[] { "MaxOrganizations", "MaxUsers", "IncludedManagedOrganizations", });
+        new java.lang.String[] { "MaxOrgs", "MaxUsers", "IncludedManagedOrganizations", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

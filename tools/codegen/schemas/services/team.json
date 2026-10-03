@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.team.v1.Team",
           "outputType": "Team",
           "outputFullType": "ai.stigmer.iam.team.v1.Team",
-          "description": "Create a team in an organization.\n\n On Stigmer Cloud, teams are a plan feature. An organization whose plan\n lacks them is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include\n     the feature. Metadata: feature (\"teams\"), org_id."
+          "description": "Create a team in an organization.\n\n On Stigmer Cloud, teams are a plan feature. An organization whose plan\n lacks them is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include\n     the feature. Metadata: feature (\"teams\"), org."
         },
         {
           "name": "Update",
@@ -261,7 +261,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+          "description": "The boundary that holds people, Agents, Workflows, Sessions and secrets\n together; nothing outside it sees them.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",

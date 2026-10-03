@@ -26,7 +26,7 @@ export const TeamCommandController = {
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *
      *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-     *     the feature. Metadata: feature ("teams"), org_id.
+     *     the feature. Metadata: feature ("teams"), org.
      *
      * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.create
      */

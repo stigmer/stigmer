@@ -26,11 +26,11 @@ var File_ai_stigmer_billing_subscription_v1_command_proto protoreflect.FileDescr
 
 const file_ai_stigmer_billing_subscription_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/billing/subscription/v1/command.proto\x12\"ai.stigmer.billing.subscription.v1\x1a,ai/stigmer/billing/subscription/v1/api.proto\x1a+ai/stigmer/billing/subscription/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa3\x03\n" +
-	"\x1dSubscriptionCommandController\x12\xb6\x01\n" +
+	"0ai/stigmer/billing/subscription/v1/command.proto\x12\"ai.stigmer.billing.subscription.v1\x1a,ai/stigmer/billing/subscription/v1/api.proto\x1a+ai/stigmer/billing/subscription/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x9d\x03\n" +
+	"\x1dSubscriptionCommandController\x12\xb3\x01\n" +
 	"\n" +
-	"changePlan\x123.ai.stigmer.billing.subscription.v1.ChangePlanInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\"A¸\x18=\b\x1c\x10\x1e\"\x06org_id*/unauthorized to change this organization's plan\x12\xc2\x01\n" +
-	"\x06cancel\x12;.ai.stigmer.billing.subscription.v1.CancelSubscriptionInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\"I¸\x18E\b\x1c\x10\x1e\"\x06org_id*7unauthorized to cancel this organization's subscription\x1a\x04\xa0\xff+GB\xbf\x02\n" +
+	"changePlan\x123.ai.stigmer.billing.subscription.v1.ChangePlanInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\">¸\x18:\b\x1c\x10\x1e\"\x03org*/unauthorized to change this organization's plan\x12\xbf\x01\n" +
+	"\x06cancel\x12;.ai.stigmer.billing.subscription.v1.CancelSubscriptionInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\"F¸\x18B\b\x1c\x10\x1e\"\x03org*7unauthorized to cancel this organization's subscription\x1a\x04\xa0\xff+GB\xbf\x02\n" +
 	"&com.ai.stigmer.billing.subscription.v1B\fCommandProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var file_ai_stigmer_billing_subscription_v1_command_proto_goTypes = []any{

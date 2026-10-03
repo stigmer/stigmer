@@ -32,7 +32,7 @@ const entries: License[] = [
     issuedAt: "2026-09-01T00:00:00Z",
     expiresAt: "2026-10-01T00:00:00Z",
     maxUsers: 5,
-    maxOrganizations: 1,
+    maxOrgs: 1,
   }),
   license({
     id: "lic_paid",

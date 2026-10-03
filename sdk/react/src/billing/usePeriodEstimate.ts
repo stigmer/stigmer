@@ -44,14 +44,14 @@ export interface UsePeriodEstimateReturn {
  * Cloud-only; the caller needs `can_view_billing` on the organization.
  */
 export function usePeriodEstimate(
-  orgId: string | null,
+  org: string | null,
   options?: UsePeriodEstimateOptions,
 ): UsePeriodEstimateReturn {
   const stigmer = useStigmer();
-  const enabled = (options?.enabled ?? true) && orgId !== null && orgId !== "";
+  const enabled = (options?.enabled ?? true) && org !== null && org !== "";
   const { data: estimate, isLoading, error, refetch } = useFetch(
-    enabled && orgId ? () => stigmer.subscription.getPeriodEstimate(create(GetPeriodEstimateInputSchema, { orgId })) : null,
-    [enabled, orgId, stigmer],
+    enabled && org ? () => stigmer.subscription.getPeriodEstimate(create(GetPeriodEstimateInputSchema, { org })) : null,
+    [enabled, org, stigmer],
     null as PeriodEstimate | null,
     { refetchOnWindowFocus: true },
   );

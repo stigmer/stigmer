@@ -13,7 +13,7 @@ public interface OAuthAppOverrideOrBuilder extends
   /**
    * <pre>
    * System-generated ID (metadata.id) of the API resource this override
-   * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+   * applies to. Part of the composite key: (resource_id, resource_kind, org).
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -23,7 +23,7 @@ public interface OAuthAppOverrideOrBuilder extends
   /**
    * <pre>
    * System-generated ID (metadata.id) of the API resource this override
-   * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+   * applies to. Part of the composite key: (resource_id, resource_kind, org).
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId"];</code>
@@ -63,10 +63,10 @@ public interface OAuthAppOverrideOrBuilder extends
    * shared (platform-scoped) resource.
    * </pre>
    *
-   * <code>string org_id = 3 [json_name = "orgId"];</code>
-   * @return The orgId.
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrgId();
+  java.lang.String getOrg();
   /**
    * <pre>
    * Organization that owns this override. Part of the composite key.
@@ -74,11 +74,11 @@ public interface OAuthAppOverrideOrBuilder extends
    * shared (platform-scoped) resource.
    * </pre>
    *
-   * <code>string org_id = 3 [json_name = "orgId"];</code>
-   * @return The bytes for orgId.
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrgIdBytes();
+      getOrgBytes();
 
   /**
    * <pre>

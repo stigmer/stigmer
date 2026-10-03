@@ -74,7 +74,7 @@ type AgentExecutionQueryControllerClient interface {
 	//
 	// Returns aggregated tokens, cost, and per-session breakdown for one
 	// organization's executions of the agent. Requires can_view on the
-	// organization named in org_id; executions outside that organization are
+	// organization named in org; executions outside that organization are
 	// never included, so the report is the per-agent drill-down of
 	// getOrgUsageReport.
 	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
@@ -258,7 +258,7 @@ type AgentExecutionQueryControllerServer interface {
 	//
 	// Returns aggregated tokens, cost, and per-session breakdown for one
 	// organization's executions of the agent. Requires can_view on the
-	// organization named in org_id; executions outside that organization are
+	// organization named in org; executions outside that organization are
 	// never included, so the report is the per-agent drill-down of
 	// getOrgUsageReport.
 	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)

@@ -764,7 +764,7 @@ describe("role enforcement — leaving the organization: what a person made is t
   ): Promise<void> {
     await lane.clients.iamPolicyCommand.revokeOrgAccess({
       identityAccountId: id,
-      organizationId: org,
+      org,
     });
   }
 

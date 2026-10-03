@@ -42,7 +42,7 @@ export interface PeopleWithAccessProps {
    * Organization the resource belongs to (`metadata.org`). Drives the
    * people-and-teams typeahead in the grant form.
    */
-  readonly orgId: string;
+  readonly org: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -72,7 +72,7 @@ export function PeopleWithAccess({
   resource,
   resourceKindString,
   resourceKind,
-  orgId,
+  org,
   className,
 }: PeopleWithAccessProps) {
   const {
@@ -155,7 +155,7 @@ export function PeopleWithAccess({
                 resourceKind={resourceKind}
                 resourceKindString={resourceKindString}
                 resourceId={resource.id}
-                orgId={orgId}
+                org={org}
                 includeTeams={canShareWithTeams}
                 excludeGrantees={existingGrantees}
                 onGranted={() => {

@@ -18,7 +18,7 @@ import { useCreditLedger, type UseCreditLedgerOptions } from "./useCreditLedger.
 /** Props for {@link CreditLedgerTable}. */
 export interface CreditLedgerTableProps {
   /** Organization ID to fetch ledger entries for. */
-  readonly orgId: string;
+  readonly org: string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -33,11 +33,11 @@ export interface CreditLedgerTableProps {
  *
  * @example
  * ```tsx
- * <CreditLedgerTable orgId={activeOrg.metadata.id} />
+ * <CreditLedgerTable org={activeOrg.metadata.id} />
  * ```
  */
 export function CreditLedgerTable({
-  orgId,
+  org,
   className,
 }: CreditLedgerTableProps) {
   const [pageNum, setPageNum] = useState(1);
@@ -50,7 +50,7 @@ export function CreditLedgerTable({
     pageSize: 10,
     view: LedgerView.statement,
   };
-  const { ledger, isLoading, error } = useCreditLedger(orgId, options);
+  const { ledger, isLoading, error } = useCreditLedger(org, options);
 
   if (isLoading) {
     return (

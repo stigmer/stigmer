@@ -17,7 +17,7 @@ export interface LicenseFixture {
   readonly expiresAt: string;
   readonly graceUntil?: string;
   readonly maxUsers?: number;
-  readonly maxOrganizations?: number;
+  readonly maxOrgs?: number;
   readonly features?: readonly Feature[];
   readonly ticket?: string;
   readonly notes?: string;
@@ -39,7 +39,7 @@ export function license(f: LicenseFixture): License {
       entitlements: {
         limits: {
           ...(f.maxUsers !== undefined && { maxUsers: f.maxUsers }),
-          ...(f.maxOrganizations !== undefined && { maxOrganizations: f.maxOrganizations }),
+          ...(f.maxOrgs !== undefined && { maxOrgs: f.maxOrgs }),
         },
         features: [...(f.features ?? [Feature.sso_enforcement])],
       },

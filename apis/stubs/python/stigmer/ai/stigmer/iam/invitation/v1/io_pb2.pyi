@@ -43,21 +43,21 @@ class RedeemInvitationInput(_message.Message):
     def __init__(self, token: _Optional[str] = ...) -> None: ...
 
 class InvitationPreview(_message.Message):
-    __slots__ = ("organization_name", "organization_slug", "organization_logo_url", "role", "expires_at", "label", "is_valid", "invalid_reason")
-    ORGANIZATION_NAME_FIELD_NUMBER: _ClassVar[int]
-    ORGANIZATION_SLUG_FIELD_NUMBER: _ClassVar[int]
-    ORGANIZATION_LOGO_URL_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org_name", "org_slug", "org_logo_url", "role", "expires_at", "label", "is_valid", "invalid_reason")
+    ORG_NAME_FIELD_NUMBER: _ClassVar[int]
+    ORG_SLUG_FIELD_NUMBER: _ClassVar[int]
+    ORG_LOGO_URL_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     LABEL_FIELD_NUMBER: _ClassVar[int]
     IS_VALID_FIELD_NUMBER: _ClassVar[int]
     INVALID_REASON_FIELD_NUMBER: _ClassVar[int]
-    organization_name: str
-    organization_slug: str
-    organization_logo_url: str
+    org_name: str
+    org_slug: str
+    org_logo_url: str
     role: _enum_pb2.IamRole
     expires_at: _timestamp_pb2.Timestamp
     label: str
     is_valid: bool
     invalid_reason: str
-    def __init__(self, organization_name: _Optional[str] = ..., organization_slug: _Optional[str] = ..., organization_logo_url: _Optional[str] = ..., role: _Optional[_Union[_enum_pb2.IamRole, str]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., label: _Optional[str] = ..., is_valid: bool = ..., invalid_reason: _Optional[str] = ...) -> None: ...
+    def __init__(self, org_name: _Optional[str] = ..., org_slug: _Optional[str] = ..., org_logo_url: _Optional[str] = ..., role: _Optional[_Union[_enum_pb2.IamRole, str]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., label: _Optional[str] = ..., is_valid: bool = ..., invalid_reason: _Optional[str] = ...) -> None: ...

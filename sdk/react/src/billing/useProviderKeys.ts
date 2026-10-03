@@ -44,22 +44,22 @@ export interface UseProviderKeysReturn {
  * four characters, who saved it and when, when it last served a call, and
  * whether the organization's plan still lets it be used. A managed
  * organization's list includes its integrator's keys for the providers it
- * holds none of (`inheritedFromOrgId`). Every member may read it
+ * holds none of (`inheritedFromOrg`). Every member may read it
  * (`can_view_billing`).
  *
  * Cloud-only.
  *
  * @example
  * ```tsx
- * const { keys } = useProviderKeys(orgId);
+ * const { keys } = useProviderKeys(org);
  * ```
  */
-export function useProviderKeys(orgId: string | null, options?: UseProviderKeysOptions): UseProviderKeysReturn {
+export function useProviderKeys(org: string | null, options?: UseProviderKeysOptions): UseProviderKeysReturn {
   const stigmer = useStigmer();
-  const enabled = (options?.enabled ?? true) && orgId !== null && orgId !== "";
+  const enabled = (options?.enabled ?? true) && org !== null && org !== "";
   const { data, isLoading, error, refetch } = useFetch(
-    enabled && orgId ? () => stigmer.providerkey.list(create(ListProviderKeysInputSchema, { orgId })) : null,
-    [enabled, orgId, stigmer],
+    enabled && org ? () => stigmer.providerkey.list(create(ListProviderKeysInputSchema, { org })) : null,
+    [enabled, org, stigmer],
     null as { readonly keys: readonly ProviderKey[] } | null,
   );
   const keys = data?.keys ?? null;
@@ -75,9 +75,9 @@ export interface UseProviderKeyActionsReturn {
    * organization's plan does not include bring-your-own provider keys.
    * Resolves with the saved key, without its secret.
    */
-  readonly setKey: (orgId: string, provider: ProviderKeyProvider, apiKey: string) => Promise<ProviderKey>;
+  readonly setKey: (org: string, provider: ProviderKeyProvider, apiKey: string) => Promise<ProviderKey>;
   /** Remove the organization's key for a provider; allowed on every plan. */
-  readonly removeKey: (orgId: string, provider: ProviderKeyProvider) => Promise<ProviderKey>;
+  readonly removeKey: (org: string, provider: ProviderKeyProvider) => Promise<ProviderKey>;
   /** `true` while a save or a removal is in flight. */
   readonly isSubmitting: boolean;
   /** Error from the last failed attempt, or `null` when healthy. */
@@ -111,13 +111,13 @@ export function useProviderKeyActions(): UseProviderKeyActionsReturn {
   }, []);
 
   const setKey = useCallback(
-    (orgId: string, provider: ProviderKeyProvider, apiKey: string) =>
-      run(() => stigmer.providerkey.set(create(SetProviderKeyInputSchema, { orgId, provider, apiKey }))),
+    (org: string, provider: ProviderKeyProvider, apiKey: string) =>
+      run(() => stigmer.providerkey.set(create(SetProviderKeyInputSchema, { org, provider, apiKey }))),
     [run, stigmer.providerkey],
   );
   const removeKey = useCallback(
-    (orgId: string, provider: ProviderKeyProvider) =>
-      run(() => stigmer.providerkey.delete(create(DeleteProviderKeyInputSchema, { orgId, provider }))),
+    (org: string, provider: ProviderKeyProvider) =>
+      run(() => stigmer.providerkey.delete(create(DeleteProviderKeyInputSchema, { org, provider }))),
     [run, stigmer.providerkey],
   );
   const clearError = useCallback(() => setError(null), []);

@@ -43,14 +43,14 @@ const (
 // Consequently an account with no enabled member keys is visible but NOT
 // routable — no execution traffic can be sent under it.
 //
-// Org assignment — two account classes, derived from org_ids alone:
+// Org assignment — two account classes, derived from orgs alone:
 //
-//   - DEDICATED (org_ids non-empty): the account is a cost boundary for
+//   - DEDICATED (orgs non-empty): the account is a cost boundary for
 //     exactly those organizations. Their sessions are served only by this
 //     account's keys; when it has no usable keys, sessions fail with an
 //     explicit operator-actionable error rather than silently spending
 //     another team's quota (DD-008).
-//   - SHARED POOL (org_ids empty + enabled): the account is part of the
+//   - SHARED POOL (orgs empty + enabled): the account is part of the
 //     platform-operated pool serving every org with no dedicated account.
 //     Pool sessions may move across pool accounts when their current
 //     account is depleted — all pool teams bill to the platform operator,
@@ -91,7 +91,7 @@ type CursorAccount struct {
 	// key in the Cursor dashboard).
 	Enabled bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Deprecated: superseded by the derived shared pool (DD-008). Every
-	// enabled account with empty org_ids now serves unassigned orgs; a
+	// enabled account with empty orgs now serves unassigned orgs; a
 	// single "default" marker is meaningless under that rule, so selection
 	// and the console ignore this field. Kept on the wire for old clients;
 	// never written by current ones.
@@ -102,7 +102,7 @@ type CursorAccount struct {
 	// appear in at most one account across the collection
 	// (unique-multikey-index-enforced). Empty = shared-pool account (see
 	// the message doc for the two account classes).
-	OrgIds []string `protobuf:"bytes,6,rep,name=org_ids,json=orgIds,proto3" json:"org_ids,omitempty"`
+	Orgs []string `protobuf:"bytes,6,rep,name=orgs,proto3" json:"orgs,omitempty"`
 	// Execution-capable member keys. Selection picks among enabled entries
 	// (least-recently-used for new sessions, then sticky per session).
 	MemberKeys []*CursorMemberKey `protobuf:"bytes,7,rep,name=member_keys,json=memberKeys,proto3" json:"member_keys,omitempty"`
@@ -211,9 +211,9 @@ func (x *CursorAccount) GetIsPlatformDefault() bool {
 	return false
 }
 
-func (x *CursorAccount) GetOrgIds() []string {
+func (x *CursorAccount) GetOrgs() []string {
 	if x != nil {
-		return x.OrgIds
+		return x.Orgs
 	}
 	return nil
 }
@@ -685,16 +685,16 @@ var File_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto protoreflect.
 
 const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "" +
 	"\n" +
-	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe7\x04\n" +
+	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe2\x04\n" +
 	"\rCursorAccount\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12.\n" +
 	"\fdisplay_name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\vdisplayName\x12\"\n" +
 	"\radmin_api_key\x18\x03 \x01(\tR\vadminApiKey\x12\x18\n" +
 	"\aenabled\x18\x04 \x01(\bR\aenabled\x122\n" +
-	"\x13is_platform_default\x18\x05 \x01(\bB\x02\x18\x01R\x11isPlatformDefault\x12&\n" +
-	"\aorg_ids\x18\x06 \x03(\tB\r\xbaH\n" +
-	"\x92\x01\a\"\x05r\x03\x18\x80\x01R\x06orgIds\x12V\n" +
+	"\x13is_platform_default\x18\x05 \x01(\bB\x02\x18\x01R\x11isPlatformDefault\x12!\n" +
+	"\x04orgs\x18\x06 \x03(\tB\r\xbaH\n" +
+	"\x92\x01\a\"\x05r\x03\x18\x80\x01R\x04orgs\x12V\n" +
 	"\vmember_keys\x18\a \x03(\v25.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyR\n" +
 	"memberKeys\x12\x1d\n" +
 	"\n" +

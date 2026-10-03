@@ -17,7 +17,7 @@ export interface UseRevokeOrgAccessReturn {
    * operation. What they created stays with the organization; it is
    * theirs again only if they are invited back.
    */
-  readonly revoke: (accountId: string, orgId: string) => Promise<void>;
+  readonly revoke: (accountId: string, org: string) => Promise<void>;
   /** `true` while the revoke request is in flight. */
   readonly isRevoking: boolean;
   /** Error from the last failed revoke, or `null` when healthy. */
@@ -51,7 +51,7 @@ export function useRevokeOrgAccess(): UseRevokeOrgAccessReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const revoke = useCallback(
-    async (accountId: string, orgId: string): Promise<void> => {
+    async (accountId: string, org: string): Promise<void> => {
       setIsRevoking(true);
       setError(null);
 
@@ -59,7 +59,7 @@ export function useRevokeOrgAccess(): UseRevokeOrgAccessReturn {
         await stigmer.iamPolicy.revokeOrgAccess(
           create(RevokeOrgAccessInputSchema, {
             identityAccountId: accountId,
-            organizationId: orgId,
+            org,
           }),
         );
       } catch (err) {

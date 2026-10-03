@@ -24,7 +24,7 @@ function mockClient(options: { admin?: boolean; subscribed?: ReturnType<typeof s
   return {
     plan: { list: vi.fn().mockResolvedValue({ entries: [TEAM, BUSINESS, RETIRED] }) },
     subscription: {
-      getForOrganization: options.subscribed
+      getForOrg: options.subscribed
         ? vi.fn().mockResolvedValue(options.subscribed)
         : vi.fn().mockRejectedValue(notFound()),
       getPeriodEstimate: vi.fn().mockResolvedValue(TEAM_ESTIMATE),
@@ -58,7 +58,7 @@ function renderSection(client: unknown, props: Partial<PlanSectionProps> = {}, m
       </FetchCacheContext.Provider>
     );
   }
-  return render(<PlanSection orgId="acme" hasPaymentMethod now={NOW} {...props} />, { wrapper: Wrapper });
+  return render(<PlanSection org="acme" hasPaymentMethod now={NOW} {...props} />, { wrapper: Wrapper });
 }
 
 describe("PlanSection", () => {
@@ -92,7 +92,7 @@ describe("PlanSection", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Add a payment method" }));
     await waitFor(() => expect(openUrl).toHaveBeenCalledWith("https://checkout.stripe.com/c/setup_1"));
     expect(client.billing.createPaymentMethodSetupSession).toHaveBeenCalledWith({
-      orgId: "acme",
+      org: "acme",
       successUrl: "https://app.stigmer.ai/settings/billing?setup=success&plan=pln_team",
       cancelUrl: "https://app.stigmer.ai/settings/billing",
     });
@@ -107,7 +107,7 @@ describe("PlanSection", () => {
     expect(within(dialog).getByText("Nothing is charged today.")).toBeTruthy();
     await userEvent.click(within(dialog).getByRole("button", { name: "Subscribe" }));
     await waitFor(() => expect(client.subscription.changePlan).toHaveBeenCalledTimes(1));
-    expect(client.subscription.changePlan.mock.calls[0]?.[0]).toMatchObject({ orgId: "acme", planId: "pln_team" });
+    expect(client.subscription.changePlan.mock.calls[0]?.[0]).toMatchObject({ org: "acme", planId: "pln_team" });
   });
 
   it("shows an active plan's estimate, and says a cancel runs to the period's end", async () => {
@@ -165,8 +165,8 @@ describe("PlanSection", () => {
     const view = renderSection(client, { resumePlanId: "pln_business" });
     const first = await screen.findByRole("dialog");
     await userEvent.click(within(first).getByRole("button", { name: "Not now" }));
-    view.rerender(<PlanSection orgId="acme" hasPaymentMethod now={NOW} />);
-    view.rerender(<PlanSection orgId="acme" hasPaymentMethod now={NOW} resumePlanId="pln_team" />);
+    view.rerender(<PlanSection org="acme" hasPaymentMethod now={NOW} />);
+    view.rerender(<PlanSection org="acme" hasPaymentMethod now={NOW} resumePlanId="pln_team" />);
     const second = await screen.findByRole("dialog");
     expect(within(second).getByRole("heading", { name: "Subscribe to Team" })).toBeTruthy();
   });
@@ -183,6 +183,6 @@ describe("PlanSection", () => {
     const client = mockClient();
     const { container } = renderSection(client, {}, "local");
     expect(container.textContent).toBe("");
-    expect(client.subscription.getForOrganization).not.toHaveBeenCalled();
+    expect(client.subscription.getForOrg).not.toHaveBeenCalled();
   });
 });

@@ -162,13 +162,13 @@ This RPC answers: "How many [principal-kind] have access to this organization?" 
 
 Use Cases: - Organization members count badge in navigation - Settings page member summary
 
-Input: GetPrincipalsCountInput with org_id and principal_kind Output: PrincipalsCount with integer count
+Input: GetPrincipalsCountInput with org and principal_kind Output: PrincipalsCount with integer count
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const principalsCount = await stigmer.iamPolicy.getPrincipalsCount({
-  orgId: "...",
+  org: "...",
   principalKind: "...",
 });
 ```
@@ -176,7 +176,7 @@ const principalsCount = await stigmer.iamPolicy.getPrincipalsCount({
 <Tab value="Go">
 ```go
 principalsCount, err := client.IamPolicy.GetPrincipalsCount(ctx, &stigmer.GetPrincipalsCountInput{
-  OrgId:         "...",
+  Org:           "...",
   PrincipalKind: "...",
 })
 ```
@@ -184,7 +184,7 @@ principalsCount, err := client.IamPolicy.GetPrincipalsCount(ctx, &stigmer.GetPri
 <Tab value="Python">
 ```python
 principals_count = client.iam_policies.get_principals_count(GetPrincipalsCountInput(
-    org_id="...",
+    org="...",
     principal_kind="...",
 ))
 ```
@@ -192,7 +192,7 @@ principals_count = client.iam_policies.get_principals_count(GetPrincipalsCountIn
 <Tab value="Java">
 ```java
 PrincipalsCount principalsCount = client.iamPolicies().getPrincipalsCount(GetPrincipalsCountInput.builder()
-    .orgId("...")
+    .org("...")
     .principalKind("...")
     .build());
 ```
@@ -524,7 +524,7 @@ The system-flow twin of revokeOrgAccess: identical revocation behavior, but auth
 ```typescript
 const empty = await stigmer.iamPolicy.bootstrapRevokeOrgAccess({
   identityAccountId: "...",
-  organizationId: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -532,7 +532,7 @@ const empty = await stigmer.iamPolicy.bootstrapRevokeOrgAccess({
 ```go
 empty, err := client.IamPolicy.BootstrapRevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
   IdentityAccountId: "...",
-  OrganizationId:    "...",
+  Org:               "...",
 })
 ```
 </Tab>
@@ -540,7 +540,7 @@ empty, err := client.IamPolicy.BootstrapRevokeOrgAccess(ctx, &stigmer.RevokeOrgA
 ```python
 empty = client.iam_policies.bootstrap_revoke_org_access(RevokeOrgAccessInput(
     identity_account_id="...",
-    organization_id="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -548,7 +548,7 @@ empty = client.iam_policies.bootstrap_revoke_org_access(RevokeOrgAccessInput(
 ```java
 Empty empty = client.iamPolicies().bootstrapRevokeOrgAccess(RevokeOrgAccessInput.builder()
     .identityAccountId("...")
-    .organizationId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -726,7 +726,7 @@ Removes every role the identity account holds on the organization, then every IA
 ```typescript
 const empty = await stigmer.iamPolicy.revokeOrgAccess({
   identityAccountId: "...",
-  organizationId: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -734,7 +734,7 @@ const empty = await stigmer.iamPolicy.revokeOrgAccess({
 ```go
 empty, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
   IdentityAccountId: "...",
-  OrganizationId:    "...",
+  Org:               "...",
 })
 ```
 </Tab>
@@ -742,7 +742,7 @@ empty, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInpu
 ```python
 empty = client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
     identity_account_id="...",
-    organization_id="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -750,7 +750,7 @@ empty = client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
 ```java
 Empty empty = client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
     .identityAccountId("...")
-    .organizationId("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -821,7 +821,7 @@ RevokeOrgAccessInput defines the input for revoking all of a user's access to an
 <TypeTable
   type={{
     identityAccountId: { type: "string", description: "The identity account whose access is being revoked.", required: true },
-    organizationId: { type: "string", description: "The organization from which access is being revoked.", required: true },
+    org: { type: "string", description: "The organization from which access is being revoked.", required: true },
   }}
 />
 
@@ -952,7 +952,7 @@ GetPrincipalsCountInput defines input for counting principals in an organization
 
 <TypeTable
   type={{
-    orgId: { type: "string", description: "Organization ID to count principals for.", required: true },
+    org: { type: "string", description: "Organization ID to count principals for.", required: true },
     principalKind: { type: "string", description: "The kind of principals to count (identity_account or team).", required: true },
   }}
 />

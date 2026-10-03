@@ -938,7 +938,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+          "description": "The boundary that holds people, Agents, Workflows, Sessions and secrets\n together; nothing outside it sees them.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",
@@ -1142,7 +1142,7 @@
     },
     {
       "name": "OAuthAppSource",
-      "description": "OAuthAppSource identifies where the effective OAuth app for an MCP server\n was resolved from.\n\n The resolution chain is the same one the OAuth connect flow evaluates:\n   1. OAuthAppOverride for (resource_id, resource_kind, org_id) → ORG_OVERRIDE\n   2. McpServerAuth.oauth_app_ref → PLATFORM\n   3. Neither exists → NONE\n\n Resolved CLIENT-SIDE by the shared SDK from the getOrgOAuthApp RPC: the\n resolution is per (server, caller's active org), and the caller's active\n org is client-side context the read RPCs never carry, so no backend can\n compute it at enrichment time (see OAuthStatus fields 3-4).",
+      "description": "OAuthAppSource identifies where the effective OAuth app for an MCP server\n was resolved from.\n\n The resolution chain is the same one the OAuth connect flow evaluates:\n   1. OAuthAppOverride for (resource_id, resource_kind, org) → ORG_OVERRIDE\n   2. McpServerAuth.oauth_app_ref → PLATFORM\n   3. Neither exists → NONE\n\n Resolved CLIENT-SIDE by the shared SDK from the getOrgOAuthApp RPC: the\n resolution is per (server, caller's active org), and the caller's active\n org is client-side context the read RPCs never carry, so no backend can\n compute it at enrichment time (see OAuthStatus fields 3-4).",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.OAuthAppSource",
       "values": [
         {

@@ -265,7 +265,7 @@ Input for creating or updating a Plan.
 
 ### EntitlementsInput
 
-What the platform permits a tenant: a set of limits and a set of features.
+What an edition permits its customer: a set of limits and a set of features.
 
 <TypeTable
   type={{
@@ -280,8 +280,8 @@ The numeric limits an entitlement carries.
 
 <TypeTable
   type={{
-    maxOrganizations: { type: "number", description: "The most organizations the tenant may hold at once." },
-    maxUsers: { type: "number", description: "The most identity accounts the tenant may hold at once." },
+    maxOrgs: { type: "number", description: "The most organizations the customer may hold at once." },
+    maxUsers: { type: "number", description: "The most identity accounts the customer may hold at once." },
     includedManagedOrganizations: { type: "number", description: "The platform-managed organizations a subscription includes before the per-organization fee applies." },
   }}
 />
@@ -294,7 +294,7 @@ The commercial terms of a plan.
   type={{
     monthlyMinimumMicros: { type: "number", description: "The least a subscription plan bills per month, in micro-USD." },
     usageShareBasisPoints: { type: "number", description: "The share of monthly usage a subscription plan bills when it exceeds the minimum, in basis points." },
-    perExtraOrganizationMicros: { type: "number", description: "What a subscription plan bills per month for each platform-managed organization beyond the ones its entitlements include, in micro-USD." },
+    perExtraOrgMicros: { type: "number", description: "What a subscription plan bills per month for each platform-managed organization beyond the ones its entitlements include, in micro-USD." },
     annualPriceMicros: { type: "number", description: "What a license plan invoices for a one-year term, in micro-USD." },
   }}
 />
@@ -370,8 +370,8 @@ A capability an entitlement can unlock.
 | Value | Description |
 |-------|-------------|
 | `sso_enforcement` | Enforcing sign-in through a registered identity provider, so members cannot use another login. |
-| `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every tenant, so a plan or license that lists it grants nothing more. |
-| `byo_provider_keys` | Bringing the tenant's own LLM provider keys instead of the platform's metered proxy credentials. |
+| `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every customer, so a plan or license that lists it grants nothing more. |
+| `byo_provider_keys` | Bringing the customer's own LLM provider keys instead of the platform's metered proxy credentials. |
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
 | `sharing` | Sharing an agent through hosted share links, with the sharing organization's members or with anyone who has the link. |
 | `teams` | Creating teams and adding members to them. |

@@ -9,9 +9,17 @@ describe("config keys", () => {
       "backend.cloud.endpoint",
       "backend.cloud.org_id",
       "backend.type",
-      "context.organization",
+      "context.org",
       "current_backend",
     ]);
+  });
+
+  it("context.org reads and writes the CLI context's organization", () => {
+    const config = getDefault();
+    expect(getConfigValue(config, "context.org")).toBe("");
+    setConfigValue(config, "context.org", "acme");
+    expect(config.context?.org).toBe("acme");
+    expect(getConfigValue(config, "context.org")).toBe("acme");
   });
 
   it("gets the backend type", () => {

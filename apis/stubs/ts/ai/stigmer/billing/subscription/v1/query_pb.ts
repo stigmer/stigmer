@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SubscriptionSchema } from "./api_pb.js";
 import { file_ai_stigmer_billing_subscription_v1_api } from "./api_pb.js";
-import type { GetEntitlementsInputSchema, GetEntitlementsOutputSchema, GetPeriodEstimateInputSchema, GetSubscriptionForOrganizationInputSchema, PeriodEstimateSchema } from "./io_pb.js";
+import type { GetEntitlementsInputSchema, GetEntitlementsOutputSchema, GetPeriodEstimateInputSchema, GetSubscriptionForOrgInputSchema, PeriodEstimateSchema } from "./io_pb.js";
 import { file_ai_stigmer_billing_subscription_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/billing/subscription/v1/query.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxMqIFChtTdWJzY3JpcHRpb25RdWVyeUNvbnRyb2xsZXIS2AEKEmdldEZvck9yZ2FuaXphdGlvbhJHLmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0U3Vic2NyaXB0aW9uRm9yT3JnYW5pemF0aW9uSW5wdXQaMC5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlN1YnNjcmlwdGlvbiJHwrgYQwgbEB4iBm9yZ19pZCo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBzdWJzY3JpcHRpb24SzwEKD2dldEVudGl0bGVtZW50cxI4LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0RW50aXRsZW1lbnRzSW5wdXQaOS5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLkdldEVudGl0bGVtZW50c091dHB1dCJHwrgYQwgbEB4iBm9yZ19pZCo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBlbnRpdGxlbWVudHMSzwEKEWdldFBlcmlvZEVzdGltYXRlEjouYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5HZXRQZXJpb2RFc3RpbWF0ZUlucHV0GjIuYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5QZXJpb2RFc3RpbWF0ZSJKwrgYRggbEB4iBm9yZ19pZCo4dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBwZXJpb2QgZXN0aW1hdGUaBKD/K0diBnByb3RvMw", [file_ai_stigmer_billing_subscription_v1_api, file_ai_stigmer_billing_subscription_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci5haS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxMocFChtTdWJzY3JpcHRpb25RdWVyeUNvbnRyb2xsZXISwwEKCWdldEZvck9yZxI+LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0U3Vic2NyaXB0aW9uRm9yT3JnSW5wdXQaMC5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlN1YnNjcmlwdGlvbiJEwrgYQAgbEB4iA29yZyo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBzdWJzY3JpcHRpb24SzAEKD2dldEVudGl0bGVtZW50cxI4LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuR2V0RW50aXRsZW1lbnRzSW5wdXQaOS5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLkdldEVudGl0bGVtZW50c091dHB1dCJEwrgYQAgbEB4iA29yZyo1dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBlbnRpdGxlbWVudHMSzAEKEWdldFBlcmlvZEVzdGltYXRlEjouYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5HZXRQZXJpb2RFc3RpbWF0ZUlucHV0GjIuYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5QZXJpb2RFc3RpbWF0ZSJHwrgYQwgbEB4iA29yZyo4dW5hdXRob3JpemVkIHRvIHZpZXcgdGhpcyBvcmdhbml6YXRpb24ncyBwZXJpb2QgZXN0aW1hdGUaBKD/K0diBnByb3RvMw", [file_ai_stigmer_billing_subscription_v1_api, file_ai_stigmer_billing_subscription_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SubscriptionQueryController provides the read operations on an
@@ -35,11 +35,11 @@ export const SubscriptionQueryController: GenService<{
    * is not a row. Callers that only need what the organization may do
    * should call getEntitlements, which answers for every organization.
    *
-   * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getForOrganization
+   * @generated from rpc ai.stigmer.billing.subscription.v1.SubscriptionQueryController.getForOrg
    */
-  getForOrganization: {
+  getForOrg: {
     methodKind: "unary";
-    input: typeof GetSubscriptionForOrganizationInputSchema;
+    input: typeof GetSubscriptionForOrgInputSchema;
     output: typeof SubscriptionSchema;
   },
   /**

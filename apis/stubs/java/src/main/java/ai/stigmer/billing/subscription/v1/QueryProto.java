@@ -41,29 +41,29 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "/api.proto\032+ai/stigmer/billing/subscript" +
       "ion/v1/io.proto\0328ai/stigmer/commons/apir" +
       "esource/rpc_service_options.proto\032+ai/st" +
-      "igmer/commons/rpc/method_options.proto2\242" +
-      "\005\n\033SubscriptionQueryController\022\330\001\n\022getFo" +
-      "rOrganization\022G.ai.stigmer.billing.subsc" +
-      "ription.v1.GetSubscriptionForOrganizatio" +
-      "nInput\0320.ai.stigmer.billing.subscription" +
-      ".v1.Subscription\"G\302\270\030C\010\033\020\036\"\006org_id*5unau" +
-      "thorized to view this organization\'s sub" +
-      "scription\022\317\001\n\017getEntitlements\0228.ai.stigm" +
-      "er.billing.subscription.v1.GetEntitlemen" +
-      "tsInput\0329.ai.stigmer.billing.subscriptio" +
-      "n.v1.GetEntitlementsOutput\"G\302\270\030C\010\033\020\036\"\006or" +
-      "g_id*5unauthorized to view this organiza" +
-      "tion\'s entitlements\022\317\001\n\021getPeriodEstimat" +
-      "e\022:.ai.stigmer.billing.subscription.v1.G" +
-      "etPeriodEstimateInput\0322.ai.stigmer.billi" +
-      "ng.subscription.v1.PeriodEstimate\"J\302\270\030F\010" +
-      "\033\020\036\"\006org_id*8unauthorized to view this o" +
-      "rganization\'s period estimate\032\004\240\377+GB\271\001B\n" +
-      "QueryProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.Billing" +
-      ".Subscription.V1\312\002\"Ai\\Stigmer\\Billing\\Su" +
-      "bscription\\V1\342\002.Ai\\Stigmer\\Billing\\Subsc" +
-      "ription\\V1\\GPBMetadata\352\002&Ai::Stigmer::Bi" +
-      "lling::Subscription::V1b\006proto3"
+      "igmer/commons/rpc/method_options.proto2\207" +
+      "\005\n\033SubscriptionQueryController\022\303\001\n\tgetFo" +
+      "rOrg\022>.ai.stigmer.billing.subscription.v" +
+      "1.GetSubscriptionForOrgInput\0320.ai.stigme" +
+      "r.billing.subscription.v1.Subscription\"D" +
+      "\302\270\030@\010\033\020\036\"\003org*5unauthorized to view this" +
+      " organization\'s subscription\022\314\001\n\017getEnti" +
+      "tlements\0228.ai.stigmer.billing.subscripti" +
+      "on.v1.GetEntitlementsInput\0329.ai.stigmer." +
+      "billing.subscription.v1.GetEntitlementsO" +
+      "utput\"D\302\270\030@\010\033\020\036\"\003org*5unauthorized to vi" +
+      "ew this organization\'s entitlements\022\314\001\n\021" +
+      "getPeriodEstimate\022:.ai.stigmer.billing.s" +
+      "ubscription.v1.GetPeriodEstimateInput\0322." +
+      "ai.stigmer.billing.subscription.v1.Perio" +
+      "dEstimate\"G\302\270\030C\010\033\020\036\"\003org*8unauthorized t" +
+      "o view this organization\'s period estima" +
+      "te\032\004\240\377+GB\271\001B\nQueryProtoP\001\242\002\004ASBS\252\002\"Ai.St" +
+      "igmer.Billing.Subscription.V1\312\002\"Ai\\Stigm" +
+      "er\\Billing\\Subscription\\V1\342\002.Ai\\Stigmer\\" +
+      "Billing\\Subscription\\V1\\GPBMetadata\352\002&Ai" +
+      "::Stigmer::Billing::Subscription::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

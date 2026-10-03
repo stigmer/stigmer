@@ -25,7 +25,7 @@ service TeamCommandController {
   // google.rpc.ErrorInfo detail (domain "stigmer.ai"):
   //
   //   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-  //     the feature. Metadata: feature ("teams"), org_id.
+  //     the feature. Metadata: feature ("teams"), org.
   //
   // @internal
   // Authorization: can_create_team on the organization (admin).

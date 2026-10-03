@@ -224,16 +224,16 @@ function AccountRow({
           <span className="stg:block stg:truncate stg:font-medium stg:text-foreground">
             {account.displayName}
           </span>
-          {/* Account class is DERIVED from org_ids (DD-008): no org
+          {/* Account class is DERIVED from orgs: no org
               assignment means the account belongs to the shared pool. */}
-          {account.orgIds.length === 0 && (
+          {account.orgs.length === 0 && (
             <span className="stg:block stg:text-[11px] stg:text-muted-foreground">
               shared pool
             </span>
           )}
         </span>
         <span className="stg:text-muted-foreground">
-          {account.orgIds.length > 0 ? account.orgIds.length : "—"}
+          {account.orgs.length > 0 ? account.orgs.length : "—"}
         </span>
         <span>
           <StateBadge
@@ -408,8 +408,8 @@ function AccountDetail({
             {account.displayName}
           </h3>
           <p className="stg:text-[11px] stg:text-muted-foreground">
-            {account.orgIds.length > 0
-              ? `Dedicated to ${account.orgIds.length} org(s): ${account.orgIds.join(", ")}`
+            {account.orgs.length > 0
+              ? `Dedicated to ${account.orgs.length} org(s): ${account.orgs.join(", ")}`
               : "Shared pool — serves every org with no dedicated account"}
             {" · "}
             {account.enabled ? "enabled" : "disabled"}

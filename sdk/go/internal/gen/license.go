@@ -71,7 +71,7 @@ type LicenseCustomerInput struct {
 	Id           string
 	DisplayName  string
 	ContactEmail string
-	Organization string
+	Org          string
 }
 
 // EntitlementsInput is the SDK input type for Entitlements.
@@ -82,7 +82,7 @@ type EntitlementsInput struct {
 
 // EntitlementLimitsInput is the SDK input type for EntitlementLimits.
 type EntitlementLimitsInput struct {
-	MaxOrganizations             int32
+	MaxOrgs                      int32
 	MaxUsers                     int32
 	IncludedManagedOrganizations int32
 }
@@ -140,7 +140,7 @@ func (i *LicenseCustomerInput) toProto() (*platformv1.LicenseCustomer, error) {
 		Id:           i.Id,
 		DisplayName:  i.DisplayName,
 		ContactEmail: i.ContactEmail,
-		Organization: i.Organization,
+		Org:          i.Org,
 	}, nil
 }
 
@@ -199,7 +199,7 @@ func licenseCustomerInputFromProto(p *platformv1.LicenseCustomer) *LicenseCustom
 	input.Id = p.GetId()
 	input.DisplayName = p.GetDisplayName()
 	input.ContactEmail = p.GetContactEmail()
-	input.Organization = p.GetOrganization()
+	input.Org = p.GetOrg()
 	return input
 }
 
@@ -218,7 +218,7 @@ func entitlementLimitsInputFromProto(p *platformv1.EntitlementLimits) *Entitleme
 		return nil
 	}
 	input := &EntitlementLimitsInput{}
-	input.MaxOrganizations = p.GetMaxOrganizations()
+	input.MaxOrgs = p.GetMaxOrgs()
 	input.MaxUsers = p.GetMaxUsers()
 	input.IncludedManagedOrganizations = p.GetIncludedManagedOrganizations()
 	return input

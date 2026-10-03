@@ -67,19 +67,19 @@ public final class LicenseProto extends com.google.protobuf.GeneratedFile {
       ".issued_at\032x\n&license_claims.grace_not_b" +
       "efore_expiry\022)grace_until must not be be" +
       "fore expires_at\032#this.grace_until >= thi" +
-      "s.expires_at\"\251\001\n\017LicenseCustomer\022\026\n\002id\030\001" +
+      "s.expires_at\"\227\001\n\017LicenseCustomer\022\026\n\002id\030\001" +
       " \001(\tB\006\272H\003\310\001\001R\002id\022)\n\014display_name\030\002 \001(\tB\006" +
       "\272H\003\310\001\001R\013displayName\022/\n\rcontact_email\030\003 \001" +
-      "(\tB\n\272H\007r\002`\001\310\001\001R\014contactEmail\022\"\n\014organiza" +
-      "tion\030\004 \001(\tR\014organization*@\n\013LicenseTerm\022" +
-      "\034\n\030license_term_unspecified\020\000\022\t\n\005trial\020\001" +
-      "\022\010\n\004paid\020\002*w\n\014LicenseState\022\035\n\031license_st" +
-      "ate_unspecified\020\000\022\n\n\006absent\020\001\022\t\n\005valid\020\002" +
-      "\022\014\n\010expiring\020\003\022\t\n\005grace\020\004\022\013\n\007expired\020\005\022\013" +
-      "\n\007invalid\020\006B\211\001B\014LicenseProtoP\001\242\002\003ASP\252\002\026A" +
-      "i.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Platf" +
-      "orm\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMetad" +
-      "ata\352\002\031Ai::Stigmer::Platform::V1b\006proto3"
+      "(\tB\n\272H\007r\002`\001\310\001\001R\014contactEmail\022\020\n\003org\030\004 \001(" +
+      "\tR\003org*@\n\013LicenseTerm\022\034\n\030license_term_un" +
+      "specified\020\000\022\t\n\005trial\020\001\022\010\n\004paid\020\002*w\n\014Lice" +
+      "nseState\022\035\n\031license_state_unspecified\020\000\022" +
+      "\n\n\006absent\020\001\022\t\n\005valid\020\002\022\014\n\010expiring\020\003\022\t\n\005" +
+      "grace\020\004\022\013\n\007expired\020\005\022\013\n\007invalid\020\006B\211\001B\014Li" +
+      "censeProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Platform" +
+      ".V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\Stigme" +
+      "r\\Platform\\V1\\GPBMetadata\352\002\031Ai::Stigmer:" +
+      ":Platform::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -99,7 +99,7 @@ public final class LicenseProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_v1_LicenseCustomer_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_LicenseCustomer_descriptor,
-        new java.lang.String[] { "Id", "DisplayName", "ContactEmail", "Organization", });
+        new java.lang.String[] { "Id", "DisplayName", "ContactEmail", "Org", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.platform.v1.EntitlementProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

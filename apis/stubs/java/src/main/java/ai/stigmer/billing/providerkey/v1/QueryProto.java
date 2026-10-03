@@ -39,17 +39,17 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "y.proto\022!ai.stigmer.billing.providerkey." +
       "v1\032*ai/stigmer/billing/providerkey/v1/io" +
       ".proto\032+ai/stigmer/commons/rpc/method_op" +
-      "tions.proto2\346\001\n\032ProviderKeyQueryControll" +
-      "er\022\307\001\n\004list\0228.ai.stigmer.billing.provide" +
+      "tions.proto2\343\001\n\032ProviderKeyQueryControll" +
+      "er\022\304\001\n\004list\0228.ai.stigmer.billing.provide" +
       "rkey.v1.ListProviderKeysInput\0329.ai.stigm" +
       "er.billing.providerkey.v1.ListProviderKe" +
-      "ysOutput\"J\302\270\030F\010\033\020\036\"\006org_id*8unauthorized" +
-      " to view provider keys for this organiza" +
-      "tionB\265\001B\nQueryProtoP\001\242\002\004ASBP\252\002!Ai.Stigme" +
-      "r.Billing.Providerkey.V1\312\002!Ai\\Stigmer\\Bi" +
-      "lling\\Providerkey\\V1\342\002-Ai\\Stigmer\\Billin" +
-      "g\\Providerkey\\V1\\GPBMetadata\352\002%Ai::Stigm" +
-      "er::Billing::Providerkey::V1b\006proto3"
+      "ysOutput\"G\302\270\030C\010\033\020\036\"\003org*8unauthorized to" +
+      " view provider keys for this organizatio" +
+      "nB\265\001B\nQueryProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.B" +
+      "illing.Providerkey.V1\312\002!Ai\\Stigmer\\Billi" +
+      "ng\\Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\P" +
+      "roviderkey\\V1\\GPBMetadata\352\002%Ai::Stigmer:" +
+      ":Billing::Providerkey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -105,7 +105,7 @@ class TestBillingClientWiring:
 
         entry = client.billing.adjust_credits(
             AdjustCreditsParams(
-                org_id="acme",
+                org="acme",
                 amount_micros=25_000_000,
                 reason="initial tenant funding",
                 idempotency_key="fund-acme-001",
@@ -114,7 +114,7 @@ class TestBillingClientWiring:
         assert entry.amount_micros == 25_000_000
 
         req = fake.adjust_credits_in
-        assert req.org_id == "acme"
+        assert req.org == "acme"
         assert req.amount_micros == 25_000_000
         assert req.reason == "initial tenant funding"
         assert req.idempotency_key == "fund-acme-001"
@@ -129,7 +129,7 @@ class TestBillingClientWiring:
         with pytest.raises(StigmerError):
             client.billing.adjust_credits(
                 AdjustCreditsParams(
-                    org_id="acme",
+                    org="acme",
                     amount_micros=1,
                     reason="r",
                     idempotency_key="k",
@@ -145,7 +145,7 @@ class TestBillingClientWiring:
         expires_at = datetime(2026, 8, 31, 23, 59, 59, tzinfo=timezone.utc)
         entry = client.billing.grant_credits(
             GrantCreditsParams(
-                org_id="acme",
+                org="acme",
                 amount_micros=5_000_000,
                 reason="monthly free allowance 2026-08",
                 idempotency_key="allowance-acme-2026-08",
@@ -155,7 +155,7 @@ class TestBillingClientWiring:
         assert entry.amount_micros == 5_000_000
 
         req = fake.grant_credits_in
-        assert req.org_id == "acme"
+        assert req.org == "acme"
         assert req.amount_micros == 5_000_000
         assert req.reason == "monthly free allowance 2026-08"
         assert req.idempotency_key == "allowance-acme-2026-08"
@@ -167,7 +167,7 @@ class TestBillingClientWiring:
 
         client.billing.grant_credits(
             GrantCreditsParams(
-                org_id="acme",
+                org="acme",
                 amount_micros=1_000_000,
                 reason="welcome credit",
                 idempotency_key="welcome-acme",
@@ -186,7 +186,7 @@ class TestBillingClientWiring:
         with pytest.raises(StigmerError):
             client.billing.grant_credits(
                 GrantCreditsParams(
-                    org_id="acme",
+                    org="acme",
                     amount_micros=1,
                     reason="r",
                     idempotency_key="k",
@@ -201,7 +201,7 @@ class TestBillingClientWiring:
         end = datetime(2026, 8, 13, tzinfo=timezone.utc)
         client.billing.get_credit_ledger(
             GetCreditLedgerParams(
-                org_id="acme",
+                org="acme",
                 page=Page(num=2, size=50),
                 type_filter=[enum_pb2.adjustment_credit],
                 start_time=start,
@@ -211,7 +211,7 @@ class TestBillingClientWiring:
         )
 
         req = fake.ledger_in
-        assert req.org_id == "acme"
+        assert req.org == "acme"
         assert (req.page.num, req.page.size) == (2, 50)
         assert list(req.type_filter) == [enum_pb2.adjustment_credit]
         assert req.start_time.ToDatetime(tzinfo=timezone.utc) == start
@@ -222,7 +222,7 @@ class TestBillingClientWiring:
         fake = _CapturingQueryStub()
         client.billing._query = fake
 
-        client.billing.get_credit_ledger(GetCreditLedgerParams(org_id="acme"))
+        client.billing.get_credit_ledger(GetCreditLedgerParams(org="acme"))
 
         req = fake.ledger_in
         assert not req.HasField("page")
@@ -237,11 +237,11 @@ class TestBillingClientWiring:
         start = datetime(2026, 7, 1, tzinfo=timezone.utc)
         end = datetime(2026, 7, 31, 23, 59, 59, tzinfo=timezone.utc)
         client.billing.get_billing_usage_report(
-            GetBillingUsageReportParams(org_id="acme", start_time=start, end_time=end)
+            GetBillingUsageReportParams(org="acme", start_time=start, end_time=end)
         )
 
         req = fake.usage_in
-        assert req.org_id == "acme"
+        assert req.org == "acme"
         assert req.start_time.ToDatetime(tzinfo=timezone.utc) == start
         assert req.end_time.ToDatetime(tzinfo=timezone.utc) == end
 
@@ -251,7 +251,7 @@ class TestBillingClientWiring:
 
         client.billing.set_auto_recharge_config(
             SetAutoRechargeConfigParams(
-                org_id="acme",
+                org="acme",
                 enabled=True,
                 threshold_micros=5_000_000,
                 recharge_amount_micros=20_000_000,
@@ -272,7 +272,7 @@ class TestBillingClientWiring:
         client.billing._query = fake
 
         client.billing.get_customer_model_pricing()
-        assert fake.pricing_in.org_id == ""
+        assert fake.pricing_in.org == ""
 
-        client.billing.get_customer_model_pricing(org_id="acme")
-        assert fake.pricing_in.org_id == "acme"
+        client.billing.get_customer_model_pricing(org="acme")
+        assert fake.pricing_in.org == "acme"

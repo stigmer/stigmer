@@ -72,7 +72,7 @@ type MintUserTokenInput struct {
 
 	// Organization to scope the token to. When empty, defaults to the
 	// PlatformClient's owning organization.
-	OrgID string
+	Org string
 }
 
 // MintUserTokenResult contains the Stigmer-signed JWT and its metadata.
@@ -162,7 +162,7 @@ func (a *PlatformClientAuth) MintUserToken(ctx context.Context, input *MintUserT
 		UserId:       input.UserID,
 		UserEmail:    input.UserEmail,
 		UserName:     input.UserName,
-		OrgId:        input.OrgID,
+		Org:          input.Org,
 	})
 	if err != nil {
 		return nil, gen.WrapErr(err)

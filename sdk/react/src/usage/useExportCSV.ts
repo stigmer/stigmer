@@ -24,11 +24,11 @@ export interface UseExportCSVReturn {
  * - `model_breakdown` — one row per model with calls, tokens, cost
  *
  * @param report - The org usage report data (from `useOrgUsageReport`).
- * @param orgId - Organization ID for the filename.
+ * @param org - Organization ID for the filename.
  */
 export function useExportCSV(
   report: GetOrgUsageReportOutput | null,
-  orgId: string,
+  org: string,
 ): UseExportCSVReturn {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -39,15 +39,15 @@ export function useExportCSV(
 
       try {
         const { csv, filename } = format === "daily_summary"
-          ? buildDailySummaryCSV(report, orgId)
-          : buildModelBreakdownCSV(report, orgId);
+          ? buildDailySummaryCSV(report, org)
+          : buildModelBreakdownCSV(report, org);
 
         downloadTextFile(csv, filename, "text/csv");
       } finally {
         setIsExporting(false);
       }
     },
-    [report, orgId],
+    [report, org],
   );
 
   return { exportCSV, isExporting };
@@ -55,7 +55,7 @@ export function useExportCSV(
 
 function buildDailySummaryCSV(
   report: GetOrgUsageReportOutput,
-  orgId: string,
+  org: string,
 ): { csv: string; filename: string } {
   const header = "Date,Executions,Tokens,Cost (USD)";
   const rows = report.dailyCosts.map((entry) => {
@@ -65,13 +65,13 @@ function buildDailySummaryCSV(
 
   return {
     csv: [header, ...rows].join("\n"),
-    filename: `${orgId}-daily-usage.csv`,
+    filename: `${org}-daily-usage.csv`,
   };
 }
 
 function buildModelBreakdownCSV(
   report: GetOrgUsageReportOutput,
-  orgId: string,
+  org: string,
 ): { csv: string; filename: string } {
   const header =
     "Model,Provider,Calls,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,Cost (USD)";
@@ -91,7 +91,7 @@ function buildModelBreakdownCSV(
 
   return {
     csv: [header, ...rows].join("\n"),
-    filename: `${orgId}-model-usage.csv`,
+    filename: `${org}-model-usage.csv`,
   };
 }
 

@@ -23,17 +23,17 @@ plan: PeriodEstimateLineKind
 commission_credit: PeriodEstimateLineKind
 managed_organizations: PeriodEstimateLineKind
 
-class GetSubscriptionForOrganizationInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+class GetSubscriptionForOrgInput(_message.Message):
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class GetEntitlementsInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class GetEntitlementsOutput(_message.Message):
     __slots__ = ("entitlements", "plan_id")
@@ -44,24 +44,24 @@ class GetEntitlementsOutput(_message.Message):
     def __init__(self, entitlements: _Optional[_Union[_entitlement_pb2.Entitlements, _Mapping]] = ..., plan_id: _Optional[str] = ...) -> None: ...
 
 class ChangePlanInput(_message.Message):
-    __slots__ = ("org_id", "plan_id")
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("org", "plan_id")
+    ORG_FIELD_NUMBER: _ClassVar[int]
     PLAN_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
+    org: str
     plan_id: str
-    def __init__(self, org_id: _Optional[str] = ..., plan_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., plan_id: _Optional[str] = ...) -> None: ...
 
 class CancelSubscriptionInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class GetPeriodEstimateInput(_message.Message):
-    __slots__ = ("org_id",)
-    ORG_ID_FIELD_NUMBER: _ClassVar[int]
-    org_id: str
-    def __init__(self, org_id: _Optional[str] = ...) -> None: ...
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class PeriodEstimate(_message.Message):
     __slots__ = ("plan_id", "period_start", "period_end", "provider_cost_micros", "commission_collected_micros", "managed_organization_count", "lines", "total_micros")

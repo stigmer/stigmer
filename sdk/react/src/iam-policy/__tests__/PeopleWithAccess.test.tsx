@@ -59,7 +59,7 @@ function renderPeople(mode: DeploymentMode, kind: "agent" | "organization") {
         resource={{ kind, id: "x1" }}
         resourceKindString={kind}
         resourceKind={kind === "agent" ? ApiResourceKind.agent : ApiResourceKind.organization}
-        orgId="acme"
+        org="acme"
       />
     </DeploymentModeContext.Provider>,
   );

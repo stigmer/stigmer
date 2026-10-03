@@ -52,14 +52,14 @@ describe("BillingClient.adjustCredits", () => {
     const client = new BillingClient(fakeTransport(captured));
 
     const entry = await client.adjustCredits({
-      orgId: "acme",
+      org: "acme",
       amountMicros: 25_000_000n,
       reason: "initial tenant funding",
       idempotencyKey: "fund-acme-001",
     });
 
     expect(entry.amountMicros).toBe(25_000_000n);
-    expect(captured.adjustCredits?.orgId).toBe("acme");
+    expect(captured.adjustCredits?.org).toBe("acme");
     expect(captured.adjustCredits?.amountMicros).toBe(25_000_000n);
     expect(captured.adjustCredits?.reason).toBe("initial tenant funding");
     expect(captured.adjustCredits?.idempotencyKey).toBe("fund-acme-001");
@@ -73,7 +73,7 @@ describe("BillingClient.grantCredits", () => {
 
     const expiresAt = new Date("2026-08-31T23:59:59Z");
     const entry = await client.grantCredits({
-      orgId: "acme",
+      org: "acme",
       amountMicros: 5_000_000n,
       expiresAt,
       reason: "monthly free allowance 2026-08",
@@ -82,7 +82,7 @@ describe("BillingClient.grantCredits", () => {
 
     expect(entry.amountMicros).toBe(5_000_000n);
     const req = captured.grantCredits;
-    expect(req?.orgId).toBe("acme");
+    expect(req?.org).toBe("acme");
     expect(req?.amountMicros).toBe(5_000_000n);
     expect(req?.expiresAt && timestampDate(req.expiresAt)).toEqual(expiresAt);
     expect(req?.reason).toBe("monthly free allowance 2026-08");
@@ -94,7 +94,7 @@ describe("BillingClient.grantCredits", () => {
     const client = new BillingClient(fakeTransport(captured));
 
     await client.grantCredits({
-      orgId: "acme",
+      org: "acme",
       amountMicros: 1_000_000n,
       reason: "welcome credit",
       idempotencyKey: "welcome-acme",
@@ -112,7 +112,7 @@ describe("BillingClient.getCreditLedger", () => {
     const startTime = new Date("2026-08-01T00:00:00Z");
     const endTime = new Date("2026-08-13T00:00:00Z");
     await client.getCreditLedger({
-      orgId: "acme",
+      org: "acme",
       page: { num: 2, size: 50 },
       typeFilter: [LedgerEntryType.adjustment_credit],
       startTime,
@@ -121,7 +121,7 @@ describe("BillingClient.getCreditLedger", () => {
     });
 
     const req = captured.getCreditLedger;
-    expect(req?.orgId).toBe("acme");
+    expect(req?.org).toBe("acme");
     expect(req?.page?.num).toBe(2);
     expect(req?.page?.size).toBe(50);
     expect(req?.typeFilter).toEqual([LedgerEntryType.adjustment_credit]);
@@ -134,7 +134,7 @@ describe("BillingClient.getCreditLedger", () => {
     const captured: Captured = {};
     const client = new BillingClient(fakeTransport(captured));
 
-    await client.getCreditLedger({ orgId: "acme" });
+    await client.getCreditLedger({ org: "acme" });
 
     const req = captured.getCreditLedger;
     expect(req?.page).toBeUndefined();
@@ -142,5 +142,69 @@ describe("BillingClient.getCreditLedger", () => {
     expect(req?.endTime).toBeUndefined();
     expect(req?.typeFilter).toEqual([]);
     expect(req?.view).toBe(LedgerView.unspecified);
+  });
+});
+
+describe("BillingClient's organization-scoped calls name the organization as org", () => {
+  /** The last request each organization-scoped method received, keyed by method. */
+  function capturingTransport(seen: Map<string, { readonly org: string }>): Transport {
+    return createRouterTransport(({ service }) => {
+      service(BillingCommandController, {
+        getOrCreateBillingAccount: (req) => (seen.set("getOrCreateBillingAccount", req), {}),
+        createCreditCheckoutSession: (req) => (seen.set("createCreditCheckoutSession", req), {}),
+        createBillingPortalSession: (req) => (seen.set("createBillingPortalSession", req), {}),
+        createPaymentMethodSetupSession: (req) => (seen.set("createPaymentMethodSetupSession", req), {}),
+        setAutoRechargeConfig: (req) => (seen.set("setAutoRechargeConfig", req), {}),
+      });
+      service(BillingQueryController, {
+        getBillingAccount: (req) => (seen.set("getBillingAccount", req), {}),
+        getCreditBalance: (req) => (seen.set("getCreditBalance", req), {}),
+        getBillingUsageReport: (req) => (seen.set("getBillingUsageReport", req), {}),
+        getCustomerModelPricing: (req) => (seen.set("getCustomerModelPricing", req), {}),
+      });
+    });
+  }
+
+  const calls: ReadonlyArray<readonly [string, (client: BillingClient) => Promise<unknown>]> = [
+    ["getOrCreateBillingAccount", (c) => c.getOrCreateBillingAccount("acme")],
+    ["getBillingAccount", (c) => c.getBillingAccount("acme")],
+    ["getCreditBalance", (c) => c.getCreditBalance("acme")],
+    [
+      "createCreditCheckoutSession",
+      (c) => c.createCreditCheckoutSession({ org: "acme", packId: "starter", successUrl: "https://ok", cancelUrl: "https://no" }),
+    ],
+    ["createBillingPortalSession", (c) => c.createBillingPortalSession({ org: "acme", returnUrl: "https://back" })],
+    [
+      "createPaymentMethodSetupSession",
+      (c) => c.createPaymentMethodSetupSession({ org: "acme", successUrl: "https://ok", cancelUrl: "https://no" }),
+    ],
+    [
+      "setAutoRechargeConfig",
+      (c) =>
+        c.setAutoRechargeConfig({
+          org: "acme",
+          enabled: true,
+          thresholdMicros: 1n,
+          rechargeAmountMicros: 2n,
+          monthlyCapMicros: 3n,
+        }),
+    ],
+    [
+      "getBillingUsageReport",
+      (c) => c.getBillingUsageReport({ org: "acme", startTime: new Date(0), endTime: new Date(1000) }),
+    ],
+    ["getCustomerModelPricing", (c) => c.getCustomerModelPricing({ org: "acme" })],
+  ];
+
+  it.each(calls)("%s sends org", async (method, call) => {
+    const seen = new Map<string, { readonly org: string }>();
+    await call(new BillingClient(capturingTransport(seen)));
+    expect(seen.get(method)?.org).toBe("acme");
+  });
+
+  it("getCustomerModelPricing with no org asks for the default prices", async () => {
+    const seen = new Map<string, { readonly org: string }>();
+    await new BillingClient(capturingTransport(seen)).getCustomerModelPricing();
+    expect(seen.get("getCustomerModelPricing")?.org).toBe("");
   });
 });

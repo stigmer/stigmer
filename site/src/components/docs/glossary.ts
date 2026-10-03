@@ -29,7 +29,7 @@ export const glossary: Record<string, string> = {
   PlatformClient:
     "A credential pair your backend uses to mint Stigmer-signed user tokens. Use it to embed Stigmer in your product without setting up OIDC federation.",
   Organization:
-    "A workspace that keeps one team's Agents, Workflows, and settings separate from another's.",
+    "The boundary that holds people, Agents, Workflows, Sessions and secrets together; nothing outside it sees them.",
   Environment:
     "A separate space (like testing or production) where the same Agent can run with different settings.",
   "Agent Channel":

@@ -49,7 +49,6 @@ status: {}  # System-managed, never set by users
 | `spec.allowed_issuers` | Yes | List of accepted `iss` claim values. Every token from this provider must have its `iss` match one entry. At most 10, each at most 2048 characters. Several values are accepted only when every issuer's discovery document names the same `jwks_uri` (and the same `userinfo_endpoint` when one is set); register one identity provider per environment otherwise. Each issuer must publish an OpenID Connect discovery document whose `issuer` equals it. |
 | `spec.expected_audience` | Yes | Required `aud` claim value. Tokens without this exact audience value are rejected. With the issuer, it identifies this provider across the platform: no two identity providers share an issuer and audience pair. Max 200 characters. |
 | `spec.userinfo_endpoint` | No | HTTPS URL of the OIDC UserInfo endpoint. When Stigmer creates an account from a token that carries no email claim, it calls this endpoint with that token as a Bearer token to read the user's profile; it is not called otherwise. When set, it must be the `userinfo_endpoint` every allowed issuer's discovery document names. Max 2048 characters. |
-| `spec.rate_limit_budget` | No | Accepted and stored, but no server enforces it: it has no effect on sign-in or on request rates. |
 
 ## API Operations
 

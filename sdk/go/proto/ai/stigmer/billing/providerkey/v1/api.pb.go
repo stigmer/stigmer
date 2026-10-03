@@ -36,7 +36,7 @@ const (
 type ProviderKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The organization the key serves.
-	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// The provider the key is for: "anthropic" or "openai", the proxy's own
 	// provider names.
 	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
@@ -57,9 +57,9 @@ type ProviderKey struct {
 	// Set when the row is the integrator organization's key, serving this
 	// managed organization because it holds none of its own for the provider.
 	// Such a row is read-only here; it is managed on the integrator.
-	InheritedFromOrgId string `protobuf:"bytes,9,opt,name=inherited_from_org_id,json=inheritedFromOrgId,proto3" json:"inherited_from_org_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	InheritedFromOrg string `protobuf:"bytes,9,opt,name=inherited_from_org,json=inheritedFromOrg,proto3" json:"inherited_from_org,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ProviderKey) Reset() {
@@ -92,9 +92,9 @@ func (*ProviderKey) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_providerkey_v1_api_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ProviderKey) GetOrgId() string {
+func (x *ProviderKey) GetOrg() string {
 	if x != nil {
-		return x.OrgId
+		return x.Org
 	}
 	return ""
 }
@@ -148,9 +148,9 @@ func (x *ProviderKey) GetInUse() bool {
 	return false
 }
 
-func (x *ProviderKey) GetInheritedFromOrgId() string {
+func (x *ProviderKey) GetInheritedFromOrg() string {
 	if x != nil {
-		return x.InheritedFromOrgId
+		return x.InheritedFromOrg
 	}
 	return ""
 }
@@ -159,9 +159,9 @@ var File_ai_stigmer_billing_providerkey_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf8\x02\n" +
-	"\vProviderKey\x12\x15\n" +
-	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x1a\n" +
+	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xee\x02\n" +
+	"\vProviderKey\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x19\n" +
 	"\bkey_hint\x18\x03 \x01(\tR\akeyHint\x12\x1d\n" +
 	"\n" +
@@ -172,8 +172,8 @@ const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12<\n" +
 	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastUsedAt\x12\x15\n" +
-	"\x06in_use\x18\b \x01(\bR\x05inUse\x121\n" +
-	"\x15inherited_from_org_id\x18\t \x01(\tR\x12inheritedFromOrgIdB\xb6\x02\n" +
+	"\x06in_use\x18\b \x01(\bR\x05inUse\x12,\n" +
+	"\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrgB\xb6\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\bApiProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var (

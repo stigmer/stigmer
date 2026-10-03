@@ -6,7 +6,7 @@
  *   - an unknown client_id and a wrong secret answer one UNAUTHENTICATED
  *     copy; an expired secret refuses with copy naming the owner's fix (not
  *     rotation, #1254), an unset or never-expiring one mints;
- *     an org_id other than the owning organization refuses;
+ *     an org other than the owning organization refuses;
  *   - an existing platform-client account is reused with no grant and no
  *     write; an account under the subject in any other mode is refused;
  *   - a client that does not provision refuses an unknown user;
@@ -208,7 +208,7 @@ function request(
     userId: overrides.userId ?? "user-7",
     userEmail: overrides.userEmail ?? "pat@example.com",
     userName: overrides.userName ?? "Pat Lee",
-    orgId: overrides.orgId ?? "",
+    org: overrides.orgId ?? "",
   });
 }
 
@@ -278,7 +278,7 @@ describe("mintUserToken — the server and the client", () => {
     );
   });
 
-  it("refuses an org_id other than the owning organization, and accepts it or empty", async () => {
+  it("refuses an org other than the owning organization, and accepts it or empty", async () => {
     const other = await refusal(
       mintUserToken(harness().deps, request({ orgId: "globex" })),
     );

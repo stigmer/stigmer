@@ -308,7 +308,7 @@ including policies on child resources like Environments and Agents.
 ```typescript
 await stigmer.iamPolicy.revokeOrgAccess({
   identityAccountId: accountId,
-  organizationId: organizationId,
+  org: organizationId,
 });
 ```
 
@@ -318,7 +318,7 @@ await stigmer.iamPolicy.revokeOrgAccess({
 ```go
 _, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
   IdentityAccountId: accountId,
-  OrganizationId:    organizationId,
+  Org:               organizationId,
 })
 ```
 
@@ -328,7 +328,7 @@ _, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
 ```python
 client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
     identity_account_id=account_id,
-    organization_id=organization_id,
+    org=organization_id,
 ))
 ```
 
@@ -338,7 +338,7 @@ client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
 ```java
 client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
     .identityAccountId(accountId)
-    .organizationId(organizationId)
+    .org(organizationId)
     .build());
 ```
 

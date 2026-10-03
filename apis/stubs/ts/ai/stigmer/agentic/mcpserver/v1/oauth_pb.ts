@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/oauth.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_oauth: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIpsCCgpPQXV0aEdyYW50EhsKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAkSEwoLcmVzb3VyY2VfaWQYAiABKAkSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMSEQoJY2xpZW50X2lkGAQgASgJEhMKC2F1dGhfbWV0aG9kGAUgASgJEhYKDnRva2VuX2VuZHBvaW50GAYgASgJEhwKFGFjY2Vzc190b2tlbl9lbnZfdmFyGAcgASgJEh0KFXJlZnJlc2hfdG9rZW5fZW52X3ZhchgIIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgJIAEoCRIVCg1yZXNvdXJjZV9raW5kGAogASgJEg4KBm9yZ19pZBgLIAEoCSJkChBPQXV0aEFwcE92ZXJyaWRlEhMKC3Jlc291cmNlX2lkGAEgASgJEhUKDXJlc291cmNlX2tpbmQYAiABKAkSDgoGb3JnX2lkGAMgASgJEhQKDG9hdXRoX2FwcF9pZBgEIAEoCWIGcHJvdG8z");
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIpgCCgpPQXV0aEdyYW50EhsKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAkSEwoLcmVzb3VyY2VfaWQYAiABKAkSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMSEQoJY2xpZW50X2lkGAQgASgJEhMKC2F1dGhfbWV0aG9kGAUgASgJEhYKDnRva2VuX2VuZHBvaW50GAYgASgJEhwKFGFjY2Vzc190b2tlbl9lbnZfdmFyGAcgASgJEh0KFXJlZnJlc2hfdG9rZW5fZW52X3ZhchgIIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgJIAEoCRIVCg1yZXNvdXJjZV9raW5kGAogASgJEgsKA29yZxgLIAEoCSJhChBPQXV0aEFwcE92ZXJyaWRlEhMKC3Jlc291cmNlX2lkGAEgASgJEhUKDXJlc291cmNlX2tpbmQYAiABKAkSCwoDb3JnGAMgASgJEhQKDG9hdXRoX2FwcF9pZBgEIAEoCWIGcHJvdG8z");
 
 /**
  * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
@@ -29,7 +29,7 @@ export type OAuthGrant = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthGrant"> &
   /**
    * System-generated ID (metadata.id) of the API resource this grant
    * provides OAuth tokens for. Part of the composite key:
-   * (identity_account_id, resource_id, org_id).
+   * (identity_account_id, resource_id, org).
    *
    * @generated from field: string resource_id = 2;
    */
@@ -106,12 +106,12 @@ export type OAuthGrant = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthGrant"> &
 
   /**
    * Organization context for this grant. Part of the composite key:
-   * (identity_account_id, resource_id, org_id). Enables the same user to
+   * (identity_account_id, resource_id, org). Enables the same user to
    * maintain separate OAuth connections for a shared resource across orgs.
    *
-   * @generated from field: string org_id = 11;
+   * @generated from field: string org = 11;
    */
-  orgId: string;
+  org: string;
 };
 
 /**
@@ -130,7 +130,7 @@ export const OAuthGrantSchema: GenMessage<OAuthGrant> = /*@__PURE__*/
 export type OAuthAppOverride = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride"> & {
   /**
    * System-generated ID (metadata.id) of the API resource this override
-   * applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+   * applies to. Part of the composite key: (resource_id, resource_kind, org).
    *
    * @generated from field: string resource_id = 1;
    */
@@ -150,9 +150,9 @@ export type OAuthAppOverride = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthApp
    * Different orgs can maintain independent BYOA overrides for the same
    * shared (platform-scoped) resource.
    *
-   * @generated from field: string org_id = 3;
+   * @generated from field: string org = 3;
    */
-  orgId: string;
+  org: string;
 
   /**
    * ID of the OAuthApp resource that holds the org's client credentials.

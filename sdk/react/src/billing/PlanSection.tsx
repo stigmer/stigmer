@@ -26,7 +26,7 @@ const CARD_WAIT_MS = 30_000;
 /** Props for {@link PlanSection}. */
 export interface PlanSectionProps {
   /** The organization whose plan is shown. */
-  readonly orgId: string;
+  readonly org: string;
   /**
    * The organization is platform-managed: it runs on its integrator's
    * plan, and the section says so instead of offering plans.
@@ -63,11 +63,11 @@ export interface PlanSectionProps {
  *
  * @example
  * ```tsx
- * <PlanSection orgId={orgId} hasPaymentMethod={hasCard} />
+ * <PlanSection org={org} hasPaymentMethod={hasCard} />
  * ```
  */
 export function PlanSection({
-  orgId,
+  org: orgId,
   managed = false,
   hasPaymentMethod,
   onRefreshAccount,

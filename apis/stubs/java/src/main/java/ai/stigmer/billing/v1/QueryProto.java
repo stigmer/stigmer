@@ -39,56 +39,56 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer.billing.v1\032+ai/stigmer/billing/v" +
       "1/billing_account.proto\032\036ai/stigmer/bill" +
       "ing/v1/io.proto\032+ai/stigmer/commons/rpc/" +
-      "method_options.proto2\224\016\n\026BillingQueryCon" +
-      "troller\022\257\001\n\021getBillingAccount\022-.ai.stigm" +
+      "method_options.proto2\205\016\n\026BillingQueryCon" +
+      "troller\022\254\001\n\021getBillingAccount\022-.ai.stigm" +
       "er.billing.v1.GetBillingAccountInput\032%.a" +
-      "i.stigmer.billing.v1.BillingAccount\"D\302\270\030" +
-      "@\010\033\020\036\"\006org_id*2unauthorized to view bill" +
-      "ing for this organization\022\254\001\n\020getCreditB" +
-      "alance\022,.ai.stigmer.billing.v1.GetCredit" +
-      "BalanceInput\032$.ai.stigmer.billing.v1.Cre" +
-      "ditBalance\"D\302\270\030@\010\033\020\036\"\006org_id*2unauthoriz" +
-      "ed to view billing for this organization" +
-      "\022\261\001\n\017getCreditLedger\022+.ai.stigmer.billin" +
-      "g.v1.GetCreditLedgerInput\032+.ai.stigmer.b" +
-      "illing.v1.CreditLedgerResponse\"D\302\270\030@\010\033\020\036" +
-      "\"\006org_id*2unauthorized to view billing f" +
-      "or this organization\022\303\001\n\025getBillingUsage" +
-      "Report\0221.ai.stigmer.billing.v1.GetBillin" +
-      "gUsageReportInput\0321.ai.stigmer.billing.v" +
-      "1.BillingUsageReportResponse\"D\302\270\030@\010\033\020\036\"\006" +
-      "org_id*2unauthorized to view billing for" +
-      " this organization\022\311\001\n\027getCustomerModelP" +
-      "ricing\0223.ai.stigmer.billing.v1.GetCustom" +
-      "erModelPricingInput\0323.ai.stigmer.billing" +
-      ".v1.CustomerModelPricingResponse\"D\302\270\030@\010\033" +
-      "\020\036\"\006org_id*2unauthorized to view billing" +
-      " for this organization\022\321\001\n\031getModelPrici" +
-      "ngGovernance\0225.ai.stigmer.billing.v1.Get" +
-      "ModelPricingGovernanceInput\0325.ai.stigmer" +
-      ".billing.v1.ModelPricingGovernanceRespon" +
-      "se\"F\302\270\030B\010 \020\037*3only platform operators ca" +
-      "n view pricing governance2\007stigmer\022\331\001\n\031l" +
-      "istModelPricingBaselines\0225.ai.stigmer.bi" +
-      "lling.v1.ListModelPricingBaselinesInput\032" +
-      "4.ai.stigmer.billing.v1.ModelPricingBase" +
-      "linesResponse\"O\302\270\030K\010 \020\037*<only platform o" +
-      "perators can view the model registry bas" +
-      "eline2\007stigmer\022\310\001\n\024previewAuthorization\022" +
-      "0.ai.stigmer.billing.v1.PreviewAuthoriza" +
-      "tionInput\0323.ai.stigmer.billing.v1.Previe" +
-      "wAuthorizationResponse\"I\302\270\030E\010\035\020\037*6only p" +
-      "latform operators can execute billing op" +
-      "erations2\007stigmer\022\327\001\n\031getExecutionBillin" +
-      "gSignal\0225.ai.stigmer.billing.v1.GetExecu" +
-      "tionBillingSignalInput\0328.ai.stigmer.bill" +
-      "ing.v1.GetExecutionBillingSignalResponse" +
-      "\"I\302\270\030E\010\035\020\037*6only platform operators can " +
-      "execute billing operations2\007stigmerB\203\001B\n" +
-      "QueryProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing." +
-      "V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\" +
-      "Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bi" +
-      "lling::V1b\006proto3"
+      "i.stigmer.billing.v1.BillingAccount\"A\302\270\030" +
+      "=\010\033\020\036\"\003org*2unauthorized to view billing" +
+      " for this organization\022\251\001\n\020getCreditBala" +
+      "nce\022,.ai.stigmer.billing.v1.GetCreditBal" +
+      "anceInput\032$.ai.stigmer.billing.v1.Credit" +
+      "Balance\"A\302\270\030=\010\033\020\036\"\003org*2unauthorized to " +
+      "view billing for this organization\022\256\001\n\017g" +
+      "etCreditLedger\022+.ai.stigmer.billing.v1.G" +
+      "etCreditLedgerInput\032+.ai.stigmer.billing" +
+      ".v1.CreditLedgerResponse\"A\302\270\030=\010\033\020\036\"\003org*" +
+      "2unauthorized to view billing for this o" +
+      "rganization\022\300\001\n\025getBillingUsageReport\0221." +
+      "ai.stigmer.billing.v1.GetBillingUsageRep" +
+      "ortInput\0321.ai.stigmer.billing.v1.Billing" +
+      "UsageReportResponse\"A\302\270\030=\010\033\020\036\"\003org*2unau" +
+      "thorized to view billing for this organi" +
+      "zation\022\306\001\n\027getCustomerModelPricing\0223.ai." +
+      "stigmer.billing.v1.GetCustomerModelPrici" +
+      "ngInput\0323.ai.stigmer.billing.v1.Customer" +
+      "ModelPricingResponse\"A\302\270\030=\010\033\020\036\"\003org*2una" +
+      "uthorized to view billing for this organ" +
+      "ization\022\321\001\n\031getModelPricingGovernance\0225." +
+      "ai.stigmer.billing.v1.GetModelPricingGov" +
+      "ernanceInput\0325.ai.stigmer.billing.v1.Mod" +
+      "elPricingGovernanceResponse\"F\302\270\030B\010 \020\037*3o" +
+      "nly platform operators can view pricing " +
+      "governance2\007stigmer\022\331\001\n\031listModelPricing" +
+      "Baselines\0225.ai.stigmer.billing.v1.ListMo" +
+      "delPricingBaselinesInput\0324.ai.stigmer.bi" +
+      "lling.v1.ModelPricingBaselinesResponse\"O" +
+      "\302\270\030K\010 \020\037*<only platform operators can vi" +
+      "ew the model registry baseline2\007stigmer\022" +
+      "\310\001\n\024previewAuthorization\0220.ai.stigmer.bi" +
+      "lling.v1.PreviewAuthorizationInput\0323.ai." +
+      "stigmer.billing.v1.PreviewAuthorizationR" +
+      "esponse\"I\302\270\030E\010\035\020\037*6only platform operato" +
+      "rs can execute billing operations2\007stigm" +
+      "er\022\327\001\n\031getExecutionBillingSignal\0225.ai.st" +
+      "igmer.billing.v1.GetExecutionBillingSign" +
+      "alInput\0328.ai.stigmer.billing.v1.GetExecu" +
+      "tionBillingSignalResponse\"I\302\270\030E\010\035\020\037*6onl" +
+      "y platform operators can execute billing" +
+      " operations2\007stigmerB\203\001B\nQueryProtoP\001\242\002\003" +
+      "ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer" +
+      "\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBM" +
+      "etadata\352\002\030Ai::Stigmer::Billing::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

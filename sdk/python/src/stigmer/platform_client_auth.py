@@ -57,7 +57,7 @@ class MintUserTokenInput:
     user_name: str = ""
     """User's display name. Used for profile enrichment during JIT provisioning."""
 
-    org_id: str = ""
+    org: str = ""
     """Organization to scope the token to. Defaults to the PlatformClient's owning org."""
 
 
@@ -146,7 +146,7 @@ class PlatformClientAuth:
             user_id=input.user_id,
             user_email=input.user_email,
             user_name=input.user_name,
-            org_id=input.org_id,
+            org=input.org,
         )
 
         try:

@@ -19,7 +19,7 @@ message BillingAccount {
   string id = 1;
 
   // Organization that owns this billing account.
-  string org_id = 2;
+  string org = 2;
 
   // Current lifecycle status.
   BillingAccountStatus status = 3;

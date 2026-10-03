@@ -61,7 +61,7 @@ export function ProviderKeysSection({ billingHref, className }: ProviderKeysSect
   const { activeOrg } = useOrg();
   const mode = useDeploymentMode();
   const available = useResourceAvailable(ApiResourceKind.subscription);
-  const orgId = activeOrg?.metadata?.id ?? "";
+  const org = activeOrg?.metadata?.id ?? "";
 
   return (
     <section aria-labelledby={headingId} className={className}>
@@ -77,22 +77,22 @@ export function ProviderKeysSection({ billingHref, className }: ProviderKeysSect
           Your own provider keys are a Stigmer Cloud plan feature. Local mode already calls the providers with your
           own keys directly.
         </CloudFeatureNotice>
-      ) : !orgId ? (
+      ) : !org ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to manage its provider keys.
         </p>
       ) : (
-        <ProviderKeysContent orgId={orgId} billingHref={billingHref} />
+        <ProviderKeysContent org={org} billingHref={billingHref} />
       )}
     </section>
   );
 }
 
-function ProviderKeysContent({ orgId, billingHref }: { readonly orgId: string; readonly billingHref?: string }) {
-  const listed = useProviderKeys(orgId);
-  const entitlements = useEntitlements(orgId);
+function ProviderKeysContent({ org, billingHref }: { readonly org: string; readonly billingHref?: string }) {
+  const listed = useProviderKeys(org);
+  const entitlements = useEntitlements(org);
   const plans = usePlans();
-  const manage = useCheckPermission({ kind: "organization", id: orgId }, "can_manage_billing");
+  const manage = useCheckPermission({ kind: "organization", id: org }, "can_manage_billing");
   const canManage = !manage.isLoading && manage.allowed;
   const actions = useProviderKeyActions();
   const [editing, setEditing] = useState<ProviderKeyProvider | null>(null);
@@ -132,7 +132,7 @@ function ProviderKeysContent({ orgId, billingHref }: { readonly orgId: string; r
         {PROVIDERS.map((provider) => (
           <ProviderRow
             key={provider.id}
-            orgId={orgId}
+            org={org}
             provider={provider}
             stored={keys.find((key) => key.provider === provider.id)}
             canSave={canManage && allowed}
@@ -167,7 +167,7 @@ function ProviderKeysContent({ orgId, billingHref }: { readonly orgId: string; r
 }
 
 function ProviderRow({
-  orgId,
+  org,
   provider,
   stored,
   canSave,
@@ -178,7 +178,7 @@ function ProviderRow({
   onCancel,
   actions,
 }: {
-  readonly orgId: string;
+  readonly org: string;
   readonly provider: (typeof PROVIDERS)[number];
   readonly stored: ProviderKey | undefined;
   readonly canSave: boolean;
@@ -192,12 +192,12 @@ function ProviderRow({
   const inputId = useId();
   const [value, setValue] = useState("");
   const [confirming, setConfirming] = useState(false);
-  const inherited = stored !== undefined && stored.inheritedFromOrgId !== "";
+  const inherited = stored !== undefined && stored.inheritedFromOrg !== "";
   const own = stored !== undefined && !inherited;
 
   const save = async () => {
     try {
-      await actions.setKey(orgId, provider.id, value.trim());
+      await actions.setKey(org, provider.id, value.trim());
       setValue("");
       onDone();
     } catch {
@@ -206,7 +206,7 @@ function ProviderRow({
   };
   const remove = async () => {
     try {
-      await actions.removeKey(orgId, provider.id);
+      await actions.removeKey(org, provider.id);
       setConfirming(false);
       onDone();
     } catch {
@@ -307,8 +307,8 @@ function describe(key: ProviderKey | undefined): string {
     return "Not set: calls run on Stigmer's keys, billed as usage.";
   }
   const parts = [`Key ending in ${key.keyHint}`];
-  if (key.inheritedFromOrgId !== "") {
-    parts.push(`provided by ${key.inheritedFromOrgId}`);
+  if (key.inheritedFromOrg !== "") {
+    parts.push(`provided by ${key.inheritedFromOrg}`);
   } else if (key.updatedAt !== undefined) {
     parts.push(`saved ${formatDay(timestampDate(key.updatedAt))}`);
   }

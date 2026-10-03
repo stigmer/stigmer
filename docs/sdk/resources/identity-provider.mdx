@@ -253,7 +253,6 @@ const identityProvider = await stigmer.identityProvider.apply({
   jwksUri: "...",
   allowedIssuers: [],
   expectedAudience: "...",
-  rateLimitBudget: 0,
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
@@ -275,7 +274,6 @@ identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityPro
   JwksUri:               "...",
   AllowedIssuers:        []string{},
   ExpectedAudience:      "...",
-  RateLimitBudget:       0,
   UserinfoEndpoint:      "...",
   IsSsoProvider:         false,
   OidcClientId:          "...",
@@ -297,7 +295,6 @@ identity_provider = client.identity_providers.apply(IdentityProviderInput(
     jwks_uri="...",
     allowed_issuers=[],
     expected_audience="...",
-    rate_limit_budget=0,
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
@@ -319,7 +316,6 @@ IdentityProvider identityProvider = client.identityProviders().apply(IdentityPro
     .jwksUri("...")
     .allowedIssuers(List.of())
     .expectedAudience("...")
-    .rateLimitBudget(0)
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
@@ -354,7 +350,6 @@ const identityProvider = await stigmer.identityProvider.create({
   jwksUri: "...",
   allowedIssuers: [],
   expectedAudience: "...",
-  rateLimitBudget: 0,
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
@@ -376,7 +371,6 @@ identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityPr
   JwksUri:               "...",
   AllowedIssuers:        []string{},
   ExpectedAudience:      "...",
-  RateLimitBudget:       0,
   UserinfoEndpoint:      "...",
   IsSsoProvider:         false,
   OidcClientId:          "...",
@@ -398,7 +392,6 @@ identity_provider = client.identity_providers.create(IdentityProviderInput(
     jwks_uri="...",
     allowed_issuers=[],
     expected_audience="...",
-    rate_limit_budget=0,
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
@@ -420,7 +413,6 @@ IdentityProvider identityProvider = client.identityProviders().create(IdentityPr
     .jwksUri("...")
     .allowedIssuers(List.of())
     .expectedAudience("...")
-    .rateLimitBudget(0)
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
@@ -453,7 +445,6 @@ const identityProvider = await stigmer.identityProvider.update({
   jwksUri: "...",
   allowedIssuers: [],
   expectedAudience: "...",
-  rateLimitBudget: 0,
   userinfoEndpoint: "...",
   isSsoProvider: false,
   oidcClientId: "...",
@@ -475,7 +466,6 @@ identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityPr
   JwksUri:               "...",
   AllowedIssuers:        []string{},
   ExpectedAudience:      "...",
-  RateLimitBudget:       0,
   UserinfoEndpoint:      "...",
   IsSsoProvider:         false,
   OidcClientId:          "...",
@@ -497,7 +487,6 @@ identity_provider = client.identity_providers.update(IdentityProviderInput(
     jwks_uri="...",
     allowed_issuers=[],
     expected_audience="...",
-    rate_limit_budget=0,
     userinfo_endpoint="...",
     is_sso_provider=False,
     oidc_client_id="...",
@@ -519,7 +508,6 @@ IdentityProvider identityProvider = client.identityProviders().update(IdentityPr
     .jwksUri("...")
     .allowedIssuers(List.of())
     .expectedAudience("...")
-    .rateLimitBudget(0)
     .userinfoEndpoint("...")
     .isSsoProvider(false)
     .oidcClientId("...")
@@ -595,7 +583,6 @@ Input for creating or updating an Identity Provider.
     jwksUri: { type: "string", description: "JWKS endpoint URL for validating the tokens this provider's users present." },
     allowedIssuers: { type: "string[]", description: "JWT issuer values that Stigmer will accept from this platform." },
     expectedAudience: { type: "string", description: "Expected JWT audience value." },
-    rateLimitBudget: { type: "number", description: "A requests-per-minute budget that no server enforces." },
     userinfoEndpoint: { type: "string", description: "OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account." },
     isSsoProvider: { type: "boolean", description: "Whether this identity provider serves as the SSO login provider for its owning organization." },
     oidcClientId: { type: "string", description: "OIDC client identifier for browser-based SSO login." },

@@ -8,7 +8,7 @@
 //     it is a platform operator's act, refused to everyone else with the
 //     proto's own copy;
 //   - an organization that never subscribed is on Free: getEntitlements
-//     answers Free's features with an empty plan id, and getForOrganization
+//     answers Free's features with an empty plan id, and getForOrg
 //     and getPeriodEstimate answer NOT_FOUND;
 //   - subscribing needs a saved payment method, refused with the engine's
 //     copy and the PAYMENT_METHOD_REQUIRED reason before anything is written
@@ -163,22 +163,22 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     await control.stripe.reset();
   });
 
-  it("[billing.rpc.get-entitlements.free-by-default] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getForOrganization] an organization that never subscribed is on Free", async () => {
+  it("[billing.rpc.get-entitlements.free-by-default] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getForOrg] an organization that never subscribed is on Free", async () => {
     const { org } = await unfundedOrg();
-    const answer = await clients.subscriptionQuery.getEntitlements({ orgId: org });
+    const answer = await clients.subscriptionQuery.getEntitlements({ org });
     expect(answer.planId).toBe("");
     expect(answer.entitlements?.features).toEqual(FREE_FEATURES);
     await expectGrpcCode(
-      () => clients.subscriptionQuery.getForOrganization({ orgId: org }),
+      () => clients.subscriptionQuery.getForOrg({ org }),
       Code.NotFound,
-      "getForOrganization on Free",
+      "getForOrg on Free",
     );
   });
 
   it("[billing.rpc.get-period-estimate.not-found-on-free] [rpc:SubscriptionQueryController.getPeriodEstimate] an organization on Free has no period to estimate", async () => {
     const { org } = await unfundedOrg();
     await expectGrpcCode(
-      () => clients.subscriptionQuery.getPeriodEstimate({ orgId: org }),
+      () => clients.subscriptionQuery.getPeriodEstimate({ org }),
       Code.NotFound,
       "getPeriodEstimate on Free",
     );
@@ -188,7 +188,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     const { org } = await unfundedOrg();
     const planId = await subscriptionPlanId();
     const refused = await expectGrpcCode(
-      () => clients.subscriptionCommand.changePlan({ orgId: org, planId }),
+      () => clients.subscriptionCommand.changePlan({ org, planId }),
       Code.FailedPrecondition,
       "changePlan without a card",
     );
@@ -196,13 +196,13 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     const [reason] = refused.findDetails(ErrorInfoSchema);
     expect(reason?.reason, "the refusal names its fix").toBe("PAYMENT_METHOD_REQUIRED");
     expect(reason?.domain).toBe("stigmer.ai");
-    expect(reason?.metadata).toEqual({ org_id: org });
+    expect(reason?.metadata).toEqual({ org });
     await expectGrpcCode(
-      () => clients.subscriptionQuery.getForOrganization({ orgId: org }),
+      () => clients.subscriptionQuery.getForOrg({ org }),
       Code.NotFound,
       "no subscription after the refusal",
     );
-    const answer = await clients.subscriptionQuery.getEntitlements({ orgId: org });
+    const answer = await clients.subscriptionQuery.getEntitlements({ org });
     expect(answer.planId, "still on Free").toBe("");
     expect(await control.stripe.requests(), "nothing reached Stripe").toEqual([]);
   });
@@ -212,19 +212,19 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
     const planId = await subscriptionPlanId();
     const other = await outsider();
     const change = await expectGrpcCode(
-      () => other.subscriptionCommand.changePlan({ orgId: org, planId }),
+      () => other.subscriptionCommand.changePlan({ org, planId }),
       Code.PermissionDenied,
       "outsider changePlan",
     );
     expect(change.rawMessage).toBe(COPY.changePlan);
     const read = await expectGrpcCode(
-      () => other.subscriptionQuery.getEntitlements({ orgId: org }),
+      () => other.subscriptionQuery.getEntitlements({ org }),
       Code.PermissionDenied,
       "outsider getEntitlements",
     );
     expect(read.rawMessage).toBe(COPY.viewEntitlements);
     const estimate = await expectGrpcCode(
-      () => other.subscriptionQuery.getPeriodEstimate({ orgId: org }),
+      () => other.subscriptionQuery.getPeriodEstimate({ org }),
       Code.PermissionDenied,
       "outsider getPeriodEstimate",
     );
@@ -233,18 +233,18 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
 });
 
 describe.skipIf(plansServed)("Billing plans conformance — the OSS boundary (no plan or subscription controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-plan-rpc-unimplemented] [rpc:PlanCommandController.create] [rpc:PlanCommandController.retire] [rpc:PlanQueryController.get] [rpc:PlanQueryController.list] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionCommandController.cancel] [rpc:SubscriptionQueryController.getForOrganization] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] every Plan and Subscription RPC answers Unimplemented where billingPlans is false", async () => {
+  it("[billing.rpc.oss-boundary.every-plan-rpc-unimplemented] [rpc:PlanCommandController.create] [rpc:PlanCommandController.retire] [rpc:PlanQueryController.get] [rpc:PlanQueryController.list] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionCommandController.cancel] [rpc:SubscriptionQueryController.getForOrg] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] every Plan and Subscription RPC answers Unimplemented where billingPlans is false", async () => {
     const org = "conformance-oss-boundary";
     const lanes: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
       ["Plan.create", () => clients.planCommand.create({})],
       ["Plan.retire", () => clients.planCommand.retire({ value: "pln_x" })],
       ["Plan.get", () => clients.planQuery.get({ value: "pln_x" })],
       ["Plan.list", () => clients.planQuery.list({})],
-      ["Subscription.changePlan", () => clients.subscriptionCommand.changePlan({ orgId: org, planId: "pln_x" })],
-      ["Subscription.cancel", () => clients.subscriptionCommand.cancel({ orgId: org })],
-      ["Subscription.getForOrganization", () => clients.subscriptionQuery.getForOrganization({ orgId: org })],
-      ["Subscription.getEntitlements", () => clients.subscriptionQuery.getEntitlements({ orgId: org })],
-      ["Subscription.getPeriodEstimate", () => clients.subscriptionQuery.getPeriodEstimate({ orgId: org })],
+      ["Subscription.changePlan", () => clients.subscriptionCommand.changePlan({ org, planId: "pln_x" })],
+      ["Subscription.cancel", () => clients.subscriptionCommand.cancel({ org })],
+      ["Subscription.getForOrg", () => clients.subscriptionQuery.getForOrg({ org })],
+      ["Subscription.getEntitlements", () => clients.subscriptionQuery.getEntitlements({ org })],
+      ["Subscription.getPeriodEstimate", () => clients.subscriptionQuery.getPeriodEstimate({ org })],
     ];
     // Every method the four controllers declare, so a new RPC on the contract
     // fails here until its boundary is pinned.

@@ -27,7 +27,7 @@ service ProviderKeyCommandController {
   rpc set(SetProviderKeyInput) returns (ProviderKey) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage provider keys for this organization";
   }
 
@@ -39,7 +39,7 @@ service ProviderKeyCommandController {
   rpc delete(DeleteProviderKeyInput) returns (ProviderKey) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage provider keys for this organization";
   }
 }

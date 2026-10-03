@@ -138,7 +138,7 @@ type IamPolicyQueryControllerClient interface {
 	// - Organization members count badge in navigation
 	// - Settings page member summary
 	//
-	// Input: GetPrincipalsCountInput with org_id and principal_kind
+	// Input: GetPrincipalsCountInput with org and principal_kind
 	// Output: PrincipalsCount with integer count
 	GetPrincipalsCount(ctx context.Context, in *GetPrincipalsCountInput, opts ...grpc.CallOption) (*PrincipalsCount, error)
 }
@@ -340,7 +340,7 @@ type IamPolicyQueryControllerServer interface {
 	// - Organization members count badge in navigation
 	// - Settings page member summary
 	//
-	// Input: GetPrincipalsCountInput with org_id and principal_kind
+	// Input: GetPrincipalsCountInput with org and principal_kind
 	// Output: PrincipalsCount with integer count
 	GetPrincipalsCount(context.Context, *GetPrincipalsCountInput) (*PrincipalsCount, error)
 }

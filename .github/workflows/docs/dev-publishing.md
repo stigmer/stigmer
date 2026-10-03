@@ -79,7 +79,7 @@ suffix it expects:
 | Channel | Version | Notes |
 | --- | --- | --- |
 | Maven | `X.Y.Z-SNAPSHOT` | Stable, mutable pointer — republish endlessly. |
-| npm | `X.Y.Z-dev.<UTCstamp>` under tag `dev` | Unique per publish; `@dev` always resolves the newest. |
+| npm | `X.Y.Z-dev.<UTCstamp>.g<sha12>` under tag `dev` | Unique per publish; `@dev` always resolves the newest. `g<sha12>` is the first 12 characters of the commit the build came from; the local lane writes it only from a clean tree (`scripts/lib/dev-version.mjs`). |
 | Python | `X.Y.Z.dev<epoch>` on TestPyPI | PEP 440 dev release. |
 | Docker | `:dev-<shortsha>` (and a moving `:dev`) | On GHCR. |
 
@@ -214,15 +214,15 @@ npm install @stigmer/react@dev     # dev (latest dev build)
 ```
 
 `@dev` always resolves to the newest dev build. To pin an exact dev build, use the
-full `3.0.1-dev.<stamp>` version from the run summary.
+full `3.0.1-dev.<stamp>.g<sha12>` version from the run summary.
 
 **`@stigmer/server` (the library a composition pins).** A composition that pins the library at an exact release has three ways to run against an unreleased server change, fastest first:
 
 1. **No publish at all: `make stage-server-library`.** It packs the server and the `@stigmer/*` libraries it links from your working tree, at one `0.0.0-local.<stamp>` version, into `backend/services/stigmer-server/stage/library` (`out=<dir>` moves it). The consumer installs every tarball in one `npm install --no-save <dir>/pkgs/*.tgz`, which changes neither its `package.json` nor its lockfile; its next `npm ci` puts the pinned release back. This is the everyday loop: minutes from an edit to the consumer's own suite, and nothing leaves your machine. `npm link` is not a substitute: a linked package resolves its dependencies from this repository's `node_modules`, which gives the consumer a second copy of every package the server declares in `stigmerPublish.consumerCheck.singleCopy`.
 2. **A dev build from your working tree: `make publish-dev-local targets=npm`.** It publishes `@stigmer/server` with the libs and the runner, through the same `scripts/publish-standalone.mjs` sequence as the workflow, consumer smoke included (it needs the `temporal` CLI, and uses a Temporal already answering on `127.0.0.1:7233` or starts a dev server for the step). Use it when another machine or session must install the build.
-3. **A dev build of a pushed commit: dispatch this workflow** from the OSS feature branch (`targets=npm`), when the build must trace to a commit.
+3. **A dev build of a pushed commit: dispatch this workflow** (`targets=npm`), when the build must trace to a commit. Dispatched on `main` once the OSS pull request has merged, it is the build the cloud composition merges on.
 
-A dev build is pinned by its exact version, never by the `dev` tag: `@stigmer/server` and every other `@stigmer/*` dependency at the same `X.Y.Z-dev.<stamp>`. A production manifest never carries a dev build: the composition's `main` pins released versions only (its pin guard keeps a PR red until it re-pins after the release).
+A dev build is pinned by its exact version, never by the `dev` tag: `@stigmer/server` and every other `@stigmer/*` dependency at the same `X.Y.Z-dev.<stamp>.g<sha12>`. A consumer that merges on a dev build (the cloud composition's `main`) is expected to pin only one whose commit is on this repository's `main`, and to check that by the commit the version names, which it can check out with no lookup. A version without `.g<sha12>` (a local build from a dirty tree) names no commit, so such a consumer refuses it. A production image never carries a dev build: the consumer re-pins to a release before anything deploys.
 
 ### Python (TestPyPI)
 

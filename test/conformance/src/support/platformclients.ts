@@ -90,7 +90,7 @@ export async function mintUserToken(
   clients: ConformanceClients,
   credentials: PlatformClientCredentials,
   userId: string,
-  extra: { userEmail?: string; userName?: string; orgId?: string } = {},
+  extra: { userEmail?: string; userName?: string; org?: string } = {},
 ): Promise<string> {
   const minted = await clients.platformClientToken.mintUserToken({
     clientId: credentials.clientId,
