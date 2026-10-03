@@ -141,6 +141,26 @@ describe("provisionGit", () => {
     expect(result.consumedKeys).toEqual([]);
   });
 
+  it("reports GITHUB_TOKEN consumed when reusing a GitHub clone the token serves", async () => {
+    // Every turn after the first reuses the clone, and the token still
+    // serves it (the remote URL the clone wrote, or the credential store
+    // configured again here): what the workspace consumed must not depend
+    // on which turn is asking.
+    for (const configureCredentials of [false, true]) {
+      const backend = mockWorkspaceBackend({
+        exists: vi.fn().mockResolvedValue(true),
+        execute: routingExecute(),
+      });
+      const result = await provisionGit(makeOptions({
+        backend,
+        envVars: { GITHUB_TOKEN: "ghp_secret123" },
+        isLocalMode: !configureCredentials,
+        configureCredentials,
+      }));
+      expect(result.consumedKeys, `configureCredentials=${configureCredentials}`).toEqual(["GITHUB_TOKEN"]);
+    }
+  });
+
   // ── GitHub token injection ────────────────────────────────────────
 
   it("injects GitHub token into the origin remote URL", async () => {

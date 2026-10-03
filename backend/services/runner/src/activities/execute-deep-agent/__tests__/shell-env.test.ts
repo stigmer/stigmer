@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildShellEnv, SHELL_ENV_DENYLIST } from "../shell-env.js";
+import { buildShellEnv, SHELL_ENV_DENYLIST, shellRunValues } from "../shell-env.js";
+import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { RUNNER_CREDENTIAL_ENV_KEYS } from "../../../shared/runner-credential-keys.js";
 
 describe("buildShellEnv", () => {
@@ -56,5 +57,58 @@ describe("buildShellEnv", () => {
 
     expect(env.DEFINED).toBe("yes");
     expect(env.UNDEFINED).toBeUndefined();
+  });
+});
+
+describe("shellRunValues", () => {
+  const RUN_VALUES = {
+    AGENT_KEY: "agent-secret",
+    LINEAR_TOKEN: "mcp-only-token",
+    GITHUB_TOKEN: "ghp-run",
+    WORKSPACE_PROVISION_DEPLOY_KEY: "provision-only",
+  };
+
+  function gitResult(consumedKeys: readonly string[]): ProvisionResult {
+    return {
+      rootDir: "/ws",
+      sourceType: "git_repo",
+      consumedKeys,
+      workspaceDescription: "a clone",
+      entryName: "",
+    };
+  }
+
+  it("gives the shell only the keys the agent declares, never a key only an MCP server declares", () => {
+    expect(shellRunValues(RUN_VALUES, { AGENT_KEY: {} }, [])).toEqual({
+      AGENT_KEY: "agent-secret",
+    });
+  });
+
+  it("an agent that declares nothing gets no run values; the built-in assistant (no agent) neither", () => {
+    expect(shellRunValues(RUN_VALUES, {}, [])).toEqual({});
+    expect(shellRunValues(RUN_VALUES, undefined, [])).toEqual({});
+  });
+
+  it("adds the token a git clone consumed, which the clone already left in the shell's reach", () => {
+    expect(
+      shellRunValues(RUN_VALUES, undefined, [gitResult(["GITHUB_TOKEN", "WORKSPACE_PROVISION_DEPLOY_KEY"])]),
+    ).toEqual({ GITHUB_TOKEN: "ghp-run" });
+  });
+
+  it("adds no token when no git source consumed it, and never a provisioning-only key", () => {
+    expect(shellRunValues(RUN_VALUES, { AGENT_KEY: {} }, [gitResult([])])).toEqual({
+      AGENT_KEY: "agent-secret",
+    });
+    expect(
+      shellRunValues(RUN_VALUES, undefined, [
+        { ...gitResult(["GITHUB_TOKEN"]), sourceType: "local_path" },
+      ]),
+    ).toEqual({});
+  });
+
+  it("an agent that declares GITHUB_TOKEN gets it whatever the workspace", () => {
+    expect(shellRunValues(RUN_VALUES, { GITHUB_TOKEN: {} }, [])).toEqual({
+      GITHUB_TOKEN: "ghp-run",
+    });
   });
 });
