@@ -18,7 +18,7 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 - [ ] `spec.jwks_uri` is reachable from Stigmer's servers (publicly accessible)
 - [ ] `spec.jwks_uri` is the `jwks_uri` that each issuer's OIDC discovery document names
 - [ ] `spec.allowed_issuers` contains at least one entry
-- [ ] Each entry in `spec.allowed_issuers` exactly matches the `iss` claim in tokens from this provider (copy directly from the provider's OIDC discovery document)
+- [ ] Each entry in `spec.allowed_issuers` names the same issuer as the `iss` claim in tokens from this provider, path included (copy it from the provider's OIDC discovery document)
 - [ ] `spec.expected_audience` exactly matches the `aud` claim in tokens (copy directly from the provider's configuration)
 - [ ] `spec.expected_audience` is your organization's own registration at the issuer (an API identifier or client ID), not a value shared with others
 - [ ] `spec.userinfo_endpoint`, if set, is an HTTPS URL pointing to the OIDC UserInfo endpoint
@@ -32,19 +32,19 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 
 ### Mismatched `allowed_issuers`
 
-The `iss` claim in the token must **exactly** match one of the values in `allowed_issuers`. A trailing slash mismatch will cause every sign-in through this provider to fail.
+The `iss` claim in the token must name one of the issuers in `allowed_issuers`. Stigmer compares issuers in canonical form, so a trailing slash, the case of the scheme and host, and a default port make no difference; the path does. An Okta custom authorization server, for one, is an issuer with a path, and the bare domain is a different issuer.
 
 ```yaml no-validate="a wrong and a right value side by side"
-# Wrong — missing trailing slash; Auth0 always includes one
+# Wrong — the domain alone; the tokens' iss carries the authorization server's path
 allowed_issuers:
-  - "https://my-tenant.us.auth0.com"
+  - "https://acme.okta.com"
 
-# Correct — matches the exact iss claim from Auth0
+# Correct — the issuer the tokens name
 allowed_issuers:
-  - "https://my-tenant.us.auth0.com/"
+  - "https://acme.okta.com/oauth2/default"
 ```
 
-To find the exact value, check the token's `iss` claim or the Auth0 tenant's OpenID Connect discovery document at `https://{tenant}/.well-known/openid-configuration`.
+To find the value, check the token's `iss` claim or the `issuer` field of the provider's OpenID Connect discovery document (`{issuer}/.well-known/openid-configuration`). The save reads that document, and refuses an issuer whose document names another.
 
 ### Mismatched `expected_audience`
 

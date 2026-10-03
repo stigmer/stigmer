@@ -212,7 +212,7 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 | `jwksUri`               | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                          |
 | `allowedIssuers`        | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                     |
 | `expectedAudience`      | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                     |
-| `displayName`           | No       | Display name in the UI. The console shows `name` when it is empty                                                                                                         |
+| `displayName`           | No       | Display name in the console, and on the sign-in button of an SSO provider. The console's provider list and detail show `name` when it is empty                            |
 | `isSsoProvider`         | No       | Set to `true` only when configuring SSO for a self-managed Organization. Defaults to `false`                                                                              |
 | `oidcClientId`          | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`                                                                                        |
 | `autoProvisionAccounts` | No       | When `true`, Stigmer creates a federated account automatically on first authentication. Defaults to `false`                                                               |
