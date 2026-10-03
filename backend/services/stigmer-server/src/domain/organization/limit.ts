@@ -33,7 +33,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Store } from "../../store/interface.js";
-import { failedPreconditionError, internalError } from "../../pipeline/errors.js";
+import {
+  failedPreconditionError,
+  internalError,
+} from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
@@ -78,7 +81,10 @@ export function newOrganizationLimitStep<Desc extends DescMessage>(
       if (held >= limit) {
         throw failedPreconditionError(
           `this server holds ${limit} ${limit === 1 ? "organization" : "organizations"}, its limit`,
-          { reason: ORGANIZATION_LIMIT_REACHED, metadata: { limit: String(limit) } },
+          {
+            reason: ORGANIZATION_LIMIT_REACHED,
+            metadata: { limit: String(limit) },
+          },
         );
       }
     },

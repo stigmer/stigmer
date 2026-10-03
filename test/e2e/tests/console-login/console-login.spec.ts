@@ -86,6 +86,7 @@ test.describe("console login against an authenticated self-hosted server", () =>
     const members = page.getByRole("list", { name: "Organization members" });
     await expect(members).toBeVisible({ timeout: 15_000 });
     await expect(members.getByText("Owner", { exact: true })).toBeVisible();
+    await page.goto("/");
 
     // 3. The RPCs carried the bearer, and the first-sign-in pair ran.
     const paths = rpcAuthHeaders.map((entry) => entry.path);
@@ -98,9 +99,10 @@ test.describe("console login against an authenticated self-hosted server", () =>
       );
     }
 
-    // 4. Sign out lands on /login, showing the sign-in card, and does not
-    //    bounce straight back into the issuer.
-    await page.getByRole("button", { name: "Sign out" }).click();
+    // 4. Sign out (from the user menu) lands on /login, showing the sign-in
+    //    card, and does not bounce straight back into the issuer.
+    await page.getByRole("button", { name: "User menu" }).click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
     await page.waitForURL((url) => url.pathname === "/login", {
       timeout: 15_000,
     });

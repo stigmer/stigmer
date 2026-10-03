@@ -214,6 +214,24 @@ describe("the fill over the interceptor chain", () => {
     expect((handedOn as typeof original).metadata?.org).toBe("stigmer");
   });
 
+  it("a request whose metadata is unset passes untouched: validation refuses it on its own", async () => {
+    const interceptor = createSingleOrganizationInterceptor(holding("stigmer"));
+    const original = create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+    });
+    let handedOn: Message | undefined;
+    await interceptor(async (request) => {
+      handedOn = request.message as Message;
+      return { message: create(AgentSchema), stream: false } as never;
+    })({
+      stream: false,
+      method: AgentCommandController.method.create,
+      service: AgentCommandController,
+      message: original,
+    } as never);
+    expect(handedOn).toBe(original);
+  });
+
   it("a holder with no organization fills nothing", async () => {
     const { search, seen } = harness(holding(undefined));
     await search.search({ query: "anything" });

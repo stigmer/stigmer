@@ -59,7 +59,9 @@ import { getKindMeta } from "../apiresource-meta.js";
 export type FillPath = "org" | "metadata.org" | undefined;
 
 /** Why a method that takes an organization is not filled, for the inventory. */
-export type NotFilledReason = "organization service" | "kind belongs to no organization";
+export type NotFilledReason =
+  | "organization service"
+  | "kind belongs to no organization";
 
 export interface FillRule {
   readonly path: FillPath;
@@ -76,9 +78,7 @@ export function fillRuleFor(method: DescMethod): FillRule {
   const fields = method.input.fields;
   const topOrg = fields.find(
     (f) =>
-      f.name === ORG_FIELD &&
-      f.fieldKind === "scalar" &&
-      f.oneof === undefined,
+      f.name === ORG_FIELD && f.fieldKind === "scalar" && f.oneof === undefined,
   );
   const metadata = fields.find(
     (f) =>
@@ -170,7 +170,10 @@ function resolveFill(method: DescMethod): ResolvedFill | undefined {
 }
 
 /** The message that holds the org field, or undefined when `metadata` is unset (protovalidate refuses that request on its own). */
-function holderOf(root: ReflectMessage, fill: ResolvedFill): ReflectMessage | undefined {
+function holderOf(
+  root: ReflectMessage,
+  fill: ResolvedFill,
+): ReflectMessage | undefined {
   if (fill.via === undefined) {
     return root;
   }
@@ -199,12 +202,18 @@ export function createSingleOrganizationInterceptor(
     if (fill === undefined) {
       return next(request);
     }
-    const current = holderOf(reflect(request.method.input, request.message), fill);
+    const current = holderOf(
+      reflect(request.method.input, request.message),
+      fill,
+    );
     if (current === undefined || current.get(fill.field) !== "") {
       return next(request);
     }
     const message = clone(request.method.input, request.message);
-    holderOf(reflect(request.method.input, message), fill)?.set(fill.field, org);
+    holderOf(reflect(request.method.input, message), fill)?.set(
+      fill.field,
+      org,
+    );
     return next({ ...request, message });
   };
 }

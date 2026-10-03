@@ -26,7 +26,7 @@
  *     recorded SINGLE_ORG_KEY (iampolicy/membership.ts).
  *
  * After the create the store is read again, and that read settles the
- * holder, not the create's answer: two replicas racing on an empty store
+ * holder and the SINGLE_ORG_KEY record, not the create's answer: two replicas racing on an empty store
  * end with one organization (the slug claim admits one; the other's
  * AlreadyExists is the lost race), and a store from before this step may
  * hold several. Exactly one turns the fill on; any other count leaves it
@@ -61,7 +61,10 @@ import type { Store } from "../store/interface.js";
 
 /** The in-process edge that makes the organization: the whole create chain, as the given caller. */
 export interface SingleOrganizationCreator {
-  createAsCaller(organization: Organization, caller: CallerIdentity): Promise<Organization>;
+  createAsCaller(
+    organization: Organization,
+    caller: CallerIdentity,
+  ): Promise<Organization>;
 }
 
 export interface SingleOrganizationBootDeps {
@@ -77,35 +80,37 @@ export async function ensureSingleOrganization(
   deps: SingleOrganizationBootDeps,
 ): Promise<void> {
   const { store, logger } = deps;
-  if ((await store.listResources(ApiResourceKind.organization)).length === 0) {
-    await createSingleOrganization(deps);
-  }
-  const held = (await store.listResources(ApiResourceKind.organization)).map(
-    (bytes) => fromBinary(OrganizationSchema, bytes),
-  );
-  if (held.length === 1) {
-    const org = held[0]?.metadata?.id ?? "";
-    if (org === "") {
-      throw new Error("the server's one organization carries no id");
+  const made =
+    (await store.listResources(ApiResourceKind.organization)).length === 0 &&
+    (await createSingleOrganization(deps));
+  const [only, ...others] = (
+    await store.listResources(ApiResourceKind.organization)
+  ).map((bytes) => fromBinary(OrganizationSchema, bytes).metadata?.id ?? "");
+  if (only !== undefined && only !== "" && others.length === 0) {
+    // Recorded from the store's own answer, and only by the start that made
+    // it: a replica that lost the race leaves the record to the winner.
+    if (made) {
+      await store.bootstrapState.set(SINGLE_ORG_KEY, only);
     }
-    deps.holder.settle(org);
-    logger.info("single organization ensured", { org });
+    deps.holder.settle(only);
+    logger.info("single organization ensured", { org: only });
     return;
   }
   deps.holder.settle(undefined);
-  if (held.length > 1) {
+  if (others.length > 0) {
     logger.warn(
       "this server holds one organization, but its store holds several: requests must name their organization, and no organization can be added",
-      { organizations: held.length },
+      { organizations: others.length + 1 },
     );
   }
 }
 
+/** Resolves true when this start made the organization, false when the store already had it or cannot. */
 async function createSingleOrganization(
   deps: SingleOrganizationBootDeps,
-): Promise<void> {
+): Promise<boolean> {
   try {
-    const made = await deps.creator.createAsCaller(
+    await deps.creator.createAsCaller(
       create(OrganizationSchema, {
         apiVersion: "tenancy.stigmer.ai/v1",
         kind: "Organization",
@@ -117,11 +122,7 @@ async function createSingleOrganization(
       }),
       deps.caller,
     );
-    const id = made.metadata?.id ?? "";
-    if (id === "") {
-      throw new Error("the organization create answered no id");
-    }
-    await deps.store.bootstrapState.set(SINGLE_ORG_KEY, id);
+    return true;
   } catch (error) {
     if (!(error instanceof ConnectError) || error.code !== Code.AlreadyExists) {
       throw new Error(
@@ -140,5 +141,6 @@ async function createSingleOrganization(
     }
     // Otherwise another replica made it first: the store read that follows
     // finds it.
+    return false;
   }
 }

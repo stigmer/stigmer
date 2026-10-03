@@ -41,6 +41,17 @@ vi.mock("../../client/single-org.js", async (importOriginal) => {
   };
 });
 
+// A connect that settles, so the success rendering runs: the server's name and
+// its organization as the backend returned them.
+vi.mock("../../resources/connect/connect.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../resources/connect/connect.js")>();
+  const server = { metadata: { name: "orders", org: "stigmer" }, spec: {} };
+  return {
+    ...actual,
+    connectMcpServer: async () => ({ server, capabilities: undefined, updated: server }),
+  };
+});
+
 vi.mock("../../config/index.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../config/index.js")>();
   return {
@@ -61,6 +72,7 @@ function cloudConfigWithoutOrg(): Config {
 interface RunOutcome {
   readonly exitCode: number;
   readonly message: string;
+  readonly stdout: string;
 }
 
 // Runs `connect mcp-server <ref> [flags]` in standalone mode with output
@@ -73,7 +85,11 @@ async function runConnect(
 ): Promise<RunOutcome> {
   const program = buildProgram();
   program.exitOverride();
-  const outSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+  const written: string[] = [];
+  const outSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+    written.push(String(chunk));
+    return true;
+  });
   const errSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
   try {
     await program.parseAsync([
@@ -85,11 +101,12 @@ async function runConnect(
       ref,
       ...flags,
     ]);
-    return { exitCode: ExitCode.Success, message: "" };
+    return { exitCode: ExitCode.Success, message: "", stdout: written.join("") };
   } catch (err) {
     return {
       exitCode: classify(err)?.exitCode ?? -1,
       message: err instanceof Error ? err.message : String(err),
+      stdout: written.join(""),
     };
   } finally {
     outSpy.mockRestore();
@@ -124,11 +141,20 @@ describe("connect mcp-server org guard", () => {
     expect(outcome.exitCode).toBe(ExitCode.Usage);
   });
 
-  it("does not fire on a server that holds one organization: the server fills it", async () => {
+  it("does not fire on a server that holds one organization: the server fills it, and the result names no organization", async () => {
     configOverride = cloudConfigWithoutOrg();
     singleOrg = true;
     const outcome = await runConnect("mcp_test");
     expect(outcome.message).not.toContain("organization not set");
+    expect(outcome.stdout).toContain("MCP Server: orders");
+    expect(outcome.stdout).not.toContain("stigmer/orders");
+  });
+
+  it("names the server with its organization on a server that holds several", async () => {
+    configOverride = cloudConfigWithoutOrg();
+    process.env.STIGMER_ORG = "stigmer";
+    const outcome = await runConnect("mcp_test");
+    expect(outcome.stdout).toContain("MCP Server: stigmer/orders");
   });
 
   it("does not apply the org guard in dry-run mode (offline dry-run stays usable)", async () => {

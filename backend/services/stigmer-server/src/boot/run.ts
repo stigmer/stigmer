@@ -36,6 +36,7 @@ export interface ProcessHost {
   writeStdout(text: string): void;
 }
 
+/* v8 ignore start -- the real process host: a signal handler on the test runner's own process and process.exit cannot run under vitest; scripts/verify-boot.mjs drives them on the built artifact (SIGTERM, exit 0, the ready line) */
 /** The host a real process is. */
 export const nodeProcessHost: ProcessHost = {
   onSignal: (signal, handler) => {
@@ -46,6 +47,7 @@ export const nodeProcessHost: ProcessHost = {
     process.stdout.write(text);
   },
 };
+/* v8 ignore stop */
 
 export interface RunServerOptions {
   /** The composed units, in order. */
@@ -84,10 +86,12 @@ export async function runServer(options: RunServerOptions): Promise<void> {
     server
       .shutdown()
       .then(() => host.exit(0))
+      /* v8 ignore start -- a composed server's shutdown does not throw on any path a test can drive; the arm reports the fault and exits 1 */
       .catch((error: unknown) => {
         logger.error("shutdown failed", { error: String(error) });
         host.exit(1);
       });
+    /* v8 ignore stop */
   };
   host.onSignal("SIGTERM", () => shutdown("SIGTERM"));
   host.onSignal("SIGINT", () => shutdown("SIGINT"));

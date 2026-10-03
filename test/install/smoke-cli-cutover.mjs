@@ -323,8 +323,6 @@ spec:
       timeoutMs: RUN_TIMEOUT_MS,
     });
     await cli([
-      "--org",
-      ORG,
       "execution",
       "approve",
       pending.executionId,

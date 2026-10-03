@@ -86,9 +86,9 @@ describe("ensureSingleOrganization", () => {
   }
 
   async function organizations() {
-    return (
-      await server.store.listResources(ApiResourceKind.organization)
-    ).map((bytes) => fromBinary(OrganizationSchema, bytes));
+    return (await server.store.listResources(ApiResourceKind.organization)).map(
+      (bytes) => fromBinary(OrganizationSchema, bytes),
+    );
   }
 
   function ensure(holder = newSingleOrganizationHolder()) {

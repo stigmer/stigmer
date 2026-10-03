@@ -438,7 +438,8 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         {
           organizations,
           blueprints: await scanBlueprints(),
-          serverMadeOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
+          serverMadeOrganization:
+            await store.bootstrapState.get(SINGLE_ORG_KEY),
         },
         "first_sign_in",
       );

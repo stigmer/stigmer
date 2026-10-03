@@ -67,6 +67,7 @@ vi.mock("../../harness/mcp-server", () => ({
 const { LocalTarget } = await import("../local");
 const { LocalExecutionTarget } = await import("../local-execution");
 const { LocalSingleOrgTarget } = await import("../local-single-org");
+const { createTarget } = await import("../index");
 
 const SIBLING = { env: {}, readinessBearer: "" };
 
@@ -98,6 +99,15 @@ describe("the server entry each local target spawns", () => {
       ...new LocalTarget().capabilities,
       singleOrganization: true,
     });
+  });
+
+  it("CONFORMANCE_TARGET=local-single-org selects it", () => {
+    vi.stubEnv("CONFORMANCE_TARGET", "local-single-org");
+    try {
+      expect(createTarget()).toBeInstanceOf(LocalSingleOrgTarget);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("local-single-org provisions no extra organization", async () => {

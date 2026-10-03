@@ -531,15 +531,9 @@ describe("membership rules", () => {
 
     it("with an operator email configured, a stranger who signs in first is admin, and the operator is owner", async () => {
       const stranger = account("auth0|stranger", "stranger@example.com");
-      await rules.onAccountCreated(
-        stranger,
-        userCaller(stranger.metadata!.id),
-      );
+      await rules.onAccountCreated(stranger, userCaller(stranger.metadata!.id));
       const operator = account("auth0|operator", OPERATOR_EMAIL);
-      await rules.onAccountCreated(
-        operator,
-        userCaller(operator.metadata!.id),
-      );
+      await rules.onAccountCreated(operator, userCaller(operator.metadata!.id));
 
       expect(rolesOf(stranger.metadata!.id)).toEqual(["admin@stigmer"]);
       expect(rolesOf(operator.metadata!.id)).toEqual(["owner@stigmer"]);
@@ -548,7 +542,10 @@ describe("membership rules", () => {
     it("with no operator email configured, the first person to sign in owns it", async () => {
       const unconfigured = rulesOver(policies, "");
       const first = account("auth0|first", "first@example.com");
-      await unconfigured.onAccountCreated(first, userCaller(first.metadata!.id));
+      await unconfigured.onAccountCreated(
+        first,
+        userCaller(first.metadata!.id),
+      );
       const second = account("auth0|second", "second@example.com");
       await unconfigured.onAccountCreated(
         second,
@@ -570,10 +567,7 @@ describe("membership rules", () => {
     it("an organization the server did not make keeps today's answers", async () => {
       await seedOrg("acme", "system");
       const operator = account("auth0|operator", OPERATOR_EMAIL);
-      await rules.onAccountCreated(
-        operator,
-        userCaller(operator.metadata!.id),
-      );
+      await rules.onAccountCreated(operator, userCaller(operator.metadata!.id));
 
       expect(rolesOf(operator.metadata!.id)).toEqual([
         "admin@acme",
