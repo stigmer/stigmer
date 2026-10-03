@@ -79,7 +79,7 @@ describe("ResourceWorkbench on a server that holds one organization", () => {
     render(
       <ResourceWorkbench
         listFn={listFnReturning(rows)}
-        org=""
+        org="stigmer"
         columns={columns}
         viewModes={["table"]}
         defaultViewMode="table"
@@ -93,7 +93,7 @@ describe("ResourceWorkbench on a server that holds one organization", () => {
     renderTable();
     await waitFor(() => expect(screen.getByText("Helper")).toBeTruthy());
     expect(screen.queryByRole("columnheader", { name: "Organization" })).toBeNull();
-    expect(screen.queryByText("stigmer")).toBeNull();
+    expect(screen.queryByRole("cell", { name: "stigmer" })).toBeNull();
   });
 
   it("keeps it on a server that holds several", async () => {

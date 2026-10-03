@@ -8,10 +8,9 @@
 //     getServerInfo answers single_org, and findMyOrganizations lists exactly
 //     one, whose own metadata.org is empty;
 //   - a request that names no organization acts in that one, for one method
-//     of each shape the contract has: an annotated create (agent), an apply
-//     (environment), a reference lookup (agent getByReference), a list with a
-//     top-level org (environment list), an execution created in a session
-//     (parent-scoped), and search;
+//     of each shape the contract has: an annotated create (agent, session), an
+//     apply (environment), a reference lookup (agent getByReference), a list
+//     with a top-level org (environment list), and search;
 //   - an explicit organization is honoured: one that does not exist is still
 //     refused by name;
 //   - a kind that belongs to no organization stays that way (an API key's
@@ -20,7 +19,9 @@
 //     deleting the one with ORGANIZATION_IS_SINGLE.
 //
 // Deliberately out of scope: which field each method fills (the server's own
-// inventory test holds docs/single-organization.md to the rule), the
+// inventory test holds docs/single-organization.md to the rule; the
+// parent-scoped agent execution among them, whose create needs an engine this
+// target does not run), the
 // ownership of the organization on a self-host with sign-in (the server's
 // membership tests and the console sign-in e2e), and every isolation
 // property between organizations, which the other suites prove on the
@@ -31,7 +32,6 @@ import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
-import { makeAgentExecution } from "../support/agentexecutions";
 import { makeAgent } from "../support/agents";
 import { makeApiKey } from "../support/apikeys";
 import { makeEnvironment } from "../support/environments";
@@ -98,7 +98,7 @@ describe.skipIf(!capabilities.singleOrganization)(
       );
     });
 
-    it("[rpc:SessionCommandController.create] [rpc:AgentExecutionCommandController.create] an execution created in a session, both with no organization, lives in the one", async () => {
+    it("[rpc:SessionCommandController.create] a session created with no organization lives in the one", async () => {
       const session = await clients.sessionCommand.create(
         // "" runs the built-in assistant: no agent fixture needed.
         makeSession({
@@ -108,15 +108,6 @@ describe.skipIf(!capabilities.singleOrganization)(
         }),
       );
       expect(session.metadata?.org).toBe(theOrganization);
-
-      const execution = await clients.agentExecutionCommand.create(
-        makeAgentExecution({
-          org: NOBODY,
-          name: uniqueName("execution"),
-          sessionId: session.metadata?.id ?? "",
-        }),
-      );
-      expect(execution.metadata?.org).toBe(theOrganization);
     });
 
     it("[rpc:SearchService.search] search with no organization searches the one", async () => {

@@ -112,13 +112,13 @@ describe("useSingleOrg and the sidebar's switcher", () => {
     renderWith("single", chrome, answer.opened);
 
     expect(screen.getByTestId("single-org").textContent).toBe("undefined");
-    expect(screen.queryByRole("button", { name: /Stigmer/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Organization menu" })).toBeNull();
 
     answer.open();
     await waitFor(() =>
       expect(screen.getByTestId("single-org").textContent).toBe("true"),
     );
-    expect(screen.queryByRole("button", { name: /Stigmer/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Organization menu" })).toBeNull();
   });
 
   it("shows the switcher on a server that holds several", async () => {
@@ -126,7 +126,7 @@ describe("useSingleOrg and the sidebar's switcher", () => {
     await waitFor(() =>
       expect(screen.getByTestId("single-org").textContent).toBe("false"),
     );
-    expect(await screen.findByRole("button", { name: /Stigmer/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Organization menu" })).toBeTruthy();
   });
 
   it("shows the switcher when the server does not answer", async () => {
@@ -134,6 +134,6 @@ describe("useSingleOrg and the sidebar's switcher", () => {
     await waitFor(() =>
       expect(screen.getByTestId("single-org").textContent).toBe("false"),
     );
-    expect(await screen.findByRole("button", { name: /Stigmer/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Organization menu" })).toBeTruthy();
   });
 });
