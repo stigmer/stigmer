@@ -144,3 +144,67 @@ describe("BillingClient.getCreditLedger", () => {
     expect(req?.view).toBe(LedgerView.unspecified);
   });
 });
+
+describe("BillingClient's organization-scoped calls name the organization as org", () => {
+  /** The last request each organization-scoped method received, keyed by method. */
+  function capturingTransport(seen: Map<string, { readonly org: string }>): Transport {
+    return createRouterTransport(({ service }) => {
+      service(BillingCommandController, {
+        getOrCreateBillingAccount: (req) => (seen.set("getOrCreateBillingAccount", req), {}),
+        createCreditCheckoutSession: (req) => (seen.set("createCreditCheckoutSession", req), {}),
+        createBillingPortalSession: (req) => (seen.set("createBillingPortalSession", req), {}),
+        createPaymentMethodSetupSession: (req) => (seen.set("createPaymentMethodSetupSession", req), {}),
+        setAutoRechargeConfig: (req) => (seen.set("setAutoRechargeConfig", req), {}),
+      });
+      service(BillingQueryController, {
+        getBillingAccount: (req) => (seen.set("getBillingAccount", req), {}),
+        getCreditBalance: (req) => (seen.set("getCreditBalance", req), {}),
+        getBillingUsageReport: (req) => (seen.set("getBillingUsageReport", req), {}),
+        getCustomerModelPricing: (req) => (seen.set("getCustomerModelPricing", req), {}),
+      });
+    });
+  }
+
+  const calls: ReadonlyArray<readonly [string, (client: BillingClient) => Promise<unknown>]> = [
+    ["getOrCreateBillingAccount", (c) => c.getOrCreateBillingAccount("acme")],
+    ["getBillingAccount", (c) => c.getBillingAccount("acme")],
+    ["getCreditBalance", (c) => c.getCreditBalance("acme")],
+    [
+      "createCreditCheckoutSession",
+      (c) => c.createCreditCheckoutSession({ org: "acme", packId: "starter", successUrl: "https://ok", cancelUrl: "https://no" }),
+    ],
+    ["createBillingPortalSession", (c) => c.createBillingPortalSession({ org: "acme", returnUrl: "https://back" })],
+    [
+      "createPaymentMethodSetupSession",
+      (c) => c.createPaymentMethodSetupSession({ org: "acme", successUrl: "https://ok", cancelUrl: "https://no" }),
+    ],
+    [
+      "setAutoRechargeConfig",
+      (c) =>
+        c.setAutoRechargeConfig({
+          org: "acme",
+          enabled: true,
+          thresholdMicros: 1n,
+          rechargeAmountMicros: 2n,
+          monthlyCapMicros: 3n,
+        }),
+    ],
+    [
+      "getBillingUsageReport",
+      (c) => c.getBillingUsageReport({ org: "acme", startTime: new Date(0), endTime: new Date(1000) }),
+    ],
+    ["getCustomerModelPricing", (c) => c.getCustomerModelPricing({ org: "acme" })],
+  ];
+
+  it.each(calls)("%s sends org", async (method, call) => {
+    const seen = new Map<string, { readonly org: string }>();
+    await call(new BillingClient(capturingTransport(seen)));
+    expect(seen.get(method)?.org).toBe("acme");
+  });
+
+  it("getCustomerModelPricing with no org asks for the default prices", async () => {
+    const seen = new Map<string, { readonly org: string }>();
+    await new BillingClient(capturingTransport(seen)).getCustomerModelPricing();
+    expect(seen.get("getCustomerModelPricing")?.org).toBe("");
+  });
+});

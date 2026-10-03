@@ -6,7 +6,14 @@ import {
   GetSessionUsageReportOutputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { describe, expect, it } from "vitest";
-import { renderAgentUsage, renderOrgUsage, renderSessionUsage } from "../usage.js";
+import type { Stigmer } from "@stigmer/sdk";
+import {
+  getAgentUsageReport,
+  getOrgUsageReport,
+  renderAgentUsage,
+  renderOrgUsage,
+  renderSessionUsage,
+} from "../usage.js";
 
 const sessionReport = create(GetSessionUsageReportOutputSchema, {
   sessionId: "ses_1",
@@ -90,5 +97,27 @@ describe("renderOrgUsage", () => {
     expect(out).toContain("Reviewer");
     expect(out).toContain("2026-03-01");
     expect(out).toContain("60.0%"); // 6M of 10M total
+  });
+});
+
+describe("the usage reports ask for the organization as org", () => {
+  const range = { from: "2026-09-01", to: "2026-09-30" };
+
+  it("getAgentUsageReport sends the agent and org with the range", async () => {
+    let seen: unknown;
+    const client = {
+      agentExecution: { getAgentUsageReport: async (input: unknown) => ((seen = input), {}) },
+    } as unknown as Stigmer;
+    await getAgentUsageReport(client, "agt_1", "acme", range);
+    expect(seen).toMatchObject({ agentId: "agt_1", org: "acme", fromDate: range.from, toDate: range.to });
+  });
+
+  it("getOrgUsageReport sends the org with the range", async () => {
+    let seen: unknown;
+    const client = {
+      agentExecution: { getOrgUsageReport: async (input: unknown) => ((seen = input), {}) },
+    } as unknown as Stigmer;
+    await getOrgUsageReport(client, "acme", range);
+    expect(seen).toMatchObject({ org: "acme", fromDate: range.from, toDate: range.to });
   });
 });
