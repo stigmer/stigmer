@@ -304,7 +304,6 @@ export function createInProcessClients(
         sessionCommand.create(session, asCaller(caller)),
     },
     executionEnvironmentReader: {
-      list: (request) => environmentQuery.list(request),
       getSecretValue: (input) => environmentQuery.getSecretValue(input),
       updateVariables: (request) => environmentCommand.updateVariables(request),
       // The managed-env create propagates the connecting user when the

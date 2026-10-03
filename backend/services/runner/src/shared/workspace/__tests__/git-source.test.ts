@@ -141,6 +141,47 @@ describe("provisionGit", () => {
     expect(result.consumedKeys).toEqual([]);
   });
 
+  it("reports GITHUB_TOKEN consumed on reuse only where the clone holds it", async () => {
+    // Every turn after the first reuses the clone: what the workspace
+    // consumed must match what the clone holds, on any turn.
+    const TOKEN = "ghp_secret123";
+    const withToken = "https://x-access-token:ghp_secret123@github.com/org/repo.git";
+    const reuse = async (opts: { configureCredentials: boolean; origin?: string; failStore?: boolean }) => {
+      const backend = mockWorkspaceBackend({
+        exists: vi.fn().mockResolvedValue(true),
+        execute: vi.fn(async (cmd: string) => {
+          if (cmd.includes("remote get-url origin")) {
+            if (opts.origin === undefined) throw new Error("no origin");
+            return `${opts.origin}\n`;
+          }
+          if (opts.failStore === true && cmd.includes("credential.helper")) {
+            throw new Error("config locked");
+          }
+          if (cmd.includes("rev-parse --abbrev-ref")) return "main\n";
+          if (cmd.includes("rev-parse HEAD")) return "abc123\n";
+          return "";
+        }),
+      });
+      return (await provisionGit(makeOptions({
+        backend,
+        envVars: { GITHUB_TOKEN: TOKEN },
+        isLocalMode: !opts.configureCredentials,
+        configureCredentials: opts.configureCredentials,
+      }))).consumedKeys;
+    };
+    // Cloud: the store configured here holds it; a store that failed holds none.
+    expect(await reuse({ configureCredentials: true })).toEqual(["GITHUB_TOKEN"]);
+    expect(await reuse({ configureCredentials: true, failStore: true })).toEqual([]);
+    // Local: the origin the clone wrote with this token holds it; a clone
+    // made without a token, or with another, holds none; an unreadable origin none.
+    expect(await reuse({ configureCredentials: false, origin: withToken })).toEqual(["GITHUB_TOKEN"]);
+    expect(await reuse({ configureCredentials: false, origin: "https://github.com/org/repo.git" })).toEqual([]);
+    expect(
+      await reuse({ configureCredentials: false, origin: "https://x-access-token:old@github.com/org/repo.git" }),
+    ).toEqual([]);
+    expect(await reuse({ configureCredentials: false })).toEqual([]);
+  });
+
   // ── GitHub token injection ────────────────────────────────────────
 
   it("injects GitHub token into the origin remote URL", async () => {

@@ -18,7 +18,11 @@
 //     channel-bind it, and an outsider is refused; the admin may;
 //   - Memory.create: an outsider naming an organization is refused; a member
 //     remembers there once both the organization and the member have
-//     turned memory on, the memory filed under the member.
+//     turned memory on, the memory filed under the member;
+//   - an environment reference: a write may attach only an environment its
+//     writer can view, so a member naming a teammate's private environment
+//     on an instance is refused PERMISSION_DENIED with the rule's sentence,
+//     while the owner may attach their own and anyone an org-visible one.
 //
 // Every refusal is asserted by code AND copy, because the copy is the wire
 // contract each lane has carried since the Java edition. Out of scope: the
@@ -36,6 +40,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentInstance } from "../support/agentinstances";
+import { makeEnvironment } from "../support/environments";
 import { makeAgentShare } from "../support/agentshares";
 import { makeMcpServer } from "../support/mcpservers";
 import {
@@ -222,6 +227,79 @@ describe("AgentInstance.create asks the organization's bar, then the parent's", 
       INSTANCE_ORG_DENIED,
       "outsider instantiates into a foreign organization",
     );
+  });
+});
+
+describe("an instance attaches only environments its writer can view", () => {
+  const notViewable = (org: string, slug: string) =>
+    `referenced environment '${org}/${slug}' is not one you can view; ` +
+    "attach an environment you own or one shared with the organization.";
+
+  it("[rpc:AgentInstanceCommandController.create] a member naming the owner's private environment is refused; the owner attaches it, and a member attaches an org-visible one", async (ctx) => {
+    const c = await castOf(laneOrSkip(ctx));
+    const agent = await seedAgent(c, ORG_VISIBLE);
+    const ownersKeys = await c.owner.environmentCommand.create(
+      makeEnvironment({
+        org: c.org,
+        name: uniqueName("owner-keys"),
+        data: { API_KEY: { value: "owner-secret", isSecret: true } },
+      }),
+    );
+    fixtures.defer(() =>
+      c.owner.environmentCommand.delete({
+        resourceId: ownersKeys.metadata!.id,
+      }),
+    );
+    const teamKeys = await c.owner.environmentCommand.create(
+      makeEnvironment({
+        org: c.org,
+        name: uniqueName("team-keys"),
+        data: { API_KEY: { value: "team-secret", isSecret: true } },
+      }),
+    );
+    fixtures.defer(() =>
+      c.owner.environmentCommand.delete({ resourceId: teamKeys.metadata!.id }),
+    );
+    await c.owner.environmentCommand.updateVisibility({
+      resourceId: teamKeys.metadata!.id,
+      visibility: ORG_VISIBLE,
+    });
+    const instanceNaming = (slug: string) =>
+      makeAgentInstance({
+        org: c.org,
+        name: uniqueName("gate-env-inst"),
+        agentId: agent.metadata!.id,
+        environmentRefs: [{ org: c.org, slug }],
+      });
+
+    await expectDenied(
+      () =>
+        c.member.agentInstanceCommand.create(
+          instanceNaming(ownersKeys.metadata!.slug),
+        ),
+      notViewable(c.org, ownersKeys.metadata!.slug),
+      "member attaches the owner's private environment",
+    );
+
+    for (const [who, using, slug] of [
+      [
+        "owner, their own private environment",
+        c.owner,
+        ownersKeys.metadata!.slug,
+      ],
+      ["member, an org-visible environment", c.member, teamKeys.metadata!.slug],
+    ] as const) {
+      const created = await using.agentInstanceCommand.create(
+        instanceNaming(slug),
+      );
+      fixtures.defer(() =>
+        c.owner.agentInstanceCommand.delete({ value: created.metadata!.id }),
+      );
+      expect(
+        created.spec?.environmentRefs.map((r) => r.slug),
+        who,
+      ).toEqual([slug]);
+    }
   });
 });
 

@@ -77,6 +77,13 @@ spec:
       slug: production-secrets
 ```
 
+You can attach an Environment only if you can view it: one you created, or one
+shared with the Organization. Naming a teammate's private Environment is
+refused. Attaching your own private Environment to an Agent Instance others run
+lets their runs use its values, so share it that way only on purpose. Viewing is
+the bar for now: an Environment shared with the Organization, or with you
+directly, is one you can attach.
+
 This layering lets you separate concerns:
 
 - **Shared configuration** — URLs, feature flags, non-sensitive settings shared
@@ -148,15 +155,22 @@ uses at execution time. Different surfaces see different slices of it:
 
 | Surface                                              | What the Agent sees                                                                                                                                                                                                                                                                                                                  |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Shell commands** (native harness `execute` tool)   | The runner's own process variables, minus runner-internal credentials, with ExecutionContext values overlaid on top. Overlay wins when a name exists in both.                                                                                                                                                                        |
+| **Shell commands** (native harness `execute` tool)   | The runner's own process variables, minus runner-internal credentials, plus only the ExecutionContext values the Agent declares in its `env`, and the `GITHUB_TOKEN` a git clone of the Workspace used. An Agent that declares nothing gets no ExecutionContext values in its shell.                                                 |
 | **MCP stdio servers**                                | Only variables declared in the MCP server's `env` map, taken from ExecutionContext, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set — never the runner's own variables.                                                                                                |
 | **Workflow `run` tasks** (`run.shell`, `run.script`) | Only variables declared in the task's `environment` map, plus the same minimal base set. Declared values may reference `${.secrets.KEY}` / `${.env_vars.KEY}` — resolved at execution time; a missing key fails the task with a clear error. A task that declares nothing gets only the base set — never the runner's own variables. |
 
 Agent shell commands inherit `PATH` and other host settings from the runner so
-local CLIs work, while ExecutionContext supplies API keys and service URLs your
-Agent declares. Workflow `run` tasks follow the stricter declare-to-receive rule
-in the table above. Secrets marked `is_secret: true` are still redacted in logs
-and the UI regardless of which surface consumes them.
+local CLIs work, while ExecutionContext supplies the API keys and service URLs
+your Agent declares. Every surface follows the same declare-to-receive rule: a
+key an MCP server declares reaches that server and never the shell, so a shell
+command that needs a key (a cloud CLI, `stigmer`, `gh` with its own token) works
+only when the Agent declares it. The one exception is the `GITHUB_TOKEN` a git
+Workspace was cloned with: the clone already stores it where the shell can read
+it, so the shell receives it as well. The built-in assistant has no Agent and so
+declares nothing: its shell receives no ExecutionContext values beyond that
+token, so a task whose shell needs a key runs on an Agent that declares it.
+Secrets marked `is_secret: true` are still redacted in logs and the UI
+regardless of which surface consumes them.
 
 ## What's next
 

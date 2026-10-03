@@ -59,21 +59,24 @@ export function resolveHeaders(
 }
 
 /**
- * Filter env vars to only keys declared in the MCP server's spec.env.
+ * Filter env vars to only the keys a declarer declares in its spec.env:
+ * an MCP server for its subprocess or HTTP environment, the agent for its
+ * shell (activities/execute-deep-agent/shell-env.ts).
  *
  * Mirrors the agent-runner's _filter_env_to_declared_keys: prevents
- * secret over-sharing by restricting the subprocess/HTTP environment to
- * explicitly declared variables.
+ * secret over-sharing by restricting each consumer to explicitly declared
+ * variables. A declarer that declares nothing receives nothing.
+ * `declarer` names it in the log lines ("MCP server 'linear'").
  */
 export function filterEnvToDeclaredKeys(
   declaredEnv: Record<string, unknown> | undefined,
   envVars: Record<string, string>,
-  serverSlug: string,
+  declarer: string,
 ): Record<string, string> {
   if (!declaredEnv || Object.keys(declaredEnv).length === 0) {
     if (Object.keys(envVars).length > 0) {
       console.log(
-        `MCP server '${serverSlug}' has no env declarations — ` +
+        `${declarer} has no env declarations — ` +
           `dropping ${Object.keys(envVars).length} env var(s)`,
       );
     }
@@ -92,7 +95,7 @@ export function filterEnvToDeclaredKeys(
   const dropped = Object.keys(envVars).length - Object.keys(filtered).length;
   if (dropped > 0) {
     console.log(
-      `MCP server '${serverSlug}': passing ${Object.keys(filtered).length} ` +
+      `${declarer}: passing ${Object.keys(filtered).length} ` +
         `declared env var(s), filtered out ${dropped} undeclared key(s)`,
     );
   }
@@ -100,7 +103,7 @@ export function filterEnvToDeclaredKeys(
   const missing = [...declaredKeys].filter((k) => !(k in filtered));
   if (missing.length > 0) {
     console.warn(
-      `MCP server '${serverSlug}': env declares [${missing.sort().join(", ")}] ` +
+      `${declarer}: env declares [${missing.sort().join(", ")}] ` +
         `but they are not present in the resolved environment`,
     );
   }

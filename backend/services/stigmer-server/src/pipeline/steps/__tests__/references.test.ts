@@ -58,8 +58,13 @@ import {
   newValidateReferencesStep,
   noOrgReferenceMessage,
   notAvailableReferenceMessage,
+  notViewableReferenceMessage,
   referenceTargetKind,
 } from "../references.js";
+import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
+import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
+import type { Authorizer } from "../../../extensions/authorizer.js";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   ReferenceParent,
   ReferenceTargets,
@@ -184,8 +189,23 @@ function targetsOf(
           row.kind === ref.kind && row.org === ref.org && row.slug === ref.slug,
       )?.visibility;
     },
+    idOf(ref) {
+      return rows.find(
+        (row) =>
+          row.kind === ref.kind && row.org === ref.org && row.slug === ref.slug,
+      )
+        ? `id_${ref.slug}`
+        : undefined;
+    },
   };
 }
+
+/** The writer the existence and floor cases are judged for: admitted everywhere. */
+const ANY_WRITER = {
+  authorizer: newPermissiveSingleTeamAuthorizer(),
+  caller: testCallerIdentity(),
+  stored: [],
+} as const;
 
 const ACME_ORG: ReferenceParent = { org: "acme", visibility: V.visibility_org };
 const ACME_PRIVATE: ReferenceParent = {
@@ -511,10 +531,12 @@ describe("the step over a store", () => {
         return Reflect.get(target, property, receiver) as unknown;
       },
     });
-    const refusal = await checkReferences(counting, ACME_ORG, [
-      ref(K.skill, "acme", "one"),
-      ref(K.skill, "acme", "two"),
-    ]);
+    const refusal = await checkReferences(
+      counting,
+      ACME_ORG,
+      [ref(K.skill, "acme", "one"), ref(K.skill, "acme", "two")],
+      ANY_WRITER,
+    );
     expect(refusal).toBeUndefined();
     expect(scans).toBe(1);
   });
@@ -527,7 +549,10 @@ describe("the step over a store", () => {
       K.agent,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(missing),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(missing),
     );
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
@@ -539,7 +564,10 @@ describe("the step over a store", () => {
 
     await seedSkill("skl_1", "acme", "ghost", V.visibility_org);
     await expect(
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(missing),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(missing),
     ).resolves.toBeUndefined();
   });
 
@@ -556,7 +584,10 @@ describe("the step over a store", () => {
       K.agent,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(ctx),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toBe(
@@ -582,7 +613,10 @@ describe("the step over a store", () => {
       K.agent,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(ctx),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
     expect((error as ConnectError).rawMessage).toBe(
@@ -735,5 +769,223 @@ describe("GuardReferenceFloorOnEscalation", () => {
       newGuardReferenceFloorOnEscalationStep(store, TARGET, []).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+});
+
+describe("the writer clause: a write may introduce only an environment its writer can view", () => {
+  let store: SqliteStore;
+  let cleanup: () => Promise<void>;
+
+  beforeEach(async () => {
+    const temp = tempStore();
+    store = temp.store;
+    cleanup = temp.cleanup;
+    for (const [id, slug, visibility] of [
+      ["env_ana_keys", "ana-keys", V.visibility_private],
+      ["env_team_keys", "team-keys", V.visibility_org],
+      ["env_flaky", "flaky", V.visibility_private],
+      ["env_left", "left", V.visibility_private],
+    ] as const) {
+      await store.saveResource(
+        K.environment,
+        id,
+        EnvironmentSchema,
+        create(EnvironmentSchema, {
+          metadata: { id, name: slug, slug, org: "acme", visibility },
+        }),
+      );
+    }
+  });
+
+  afterEach(async () => {
+    await cleanup();
+  });
+
+  /**
+   * An authorizer over the model's answer for environments: Ana views her
+   * private row, every member views the org-visible one, nobody else views
+   * hers; one row's evaluation is down. Every check is recorded.
+   */
+  function environmentViews(checks: string[]): Authorizer {
+    return {
+      authorize: async (caller, check) => {
+        checks.push(
+          `${caller.identityId}:${IamPermission[check.permission]}:${check.resourceId}`,
+        );
+        if (check.resourceId === "env_flaky") {
+          return {
+            kind: "unavailable",
+            cause: new Error("authorization store offline"),
+          };
+        }
+        if (check.resourceId === "env_left") {
+          return { kind: "not-found" };
+        }
+        if (
+          check.resourceId === "env_ana_keys" &&
+          caller.identityId !== "acc_ana"
+        ) {
+          return { kind: "deny", reason: "not a viewer" };
+        }
+        return { kind: "allow" };
+      },
+    };
+  }
+
+  function instanceNaming(...slugs: string[]) {
+    return create(AgentInstanceSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "AgentInstance",
+      metadata: {
+        name: "Team helper",
+        org: "acme",
+        visibility: V.visibility_org,
+      },
+      spec: {
+        agentId: "agt_helper",
+        environmentRefs: slugs.map((slug) => ({
+          kind: K.environment,
+          org: "acme",
+          slug,
+        })),
+      },
+    });
+  }
+
+  async function write(opts: {
+    readonly writer: string;
+    readonly names: readonly string[];
+    readonly stored?: readonly string[];
+    readonly callerClass?: string;
+    readonly checks?: string[];
+  }): Promise<unknown> {
+    const ctx = new RequestContext(
+      AgentInstanceSchema,
+      instanceNaming(...opts.names),
+      testCallerIdentity({
+        identityId: opts.writer,
+        callerClass: opts.callerClass ?? "user",
+      }),
+      K.agent_instance,
+    );
+    if (opts.stored !== undefined) {
+      ctx.set(EXISTING_RESOURCE_KEY, instanceNaming(...opts.stored));
+    }
+    return failureOf(() =>
+      newValidateReferencesStep<typeof AgentInstanceSchema>(
+        store,
+        environmentViews(opts.checks ?? []),
+      ).execute(ctx),
+    );
+  }
+
+  it("refuses a teammate's private environment PERMISSION_DENIED, naming it and what may be attached", async () => {
+    const error = await write({ writer: "acc_ben", names: ["ana-keys"] });
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+    expect((error as ConnectError).rawMessage).toBe(
+      notViewableReferenceMessage(
+        referenceTargetKind(K.environment)!,
+        ref(K.environment, "acme", "ana-keys"),
+      ),
+    );
+    expect((error as ConnectError).rawMessage).toBe(
+      "referenced environment 'acme/ana-keys' is not one you can view; " +
+        "attach an environment you own or one shared with the organization.",
+    );
+  });
+
+  it("admits the owner's own private environment on an org-visible instance, and an org-visible one for any member", async () => {
+    const checks: string[] = [];
+    expect(
+      await write({ writer: "acc_ana", names: ["ana-keys"], checks }),
+    ).toBeUndefined();
+    expect(
+      await write({ writer: "acc_ben", names: ["team-keys"], checks }),
+    ).toBeUndefined();
+    expect(checks).toEqual([
+      "acc_ana:can_view:env_ana_keys",
+      "acc_ben:can_view:env_team_keys",
+    ]);
+  });
+
+  it("judges only what the write introduces: an edit that keeps a teammate's attachment passes, a new one does not", async () => {
+    const checks: string[] = [];
+    expect(
+      await write({
+        writer: "acc_ben",
+        names: ["ana-keys", "team-keys"],
+        stored: ["ana-keys"],
+        checks,
+      }),
+    ).toBeUndefined();
+    // Only the introduced reference was asked about.
+    expect(checks).toEqual(["acc_ben:can_view:env_team_keys"]);
+    const error = await write({
+      writer: "acc_ben",
+      names: ["ana-keys"],
+      stored: ["team-keys"],
+    });
+    expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+  });
+
+  it("exempts the server acting as itself", async () => {
+    const checks: string[] = [];
+    expect(
+      await write({
+        writer: "system",
+        names: ["ana-keys"],
+        callerClass: "internal",
+        checks,
+      }),
+    ).toBeUndefined();
+    expect(checks).toEqual([]);
+  });
+
+  it("an unavailable authorizer is an internal fault, never a refusal or an admission", async () => {
+    const error = await write({ writer: "acc_ben", names: ["flaky"] });
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
+  it("a target the Authorizer no longer finds (it left since the scan) answers the missing copy", async () => {
+    const error = await write({ writer: "acc_ben", names: ["left"] });
+    expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((error as ConnectError).rawMessage).toBe(
+      missingReferencesMessage(referenceTargetKind(K.environment)!, [
+        { slug: "left", org: "acme" },
+      ]),
+    );
+  });
+
+  it("a malformed reference beside a refused one still answers INVALID_ARGUMENT first", async () => {
+    const ctx = new RequestContext(
+      AgentInstanceSchema,
+      create(AgentInstanceSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "AgentInstance",
+        metadata: { name: "No org", org: "", visibility: V.visibility_org },
+        spec: {
+          agentId: "agt_helper",
+          environmentRefs: [{ kind: K.environment, org: "", slug: "ana-keys" }],
+        },
+      }),
+      testCallerIdentity({ identityId: "acc_ben" }),
+      K.agent_instance,
+    );
+    const error = await failureOf(() =>
+      newValidateReferencesStep<typeof AgentInstanceSchema>(
+        store,
+        environmentViews([]),
+      ).execute(ctx),
+    );
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+  });
+
+  it("only environments carry the clause: other kinds are judged by existence and the floor alone", () => {
+    for (const entry of REFERENCE_TARGET_KINDS) {
+      expect(entry.writerMust).toBe(
+        entry.kind === K.environment ? IamPermission.can_view : undefined,
+      );
+    }
   });
 });

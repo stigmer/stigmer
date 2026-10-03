@@ -78,7 +78,7 @@ import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
-import { buildShellEnv } from "./shell-env.js";
+import { buildShellEnv, shellRunValues } from "./shell-env.js";
 import { transformAndCompileSubagents } from "./subagent-transformer.js";
 import { createTodoListMiddleware } from "./todo-list.js";
 
@@ -402,7 +402,16 @@ export async function buildEngine(
   await ensurePricingLoaded();
   const pricing = getModelPricing(modelName);
   const isPlanMode = execConfig?.interactionMode === InteractionMode.PLAN;
-  const shellEnv = isPlanMode ? undefined : buildShellEnv(input.environment.envVars);
+  const shellEnv = isPlanMode
+    ? undefined
+    : buildShellEnv(
+        shellRunValues(
+          input.environment.envVars,
+          blueprint.agent?.spec?.env,
+          input.mcp.servers,
+          input.workspace.provision.provisionResults,
+        ),
+      );
   // Plan mode's filesystem permission rules, hoisted once: the parent graph
   // and every sub-agent graph carry this single value (the write-deny half
   // of plan mode; the read boundary is structural, issue #754).

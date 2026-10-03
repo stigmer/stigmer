@@ -849,6 +849,7 @@ describe("DiscoverMcpServer activity", () => {
         toolApprovals: [],
         pinnedToolApprovals: [],
         toolApprovalOverrides: [],
+        declaredEnvKeys: [],
         discoveredCapabilitiesEmpty: true,
       });
       expect(message).toContain("https://mcp.monday.com/mcp");
@@ -865,6 +866,7 @@ describe("DiscoverMcpServer activity", () => {
         toolApprovals: [],
         pinnedToolApprovals: [],
         toolApprovalOverrides: [],
+        declaredEnvKeys: [],
         discoveredCapabilitiesEmpty: true,
       });
       expect(message).toContain("npx");

@@ -48,42 +48,6 @@ export async function findResourceBySlug<Desc extends DescMessage>(
 }
 
 /**
- * Finds one resource by (labelKey=labelValue, org) — Go
- * FindResourceByLabelAndOrg. Org is matched EXACTLY here, unlike the slug
- * helper: (label, org) together form the composite uniqueness key, and
- * treating an empty org as a wildcard would make an empty-org resource
- * collide with matching resources in EVERY org — the cross-tenant
- * over-matching this helper exists to prevent (metadata.org is
- * proto-unconstrained on create, so empty is a reachable input).
- */
-export async function findResourceByLabelAndOrg<Desc extends DescMessage>(
-  store: Store,
-  kind: ApiResourceKind,
-  schema: Desc,
-  labelKey: string,
-  labelValue: string,
-  org: string,
-): Promise<MessageShape<Desc> | undefined> {
-  const rows = await store.listResources(kind);
-  for (const data of rows) {
-    let resource: MessageShape<Desc>;
-    try {
-      resource = fromBinary(schema, data);
-    } catch {
-      continue;
-    }
-    const metadata = metadataOf(resource);
-    if (metadata === undefined) {
-      continue;
-    }
-    if (metadata.labels[labelKey] === labelValue && metadata.org === org) {
-      return resource;
-    }
-  }
-  return undefined;
-}
-
-/**
  * Rejects a getByReference lookup that omits org — Go RequireOrgForReference,
  * widened to every kind that has a reference lane. A slug is unique only
  * WITHIN an org, so an org-less reference resolves globally and the first

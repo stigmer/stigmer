@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mcpServerToResolved, mergeMcpServerUsages, resolveMcpServers } from "../mcp-resolver.js";
+import { declaredEnvKeysOf, mcpServerToResolved, mergeMcpServerUsages, resolveMcpServers } from "../mcp-resolver.js";
 import { McpTransportError } from "../mcp-transport-guard.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 
@@ -163,6 +163,24 @@ describe("resolveMcpServers — enabled_tools threading (issue #350)", () => {
     // No usage in hand (discovery) — a per-agent restriction cannot apply,
     // only the server-declared default does.
     expect(resolved?.enabledTools).toEqual(["search_code"]);
+  });
+});
+
+describe("a resolved server's claimed run values", () => {
+  it("are its declared keys and its OAuth token's target, which the agent's shell never receives", () => {
+    const server = httpMcpServer("linear");
+    server.spec.env = { LINEAR_TOKEN: { isSecret: true }, LINEAR_WORKSPACE: { isSecret: false } };
+    server.spec.auth = { targetEnvVar: "LINEAR_OAUTH_TOKEN" };
+    expect(declaredEnvKeysOf(server).sort()).toEqual(["LINEAR_OAUTH_TOKEN", "LINEAR_TOKEN", "LINEAR_WORKSPACE"]);
+    expect([...(mcpServerToResolved(server, "linear", {})?.declaredEnvKeys ?? [])].sort()).toEqual([
+      "LINEAR_OAUTH_TOKEN",
+      "LINEAR_TOKEN",
+      "LINEAR_WORKSPACE",
+    ]);
+  });
+
+  it("a server that declares nothing and signs in with nothing claims nothing", () => {
+    expect(declaredEnvKeysOf(httpMcpServer("plain"))).toEqual([]);
   });
 });
 
