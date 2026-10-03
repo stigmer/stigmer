@@ -77,6 +77,10 @@ describe("IdentityProviderDetailPanel save payload", () => {
 
     // The edited field.
     expect(input.displayName).toBe("Acme Okta (renamed)");
+    // Fields the edit leaves alone travel with it.
+    expect(input.jwksUri).toBe("https://acme.okta.example/jwks");
+    expect(input.allowedIssuers).toEqual(["https://acme.okta.example"]);
+    expect(input.expectedAudience).toBe("stigmer");
     // JIT settings round-trip from the edit state.
     expect(input.autoGrantRole).toBe(IamRole.admin);
     expect(input.tenantOrgClaim).toBe("org_slug");
