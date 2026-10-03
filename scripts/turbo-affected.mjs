@@ -32,19 +32,20 @@
  *
  *   - `workflow_dispatch`: a manual run is "run it" (the ci.docs convention).
  *   - the lane's own workflow file, or the workspace's own tooling
- *     (WORKSPACE_TOOLING: the root manifests, the Node version, scripts/**,
- *     the composite actions and the coverage floors), changed. Turbo
- *     attributes these to the root package and no task; but a root
- *     devDependency bump (tsx, @tailwindcss/cli) is what several build
- *     scripts run, every package runs on the Node version, a change to this
- *     lane must exercise this lane, a job here that calls a composite action
- *     must run when the action changes (#1715), and a moved coverage floor is
- *     judged against a run that measured every package it names (the gate's
- *     Coverage job, ci.gate.yaml). The lane runs
- *     as a workflow ci.gate.yaml calls, whose GITHUB_WORKFLOW_REF names the
- *     caller, so the lane passes its own file with --lane-file; the caller's
- *     file counts too, since a change to the orchestrator is a change to how
- *     this lane runs.
+ *     (WORKSPACE_TOOLING: the root manifests, the Node version, the root
+ *     Makefile, scripts/**, the composite actions and the coverage floors),
+ *     changed. Turbo attributes these to the root package and no task; but a
+ *     root devDependency bump (tsx, @tailwindcss/cli) is what several build
+ *     scripts run, every package runs on the Node version, a job here that
+ *     calls a `make` target must run when the Makefile defining it changes
+ *     (#1733), a change to this lane must exercise this lane, a job here that
+ *     calls a composite action must run when the action changes (#1715), and a
+ *     moved coverage floor is judged against a run that measured every package
+ *     it names (the gate's Coverage job, ci.gate.yaml). The lane runs as a
+ *     workflow ci.gate.yaml calls, whose GITHUB_WORKFLOW_REF names the caller,
+ *     so the lane passes its own file with --lane-file; the caller's file
+ *     counts too, since a change to the orchestrator is a change to how this
+ *     lane runs.
  *   - turbo could not compare (no base ref, an SCM error): its own fallback
  *     is to run everything, made visible here as a `::warning::` so a
  *     misconfigured base is never a quietly-full run forever.
@@ -99,6 +100,9 @@ export const WORKSPACE_TOOLING = [
   "package-lock.json",
   // Every package builds and runs on the Node version it names (#1734).
   ".nvmrc",
+  // Jobs here call its targets (`make verify-web-routing`, `make
+  // test-desktop-rust`), so a change to it runs every package (#1733).
+  "Makefile",
   "scripts/",
   // A composite action runs every lane (EVERY_LANE in ci-lanes.mjs); here it
   // runs every package, so each job of this lane that calls the action runs.

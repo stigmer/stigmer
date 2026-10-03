@@ -3,6 +3,7 @@
 import { cn } from "@stigmer/theme";
 import { useWorkflowVersionDiff } from "./useWorkflowVersionDiff.js";
 import type { DiffLine } from "./workflow-yaml-diff.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link WorkflowVersionDiffViewer}. */
 export interface WorkflowVersionDiffViewerProps {
@@ -163,13 +164,12 @@ function DiffLineRow({
 
 function DiffSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div
+    <LoadingRegion
       className={cn(
         "stg:overflow-hidden stg:rounded-lg stg:border stg:border-border",
         className,
       )}
-      aria-busy="true"
-      aria-label="Loading diff"
+      label="Loading diff"
     >
       <div className="stg:border-b stg:border-border stg:bg-muted stg:px-3 stg:py-2">
         <div className="stg:h-4 stg:w-48 stg:animate-pulse stg:rounded stg:bg-muted-foreground/20" />
@@ -185,7 +185,7 @@ function DiffSkeleton({ className }: { readonly className?: string }) {
           </div>
         ))}
       </div>
-    </div>
+    </LoadingRegion>
   );
 }
 

@@ -7,6 +7,7 @@ const noMainTokensInSidebar = require("./rules/no-main-tokens-in-sidebar");
 const noNativeTitle = require("./rules/no-native-title");
 const noTokenOpacityModifiers = require("./rules/no-token-opacity-modifiers");
 const requireListReset = require("./rules/require-list-reset");
+const requireLoadingRegion = require("./rules/require-loading-region");
 const sdkImportBoundaries = require("./rules/sdk-import-boundaries");
 
 const plugin = {
@@ -22,6 +23,7 @@ const plugin = {
     "no-native-title": noNativeTitle,
     "no-token-opacity-modifiers": noTokenOpacityModifiers,
     "require-list-reset": requireListReset,
+    "require-loading-region": requireLoadingRegion,
     "sdk-import-boundaries": sdkImportBoundaries,
   },
 };

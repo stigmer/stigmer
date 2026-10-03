@@ -6,6 +6,7 @@ import { DialogShell } from "../internal/DialogShell.js";
 import { useSkillDiff } from "./useSkillDiff.js";
 import { MultiFileDiffView } from "../version-history/MultiFileDiffView.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -129,10 +130,9 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
 
 function DiffSkeleton() {
   return (
-    <div
+    <LoadingRegion
       className="stg:flex stg:flex-col stg:gap-4"
-      aria-busy="true"
-      aria-label="Loading diff"
+      label="Loading diff"
     >
       <div className="stg:flex stg:items-center stg:gap-2">
         <div className="stg:h-4 stg:w-36 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -147,7 +147,7 @@ function DiffSkeleton() {
           <div className="stg:h-4 stg:flex-1 stg:animate-pulse stg:rounded stg:bg-muted" />
         </div>
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

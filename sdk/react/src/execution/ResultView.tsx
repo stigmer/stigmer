@@ -25,6 +25,7 @@ import { execIdFromStorageKey } from "./useFileChangeContent.js";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useToolOutputContent } from "./useToolOutputContent.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ResultView}. */
 export interface ResultViewProps {
@@ -509,10 +510,9 @@ function OutputRefImage({ storageKey, className }: { storageKey: string; classNa
   }
   if (!url) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:h-40 stg:w-64 stg:animate-pulse stg:rounded-md stg:border stg:border-border stg:bg-muted", className)}
-        aria-busy="true"
-        aria-label="Loading image output"
+        label="Loading image output"
       />
     );
   }

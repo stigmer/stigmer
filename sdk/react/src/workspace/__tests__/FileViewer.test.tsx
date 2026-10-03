@@ -100,7 +100,7 @@ describe("FileViewer", () => {
         reader={reader}
       />,
     );
-    expect(screen.getByLabelText("Loading file")).toBeTruthy();
+    expect(screen.getByText("Loading file")).toBeTruthy();
   });
 
   it("renders displayable text via the shared renderer", async () => {

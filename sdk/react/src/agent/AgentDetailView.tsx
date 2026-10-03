@@ -35,6 +35,7 @@ import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types.js";
 import { AgentInstanceList } from "../agent-instance/AgentInstanceList.js";
 import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
@@ -1283,10 +1284,9 @@ function EnvContent({
 
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div
+    <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-6", className)}
-      aria-busy="true"
-      aria-label="Loading agent details"
+      label="Loading agent details"
     >
       <div className="stg:flex stg:items-start stg:gap-3">
         <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -1305,7 +1305,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
           />
         </div>
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

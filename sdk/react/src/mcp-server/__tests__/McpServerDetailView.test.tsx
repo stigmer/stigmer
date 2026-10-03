@@ -162,7 +162,7 @@ describe("McpServerDetailView — hoisted mcpServerState", () => {
     expect(
       screen.getByRole("heading", { name: "Order Management API" }),
     ).toBeTruthy();
-    expect(screen.queryByLabelText("Loading MCP server details")).toBeNull();
+    expect(screen.queryByText("Loading MCP server details")).toBeNull();
 
     // Let pending microtasks (credentials/permission fetches) settle, then
     // confirm the resource fetch never fired.
@@ -184,7 +184,7 @@ describe("McpServerDetailView — hoisted mcpServerState", () => {
         }}
       />,
     );
-    expect(screen.getByLabelText("Loading MCP server details")).toBeTruthy();
+    expect(screen.getByText("Loading MCP server details")).toBeTruthy();
     // A loading owner must never read as a missing resource.
     expect(screen.queryByText("MCP Server not found")).toBeNull();
   });
@@ -235,7 +235,7 @@ describe("McpServerDetailView — self-fetching mode (unchanged behaviour)", () 
     });
 
     // First paint is the skeleton; content follows the fetch.
-    expect(screen.getByLabelText("Loading MCP server details")).toBeTruthy();
+    expect(screen.getByText("Loading MCP server details")).toBeTruthy();
     expect(
       await screen.findByRole("heading", { name: "Order Management API" }),
     ).toBeTruthy();

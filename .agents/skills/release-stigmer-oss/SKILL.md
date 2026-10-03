@@ -61,12 +61,31 @@ The presence of a `feat` commit is not a minor bump. Judge the change:
   SDK export's signature changes, a Go import path moves. A Go major is itself a
   migration for every Go consumer (the module path suffix and every import
   change with it, section 5), so a major is graded on what it does to consumers
-  who did not use the removed surface.
+  who did not use the removed surface. Before launch, a contract reshape is
+  graded by the before-launch bullet below instead.
 - **minor, with an Upgrading section**: a surface is removed outright (a kind, a
   proto package, an SDK client or subpath, a CLI mode) and no known consumer
   used it; the release notes name every removed surface under Upgrading so a
   consumer who did use it learns at the release, not the build. The Project
   kind's removal set the precedent.
+- **minor, with an Upgrading section, before launch** (from 2026-10-03, #1755):
+  a proto field, message or RPC is renamed, a field is removed, or a field's
+  value changes meaning, to reshape the contract, and no consumer outside
+  Stigmer's maintainers is known to use the surface that changed. The Upgrading
+  section names every renamed field, message and RPC with its new name, every
+  removed field, and every field whose value changed meaning with what it now
+  holds; the Go module keeps its major. The commits still carry their
+  `BREAKING CHANGE:` footers or `!` markers, and under this rule neither alone
+  makes the release a major. The contract is being remade in several steps
+  before launch, and grading each as a major would move every Go import path
+  once per step for no consumer's benefit. The cost is accepted for every
+  package the release ships: a Go consumer who runs `go get -u`, and a consumer
+  of `@stigmer/protos` or the npm SDKs on a caret range, the Python SDK on a
+  `~=X.Y` or open range, or the Java SDK on a version range, takes the change at
+  the next update, and learns of it from the Upgrading section. A release that
+  changes a surface a known outside consumer uses is a major, as above. The rule
+  ends with the first release whose notes announce general availability; that
+  release's pull request deletes this bullet.
 - **minor**: a new capability that expands what users or platform builders can
   do: a new API resource, a new CLI command, a new SDK domain, a product-level
   feature. The bar: would this earn a section in release notes that makes

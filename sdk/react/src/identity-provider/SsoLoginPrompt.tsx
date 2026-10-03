@@ -186,6 +186,7 @@ function resolvePhase(
 
 import { forwardRef, useId } from "react";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 interface OrgInputFormProps {
   readonly value: string;
@@ -241,16 +242,16 @@ const OrgInputForm = forwardRef<HTMLInputElement, OrgInputFormProps>(
 
 function LoadingState({ org }: { org: string }) {
   return (
-    <div
+    <LoadingRegion
       className="stg:flex stg:flex-col stg:items-center stg:gap-3 stg:py-4"
-      aria-busy="true"
-      aria-label={`Looking up SSO provider for ${org}`}
+      label={`Looking up SSO provider for ${org}`}
     >
       <SpinnerIcon size={20} className="stg:text-muted-foreground" />
-      <p className="stg:text-sm stg:text-muted-foreground">
+      {/* The hidden label says it in full; this is its short visible form. */}
+      <p className="stg:text-sm stg:text-muted-foreground" aria-hidden="true">
         Looking up <span className="stg:font-medium stg:text-foreground">{org}</span>&hellip;
       </p>
-    </div>
+    </LoadingRegion>
   );
 }
 

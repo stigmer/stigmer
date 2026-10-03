@@ -7,6 +7,7 @@ import { WorkflowVersionBadge } from "./WorkflowVersionBadge.js";
 import type { VersionEntry } from "../version-history/types.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link WorkflowVersionTimeline}. */
 export interface WorkflowVersionTimelineProps {
@@ -210,10 +211,9 @@ function VersionTimelineRow({
 
 function TimelineSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div
+    <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-4 stg:pt-2", className)}
-      aria-busy="true"
-      aria-label="Loading workflow version history"
+      label="Loading workflow version history"
     >
       {[1, 2, 3].map((i) => (
         <div key={i} className="stg:flex stg:gap-3">
@@ -230,7 +230,7 @@ function TimelineSkeleton({ className }: { readonly className?: string }) {
           </div>
         </div>
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

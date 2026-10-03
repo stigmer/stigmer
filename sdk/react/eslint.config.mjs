@@ -27,6 +27,10 @@ export default defineConfig([
       // list carries UNSTYLED_LIST and every content list declares its
       // list-* style, so this fence too starts at zero.
       "stigmer/require-list-reset": "error",
+      // Error (not warn): no busy, labelled element with no role on a tag axe
+      // refuses a name on, and none with role="status", renders outside
+      // LoadingRegion (#1653), so this fence holds that shape at zero.
+      "stigmer/require-loading-region": "error",
     },
   },
   {

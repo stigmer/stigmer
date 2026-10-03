@@ -18,6 +18,7 @@ import { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables.j
 import { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables.js";
 import { useRevealSecretValue } from "./useRevealSecretValue.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -152,10 +153,9 @@ export function EnvironmentVariableEditor({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading variables"
+        label="Loading variables"
       >
         {Array.from({ length: 3 }, (_, i) => (
           <div
@@ -164,7 +164,7 @@ export function EnvironmentVariableEditor({
             style={{ width: `${85 - i * 10}%` }}
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

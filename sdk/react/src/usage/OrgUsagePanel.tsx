@@ -22,6 +22,7 @@ import { AgentBreakdownList } from "./AgentBreakdownList.js";
 import { HarnessSplitCard } from "./HarnessSplitCard.js";
 import { ExportButton } from "./ExportButton.js";
 import { useExportCSV } from "./useExportCSV.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -59,10 +60,9 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-4", className)}
-        aria-busy="true"
-        aria-label="Loading usage data"
+        label="Loading usage data"
       >
         <div className="stg:flex stg:gap-2">
           {DATE_RANGE_PRESETS.map((p) => (
@@ -81,7 +81,7 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
           ))}
         </div>
         <div className="stg:h-40 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-      </div>
+      </LoadingRegion>
     );
   }
 

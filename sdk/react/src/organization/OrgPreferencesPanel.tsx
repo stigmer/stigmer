@@ -11,6 +11,7 @@ import { useServerInfo } from "../server-info.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** The memory row's copy where each member's own switch must also be on. */
 const MEMBER_CONSENT_MEMORY_HELPER_TEXT =
@@ -177,14 +178,13 @@ export function OrgPreferencesPanel({
 
   if (isFetching && !organization) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-4", className)}
-        aria-busy="true"
-        aria-label="Loading organization preferences"
+        label="Loading organization preferences"
       >
         <div className="stg:bg-muted-subtle stg:h-28 stg:animate-pulse stg:rounded" />
         <div className="stg:bg-muted-subtle stg:h-8 stg:w-32 stg:animate-pulse stg:rounded" />
-      </div>
+      </LoadingRegion>
     );
   }
 

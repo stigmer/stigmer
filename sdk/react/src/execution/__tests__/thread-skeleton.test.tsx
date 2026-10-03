@@ -3,12 +3,16 @@ import { render, screen } from "@testing-library/react";
 import { ThreadSkeleton } from "../ThreadSkeleton";
 
 describe("ThreadSkeleton", () => {
-  it("renders with aria-busy and loading label", () => {
+  it("renders as a busy region named by visually hidden text, with no role or aria-label", () => {
     const { container } = render(<ThreadSkeleton />);
 
     const root = container.firstElementChild as HTMLElement;
     expect(root.getAttribute("aria-busy")).toBe("true");
-    expect(root.getAttribute("aria-label")).toBe("Loading conversation");
+    expect(root.getAttribute("aria-label")).toBeNull();
+    expect(root.getAttribute("role")).toBeNull();
+    const name = screen.getByText("Loading conversation");
+    expect(name.className).toContain("stg:sr-only");
+    expect(root.contains(name)).toBe(true);
   });
 
   it("renders human message bubble silhouettes", () => {

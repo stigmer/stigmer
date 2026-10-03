@@ -49,7 +49,7 @@ describe("WorkspaceSurface a11y — editor tabs + viewer", () => {
     // rendered (not the skeletons) — both sidebar and editor stable.
     await screen.findByText("README.md");
     await waitFor(() =>
-      expect(screen.queryByLabelText("Loading file")).toBeNull(),
+      expect(screen.queryByText("Loading file")).toBeNull(),
     );
     await auditA11y(container, `file view · ${mode}`);
   });

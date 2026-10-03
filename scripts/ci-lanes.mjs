@@ -18,8 +18,9 @@
  * is explicit: a lane the change needs either passes or fails `Gate`, and the
  * lists live in one place, guarded by scripts/lane-triggers.test.mjs (a list
  * that watches a standalone package must watch everything it links, a lane
- * must watch every file an action it calls runs, and what its steps set up
- * and install from).
+ * must watch every file an action it calls runs, what its steps set up and
+ * install from, and the Makefile and scripts behind the `make` targets its
+ * steps call).
  *
  * Every lane runs when the gate itself could have changed: this script, the
  * orchestrator, or a composite action the lanes use (`EVERY_LANE`); on a
@@ -95,6 +96,9 @@ export const LANES = {
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
       "backend/services/runner/src/shared/llm-proxy.ts",
+      // The Makefile that defines the targets the lane's steps call, and the
+      // targets those pull in (scripts/lane-triggers.test.mjs fails when it, or
+      // a script a reached recipe runs, is missing).
       "Makefile",
       // What the lane's steps set up and install from: the Node version, and
       // the root manifest and lockfile, decide everything its `npm ci` puts on
@@ -111,6 +115,8 @@ export const LANES = {
       "backend/services/stigmer-server/src/authorization/model/data/**",
       "tools/codegen/src/authorization-model/**",
       "tools/codegen/package.json",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -160,6 +166,8 @@ export const LANES = {
       "sdk/python/src/stigmer/_gen/**",
       "sdk/python/Makefile",
       "sdk/go/proto/**",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -190,6 +198,9 @@ export const LANES = {
       "scripts/publish-libs.mjs",
       "backend/services/runner/Dockerfile.sandbox",
       "backend/services/stigmer-server/Dockerfile",
+      // The server's packaging script, which `make smoke-compose` runs
+      // (scripts/lane-triggers.test.mjs fails when it is missing).
+      "backend/services/stigmer-server/scripts/bundle-slim.mjs",
       // The runner's model path (ci.all-in-one says why these files).
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
@@ -222,14 +233,21 @@ export const LANES = {
       "test/conformance/**",
       "test/support/**",
       "apis/**",
-      // The Temporal CLI the suites run against: its pin, downloader, installer
-      // and the errors it exits with (scripts/lane-triggers.test.mjs fails when
-      // one is missing).
-      "client-apps/cli/src/local/artifact.ts",
-      "client-apps/cli/src/local/temporal/download.ts",
+      // The CLI, run from source: `make install-cli-shim` gives the suites
+      // `stigmer`, because memory-enabled executions spawn `stigmer mcp-server`
+      // (the workflow says why). Its source holds the Temporal CLI's pin,
+      // downloader and the errors it exits with too; the installer is beside it
+      // (scripts/lane-triggers.test.mjs fails when any is missing). What the
+      // CLI imports by package name (@stigmer/sdk and the others) is not
+      // traced, as that guard's header says, so their changes reach this lane
+      // only through the paths above.
+      "client-apps/cli/src/**",
       "client-apps/cli/scripts/install-temporal-cli.ts",
-      "client-apps/cli/src/errors/cli-exit-error.ts",
-      "client-apps/cli/src/errors/exit-codes.ts",
+      // The tsconfig the shim passes tsx. The guard traces scripts, not
+      // configuration, so this one is kept by hand.
+      "tsconfig.tsx.json",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -242,6 +260,8 @@ export const LANES = {
       "crates/stigmer-runner-host/**",
       "backend/services/runner/src/ipc-protocol.ts",
       "backend/services/runner/src/ipc-protocol-fixtures.ts",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
       // The Node version the lane sets up (ci.all-in-one says why).
       ".nvmrc",
       ".github/workflows/ci.crate.yaml",
@@ -284,6 +304,8 @@ export const LANES = {
       ".cursor/rules/agents-*.mdc",
       ".cursor/hooks.json",
       "scripts/agents-check.mjs",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -312,6 +334,8 @@ export const LANES = {
       // The Chromium every job here installs: .github/actions/playwright-chromium
       // runs it (scripts/lane-triggers.test.mjs fails when it is missing).
       "scripts/playwright-chromium.mjs",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -352,6 +376,9 @@ export const LANES = {
       // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
+      // The server's packaging script, which `make smoke-helm` runs
+      // (scripts/lane-triggers.test.mjs fails when it is missing).
+      "backend/services/stigmer-server/scripts/bundle-slim.mjs",
       // The runner's model path (ci.all-in-one says why these files).
       "backend/services/runner/src/shared/model-client.ts",
       "backend/services/runner/src/shared/llm-backend.ts",
@@ -383,6 +410,8 @@ export const LANES = {
     paths: [
       "plugins/**",
       "backend/libs/ts/plugin-package/**",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",
       "package.json",
@@ -483,6 +512,9 @@ export const LANES = {
       // release wrote is still readable after the upgrade.
       "backend/services/stigmer-server/Dockerfile",
       "backend/services/runner/Dockerfile.sandbox",
+      // The server's packaging script, which the compose, Helm and CLI
+      // rehearsals run (scripts/lane-triggers.test.mjs fails when it is missing).
+      "backend/services/stigmer-server/scripts/bundle-slim.mjs",
       "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
       ".nvmrc",

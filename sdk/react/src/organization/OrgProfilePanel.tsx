@@ -12,6 +12,7 @@ import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -152,10 +153,9 @@ export function OrgProfilePanel({
 
   if (isFetching && !organization) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-4", className)}
-        aria-busy="true"
-        aria-label="Loading organization profile"
+        label="Loading organization profile"
       >
         {Array.from({ length: 4 }, (_, i) => (
           <div
@@ -164,7 +164,7 @@ export function OrgProfilePanel({
             style={{ width: `${90 - i * 12}%` }}
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

@@ -17,6 +17,7 @@ import { useCreatePaymentMethodSetupSession } from "./useCreatePaymentMethodSetu
 import { usePeriodEstimate } from "./usePeriodEstimate.js";
 import { usePlans } from "./usePlans.js";
 import { useSubscription } from "./useSubscription.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** How often, and how long, the section waits for a just-saved card to reach the account. */
 const CARD_POLL_MS = 2_000;
@@ -179,9 +180,9 @@ export function PlanSection({
 
   if (current.isLoading || catalog.isLoading) {
     return (
-      <div className={cn("stg:space-y-3", className)} aria-busy="true" aria-label="Loading plan">
+      <LoadingRegion className={cn("stg:space-y-3", className)} label="Loading plan">
         <div className="stg:h-24 stg:animate-pulse stg:rounded-lg stg:bg-muted-subtle" />
-      </div>
+      </LoadingRegion>
     );
   }
 

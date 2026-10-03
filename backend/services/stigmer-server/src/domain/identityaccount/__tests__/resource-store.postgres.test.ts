@@ -59,6 +59,7 @@ const CONTRACT_CASE_NAMES = [
   "update of an unknown id is a no-op: no row appears",
   "deleteById of an unknown id resolves",
   "save refuses a direct account with an empty idp_id",
+  "save and update refuse an account whose provider ref and federated mode disagree; a row with neither saves",
 ] as const;
 
 /** A direct account as the domain writes it: id derived, mode direct. */

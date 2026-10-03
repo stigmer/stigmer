@@ -7,6 +7,7 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
 import { buildFileTree, FileTreeNode } from "../internal/file-tree/index.js";
 import { useSkillArtifact } from "./useSkillArtifact.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -79,10 +80,9 @@ export function SkillFileBrowser({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:rounded-lg stg:border stg:border-border", className)}
-        aria-busy="true"
-        aria-label="Loading skill package files"
+        label="Loading skill package files"
       >
         <div className="stg:p-4">
           <div className="stg:h-3 stg:w-32 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -101,7 +101,7 @@ export function SkillFileBrowser({
             </div>
           </div>
         </div>
-      </div>
+      </LoadingRegion>
     );
   }
 

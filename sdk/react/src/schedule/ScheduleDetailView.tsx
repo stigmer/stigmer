@@ -78,6 +78,7 @@ import { useSetScheduleEnabled } from "./useSetScheduleEnabled.js";
 import { useTriggerSchedule } from "./useTriggerSchedule.js";
 import { useUpdateScheduleSpec } from "./useUpdateScheduleSpec.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link ScheduleDetailView}. */
 export interface ScheduleDetailViewProps {
@@ -1552,10 +1553,9 @@ function ReferenceLink({
 
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div
+    <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-6", className)}
-      aria-busy="true"
-      aria-label="Loading schedule details"
+      label="Loading schedule details"
     >
       <div className="stg:flex stg:items-start stg:gap-3">
         <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -1578,7 +1578,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
           style={{ height: "160px" }}
         />
       </div>
-    </div>
+    </LoadingRegion>
   );
 }
 

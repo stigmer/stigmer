@@ -1,9 +1,10 @@
 // A CI lane runs when anything it builds against, runs through a composite
-// action, or sets up and installs from, changes: a lane or a path-filtered
-// deploy that builds a package outside the npm workspace runs when anything
-// that package links changes, a gate lane runs when any file an action it
-// calls runs changes, and a gate lane runs when the toolchain version file,
-// manifest or lockfile its steps set up and install from changes.
+// action or a `make` target, or sets up and installs from, changes: a lane or
+// a path-filtered deploy that builds a package outside the npm workspace runs
+// when anything that package links changes, a gate lane runs when any file an
+// action it calls runs changes, a gate lane runs when the toolchain version
+// file, manifest or lockfile its steps set up and install from changes, and a
+// gate lane runs when a Makefile or script its `make` calls reach changes.
 // Run via `node --test scripts/lane-triggers.test.mjs` (wired into root `npm test`).
 //
 // ci.ts-workspace asks turbo which workspace packages a change reaches, so a
@@ -58,9 +59,10 @@
 // files; an untracked path, a $GITHUB_ACTION_PATH/ path that leaves the
 // action's folder, an action inside an action, a lane calling a local
 // workflow. It sees a script by its extension: a step that runs repository
-// code without naming such a file (a `make` target, an `npm run` script, a
-// script with no extension) is not traced, nor what a shell script in the
-// action's folder sources, nor a relative `require()` in a body (only
+// code without naming such a file (an `npm run` script, a script with no
+// extension, a `make` target inside an action, which the make rule below
+// reads only in a lane's own steps) is not traced, nor what a shell script in
+// the action's folder sources, nor a relative `require()` in a body (only
 // import, export and `import()` are read), and none of today's actions or
 // bodies does any of these. Packages are not traced:
 // what an action runs from node_modules/ and what a body imports by name,
@@ -90,8 +92,35 @@
 // `link`), an install redirected by `npm_config_*` in a step's env (the
 // lanes set only the fetch-retry ones), an install run through another
 // program (`npx npm@10 ci`; yarn, whose one project, site/, is in its
-// lane's list), and what a `make` target installs or runs (#1733). No gate
-// lane does any of these.
+// lane's list), and what an install inside a `make` recipe reads (the make
+// rule below holds the lane to the recipe's Makefile, not to the manifest
+// its `npm ci` reads). No gate lane step does any of the others.
+//
+// The make rule. A lane's steps also run repository code through `make` (`make
+// build-runner`), whose recipes the rules above do not read, so a change to the
+// Makefile, or to a script a recipe runs, merged without the lanes that call it
+// (#1733). So for every lane in the map, each `make` call is followed through
+// scripts/make-targets.mjs: the targets it reaches by prerequisite and by
+// `$(MAKE) [-C <dir>]`, across Makefiles, and the script words of their recipes
+// and of each Makefile's `:=` values that run a shell (make runs those whenever
+// it reads the file), placed where each line runs (its Makefile's directory, a
+// leading `cd <dir> &&`, a `(cd <dir> && ...)` subshell, or the checkout's root
+// through `$(CURDIR)`), with what those import by relative path. Every Makefile
+// and script reached must select the lane, and on the always-on lane run every
+// package, the same two questions again. Refused: a `make` call it cannot place
+// (in a step that changes directory, with `-f` or `-I`, with no target, in a
+// directory named by an expression), a Makefile construct the reader does not
+// model (its header lists them), and a script word it cannot place or that
+// names nothing tracked. Not traced: what a package runner in a recipe runs
+// (`npm run`, `npx`, `yarn`, `mvn`, `cargo` and any other; the action rule's
+// `npm run` again), a script name a make function builds (`$(addsuffix ...)`),
+// configuration a recipe reads (a tsconfig, a chart's values), `MAKEFLAGS` in a
+// step's env, an environment variable (a step's `env:`, or `NAME=value` before
+// make) that a `?=` default yields to, anything inside a quoted string run by
+// another shell (`bash -c 'cd sub && make x'`: neither its `cd` nor its `make`
+// is read), and what a body imports by package name. The one configuration file
+// a recipe hands its tool, `tsconfig.tsx.json` (the CLI shim's), is in its
+// lane's list by hand.
 //
 // Workflows outside the map (the cache writers, the post-deploy smoke) are
 // not the gate and are not held to it.
@@ -108,6 +137,7 @@ import { parse } from "yaml";
 
 import { matchesGlob } from "./agents-check.mjs";
 import { LANES, laneId, selectLanes } from "./ci-lanes.mjs";
+import { commandWords, parseMakeArguments, placeWords, targetClosure } from "./make-targets.mjs";
 import { everythingBecause } from "./turbo-affected.mjs";
 import { extractRelativeSpecifiers } from "./verify-esm-node.mjs";
 
@@ -125,8 +155,14 @@ const REACHED_FIELDS = [
 const REFUSED_SYNTAX = /[{}[\]!?+]/;
 /** A file a `run:` step names under the checkout's root or the action's own folder: the variable, then the path. */
 const PLACED_PATH = /\$(GITHUB_WORKSPACE|GITHUB_ACTION_PATH)\/([^\s"'`()=;|&<>]+)/g;
-/** A word in a `run:` step that names a script, however it is spelled. */
-const SCRIPT_WORD = /[^\s"'`()=;|&<>]+\.(?:mjs|cjs|js|jsx|mts|cts|ts|tsx|sh|bash|py)\b/g;
+/**
+ * A word in a `run:` step or a recipe that names a script, however it is
+ * spelled. It ends where a shell word ends (whitespace, a quote, an operator,
+ * the line's end) or where punctuation follows it (`:`, `,`, `}`, `]`), so
+ * `tsconfig.tsx.json` is not read as `tsconfig.tsx`, and
+ * `${X:-scripts/a.mjs}` is read, holding its `$`.
+ */
+const SCRIPT_WORD = /[^\s"'`()=;|&<>]+\.(?:mjs|cjs|js|jsx|mts|cts|ts|tsx|sh|bash|py)(?=$|[\s"'`()=;|&<>:,}\]])/g;
 /** The prefixes under which a script word is placed: the checkout, or the action's own folder. */
 const PLACED = ["$GITHUB_WORKSPACE/", "$GITHUB_ACTION_PATH/"];
 /** The bodies whose imports extractRelativeSpecifiers can follow. */
@@ -379,7 +415,7 @@ export function actionRuns(action, tracked, folder) {
 /**
  * The bodies and every tracked file they reach by relative import, sorted:
  * `{ files, refusals }`. A `.js` specifier whose file is not tracked is the
- * `.ts` source beside it (TypeScript's NodeNext spelling). Package and
+ * `.ts` or `.tsx` source beside it (TypeScript's NodeNext spelling). Package and
  * `node:` specifiers are left out; type-only imports are kept, which can only
  * ask a lane to watch one more file. `read` returns a tracked file's text.
  */
@@ -391,9 +427,10 @@ export function bodyClosure(bodies, tracked, read) {
     reached.add(file);
     for (const specifier of extractRelativeSpecifiers(read(file), file)) {
       const target = posix.normalize(posix.join(posix.dirname(file), specifier));
-      const source = target.endsWith(".js") ? `${target.slice(0, -".js".length)}.ts` : null;
+      const stem = target.endsWith(".js") ? target.slice(0, -".js".length) : null;
+      const source = stem === null ? undefined : [`${stem}.ts`, `${stem}.tsx`].find((candidate) => tracked.has(candidate));
       if (tracked.has(target)) visit(target);
-      else if (source !== null && tracked.has(source)) visit(source);
+      else if (source !== undefined) visit(source);
       else refusals.push(`${file} imports "${specifier}", which resolves to no tracked file`);
     }
   };
@@ -538,6 +575,131 @@ export function actionSetups(action, tracked) {
   ];
 }
 
+/**
+ * A `make` in command position in a step: at a line's start, after an
+ * operator or a subshell's `(`, or after `then`, `do` or `else`, behind any
+ * `NAME=value` environment assignments. Make reads those as environment
+ * variables: below the file's own assignments, but above a `?=` default,
+ * which this guard does not model (the header lists it as not traced).
+ */
+const MAKE_COMMAND = /(^|[;&|(]|\b(?:then|do|else)\b)[ \t]*(?:[A-Za-z_][A-Za-z0-9_]*=\S*[ \t]+)*make(?=[ \t]|$)/gm;
+/** Every `make` word of its own in a step: not `cmake`, not `make-targets.mjs`. */
+const MAKE_WORD = /(^|[\s;&|(`])make(?=[\s;&|)`]|$)/gm;
+
+/** `text` with its quoted strings blanked to their length, so a word in a message is not read as a command. */
+const blankQuotes = (text) => text.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (quoted) => " ".repeat(quoted.length));
+
+/**
+ * The `make` calls of one parsed workflow's steps: `{ calls, refusals }`,
+ * each call `{ label, dir, targets, overrides }` (scripts/make-targets.mjs
+ * `parseMakeArguments`). The directory is the step's working-directory chain,
+ * as `laneInputs` reads it, then `-C`. Refused, as a moved install is: a
+ * `make` in a step that changes directory, a directory holding an
+ * expression, a `make` word it cannot read as a command (behind a wrapper
+ * such as `timeout`, or an argument of another command), and what
+ * `parseMakeArguments` refuses (another file, an include directory, no
+ * target).
+ */
+export function laneMakeCalls(workflow) {
+  const calls = [];
+  const refusals = [];
+  for (const [jobId, job] of Object.entries(workflow.jobs ?? {})) {
+    for (const [index, step] of (job.steps ?? []).entries()) {
+      if (typeof step.run !== "string") continue;
+      const label = `jobs.${jobId} ${step.name ? `"${step.name}"` : `step ${index + 1}`}`;
+      const run = step.run.replace(/\\\r?\n/g, " ");
+      const plain = blankQuotes(run);
+      const dir = String(
+        step["working-directory"] ?? job.defaults?.run?.["working-directory"] ?? workflow.defaults?.run?.["working-directory"] ?? ".",
+      );
+      const placed = new Set();
+      for (const match of plain.matchAll(MAKE_COMMAND)) {
+        placed.add(match.index + match[0].length - "make".length);
+        const words = commandWords(run, match.index + match[0].length);
+        const command = `make ${words.join(" ")}`.trim();
+        if (CHANGES_DIRECTORY.test(plain)) {
+          refusals.push(`${label}: "${command}" runs in a step that changes directory, which this guard cannot place; use working-directory or make -C`);
+        } else if (dir.includes("${{")) {
+          refusals.push(`${label}: working-directory is an expression; name the directory, so this guard can hold the lane to its Makefile`);
+        } else {
+          const call = parseMakeArguments(words, posix.normalize(dir));
+          if (call.refusal) refusals.push(`${label}: "${command}": ${call.refusal}`);
+          else calls.push({ label, ...call });
+        }
+      }
+      for (const match of plain.matchAll(MAKE_WORD)) {
+        const at = match.index + match[1].length;
+        if (placed.has(at)) continue;
+        refusals.push(
+          `${label}: "${plain.slice(Math.max(0, at - 20), at + 24).trim()}" names make where this guard cannot read it as a command ` +
+            "(behind a wrapper such as timeout, or as an argument); call make at a command's start, after NAME=value assignments at most",
+        );
+      }
+    }
+  }
+  return { calls, refusals };
+}
+
+/**
+ * Everything a lane's `make` calls reach: `{ files, bodies, refusals }`.
+ * `files` are the Makefiles read and every tracked file the reached recipes
+ * run, with what those import by relative path; `bodies` are the scripts the
+ * recipes name. A recipe's script word (`SCRIPT_WORD`) is placed where its
+ * line runs (scripts/make-targets.mjs `placeWords`) and then:
+ *   - ignored when it is a URL, sits under node_modules/ (installed packages,
+ *     the setup rule's ground), or has no `/` and names no tracked file (a
+ *     glob inside a string, a word in a message);
+ *   - matched against tracked files when it holds `*`, each match a body;
+ *   - a body when it names a tracked file;
+ *   - refused when it still holds a variable this guard could not expand
+ *     (make's or the shell's), or looks like a repository path and names
+ *     nothing tracked.
+ * A body is followed by its imports when it is one of `BODY_EXTENSIONS`;
+ * any other kind is refused, as the action rule refuses one. `read` returns
+ * a tracked file's text, and `tracked` is passed in, so a fixture needs no git.
+ */
+export function makeReach(calls, tracked, read) {
+  const makefiles = new Set();
+  const bodies = new Set();
+  const refusals = [];
+  const readMakefile = (path) => (tracked.has(path) ? read(path) : undefined);
+  for (const { label, dir, targets, overrides } of calls) {
+    const closure = targetClosure({ read: readMakefile, dir, targets, overrides });
+    for (const makefile of closure.makefiles) makefiles.add(makefile);
+    refusals.push(...closure.refusals.map((refusal) => `${label}: ${refusal}`));
+    for (const { makefile, target, dir: at, text } of closure.lines) {
+      const where = `${label}: ${makefile} ${target}`;
+      const placed = placeWords(text, at, SCRIPT_WORD);
+      refusals.push(...placed.refusals.map((refusal) => `${where}: ${refusal}`));
+      for (const { word, path } of placed.words) {
+        if (word.includes("://") || path.split("/").includes("node_modules")) continue;
+        if (word.includes("$")) {
+          refusals.push(`${where}: "${word}" names a script through a variable this guard could not expand`);
+        } else if (word.includes("*")) {
+          const glob = new RegExp(`^${path.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*")}$`);
+          const matches = [...tracked].filter((file) => glob.test(file));
+          if (matches.length > 0) matches.forEach((file) => bodies.add(file));
+          else if (word.includes("/")) refusals.push(`${where}: "${word}" matches no tracked file`);
+        } else if (tracked.has(path)) {
+          bodies.add(path);
+        } else if (word.includes("/")) {
+          refusals.push(`${where}: runs ${path}, which git does not track`);
+        }
+      }
+    }
+  }
+  const followed = [...bodies].filter((body) => BODY_EXTENSIONS.some((extension) => body.endsWith(extension)));
+  for (const body of [...bodies].filter((body) => !followed.includes(body))) {
+    refusals.push(`a make recipe runs ${body}; this guard follows the imports of ${BODY_EXTENSIONS.join(" and ")} bodies only, so teach it this kind first`);
+  }
+  const closure = bodyClosure(followed, tracked, read);
+  return {
+    files: [...new Set([...makefiles, ...closure.files])].sort(),
+    bodies: [...bodies].sort(),
+    refusals: [...refusals, ...closure.refusals],
+  };
+}
+
 function readWorkflows(rootDir = root) {
   const dir = join(rootDir, ".github/workflows");
   return readdirSync(dir)
@@ -617,6 +779,14 @@ const gateLanes = workflows.filter(({ file }) => LANES[file] !== undefined);
 const laneCalls = new Map(gateLanes.map(({ file, workflow }) => [file, laneActions(workflow)]));
 /** Each gate lane's workflow file -> what its steps set up and install from, and what it refused. */
 const laneSetups = new Map(gateLanes.map(({ file, workflow }) => [file, laneInputs(workflow, tracked)]));
+/** Each gate lane's workflow file -> what its `make` calls reach, and what the make rule refused. */
+const laneMakes = new Map(
+  gateLanes.map(({ file, workflow }) => {
+    const { calls, refusals } = laneMakeCalls(workflow);
+    const reach = makeReach(calls, tracked, (path) => readFileSync(join(root, path), "utf8"));
+    return [file, { calls, ...reach, refusals: [...refusals, ...reach.refusals] }];
+  }),
+);
 
 /**
  * Why a change to `changed` would leave the lane in `file` short, or null:
@@ -808,6 +978,172 @@ test("the setup rule still finds the setups and installs it exists for", () => {
   ]);
   assert.deepEqual(readers("backend/services/runner/package-lock.json"), ["runner"]);
   assert.deepEqual(readers("test/extension-consumer/package-lock.json"), ["stigmer-server"]);
+});
+
+test("every make call in a gate lane, and every Makefile and recipe it reaches, is one this guard reads", () => {
+  const problems = [...laneMakes].flatMap(([file, { refusals }]) => refusals.map((refusal) => `${file} ${refusal}`));
+  assert.deepEqual(problems, []);
+});
+
+test("a gate lane runs when a Makefile or script its make calls reach changes, and on the always-on lane so does every job", () => {
+  const problems = [];
+  for (const [file, { files }] of laneMakes) {
+    for (const changed of files) {
+      const missed = missedBy(file, changed);
+      if (missed === "lane") {
+        problems.push(
+          `${file} calls make, which reads or runs ${changed}, yet a change to it does not select the lane. ` +
+            `Add "${changed}" to the lane's list in scripts/ci-lanes.mjs.`,
+        );
+      } else if (missed === "jobs") {
+        problems.push(
+          `${file} decides job by job and calls make, which reads or runs ${changed}, yet a change to it does not ` +
+            "run every package there, so a job can skip. " +
+            "Make it workspace tooling (WORKSPACE_TOOLING in scripts/turbo-affected.mjs).",
+        );
+      }
+    }
+  }
+  assert.deepEqual(problems, []);
+});
+
+test("the make rule still finds the Makefiles, scripts and lanes it exists for", () => {
+  // If the make-call read, the closure or the placement broke, the rule above
+  // would pass on nothing. These are today's readers of each file it checks.
+  const readers = (changed) =>
+    [...laneMakes].filter(([, { files }]) => files.includes(changed)).map(([file]) => laneId(file)).sort();
+  assert.deepEqual(readers("Makefile"), [
+    "all-in-one",
+    "authorization-model",
+    "cli-up",
+    "codegen",
+    "compose-stack",
+    "conformance-execution",
+    "crate",
+    "docs",
+    "e2e-interactive",
+    "helm-chart",
+    "plugins-static",
+    "stigmer-server",
+    "ts-workspace",
+    "upgrade-rehearsal",
+  ]);
+  assert.deepEqual(readers("site/Makefile"), ["docs"]);
+  assert.deepEqual(readers("sdk/go/Makefile"), ["go-sdk"]);
+  assert.deepEqual(readers("sdk/python/Makefile"), ["codegen"]);
+  assert.deepEqual(readers("backend/services/stigmer-server/scripts/bundle-slim.mjs"), [
+    "cli-up",
+    "compose-stack",
+    "helm-chart",
+    "upgrade-rehearsal",
+  ]);
+  assert.deepEqual(readers("client-apps/cli/src/cli/stigmer.ts"), ["conformance-execution"]);
+  // The tsconfig the shim hands tsx is configuration, which the rule does not trace; its entry is kept by hand.
+  assert.ok(
+    selectLanes({ event: "pull_request", changedFiles: ["tsconfig.tsx.json"] }).lanes["conformance-execution"],
+    "the CLI shim's tsconfig selects the lane that runs the shim",
+  );
+  assert.deepEqual(
+    readers("scripts/lib/source-version.mjs"),
+    ["all-in-one", "compose-stack", "helm-chart", "upgrade-rehearsal"],
+    "named through a variable's $(CURDIR) in the rehearsals, imported by scripts/stage-all-in-one.mjs and scripts/stage-compose-runner-cli.mjs",
+  );
+  assert.deepEqual(readers("client-apps/cli/scripts/gen-cli-docs.ts"), ["docs"], "a script placed by its subshell's cd");
+});
+
+test("laneMakeCalls reads each make command in a step, in the step's, job's or workflow's directory, and refuses one it cannot place", () => {
+  const { calls, refusals } = laneMakeCalls(
+    lane([
+      { name: "a", run: "make build-runner\nmake -C sdk/go -s codegen MODE=strict && echo done" },
+      { name: "b", run: "if [ -n x ]; then make test; fi", "working-directory": "svc" },
+      { name: "c", run: 'echo "run make all first" && make \\\n  lint ARTIFACT="${ARTIFACT}"' },
+      { name: "d", run: "cmake --build . && STUBS_FORCE=1 FLAG='a b' make -C apis ts-stubs" },
+    ]),
+  );
+  assert.deepEqual(refusals, []);
+  assert.deepEqual(
+    calls.map(({ label, dir, targets, overrides }) => [label, dir, targets, Object.fromEntries(overrides)]),
+    [
+      ['jobs.j "a"', ".", ["build-runner"], {}],
+      ['jobs.j "a"', "sdk/go", ["codegen"], { MODE: "strict" }],
+      ['jobs.j "b"', "svc", ["test"], {}],
+      ['jobs.j "c"', ".", ["lint"], { ARTIFACT: null }],
+      ['jobs.j "d"', "apis", ["ts-stubs"], {}],
+    ],
+    "a quoted make and cmake are not calls; environment assignments before make are read past",
+  );
+  assert.deepEqual(laneMakeCalls(lane([{ run: "make check" }], { jobDir: "job", workflowDir: "wf" })).calls[0].dir, "job");
+  const refused = (step) => laneMakeCalls(lane([step])).refusals;
+  assert.match(refused({ run: "cd svc && make all" })[0], /runs in a step that changes directory/);
+  assert.match(refused({ run: "make all", "working-directory": "${{ inputs.dir }}" })[0], /working-directory is an expression/);
+  assert.match(refused({ run: "make -f other.mk all" })[0], /reads a file or directory this reader does not follow/);
+  assert.match(refused({ run: "make" })[0], /names no target/);
+  for (const run of ["timeout 20m make build-runner", "npm run make", "nice -n 5 make lint"]) {
+    assert.match(refused({ run }).join("\n"), /names make where this guard cannot read it as a command/, run);
+  }
+});
+
+test("makeReach holds a lane to the Makefiles and scripts its calls reach, and refuses a script it cannot place", () => {
+  const sources = {
+    Makefile: [
+      "SERVER_DIR := svc",
+      "build: deps",
+      "\tcd $(SERVER_DIR) && node scripts/bundle.mjs https://example.com/x.sh",
+      "\tnode node_modules/.bin/x.mjs && node --test $(SERVER_DIR)/tests/*.test.mjs",
+      "\tpython3 -c \"import glob; glob.glob('*.py')\"",
+      "deps:",
+      "\t$(MAKE) -C pkg gen",
+    ].join("\n"),
+    "pkg/Makefile": "gen:\n\tnode gen.ts",
+    "svc/scripts/bundle.mjs": 'import "./lib/pragma.mjs";',
+    "svc/scripts/lib/pragma.mjs": "export {};",
+    "svc/tests/a.test.mjs": "",
+    "svc/tests/b.test.mjs": "",
+    "pkg/gen.ts": 'import { x } from "./view.js";',
+    "pkg/view.tsx": "export const x = 1;",
+  };
+  const tracked = new Set(Object.keys(sources));
+  const read = (path) => sources[path];
+  const call = { label: "jobs.j", dir: ".", targets: ["build"], overrides: new Map() };
+  assert.deepEqual(makeReach([call], tracked, read), {
+    files: [
+      "Makefile",
+      "pkg/Makefile",
+      "pkg/gen.ts",
+      "pkg/view.tsx",
+      "svc/scripts/bundle.mjs",
+      "svc/scripts/lib/pragma.mjs",
+      "svc/tests/a.test.mjs",
+      "svc/tests/b.test.mjs",
+    ],
+    bodies: ["pkg/gen.ts", "svc/scripts/bundle.mjs", "svc/tests/a.test.mjs", "svc/tests/b.test.mjs"],
+    refusals: [],
+  });
+  const refusalsOf = (recipe, extra = {}) =>
+    makeReach(
+      [{ ...call, targets: ["t"] }],
+      new Set(["Makefile", ...Object.keys(extra)]),
+      (path) => ({ Makefile: `t:\n\t${recipe}`, ...extra })[path],
+    ).refusals;
+  assert.match(refusalsOf("node scripts/gone.mjs")[0], /runs scripts\/gone\.mjs, which git does not track/);
+  assert.match(refusalsOf("node $(TOOLS)/x.mjs")[0], /follows a reference this reader could not expand/);
+  assert.match(refusalsOf("node ${TOOLS}/x.mjs $$HOME/y.mjs")[0], /names a script through a variable this guard could not expand/);
+  assert.match(refusalsOf("node --test none/*.test.mjs")[0], /matches no tracked file/);
+  assert.match(refusalsOf("cd a; node b.mjs")[0], /a directory change this reader cannot place/);
+  assert.match(refusalsOf("bash tools/run.sh", { "tools/run.sh": "" })[0], /follows the imports of \.mjs and \.ts bodies only/);
+  assert.match(refusalsOf("node x.mjs", { "x.mjs": 'import "./gone.mjs";' })[0], /x\.mjs imports "\.\/gone\.mjs", which resolves to no tracked file/);
+  assert.match(refusalsOf("$(MAKE) missing")[0], /^jobs\.j: Makefile defines no target missing$/);
+});
+
+test("SCRIPT_WORD ends a word where the shell does, so a dotted config name is not a script", () => {
+  const words = (text) => [...text.matchAll(SCRIPT_WORD)].map(([word]) => word);
+  assert.deepEqual(words('tsx --tsconfig "tsconfig.tsx.json" "src/cli.ts" a.mjs;b.sh|c.py)'), ["src/cli.ts", "a.mjs", "b.sh", "c.py"]);
+  assert.deepEqual(words("node scripts/a.mjs: [x.ts] ${X:-scripts/b.mjs} y.sh, z.py"), ["scripts/a.mjs", "[x.ts", "${X:-scripts/b.mjs", "y.sh", "z.py"]);
+  assert.match(
+    actionRuns(composite("node ${X:-scripts/a.mjs}"), new Set(), ".github/actions/x").refusals.join("\n"),
+    /names a script under neither/,
+    "a script behind a default expansion is still refused in an action",
+  );
 });
 
 test("linkClosure follows file: and workspace links, and stops at a reached package's devDependencies", () => {

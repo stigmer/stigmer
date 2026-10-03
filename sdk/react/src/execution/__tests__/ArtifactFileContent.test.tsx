@@ -23,7 +23,7 @@ afterEach(cleanup);
 describe("ArtifactFileContent — state machine", () => {
   it("shows the loading skeleton while the fetch is in flight", () => {
     renderContent({ isLoading: true });
-    expect(screen.getByLabelText("Loading content")).toBeTruthy();
+    expect(screen.getByText("Loading content")).toBeTruthy();
   });
 
   it("shows the error message when the fetch failed", () => {
@@ -54,7 +54,7 @@ describe("ArtifactFileContent — state machine", () => {
 
   it("loading wins over stale content (no content flash during refetch)", () => {
     renderContent({ content: "old body", isLoading: true });
-    expect(screen.getByLabelText("Loading content")).toBeTruthy();
+    expect(screen.getByText("Loading content")).toBeTruthy();
     expect(screen.queryByText("old body")).toBeNull();
   });
 });

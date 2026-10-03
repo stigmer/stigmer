@@ -10,6 +10,7 @@ import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LastUsedLabel } from "../internal/LastUsedLabel.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -67,10 +68,9 @@ export function ApiKeyListPanel({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading API keys"
+        label="Loading API keys"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
@@ -78,7 +78,7 @@ export function ApiKeyListPanel({
             className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

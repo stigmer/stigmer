@@ -246,7 +246,7 @@ describe("WorkspaceSidebar — fetch states", () => {
         recentActivity={{ entries: [], isLoading: true }}
       />,
     );
-    expect(screen.getByLabelText("Loading sessions")).toBeTruthy();
+    expect(screen.getByText("Loading sessions")).toBeTruthy();
   });
 
   it("shows the error alert plus the empty state on failure", () => {

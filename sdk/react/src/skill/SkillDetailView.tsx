@@ -28,6 +28,7 @@ import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog.js";
 import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 const CONTENT_TAB: TabItem = { id: "content", label: "Content" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
@@ -650,10 +651,9 @@ function SkillSection({
 
 function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
-    <div
+    <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-6", className)}
-      aria-busy="true"
-      aria-label="Loading skill details"
+      label="Loading skill details"
     >
       <div className="stg:flex stg:items-start stg:gap-3">
         <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -677,7 +677,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
           style={{ height: "64px" }}
         />
       </div>
-    </div>
+    </LoadingRegion>
   );
 }
 

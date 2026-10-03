@@ -40,7 +40,7 @@ describe("ArtifactContentBody — file states", () => {
         skillDetection={NOT_SKILL}
       />,
     );
-    expect(screen.getByLabelText("Loading content")).toBeTruthy();
+    expect(screen.getByText("Loading content")).toBeTruthy();
   });
 
   it("renders an error message", () => {

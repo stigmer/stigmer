@@ -13,6 +13,7 @@ import { usePlatformClientList } from "./usePlatformClientList.js";
 import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { isPlatformClientExpired } from "./expiry.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link PlatformClientListPanel}. */
 export interface PlatformClientListPanelProps {
@@ -87,10 +88,9 @@ export function PlatformClientListPanel({
 
   if (isLoading) {
     return (
-      <div
+      <LoadingRegion
         className={cn("stg:space-y-2", className)}
-        aria-busy="true"
-        aria-label="Loading platform clients"
+        label="Loading platform clients"
       >
         {Array.from({ length: 2 }, (_, i) => (
           <div
@@ -98,7 +98,7 @@ export function PlatformClientListPanel({
             className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg"
           />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

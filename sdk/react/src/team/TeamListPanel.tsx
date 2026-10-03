@@ -15,6 +15,7 @@ import { ChevronRight, UsersRound } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link TeamListPanel}. */
 export interface TeamListPanelProps {
@@ -47,11 +48,11 @@ export function TeamListPanel({
 }: TeamListPanelProps) {
   if (isLoading) {
     return (
-      <div className={cn("stg:space-y-2", className)} aria-busy="true" aria-label="Loading teams">
+      <LoadingRegion className={cn("stg:space-y-2", className)} label="Loading teams">
         {Array.from({ length: 2 }, (_, i) => (
           <div key={i} className="stg:bg-muted-subtle stg:h-14 stg:animate-pulse stg:rounded-lg" />
         ))}
-      </div>
+      </LoadingRegion>
     );
   }
 

@@ -248,7 +248,7 @@ describe("WorkflowAgentCallTranscript", () => {
 
     render(<WorkflowAgentCallTranscript childExecutionId="aex_4" />);
 
-    expect(screen.getByLabelText("Loading conversation")).toBeTruthy();
+    expect(screen.getByText("Loading conversation")).toBeTruthy();
     expect(screen.queryByTestId("message-thread-probe")).toBeNull();
   });
 

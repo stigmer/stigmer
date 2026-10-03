@@ -1,0 +1,71 @@
+{
+  "$comment": "Which elements axe-core refuses a name on, for the stigmer/require-loading-region lint rule (tools/eslint-plugin-stigmer/rules/require-loading-region.js), which reports a busy, labelled element with no role written when its tag is in namelessElements. Measured, not judged: src/internal/__tests__/a11y/loading-region-markup.browser.test.ts renders every HTML element, busy, labelled, empty and with no role, through axe's aria-prohibited-attr in Chromium, and fails, printing what axe measured, when these lists disagree. Update a list by copying that output.",
+  "axeCore": "4.11.4",
+  "namelessElements": [
+    "abbr",
+    "address",
+    "b",
+    "bdi",
+    "bdo",
+    "blockquote",
+    "br",
+    "caption",
+    "cite",
+    "code",
+    "col",
+    "colgroup",
+    "data",
+    "del",
+    "div",
+    "em",
+    "figcaption",
+    "hgroup",
+    "i",
+    "ins",
+    "kbd",
+    "legend",
+    "map",
+    "mark",
+    "p",
+    "picture",
+    "pre",
+    "q",
+    "rt",
+    "ruby",
+    "s",
+    "samp",
+    "small",
+    "span",
+    "strong",
+    "sub",
+    "sup",
+    "time",
+    "u",
+    "var",
+    "wbr"
+  ],
+  "elementsLeftToAxe": {
+    "a": {
+      "reason": "an a with an href is a link, which takes a name; the rule cannot see an href passed in a spread",
+      "accepted": "<a id=\"probe\" href=\"#x\" aria-busy=\"true\" aria-label=\"Loading\"></a>"
+    },
+    "td": {
+      "reason": "a table cell takes a name inside a table; axe cannot judge one alone",
+      "accepted": "<table><tbody><tr><td id=\"probe\" aria-busy=\"true\" aria-label=\"Loading\"></td></tr></tbody></table>"
+    },
+    "th": {
+      "reason": "a header cell takes a name inside a table; axe cannot judge one alone",
+      "accepted": "<table><tbody><tr><th id=\"probe\" aria-busy=\"true\" aria-label=\"Loading\"></th></tr></tbody></table>"
+    }
+  },
+  "elementsAxeSkips": {
+    "area": "hidden by default",
+    "audio": "hidden by default without controls",
+    "datalist": "hidden by default",
+    "dialog": "hidden until opened",
+    "noscript": "not rendered while scripting runs",
+    "rp": "hidden by default",
+    "template": "inert content",
+    "slot": "outside axe's tree"
+  }
+}
