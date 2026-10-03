@@ -177,7 +177,7 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
     "RFC 6749 §2.3.1 requires it.",
     "Fixed in #1249 and stigmer#1249.",
     "Stored in an S3 bucket behind HTTP/2.",
-    "Turn N-1 signs with P-256 or ES-256 over UTF-8, dated ISO-8601 or MM-DD-YYYY.",
+    "Turn N-1 signs with P-256 or ES-256 under CC-BY-4.0 over UTF-8, dated ISO-8601 or MM-DD-YYYY.",
     "const head = text.slice(1); // a microwave 3 times",
   ]) {
     assert.deepEqual(planningReferences(nearMiss, patterns), [], nearMiss);
