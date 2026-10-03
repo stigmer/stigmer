@@ -42,8 +42,15 @@
  *   7. Manager mode — full IPC lifecycle: ready → addSession → sessionAdded
  *      → shutdown → shutdownComplete, exit 0 — run both tokenless and on the
  *      authenticated path (so the lifecycle is proven with the interceptors armed).
+ *   8. Pool mode (not on Windows) — boots as a hosted warm-pool sandbox does
+ *      (MODE=cloud, STIGMER_POOL_MEMBER_ID, a pool_sandbox-class token whose
+ *      claims are read but never verified at boot) with an OTLP endpoint set,
+ *      as production sets one, and reaches "[pool-member] … ready" polling its
+ *      control queue. Pool mode runs the runner manager, so this is the path
+ *      that once died resolving the OTel workflow module the slim artifact
+ *      does not stage (stigmer/stigmer#1810).
  *
- * Checks 1–5 need no Temporal; checks 6–7 require a reachable Temporal server
+ * Checks 1–5 need no Temporal; checks 6–8 require a reachable Temporal server
  * (default localhost:7233, override with TEMPORAL_SERVICE_ADDRESS), e.g.:
  *
  *   temporal server start-dev --headless
@@ -351,6 +358,49 @@ async function verifyStaticMode() {
   });
 }
 
+// ─── 8. Pool mode ────────────────────────────────────────────────────────────
+
+/** An unsigned JWT whose only claim is a pool member's token class. */
+function poolSandboxToken() {
+  const part = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${part({ alg: "none", typ: "JWT" })}.${part({ token_type: "pool_sandbox" })}.verify-slim`;
+}
+
+async function verifyPoolMode() {
+  return new Promise((resolve, reject) => {
+    const proc = bootRunner({
+      MODE: "cloud",
+      STIGMER_POOL_MEMBER_ID: "pm_verify_slim",
+      STIGMER_TOKEN: poolSandboxToken(),
+      STIGMER_BACKEND_ENDPOINT: "http://127.0.0.1:65004",
+      // Unreachable on purpose: nothing exports before ready; what matters is
+      // that the OTel interceptors load as they do in production.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:65005",
+      HOME: join(isolatedDir, "home-pool"),
+    });
+    let output = "";
+    let ready = false;
+    const timer = setTimeout(() => {
+      proc.kill("SIGKILL");
+      reject(new Error(`pool mode did not reach ready within ${BOOT_TIMEOUT_MS}ms.\n${output.slice(-2000)}`));
+    }, BOOT_TIMEOUT_MS);
+    const onData = (chunk) => {
+      output += chunk;
+      if (!ready && /\[pool-member\] pm_verify_slim ready/.test(output)) {
+        ready = true;
+        proc.kill("SIGKILL");
+      }
+    };
+    proc.stdout.on("data", onData);
+    proc.stderr.on("data", onData);
+    proc.on("exit", (code) => {
+      clearTimeout(timer);
+      if (ready) resolve();
+      else reject(new Error(`pool mode exited (code ${code}) before ready.\n${output.slice(-2000)}`));
+    });
+  });
+}
+
 // ─── 7. Manager mode ─────────────────────────────────────────────────────────
 
 async function verifyManagerMode(extraEnv = {}) {
@@ -465,6 +515,12 @@ try {
       STIGMER_PROXY_ENDPOINT: DUMMY_PROXY_ENDPOINT,
     });
     console.log("[mgr+auth] OK: authenticated manager lifecycle booted end-to-end against Temporal");
+    if (windows) {
+      console.log("[pool]   skipped on Windows: pool mode runs only in Linux sandboxes");
+    } else {
+      await verifyPoolMode();
+      console.log("[pool]   OK: a warm-pool member with an OTLP endpoint reached ready on its control queue");
+    }
     console.log("verify-slim-artifact: PASS");
   }
 } catch (err) {

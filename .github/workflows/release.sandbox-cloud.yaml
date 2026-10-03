@@ -184,8 +184,9 @@ jobs:
       # checkout, mounted read-only (its scripts import only Node built-ins
       # and each other), against a Temporal dev server on the host network:
       # the cloud-mode boot to the Temporal dial, @cursor/sdk and its platform
-      # package, the attach waiter, a worker that reaches RUNNING, and the
-      # manager lifecycle. A broken image or a runner that dies at boot (the
+      # package, the attach waiter, a worker that reaches RUNNING, the
+      # manager lifecycle, and a warm-pool member booted with an OTLP endpoint
+      # set, as production sets one. A broken image or a runner that dies at boot (the
       # 2026-04 stale-image failure mode) fails here, and no tag but
       # main-<sha> names it.
       - name: Smoke-test the runner in the image

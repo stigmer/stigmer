@@ -165,12 +165,12 @@ Session), `kubernetes` (a Deployment per Session in the namespace
 per Session that sleeps while the Session is idle, below). The container drivers
 need the addresses a sandbox reaches the server and Temporal on,
 `STIGMER_SANDBOX_BACKEND_ENDPOINT` and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and
-take the image and command from `STIGMER_SANDBOX_RUNNER_IMAGE` and
-`STIGMER_SANDBOX_RUNNER_COMMAND`. Every driver hands its runners the server's
-public address when `STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT` names it; without it,
-remote tool servers that declare `STIGMER_SERVER_ADDRESS` get no address. Each
-sandboxed runner gets the server's Temporal namespace and its
-`STIGMER_TEMPORAL_*` connection settings, the credentials through the same
+take the image from `STIGMER_SANDBOX_RUNNER_IMAGE`; `local-process` runs the
+executable `STIGMER_SANDBOX_RUNNER_COMMAND` names. Every driver hands its
+runners the server's public address when `STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`
+names it; without it, remote tool servers that declare `STIGMER_SERVER_ADDRESS`
+get no address. Each sandboxed runner gets the server's Temporal namespace and
+its `STIGMER_TEMPORAL_*` connection settings, the credentials through the same
 channel as the runner's token.
 
 A released server (the server image, the all-in-one image) defaults the image to
