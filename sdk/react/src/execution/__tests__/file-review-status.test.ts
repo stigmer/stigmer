@@ -120,7 +120,7 @@ describe("fileReviewability", () => {
     ).toEqual({ kind: "binary" });
   });
 
-  it("classifies a secret-withheld change as unavailable with reason 'secret' (doc 15)", () => {
+  it("classifies a secret-withheld change as unavailable with reason 'secret'", () => {
     // The secret gate authors the change content-less, diff_complete=false, and
     // records SECRET_WITHHELD so the UI can say *why*.
     expect(
@@ -130,7 +130,7 @@ describe("fileReviewability", () => {
     ).toEqual({ kind: "unavailable", reason: "secret" });
   });
 
-  it("classifies a size-elided change as unavailable with reason 'size' — distinct from secret (doc 15)", () => {
+  it("classifies a size-elided change as unavailable with reason 'size' — distinct from secret", () => {
     // The size backstop drops the inline bodies, sets diff_complete=false, and
     // records SIZE_ELIDED. Once byte-identical to the secret case; now honestly
     // distinguished by the recorded reason.
@@ -142,7 +142,8 @@ describe("fileReviewability", () => {
   });
 
   it("classifies a content-less change with no recorded reason as unavailable/'unknown'", () => {
-    // Historical rows (pre doc 15) and any future/unmapped cause fall back to the
+    // Rows from before the runner recorded block reasons, and any
+    // future/unmapped cause fall back to the
     // defensive generic bucket rather than fabricating a specific cause.
     expect(fileReviewability(change({ diffComplete: false }))).toEqual({
       kind: "unavailable",

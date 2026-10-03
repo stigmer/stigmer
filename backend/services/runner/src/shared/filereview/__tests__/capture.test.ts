@@ -496,7 +496,7 @@ describe("capture orchestration — hybrid git + CAS", () => {
     });
     const cand = candidateChanges(status);
     expect(cand[0].diffComplete).toBe(false);
-    // Binary is conveyed by FileContent.is_binary, not blocked_reason (doc 15).
+    // Binary is conveyed by FileContent.is_binary, not blocked_reason.
     expect(cand[0].blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
     // Binary is the set's only blocker, so it is keepable in one acknowledged action.
     expect(candidateCompleteness(status)).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
@@ -663,7 +663,7 @@ describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE", () => {
     const secret = byPath.get(".env")!;
     expect(secret.captureClass).toBe(FileCaptureClass.GIT_IGNORED_CAPTURED);
     expect(secret.diffComplete).toBe(false);
-    // The honest cause is recorded so the UI can say *why* (doc 15), while the
+    // The honest cause is recorded so the UI can say *why*, while the
     // real git change beside it stays fully reviewable (UNSPECIFIED).
     expect(secret.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
     expect(byPath.get("notes.md")!.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);

@@ -97,9 +97,9 @@ export interface CapabilityFlags {
   // Temporal-backed scheduling clock behind the server.
   //
   // True for cloud and local-execution, whose server runs its schedule clock
-  // on a live Temporal. False for the plain local target, which runs without Temporal at all — the Schedule
-  // contract, CLI, and trigger/resume refusal matrix all exist there, but
-  // nothing fires.
+  // on a live Temporal. False for the plain local target, which runs without
+  // Temporal at all — the Schedule contract, CLI, and trigger/resume refusal
+  // matrix all exist there, but nothing fires.
   //
   // Deliberately a capability flag and not a heavier target: firing needs
   // the engine but NOT a runner or LLM (the suite fires against a

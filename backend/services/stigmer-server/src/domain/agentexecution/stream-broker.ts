@@ -1,7 +1,7 @@
 /**
  * StreamBroker — ports controller/stream_broker.go: the in-memory
- * broadcast fabric for real-time execution updates (ADR 011's "Stream
- * Broker" responsibility; the OSS stand-in for cloud's Redis streams).
+ * broadcast fabric for real-time execution updates (the OSS stand-in for
+ * cloud's Redis streams).
  *
  * Go's shape is a map of executionID → buffered channels (capacity 100)
  * under an RWMutex: Broadcast is non-blocking — a full buffer drops the

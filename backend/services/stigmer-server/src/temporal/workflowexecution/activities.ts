@@ -135,9 +135,9 @@ export function createWorkflowExecutionActivities(
         tasks: updated.status?.tasks.length ?? 0,
       });
 
-      // Broadcast to active subscribers AFTER the persist commits
-      // (ADR 011 write path) — failure recovery updates must be
-      // immediately visible to externally-connected subscribe streams.
+      // Broadcast to active subscribers AFTER the persist commits —
+      // failure recovery updates must be immediately visible to
+      // externally-connected subscribe streams.
       broker.broadcast(updated);
       // A terminal transition (the orchestrator's FAILED/CANCELLED
       // persists) tears the per-execution sandbox down, fire-and-forget.

@@ -26,8 +26,7 @@ export const DEMO_NOW = sampleDate();
 
 /**
  * The depicted user, passed to the real `UserMenu` in the shell footers.
- * (The depicted-identity consolidation is tracked in the docs-revamp debt
- * register; these values match what the shells hardcoded before.)
+ * These values match what the shells hardcoded before.
  */
 export const DEMO_USER: UserMenuProps["user"] = {
   name: "You",

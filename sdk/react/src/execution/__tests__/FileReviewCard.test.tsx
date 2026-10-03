@@ -107,7 +107,8 @@ function capturedBinaryChange(opts: {
 /**
  * A diff-unavailable change (real wire shape): content-less + incomplete — the
  * shape both the secret gate and the size backstop produce. `blockedReason`
- * carries the honest cause (doc 15); omit it to model a pre-doc-15/unknown row.
+ * carries the honest cause; omit it to model an unknown row or one recorded
+ * before the runner recorded block reasons.
  */
 function capturedUnavailableChange(opts: {
   id: string;
@@ -564,7 +565,7 @@ describe("FileReviewCard", () => {
       expect(okGroup.getAttribute("aria-describedby")).toBeFalsy();
     });
 
-    it("gives a secret-withheld file its own honest copy (doc 15)", () => {
+    it("gives a secret-withheld file its own honest copy", () => {
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({
@@ -584,7 +585,7 @@ describe("FileReviewCard", () => {
       expect(screen.queryByText(/full diff isn.t available to review/i)).toBeNull();
     });
 
-    it("gives a size-elided file its own honest copy, distinct from secret (doc 15)", () => {
+    it("gives a size-elided file its own honest copy, distinct from secret", () => {
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({

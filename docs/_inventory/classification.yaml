@@ -13,10 +13,10 @@
 #   teaches   One sentence: what the reader walks away knowing or having done.
 #   medium    none | diagram | still | screenshot-journey | animated-tour |
 #             interactive — the page's TARGET demonstration centerpiece.
-#             Prose and code
-#             are the substrate of every page, not a medium. `still` and
-#             `screenshot-journey` are Scenar-rendered `<Still>`s (see
-#             docs/STYLE.md "Stills") — never hand-captured screenshots.
+#             Prose and code are the substrate of every page, not a
+#             medium. `still` and `screenshot-journey` are Scenar-rendered
+#             `<Still>`s (see docs/STYLE.md "Stills") — never hand-captured
+#             screenshots.
 #   why       Rationale, required by the gate for a non-"none" medium (why
 #             that centerpiece) and for a non-"keep" fate (why the page
 #             doesn't survive as-is) — one sentence each when both apply.

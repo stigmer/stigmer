@@ -32,7 +32,7 @@
           "change_ids": { "type": "array", "items": { "type": "string" } },
           "blocked_reasons": {
             "type": "array",
-            "description": "Optional: expected FileReviewBlockReason enum value name per change, aligned with change_ids order (doc 15). Asserted only when present, so it never forces every fixture to declare it.",
+            "description": "Optional: expected FileReviewBlockReason enum value name per change, aligned with change_ids order. Asserted only when present, so it never forces every fixture to declare it.",
             "items": { "type": "string" }
           },
           "acknowledged_change_ids": {

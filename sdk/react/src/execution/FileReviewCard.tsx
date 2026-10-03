@@ -124,7 +124,7 @@ export interface FileReviewCardProps {
  * `binary` change has no text diff to review; an `unavailable` change is one
  * whose diff isn't available at all, with the honest cause the runner recorded
  * (a secret path whose bytes were never captured, or a diff dropped to bound the
- * status — doc 15). Both are discard-only, and their Keep affordance is disabled
+ * status). Both are discard-only, and their Keep affordance is disabled
  * with the reason associated via `aria-describedby`. Files captured outside
  * normal git tracking (gitignored / non-git CAS) carry a small provenance badge
  * so the reviewer knows the change is not part of the repo's tracked history.
@@ -929,7 +929,7 @@ function CaptureBadge({ change }: { change: CapturedFileChange }) {
  * control via `aria-describedby`. Honest per {@link fileReviewability}: a `binary`
  * change has no text diff but is keepable-as-bytes (an explicit "Keep anyway"); an
  * `unavailable` change's diff cannot be shown at all and is discard-only, with the
- * specific cause the runner recorded (secret-withheld vs size-dropped, doc 15). A
+ * specific cause the runner recorded (secret-withheld vs size-dropped). A
  * reviewable file renders no note.
  */
 function BlockReasonNote({
