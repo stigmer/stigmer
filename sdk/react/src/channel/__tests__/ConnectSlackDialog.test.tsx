@@ -181,7 +181,7 @@ describe("ConnectSlackDialog", () => {
       </Providers>,
     );
 
-    // Item 1 (T03_3 feedback): Slack's consent page has a workspace picker
+    // Slack's consent page has a workspace picker
     // in the corner — first-time installers must expect to choose.
     expect(
       screen.getByText(/Slack asks which workspace to add the bot to/i),

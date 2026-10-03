@@ -284,7 +284,7 @@ function PrimaryNavRow({
 
 /**
  * The Conversations row's count pill: how many conversations want a
- * human right now (DD-011 D-f — `needs_attention` OR awaiting-reply
+ * human right now (`needs_attention` OR awaiting-reply
  * while human-held). The visible number caps at "99+"; the accessible
  * name states the meaning with the real number, because a bare "104"
  * read aloud after "Conversations" says nothing.

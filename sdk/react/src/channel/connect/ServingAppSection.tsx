@@ -7,7 +7,7 @@ import type { ResourceRef } from "@stigmer/sdk";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 
 /**
- * "Connect as whom" for the channel connect dialogs (T04 item 2): the
+ * "Connect as whom" for the channel connect dialogs: the
  * provider's platform app (when the provider has one — Slack) or one of
  * the org's own channel apps (BYO — the bot carries that app's brand,
  * and each app is its own bot identity).
@@ -17,7 +17,7 @@ import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v
  * - `platformOption` present (Slack): "no selection" means the platform
  *   app, and with zero registered apps the section states that default
  *   plainly instead of a one-option radio group (which would be noise).
- * - `platformOption` absent (WhatsApp, BYO-only per DD-WA-2): an app
+ * - `platformOption` absent (WhatsApp, which is BYO-only): an app
  *   selection is required, and with zero registered apps the section
  *   renders the caller's `emptyBody` — a blocking register-first state,
  *   because a channel without an app binding could never install.

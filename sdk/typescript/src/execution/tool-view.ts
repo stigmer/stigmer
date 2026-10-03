@@ -125,8 +125,8 @@ export type ToolResultView =
   // {outcome, memory} payload (pinned by the mcp-server's memory
   // integration test on the writer side). The consent chip renders from
   // this — memoryId is the handle the confirm/reject RPCs take, and fact
-  // is the EXACT stored text (DD-005 D6: what you confirm is what is
-  // injected, byte for byte).
+  // is the EXACT stored text (what you confirm is what is injected, byte
+  // for byte).
   | {
       readonly type: "memoryProposal";
       readonly memoryId: string;
@@ -493,7 +493,7 @@ function splitNativeReadFrame(result: string): { body: string; truncated: boolea
 }
 
 // Matches the deepagents shell marker, e.g. "[Command failed with exit code 2]"
-// or "[Command succeeded]". Format owned by the engine — see DD-003; covered by
+// or "[Command succeeded]". Format owned by the engine; covered by
 // test/fixtures/tool-view/result-views.json so a format change fails one test.
 const SHELL_EXIT_MARKER = /\n?\[Command (?:succeeded|failed with exit code (\d+))\]\s*$/;
 

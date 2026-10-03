@@ -18,8 +18,8 @@ export interface UseConfirmMemoryReturn {
 }
 
 /**
- * Behavior hook that wraps `memory.confirm()` — the consent act
- * (DD-005 D3). A confirmed memory is recalled into the caller's future
+ * Behavior hook that wraps `memory.confirm()` — the consent act. A
+ * confirmed memory is recalled into the caller's future
  * sessions as background context.
  *
  * Confirming an already-confirmed memory succeeds and changes nothing.

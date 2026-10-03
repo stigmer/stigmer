@@ -1,5 +1,5 @@
 // Layout-contract regression suite for the provider's in-tree container
-// (#260, DD-019). Runs in a real Chromium via `vitest.a11y.config.ts` —
+// (#260). Runs in a real Chromium via `vitest.a11y.config.ts` —
 // resolving percentage heights and flex min-size behavior requires a real
 // layout engine, which happy-dom does not have.
 //

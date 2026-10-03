@@ -208,7 +208,7 @@ export function ScheduleDetailView({
 
   // Remount key for the Runs tab's table: a manual trigger bumps it so
   // the table refetches and returns to page 1, where the new fire
-  // appears (the key-remount reset idiom, DD-014).
+  // appears (the key-remount reset idiom).
   const [runsVersion, setRunsVersion] = useState(0);
 
   // Last failed inline save, attributed to the field that was edited so
@@ -303,8 +303,8 @@ export function ScheduleDetailView({
 
   // One fire: trigger, refresh the schedule and its run history, and — on
   // a started run — hand the execution to the host so it can navigate
-  // straight to it (the whole point of the synchronous trigger, DD-017
-  // D-6). A refused run resolves too; its reason is toasted by the hook
+  // straight to it (the whole point of the synchronous trigger). A
+  // refused run resolves too; its reason is toasted by the hook
   // and lands in the run history below.
   const fireNow = async () => {
     const result = await triggerSchedule(scheduleId);
@@ -334,8 +334,8 @@ export function ScheduleDetailView({
   };
 
   // A disabled schedule refuses to fire at the server — ScheduleBlueprintAccess
-  // requires spec.enabled at the create gate AND the mid-run read (DD-017
-  // D-5), so a disabled run would die mid-execution after billing. The
+  // requires spec.enabled at the create gate AND the mid-run read, so a
+  // disabled run would die mid-execution after billing. The
   // staged-disabled test flow the creation form promises is therefore
   // "enable, then fire", and this makes it one click.
   const handleEnableAndRun = async () => {
@@ -369,7 +369,7 @@ export function ScheduleDetailView({
 
   // Disabled → "Enable & run now" (the one-click staged-test flow);
   // active and paused → "Run now" (a paused schedule's owner needs a
-  // test fire to verify a fix before resuming — DD-017 D-5).
+  // test fire to verify a fix before resuming).
   const primaryAction: DetailAction =
     stateInfo.state === "disabled"
       ? {
@@ -1177,7 +1177,7 @@ function BudgetInlineEditor({
  * Write the engine+model choice onto the invocation, preserving the
  * run-config fields the editor does not own (budget; the API-only tool
  * rounds), and dropping an all-empty run_config — the proto's "empty =
- * inherit" contract (DD-017 D-3 as carried into DD-018 D-2).
+ * inherit" contract.
  */
 function applyEngineModel(
   invocation: AgentInvocation,

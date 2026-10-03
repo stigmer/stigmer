@@ -41,7 +41,7 @@ import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
  * respond to user actions.
  *
  * Matches the `credentials?` sub-object pattern established on
- * {@link McpServerConfigPanel} (DD-R13): the presence/absence of
+ * {@link McpServerConfigPanel}: the presence/absence of
  * the object cleanly communicates which mode the component operates in.
  */
 export interface McpServerSetupIntegration {

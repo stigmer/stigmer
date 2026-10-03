@@ -106,7 +106,7 @@ const whatsappPresentation: ChannelProviderPresentation = {
       : "Serving app: your Meta app — people message the connected number",
   disconnectDescription: (channelName) =>
     // No "(including credentials)" arm: WhatsApp credentials live on the
-    // shared ChannelApp (DD-WA-3) and outlive any one channel.
+    // shared ChannelApp and outlive any one channel.
     `"${channelName}" stops serving immediately and its WhatsApp ` +
     "number binding is removed. People can no longer reach the agent " +
     "on that number. To pause without disconnecting, turn the channel " +

@@ -12,7 +12,7 @@
  *     console never breaks against a newer server.
  *
  * The kinds named here are chosen one per tier; re-tiering any of them is
- * a contract change and must touch this file (editions program, DD-001).
+ * a contract change and must touch this file.
  */
 import { describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -55,7 +55,7 @@ describe("isResourceAvailable — a tier is a minimum edition", () => {
 
   it("enterprise-tier kinds are available in enterprise and cloud, not local", () => {
     // `invitation` is the example since `iam_policy` moved to open_source
-    // (20260913.01: the row half is served by every edition).
+    // (the row half is served by every edition).
     expect(isResourceAvailable(ApiResourceKind.invitation, "local")).toBe(
       false,
     );

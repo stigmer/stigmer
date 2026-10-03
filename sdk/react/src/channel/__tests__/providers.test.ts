@@ -26,8 +26,8 @@ describe("channel provider registry", () => {
   it("registers slack and whatsapp with their install styles", () => {
     expect(CHANNEL_PROVIDERS.map((p) => p.id)).toEqual(["slack", "whatsapp"]);
     // The style is what routes a connect click: redirect pre-opens a
-    // popup, direct never does (DD-WA-1b keeps the server's `completed`
-    // field authoritative for the outcome).
+    // popup, direct never does (the server's `completed` field stays
+    // authoritative for the outcome).
     expect(channelProviderOf("slack")?.installStyle).toBe("redirect");
     expect(channelProviderOf("whatsapp")?.installStyle).toBe("direct");
   });
@@ -112,7 +112,7 @@ describe("channel provider presentation", () => {
 
   it("scopes disconnect copy per provider — WhatsApp holds no per-install credentials", () => {
     // Slack's install stores a bot token that teardown removes; WhatsApp
-    // credentials live on the shared ChannelApp (DD-WA-3) and outlive the
+    // credentials live on the shared ChannelApp and outlive the
     // channel, so its prompt must not claim credentials are removed.
     expect(
       channelPresentationOf("slack")!.disconnectDescription("C"),

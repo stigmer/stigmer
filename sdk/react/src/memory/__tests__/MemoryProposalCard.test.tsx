@@ -77,7 +77,7 @@ describe("MemoryProposalCardBody", () => {
     expect(screen.getByText(FACT)).toBeTruthy();
     await waitForAction(`Confirm memory: ${FACT}`);
     expect(screen.getByRole("button", { name: `Reject memory: ${FACT}` })).toBeTruthy();
-    // Provenance renders beside the fact (DD-005 D6: origin builds trust).
+    // Provenance renders beside the fact (origin builds trust).
     expect(screen.getByText(/Proposed by agent agt_1/)).toBeTruthy();
   });
 
@@ -109,7 +109,7 @@ describe("MemoryProposalCardBody", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("rejects in ONE click — no confirmation dialog (the T04 Cursor lesson)", async () => {
+  it("rejects in ONE click — no confirmation dialog", async () => {
     const reject = vi
       .fn()
       .mockResolvedValue(makeMemory(MemoryLifecycleState.lifecycle_state_rejected));

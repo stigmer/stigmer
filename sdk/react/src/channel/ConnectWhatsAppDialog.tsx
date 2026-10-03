@@ -69,10 +69,10 @@ export interface ConnectWhatsAppDialogProps {
  * The connect flow for a WhatsApp channel: create the
  * {@link AgentChannel} (create mode), then run the direct install — one
  * server call that verifies the declared phone number against Meta's
- * Graph API through the selected channel app's credentials (DD-WA-1).
+ * Graph API through the selected channel app's credentials.
  * No consent popup, no callback route.
  *
- * WhatsApp is BYO-only (DD-WA-2): there is no platform Meta app, so a
+ * WhatsApp is BYO-only: there is no platform Meta app, so a
  * serving channel app is required — with none registered, the flow
  * blocks on registering one first. The declared phone number ID is
  * likewise required: the install proves it, and an empty value can only
@@ -182,7 +182,7 @@ function ConnectWhatsAppDialogBody({
   // keeps the channel's existing bindings untouched; edits go through
   // the channel card's credentials dialog).
   const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
-  // The serving app — required (DD-WA-2: no platform Meta app exists).
+  // The serving app — required (no platform Meta app exists).
   // Editable in retry mode too: app_ref is server-mutable while the
   // channel isn't installed, and a wrong app is a likely failure cause.
   const [appRef, setAppRef] = useState<ResourceRef | null>(() =>

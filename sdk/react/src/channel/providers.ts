@@ -18,11 +18,11 @@ export type ChannelProviderId = "slack" | "whatsapp";
  *   answers — because browsers only allow `window.open` from a gesture
  *   call stack.
  * - `direct`: `initiateInstall` runs the whole install server-side and
- *   answers `completed=true` (WhatsApp, DD-WA-1). No popup, no callback
+ *   answers `completed=true` (WhatsApp). No popup, no callback
  *   route; the client refetches the channel.
  *
  * The server's `InitiateChannelInstallOutput.completed` field stays the
- * authoritative outcome (DD-WA-1b) — this hint only decides whether to
+ * authoritative outcome — this hint only decides whether to
  * pre-open a popup at all.
  */
 export type ChannelInstallStyle = "redirect" | "direct";

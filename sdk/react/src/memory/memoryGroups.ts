@@ -13,7 +13,7 @@ export interface MemoryGroups {
 
 /**
  * Buckets memories by lifecycle state for the pending-proposals-first
- * page layout (DD-005 D4: the memory page is the catch-up surface for
+ * page layout (the memory page is the catch-up surface for
  * proposals scrolled past in session). Input order (newest first from
  * the server) is preserved inside each bucket.
  *

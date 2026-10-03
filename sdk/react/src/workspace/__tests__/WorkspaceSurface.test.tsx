@@ -205,7 +205,7 @@ describe("WorkspaceSurface extraViews", () => {
   it("renders injected views in the rail after the built-ins", () => {
     renderSurface({ extraViews: [configView, changesView] });
     // Rail names live in accessible labels (hover rides the house tooltip;
-    // native titles are banned, stigmer-cloud#268).
+    // native titles are banned).
     const radios = screen.getAllByRole("radio");
     expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual([
       "Explorer",
@@ -477,8 +477,8 @@ describe("WorkspaceSurface virtualDocuments", () => {
   it("mounts ONLY the active virtual document — inactive tabs stay unmounted", () => {
     // Load-bearing for streaming documents (the workflow's agent-execution
     // transcripts): an inactive tab's content must not exist in the tree at
-    // all, so its fetch/stream hooks never run (DD-LIVE-006 — only the
-    // visible surface streams). A hidden-but-mounted body would keep every
+    // all, so its fetch/stream hooks never run (only the visible surface
+    // streams). A hidden-but-mounted body would keep every
     // open transcript's subscription alive.
     const mounts: string[] = [];
     function Probe({ id }: { readonly id: string }) {

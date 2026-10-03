@@ -142,7 +142,7 @@ function ChannelRunConfigDialogBody({
       // Full-input apply: only run_config changes. An all-empty draft
       // clears the block entirely — the proto's "empty = inherit" contract
       // — while `max_tool_rounds`, which this editor never
-      // renders, survives verbatim (operator knob, DD-018 D-5).
+      // renders, survives verbatim (an operator knob).
       await save({
         ...agentChannelToInput(channel),
         runConfig: buildRunConfig(

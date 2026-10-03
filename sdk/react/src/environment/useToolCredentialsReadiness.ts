@@ -35,7 +35,7 @@ const NEEDS_CREDENTIALS: ToolCredentialsReadiness = { status: "needs-credentials
  * shared with the organization (`visibility_org`).
  *
  * The runtime resolves connection-bound credentials exclusively through
- * the org-shared environment seam (decision 011 — the agent's default
+ * the org-shared environment seam (the agent's default
  * instance stays pristine and is never consulted). So a tool-using
  * agent with an empty binding list is *guaranteed* broken for the
  * connection's users, and this hook says so explicitly

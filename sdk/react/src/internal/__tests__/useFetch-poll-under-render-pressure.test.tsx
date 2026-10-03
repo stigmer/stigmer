@@ -5,7 +5,7 @@ import { useFetch } from "../useFetch";
 import { advanceInSlices } from "./fake-timer-slices";
 
 /**
- * The F-14 starvation net (channel-conversations T06): a polling
+ * The poll-starvation net: a polling
  * `useFetch` must keep its interval's phase across re-renders of its
  * host component.
  *

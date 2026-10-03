@@ -12,7 +12,7 @@ import { DeploymentModeContext } from "../../deployment-mode";
 import { OrgProfilePanel } from "../OrgProfilePanel";
 
 /**
- * Regression suite for the full-spec-replace wipe bug (oss#293 Phase 1):
+ * Regression suite for the full-spec-replace wipe bug:
  * `organization.update()` wholesale replaces the stored spec, so a profile
  * save that sends only the edited fields silently wipes every other mutable
  * spec field — most visibly `spec.preferences.standing_context` set via the

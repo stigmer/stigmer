@@ -1,8 +1,9 @@
-// Scroll-behavior regression suite for useAutoScroll (channel-conversations
-// F-09). Runs in a real Chromium via `vitest.a11y.config.ts` — the defect
-// lives in IntersectionObserver/ResizeObserver timing against real layout,
-// which happy-dom cannot evaluate (there, every scrollHeight is 0 and the
-// observers are mocks).
+// Scroll-behavior regression suite for useAutoScroll (the conversation
+// timeline's late-mounting content). Runs in a real Chromium via
+// `vitest.a11y.config.ts` — the defect lives in
+// IntersectionObserver/ResizeObserver timing against real layout, which
+// happy-dom cannot evaluate (there, every scrollHeight is 0 and the observers
+// are mocks).
 //
 // The production shape under test: a chat thread whose items arrive ASYNC
 // after mount, so the content wrapper renders inside a loading branch and
@@ -196,8 +197,8 @@ describe("usePinToLatestOnSignal under real layout", () => {
     rerender(<SignalThread items={messages(30)} signal={0} />);
     await settled(() => {
       expect(isPinnedToBottom(scroller())).toBe(true);
-      // Follow-STATE quiescence before the reader scrolls (the F-09
-      // case's own discipline) — a queued pre-scroll TRUE must not
+      // Follow-STATE quiescence before the reader scrolls (the
+      // late-mount case's own discipline) — a queued pre-scroll TRUE must not
       // re-arm follow behind the scroll-up.
       expect(latest.isFollowing).toBe(true);
     });
@@ -208,7 +209,7 @@ describe("usePinToLatestOnSignal under real layout", () => {
 
     // Their OWN send: the surface increments the signal. The pin fires
     // AND re-engages follow, so the reply that streams in next stays in
-    // view — the whole point of stigmer-cloud#267.
+    // view — the whole point of pinning on send.
     rerender(<SignalThread items={messages(30)} signal={1} />);
     await settled(() => {
       expect(isPinnedToBottom(scroller())).toBe(true);

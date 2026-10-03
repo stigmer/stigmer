@@ -5,7 +5,7 @@
 // Match semantics intentionally mirror `internal/file-tree/filterFileTree` —
 // case-insensitive substring — but widened from a node's basename to the full
 // relative path, so `foo/bar` is findable and directory context is searchable
-// (DD-10). The trivial predicate is not extracted into a shared micro-module; a
+// The trivial predicate is not extracted into a shared micro-module; a
 // cross-reference comment is the lower-coupling, honest choice.
 
 import type { WorkspaceFileEntry } from "./WorkspaceFileLister.js";
@@ -37,7 +37,7 @@ interface RankedMatch extends WorkspaceFileMatch {
  *
  * - Case-insensitive substring on the full relative path.
  * - Directories and advisory `notice` entries are never matched (a defensive
- *   guard even though the shared cache already strips notices — DD-11).
+ *   guard even though the shared cache already strips notices).
  * - Empty/whitespace query returns `[]` (search shows a hint, not everything).
  *
  * Ranking, in order: a basename hit outranks a path-only hit; then an earlier

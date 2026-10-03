@@ -46,8 +46,8 @@ export type BuiltInViewId = (typeof ALL_BUILT_IN_VIEWS)[number];
  *
  * This is how session facets (Config, Changes, Artifacts, …) join the built-in
  * Explorer/Search views without the surface knowing any session domain — the
- * same composition philosophy as the injected lister/reader capabilities
- * (DD-004). The surface stays an embeddable, domain-pure workspace organism;
+ * same composition philosophy as the injected lister/reader capabilities.
+ * The surface stays an embeddable, domain-pure workspace organism;
  * hosts extend its rail.
  */
 export interface SurfaceRailView {
@@ -55,7 +55,7 @@ export interface SurfaceRailView {
   readonly id: string;
   /** Accessible label; also rendered as the sidebar heading. */
   readonly label: string;
-  /** Monochrome rail icon (tinted via `currentColor`, DD-005). */
+  /** Monochrome rail icon (tinted via `currentColor`). */
   readonly icon: ReactNode;
   /** Optional count badge rendered over the rail icon (hidden when 0). */
   readonly badge?: number;
@@ -78,8 +78,8 @@ export interface SurfaceRailView {
  * workspace file — the session's `plan.md` today; execution artifacts are the
  * anticipated next family.
  *
- * The editor-area counterpart of {@link SurfaceRailView}'s rail injection
- * (DD-004): virtual documents share the tab group with file tabs (identical
+ * The editor-area counterpart of {@link SurfaceRailView}'s rail injection:
+ * virtual documents share the tab group with file tabs (identical
  * open / pin / close / activate semantics through the same editors store),
  * and only the *body* rendering diverges — the surface renders `content`
  * instead of breadcrumbs + `FileViewer`. The surface stays domain-pure: it
@@ -127,9 +127,9 @@ export interface WorkspaceSurfaceProps {
    * Which built-in rail views the surface offers, in rail order. Defaults to
    * all of them; hosts without a workspace file source pass `[]` so the rail
    * carries only their injected `extraViews` — an honest facet-only surface
-   * instead of inert Explorer/Search icons (DD-011: opt-in behavior change,
+   * instead of inert Explorer/Search icons (an opt-in behavior change with a
    * backward-compatible default). The workflow execution panel does this
-   * until a workspace-source slice wires a lister.
+   * until a workspace source wires a lister.
    */
   readonly builtInViews?: readonly BuiltInViewId[];
   /**
@@ -736,7 +736,7 @@ function EditorArea({
       {/* The single editor body — the one tabpanel the tab strip controls (the
           content swaps; the panel is stable). role/labelledby apply only with an
           active tab (the empty state has no tab to label). Carries the same
-          flex/min-w-0 chain as the branches so the DD-20 reflow is preserved:
+          flex/min-w-0 chain as the branches so the pane still reflows at any width:
           the wrapper is just a labelled passthrough, not a new layout context. */}
       <div
         className="stg:flex stg:min-h-0 stg:min-w-0 stg:flex-1 stg:flex-col"

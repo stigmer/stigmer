@@ -334,7 +334,7 @@ describe("FileViewer", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Diff mode (Slice 4) — a changed file defaults to its authoritative diff
+// Diff mode — a changed file defaults to its authoritative diff
 // ---------------------------------------------------------------------------
 
 describe("FileViewer — diff mode", () => {

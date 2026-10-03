@@ -333,7 +333,7 @@ describe("WorkflowExecutionEventStore", () => {
     });
   });
 
-  // T06: the gate's request/resolution payloads are captured on the derived
+  // The gate's request/resolution payloads are captured on the derived
   // state — the thread card's in-place review surface reads them, so the
   // capture must be reference-stable (structural sharing) and survive the
   // task's settlement, while a restart resets it (a new attempt re-emits).
@@ -402,7 +402,7 @@ describe("WorkflowExecutionEventStore", () => {
   // Child gates are surfaced snapshot-only (no approval_requested event for
   // agent_call tasks) — the parent task's waiting_approval state is DERIVED
   // from the child phase carried on agent_call_progress events. These tests
-  // pin every transition of that derivation (D-T02-14).
+  // pin every transition of that derivation.
   describe("deriveTaskStates — child-gate derivation from agent_call_progress", () => {
     const AGENT_CALL = { taskKind: WorkflowTaskKind.agent_call };
 
@@ -570,7 +570,7 @@ describe("WorkflowExecutionEventStore", () => {
     });
   });
 
-  // T04: the truncated I/O summaries are the live preview source for the
+  // The truncated I/O summaries are the live preview source for the
   // thread cards — the store must capture them, reset them correctly on
   // retries, and keep them REFERENCE-STABLE across re-derivations (the
   // projection's structural sharing compares them by identity).

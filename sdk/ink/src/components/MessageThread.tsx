@@ -48,8 +48,8 @@ export interface MessageThreadProps {
   readonly expandToolCalls?: boolean;
   /**
    * Whether to render a read-only settled record for each decided/reconciled/
-   * failed change set (the terminal analogue of the web's in-thread record,
-   * DD-27 D2). Off by default so bare consumers stay minimal; `SessionView`
+   * failed change set (the terminal analogue of the web's in-thread record).
+   * Off by default so bare consumers stay minimal; `SessionView`
    * opts in. Pending (AWAITING_REVIEW) sets are never records here — their
    * decision surface is the docked `FileReviewPrompt`.
    */

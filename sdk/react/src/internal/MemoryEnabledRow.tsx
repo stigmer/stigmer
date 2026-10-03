@@ -20,7 +20,7 @@ export interface MemoryEnabledRowProps {
   /** Error from the last failed flip, or `null`. */
   readonly error: Error | null;
   /**
-   * The scope-specific helper copy (DD-006 D6's transparency statement
+   * The scope-specific helper copy (the memory transparency statement
    * belongs here). Rendered under the title, wired as the switch's
    * accessible description.
    */

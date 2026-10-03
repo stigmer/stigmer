@@ -46,7 +46,7 @@ const EMPTY_TREE: readonly TreeNode[] = [];
  *   surface are instant without re-fetching (one cache, keyed by `entry.id` +
  *   effective read ref — a ref advance is a cache miss by design).
  * - Returns an empty tree and skips the call when `lister` is
- *   `undefined` (graceful degradation — DD-011 opt-in).
+ *   `undefined` (graceful degradation; opt-in).
  * - Memoizes the return value for referential stability.
  *
  * @example

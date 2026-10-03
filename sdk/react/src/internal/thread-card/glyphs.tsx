@@ -8,7 +8,7 @@ import { cn } from "@stigmer/theme";
  *
  * All glyphs inherit `currentColor`; the consumer colors them with status
  * token classes (`text-success`, `text-warning`, …) — never hardcoded
- * values (Dont-Do #3).
+ * values.
  *
  * @internal Not part of the public API.
  */

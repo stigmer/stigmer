@@ -1301,7 +1301,7 @@ export type {
 } from "./cursor-accounts/index.js";
 
 // Provider standing — read-only platform-operator view of the platform's
-// LLM provider account health (canary-probe verdicts, cloud#447)
+// LLM provider account health (canary-probe verdicts)
 export {
   useProviderStanding,
   ProviderStandingConsole,
@@ -1449,7 +1449,7 @@ export type {
 } from "./oauth-app/index.js";
 
 // Channel App — data hooks, mutation hooks, styled components, and Slack
-// setup helpers for bring-your-own channel apps (T04 item 2)
+// setup helpers for bring-your-own channel apps
 export {
   useChannelAppList,
   useCreateChannelApp,
@@ -1645,10 +1645,10 @@ export type {
   ChannelTemplatesDialogProps,
 } from "./channel/index.js";
 
-// Conversation — the channel conversation surface (channel-conversations
-// T04): the org-wide list, one conversation's row and timeline, the
-// participation commands (reply / takeOver / handBack / clearAttention),
-// and the pure render vocabulary shared by every conversation view.
+// Conversation — the channel conversation surface: the org-wide list, one
+// conversation's row and timeline, the participation commands (reply / takeOver
+// / handBack / clearAttention), and the pure render vocabulary shared by every
+// conversation view.
 export {
   ConversationsWorkbench,
   ConversationListPane,
@@ -1707,8 +1707,8 @@ export type {
   SendAttemptKind,
   ServiceWindowState,
 } from "./conversation/index.js";
-// Wire types the conversation hooks answer with (DD-007: generated types
-// are the source of truth — re-exported for consumer convenience).
+// Wire types the conversation hooks answer with (generated types are the
+// source of truth — re-exported for consumer convenience).
 export {
   ChannelConversationListFilter,
   ConversationControl,
@@ -2165,7 +2165,7 @@ export {
   WorkflowRepairCard,
   STARTER_WORKFLOW_YAML,
   useElkLayoutEngine,
-  // T13: Execution history
+  // Execution history
   deriveExecutionRow,
   deriveExecutionRows,
   sortExecutionRows,
@@ -2188,7 +2188,7 @@ export {
   CreateWorkflowInstanceDialog,
   WorkflowInstanceDetailPanel,
   RunVisibilityControl,
-  // T15: Workflow Template Gallery
+  // Workflow Template Gallery
   PATTERN_LABELS,
   WORKFLOW_CATEGORY_LABELS,
   deriveTemplateMeta,
@@ -2199,18 +2199,18 @@ export {
   WorkflowTaskReviewGate,
   useReviewRenderer,
   useReviewPayload,
-  // S8: Workflow task thread (session-style center view)
+  // Workflow task thread (session-style center view)
   projectThreadItems,
   threadCardVariant,
   useWorkflowThreadItems,
   WorkflowTaskThread,
-  // T04: session-parity task cards — per-kind presentation seam (the
+  // Session-parity task cards — per-kind presentation seam (the
   // workflow twin of registerToolPresenter)
   resolveTaskPreview,
   registerTaskPresenter,
   getTaskPresenter,
   defaultDisclosureForKind,
-  // S9: approval-boundary watcher (snapshot freshness + gate attention)
+  // Approval-boundary watcher (snapshot freshness + gate attention)
   useApprovalBoundary,
 } from "./workflow/index.js";
 export type {
@@ -2326,7 +2326,7 @@ export type {
   UseDiagnoseExecutionFlowReturn,
   WorkflowRepairCardProps,
   UseElkLayoutEngineOptions,
-  // T13: Execution history types
+  // Execution history types
   ExecutionRow,
   ExecutionHistorySortField,
   ExecutionHistorySortDirection,
@@ -2351,7 +2351,7 @@ export type {
   CreateWorkflowInstanceDialogProps,
   WorkflowInstanceDetailPanelProps,
   RunVisibilityControlProps,
-  // T15: Workflow Template Gallery types
+  // Workflow Template Gallery types
   WorkflowTemplateData,
   WorkflowTemplateCategory,
   WorkflowTemplateMeta,
@@ -2366,19 +2366,19 @@ export type {
   TaskOutcome,
   WorkflowTaskReviewGateProps,
   UseReviewPayloadReturn,
-  // S8: Workflow task thread (session-style center view) types
+  // Workflow task thread (session-style center view) types
   WorkflowThreadItem,
   WorkflowThreadProgress,
   WorkflowThreadProjection,
   WorkflowThreadCardVariant,
   WorkflowTaskThreadProps,
-  // T04: session-parity task cards — presentation seam types
+  // Session-parity task cards — presentation seam types
   WorkflowTaskPresenter,
   WorkflowTaskPreview,
   WorkflowTaskDisclosure,
-  // S10: in-thread HITL wiring type
+  // In-thread HITL wiring type
   WorkflowThreadHitl,
-  // S9: approval-boundary watcher types
+  // Approval-boundary watcher types
   ApprovalBoundaryCrossing,
 } from "./workflow/index.js";
 

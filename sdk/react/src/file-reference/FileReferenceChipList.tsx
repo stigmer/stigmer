@@ -24,7 +24,7 @@ export interface FileReferenceChipListProps {
  *
  * Designed to sit alongside {@link AttachmentChipList} in the composer's
  * attachments zone. Usable standalone by platform builders who compose
- * their own file-reference UI (headless-first, DD-003).
+ * their own file-reference UI (headless-first).
  *
  * All visual properties flow through `--stgm-*` tokens.
  *

@@ -11,8 +11,8 @@
 //    `max-w-3xl`, ~720px of content), the table fits WITHOUT horizontal
 //    scroll and the member column keeps enough width to render typical
 //    emails whole.
-// 2. In a narrower host (the SDK component is embeddable at any width,
-//    DD-004), the grid's min-width guard turns crushing into horizontal
+// 2. In a narrower host (the SDK component is embeddable at any width),
+//    the grid's min-width guard turns crushing into horizontal
 //    scrolling — the member column never collapses.
 //
 // Like the provider layout suite, this renders against the

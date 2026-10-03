@@ -17,7 +17,7 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
  * Supports two interaction modes:
  * - **Select mode** (default): single-click selects an entry, fires `onEntrySelect`
  * - **Compare mode** (when `onCompare` is provided): selecting two entries fires
- *   `onCompare(fromId, toId)` — designed for T05-D diff viewer integration
+ *   `onCompare(fromId, toId)` — designed for a diff viewer integration
  *
  * All visual properties flow through `--stgm-*` design tokens.
  * Zero Console dependencies — safe for platform builder embedding.

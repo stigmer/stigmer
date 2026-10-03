@@ -41,8 +41,8 @@ export interface MemoryListPanelProps {
  * kept for audit.
  *
  * Every fact is shown VERBATIM — the exact stored text is what future
- * prompts inject, byte for byte, so the review surface never paraphrases
- * (DD-005 D6). Provenance renders beside each agent-proposed fact.
+ * prompts inject, byte for byte, so the review surface never paraphrases.
+ * Provenance renders beside each agent-proposed fact.
  * Actions per state: confirm/reject/delete on proposals (reject is
  * one-click — no confirmation dialog), edit/delete on confirmed facts,
  * delete on rejected ones. Delete asks inline; it works in any state.

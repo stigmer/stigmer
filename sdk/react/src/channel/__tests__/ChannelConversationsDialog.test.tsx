@@ -93,7 +93,7 @@ describe("ChannelConversationsDialog", () => {
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 
-  it("titles itself Sessions and falls back to Untitled session (F-04, DD-004 D-g)", async () => {
+  it("titles itself Sessions and falls back to Untitled session", async () => {
     // The word "conversation" belongs to the customer-facing surface;
     // this dialog is the session-level forensics view.
     const listByChannel = vi.fn().mockResolvedValue({

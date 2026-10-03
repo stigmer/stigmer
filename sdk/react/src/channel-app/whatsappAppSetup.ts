@@ -10,7 +10,7 @@
  * Unlike Slack there is no app manifest to paste — Meta's dashboard has
  * no equivalent — so the setup surface renders a checklist instead. And
  * unlike Slack's install-minted bot token, every WhatsApp credential is
- * authored by the customer on their own Meta app (DD-WA-3), including
+ * authored by the customer on their own Meta app, including
  * the verify token: Stigmer generates a strong one at registration as a
  * convenience, and it must be pasted into Meta verbatim.
  *

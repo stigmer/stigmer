@@ -1,5 +1,5 @@
 // Covers normalizeToolResult's file-edit / file-write views, reconstructed from
-// the tool args (and the Cursor result envelope). Phase 5 Slice 4 removed the
+// the tool args (and the Cursor result envelope). An earlier change removed the
 // ToolCall.file_changes capture (message.proto field 22), so the args are the
 // single source for the inline transcript diff; captured file review renders via
 // FileReviewCard / the FileChangeSet ledger, tested separately.

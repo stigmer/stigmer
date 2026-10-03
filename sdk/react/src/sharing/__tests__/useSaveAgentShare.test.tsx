@@ -68,7 +68,7 @@ describe("useSaveAgentShare", () => {
     });
 
     // No existing share: the apply creates the canonical one, keyed on
-    // the agent's own org/slug (the server's D2 default, made explicit).
+    // the agent's own org/slug (the server's default, made explicit).
     await act(() => result.current.save(FULL_DRAFT, null));
 
     expect(apply).toHaveBeenCalledTimes(1);

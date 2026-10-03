@@ -3,7 +3,7 @@ import { cn } from "@stigmer/theme";
 /**
  * The SDK's canonical in-flight spinner: a three-quarter arc on a 16×16
  * grid, colored by `currentColor` so the consumer's text token drives it
- * (never hardcoded values — Dont-Do #3). Extracted from ~33 identical
+ * (never hardcoded values). Extracted from ~33 identical
  * per-component copies; new busy states import this
  * instead of pasting another one.
  *

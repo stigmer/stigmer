@@ -1,5 +1,5 @@
-// Tests for the shared Edit-YAML dialog's apply-error affordance
-// (DD-008 SD-6): the server's refusal renders verbatim with
+// Tests for the shared Edit-YAML dialog's apply-error affordance: the
+// server's refusal renders verbatim with
 // Try-again/Dismiss — shared by every kind (McpServer, Agent, Skill),
 // so any apply-time guard gets the same acknowledge-and-retry
 // treatment.

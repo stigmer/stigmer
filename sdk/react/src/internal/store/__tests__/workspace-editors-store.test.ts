@@ -199,7 +199,7 @@ describe("WorkspaceEditorsStore", () => {
       store.openPinned("e1", "a.ts");
       const before = store.getSnapshot();
       // Already open + active → only the reveal changes; the tab list and the
-      // active-file projection must keep their references (invariant #3).
+      // active-file projection must keep their references.
       store.openPreview("e1", "a.ts", { line: 9 });
       const after = store.getSnapshot();
       expect(after.editors).toBe(before.editors);

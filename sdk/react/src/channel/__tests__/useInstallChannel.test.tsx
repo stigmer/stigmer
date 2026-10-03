@@ -77,7 +77,7 @@ describe("useInstallChannel", () => {
   });
 
   it("refuses a completed=false answer — a redirect provider was routed to the direct hook", async () => {
-    // DD-WA-1b: the server's flag is the authoritative install style. A
+    // The server's flag is the authoritative install style. A
     // false answer here means a client wiring error, surfaced loudly
     // rather than silently treated as success.
     const initiateInstall = vi.fn().mockResolvedValue({

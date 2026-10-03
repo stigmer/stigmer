@@ -98,7 +98,7 @@ export function useStoreStreamState(store: ConversationStore): StreamState {
 }
 
 // ---------------------------------------------------------------------------
-// Workspace file selection — the DD-07 shared "which file is open" store
+// Workspace file selection — the shared "which file is open" store
 // ---------------------------------------------------------------------------
 
 /**

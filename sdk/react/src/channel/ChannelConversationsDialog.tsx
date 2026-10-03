@@ -43,13 +43,12 @@ export interface ChannelConversationsDialogProps {
 /**
  * Lists the SESSIONS a channel created — the session-level forensics view
  * (which execution containers served the channel's traffic), visible to
- * exactly the channel's viewers (the connector and org admins; design
- * decision 012).
+ * exactly the channel's viewers (the connector and org admins).
  *
  * Deliberately titled "Sessions", not "Conversations": the customer-facing
  * Conversations surface is the top-level `ConversationsWorkbench` over the
- * conversation timeline API, which supersedes this read for that purpose
- * (channel-conversations DD-004 D-g). This dialog remains what it actually
+ * conversation timeline API, which supersedes this read for that purpose.
+ * This dialog remains what it actually
  * is — the observability view underneath a conversation. The component
  * name keeps its historical export for API stability.
  *

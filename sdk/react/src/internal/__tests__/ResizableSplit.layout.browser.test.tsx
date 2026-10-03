@@ -10,7 +10,7 @@
 // below that expects a collapse is meaningless under the old `max-lg`
 // implementation and fails against it.
 //
-// Like the provider container suite (#260/DD-019), this renders against the
+// Like the provider container suite (#260), this renders against the
 // SHIPPED stylesheet (`dist/styles.css`, built by `npm run build:libs`), so
 // the contract is verified on the artifact consumers actually load.
 

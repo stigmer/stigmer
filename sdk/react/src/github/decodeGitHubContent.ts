@@ -1,5 +1,5 @@
 // Pure byte/text decode helpers for the GitHub file reader.
-// Kept free of React and fetch so the Slice 0 spike behavior (base64 decode,
+// Kept free of React and fetch so the decode behavior (base64 decode,
 // binary detection, the 1 MB cap) is unit-testable in isolation.
 
 import {

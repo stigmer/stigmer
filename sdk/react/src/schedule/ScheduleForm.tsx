@@ -292,8 +292,8 @@ export function ScheduleForm({
         )}
       </div>
 
-      {/* Workspace — what each fire's fresh session operates on
-          (DD-018 D-4). Git sources only; the server refuses local
+      {/* Workspace — what each fire's fresh session operates on.
+          Git sources only; the server refuses local
           folders at write time because no client is connected when a
           schedule fires. */}
       <div className="stg:space-y-1">
@@ -315,8 +315,8 @@ export function ScheduleForm({
         </p>
       </div>
 
-      {/* Environments — how a tool-using agent becomes schedulable
-          (DD-017 D-2). Only org-shared environments resolve for a
+      {/* Environments — how a tool-using agent becomes schedulable.
+          Only org-shared environments resolve for a
           schedule fire, so the picker is filtered to visibility_org —
           the same credential surface a channel binding uses. */}
       <div className="stg:space-y-1">
@@ -508,14 +508,13 @@ const hintClasses = "stg:text-[0.65rem] stg:text-muted-foreground";
 
 /**
  * Assemble a {@link RunConfigInput} from the model choice and budget, or
- * `undefined` when both are unset — an all-empty run_config carries no
- * meaning, and omitting it keeps the schedule on the platform defaults
- * (the server's own "empty = inherit" contract, DD-017 D-3 as carried
- * into DD-018 D-2). Non-numeric or negative budgets are dropped rather
- * than sent; the proto's `gte = 0` constraint would reject them anyway,
- * and a blank field must not become a zero override. `max_tool_rounds`
- * is deliberately not collected here — an implementation knob, not a
- * user concept; API-reachable for operators.
+ * `undefined` when both are unset — an all-empty run_config carries no meaning,
+ * and omitting it keeps the schedule on the platform defaults (the server's own
+ * "empty = inherit" contract). Non-numeric or negative budgets are dropped
+ * rather than sent; the proto's `gte = 0` constraint would reject them anyway,
+ * and a blank field must not become a zero override. `max_tool_rounds` is
+ * deliberately not collected here — an implementation knob, not a user concept;
+ * API-reachable for operators.
  */
 function buildRunConfig(
   modelName: string,

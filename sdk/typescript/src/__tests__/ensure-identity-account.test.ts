@@ -1,6 +1,6 @@
 /**
- * Pins `ensureMyIdentityAccount` (`ensure-identity-account.ts`; 20260911.11
- * A3): the ONE first-sign-in flow every surface runs — the console's
+ * Pins `ensureMyIdentityAccount` (`ensure-identity-account.ts`): the ONE
+ * first-sign-in flow every surface runs — the console's
  * `useIdentityAccountGate` delegates to it, the CLI's `auth whoami` and
  * `auth login` call it — so a platform builder embedding Stigmer gets the
  * same flow as a first-class import.
@@ -18,7 +18,7 @@
  * The doubles reject with `StigmerError`, the vocabulary the real
  * `IdentityAccountClient` speaks (every RPC failure passes through
  * `wrapError`), so `isNotFound` — the SDK's one classifier — is what the
- * helper is proven against (refinement 11, slice 4).
+ * helper is proven against.
  */
 import { Code } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";

@@ -13,7 +13,7 @@ import { useStigmerPortalContainer } from "../portal-container.js";
 // hints) one source of truth for tooltip styling, portaled into the Stigmer
 // theme scope so tokens resolve in embeds.
 //
-// Portaled content uses popover-* / main-area tokens per DD-005; the ring
+// Portaled content uses popover-* / main-area tokens; the ring
 // follows the menu popup's established `ring-foreground/10` hairline.
 // ---------------------------------------------------------------------------
 

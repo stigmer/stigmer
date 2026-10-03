@@ -27,8 +27,7 @@ import { ChevronIcon } from "./glyphs.js";
  * The shell owns layout + chrome + a11y, nothing more: no data fetching,
  * no presenters, no disclosure policy (those stay per-thread). It renders
  * beneath the threads' memoized row components and takes only primitives
- * and stable callbacks, so it never disturbs their memo bails
- * (DD-009/DD-010).
+ * and stable callbacks, so it never disturbs their memo bails.
  *
  * Interactive headers are `div[role=button]`, not `<button>` — they may
  * carry nested action buttons, and a `<button>` may not contain another.

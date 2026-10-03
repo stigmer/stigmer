@@ -29,7 +29,7 @@ describe("useSkillUpload", () => {
     expect(result.current.artifact).not.toBeNull();
   });
 
-  // The layout contract is root-only on both editions (DD-018, #452). The
+  // The layout contract is root-only on both editions (#452). The
   // preview exists to catch the "zipped the folder instead of its contents"
   // mistake BEFORE upload — accepting nested here and failing at push is the
   // exact confusion issue #684 pins.
