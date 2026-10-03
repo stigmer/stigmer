@@ -43,6 +43,7 @@ import type { SqliteStore } from "../../../store/sqlite/store.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
+import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import {
   classifyAgentReference,
   collectAgentCallReferences,
@@ -490,6 +491,32 @@ describe("an agent_call task's environment references", () => {
       { kind: ApiResourceKind.environment, org: "acme", slug: "ana-keys" },
       { kind: ApiResourceKind.environment, org: "acme", slug: "team" },
     ]);
+  });
+
+  it("a stored task saved under looser rules does not block the edit that fixes it", async () => {
+    // The stored row's agent string is malformed; the edit replaces it.
+    const stored = create(WorkflowSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Workflow",
+      metadata: {
+        id: "wfl_env",
+        name: "Pipeline",
+        org: "acme",
+        visibility: V.visibility_org,
+      },
+      spec: specOf([agentCall("review", "/broken")]),
+    });
+    expect(collectAgentCallReferences(stored.spec, "acme", "skip")).toEqual([]);
+    const ctx = new RequestContext(
+      WorkflowSchema,
+      callingWith({ slug: "ana-keys" }),
+      testCallerIdentity({ identityId: "acc_ana" }),
+      ApiResourceKind.workflow,
+    );
+    ctx.set(EXISTING_RESOURCE_KEY, stored);
+    await expect(
+      newValidateAgentCallReferencesStep(store, anaOnly).execute(ctx),
+    ).resolves.toBeUndefined();
   });
 
   it("a missing environment is refused at save with the rule's copy", async () => {

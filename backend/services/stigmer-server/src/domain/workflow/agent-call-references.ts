@@ -119,7 +119,10 @@ export function classifyAgentReference(agent: string): AgentReferenceForm {
  * nested tasks included in declaration order: a literal as written, a
  * relative slug in `parentOrg` and marked relative, a value fixed only at
  * run not at all; then the task's environment references, an org-less one
- * in `parentOrg`. Throws INVALID_ARGUMENT on the first malformed string. A
+ * in `parentOrg`. Throws INVALID_ARGUMENT on the first malformed string,
+ * unless `malformed` is "skip": the stored side of an update is read that
+ * way, so a row saved under looser rules never blocks the edit that fixes
+ * it with its own old error. A
  * config that does not decode is skipped: the spec validation step has
  * already refused the workflow for it, and this collector never
  * double-reports.
@@ -127,6 +130,7 @@ export function classifyAgentReference(agent: string): AgentReferenceForm {
 export function collectAgentCallReferences(
   spec: WorkflowSpec | undefined,
   parentOrg: string,
+  malformed: "refuse" | "skip" = "refuse",
 ): SpecReference[] {
   const refs: SpecReference[] = [];
   if (spec === undefined) {
@@ -163,6 +167,9 @@ export function collectAgentCallReferences(
             case "run-time":
               break;
             case "malformed":
+              if (malformed === "skip") {
+                break;
+              }
               throw invalidArgumentError(
                 malformedAgentReferenceMessage(task.name, agent),
               );
@@ -230,6 +237,7 @@ export function newValidateAgentCallReferencesStep(
             : collectAgentCallReferences(
                 existing.spec,
                 existing.metadata?.org ?? "",
+                "skip",
               ),
       });
       if (refusal !== undefined) {
