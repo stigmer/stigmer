@@ -15,7 +15,9 @@
  *   - the default-instance visibility guard (stigmer/stigmer#556) rejects
  *     on the LABEL branch and on the parent-POINTER branch (no label
  *     needed), while an orphan instance and an ordinary personal instance
- *     pass through.
+ *     pass through;
+ *   - list answers only the organization's instances that carry every
+ *     requested label, newest first.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -342,5 +344,37 @@ describe("default-instance visibility guard (stigmer/stigmer#556)", () => {
     expect(fetched.metadata?.visibility).toBe(
       ApiResourceVisibility.visibility_org,
     );
+  });
+});
+
+describe("agent instance list (org and label filters)", () => {
+  it("answers only the org's instances carrying every requested label, newest first", async () => {
+    const agentId = (await createAgent("list-parent")).metadata?.id ?? "";
+    const labelled = (name: string, labels: Record<string, string>, org: string = ORG) => ({
+      ...instanceInput(name, agentId, org),
+      metadata: { name, org, labels },
+    });
+    await command.create(labelled("list-older", { team: "blue", tier: "gold" }));
+    await command.create(labelled("list-newer", { team: "blue", tier: "gold" }));
+    await command.create(labelled("list-one-label", { team: "blue" }));
+    await seedOrganizations(transport, ["list-other-org"]);
+    const otherAgentId =
+      (
+        await agentCommand.create({
+          apiVersion: API_VERSION,
+          kind: "Agent",
+          metadata: { name: "list-other-parent", org: "list-other-org" },
+          spec: { instructions: "A parent in another organization." },
+        })
+      ).metadata?.id ?? "";
+    await command.create({
+      ...instanceInput("list-other-org-instance", otherAgentId, "list-other-org"),
+      metadata: { name: "list-other-org-instance", org: "list-other-org", labels: { team: "blue", tier: "gold" } },
+    });
+
+    const listed = await query.list({ org: ORG, labels: { team: "blue", tier: "gold" } });
+
+    expect(listed.items.map((i) => i.metadata?.name)).toEqual(["list-newer", "list-older"]);
+    expect(listed.totalCount).toBe(2);
   });
 });

@@ -12,7 +12,20 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**"],
-      exclude: [...coverageConfigDefaults.exclude, "**/__test-utils__/**", "**/__fixtures__/**", "**/__mocks__/**"],
+      exclude: [
+        ...coverageConfigDefaults.exclude,
+        "**/__test-utils__/**",
+        "**/__fixtures__/**",
+        "**/__mocks__/**",
+        // Workflow modules no test imports: the Temporal suites run them
+        // inside the workflow sandbox, a bundle V8 coverage never maps back to
+        // these files, so they would read as unrun and refuse every edit made
+        // inside them. A workflow module a test imports directly stays here.
+        "src/workflows/call-agent-orchestrator.ts",
+        "src/workflows/human-input-orchestrator.ts",
+        "src/workflows/listen-orchestrator.ts",
+        "src/workflows/run-orchestrator.ts",
+      ],
       reporter: ["json", "json-summary"],
       reportOnFailure: true,
       experimentalAstAwareRemapping: true,
