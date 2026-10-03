@@ -14,7 +14,7 @@
 # @stigmer/…, and downloads the Temporal CLI into ~/.stigmer/bin. Here those
 # acquisitions are already done, read-only, off the data volume: the same npm
 # packages, installed into the same layout under /opt/stigmer, and the
-# composition `stigmer up` runs (server, runner, Temporal, the bootstrap; see
+# composition `stigmer up` runs (server, runner, Temporal; see
 # client-apps/cli/src/local/) runs here in the foreground. There is no second
 # launcher.
 #

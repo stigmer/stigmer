@@ -1,7 +1,10 @@
 import type { Page } from "@playwright/test";
 import type { Stigmer } from "@stigmer/sdk";
 import { test, expect } from "../../fixtures";
-import { BOOTSTRAP_ORG, ensureBootstrapOrg } from "../../fixtures/seed-helpers";
+import { ensureOrg } from "../../fixtures/seed-helpers";
+
+/** The organization these journeys seed into and point the console at. */
+const SCHEDULES_ORG = "e2e-schedules";
 
 /**
  * Schedule Library journeys (stigmer/stigmer#352) against the live OSS
@@ -20,7 +23,7 @@ import { BOOTSTRAP_ORG, ensureBootstrapOrg } from "../../fixtures/seed-helpers";
 async function pinActiveOrg(page: Page): Promise<void> {
   await page.addInitScript((org) => {
     localStorage.setItem("stigmer:activeOrgSlug", org);
-  }, BOOTSTRAP_ORG);
+  }, SCHEDULES_ORG);
 }
 
 /**
@@ -32,11 +35,11 @@ async function createTestSchedule(
   stigmerClient: Stigmer,
   options?: { enabled?: boolean },
 ) {
-  await ensureBootstrapOrg(stigmerClient);
+  await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
   const stamp = Date.now();
   const agent = await stigmerClient.agent.create({
     name: `e2e-sched-agent-${stamp}`,
-    org: BOOTSTRAP_ORG,
+    org: SCHEDULES_ORG,
     instructions: "You send short reminder messages. Keep responses brief.",
   });
   const agentSlug = agent.metadata!.slug!;
@@ -44,12 +47,12 @@ async function createTestSchedule(
 
   const schedule = await stigmerClient.schedule.create({
     name: `e2e-sched-${stamp}`,
-    org: BOOTSTRAP_ORG,
+    org: SCHEDULES_ORG,
     cron: "0 9 * * *",
     timeZone: "Asia/Kolkata",
     enabled: options?.enabled ?? true,
     agent: {
-      agentRef: { org: BOOTSTRAP_ORG, slug: agentSlug },
+      agentRef: { org: SCHEDULES_ORG, slug: agentSlug },
       message: "Send today's reminders.",
     },
   });
@@ -76,7 +79,7 @@ test.describe("Schedules list page", () => {
     page,
     stigmerClient,
   }) => {
-    await ensureBootstrapOrg(stigmerClient);
+    await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
     await page.goto("/library/schedules");
 
     await expect(
@@ -111,7 +114,7 @@ test.describe("Schedules list page", () => {
       // Operational columns straight from the proto.
       await expect(page.getByText("0 9 * * *").first()).toBeVisible();
       await expect(
-        page.getByText(`${BOOTSTRAP_ORG}/${seeded.agentSlug}`).first(),
+        page.getByText(`${SCHEDULES_ORG}/${seeded.agentSlug}`).first(),
       ).toBeVisible();
 
       await row.click();
@@ -140,12 +143,12 @@ test.describe("Schedule creation form", () => {
     page,
     stigmerClient,
   }) => {
-    await ensureBootstrapOrg(stigmerClient);
+    await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
 
     const stamp = Date.now();
     const agent = await stigmerClient.agent.create({
       name: `e2e-form-agent-${stamp}`,
-      org: BOOTSTRAP_ORG,
+      org: SCHEDULES_ORG,
       instructions: "You send short reminder messages. Keep responses brief.",
     });
     const agentSlug = agent.metadata!.slug!;
@@ -182,7 +185,7 @@ test.describe("Schedule creation form", () => {
 
       // Server-side confirmation of what the form submitted.
       const created = await stigmerClient.schedule.getByReference({
-        org: BOOTSTRAP_ORG,
+        org: SCHEDULES_ORG,
         slug: scheduleName,
       });
       scheduleId = created.metadata!.id!;
@@ -216,7 +219,7 @@ test.describe("Schedule detail tabs and inline editing", () => {
       // The ?tab= deep link lands directly on the Runs tab (the
       // AgentDetailPage precedent, wired for schedules too).
       await page.goto(
-        `/library/schedules/${BOOTSTRAP_ORG}/${seeded.scheduleSlug}?tab=runs`,
+        `/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}?tab=runs`,
       );
       await expect(
         page.getByRole("tab", { name: "Overview" }),
@@ -250,7 +253,7 @@ test.describe("Schedule detail tabs and inline editing", () => {
       // Server-side confirmation that the save was the lossless
       // full-proto re-apply: the edited field changed, nothing else.
       const after = await stigmerClient.schedule.getByReference({
-        org: BOOTSTRAP_ORG,
+        org: SCHEDULES_ORG,
         slug: seeded.scheduleSlug,
       });
       expect(
@@ -278,7 +281,7 @@ test.describe("Disabled-vs-paused rendering", () => {
     const seeded = await createTestSchedule(stigmerClient, { enabled: false });
     try {
       await page.goto(
-        `/library/schedules/${BOOTSTRAP_ORG}/${seeded.scheduleSlug}`,
+        `/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}`,
       );
 
       // The owner's lever renders distinctly, with its remedy inline.
@@ -305,7 +308,7 @@ test.describe("Disabled-vs-paused rendering", () => {
 
       // Server-side confirmation: enabled flipped, nothing else touched.
       const after = await stigmerClient.schedule.getByReference({
-        org: BOOTSTRAP_ORG,
+        org: SCHEDULES_ORG,
         slug: seeded.scheduleSlug,
       });
       expect(after.spec?.enabled).toBe(true);

@@ -28,8 +28,8 @@
  *   4. reads every recorded resource back and compares it field by field:
  *      nothing lost, nothing renamed, both runs still COMPLETED, the agent's
  *      reply intact, the agent still found by its org/slug reference;
- *   5. runs the agent the old release stored, then a fresh agent, each to
- *      the model's reply;
+ *   5. runs the agent the old release stored, then a fresh agent in the
+ *      organization the old release made, each to the model's reply;
  *   6. tears the install down, also on failure, with its diagnostics printed.
  *
  * --to=build (the default) is this checkout built from source, stamped with
@@ -439,7 +439,14 @@ async function main() {
       { expectText: fake.replyText, log },
     );
     log(`the agent ${before} stored ran on ${after}: execution ${oldAgent.executionId} replied`);
-    const fresh = await runAgentToReply(baseUrl, RUN_TIMEOUT_MS, { expectText: fake.replyText, log });
+    // In the organization the base release made: a release before the server
+    // held one organization made one per line, and the upgraded server, which
+    // holds one, admits no other — so the fresh agent names one it keeps.
+    const fresh = await runAgentToReply(baseUrl, RUN_TIMEOUT_MS, {
+      expectText: fake.replyText,
+      log,
+      org: recorded.ids.agentOrgId,
+    });
     log(`a fresh agent on ${after}: execution ${fresh.executionId} replied (${lap()})`);
     log(`PASS: ${args.artifact} ${before} -> ${after} in ${Math.round((Date.now() - started) / 1000)}s`);
   } catch (error) {

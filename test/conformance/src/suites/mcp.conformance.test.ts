@@ -24,7 +24,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV } from "../harness/cloud-env";
 import { createTransport } from "../harness/clients";
 import { spawnServer } from "@stigmer/test-support/server-process";
-import { ensureTsServerEntry } from "@stigmer/test-support/ts-build";
+import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
 import { uniqueName } from "../support/naming";
 
 // What the bridge and the suite need from either edition: gRPC coordinates,
@@ -54,7 +54,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 // creates the working org tokenless (single-tenant, no auth). The org create
 // doubles as the gRPC-readiness gate.
 async function resolveLocalBackend(): Promise<BridgeBackend> {
-  const entry = await ensureTsServerEntry();
+  const entry = await ensureLibraryServerEntry();
   const server = await spawnServer(process.execPath, { args: [entry] });
   const orgCommand = createClient(OrganizationCommandController, createTransport(server.baseUrl));
 

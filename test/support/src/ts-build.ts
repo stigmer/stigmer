@@ -22,8 +22,16 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const SERVER_DIR = join(REPO_ROOT, "backend", "services", "stigmer-server");
 
+// The shipped entry: the open-source edition, which holds one organization.
 export function tsServerEntryPath(): string {
   return join(SERVER_DIR, "dist", "main.js");
+}
+
+// The library entry: the same process body with no extension unit, holding
+// any number of organizations (library-server.mjs says why the harness
+// needs it).
+export function libraryServerEntryPath(): string {
+  return join(REPO_ROOT, "test", "support", "src", "library-server.mjs");
 }
 
 export async function buildTsServer(): Promise<string> {
@@ -58,4 +66,11 @@ export async function ensureTsServerEntry(): Promise<string> {
   const entry = tsServerEntryPath();
   if (existsSync(entry)) return entry;
   return buildTsServer();
+}
+
+// The library entry, building the server first when its dist is missing:
+// the entry imports the built process body.
+export async function ensureLibraryServerEntry(): Promise<string> {
+  await ensureTsServerEntry();
+  return libraryServerEntryPath();
 }

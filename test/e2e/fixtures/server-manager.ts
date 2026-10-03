@@ -12,6 +12,15 @@
 // OAuth MCP postures — and the state file Playwright's worker processes read
 // it from.
 //
+// Which server entry a shape boots is the shape's too. The shipped entry
+// (dist/main.js) is the open-source edition, which holds ONE organization:
+// it makes it at its first start and refuses a second. Most specs need
+// several (`freshOrg` gives a test an organization of its own, the seeders
+// work in `default`), so the stack boots the library entry
+// (test/support/src/library-server.mjs: the same process body, no unit) unless
+// the shape is one a self-host or a laptop really runs: the OIDC posture and
+// the single-organization shape boot the shipped entry.
+//
 // Playwright runs globalSetup and globalTeardown in the SAME (main) process, so
 // the running handles live in a module singleton between the two; the state
 // file carries only what workers need.
@@ -22,7 +31,10 @@ import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-pr
 import { spawnServer, type RunningServer } from "@stigmer/test-support/server-process";
 import { waitForPortRefusal } from "@stigmer/test-support/ports";
 import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
-import { tsServerEntryPath } from "@stigmer/test-support/ts-build";
+import {
+  libraryServerEntryPath,
+  tsServerEntryPath,
+} from "@stigmer/test-support/ts-build";
 import { diagEnabled, diagLogPath } from "./diag";
 
 /** What global setup records for the worker processes (`.e2e-server-state.json`). */
@@ -34,6 +46,9 @@ export interface ServerState {
   // STIGMER_E2E_MOCK_LLM. Specs program the proxy over it. Absent on a
   // normal (real-LLM) boot.
   mockLlmControlUrl?: string;
+  // True when the stack booted the shipped entry, which holds one
+  // organization (the OIDC and single-organization shapes).
+  singleOrg?: boolean;
   // True when the runner was booted with NO artifact store (STIGMER_E2E_FILE_GATES):
   // file writes take the pre-execution approval gate instead of apply-then-review.
   // Specs read it to skip against the wrong stack shape.
@@ -84,9 +99,14 @@ export async function startBackendStack(opts: {
   // SHAPE the caller chooses (the OIDC posture: STIGMER_OIDC_ISSUER /
   // _AUDIENCE / _CONSOLE_CLIENT_ID), never a knob a spec flips.
   extraServerEnv?: Record<string, string>;
+  // The shipped entry (one organization) instead of the library entry (any
+  // number); the header says which shapes ask for it.
+  singleOrg?: boolean;
 }): Promise<ServerState> {
   if (stack !== undefined) throw new Error("[e2e] the backend stack is already running");
-  const serverEntry = builtEntry(tsServerEntryPath(), "make build-server", "stigmer-server");
+  // Both entries run the built server; the library entry imports its body.
+  const shippedEntry = builtEntry(tsServerEntryPath(), "make build-server", "stigmer-server");
+  const serverEntry = opts.singleOrg === true ? shippedEntry : libraryServerEntryPath();
   const runnerEntry = builtEntry(
     runnerEntryPath(),
     "npm run build -w @stigmer/protos && npm run build -w @stigmer/runner (or make build-runner)",
@@ -142,7 +162,7 @@ export async function startBackendStack(opts: {
     await temporal.stop();
     throw error;
   }
-  return { reused: false };
+  return { reused: false, ...(opts.singleOrg === true ? { singleOrg: true } : {}) };
 }
 
 /** Stops a fixture process with the stack (the OIDC issuer, the OAuth MCP fixture). */

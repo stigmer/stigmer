@@ -7,56 +7,32 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 const DEFAULT_ORG = "default";
 
 /**
- * The organization `stigmer up` and `stigmer bootstrap` create: the one a
- * local or selfhost CLI falls back to when none is named (`DEFAULT_LOCAL_ORG`
- * in the CLI's config resolver). E2E specs that exercise it seed here and
- * point the console's active org at it.
- */
-export const BOOTSTRAP_ORG = "stigmer";
-
-/**
- * Ensures the OSS `default` organization exists on a freshly-booted stack.
+ * Ensures the `default` organization exists on a freshly-booted stack.
  *
- * In OSS, `FindMyOrganizations` lists every `Organization` entity in the store
- * (no IAM filtering), and the web's `OrgGate` blocks all authenticated routes
- * until at least one exists. A fresh e2e server starts with an empty store and
- * nothing auto-seeds an org — so without this, every seeded resource lives under
- * the `default` string namespace while the browser is stuck on the
- * "Create an organization" onboarding screen.
- *
- * This mirrors a first-run OSS user creating their org through
- * `CreateOrganizationForm` (organizations are self-owning: slug == org).
- * Idempotent — a no-op when the org already exists (e.g. a reused stack).
+ * The stack boots the library entry (fixtures/server-manager.ts), which holds
+ * any number of organizations and starts with none, and the web's `OrgGate`
+ * blocks every authenticated route until one exists. Without this, every
+ * seeded resource lives under `default` while the browser is stuck on the
+ * "Create an organization" onboarding screen. Idempotent — a no-op when the
+ * org already exists (e.g. a reused stack).
  */
 export async function ensureDefaultOrg(client: Stigmer): Promise<void> {
-  const existing = await client.organization.findMyOrganizations();
-  if (existing.entries.some((o) => o.metadata?.slug === DEFAULT_ORG)) return;
-
-  await client.organization.create({
-    name: "Default",
-    slug: DEFAULT_ORG,
-    org: DEFAULT_ORG,
-  });
+  await ensureOrg(client, DEFAULT_ORG, "Default");
 }
 
 /**
- * Ensures {@link BOOTSTRAP_ORG} exists. The e2e stack boots a raw server
- * that no CLI bootstrap has run against, so specs that need it create it
- * explicitly — idempotent, like {@link ensureDefaultOrg}.
+ * Ensures an organization with `slug` exists, for a spec that seeds into an
+ * organization of its own. Idempotent, and tolerant of parallel workers
+ * racing the same check-then-create: a loser sees ALREADY_EXISTS, which is
+ * the desired end state.
  */
-export async function ensureBootstrapOrg(client: Stigmer): Promise<void> {
+export async function ensureOrg(client: Stigmer, slug: string, name: string): Promise<void> {
   const existing = await client.organization.findMyOrganizations();
-  if (existing.entries.some((o) => o.metadata?.slug === BOOTSTRAP_ORG)) return;
+  if (existing.entries.some((o) => o.metadata?.slug === slug)) return;
 
   try {
-    await client.organization.create({
-      name: "Stigmer",
-      slug: BOOTSTRAP_ORG,
-      org: BOOTSTRAP_ORG,
-    });
+    await client.organization.create({ name, slug, org: slug });
   } catch (err) {
-    // Parallel workers race the same check-then-create; a loser sees
-    // ALREADY_EXISTS, which is the desired end state.
     if (!String(err).includes("already exists")) throw err;
   }
 }

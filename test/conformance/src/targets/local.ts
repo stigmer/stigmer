@@ -8,8 +8,12 @@
 // server runs single-tenant with no auth and no Temporal (not needed for
 // the CRUD domains), so tenancy provisioning is one fresh Organization per
 // scope, created by the one implicit caller (support/organizations.ts).
+// That needs a server that holds several organizations, so it boots the
+// library entry (test/support/src/library-server.mjs: the shipped process
+// body with no unit), not the shipped entry, whose open-source unit holds
+// one; the shipped entry is local-single-org's.
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { ensureTsServerEntry } from "@stigmer/test-support/ts-build";
+import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
 import {
   createTransport,
   makeClients,
@@ -45,6 +49,8 @@ export class LocalTarget implements TargetProfile {
   // ApprovalForwarding, lives on local-execution (#23).
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
+    // Many organizations: this target spawns the library entry.
+    singleOrganization: false,
     // The primary runs trusted-local: its permissive Authorizer admits the
     // one operator to everything. Enforcement on open source is proven on
     // the OIDC sibling this target lends through enforcingLane().
@@ -111,7 +117,7 @@ export class LocalTarget implements TargetProfile {
   private siblingLane: Promise<SiblingEnforcingLane> | undefined;
 
   async setup(): Promise<void> {
-    const entry = await ensureTsServerEntry();
+    const entry = await this.serverEntry();
     this.storage = await this.provisionStorage();
     // The TS server is a node entry, not a binary — same env contract,
     // same ready-line gate (server-process.ts).
@@ -134,11 +140,18 @@ export class LocalTarget implements TargetProfile {
     return ephemeralSqliteStorage();
   }
 
+  // The server entry the primary and every sibling spawn: the library entry,
+  // which holds any number of organizations (the header says why).
+  // local-single-org overrides it with the shipped entry.
+  protected serverEntry(): Promise<string> {
+    return ensureLibraryServerEntry();
+  }
+
   // A second server of this edition in the suite's posture, with its own
   // storage from the same seam as the primary (target.ts). Readiness is
   // the harness's one gate, presented with the bearer the suite supplied.
   async spawnSibling(options: SpawnSiblingOptions): Promise<SiblingServer> {
-    const entry = await ensureTsServerEntry();
+    const entry = await this.serverEntry();
     const storage = await this.provisionStorage();
     let server: RunningServer;
     try {

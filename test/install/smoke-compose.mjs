@@ -21,9 +21,9 @@
  *   4. the env file's STIGMER_PUBLIC_URL reached the server through the
  *      compose file: its boot line derives the MCP OAuth callback from that
  *      address (from "public-origin"), not from the file's default (#1486);
- *   5. an organization nobody created is refused by name: compose runs no
- *      bootstrap, so an agent create naming `stigmer` (what a bare
- *      `stigmer apply` sends) answers "Organization not found: stigmer"
+ *   5. the server made its one organization, `stigmer`, at its first start
+ *      and says it fills it; and an organization nobody made is refused by
+ *      name: an agent create naming one answers "Organization not found"
  *      instead of storing it (#1484);
  *   6. one END-TO-END RUN: a deterministic `set_vars` workflow execution
  *      travels server → Temporal → runner → COMPLETED, with zero LLM
@@ -69,6 +69,7 @@ import {
   assertArtifactLane,
   assertConsoleServed,
   assertMissingOrganizationRefused,
+  readSingleOrganization,
   assertOAuthCallbackFromPublicOrigin,
   assertPortFree,
   runAgentToReply,
@@ -157,7 +158,10 @@ async function main() {
     const callback = assertOAuthCallbackFromPublicOrigin(stack.logs("stigmer-server"), COMPOSE_PUBLIC_URL);
     log(`public address: the server derived its OAuth callback ${callback.redirectUri} from ${callback.from}`);
 
-    // 5. Nothing has created an organization yet, and nothing may be stored under one.
+    // 5. The server made its one organization, and nothing may be stored under
+    // one nobody made.
+    const orgId = await readSingleOrganization(baseUrl);
+    log(`organization 'stigmer' made by the server at its first start (${orgId})`);
     const refusal = await assertMissingOrganizationRefused(baseUrl);
     log(`missing organization: refused (HTTP ${refusal.status} ${refusal.code}: ${refusal.message})`);
 

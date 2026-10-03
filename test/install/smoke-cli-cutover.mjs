@@ -18,7 +18,8 @@
  *
  * The workflow under test is a single deterministic set_vars task — no LLM,
  * no API keys, no network beyond npm/Temporal's own machinery. What it
- * proves: CLI daemon → server (gRPC gate) → bootstrap → workflow apply
+ * proves: CLI daemon → server (gRPC gate, its one organization made) →
+ * workflow apply with no organization named
  * → Temporal orchestration → runner execution → event streaming → clean
  * shutdown. Then an agent is applied and run with `stigmer run <agent> -m`:
  * the shell `stigmer up` starts from carries the model settings a user
@@ -84,13 +85,17 @@ import {
   gateLogProblem,
   pollUntil,
   streamedRunOutcome,
-  waitForBootstrapOrganization,
+  readSingleOrganization,
   waitForPendingApproval,
   workflowExecutionCreator,
   workflowIdByReference,
 } from "./lib/stigmer-smoke.mjs";
 
-/** The org `stigmer up`'s bootstrap creates — the CLI's fallback on a local backend. */
+/**
+ * The organization the server makes at its first start. The CLI never names it
+ * (a laptop user never does); the smoke names it only in the API reads it makes
+ * beside the CLI.
+ */
 const ORG = "stigmer";
 const RUN_TIMEOUT_MS = 120_000;
 /** The agent the smoke applies and runs by slug. */
@@ -153,8 +158,8 @@ let failed = false;
 
 try {
   // 1. Up — the daemon resolves the staged server (or acquires the published
-  //    one), gates on the gRPC port, and bootstraps the backend (which
-  //    creates the org).
+  //    one) and gates on the gRPC port; the server has made its organization
+  //    by then.
   await stack.start(release);
 
   // 2. Prove WHICH server is running: the server child's command line must
@@ -219,11 +224,11 @@ spec:
 `,
   );
   // --org is a root-level global option, so it precedes the subcommand.
-  await cli(["--org", ORG, "apply", "-f", workflowPath]);
+  await cli(["apply", "-f", workflowPath]);
 
   // 5. Run it and stream to completion (JSON events on stdout) — a clean
   //    exit is required.
-  const run = await cli(["--org", ORG, "run", "workflow", "cutover-smoke", "--json"], {
+  const run = await cli(["run", "workflow", "cutover-smoke", "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
   if (!/completed/i.test(run.stdout)) {
@@ -247,9 +252,9 @@ spec:
   instructions: Answer the message in one short sentence.
 `,
   );
-  await cli(["--org", ORG, "apply", "-f", agentPath]);
+  await cli(["apply", "-f", agentPath]);
   const modelArgs = fake === undefined ? ["--model", LIVE_MODEL] : [];
-  const agentRun = await cli(["--org", ORG, "run", AGENT, "-m", "Say hello.", ...modelArgs, "--json"], {
+  const agentRun = await cli(["run", AGENT, "-m", "Say hello.", ...modelArgs, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
   if (fake === undefined) {
@@ -273,9 +278,9 @@ spec:
   }
 
   // 7. The approval gates, as a reviewer meets them from the CLI.
-  const orgId = await waitForBootstrapOrganization(stack.baseUrl, RUN_TIMEOUT_MS, { slug: ORG });
+  const orgId = await readSingleOrganization(stack.baseUrl, { slug: ORG });
   await applyGateWorkflow(TIMEOUT_GATE_WORKFLOW, { timeoutSeconds: GATE_TIMEOUT_SECONDS });
-  const timedOutRun = stack.cliChild(["--org", ORG, "run", "workflow", TIMEOUT_GATE_WORKFLOW, "--json"], {
+  const timedOutRun = stack.cliChild(["run", "workflow", TIMEOUT_GATE_WORKFLOW, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
   const timedOut = await whileRunning(timedOutRun, async () =>
@@ -302,13 +307,13 @@ spec:
         `stderr:\n${timedOutResult.stderr}`,
     );
   }
-  const timedOutLogs = await cli(["--org", ORG, "execution", "logs", timedOut.executionId]);
+  const timedOutLogs = await cli(["execution", "logs", timedOut.executionId]);
   const timedOutProblem = gateLogProblem(timedOutLogs.stdout, timedOut.taskName, "timed out");
   if (timedOutProblem !== undefined) throw new Error(`execution logs of the timed-out gate: ${timedOutProblem}`);
   log("execution logs: the timed-out gate decided nothing, then its task failed");
 
   await applyGateWorkflow(APPROVED_GATE_WORKFLOW);
-  const approvedRun = stack.cliChild(["--org", ORG, "run", "workflow", APPROVED_GATE_WORKFLOW, "--json"], {
+  const approvedRun = stack.cliChild(["run", "workflow", APPROVED_GATE_WORKFLOW, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
   const approved = await whileRunning(approvedRun, async () => {
@@ -340,7 +345,7 @@ spec:
     );
   }
   const reviewer = await workflowExecutionCreator(stack.baseUrl, approved.executionId);
-  const approvedLogs = await cli(["--org", ORG, "execution", "logs", approved.executionId]);
+  const approvedLogs = await cli(["execution", "logs", approved.executionId]);
   const approvedProblem = gateLogProblem(approvedLogs.stdout, approved.taskName, { outcome: "approve", by: reviewer });
   if (approvedProblem !== undefined) throw new Error(`execution logs of the approved gate: ${approvedProblem}`);
   const resolved = (await approvalResolutions(stack.baseUrl, approved.executionId)).filter(
@@ -414,5 +419,5 @@ ${timeoutLines}    - name: after_review
           reviewed: "yes"
 `,
   );
-  await cli(["--org", ORG, "apply", "-f", path]);
+  await cli(["apply", "-f", path]);
 }

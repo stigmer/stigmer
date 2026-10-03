@@ -25,6 +25,14 @@ export interface CapabilityFlags {
   // Multi-tenant isolation / IAM-scoped list filtering. False for local OSS,
   // where list RPCs return everything.
   multiTenant: boolean;
+  // The server is the open-source edition as it ships: it holds ONE
+  // organization, made at its first start, and fills it into every request
+  // that names none (getServerInfo answers single_org). True only on
+  // local-single-org, which spawns the shipped entry; the other local
+  // targets spawn the library entry, which holds any number, because their
+  // suites create an organization per tenancy and prove isolation between
+  // them. The single-organization suite runs only where this is true.
+  singleOrganization: boolean;
   // The PRIMARY server's composed Authorizer ENFORCES the authorization
   // model: a caller with no role on an organization is refused on its rows,
   // a private blueprint is a member's PERMISSION_DENIED, an unknown id on

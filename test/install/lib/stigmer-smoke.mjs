@@ -124,12 +124,12 @@ export function refusalProblem(refusal, text) {
 }
 
 /**
- * An install that runs no bootstrap holds no organization, so a bare create
- * naming one (what `stigmer apply` sends as the implicit `stigmer`) is
- * refused with the organization named, never stored under a slug nobody
- * created (#1484). Run before anything creates an organization.
+ * A create naming an organization the server does not hold is refused with
+ * the organization named, never stored under a slug nobody created (#1484).
+ * The server makes its own organization at its first start, so the probe
+ * names one nobody made.
  */
-export async function assertMissingOrganizationRefused(baseUrl, { org = "stigmer" } = {}) {
+export async function assertMissingOrganizationRefused(baseUrl, { org = "no-such-org" } = {}) {
   return expectRefusal(
     baseUrl,
     "ai.stigmer.agentic.agent.v1.AgentCommandController/create",
@@ -306,50 +306,78 @@ export async function assertArtifactLane(artifactBaseUrl) {
 }
 
 /**
- * The organization a fresh backend is bootstrapped with, read back the way
- * `stigmer up` decides whether to create it: the `stigmer` organization
- * among the caller's own (the CLI's `bootstrapBackend` asks
- * findMyOrganizations and matches the slug). The bootstrap runs a few
- * seconds after SERVING, from the daemon's onStarted, and creating this
- * organization is the whole of it — a fresh install needs no default
- * content, because a session with no agent runs the built-in assistant.
+ * The organization a fresh install holds: the server makes it at its first
+ * start, before its port binds, so it is there by the time anything can ask —
+ * exactly one, with the `slug` the server gives it, and getServerInfo says the
+ * server fills it (`singleOrg`). A fresh install needs no default content
+ * beside it, because a session with no agent runs the built-in assistant.
  * Resolves to the organization's id.
  */
-export async function waitForBootstrapOrganization(baseUrl, timeoutMs, { slug = "stigmer" } = {}) {
-  return pollUntil(`organization '${slug}' present`, timeoutMs, async () => {
+export async function readSingleOrganization(baseUrl, { slug = "stigmer" } = {}) {
+  const info = await connectJson(baseUrl, "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo", {});
+  if (info.singleOrg !== true) {
+    throw new Error(`getServerInfo does not report a single organization: ${JSON.stringify(info)}`);
+  }
+  const list = await connectJson(
+    baseUrl,
+    "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations",
+    {},
+  );
+  const entries = list.entries ?? [];
+  if (entries.length !== 1 || entries[0].metadata?.slug !== slug) {
+    throw new Error(
+      `want exactly the organization '${slug}', got ${JSON.stringify(entries.map((org) => org.metadata?.slug))}`,
+    );
+  }
+  const id = entries[0].metadata?.id;
+  if (!id) throw new Error(`organization '${slug}' has no id: ${JSON.stringify(entries[0])}`);
+  return id;
+}
+
+/**
+ * The organization a smoke line runs in: `org` when the caller names one;
+ * otherwise, on a server that holds one organization, that one; otherwise a
+ * fresh organization named `name`. A one-organization server refuses a
+ * second, and a release from before it held one makes none, so the same line
+ * runs on both. Resolves to the organization's id.
+ */
+export async function smokeOrganization(baseUrl, name, { org } = {}) {
+  if (org !== undefined) return org;
+  const info = await connectJson(baseUrl, "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo", {});
+  if (info.singleOrg === true) {
     const list = await connectJson(
       baseUrl,
       "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations",
       {},
     );
-    const match = (list.entries ?? []).find((org) => org.metadata?.slug === slug);
-    if (match === undefined) return false;
-    const id = match.metadata?.id;
-    if (!id) throw new Error(`organization '${slug}' has no id: ${JSON.stringify(match)}`);
+    const id = (list.entries ?? [])[0]?.metadata?.id;
+    if (!id) throw new Error(`a server that holds one organization listed none: ${JSON.stringify(list)}`);
     return id;
+  }
+  const created = await connectJson(baseUrl, "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create", {
+    apiVersion: "tenancy.stigmer.ai/v1",
+    kind: "Organization",
+    metadata: { name },
   });
+  const id = created.metadata?.id;
+  if (!id) throw new Error(`organization create returned no id: ${JSON.stringify(created)}`);
+  return id;
 }
 
 const TERMINAL_FAILURES = new Set(["EXECUTION_FAILED", "EXECUTION_CANCELLED", "EXECUTION_TERMINATED"]);
 
 /**
- * The end-to-end line every self-host smoke draws: create an organization and
- * a single `set_vars` workflow (sub-second, hermetic, no LLM, no MCP, no keys —
+ * The end-to-end line every self-host smoke draws: in the smoke's organization
+ * ({@link smokeOrganization}; `org` names one), a single `set_vars` workflow (sub-second, hermetic, no LLM, no MCP, no keys —
  * the conformance suite's canonical execution fixture), run it, and wait for
  * EXECUTION_COMPLETED. It completes only if the runner connected to Temporal
  * and polled the queue. Returns the organization, workflow and execution ids,
  * so an upgrade rehearsal can read them back. A terminal failure surfaces
  * immediately with the server's own error.
  */
-export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}) {
+export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { org } = {}) {
   const suffix = uniqueSuffix();
-  const org = await connectJson(baseUrl, "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create", {
-    apiVersion: "tenancy.stigmer.ai/v1",
-    kind: "Organization",
-    metadata: { name: `smoke-org-${suffix}` },
-  });
-  const orgId = org.metadata?.id;
-  if (!orgId) throw new Error(`organization create returned no id: ${JSON.stringify(org)}`);
+  const orgId = await smokeOrganization(baseUrl, `smoke-org-${suffix}`, { org });
 
   const workflow = await connectJson(baseUrl, "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create", {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -402,8 +430,8 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}) {
 }
 
 /**
- * The agent line every self-host smoke draws after the workflow: create an
- * organization and an agent with no tools, send it one message, and wait for
+ * The agent line every self-host smoke draws after the workflow: in the smoke's
+ * organization ({@link smokeOrganization}; `org` names one), an agent with no tools, send it one message, and wait for
  * EXECUTION_COMPLETED with the model's reply as the last message. It completes
  * only if the install wired a model the runner can reach, the runner called
  * it, and the answer travelled back to the record a user reads — which the
@@ -412,23 +440,17 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}) {
  * the ids and the reply, so an upgrade rehearsal can read them back. A
  * terminal failure surfaces immediately with the execution's own error.
  */
-export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {} }) {
+export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {}, org }) {
   requireExpectText(expectText);
-  const agent = await createSmokeAgent(baseUrl, { log });
+  const agent = await createSmokeAgent(baseUrl, { log, org });
   const run = await runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log });
   return { ...agent, ...run };
 }
 
-/** An organization and a tool-less agent in it, the fixture the agent line runs. Resolves `{ orgId, agentId }`. */
-export async function createSmokeAgent(baseUrl, { log = () => {} } = {}) {
+/** A tool-less agent in the smoke's organization, the fixture the agent line runs. Resolves `{ orgId, agentId }`. */
+export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
   const suffix = uniqueSuffix();
-  const org = await connectJson(baseUrl, "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create", {
-    apiVersion: "tenancy.stigmer.ai/v1",
-    kind: "Organization",
-    metadata: { name: `smoke-agent-org-${suffix}` },
-  });
-  const orgId = org.metadata?.id;
-  if (!orgId) throw new Error(`organization create returned no id: ${JSON.stringify(org)}`);
+  const orgId = await smokeOrganization(baseUrl, `smoke-agent-org-${suffix}`, { org });
 
   const agent = await connectJson(baseUrl, "ai.stigmer.agentic.agent.v1.AgentCommandController/create", {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -557,7 +579,9 @@ const READS = Object.freeze({
 
 /**
  * The state an upgrade must carry: a workflow run and an agent run with the
- * model's reply, each in an organization of its own, and every resource as
+ * model's reply, each in the smoke's organization ({@link smokeOrganization}:
+ * one of its own on a server that holds several, the server's one where it
+ * holds one), and every resource as
  * the server reads it back right after. Resolves `{ ids, snapshot }`: the ids
  * to read again later, and the snapshot {@link compareState} holds the later
  * read to.

@@ -123,6 +123,14 @@ export default defineConfig({
       fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      // The single-organization stack shape: global-setup boots the shipped
+      // server entry (one organization, made by the server) with nothing
+      // seeded; the console as a laptop runs it.
+      name: "single-org",
+      testDir: "./tests/single-org",
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
 
   globalSetup: "./global-setup.ts",

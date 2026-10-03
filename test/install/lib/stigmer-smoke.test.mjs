@@ -5,8 +5,10 @@
 // spelled out here rather than imported so a drift in the library's constant
 // is caught, not mirrored. The Host-derived arm is the #1087 incident: four
 // gates accepted `http://<host>` after the server stopped serving it. The
-// bootstrap probe: polls the caller's organizations until the `stigmer`
-// organization the bootstrap creates is present. The run probes: an agent run
+// organization probes: a fresh install holds exactly the `stigmer`
+// organization the server made, and says it fills it; a smoke line runs in
+// the organization it is given, else a one-organization server's, else a
+// fresh one. The run probes: an agent run
 // passes only on the model's reply, and a terminal failure (of an agent or a
 // workflow run) ends the wait at once instead of being retried to the
 // deadline (#1514). The state probes the upgrade rehearsal reads: what the
@@ -51,7 +53,8 @@ import {
   serverLogEntries,
   serverVersion,
   streamedRunOutcome,
-  waitForBootstrapOrganization,
+  readSingleOrganization,
+  smokeOrganization,
   waitForPendingApproval,
   workflowExecutionCreator,
   workflowIdByReference,
@@ -201,58 +204,6 @@ test("refuses a / that does not answer HTML", async () => {
   assert.match(refusal.message, /console \/.*text\/html/);
 });
 
-// ─── The bootstrap probe ────────────────────────────────────────────────────
-//
-// An organization query lane on 127.0.0.1:0 that answers findMyOrganizations
-// from a script of responses, one per call, so the probe's polling (no
-// `stigmer` organization until the bootstrap lands, then present) is pinned
-// without a server.
-
-async function serveOrganizationLane(responses) {
-  let call = 0;
-  const server = createServer((request, response) => {
-    const next = responses[Math.min(call, responses.length - 1)];
-    call += 1;
-    response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify(next));
-  });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  return {
-    baseUrl: `http://127.0.0.1:${server.address().port}`,
-    calls: () => call,
-    close: () => new Promise((resolve) => server.close(resolve)),
-  };
-}
-
-const STIGMER_ORG = { metadata: { id: "org_stigmer_0001", slug: "stigmer", name: "stigmer" } };
-const OTHER_ORG = { metadata: { id: "org_other_0001", slug: "acme", name: "acme" } };
-
-test("waits until the `stigmer` organization is among the caller's, then yields its id", async () => {
-  const lane = await serveOrganizationLane([
-    { entries: [] },
-    { entries: [OTHER_ORG] },
-    { entries: [OTHER_ORG, STIGMER_ORG] },
-  ]);
-  try {
-    const id = await waitForBootstrapOrganization(lane.baseUrl, 10_000, {});
-    assert.equal(id, "org_stigmer_0001");
-    assert.equal(lane.calls(), 3);
-  } finally {
-    await lane.close();
-  }
-});
-
-test("matches the organization by slug, never by name", async () => {
-  const lane = await serveOrganizationLane([
-    { entries: [{ metadata: { id: "org_x", slug: "not-it", name: "stigmer" } }] },
-  ]);
-  try {
-    await assert.rejects(waitForBootstrapOrganization(lane.baseUrl, 2_500, {}), /organization 'stigmer' present/);
-  } finally {
-    await lane.close();
-  }
-});
-
 /**
  * A Connect-JSON lane that answers by procedure: `routes` maps a procedure's
  * last segment ("create", "get") under its service to a function of the call
@@ -282,6 +233,10 @@ async function serveConnectLane(routes) {
 }
 
 const ORG_CREATE = "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create";
+const SERVER_INFO = "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo";
+const MY_ORGS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations";
+const STIGMER_ORG = { metadata: { id: "stigmer", slug: "stigmer", name: "Stigmer" } };
+const OTHER_ORG = { metadata: { id: "acme", slug: "acme", name: "acme" } };
 const AGENT_CREATE = "ai.stigmer.agentic.agent.v1.AgentCommandController/create";
 const AEX_CREATE = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create";
 const AEX_GET = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/get";
@@ -289,6 +244,8 @@ const REPLY = "This is the Stigmer fake model's default reply; no real model was
 
 function agentLane(executionAt) {
   return serveConnectLane({
+    // A server that holds several organizations: the line makes its own.
+    [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
     [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
     [AGENT_CREATE]: () => ({ metadata: { id: "agt_smoke_1" } }),
     [AEX_CREATE]: () => ({ metadata: { id: "aex_smoke_1" } }),
@@ -352,12 +309,81 @@ test("an agent run that fails ends the wait at once with the execution's error",
   }
 });
 
+// ─── The organization probes ────────────────────────────────────────────────
+
+test("a fresh install holds exactly `stigmer`, made and filled by the server", async () => {
+  const lane = await serveConnectLane({
+    [SERVER_INFO]: () => ({ edition: "oss", singleOrg: true }),
+    [MY_ORGS]: () => ({ entries: [STIGMER_ORG] }),
+  });
+  try {
+    assert.equal(await readSingleOrganization(lane.baseUrl), "stigmer");
+  } finally {
+    await lane.close();
+  }
+});
+
+test("the organization probe refuses a server that does not fill one, and any other set of organizations", async () => {
+  const cases = [
+    [{ edition: "oss" }, [STIGMER_ORG], /does not report a single organization/],
+    [{ edition: "oss", singleOrg: true }, [], /want exactly the organization 'stigmer', got \[\]/],
+    [{ edition: "oss", singleOrg: true }, [OTHER_ORG], /got \["acme"\]/],
+    [{ edition: "oss", singleOrg: true }, [STIGMER_ORG, OTHER_ORG], /got \["stigmer","acme"\]/],
+  ];
+  for (const [info, entries, refusal] of cases) {
+    const lane = await serveConnectLane({ [SERVER_INFO]: () => info, [MY_ORGS]: () => ({ entries }) });
+    try {
+      await assert.rejects(readSingleOrganization(lane.baseUrl), refusal);
+    } finally {
+      await lane.close();
+    }
+  }
+});
+
+test("a smoke line runs in the organization it is given, without asking", async () => {
+  const lane = await serveConnectLane({});
+  try {
+    assert.equal(await smokeOrganization(lane.baseUrl, "unused", { org: "recorded" }), "recorded");
+    assert.equal(lane.calls(SERVER_INFO), 0);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a smoke line runs in a one-organization server's organization, and creates none", async () => {
+  const lane = await serveConnectLane({
+    [SERVER_INFO]: () => ({ edition: "oss", singleOrg: true }),
+    [MY_ORGS]: () => ({ entries: [STIGMER_ORG] }),
+    [ORG_CREATE]: () => ({ metadata: { id: "never" } }),
+  });
+  try {
+    assert.equal(await smokeOrganization(lane.baseUrl, "smoke-org-1"), "stigmer");
+    assert.equal(lane.calls(ORG_CREATE), 0);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a smoke line on a server that holds several makes an organization of its own", async () => {
+  const lane = await serveConnectLane({
+    [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
+    [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
+  });
+  try {
+    assert.equal(await smokeOrganization(lane.baseUrl, "smoke-org-1"), "org_smoke_1");
+    assert.equal(lane.calls(ORG_CREATE), 1);
+  } finally {
+    await lane.close();
+  }
+});
+
 test("an agent run needs the reply text the install's model answers with", async () => {
   await assert.rejects(runAgentToReply("http://127.0.0.1:9", 1_000, {}), /needs the reply text/);
 });
 
 test("a workflow run that fails ends the wait at once (#1514)", async () => {
   const lane = await serveConnectLane({
+    [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
     [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
     "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": () => ({ metadata: { id: "wfl_smoke_1" } }),
     "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create": () => ({
@@ -456,6 +482,7 @@ async function stateLane() {
   // must never reach an inherited property (a path of "constructor") or call
   // something that is not a route.
   const routes = new Map(Object.entries({
+    [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
     [ORG_CREATE]: create("org"),
     "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
     "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/create": create("wex", {
@@ -644,13 +671,13 @@ test("a JSON refusal with no string message keeps its code and takes its text as
   for (const [body, want] of cases) assert.deepEqual(connectRefusal(404, body), want, body);
 });
 
-test("the missing-organization probe creates an agent in `stigmer` and wants that organization named", async () => {
-  const lane = await serveAnswer(404, { code: "not_found", message: "Organization not found: stigmer" });
+test("the missing-organization probe creates an agent in an organization nobody made and wants it named", async () => {
+  const lane = await serveAnswer(404, { code: "not_found", message: "Organization not found: no-such-org" });
   try {
     await assertMissingOrganizationRefused(lane.baseUrl);
     assert.equal(lane.sent.length, 1);
     assert.equal(lane.sent[0].procedure, "ai.stigmer.agentic.agent.v1.AgentCommandController/create");
-    assert.equal(lane.sent[0].body.metadata.org, "stigmer");
+    assert.equal(lane.sent[0].body.metadata.org, "no-such-org");
   } finally {
     await lane.close();
   }

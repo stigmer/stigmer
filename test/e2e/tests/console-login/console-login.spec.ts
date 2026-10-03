@@ -11,11 +11,14 @@ import { OIDC_ISSUER, OIDC_STACK } from "../../fixtures/oidc";
  * issuer, which auto-consents as its configured person), is sent to the
  * issuer, comes back through `/auth/callback` with a real PKCE code
  * exchange, carries the access token on its RPCs, is provisioned as an
- * identity account on first sign-in, reaches the create-organization form
- * with no dead wait, and signs out to the `/login` landing.
+ * identity account on first sign-in, lands in the organization the server
+ * made with no onboarding and no dead wait, owns it (the first person on a
+ * self-host with no operator email configured), and signs out to the
+ * `/login` landing.
  *
  * Stack shape: `STIGMER_E2E_OIDC=1` (global-setup boots the issuer and the
- * server in the posture; `webServer.env` gives `next dev` the matching
+ * server in the posture, on the shipped entry, which makes its one
+ * organization; `webServer.env` gives `next dev` the matching
  * `NEXT_PUBLIC_*`). Without it the arms SKIP with the reason — the trusted
  * local stack every other project runs against has no sign-in to prove.
  */
@@ -23,7 +26,7 @@ import { OIDC_ISSUER, OIDC_STACK } from "../../fixtures/oidc";
 const API_PORT = process.env.STIGMER_E2E_API_PORT ?? "7234";
 
 // The old org gate polled for a personal organization for 10 s before it
-// showed the form (Q-CL-5). The form must appear well inside that.
+// let the app render. The app must render well inside that.
 const NO_DEAD_WAIT_MS = 8_000;
 
 test.describe("console login against an authenticated self-hosted server", () => {
@@ -32,7 +35,7 @@ test.describe("console login against an authenticated self-hosted server", () =>
     "needs the OIDC stack shape — run with STIGMER_E2E_OIDC=1",
   );
 
-  test("signs in through the issuer, carries the bearer, is provisioned, reaches onboarding, and signs out to /login", async ({
+  test("signs in through the issuer, carries the bearer, is provisioned, lands in the server's organization as its owner, and signs out to /login", async ({
     page,
   }) => {
     // Every RPC the console makes after sign-in must carry the bearer.
@@ -68,14 +71,21 @@ test.describe("console login against an authenticated self-hosted server", () =>
       .poll(() => issuerRequests.includes("/token"), { timeout: 15_000 })
       .toBe(true);
 
-    // 2. The identity gate provisions the account and the org gate shows the
-    //    onboarding form at once — no "Setting up your workspace" wait.
-    await expect(
-      page.getByRole("heading", { name: "Welcome to Stigmer" }),
-    ).toBeVisible({
+    // 2. The identity gate provisions the account and the app renders at once
+    //    in the server's one organization: no onboarding, no switcher, and
+    //    no "Setting up your workspace" wait.
+    await expect(page.getByRole("navigation").first()).toBeVisible({
       timeout: NO_DEAD_WAIT_MS,
     });
+    await expect(page.getByText("Welcome to Stigmer")).toHaveCount(0);
     await expect(page.getByText("Setting up your workspace")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Organization menu" })).toHaveCount(0);
+
+    // 2b. The first person to sign in owns the organization the server made.
+    await page.goto("/settings/members");
+    const members = page.getByRole("list", { name: "Organization members" });
+    await expect(members).toBeVisible({ timeout: 15_000 });
+    await expect(members.getByText("Owner", { exact: true })).toBeVisible();
 
     // 3. The RPCs carried the bearer, and the first-sign-in pair ran.
     const paths = rpcAuthHeaders.map((entry) => entry.path);

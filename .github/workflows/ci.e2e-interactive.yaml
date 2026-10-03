@@ -12,8 +12,10 @@
 # The e2e-approval job (below) runs the HITL approval projects the same way —
 # added by stigmer/stigmer#754 after the SAME rot pattern hit them (they were
 # Makefile-only and silently invalidated by the apply-then-review change).
-# The e2e-console-login job runs the OIDC sign-in, and the e2e-functional jobs
-# the functional tier: the console's journeys over data each spec seeds.
+# The e2e-console-login job runs the OIDC sign-in, the e2e-single-org job the
+# console on the shipped entry, which holds one organization, and the
+# e2e-functional jobs the functional tier: the console's journeys over data
+# each spec seeds.
 #
 # Distinct from ci.e2e.yaml, which smoke-tests the DEPLOYED console after
 # releases; this lane tests the code on the PR.
@@ -224,9 +226,10 @@ jobs:
   # The served console signing in to an authenticated self-hosted server
   # (stigmer#924): a real browser through a
   # real PKCE code flow against the conformance harness's hermetic issuer,
-  # verified by a real server in the OIDC posture. Its own stack shape, so
-  # its own job (the approval job's precedent); no runner is needed — the
-  # flow ends at the create-organization form — but the stack boots one.
+  # verified by a real server in the OIDC posture, on the shipped entry, so
+  # the person who signs in first lands in the organization the server made
+  # and owns it. Its own stack shape, so its own job (the approval job's
+  # precedent); no runner is needed, but the stack boots one.
   e2e-console-login:
     name: Console login E2E (OIDC posture, hermetic issuer)
     runs-on: ubuntu-latest
@@ -282,6 +285,68 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: e2e-console-login-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30
+
+  # The console on the open-source edition as a laptop runs it: the shipped
+  # server entry, which holds one organization and fills it, trusted-local,
+  # nothing seeded (test/e2e/fixtures/single-org.ts). Its own stack shape, so
+  # its own job.
+  e2e-single-org:
+    name: Single-organization E2E (the shipped entry)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Install Temporal CLI
+        uses: ./.github/actions/temporal-cli
+
+      - name: Build stigmer-server
+        run: make build-server
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install Playwright browsers
+        uses: ./.github/actions/playwright-chromium
+
+      - name: Run the single-organization suite (shipped entry)
+        working-directory: test/e2e
+        env:
+          STIGMER_E2E_SINGLE_ORG: "1"
+        run: npx playwright test --project=single-org
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-single-org-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-single-org-playwright-report
           path: test/e2e/playwright-report/
           retention-days: 30
 

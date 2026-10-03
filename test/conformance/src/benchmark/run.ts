@@ -41,7 +41,7 @@ import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
 import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
 import { spawnServer, type RunningServer } from "@stigmer/test-support/server-process";
 import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
-import { ensureTsServerEntry } from "@stigmer/test-support/ts-build";
+import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
 import { BARE_AGENT_INSTRUCTIONS, makeAgent } from "../support/agents";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
@@ -96,7 +96,10 @@ export interface BenchmarkStack extends SessionStack {
 /** The MCP fixture, Temporal, then the server on it, then the runner in direct mode; `stop()` reverses. */
 export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack> {
   await mkdir(runDir, { recursive: true });
-  const serverEntry = await ensureTsServerEntry();
+  // The library entry: every working-agent cell provisions an organization
+  // of its own (support/working-agent.ts).
+  /* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
+  const serverEntry = await ensureLibraryServerEntry();
   const runnerEntry = await ensureRunnerBuilt();
 
   const mcpFixture = new McpToolFixture();

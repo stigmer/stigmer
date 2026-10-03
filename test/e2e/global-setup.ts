@@ -15,6 +15,7 @@ import {
   startIssuerProcess,
 } from "./fixtures/oidc";
 import { OAUTH_MCP_STACK, startOAuthMcpFixture } from "./fixtures/oauth-mcp";
+import { SINGLE_ORG_STACK } from "./fixtures/single-org";
 import { writeStackState } from "./fixtures/stack-state";
 
 const API_PORT = Number(process.env.STIGMER_E2E_API_PORT ?? "7234");
@@ -49,9 +50,11 @@ async function globalSetup() {
 
   // The OIDC stack shape: the hermetic issuer
   // as a process, the server booted with STIGMER_OIDC_ISSUER pointed at it,
-  // and NO seeded organization — the console-login spec asserts the
-  // first-sign-in onboarding. A running trusted-local stack cannot be
-  // reused: it would admit every request tokenless and prove nothing.
+  // on the shipped entry a self-host runs, and NO seeded organization: the
+  // server makes its one, and the console-login spec asserts that the first
+  // person to sign in lands in it and owns it. A running trusted-local stack
+  // cannot be reused: it would admit every request tokenless and prove
+  // nothing.
   if (OIDC_STACK) {
     if (alreadyRunning) {
       throw new Error(
@@ -75,6 +78,7 @@ async function globalSetup() {
     );
     const state = await startBackendStack({
       apiPort: API_PORT,
+      singleOrg: true,
       extraServerEnv: {
         STIGMER_OIDC_ISSUER: OIDC_ISSUER,
         STIGMER_OIDC_AUDIENCE: OIDC_AUDIENCE,
@@ -87,7 +91,27 @@ async function globalSetup() {
     adoptStackFixture(issuer);
     writeStackState(state);
     console.log(
-      "[e2e] Backend stack ready in the OIDC posture (no organization seeded on purpose)",
+      "[e2e] Backend stack ready in the OIDC posture, on the shipped entry (it makes its one organization)",
+    );
+    return;
+  }
+
+  // The single-organization shape: the shipped entry in the trusted-local
+  // posture, a laptop's server, with nothing seeded. A running stack cannot
+  // be reused: it may hold several organizations, and the shape exists to
+  // prove a server that holds one.
+  if (SINGLE_ORG_STACK) {
+    if (alreadyRunning) {
+      throw new Error(
+        `[e2e] STIGMER_E2E_SINGLE_ORG is set but a backend is already running on :${API_PORT}.\n` +
+          `  The single-organization suite needs a fresh stack on the shipped entry.\n` +
+          `  Stop the running stack (or set STIGMER_E2E_API_PORT to a free port) and retry.`,
+      );
+    }
+    const state = await startBackendStack({ apiPort: API_PORT, singleOrg: true });
+    writeStackState(state);
+    console.log(
+      "[e2e] Backend stack ready on the shipped entry (one organization, made by the server)",
     );
     return;
   }
@@ -145,6 +169,19 @@ async function globalSetup() {
   }
 
   if (!MOCK_LLM && alreadyRunning) {
+    // A developer's `stigmer up` server holds one organization, and the specs
+    // here need several (fixtures/server-manager.ts): refuse it by name
+    // rather than fail every `freshOrg` spec on a refused create.
+    const info = await createNodeClient({
+      baseUrl: `http://localhost:${API_PORT}`,
+      getAccessToken: () => null,
+    }).platform.getServerInfo();
+    if (info.singleOrg === true) {
+      throw new Error(
+        `[e2e] The backend on :${API_PORT} holds one organization (a \`stigmer up\` server), and these specs need several.\n` +
+          `  Stop it (or set STIGMER_E2E_API_PORT to a free port) so the suite boots its own stack.`,
+      );
+    }
     console.log(`[e2e] Backend already running on :${API_PORT} — reusing`);
     const state: ServerState = { reused: true };
     writeStackState(state);

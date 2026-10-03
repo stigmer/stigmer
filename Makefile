@@ -483,6 +483,11 @@ test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local; buil
 	@echo "=== conformance: CRUD contract (local) ==="
 	CONFORMANCE_TARGET=local npm run test -w @stigmer/conformance
 
+.PHONY: test-conformance-single-org
+test-conformance-single-org: build-ts-stubs ## Run the single-organization conformance suite against the shipped entry (local-single-org: the open-source edition holds one organization)
+	@echo "=== conformance: the open-source edition's one organization (local-single-org) ==="
+	CONFORMANCE_TARGET=local-single-org npm run test -w @stigmer/conformance -- src/suites/single-organization.conformance.test.ts
+
 .PHONY: test-conformance-execution
 test-conformance-execution: build-runner ## Run gRPC conformance execution suite (local-execution; needs the `temporal` and `stigmer` CLIs)
 	@command -v temporal >/dev/null 2>&1 || { \
@@ -788,7 +793,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links web-build validate-demos tsdoc-check test-demos \
        check-docs-inventory check-conformance-inventory \
-       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-a11y check check-all \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-single-org test-a11y check check-all \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -1012,6 +1017,15 @@ test-e2e-console-login: ## Run the console sign-in E2E against a server in the O
 	npm ci
 	cd test/e2e && npx playwright install --with-deps chromium && \
 		STIGMER_E2E_OIDC=1 npx playwright test --project=console-login --workers=1
+
+test-e2e-single-org: ## Run the console E2E against the shipped server entry, which holds one organization (the open-source edition as a laptop runs it)
+	# One stack shape of its own: the shipped entry in the trusted-local
+	# posture with nothing seeded (test/e2e/fixtures/single-org.ts); every
+	# other project boots the library entry, which holds several. Root install
+	# for the same reason as test-e2e-approval; needs the built server and runner.
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && \
+		STIGMER_E2E_SINGLE_ORG=1 npx playwright test --project=single-org
 
 # Parallel CI gate.
 #

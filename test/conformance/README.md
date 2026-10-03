@@ -125,6 +125,18 @@ The `local` target compiles `stigmer-server` from source (always testing HEAD)
 and boots it against a throwaway SQLite database on an ephemeral port. No
 Temporal, runner, or external services are required for this slice.
 
+The local targets boot the **library entry** (`test/support/src/library-server.mjs`):
+the shipped process body with no extension unit, which holds any number of
+organizations. The suites need that: they create an organization per tenancy
+and prove isolation between organizations. The shipped entry composes the
+open-source edition's unit, which holds one organization, makes it at its first
+start and fills it into every request that names none. The `local-single-org`
+target boots that entry and runs one suite against it:
+
+```bash
+make test-conformance-single-org
+```
+
 Select a target with `CONFORMANCE_TARGET` (default `local`):
 
 ```bash
@@ -478,6 +490,9 @@ an unknown id refused through the authorizer's existence probe, gate on it),
 RPC is implemented in both editions; assigning a tag moves it to name exactly
 one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
+`singleOrganization` is `true` only on `local-single-org`, the shipped
+open-source edition, where the single-organization suite runs (every other
+target spawns or reaches a server with many organizations), and
 `workflowChildApprovalForwarding` is `true` where the
 `child_approval_required` signal — which surfaces a child agent's gate to its
 parent workflow — is sent: cloud and, since D4 #23, this server's HITL loop.

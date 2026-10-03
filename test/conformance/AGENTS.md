@@ -12,7 +12,7 @@ index; `README.md` is the reference.
   the SDK, spec-first contract, targets and capability flags, the harness, the
   execution class), the layout, and the two "Adding a ..." procedures.
 - `src/targets/target.ts`: the `TargetProfile` interface and every
-  `CapabilityFlags` member with its rationale; `src/targets/` for the six
+  `CapabilityFlags` member with its rationale; `src/targets/` for the seven
   profiles.
 - `src/harness/`: the suite's own components (clients, cloud env and fixtures,
   the enforcing lanes, the RPC recorder, MCP fixture, git workspace, model

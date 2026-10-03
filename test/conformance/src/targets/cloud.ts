@@ -74,6 +74,8 @@ export class CloudTarget implements TargetProfile {
 
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,
+    // Many organizations: the Cloud composes no single-organization unit.
+    singleOrganization: false,
     // OpenFGA behind the cloud-iam unit: the primary enforces the model, so
     // it IS this target's enforcing lane (enforcingLane below).
     enforcingAuthorizer: true,

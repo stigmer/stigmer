@@ -93,6 +93,14 @@ jobs:
           CONFORMANCE_TARGET: local
         run: npm run test -w @stigmer/conformance
 
+      # The shipped entry, which holds one organization, runs its own suite:
+      # the roster above runs on the library entry, because its suites create
+      # an organization per tenancy (test/conformance/src/targets/local-single-org.ts).
+      - name: Run the single-organization suite (local-single-org)
+        env:
+          CONFORMANCE_TARGET: local-single-org
+        run: npm run test -w @stigmer/conformance -- src/suites/single-organization.conformance.test.ts
+
   # The same full roster on the Postgres Store driver (the gate requires the
   # Postgres targets at byte-identical capability
   # matrices — the driver must be wire-invisible). The database is a
