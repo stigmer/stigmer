@@ -269,9 +269,10 @@ every change, and checks that it refuses Alpine.
 
 **The layer's version is the server's.** A server starts the runner with the
 command its own release names, so the layer must come from the same release:
-re-join your image at every server upgrade. Nothing checks the pairing yet. The
-layer is one image layer, about 78 MB compressed, so each node pulls it once per
-release, while your base's layers stay cached.
+re-join your image at every server upgrade. Nothing checks the pairing yet
+([stigmer#1831](https://github.com/stigmer/stigmer/issues/1831)). The layer is
+one image layer, about 78 MB compressed, so each node pulls it once per release,
+while your base's layers stay cached.
 
 **What the base image needs.** The runner refuses to start on an image that
 can't run it, and says why. The requirements:
