@@ -2,12 +2,17 @@
 // grant message a lane hands IamPolicy create/delete, the steps that move a
 // member to exactly one role, and the set of organizations a newcomer is
 // revoked on. The lanes themselves boot servers and are exercised by the
-// conformance suites; what is decided without a server is decided here.
+// conformance suites; what is decided without a server is decided here, and
+// the sibling lane's revoke is driven once over a stub sibling.
 import { describe, expect, it } from "vitest";
 
+import type { ConformanceClients } from "../clients";
+
 import { ORGANIZATION_ROLES } from "../../targets/target";
+import type { SiblingServer } from "../../targets/target";
 import {
   exactRoleSteps,
+  newSiblingEnforcingLane,
   organizationRoleGrant,
   organizationsToRevoke,
 } from "../enforcing-lane";
@@ -66,5 +71,40 @@ describe("organizationsToRevoke", () => {
 
   it("drops an empty id a malformed row could hand back rather than revoking on nothing", () => {
     expect(organizationsToRevoke(["acme", ""], undefined)).toEqual(["acme"]);
+  });
+});
+
+describe("newSiblingEnforcingLane", () => {
+  it("revokes a newcomer by org on every organization the founder holds but the one it joins", async () => {
+    const revoked: unknown[] = [];
+    let accounts = 0;
+    const clients = {
+      identityAccountCommand: {
+        provisionMyAccount: async () => ({ metadata: { id: `ida_${++accounts}` } }),
+      },
+      organizationQuery: {
+        findMyOrganizations: async () => ({
+          entries: [{ metadata: { id: "org_kept" } }, { metadata: { id: "org_other" } }],
+        }),
+      },
+      iamPolicyCommand: {
+        revokeOrgAccess: async (input: unknown) => {
+          revoked.push(input);
+          return {};
+        },
+      },
+    } as unknown as ConformanceClients;
+    const sibling: SiblingServer = {
+      clientsPresenting: () => clients,
+      teardown: async () => {},
+    };
+
+    const { lane, close } = await newSiblingEnforcingLane({ spawnSibling: async () => sibling });
+    try {
+      await lane.provisionMember({ org: "org_kept" });
+    } finally {
+      await close();
+    }
+    expect(revoked).toEqual([{ identityAccountId: "ida_2", org: "org_other" }]);
   });
 });

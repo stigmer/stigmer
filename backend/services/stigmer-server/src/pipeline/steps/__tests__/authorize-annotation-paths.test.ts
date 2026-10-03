@@ -1,7 +1,9 @@
 /**
  * The annotation-path invariant: every `field_path` and `resource_kind_path`
  * an `rpc.config` annotation names is a real field of its method's input,
- * segment by segment, ending on a value the Authorize step can use.
+ * segment by segment, never through a oneof member (the step reads a
+ * member's own property name, which protobuf-es leaves undefined), ending on
+ * a value the Authorize step can use.
  *
  * The step reads a path by string (authorize.ts, `resolveDotPath`) and, by
  * doctrine, never throws: a path that names no field resolves to an empty
@@ -31,6 +33,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKindSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
+import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 
 import { everyService } from "../../../authorization/__tests__/contract-support.js";
@@ -52,6 +55,11 @@ function pathProblem(input: DescMessage, path: string, terminal: Terminal): stri
     const field: DescField | undefined = message.fields.find((f) => f.name === segment);
     if (field === undefined) {
       return `names no field "${segment}" of ${message.typeName}`;
+    }
+    if (field.oneof !== undefined) {
+      // protobuf-es keeps a oneof member under the oneof's { case, value },
+      // so the step's property read of the member's own name finds nothing.
+      return `names "${segment}" of ${message.typeName}, a member of oneof ${field.oneof.name}, which the Authorize step reads as absent`;
     }
     const last = index === segments.length - 1;
     if (!last) {
@@ -145,6 +153,13 @@ describe("the check bites (mutation proofs over the same function)", () => {
   it("a path that walks through a scalar is reported", () => {
     expect(unresolvedPaths(create, { fieldPath: "resource.id.value", resourceKindPath: "" })).toEqual([
       `${name} field_path "resource.id.value" walks through "id" of ai.stigmer.iam.iampolicy.v1.ApiResourceRef, which is not a message`,
+    ]);
+  });
+
+  it("a path through a oneof member is reported: the step cannot read it", () => {
+    const scheduleCreate = ScheduleCommandController.method.create;
+    expect(unresolvedPaths(scheduleCreate, { fieldPath: "spec.agent.message", resourceKindPath: "" })).toEqual([
+      `ai.stigmer.agentic.schedule.v1.ScheduleCommandController/create field_path "spec.agent.message" names "agent" of ai.stigmer.agentic.schedule.v1.ScheduleSpec, a member of oneof target, which the Authorize step reads as absent`,
     ]);
   });
 

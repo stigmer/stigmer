@@ -38,8 +38,9 @@ breaking:
   # launch: no outside consumer uses these names, the hosted service moves its
   # own stored proto JSON in a migration, no license ticket was issued outside
   # Stigmer, and the release notes name every change under Upgrading. This
-  # block lets that one pull request through and nothing else; the pull
-  # request that follows its merge removes it
+  # block exists for that one pull request. While it stays, buf breaking does
+  # not report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge
   # (https://github.com/stigmer/stigmer/issues/1791).
   ignore_only:
     FIELD_SAME_NAME:
