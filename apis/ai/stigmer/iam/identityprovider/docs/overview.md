@@ -1,6 +1,8 @@
 An IdentityProvider represents an external platform's trust relationship with
-Stigmer. It configures how Stigmer validates tokens from that platform during
-token exchange and enables federated identity provisioning.
+Stigmer. It configures how Stigmer validates the tokens that platform's users
+present on each request, and how their federated identity accounts are created.
+Served by the Enterprise and Cloud editions; the open-source server answers
+UNIMPLEMENTED.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1

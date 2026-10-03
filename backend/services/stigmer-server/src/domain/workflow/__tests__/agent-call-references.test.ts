@@ -20,6 +20,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
@@ -40,6 +41,9 @@ import {
 } from "../../../pipeline/steps/references.js";
 import type { SqliteStore } from "../../../store/sqlite/store.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import type { Authorizer } from "../../../extensions/authorizer.js";
+import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import {
   classifyAgentReference,
   collectAgentCallReferences,
@@ -236,7 +240,10 @@ describe("ValidateAgentCallReferences over a store", () => {
       ApiResourceKind.workflow,
     );
     try {
-      await newValidateAgentCallReferencesStep(store).execute(ctx);
+      await newValidateAgentCallReferencesStep(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(ctx);
       return undefined;
     } catch (error) {
       return error;
@@ -369,5 +376,165 @@ describe("ValidateAgentCallReferences over a store", () => {
         ),
       );
     });
+  });
+});
+
+describe("an agent_call task's environment references", () => {
+  let store: SqliteStore;
+  let cleanup: () => Promise<void>;
+
+  beforeEach(async () => {
+    const temp = tempStore();
+    store = temp.store;
+    cleanup = temp.cleanup;
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agt_reviewer",
+      AgentSchema,
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: {
+          id: "agt_reviewer",
+          name: "reviewer",
+          slug: "reviewer",
+          org: "acme",
+          visibility: V.visibility_org,
+        },
+        spec: { instructions: "a conformant instruction body" },
+      }),
+    );
+    await store.saveResource(
+      ApiResourceKind.environment,
+      "env_ana_keys",
+      EnvironmentSchema,
+      create(EnvironmentSchema, {
+        metadata: {
+          id: "env_ana_keys",
+          name: "ana-keys",
+          slug: "ana-keys",
+          org: "acme",
+        },
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    await cleanup();
+  });
+
+  function callingWith(
+    ...environments: Array<{ org?: string; slug: string }>
+  ): Workflow {
+    return create(WorkflowSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Workflow",
+      metadata: {
+        id: "wfl_env",
+        name: "Pipeline",
+        org: "acme",
+        visibility: V.visibility_org,
+      },
+      spec: specOf([
+        {
+          name: "review",
+          kind: WorkflowTaskKind.agent_call,
+          taskConfig: {
+            agent: "reviewer",
+            message: "review it",
+            environment_refs: environments.map((e) => ({
+              org: e.org ?? "",
+              slug: e.slug,
+            })),
+          },
+        },
+      ]),
+    });
+  }
+
+  /** Ana views her own row; nobody else does. */
+  const anaOnly: Authorizer = {
+    authorize: async (caller) =>
+      caller.identityId === "acc_ana"
+        ? { kind: "allow" }
+        : { kind: "deny", reason: "not a viewer" },
+  };
+
+  async function save(workflow: Workflow, writer: string): Promise<unknown> {
+    const ctx = new RequestContext(
+      WorkflowSchema,
+      workflow,
+      testCallerIdentity({ identityId: writer }),
+      ApiResourceKind.workflow,
+    );
+    try {
+      await newValidateAgentCallReferencesStep(store, anaOnly).execute(ctx);
+      return undefined;
+    } catch (error) {
+      return error;
+    }
+  }
+
+  it("are collected after the task's agent, an org-less one in the workflow's organization", () => {
+    expect(
+      collectAgentCallReferences(
+        callingWith({ slug: "ana-keys" }, { org: "acme", slug: "team" }).spec,
+        "acme",
+      ),
+    ).toEqual([
+      {
+        kind: ApiResourceKind.agent,
+        org: "acme",
+        slug: "reviewer",
+        resolvesIn: "running-organization",
+      },
+      { kind: ApiResourceKind.environment, org: "acme", slug: "ana-keys" },
+      { kind: ApiResourceKind.environment, org: "acme", slug: "team" },
+    ]);
+  });
+
+  it("a stored task saved under looser rules does not block the edit that fixes it", async () => {
+    // The stored row's agent string is malformed; the edit replaces it.
+    const stored = create(WorkflowSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Workflow",
+      metadata: {
+        id: "wfl_env",
+        name: "Pipeline",
+        org: "acme",
+        visibility: V.visibility_org,
+      },
+      spec: specOf([agentCall("review", "/broken")]),
+    });
+    expect(collectAgentCallReferences(stored.spec, "acme", "skip")).toEqual([]);
+    const ctx = new RequestContext(
+      WorkflowSchema,
+      callingWith({ slug: "ana-keys" }),
+      testCallerIdentity({ identityId: "acc_ana" }),
+      ApiResourceKind.workflow,
+    );
+    ctx.set(EXISTING_RESOURCE_KEY, stored);
+    await expect(
+      newValidateAgentCallReferencesStep(store, anaOnly).execute(ctx),
+    ).resolves.toBeUndefined();
+  });
+
+  it("a missing environment is refused at save with the rule's copy", async () => {
+    const error = await save(callingWith({ slug: "ghost-keys" }), "acc_ana");
+    expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((error as ConnectError).rawMessage).toBe(
+      missingReferencesMessage(
+        referenceTargetKind(ApiResourceKind.environment)!,
+        [{ slug: "ghost-keys", org: "acme" }],
+      ),
+    );
+  });
+
+  it("an environment the author cannot view is refused; its owner may name it", async () => {
+    const error = await save(callingWith({ slug: "ana-keys" }), "acc_ben");
+    expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+    expect(
+      await save(callingWith({ slug: "ana-keys" }), "acc_ana"),
+    ).toBeUndefined();
   });
 });

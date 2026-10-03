@@ -65,17 +65,22 @@ curl -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
      https://api.stigmer.ai/...
 ```
 
-**Step 5: Fetch public keys.** Stigmer looks up the matching Identity Provider
-by the token's `iss` (issuer) claim and fetches the JWKS from the configured
-`jwks_uri`. Keys are cached, so this network call only happens on the first
-request or after cache expiry.
+**Step 5: Fetch public keys.** Stigmer finds the one Identity Provider whose
+`allowed_issuers` contains the token's `iss` (issuer) claim and whose
+`expected_audience` the token's `aud` (audience) claim carries; the issuer alone
+does not pick a provider, because several organizations can federate with one
+issuer. It then fetches the JWKS from that provider's `jwks_uri`. Keys are
+cached, so this network call happens on the first request, after cache expiry,
+or when a token names a key the cache doesn't hold yet (a key rotation).
 
 **Step 6: Validate the token.** Stigmer verifies:
 
 - The JWT signature using the JWKS public keys
 - The `iss` claim matches one of the Identity Provider's `allowed_issuers`
 - The `aud` claim matches the Identity Provider's `expected_audience`
-- The token hasn't expired (`exp` claim)
+- The token hasn't expired (`exp` claim) and, when it carries `nbf`, is already
+  valid
+- The token carries a `sub` claim
 
 If any check fails, Stigmer returns `401 Unauthorized`.
 
@@ -85,10 +90,11 @@ the account exists, Stigmer proceeds. If no account exists, what happens depends
 on the Identity Provider's provisioning mode:
 
 - **JIT-enabled Identity Provider** (`autoProvisionAccounts: true`) — Stigmer
-  creates a federated account automatically using the JWT's `sub` claim and
-  profile data from the `userinfo_endpoint`. If `autoGrantOnOrg` is also
-  enabled, Stigmer grants the configured role (default: viewer) on the
-  appropriate Organization. The request proceeds.
+  creates a federated account automatically using the JWT's `sub` claim and its
+  `email`, `given_name` and `family_name` (or `name`) and `picture` claims,
+  reading the `userinfo_endpoint` only when the token carries no email. If
+  `autoGrantOnOrg` is also enabled, Stigmer grants the configured role (default:
+  viewer) on the appropriate Organization. The request proceeds.
 - **SSO-enabled Identity Provider** (`isSsoProvider: true`) — Stigmer creates a
   federated account and grants the **viewer** role on the Organization. See
   [Set up SSO](/docs/guides/authentication/federation/sso-login) for details.
@@ -116,6 +122,7 @@ JWTs presented to Stigmer must contain these standard OIDC claims:
 | `sub` | Yes      | Subject --- mapped to a federated Identity Account's `externalSub`  |
 | `aud` | Yes      | Audience --- must match the Identity Provider's `expected_audience` |
 | `exp` | Yes      | Expiration --- token must not be expired                            |
+| `nbf` | No       | Not before --- when present, the token must already be valid        |
 | `iat` | No       | Issued at --- informational, not validated                          |
 
 ## Error responses
@@ -132,13 +139,12 @@ so you can diagnose issues:
 
 A `401` can mean different things. Here's how to narrow it down:
 
-| Scenario                                     | What happened                                              | Fix                                                                                                                                                                  |
-| -------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No Identity Provider matches the `iss` claim | Stigmer doesn't trust this issuer                          | Check `allowed_issuers` on your Identity Provider                                                                                                                    |
-| `aud` doesn't match `expected_audience`      | Token was issued for a different API                       | Configure your auth provider to include Stigmer's audience in the token                                                                                              |
-| Signature verification failed                | JWKS keys don't match the signing key                      | Verify `jwks_uri` points to the correct endpoint                                                                                                                     |
-| Token expired                                | The `exp` claim is in the past                             | Issue a fresh token                                                                                                                                                  |
-| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only) | Enable JIT provisioning on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
+| Scenario                                     | What happened                                                                                    | Fix                                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No Identity Provider matches `iss` and `aud` | Stigmer routes a token by its issuer and audience together, and no provider registered this pair | Check that `iss` is one of your Identity Provider's `allowed_issuers`, and configure your auth provider to put its `expected_audience` in `aud`                      |
+| Signature verification failed                | JWKS keys don't match the signing key                                                            | Verify `jwks_uri` points to the correct endpoint                                                                                                                     |
+| Token expired                                | The `exp` claim is in the past                                                                   | Issue a fresh token                                                                                                                                                  |
+| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only)                                       | Enable JIT provisioning on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
 
 ## Calling the API from your app
 
@@ -304,7 +310,9 @@ resource. If empty, create the missing IAM Policy.
 With JIT provisioning, a `403` usually means `autoGrantOnOrg` is `false`. The
 account was provisioned automatically (identity established) but no role was
 granted (no authorization). Either enable `autoGrantOnOrg` on the Identity
-Provider or create the IAM Policy manually.
+Provider or create the IAM Policy manually. Stigmer grants the automatic role
+only when it creates an account, so an account that already exists gets no role
+from enabling `autoGrantOnOrg` later; grant it with an IAM Policy.
 
 </Step>
 <Step>

@@ -31,11 +31,16 @@
  * no agent instance, so its declared variables have no environment_refs
  * to arrive through; the ones still missing after the merge are resolved
  * the way the MCP connect lane resolves them — OAuth tokens from the
- * managed grant, the rest from the caller's personal environment, by
- * declared key only (domain/environment/personal.ts). The built-in
+ * managed grant, the rest from the run's person's personal environment,
+ * by declared key only (domain/environment/personal.ts). The built-in
  * assistant is the case with no agent half, not an arm of its own.
  * Around that rule: the workspace-provisioning re-injection, and the
  * required-keys warning.
+ *
+ * Every personal read is the RUN'S PERSON'S (run-person.ts): the
+ * execution's own creator, read from the persisted row like every layer
+ * above, so recovery reads the same person's values create read. A run
+ * with no person (a schedule fire) reads no one's.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -46,12 +51,11 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import type { EnvironmentList } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import type { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import {
-  EnvironmentSecretValueInputSchema,
-  ListEnvironmentsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
-import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+  EnvVarDeclarationSchema,
+  EnvironmentValueSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type {
   EnvVarDeclaration,
   EnvironmentValue,
@@ -92,10 +96,6 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { OAuthGrant, Store } from "../../store/interface.js";
-import {
-  PERSONAL_LABEL_KEY,
-  PERSONAL_LABEL_VALUE,
-} from "../environment/constants.js";
 import { resolveDeclaredFromPersonalEnvironment } from "../environment/personal.js";
 import type { PersonalEnvironmentResolution } from "../environment/personal.js";
 import type { RuntimeResolutionService } from "../environment/resolution/resolution.js";
@@ -105,15 +105,9 @@ import type { PlatformClientStore } from "../platformclient/store.js";
 import { unmarshalTaskConfig } from "../workflow/converter/unmarshal.js";
 
 import { DEFAULT_INSTANCE_ID_KEY } from "./create-steps.js";
+import { runPersonOf, SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
 
-/**
- * The audit link stamped on every schedule-created execution by the run
- * starter — the environment-resolution key here. Pinned locally with its
- * lineage (Go scheduletemporal.ScheduleIDLabelKey; the schedule domain is
- * #22): the enabledtools/temporal-config precedent for pre-porting a
- * cross-domain constant the consumer needs first.
- */
-export const SCHEDULE_ID_LABEL_KEY = "stigmer.ai/schedule-id";
+export { SCHEDULE_ID_LABEL_KEY };
 
 /**
  * Workflow provenance labels, stamped by the workflow runner's CallAgent
@@ -145,9 +139,6 @@ export interface SessionLoader {
   get(sessionId: string): Promise<Session>;
 }
 export interface EnvironmentReader {
-  list(
-    request: MessageInitShape<typeof ListEnvironmentsRequestSchema>,
-  ): Promise<EnvironmentList>;
   getSecretValue(
     input: MessageInitShape<typeof EnvironmentSecretValueInputSchema>,
   ): Promise<EnvironmentValue>;
@@ -381,8 +372,15 @@ export async function buildAndPersistExecutionContext(
   }
 
   // 6.5 Re-inject workspace-provisioning keys excluded by the filter,
-  // and fall back to the caller's personal environment for keys never in
-  // the merge chain at all.
+  // and fall back to the run's person's personal environment for keys
+  // never in the merge chain at all.
+  const person = runPersonOf(execution);
+  if (person === undefined) {
+    deps.logger.info(
+      "Run has no person; personal environment not consulted",
+      { executionId },
+    );
+  }
   if (session !== undefined) {
     filtered = injectWorkspaceProvisioningKeys(
       deps.logger,
@@ -396,6 +394,7 @@ export async function buildAndPersistExecutionContext(
       filtered,
       session,
       executionOrg,
+      person,
       executionId,
     );
   }
@@ -424,14 +423,16 @@ export async function buildAndPersistExecutionContext(
   }
 
   // 6.85 The session servers' declared variables the chain did not carry
-  // (no instance layer ever could): the caller's personal environment, by
-  // declared key. Non-fatal — the run fails at the tool with a clearer
-  // error if a key is truly required, the posture of every fallback here.
+  // (no instance layer ever could): the run's person's personal
+  // environment, by declared key. Non-fatal — the run fails at the tool
+  // with a clearer error if a key is truly required, the posture of every
+  // fallback here.
   filtered = await injectSessionServerDeclaredFromPersonalEnvironment(
     deps,
     filtered,
     sessionMcpServers,
     executionOrg,
+    person,
     executionId,
   );
 
@@ -605,17 +606,19 @@ function unionDeclarations(
 
 /**
  * Resolves the session servers' declared variables still missing after
- * the merge and the OAuth injection from the caller's personal
+ * the merge and the OAuth injection from the run's person's personal
  * environment, by declared key. OAuth-target variables are left to the
  * managed grant (an absent grant is the sign-in the console asks for, not
- * a personal-environment lookup). Every failure is non-fatal here: a
- * missing key is logged and the run meets the tool's own error.
+ * a personal-environment lookup). A run with no person reads none. Every
+ * failure is non-fatal here: a missing key is logged and the run meets
+ * the tool's own error.
  */
 async function injectSessionServerDeclaredFromPersonalEnvironment(
   deps: ExecutionContextBuilderDeps,
   filtered: Map<string, ExecutionValue>,
   sessionMcpServers: readonly McpServer[],
   executionOrg: string,
+  person: string | undefined,
   executionId: string,
 ): Promise<Map<string, ExecutionValue>> {
   const wanted: { [key: string]: EnvVarDeclaration } = {};
@@ -628,7 +631,11 @@ async function injectSessionServerDeclaredFromPersonalEnvironment(
       wanted[key] = decl;
     }
   }
-  if (Object.keys(wanted).length === 0 || executionOrg === "") {
+  if (
+    Object.keys(wanted).length === 0 ||
+    executionOrg === "" ||
+    person === undefined
+  ) {
     return filtered;
   }
 
@@ -636,8 +643,10 @@ async function injectSessionServerDeclaredFromPersonalEnvironment(
   try {
     resolution = await resolveDeclaredFromPersonalEnvironment(
       deps.environmentReader(),
+      deps.store,
       deps.logger,
       executionOrg,
+      person,
       wanted,
     );
   } catch (error) {
@@ -672,7 +681,7 @@ async function injectSessionServerDeclaredFromPersonalEnvironment(
     out.set(key, value);
   }
   deps.logger.info(
-    "Injected session servers' declared variables from the caller's personal environment",
+    "Injected session servers' declared variables from the run's person's personal environment",
     { executionId, keys: entries.map(([key]) => key).sort() },
   );
   return out;
@@ -1054,44 +1063,54 @@ function injectWorkspaceProvisioningKeys(
 
 /**
  * The fallback for provisioning keys absent from the merge chain
- * entirely: looks up the caller's personal environment (org +
- * stigmer.ai/personal=true) and injects the decrypted secret. ALL
- * failures are non-fatal — the downstream git clone fails with a clear
- * auth error if the token is truly required (Go
- * injectFromPersonalEnvironment).
+ * entirely: the run's person's personal environment, through the one
+ * lookup every personal read shares (domain/environment/personal.ts), each
+ * key optional. Only when the session actually has git_repo workspace
+ * entries, and never for a run with no person. ALL failures are non-fatal
+ * — the downstream git clone fails with a clear auth error if the token
+ * is truly required (Go injectFromPersonalEnvironment).
  */
 async function injectFromPersonalEnvironment(
   deps: ExecutionContextBuilderDeps,
   filtered: Map<string, ExecutionValue>,
   session: Session,
   executionOrg: string,
+  person: string | undefined,
   executionId: string,
 ): Promise<Map<string, ExecutionValue>> {
   const hasGitRepo = (session.spec?.workspaceEntries ?? []).some(
     (entry) => entry.source?.source.case === "gitRepo",
   );
-  if (!hasGitRepo) {
+  if (!hasGitRepo || person === undefined) {
     return filtered;
   }
 
-  const missing = WORKSPACE_PROVISIONING_KEYS.filter(
-    (key) => !filtered.has(key),
-  );
-  if (missing.length === 0) {
+  const wanted: { [key: string]: EnvVarDeclaration } = {};
+  for (const key of WORKSPACE_PROVISIONING_KEYS) {
+    if (!filtered.has(key)) {
+      wanted[key] = create(EnvVarDeclarationSchema, {
+        isSecret: true,
+        optional: true,
+      });
+    }
+  }
+  if (Object.keys(wanted).length === 0) {
     return filtered;
   }
 
-  let listResponse: EnvironmentList;
+  let resolution: PersonalEnvironmentResolution;
   try {
-    listResponse = await deps.environmentReader().list(
-      create(ListEnvironmentsRequestSchema, {
-        org: executionOrg,
-        labels: { [PERSONAL_LABEL_KEY]: PERSONAL_LABEL_VALUE },
-      }),
+    resolution = await resolveDeclaredFromPersonalEnvironment(
+      deps.environmentReader(),
+      deps.store,
+      deps.logger,
+      executionOrg,
+      person,
+      wanted,
     );
   } catch (error) {
     deps.logger.warn(
-      "Failed to list personal environments for provisioning key injection (non-fatal)",
+      "Failed to resolve provisioning keys from the personal environment (non-fatal)",
       {
         executionId,
         error: error instanceof Error ? error.message : String(error),
@@ -1099,60 +1118,23 @@ async function injectFromPersonalEnvironment(
     );
     return filtered;
   }
-  if (listResponse.totalCount === 0 || listResponse.items.length === 0) {
+  if (resolution.kind === "no-personal-environment") {
     deps.logger.debug(
-      "No personal environment found — skipping provisioning key injection from personal env",
+      "No personal environment for the run's person — skipping provisioning key injection",
       { executionId, org: executionOrg },
     );
     return filtered;
   }
-
-  const personalEnv = listResponse.items[0] as Environment;
-  const personalEnvId = personalEnv.metadata?.id ?? "";
-
-  let out = filtered;
-  let injected = false;
-  for (const key of missing) {
-    // The personal env's spec.data keys are present even when redacted,
-    // so existence is checkable before the GetSecretValue call. Own-key
-    // membership (Go map semantics — never the prototype chain).
-    if (!Object.hasOwn(personalEnv.spec?.data ?? {}, key)) {
-      continue;
-    }
-    let secretValue: EnvironmentValue;
-    try {
-      secretValue = await deps.environmentReader().getSecretValue(
-        create(EnvironmentSecretValueInputSchema, {
-          environmentId: personalEnvId,
-          key,
-        }),
-      );
-    } catch (error) {
-      deps.logger.warn(
-        "Failed to retrieve secret from personal environment (non-fatal)",
-        {
-          executionId,
-          key,
-          personalEnvId,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
-      continue;
-    }
-    if (secretValue.value === "") {
-      continue;
-    }
-    if (!injected) {
-      out = new Map(out);
-      injected = true;
-    }
-    out.set(
-      key,
-      create(ExecutionValueSchema, { value: secretValue.value, isSecret: true }),
-    );
+  const entries = Object.entries(resolution.values);
+  if (entries.length === 0) {
+    return filtered;
+  }
+  const out = new Map(filtered);
+  for (const [key, value] of entries) {
+    out.set(key, value);
     deps.logger.info(
-      "Injected workspace-provisioning key from caller's personal environment",
-      { executionId, key, personalEnvId },
+      "Injected workspace-provisioning key from the run's person's personal environment",
+      { executionId, key },
     );
   }
   return out;

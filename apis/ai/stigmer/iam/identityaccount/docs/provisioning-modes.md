@@ -9,7 +9,7 @@ Every IdentityAccount is created in one of three provisioning modes. The mode is
 | Mode | `provisioning_mode` value | Who creates it | `idp_id` format |
 |---|---|---|---|
 | Direct | `direct` | Auth0 authentication (JIT on first login) | `auth0\|{subject}` |
-| Federated | `federated` | Explicit creation by the platform via API | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
+| Federated | `federated` | The platform via API, or Stigmer on the first sign-in when the IdentityProvider provisions accounts | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
 | Machine | `machine` | Platform bootstrap / M2M setup | `{client_id}@clients` |
 | Legacy | `identity_account_provisioning_mode_unspecified` | Pre-dates the provisioning_mode field | Varies |
 
@@ -37,9 +37,14 @@ A direct account is created when a user signs up through Stigmer's own Auth0 ten
 
 ## Federated Mode
 
-A federated account is explicitly created by the platform when a new user signs up on the platform. The platform calls the `createFederatedAccount` RPC with the user's external subject, email, and name. Stigmer does **not** auto-provision accounts during authentication.
+A federated account belongs to one IdentityProvider. Who creates it depends on how that provider provisions accounts:
 
-### Flow
+- **Manual** (neither `auto_provision_accounts` nor `is_sso_provider`): the platform creates each account with the `createFederatedAccount` RPC, giving the user's external subject, email, and name, before the user calls Stigmer.
+- **Just-in-time** (`auto_provision_accounts`) or **SSO** (`is_sso_provider`): Stigmer creates the account on the user's first sign-in, from the token's `email`, `given_name` and `family_name` (or `name`) and `picture` claims, or from the provider's `userinfo_endpoint` when the token carries no email. An SSO provider then grants viewer on its organization; a just-in-time provider grants `auto_grant_role` when `auto_grant_on_org` is set. The profile is not refreshed on later sign-ins; the platform updates it with `updateFederatedAccount`.
+
+The [sign-in flow](../../identityprovider/docs/sign-in-flow.md) shows how each request is verified and its account resolved.
+
+### Manual Flow
 
 ```
 1. Platform backend creates a federated IdentityAccount via createFederatedAccount:
@@ -53,7 +58,7 @@ A federated account is explicitly created by the platform when a new user signs 
    a. Stigmer validates the JWT against the IdentityProvider's JWKS
    b. Stigmer resolves the account by (identity_provider_ref, idp_id)
    c. If found: proceeds with FGA authorization checks
-   d. If NOT found: returns 401 Unauthorized
+   d. If NOT found: returns 401 Unauthorized (manual mode only; see above)
 ```
 
 ### Characteristics
@@ -62,7 +67,7 @@ A federated account is explicitly created by the platform when a new user signs 
 - `idp_id`: raw OIDC sub claim from the external provider (e.g., `google-oauth2|109876543210`)
 - `identity_provider_ref`: points to the owning IdentityProvider resource
 - Uniqueness: the pair `(identity_provider_ref, idp_id)` is unique
-- `email`, `first_name`, `last_name`, `picture_url`: provided by the platform at account creation
+- `email`, `first_name`, `last_name`, `picture_url`: provided by the platform at account creation, or read from the first sign-in's token (or userinfo) when Stigmer creates the account
 - The account **cannot** log in to Stigmer directly — it has no credentials in Stigmer's Auth0
 
 ### `idp_id` for Federated Accounts

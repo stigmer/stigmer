@@ -251,7 +251,7 @@ async function createMcpServer(
     .addStep(newCompleteEndpointAuthStep(endpointAuthDeps(deps)))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -304,7 +304,7 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateDefaultEnabledToolsStep())
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(deps.store, mcpServerSearchExtractor, deps.logger),

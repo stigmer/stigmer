@@ -29,7 +29,7 @@ Pre-update checklist and known pitfalls when working with IdentityAccounts.
 
 `idp_id` is the identity anchor — it is immutable after creation. Attempting to change it will fail.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong — idp_id cannot be changed
 spec:
   idp_id: "auth0|new-subject-id"
@@ -43,15 +43,15 @@ spec:
 
 The `create` RPC is system-level. It is called by federated account creation and bootstrap migrations, not by end users or CLI. Direct invocation without the system machine account context will be rejected.
 
-### Federated Account Must Be Created Before Authentication
+### Federated Account Must Be Created Before Authentication (Manual Mode)
 
-Federated identity accounts must be explicitly created by the platform via the `createFederatedAccount` RPC before the user attempts to authenticate. If a user presents a valid JWT but no account exists for their `(identity_provider_ref, sub)` pair, Stigmer returns 401 Unauthorized.
+When the IdentityProvider provisions accounts manually (neither `auto_provision_accounts` nor `is_sso_provider`), the platform must create each federated account with the `createFederatedAccount` RPC before the user authenticates. If a user presents a valid JWT but no account exists for their `(identity_provider_ref, sub)` pair, Stigmer returns 401 Unauthorized. A just-in-time or SSO provider creates the account on the first sign-in instead.
 
 ### Confusing IdentityAccount ID with IDP ID
 
 The `metadata.id` (e.g., `ia-01HQUSER123`) is Stigmer's internal ID. The `spec.idp_id` (e.g., `auth0|abc123`) is the external provider's identifier. Use `metadata.id` in IamPolicy principal references, not `idp_id`.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong in an IamPolicy — using idp_id as principal ID
 spec:
   principal:
@@ -68,3 +68,7 @@ spec:
 ### Deleting an Account Does Not Revoke Active Tokens
 
 Deleting an IdentityAccount removes it from Stigmer's database and cleans up IAM policies. However, Auth0 tokens issued before deletion may remain valid until they expire. Invalidate Auth0 sessions separately if immediate revocation is required.
+
+### Deleting a Federated Account Does Not Block a Just-In-Time or SSO Sign-In
+
+A just-in-time or SSO IdentityProvider creates an account for any subject it vouches for that has none. After a federated account is deleted, the user's next sign-in with a valid token creates a new account and grants it any role the provider grants automatically. To keep such a user out of the provider's organizations, revoke the account's access and keep the account (`deprovisionFederatedAccount` with `delete_account: false`): an existing account is never granted a role at sign-in, though it can still sign in. Stopping the user at the platform's own sign-in stops them signing in at all.

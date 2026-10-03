@@ -184,7 +184,7 @@ async function createClient(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newGenerateClientCredentialsStep())
     .addStep(newPersistNewClientStep(deps.clients))
     .addStep(
@@ -240,7 +240,7 @@ async function updateClient(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPreserveClientCredentialsStep())
     .addStep(newPersistUpdatedClientStep(deps.clients))
     .build()

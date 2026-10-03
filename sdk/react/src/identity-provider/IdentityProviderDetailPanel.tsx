@@ -289,7 +289,7 @@ export function IdentityProviderDetailPanel({
             value={userinfoEndpoint}
             onChange={setUserinfoEndpoint}
             placeholder="https://example.com/userinfo"
-            hint="Optional — used to fetch user profile data"
+            hint="Optional. Read only when Stigmer creates an account from a token with no email claim"
             disabled={isUpdating}
           />
 
@@ -419,12 +419,6 @@ function ViewMode({
           label="SSO login URL"
           value={ssoLoginUrl}
           hint="Share this URL with your team members to sign in via SSO"
-        />
-      )}
-      {(spec?.rateLimitBudget ?? 0) > 0 && (
-        <Field
-          label="Rate limit"
-          value={`${spec!.rateLimitBudget} req/min`}
         />
       )}
 

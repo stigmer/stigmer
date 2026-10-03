@@ -923,6 +923,77 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(mock.consumed(), "one classifier turn").toBe(1);
     });
 
+    it("[rpc:McpServerCommandController.connect] a member's connect reads the member's own saved credential, never the founder's saved after it", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      const people = await provisionPeople(lane);
+      const mcpTools = requireMcpFixture(target);
+
+      // Both people save the credential the server declares, the founder
+      // LAST: a lookup that took the organization's newest personal
+      // environment would hand the member the founder's. The server
+      // templates the credential into a header, so the fixture shows on
+      // the wire whose value the connect carried.
+      for (const [who, client, value] of [
+        ["member", people.member, "member-credential"],
+        ["founder", people.founder, "founder-credential"],
+      ] as const) {
+        const personal = await client.environmentCommand.create(
+          makePersonalEnvironment({
+            org: people.org,
+            name: uniqueName(`ras-${who}-personal`),
+            data: { RAS_REQUIRED_KEY: { value, isSecret: true } },
+          }),
+        );
+        fixtures.defer(() =>
+          client.environmentCommand.delete({
+            resourceId: personal.metadata!.id,
+          }),
+        );
+      }
+      const input = makeHttpMcpServer({
+        org: people.org,
+        name: uniqueName("ras-credential-header"),
+        url: mcpTools.url(),
+        headers: { "X-Ras-Credential": "${RAS_REQUIRED_KEY}" },
+        env: {
+          RAS_REQUIRED_KEY: {
+            description: "a required credential",
+            isSecret: true,
+          },
+        },
+      });
+      input.metadata = {
+        ...input.metadata,
+        visibility: ApiResourceVisibility.visibility_org,
+      };
+      const server = await people.founder.mcpServerCommand.create(input);
+      fixtures.defer(() =>
+        people.founder.mcpServerCommand.delete({
+          resourceId: server.metadata!.id,
+        }),
+      );
+
+      mcpTools.resetCaptured();
+      mock.enqueue(connectClassifierVerdict(ECHO_TOOL_NAME, false));
+      const connected = await people.member.mcpServerCommand.connect({
+        mcpServerId: server.metadata!.id,
+        org: people.org,
+      });
+      expect(
+        connected.status?.connectStatus?.phase,
+        `the member's connect: ${connected.status?.connectStatus?.failureMessage ?? ""}`,
+      ).toBe(ConnectPhase.succeeded);
+      const carried = mcpTools
+        .capturedRequests()
+        .map((request) => request.headers["x-ras-credential"])
+        .filter((value) => value !== undefined);
+      expect(
+        carried.length,
+        "the discovery reached the fixture",
+      ).toBeGreaterThan(0);
+      expect(new Set(carried)).toEqual(new Set(["member-credential"]));
+    });
+
     it("a member's run with memory on proposes a memory that is the member's: the stdio remember child acts as the run's person, and the operator cannot list it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);

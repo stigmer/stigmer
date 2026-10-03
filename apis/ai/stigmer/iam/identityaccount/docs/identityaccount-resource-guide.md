@@ -41,7 +41,7 @@ status: {}  # System-managed, never set by users
 | Field | Required | Mutable | Description |
 |---|---|---|---|
 | `spec.idp_id` | Yes | No | The external identity provider's subject ID. Globally unique. See [provisioning-modes.md](provisioning-modes.md) for format details per mode. |
-| `spec.email` | No | Yes | Email address. For direct accounts: from the Auth0 sign-up. For federated accounts: provided by the platform when creating the account. Ignored on create — assigned by the backend. |
+| `spec.email` | No | Yes | Email address. For direct accounts: from the Auth0 sign-up. For federated accounts: provided by the platform when creating the account, or read from the first sign-in's token when Stigmer creates it. Ignored on create — assigned by the backend. |
 | `spec.first_name` | No | Yes | First name, used in UI and audit logs. |
 | `spec.last_name` | No | Yes | Last name, used in UI and audit logs. |
 | `spec.picture_url` | No | Yes | URL to the account holder's profile picture. |

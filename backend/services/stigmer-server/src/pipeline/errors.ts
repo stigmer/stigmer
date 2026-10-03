@@ -70,6 +70,16 @@ export function alreadyExistsWithReasonError(
 }
 
 /**
+ * Message-only PermissionDenied, for a refusal a step decides after its
+ * own Authorizer question (the reference rule's writer clause); the
+ * Authorize step and authorizeResolvedResource build theirs from the
+ * annotation's copy.
+ */
+export function permissionDeniedError(message: string): ConnectError {
+  return new ConnectError(message, Code.PermissionDenied);
+}
+
+/**
  * Go FailedPreconditionError — the system is not in a state required for
  * the operation (vs AlreadyExists, which tells the caller to stop). With a
  * reason, the refusal also carries it as an ErrorInfo detail.

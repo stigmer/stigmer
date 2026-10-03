@@ -22,11 +22,7 @@ import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import type {
-  EnvironmentList,
-  EnvironmentSecretValueInputSchema,
-  ListEnvironmentsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import type { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type {
   EnvironmentValue as EnvironmentSpecValue,
   EnvVarDeclaration,
@@ -165,9 +161,6 @@ export const BEST_EFFORT_CONNECT_GET_BUFFER_MS = 15_000;
  * in-process clients (DD-002: full interceptor traversal).
  */
 export interface ConnectEnvironmentReader {
-  list(
-    request: MessageInitShape<typeof ListEnvironmentsRequestSchema>,
-  ): Promise<EnvironmentList>;
   getSecretValue(
     input: MessageInitShape<typeof EnvironmentSecretValueInputSchema>,
   ): Promise<EnvironmentSpecValue>;
@@ -616,6 +609,7 @@ async function createConnectExecutionContext(
         mcpServer,
         executionId,
         callerOrg,
+        caller.identityId,
         envDecls,
       );
     } else if (!bindingRowRequired) {
@@ -666,14 +660,18 @@ async function createConnectExecutionContext(
 /**
  * Resolves a server's declared env for its connect: OAuth-managed
  * variables from the grant's managed environment, the remainder from the
- * caller's personal environment (Go createConnectExecutionContext's
- * resolution half).
+ * connecting person's own personal environment (Go
+ * createConnectExecutionContext's resolution half). `person` is the
+ * connecting caller's identity — the stamp their personal environment
+ * carries — so a member's connect reads their own saved keys, never a
+ * teammate's.
  */
 async function resolveConnectEnvironment(
   deps: McpServerConnectDeps,
   mcpServer: McpServer,
   executionId: string,
   callerOrg: string,
+  person: string,
   envDecls: { [key: string]: EnvVarDeclaration },
 ): Promise<{ [key: string]: ExecutionValue }> {
   const mcpServerId = mcpServer.metadata?.id ?? "";
@@ -691,6 +689,7 @@ async function resolveConnectEnvironment(
     personalVars = await resolveFromPersonalEnvironment(
       deps,
       callerOrg,
+      person,
       remainingDecls,
     );
   }
@@ -803,12 +802,15 @@ async function resolveOAuthVarsFromManagedEnv(
 async function resolveFromPersonalEnvironment(
   deps: McpServerConnectDeps,
   org: string,
+  person: string,
   envDecls: { [key: string]: EnvVarDeclaration },
 ): Promise<{ [key: string]: ExecutionValue }> {
   const resolution = await resolveDeclaredFromPersonalEnvironment(
     deps.environmentReader,
+    deps.store,
     deps.logger,
     org,
+    person,
     envDecls,
   );
   if (resolution.kind === "no-personal-environment") {

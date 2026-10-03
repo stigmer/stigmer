@@ -1,6 +1,6 @@
 # IdentityProvider YAML Schema Reference
 
-Core schema reference for the `iam.stigmer.ai/v1` IdentityProvider resource. For the token exchange flow, see [token-exchange-flow.md](token-exchange-flow.md).
+Core schema reference for the `iam.stigmer.ai/v1` IdentityProvider resource. For how a request carrying a provider's token is verified, see [sign-in-flow.md](sign-in-flow.md).
 
 ## IdentityProvider YAML Structure
 
@@ -18,7 +18,6 @@ spec:
     - "https://planton-prod.us.auth0.com/"
   expected_audience: "https://api.planton.ai/"
   userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
-  rate_limit_budget: 1000
 status: {}  # System-managed, never set by users
 ```
 
@@ -47,10 +46,10 @@ status: {}  # System-managed, never set by users
 |---|---|---|
 | `spec.display_name` | No | Human-readable label for the provider. Shown in UI and audit logs. Max 200 characters. |
 | `spec.jwks_uri` | Yes | HTTPS URL of the JWKS endpoint exposing the signing public keys. Stigmer fetches and caches keys from this URL for JWT signature verification. Must be the `jwks_uri` that every allowed issuer's discovery document names. Max 2048 characters. |
-| `spec.allowed_issuers` | Yes | List of accepted `iss` claim values. Every token from this provider must have its `iss` match one entry. Supports multiple values for key rotation or multi-environment setups, at most 10, each at most 2048 characters. Each issuer must publish an OpenID Connect discovery document whose `issuer` equals it. |
+| `spec.allowed_issuers` | Yes | List of accepted `iss` claim values. Every token from this provider must have its `iss` match one entry. At most 10, each at most 2048 characters. Several values are accepted only when every issuer's discovery document names the same `jwks_uri` (and the same `userinfo_endpoint` when one is set); register one identity provider per environment otherwise. Each issuer must publish an OpenID Connect discovery document whose `issuer` equals it. |
 | `spec.expected_audience` | Yes | Required `aud` claim value. Tokens without this exact audience value are rejected. With the issuer, it identifies this provider across the platform: no two identity providers share an issuer and audience pair. Max 200 characters. |
-| `spec.userinfo_endpoint` | Yes | HTTPS URL of the OIDC UserInfo endpoint. Stigmer calls this on every token exchange with the provider's access token as a Bearer token to retrieve the user's profile. Max 2048 characters. |
-| `spec.rate_limit_budget` | No | Shared rate limit in requests per minute across all organizations managed through this provider. `0` means no limit. Defaults to `0`. |
+| `spec.userinfo_endpoint` | No | HTTPS URL of the OIDC UserInfo endpoint. When Stigmer creates an account from a token that carries no email claim, it calls this endpoint with that token as a Bearer token to read the user's profile; it is not called otherwise. When set, it must be the `userinfo_endpoint` every allowed issuer's discovery document names. Max 2048 characters. |
+| `spec.rate_limit_budget` | No | Accepted and stored, but no server enforces it: it has no effect on sign-in or on request rates. |
 
 ## API Operations
 
@@ -65,7 +64,7 @@ status: {}  # System-managed, never set by users
 | List by organization | `IdentityProviderQueryController.listByOrg` | `can_view` on the organization; the answer holds only the providers the caller may view |
 | SSO discovery | `IdentityProviderQueryController.getSsoProvider` | None: the login page calls it before sign-in, and it answers only the SSO projection (display name, OIDC client ID, issuer, expected audience) |
 
-The organization's admins view, edit and delete its identity providers, and so does each provider's creator; other members of the organization see none of them.
+The organization's admins view, edit and delete its identity providers. An admin can grant a person in the organization view of one provider; other members of the organization see none of them. A provider's creator manages it only while they remain an admin of the organization.
 
 ## CLI Commands
 
@@ -78,8 +77,8 @@ stigmer apply -f idp.yaml
 
 ## Related Documentation
 
-- [README.md](README.md) — Overview and token exchange diagram
-- [token-exchange-flow.md](token-exchange-flow.md) — Detailed token exchange walkthrough and OIDC standards
+- [README.md](README.md) — Overview and sign-in diagram
+- [sign-in-flow.md](sign-in-flow.md) — How a provider's token is verified and its account resolved, and the OIDC standards involved
 - [examples.md](examples.md) — Complete YAML examples
 - [validation-checklist.md](validation-checklist.md) — Pre-create checklist and common pitfalls
 - [../../identityaccount/docs/provisioning-modes.md](../../identityaccount/docs/provisioning-modes.md) — Federated account provisioning details

@@ -136,6 +136,7 @@ export function synthesizeChannelAttachment(
     toolApprovals: [],
     pinnedToolApprovals: [],
     toolApprovalOverrides: [],
+    declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
   };
 

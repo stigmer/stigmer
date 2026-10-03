@@ -55,21 +55,23 @@ flowchart TD
     IdP["Auth provider<br/>(Auth0, Okta, etc.)"]
   end
   subgraph stigmer ["Stigmer"]
-    SIdP["IdentityProvider<br/>(acme-cloud-auth)"]
+    subgraph acmeOrg ["Organization: acme"]
+      SIdP["IdentityProvider<br/>(acme-cloud-auth)"]
+      Accts["Federated accounts<br/>(one per user)"]
+    end
     subgraph tenantA ["Organization: tenant-alpha"]
-      AcctA["Federated accounts"]
       ResA["Agents, Skills, Sessions"]
     end
     subgraph tenantB ["Organization: tenant-beta"]
-      AcctB["Federated accounts"]
       ResB["Agents, Skills, Sessions"]
     end
   end
   Backend -->|"Register once"| SIdP
   Backend -->|"Create per tenant"| tenantA
   Backend -->|"Create per tenant"| tenantB
-  SIdP -.->|"Authenticates"| AcctA
-  SIdP -.->|"Authenticates"| AcctB
+  SIdP -.->|"Authenticates"| Accts
+  Accts -->|"Role per tenant"| tenantA
+  Accts -->|"Role per tenant"| tenantB
 `}
 />
 
@@ -77,9 +79,10 @@ flowchart TD
 
 The Identity Provider is registered once in your platform's Organization. For
 each new customer, your backend creates a platform-managed Organization linked
-to that Identity Provider. Users in different tenant Organizations share the
-same authentication system but have completely separate resources and access
-controls.
+to that Identity Provider. Each user has one federated account, which belongs to
+the Identity Provider; a role on a tenant Organization is what lets that user
+into the tenant. Tenants share the same authentication system but have
+completely separate resources and access controls.
 
 ## Create a platform-managed Organization
 
@@ -265,19 +268,21 @@ looking up their Stigmer Organization. Your platform knows its own tenant ID;
 `getByExternalOrgId` maps it to the Stigmer Organization without requiring you
 to store Stigmer IDs in a separate mapping.
 
-## Provision users per tenant
+## Provision users and place them in tenants
 
-When a user signs up on your platform, provision a federated Identity Account in
-their **tenant's Organization** — not in your platform's Organization. The
-Identity Provider reference stays the same (it's your platform's auth system),
-but the `org` field points to the tenant's Organization.
+When a user signs up on your platform, provision their federated Identity
+Account once, under the Organization that owns your Identity Provider: the `org`
+field must be the Identity Provider reference's own `org`, and Stigmer refuses
+any other value with `INVALID_ARGUMENT`. The account belongs to your Identity
+Provider, not to a tenant. What places the user in a tenant is the role you
+grant on that tenant's Organization in the next step.
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
 const account = await stigmer.identityAccount.createFederatedAccount({
-  org: "tenant-alpha",
+  org: "acme",
   identityProviderRef: {
     org: "acme",
     kind: "identity_provider",
@@ -289,7 +294,7 @@ const account = await stigmer.identityAccount.createFederatedAccount({
   lastName: user.lastName,
 });
 
-console.log(`Provisioned user in tenant-alpha: ${account.metadata.id}`);
+console.log(`Provisioned federated account: ${account.metadata.id}`);
 ```
 
 </Tab>
@@ -297,7 +302,7 @@ console.log(`Provisioned user in tenant-alpha: ${account.metadata.id}`);
 
 ```go
 account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
-  Org: "tenant-alpha",
+  Org: "acme",
   IdentityProviderRef: &stigmer.ResourceRef{
     Org:  "acme",
     Kind: "identity_provider",
@@ -311,7 +316,7 @@ account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.Crea
 if err != nil {
   return fmt.Errorf("provision user: %w", err)
 }
-fmt.Printf("Provisioned user in tenant-alpha: %s\n", account.Metadata.Id)
+fmt.Printf("Provisioned federated account: %s\n", account.Metadata.Id)
 ```
 
 </Tab>
@@ -319,7 +324,7 @@ fmt.Printf("Provisioned user in tenant-alpha: %s\n", account.Metadata.Id)
 
 ```python
 account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
-    org="tenant-alpha",
+    org="acme",
     identity_provider_ref=ResourceRef(
         org="acme",
         kind="identity_provider",
@@ -331,7 +336,7 @@ account = client.identity_accounts.create_federated_account(CreateFederatedAccou
     last_name=user.last_name,
 ))
 
-print(f"Provisioned user in tenant-alpha: {account.metadata.id}")
+print(f"Provisioned federated account: {account.metadata.id}")
 ```
 
 </Tab>
@@ -339,7 +344,7 @@ print(f"Provisioned user in tenant-alpha: {account.metadata.id}")
 
 ```java
 IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-    .org("tenant-alpha")
+    .org("acme")
     .identityProviderRef(ResourceRef.builder()
         .org("acme")
         .kind("identity_provider")
@@ -351,18 +356,19 @@ IdentityAccount account = client.identityAccounts().createFederatedAccount(Creat
     .lastName(user.getLastName())
     .build());
 
-System.out.println("Provisioned user in tenant-alpha: " + account.getMetadata().getId());
+System.out.println("Provisioned federated account: " + account.getMetadata().getId());
 ```
 
 </Tab>
 </SDKTabs>
 
 <Callout type="info">
-  The same `externalSub` (OIDC subject) can exist in multiple tenant
-  Organizations. The uniqueness constraint is **Organization + Identity Provider
-  + external subject**. This means a user who belongs to multiple tenants on
-  your platform can have a separate federated account in each tenant's
-  Organization.
+  A federated account is unique per **Identity Provider + external subject**:
+  each user of your platform has one account, whichever tenants they belong to.
+  A user who joins a second tenant keeps their account; check for it with
+  `getByExternalSub` (see [Provision federated
+  accounts](/docs/guides/authentication/federation/provision-federated-accounts#check-for-an-existing-account))
+  and grant the new tenant's role to it.
 </Callout>
 
 ## Grant access within tenant Organizations
@@ -432,8 +438,9 @@ handles account creation and role grants automatically based on a JWT claim.
 ### How `tenantOrgClaim` works
 
 When you set `tenantOrgClaim` on an Identity Provider, Stigmer reads that claim
-from the JWT at authentication time and uses it to route the user to the correct
-tenant Organization. The resolution algorithm:
+from the JWT when it creates the user's account, at their first sign-in, and
+uses it to place the user in the correct tenant Organization. The resolution
+algorithm:
 
 1. Read the claim value from the JWT (for example, claim `org_id` yields value
    `tenant-123`)
@@ -443,6 +450,13 @@ tenant Organization. The resolution algorithm:
    `autoProvisionAccounts` is `true`)
 4. Grant `autoGrantRole` (default: viewer) on the resolved tenant Organization
    (because `autoGrantOnOrg` is `true`)
+
+<Callout type="warn">
+  Stigmer reads the claim only at the sign-in that creates the account. A
+  returning user is not placed again: if their token names another tenant,
+  Stigmer grants nothing there, so grant that role from your backend with an IAM
+  Policy, as in manual setup.
+</Callout>
 
 <ScenarEmbed
   id="multi-tenant-jit-playback"
@@ -545,27 +559,17 @@ needed.
 
 ### Error handling
 
-If the JWT contains the `tenantOrgClaim` but its value does not match any
-platform-managed Organization's `externalOrgId`, Stigmer rejects the
-authentication request with a descriptive error:
+If, at a user's first sign-in, the JWT does not contain the `tenantOrgClaim`, or
+its value does not match any platform-managed Organization's `externalOrgId`
+under this Identity Provider, Stigmer refuses the sign-in with
+`401 Unauthenticated` and removes the account it began to create. This is a
+fail-closed design: no account remains and no partial access is granted.
 
-{/* vale off */}
-
-> No organization found for `external_org_id` 'tenant-999' under identity
-> provider 'acme/acme-cloud-auth'. Create a platform-managed organization with
-> this `external_org_id` mapped to the identity provider.
-
-{/* vale on */}
-
-This is a fail-closed design. Stigmer does not create the account or grant
-partial access when the tenant cannot be resolved. The error message tells your
-platform exactly what to fix.
-
-<Callout type="warn">
-  If the JWT does not contain the `tenantOrgClaim` at all, the authentication
-  request is also rejected. When `tenantOrgClaim` is configured, every JWT must
-  include that claim.
-</Callout>
+The refusal says that provisioning failed and the account was rolled back; it
+does not name the tenant. When it happens, check that the token carries the
+claim, and that an Organization with that `externalOrgId` exists under this
+Identity Provider. When `tenantOrgClaim` is configured, include the claim in
+every JWT.
 
 ### JIT vs. manual for multi-tenant
 
@@ -584,7 +588,11 @@ carry tenant information.
 
 ## Complete tenant onboarding flow (manual)
 
-Here's the full pattern that runs when a new customer signs up on your platform:
+Here's the full pattern that runs when a new customer signs up on your platform.
+`onboardTenantUser` reuses `provisionUser`, the check-then-create handler from
+[Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts#full-provisioning-handler),
+so a user who joins a second tenant keeps their one account and gains a role in
+the new tenant:
 
 {/* vale off */}
 
@@ -596,7 +604,7 @@ flowchart TD
   B --> C["Store Stigmer org ID alongside tenant ID"]
   C --> D["Customer's first user signs up"]
   D --> E["Look up tenant org by external ID"]
-  E --> F["createFederatedAccount in tenant org"]
+  E --> F["Find or create the user's federated account"]
   F --> G["Grant org role via IAM Policy"]
   G --> H["User calls Stigmer API with JWT"]
 `}
@@ -642,17 +650,11 @@ async function onboardTenantUser(
     externalOrgId: tenantExternalId,
   });
 
-  const account = await stigmer.identityAccount.createFederatedAccount({
-    org: tenantOrg.metadata.slug,
-    identityProviderRef: idpRef,
-    externalSub: user.oidcSubject,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-  });
+  // One account per user, whichever tenants they join.
+  const accountId = await provisionUser(user);
 
   await stigmer.iamPolicy.create({
-    principal: { kind: "identity_account", id: account.metadata.id },
+    principal: { kind: "identity_account", id: accountId },
     resource: { kind: "organization", id: tenantOrg.metadata.id },
     relation: "viewer",
   });
@@ -700,20 +702,14 @@ func onboardTenantUser(ctx context.Context, client *stigmer.Client, tenantExtern
     return fmt.Errorf("lookup tenant org: %w", err)
   }
 
-  account, err := client.IdentityAccount.CreateFederatedAccount(ctx, &stigmer.CreateFederatedAccountInput{
-    Org:                 tenantOrg.Metadata.Slug,
-    IdentityProviderRef: idpRef,
-    ExternalSub:         user.OIDCSubject,
-    Email:               user.Email,
-    FirstName:           user.FirstName,
-    LastName:            user.LastName,
-  })
+  // One account per user, whichever tenants they join.
+  accountID, err := provisionUser(ctx, client, user)
   if err != nil {
     return fmt.Errorf("provision user: %w", err)
   }
 
   _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
-    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: account.Metadata.Id},
+    Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: accountID},
     Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: tenantOrg.Metadata.Id},
     Relation:  "viewer",
   })
@@ -748,17 +744,11 @@ def onboard_tenant_user(client, tenant_external_id: str, user: PlatformUser) -> 
         external_org_id=tenant_external_id,
     ))
 
-    account = client.identity_accounts.create_federated_account(CreateFederatedAccountInput(
-        org=tenant_org.metadata.slug,
-        identity_provider_ref=idp_ref,
-        external_sub=user.oidc_subject,
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-    ))
+    # One account per user, whichever tenants they join.
+    account_id = provision_user(client, user)
 
     client.iam_policies.create(IamPolicySpec(
-        principal=ApiResourceRefInput(kind="identity_account", id=account.metadata.id),
+        principal=ApiResourceRefInput(kind="identity_account", id=account_id),
         resource=ApiResourceRefInput(kind="organization", id=tenant_org.metadata.id),
         relation="viewer",
     ))
@@ -793,17 +783,11 @@ public void onboardTenantUser(StigmerClient client, String tenantExternalId, Pla
         .externalOrgId(tenantExternalId)
         .build());
 
-    IdentityAccount account = client.identityAccounts().createFederatedAccount(CreateFederatedAccountInput.builder()
-        .org(tenantOrg.getMetadata().getSlug())
-        .identityProviderRef(idpRef)
-        .externalSub(user.getOidcSubject())
-        .email(user.getEmail())
-        .firstName(user.getFirstName())
-        .lastName(user.getLastName())
-        .build());
+    // One account per user, whichever tenants they join.
+    String accountId = provisionUser(client, user);
 
     client.iamPolicies().create(IamPolicySpec.builder()
-        .principal(ApiResourceRefInput.builder().kind("identity_account").id(account.getMetadata().getId()).build())
+        .principal(ApiResourceRefInput.builder().kind("identity_account").id(accountId).build())
         .resource(ApiResourceRefInput.builder().kind("organization").id(tenantOrg.getMetadata().getId()).build())
         .relation("viewer")
         .build());

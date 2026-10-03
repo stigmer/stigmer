@@ -47,7 +47,6 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
-import { findResourceByLabelAndOrg } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { destroySecretBackingState } from "../../pipeline/steps/secret-cleanup.js";
@@ -61,6 +60,7 @@ import {
   personalEnvironmentExistsMessage,
   REDACTED_MARKER,
 } from "./constants.js";
+import { personalEnvironmentsOf } from "./personal.js";
 
 /** Context key for the decrypted single-key result — Go SecretValueKey. */
 export const SECRET_VALUE_KEY = "secretValue";
@@ -210,13 +210,15 @@ function hasNonEmptySecret(data: Record<string, EnvironmentValue>): boolean {
 
 /**
  * EnforcePersonalEnvUniqueness — Go enforce_personal_uniqueness.go: at
- * most one personal environment (stigmer.ai/personal=true) per ORG →
- * ALREADY_EXISTS. Non-personal environments are a no-op.
+ * most one personal environment (stigmer.ai/personal=true) per PERSON in
+ * an organization → ALREADY_EXISTS. Non-personal environments are a no-op.
  *
- * Contract note: cloud enforces per (org, owner) — it also scopes by the
- * creating identity. OSS has no caller identity yet (audit created_by is
- * the "system" actor), so per-(org, owner) collapses to per-org here — a
- * faithful specialization of the shared contract, not a divergence.
+ * The person is the creating caller's identity, the stamp the audit step
+ * is about to write on the row (pipeline/steps/defaults.ts
+ * auditActorFor), and the lookup is the one every personal read shares
+ * (personal.ts personalEnvironmentsOf). Per person, not per organization:
+ * a personal environment holds one person's own keys, so a teammate's
+ * must never stand in the way of saving yours.
  *
  * Create-time only, before the resource has an id, so it never matches
  * the in-flight resource against itself; update deliberately omits it.
@@ -240,13 +242,10 @@ export function newEnforcePersonalUniquenessStep(
 
       let existing: Environment | undefined;
       try {
-        existing = await findResourceByLabelAndOrg(
+        [existing] = await personalEnvironmentsOf(
           store,
-          ctx.apiResourceKind,
-          EnvironmentSchema,
-          PERSONAL_LABEL_KEY,
-          PERSONAL_LABEL_VALUE,
           metadata.org,
+          ctx.callerIdentity.identityId,
         );
       } catch (error) {
         throw internalError(

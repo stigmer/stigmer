@@ -426,9 +426,6 @@ function stubBuilderDeps(overrides?: {
         }),
     }),
     environmentReader: () => ({
-      list: async () => {
-        throw new Error("no environments in this test");
-      },
       getSecretValue: async () => {
         throw new Error("no secrets in this test");
       },

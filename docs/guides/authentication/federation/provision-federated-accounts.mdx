@@ -278,8 +278,9 @@ Common `sub` claim formats by provider:
 
 ## Uniqueness constraint
 
-Stigmer enforces a compound uniqueness constraint: **Organization + Identity
-Provider + external subject**. This means:
+Stigmer enforces a compound uniqueness constraint: **Identity Provider +
+external subject** (the Identity Provider named by its Organization and slug).
+This means:
 
 - The same `sub` can exist in different Identity Providers (different auth
   systems have independent subject spaces)
@@ -542,7 +543,8 @@ When a user leaves your platform, revoke their Stigmer access with
   account in the Organization. The account still exists but can't access
   anything. Use this when you might re-enable access later.
 - **Revoke and delete** (`deleteAccount: true`) — Removes IAM Policies **and**
-  deletes the Identity Account. Use this when the user is permanently leaving.
+  deletes the Identity Account. Use this when the user is permanently leaving
+  and can no longer sign in to your auth provider.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -614,10 +616,13 @@ IdentityAccount deprovisioned = client.identityAccounts().deprovisionFederatedAc
 </SDKTabs>
 
 <Callout type="warn">
-  If you revoke-only and the Identity Provider has SSO enabled, the user can
-  sign in again through SSO and regain viewer access automatically. To
-  permanently block an SSO user, use `deleteAccount: true` or disable the
-  Identity Provider.
+  If the Identity Provider has JIT provisioning or SSO enabled, deleting the
+  account does not keep the user out: their next sign-in with a valid token
+  creates a new account and grants it any role the provider grants
+  automatically. To keep such a user out of your Organizations, revoke only
+  (`deleteAccount: false`). Stigmer grants roles only when it creates an
+  account, so a kept account can still sign in but holds no role in them. To
+  stop the user signing in at all, stop them at your auth provider.
 </Callout>
 
 ## What's next

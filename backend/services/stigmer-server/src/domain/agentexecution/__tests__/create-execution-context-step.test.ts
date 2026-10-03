@@ -117,9 +117,6 @@ it("an unresolvable environment ref surfaces the inner status code with Go's wra
         }),
     }),
     environmentReader: () => ({
-      list: async () => {
-        throw new Error("unreached");
-      },
       getSecretValue: async () => {
         throw new Error("unreached");
       },
@@ -265,9 +262,6 @@ it("assembles merge → filter → OAuth injection → EC persist over a non-emp
         }),
     }),
     environmentReader: () => ({
-      list: async () => {
-        throw new Error("personal-env lookup not needed in this test");
-      },
       getSecretValue: async () => {
         throw new Error("personal-env lookup not needed in this test");
       },
@@ -331,32 +325,38 @@ it("assembles merge → filter → OAuth injection → EC persist over a non-emp
 // The one declaration rule: the run declares what its agent declares AND
 // what its session's MCP servers declare, and a session server's declared
 // variables the merge chain never carried (no instance layer can) come
-// from the caller's personal environment by declared key. Two shapes, one
-// rule: an agent-bound run whose session added a server, and the built-in
-// assistant, which is the case with no agent half at all.
+// from the run's person's personal environment by declared key. Two
+// shapes, one rule: an agent-bound run whose session added a server, and
+// the built-in assistant, which is the case with no agent half at all.
+// Whose environment is pinned in personal-environment-reach.test.ts.
 // ---------------------------------------------------------------------------
 
-/** A personal environment reader over a fixed map; every read is recorded. */
-function personalEnvironmentOver(
+/**
+ * Saves `person`'s personal environment holding `data`'s keys and answers
+ * its secret reads from `data`; every read is recorded.
+ */
+async function personalEnvironmentOver(
   org: string,
+  person: string,
   data: Record<string, string>,
   reads: string[],
-): ReturnType<ExecutionContextBuilderDeps["environmentReader"]> {
-  return {
-    list: async () => ({
-      $typeName: "ai.stigmer.agentic.environment.v1.EnvironmentList",
-      totalCount: 1,
-      items: [
-        create(EnvironmentSchema, {
-          metadata: { id: "env_personal", org, slug: "personal" },
-          spec: {
-            data: Object.fromEntries(
-              Object.keys(data).map((key) => [key, { value: "***", isSecret: true }]),
-            ),
-          },
-        }),
-      ],
+): Promise<ReturnType<ExecutionContextBuilderDeps["environmentReader"]>> {
+  const id = `env_personal_${person}`;
+  await store.saveResource(
+    ApiResourceKind.environment,
+    id,
+    EnvironmentSchema,
+    create(EnvironmentSchema, {
+      metadata: { id, org, slug: id, labels: { "stigmer.ai/personal": "true" } },
+      spec: {
+        data: Object.fromEntries(
+          Object.keys(data).map((key) => [key, { value: "ciphertext", isSecret: true }]),
+        ),
+      },
+      status: { audit: { specAudit: { createdBy: { id: person } } } },
     }),
+  );
+  return {
     getSecretValue: async (input) => {
       const key = input.key ?? "";
       reads.push(key);
@@ -391,6 +391,12 @@ it("a session-level server's declared key saved in the personal environment reac
   });
   const reads: string[] = [];
   const createdEcs: ExecutionContext[] = [];
+  const personal = await personalEnvironmentOver(
+    ORG,
+    "acc_rule",
+    { GITHUB_PAT: "ghp-saved", API_KEY: "never-read" },
+    reads,
+  );
   const deps: ExecutionContextBuilderDeps = {
     store,
     logger: silentLogger,
@@ -413,8 +419,7 @@ it("a session-level server's declared key saved in the personal environment reac
           },
         }),
     }),
-    environmentReader: () =>
-      personalEnvironmentOver(ORG, { GITHUB_PAT: "ghp-saved", API_KEY: "never-read" }, reads),
+    environmentReader: () => personal,
     environmentResolution: {
       resolveByReference: async () => {
         throw new Error("no environment refs on this instance");
@@ -438,6 +443,7 @@ it("a session-level server's declared key saved in the personal environment reac
   };
   const execution = create(AgentExecutionSchema, {
     metadata: { id: "aexec_rule", org: ORG },
+    status: { audit: { specAudit: { createdBy: { id: "acc_rule" } } } },
     spec: {
       sessionId: "ses_rule",
       message: "hi",
@@ -481,6 +487,12 @@ it("the built-in assistant: no instance, no agent, the session's servers are the
   );
   const reads: string[] = [];
   const createdEcs: ExecutionContext[] = [];
+  const personal = await personalEnvironmentOver(
+    ORG,
+    "acc_assistant",
+    { NOTES_TOKEN: "nt-saved" },
+    reads,
+  );
   const deps: ExecutionContextBuilderDeps = {
     store,
     logger: silentLogger,
@@ -505,7 +517,7 @@ it("the built-in assistant: no instance, no agent, the session's servers are the
           },
         }),
     }),
-    environmentReader: () => personalEnvironmentOver(ORG, { NOTES_TOKEN: "nt-saved" }, reads),
+    environmentReader: () => personal,
     environmentResolution: {
       resolveByReference: async () => {
         throw new Error("no environment refs without an instance");
@@ -529,6 +541,7 @@ it("the built-in assistant: no instance, no agent, the session's servers are the
   };
   const execution = create(AgentExecutionSchema, {
     metadata: { id: "aexec_assistant", org: ORG },
+    status: { audit: { specAudit: { createdBy: { id: "acc_assistant" } } } },
     spec: {
       sessionId: "ses_assistant",
       message: "hi",
@@ -650,9 +663,6 @@ function platformClientLayerDeps(opts: {
         }),
     }),
     environmentReader: () => ({
-      list: async () => {
-        throw new Error("personal-env lookup not needed in this test");
-      },
       getSecretValue: async () => {
         throw new Error("personal-env lookup not needed in this test");
       },

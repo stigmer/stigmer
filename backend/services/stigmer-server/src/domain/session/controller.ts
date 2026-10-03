@@ -216,7 +216,7 @@ async function createSession(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store));
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer));
   // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4; Q2
   // ruling — see the create doc comment). Empty in OSS.
   for (const step of stepsForSlot<typeof SessionSchema>(

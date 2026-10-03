@@ -79,6 +79,15 @@ export interface ResolvedMcpServer {
    * mergeApprovalPolicies (shared/approval-policy.ts).
    */
   toolApprovalOverrides: ToolApprovalOverride[];
+  /**
+   * Every run value this server claims: the keys its `spec.env` declares
+   * and its OAuth token's target variable. The agent's shell never
+   * receives one (activities/execute-deep-agent/shell-env.ts), even though
+   * agent save copies them into the agent's own `env`. REQUIRED for the
+   * same reason as {@link toolApprovalOverrides}: a synthesized server
+   * declares none and says so.
+   */
+  declaredEnvKeys: readonly string[];
 }
 
 export interface McpResolutionResult {
@@ -114,7 +123,7 @@ export async function resolveMcpServers(
       const serverEnv = filterEnvToDeclaredKeys(
         mcpServer.spec?.env,
         fillPlatformServerAddress(mcpServer, envVars, platformEndpoints),
-        ref.slug,
+        `MCP server '${ref.slug}'`,
       );
       const server = mcpServerToResolved(
         mcpServer,
@@ -148,6 +157,16 @@ export async function resolveMcpServers(
   return { resolvedServers: resolved };
 }
 
+/** The run values a server claims: its declared keys and its OAuth token's target. */
+export function declaredEnvKeysOf(server: McpServer): string[] {
+  const keys = new Set(Object.keys(server.spec?.env ?? {}));
+  const oauthTarget = server.spec?.auth?.targetEnvVar ?? "";
+  if (oauthTarget !== "") {
+    keys.add(oauthTarget);
+  }
+  return [...keys];
+}
+
 export function mcpServerToResolved(
   server: McpServer,
   slug: string,
@@ -176,6 +195,7 @@ export function mcpServerToResolved(
     // Same no-usage rule for layer 3: discovery has no agent context, so no
     // per-agent overrides exist — defaulting to [] keeps that structural.
     toolApprovalOverrides: usageToolApprovalOverrides,
+    declaredEnvKeys: declaredEnvKeysOf(server),
   };
 
   switch (spec.serverType.case) {

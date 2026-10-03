@@ -1672,8 +1672,6 @@ export async function composeServer(
         authorizer,
         engineState: mcpServerEngineState,
         environmentReader: {
-          list: (request) =>
-            requireInProcess().executionEnvironmentReader.list(request),
           getSecretValue: (input) =>
             requireInProcess().executionEnvironmentReader.getSecretValue(input),
         },

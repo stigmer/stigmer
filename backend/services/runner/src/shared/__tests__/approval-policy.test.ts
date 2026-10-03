@@ -105,6 +105,7 @@ function makeServer(
       message: o.message ?? "",
     })) as any[],
     discoveredCapabilitiesEmpty: false,
+    declaredEnvKeys: [],
   };
 }
 

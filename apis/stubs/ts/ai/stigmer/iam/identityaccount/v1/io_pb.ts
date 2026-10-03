@@ -235,7 +235,8 @@ export const ExternalSubLookupSchema: GenMessage<ExternalSubLookup> = /*@__PURE_
  *
  * Called by platform backends (via API key) when a new user signs up on their platform.
  * The platform provides the user's OIDC subject identifier and profile data.
- * The account must be created before the user can authenticate via the IdP.
+ * Under a provider in manual mode the account must exist before the user can
+ * authenticate; a just-in-time or SSO provider creates it on first sign-in.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
  */
@@ -388,11 +389,16 @@ export const UpdateFederatedAccountInputSchema: GenMessage<UpdateFederatedAccoun
  *   - Revoke only (delete_account = false): removes all IAM policies for the
  *     account in the organization and in every organization the identity
  *     provider manages, where its sign-in grants roles too. The identity
- *     account is preserved for audit trail. The user loses access but the
- *     account record remains.
+ *     account is preserved for audit trail. The user can still sign in but
+ *     holds no role in those organizations, and an existing account is never
+ *     granted one at sign-in, so this is the mode that keeps a user of a
+ *     just-in-time or SSO provider out.
  *   - Revoke and delete (delete_account = true): revokes access AND deletes
  *     the identity account. All IAM policies across all organizations are
- *     cleaned up. Use this for permanent offboarding.
+ *     cleaned up. Under a just-in-time or SSO provider, the user's next
+ *     sign-in creates the account again with any role the provider grants
+ *     automatically; use it when the user can no longer sign in to the
+ *     provider.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
  */
@@ -422,7 +428,8 @@ export type DeprovisionFederatedAccountInput = Message<"ai.stigmer.iam.identitya
 
   /**
    * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
-   * When true: revoke access AND permanently delete the identity account.
+   * When true: revoke access AND delete the identity account; a just-in-time or
+   * SSO provider creates a new one at the user's next sign-in.
    *
    * @generated from field: bool delete_account = 4;
    */

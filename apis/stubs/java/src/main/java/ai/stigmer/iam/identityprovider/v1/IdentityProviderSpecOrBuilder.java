@@ -34,7 +34,7 @@ public interface IdentityProviderSpecOrBuilder extends
 
   /**
    * <pre>
-   * JWKS endpoint URL for validating tokens presented during token exchange.
+   * JWKS endpoint URL for validating the tokens this provider's users present.
    * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
    * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
    * from this URL for JWT signature verification.
@@ -52,7 +52,7 @@ public interface IdentityProviderSpecOrBuilder extends
   java.lang.String getJwksUri();
   /**
    * <pre>
-   * JWKS endpoint URL for validating tokens presented during token exchange.
+   * JWKS endpoint URL for validating the tokens this provider's users present.
    * For OIDC-based integrators, this points to the provider's standard JWKS endpoint
    * (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
    * from this URL for JWT signature verification.
@@ -76,7 +76,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
@@ -97,7 +99,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
@@ -117,7 +121,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
@@ -138,7 +144,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * Each JWT's `iss` claim must match one of these values.
    * For Auth0-based integrators, this is the Auth0 tenant URL
    * (e.g., "https://planton-prod.us.auth0.com/").
-   * Supports multiple values for key rotation or multi-environment scenarios.
+   * Several values are accepted only when every issuer's discovery document
+   * names the same jwks_uri (and the same userinfo_endpoint when one is set);
+   * an environment with its own tenant and keys is its own identity provider.
    *
    * Each issuer must publish an OpenID Connect Discovery document whose
    * `issuer` equals it. An issuer and expected_audience together identify
@@ -201,8 +209,9 @@ public interface IdentityProviderSpecOrBuilder extends
 
   /**
    * <pre>
-   * Shared rate limit budget across all organizations managed via this identity provider.
-   * Expressed as requests per minute. 0 means no limit.
+   * A requests-per-minute budget that no server enforces.
+   * The value is accepted and stored, and it has no effect on sign-in or on
+   * request rates.
    * </pre>
    *
    * <code>int32 rate_limit_budget = 5 [json_name = "rateLimitBudget"];</code>
@@ -212,10 +221,11 @@ public interface IdentityProviderSpecOrBuilder extends
 
   /**
    * <pre>
-   * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-   * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-   * to retrieve the user's email, name, and picture for the federated identity account.
-   * Profile data is updated on every token exchange to keep it fresh.
+   * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+   * When Stigmer auto-provisions a federated account from a token that carries
+   * no email claim, it calls this endpoint with that token (as a Bearer token)
+   * to read the user's email, name, and picture. An account that already
+   * exists is not refreshed from it.
    *
    * This is the standard "userinfo_endpoint" metadata field defined in
    * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -233,10 +243,11 @@ public interface IdentityProviderSpecOrBuilder extends
   java.lang.String getUserinfoEndpoint();
   /**
    * <pre>
-   * OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
-   * Stigmer calls this endpoint with the platform's access token (as a Bearer token)
-   * to retrieve the user's email, name, and picture for the federated identity account.
-   * Profile data is updated on every token exchange to keep it fresh.
+   * OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
+   * When Stigmer auto-provisions a federated account from a token that carries
+   * no email claim, it calls this endpoint with that token (as a Bearer token)
+   * to read the user's email, name, and picture. An account that already
+   * exists is not refreshed from it.
    *
    * This is the standard "userinfo_endpoint" metadata field defined in
    * OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
@@ -334,9 +345,9 @@ public interface IdentityProviderSpecOrBuilder extends
    * platforms full control over which of their users can access Stigmer resources.
    *
    * When true, Stigmer creates the IdentityAccount automatically on first
-   * authentication, using profile data from the JWT claims and the
-   * userinfo_endpoint (if configured). Subsequent authentications refresh
-   * the profile data.
+   * authentication, using profile data from the JWT claims, or from the
+   * userinfo_endpoint when the token carries no email claim. Later
+   * authentications do not refresh the profile.
    *
    * This field is independent of is_sso_provider. SSO providers always
    * auto-provision accounts regardless of this setting. For non-SSO identity
@@ -443,17 +454,21 @@ public interface IdentityProviderSpecOrBuilder extends
    * 3. If auto_grant_on_org is true, grant auto_grant_role on the resolved
    * organization instead of the IdP's owning organization.
    *
-   * This enables fully automated multi-tenant provisioning: a platform JWT
-   * with a tenant claim works end-to-end without any backend provisioning
-   * steps. The platform only needs to pre-create the tenant organizations
-   * with their external_org_id mappings.
+   * This automates a new user's placement in a tenant: a platform JWT with a
+   * tenant claim needs no backend provisioning step for the user's first
+   * sign-in. The platform only needs to pre-create the tenant organizations
+   * with their external_org_id mappings. The claim is read only when Stigmer
+   * creates the account; a returning user is not placed again, so a role in
+   * another tenant is granted through an IAM policy.
    *
    * Requires auto_provision_accounts to be true. The claim name is
    * case-sensitive and must match the JWT payload key exactly.
    *
-   * If the JWT does not contain this claim, or the claim value does not
-   * resolve to a known platform-managed organization, the authentication
-   * request is rejected with a descriptive error.
+   * If the JWT at that first sign-in does not contain this claim, or the
+   * claim value does not resolve to a known platform-managed organization,
+   * the sign-in is refused as unauthenticated and no account remains (the one
+   * being created is rolled back). The refusal says that provisioning failed;
+   * it does not name the tenant.
    * </pre>
    *
    * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>
@@ -476,17 +491,21 @@ public interface IdentityProviderSpecOrBuilder extends
    * 3. If auto_grant_on_org is true, grant auto_grant_role on the resolved
    * organization instead of the IdP's owning organization.
    *
-   * This enables fully automated multi-tenant provisioning: a platform JWT
-   * with a tenant claim works end-to-end without any backend provisioning
-   * steps. The platform only needs to pre-create the tenant organizations
-   * with their external_org_id mappings.
+   * This automates a new user's placement in a tenant: a platform JWT with a
+   * tenant claim needs no backend provisioning step for the user's first
+   * sign-in. The platform only needs to pre-create the tenant organizations
+   * with their external_org_id mappings. The claim is read only when Stigmer
+   * creates the account; a returning user is not placed again, so a role in
+   * another tenant is granted through an IAM policy.
    *
    * Requires auto_provision_accounts to be true. The claim name is
    * case-sensitive and must match the JWT payload key exactly.
    *
-   * If the JWT does not contain this claim, or the claim value does not
-   * resolve to a known platform-managed organization, the authentication
-   * request is rejected with a descriptive error.
+   * If the JWT at that first sign-in does not contain this claim, or the
+   * claim value does not resolve to a known platform-managed organization,
+   * the sign-in is refused as unauthenticated and no account remains (the one
+   * being created is rolled back). The refusal says that provisioning failed;
+   * it does not name the tenant.
    * </pre>
    *
    * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>

@@ -95,6 +95,8 @@ async function startServer(env: Record<string, string>): Promise<TestServer> {
     "read-org",
     "vis-org-a",
     "vis-org-b",
+    "vis-org-c",
+    "vis-org-d",
     "list-org",
   ]);
   return {
@@ -115,6 +117,7 @@ function envInput(overrides?: {
   name?: string;
   org?: string;
   labels?: Record<string, string>;
+  visibility?: ApiResourceVisibility;
   data?: Record<string, { value: string; isSecret?: boolean; description?: string }>;
 }) {
   counter += 1;
@@ -125,6 +128,7 @@ function envInput(overrides?: {
       name: overrides?.name ?? `Env ${counter}`,
       org: overrides?.org ?? ORG,
       labels: overrides?.labels ?? {},
+      visibility: overrides?.visibility ?? ApiResourceVisibility.api_resource_visibility_unspecified,
     },
     spec: {
       description: "created by the domain test",
@@ -456,6 +460,48 @@ describe("environment domain (encryption enabled)", () => {
       });
       expect(restored.metadata?.visibility).toBe(
         ApiResourceVisibility.visibility_private,
+      );
+    });
+
+    it("refuses creating a personal environment org-visible, with the same copy as widening one", async () => {
+      // The share restriction holds at every door, not only updateVisibility:
+      // a personal environment created org-visible would be listed to every
+      // member as their own.
+      const error = await grpcError(() =>
+        ts.command.create(
+          envInput({
+            org: "vis-org-c",
+            labels: { "stigmer.ai/personal": "true" },
+            visibility: ApiResourceVisibility.visibility_org,
+          }),
+        ),
+      );
+      expect(error.code).toBe(Code.FailedPrecondition);
+      expect(error.rawMessage).toBe(
+        "personal environments cannot be shared with the organization - " +
+          "create a dedicated environment with only the credentials the agent needs",
+      );
+    });
+
+    it("refuses adding the personal label to an org-visible environment on update", async () => {
+      const created = await ts.command.create(envInput({ org: "vis-org-d" }));
+      const widened = await ts.command.updateVisibility({
+        resourceId: created.metadata?.id ?? "",
+        visibility: ApiResourceVisibility.visibility_org,
+      });
+      const error = await grpcError(() =>
+        ts.command.update({
+          ...widened,
+          metadata: {
+            ...widened.metadata!,
+            labels: { "stigmer.ai/personal": "true" },
+          },
+        }),
+      );
+      expect(error.code).toBe(Code.FailedPrecondition);
+      expect(error.rawMessage).toBe(
+        "personal environments cannot be shared with the organization - " +
+          "create a dedicated environment with only the credentials the agent needs",
       );
     });
 

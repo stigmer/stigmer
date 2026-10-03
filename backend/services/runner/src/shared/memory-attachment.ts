@@ -130,6 +130,7 @@ export function synthesizeMemoryAttachment(
     toolApprovals: [],
     pinnedToolApprovals: [],
     toolApprovalOverrides: [],
+    declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
   };
 

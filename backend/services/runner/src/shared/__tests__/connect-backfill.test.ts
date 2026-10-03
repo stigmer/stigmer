@@ -19,6 +19,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer> = {}): ResolvedMcpServ
     toolApprovals: [],
     pinnedToolApprovals: [],
     toolApprovalOverrides: [],
+    declaredEnvKeys: [],
     discoveredCapabilitiesEmpty: false,
     ...overrides,
   };
@@ -28,6 +29,7 @@ function makeUsage(slug: string, org = "test-org") {
   return {
     mcpServerRef: { slug, org, kind: 0 },
     toolApprovalOverrides: [],
+    declaredEnvKeys: [],
   } as any;
 }
 

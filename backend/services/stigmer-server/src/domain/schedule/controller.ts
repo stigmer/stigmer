@@ -223,7 +223,7 @@ async function createSchedule(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -263,7 +263,7 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistScheduleUpdateStep(deps.store))
     .addStep(newArmScheduleStep(deps.clock, deps.logger))
     .build()

@@ -22,29 +22,29 @@ spec:
   userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
 ```
 
-## Auth0-Based Integration (Multi-Environment)
+## Auth0-Based Integration (Second Environment)
 
-Support tokens from both staging and production Auth0 tenants using the same IdentityProvider.
+A staging Auth0 tenant is its own issuer with its own key set, so it is its own IdentityProvider beside the production one. Stigmer refuses one provider whose issuers' discovery documents name different key sets.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
 kind: IdentityProvider
 metadata:
-  name: Planton (All Environments)
-  slug: planton
+  name: Planton Staging
+  slug: planton-staging
   org: planton
 spec:
-  display_name: "Planton"
-  jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+  display_name: "Planton (staging)"
+  jwks_uri: "https://planton-staging.us.auth0.com/.well-known/jwks.json"
   allowed_issuers:
-    - "https://planton-prod.us.auth0.com/"
     - "https://planton-staging.us.auth0.com/"
   expected_audience: "https://api.planton.ai/"
-  userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
-  rate_limit_budget: 2000
+  userinfo_endpoint: "https://planton-staging.us.auth0.com/userinfo"
 ```
 
-## Integration With Rate Limiting
+## Just-In-Time Provisioning
+
+Let Stigmer create each user's account on their first sign-in instead of creating accounts ahead of time, and grant every new account a role on the owning organization.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
@@ -60,7 +60,9 @@ spec:
     - "https://auth.partner.example.com/"
   expected_audience: "https://stigmer.partner.example.com/"
   userinfo_endpoint: "https://auth.partner.example.com/userinfo"
-  rate_limit_budget: 500
+  auto_provision_accounts: true
+  auto_grant_on_org: true
+  auto_grant_role: member
 ```
 
 ## CLI: Apply (Create or Update)

@@ -212,7 +212,7 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 | `jwksUri`               | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                          |
 | `allowedIssuers`        | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                     |
 | `expectedAudience`      | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                     |
-| `displayName`           | No       | Display name in the UI. Defaults to `name` if omitted                                                                                                                     |
+| `displayName`           | No       | Display name in the console, and on the sign-in button of an SSO provider. The console's provider list and detail show `name` when it is empty                            |
 | `isSsoProvider`         | No       | Set to `true` only when configuring SSO for a self-managed Organization. Defaults to `false`                                                                              |
 | `oidcClientId`          | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`                                                                                        |
 | `autoProvisionAccounts` | No       | When `true`, Stigmer creates a federated account automatically on first authentication. Defaults to `false`                                                               |
@@ -321,12 +321,15 @@ System.out.println("Created JIT-enabled IdP: " + idp.getMetadata().getId());
 With these two fields enabled, the first time a user authenticates with a valid
 JWT, Stigmer:
 
-1. Creates a federated Identity Account using the JWT's `sub` claim and profile
-   data from the `userinfo_endpoint`
+1. Creates a federated Identity Account using the JWT's `sub` claim and its
+   `email`, `given_name` and `family_name` (or `name`) and `picture` claims,
+   reading the `userinfo_endpoint` only when the token carries no email
 2. Grants the **viewer** role on the Identity Provider's owning Organization
 
-On subsequent authentications, Stigmer finds the existing account and refreshes
-the profile data.
+On subsequent authentications, Stigmer finds the existing account and proceeds:
+it does not refresh the profile or grant the role again. To change a user's
+profile, call `updateFederatedAccount` from your backend (see
+[Update a federated account](/docs/guides/authentication/federation/provision-federated-accounts#update-a-federated-account)).
 
 ### Choose the granted role
 

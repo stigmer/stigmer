@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Create a federated identity account for an external platform user.\n\n Called by platform backends (via API key) when a new user signs up on their\n platform. The platform provides the user's OIDC subject identifier and profile\n data. The account must be created before the user can authenticate via the IdP.\n\n Returns the full identity account including its ID, which the platform uses\n to grant roles via IAM policies.\n\n Served by the Enterprise and Cloud editions; the open-source server\n answers UNIMPLEMENTED.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
+          "description": "Create a federated identity account for an external platform user.\n\n Called by platform backends (via API key) when a new user signs up on their\n platform. The platform provides the user's OIDC subject identifier and profile\n data. Under a provider in manual mode the account must exist before the user\n can authenticate; a just-in-time or SSO provider creates it on first sign-in.\n\n Returns the full identity account including its ID, which the platform uses\n to grant roles via IAM policies.\n\n Served by the Enterprise and Cloud editions; the open-source server\n answers UNIMPLEMENTED.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
         },
         {
           "name": "UpdateFederatedAccount",
@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Deprovision a federated identity account by revoking access or deleting it.\n\n Looks up the account by natural key (identity_provider_ref + external_sub).\n When delete_account is false, revokes all IAM policies in the organization.\n When delete_account is true, revokes policies and deletes the account.\n\n Called by platform backends during user offboarding.\n\n Served by the Enterprise and Cloud editions; the open-source server\n answers UNIMPLEMENTED.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
+          "description": "Deprovision a federated identity account by revoking access or deleting it.\n\n Looks up the account by natural key (identity_provider_ref + external_sub).\n When delete_account is false, revokes all IAM policies in the organization.\n When delete_account is true, revokes policies and deletes the account.\n Under a just-in-time or SSO provider, a deleted account is created again at\n the user's next sign-in, with any role the provider grants automatically; a\n revoked account that is kept is never granted a role at sign-in.\n\n Called by platform backends during user offboarding.\n\n Served by the Enterprise and Cloud editions; the open-source server\n answers UNIMPLEMENTED.\n\n Authorization: Requires can_create_identity_account on the organization\n that owns the identity provider."
         },
         {
           "name": "ProvisionMyAccount",
@@ -125,7 +125,7 @@
   "methodTypes": [
     {
       "name": "CreateFederatedAccountInput",
-      "description": "CreateFederatedAccountInput is the command for creating a federated identity account\n linked to an external platform's identity provider.\n\n Called by platform backends (via API key) when a new user signs up on their platform.\n The platform provides the user's OIDC subject identifier and profile data.\n The account must be created before the user can authenticate via the IdP.",
+      "description": "CreateFederatedAccountInput is the command for creating a federated identity account\n linked to an external platform's identity provider.\n\n Called by platform backends (via API key) when a new user signs up on their platform.\n The platform provides the user's OIDC subject identifier and profile data.\n Under a provider in manual mode the account must exist before the user can\n authenticate; a just-in-time or SSO provider creates it on first sign-in.",
       "protoType": "ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput",
       "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
       "fields": [
@@ -301,7 +301,7 @@
     },
     {
       "name": "DeprovisionFederatedAccountInput",
-      "description": "DeprovisionFederatedAccountInput is the command for revoking a federated\n identity account's access, with an option to delete the account entirely.\n\n Called by platform backends when a user is removed from their platform\n (e.g., employee offboarding, account suspension). Uses the natural key\n (identity provider reference + external subject) for lookup.\n\n Two modes:\n   - Revoke only (delete_account = false): removes all IAM policies for the\n     account in the organization and in every organization the identity\n     provider manages, where its sign-in grants roles too. The identity\n     account is preserved for audit trail. The user loses access but the\n     account record remains.\n   - Revoke and delete (delete_account = true): revokes access AND deletes\n     the identity account. All IAM policies across all organizations are\n     cleaned up. Use this for permanent offboarding.",
+      "description": "DeprovisionFederatedAccountInput is the command for revoking a federated\n identity account's access, with an option to delete the account entirely.\n\n Called by platform backends when a user is removed from their platform\n (e.g., employee offboarding, account suspension). Uses the natural key\n (identity provider reference + external subject) for lookup.\n\n Two modes:\n   - Revoke only (delete_account = false): removes all IAM policies for the\n     account in the organization and in every organization the identity\n     provider manages, where its sign-in grants roles too. The identity\n     account is preserved for audit trail. The user can still sign in but\n     holds no role in those organizations, and an existing account is never\n     granted one at sign-in, so this is the mode that keeps a user of a\n     just-in-time or SSO provider out.\n   - Revoke and delete (delete_account = true): revokes access AND deletes\n     the identity account. All IAM policies across all organizations are\n     cleaned up. Under a just-in-time or SSO provider, the user's next\n     sign-in creates the account again with any role the provider grants\n     automatically; use it when the user can no longer sign in to the\n     provider.",
       "protoType": "ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput",
       "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
       "fields": [
@@ -349,7 +349,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "When false (default): revoke the account's access in this organization and the organizations its identity provider manages.\n When true: revoke access AND permanently delete the identity account.",
+          "description": "When false (default): revoke the account's access in this organization and the organizations its identity provider manages.\n When true: revoke access AND delete the identity account; a just-in-time or\n SSO provider creates a new one at the user's next sign-in.",
           "required": false
         }
       ]

@@ -17,9 +17,9 @@ service IdentityProviderCommandController {
   // If the resource exists, updates the existing identity provider.
   //
   // @internal
-  // The authorization and state-operation are determined depending on whether the
-  // identity provider is going to be created or updated, which is determined as
-  // part of the request execution.
+  // Authorization: Requires can_create_idp permission in the organization, for
+  // both outcomes; then the create path or the update path runs with its own
+  // check (can_create_idp to create, can_edit on the provider to update).
   rpc apply(IdentityProvider) returns (IdentityProvider);
 
   // Create an identity provider.

@@ -18,11 +18,11 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 - [ ] `spec.jwks_uri` is reachable from Stigmer's servers (publicly accessible)
 - [ ] `spec.jwks_uri` is the `jwks_uri` that each issuer's OIDC discovery document names
 - [ ] `spec.allowed_issuers` contains at least one entry
-- [ ] Each entry in `spec.allowed_issuers` exactly matches the `iss` claim in tokens from this provider (copy directly from the provider's OIDC discovery document)
+- [ ] Each entry in `spec.allowed_issuers` names the same issuer as the `iss` claim in tokens from this provider, path included (copy it from the provider's OIDC discovery document)
 - [ ] `spec.expected_audience` exactly matches the `aud` claim in tokens (copy directly from the provider's configuration)
 - [ ] `spec.expected_audience` is your organization's own registration at the issuer (an API identifier or client ID), not a value shared with others
-- [ ] `spec.userinfo_endpoint` is an HTTPS URL pointing to the OIDC UserInfo endpoint
-- [ ] `spec.userinfo_endpoint` accepts a Bearer token and returns standard OIDC profile claims
+- [ ] `spec.userinfo_endpoint`, if set, is an HTTPS URL pointing to the OIDC UserInfo endpoint
+- [ ] `spec.userinfo_endpoint`, if set, accepts a Bearer token and returns standard OIDC profile claims
 
 ### Authorization
 
@@ -32,25 +32,25 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 
 ### Mismatched `allowed_issuers`
 
-The `iss` claim in the token must **exactly** match one of the values in `allowed_issuers`. A trailing slash mismatch will cause all token exchanges to fail.
+The `iss` claim in the token must name one of the issuers in `allowed_issuers`. Stigmer compares issuers in canonical form, so a trailing slash, the case of the scheme and host, and a default port make no difference; the path does. An Okta custom authorization server, for one, is an issuer with a path, and the bare domain is a different issuer.
 
-```yaml
-# Wrong — missing trailing slash; Auth0 always includes one
+```yaml no-validate="a wrong and a right value side by side"
+# Wrong — the domain alone; the tokens' iss carries the authorization server's path
 allowed_issuers:
-  - "https://my-tenant.us.auth0.com"
+  - "https://acme.okta.com"
 
-# Correct — matches the exact iss claim from Auth0
+# Correct — the issuer the tokens name
 allowed_issuers:
-  - "https://my-tenant.us.auth0.com/"
+  - "https://acme.okta.com/oauth2/default"
 ```
 
-To find the exact value, check the token's `iss` claim or the Auth0 tenant's OpenID Connect discovery document at `https://{tenant}/.well-known/openid-configuration`.
+To find the value, check the token's `iss` claim or the `issuer` field of the provider's OpenID Connect discovery document (`{issuer}/.well-known/openid-configuration`). The save reads that document, and refuses an issuer whose document names another.
 
 ### Mismatched `expected_audience`
 
 The `aud` claim must exactly match `expected_audience`. This value is the API identifier configured in Auth0, not the Auth0 tenant URL.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong — using the tenant URL as audience
 expected_audience: "https://my-tenant.us.auth0.com/"
 
@@ -70,7 +70,7 @@ Stigmer reads each issuer's discovery document when the identity provider is sav
 
 All endpoints (`jwks_uri`, `userinfo_endpoint`) must use HTTPS. Stigmer rejects plain HTTP endpoints.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong
 jwks_uri: "http://auth.example.com/.well-known/jwks.json"
 
@@ -80,7 +80,7 @@ jwks_uri: "https://auth.example.com/.well-known/jwks.json"
 
 ### Registering a Non-Public JWKS Endpoint
 
-The `jwks_uri` must be reachable from Stigmer's servers. Private network URLs (e.g., `https://internal.example.com/jwks`) will cause all token exchange attempts to fail with a key-fetch error.
+The `jwks_uri` must be reachable from Stigmer's servers. Stigmer fetches the key set when the identity provider is saved and refuses the save with `INVALID_ARGUMENT` when it cannot read it, so a private network URL (e.g., `https://internal.example.com/jwks`) is never stored.
 
 ### Using the Wrong Endpoint for `userinfo_endpoint`
 
@@ -92,8 +92,8 @@ For Auth0, the UserInfo endpoint is always `https://{tenant}.auth0.com/userinfo`
 
 Deleting an IdentityProvider that still has platform-managed organizations referencing it is blocked. Reassign or remove those references before deletion.
 
-If you delete an IdentityProvider while federated accounts exist for it, those accounts remain in the system but can no longer authenticate via token exchange (since the provider configuration is gone).
+Deleting an IdentityProvider also deletes the federated accounts it vouches for, with every role they hold, and its tenant organization mappings. A provider created again under the same slug inherits none of them: nothing the old provider's users held carries over.
 
-### Setting `rate_limit_budget` Too Low
+### Expecting `rate_limit_budget` to Throttle
 
-The rate limit budget is shared across all organizations using the provider. If multiple high-traffic integrations share the same IdentityProvider, a low budget can cause token exchange failures under load. Set to `0` for no limit unless throttling is intentional.
+No server enforces `rate_limit_budget`. A value is accepted and stored, and it has no effect on sign-in or on request rates, so do not rely on it to protect a downstream service.

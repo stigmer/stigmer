@@ -6,7 +6,10 @@
  * - GitHub token injection via HTTPS URL (x-access-token), only for a URL whose
  *   host is github.com itself (isGitHubHttpsUrl)
  * - Token is never logged; sanitized in error messages
- * - GITHUB_TOKEN reported in consumedKeys for env stripping
+ * - GITHUB_TOKEN reported in consumedKeys whenever it serves the clone, on
+ *   the cloning turn and on every reuse: the agent's shell receives it
+ *   (shell-env.ts shellRunValues), because the clone already put it in the
+ *   shell's reach (the remote URL locally, the credential store in cloud)
  * - Multi-entry mode: clones into target_subdir
  * - Credential store configuration for git push/writeback
  * - Every value interpolated into a git command is shell-quoted (shellQuote)
@@ -33,6 +36,9 @@ export interface GitProvisionOptions {
 /** The one host the executing user's GitHub token is ever sent to. */
 const GITHUB_HOST = "github.com";
 
+/** The run value a GitHub clone authenticates with. */
+export const GITHUB_TOKEN_KEY = "GITHUB_TOKEN";
+
 export async function provisionGit(options: GitProvisionOptions): Promise<ProvisionResult> {
   const { url, branch, backend, envVars, isLocalMode, targetSubdir, configureCredentials } = options;
 
@@ -48,13 +54,13 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
     return reuseExistingRepo(cloneDir, url, backend, envVars, configureCredentials, targetSubdir);
   }
 
-  const githubToken = envVars.GITHUB_TOKEN;
+  const githubToken = envVars[GITHUB_TOKEN_KEY];
   const consumedKeys: string[] = [];
   let cloneUrl = url;
 
   if (githubToken && isGitHubHttpsUrl(url)) {
     cloneUrl = injectToken(url, githubToken);
-    consumedKeys.push("GITHUB_TOKEN");
+    consumedKeys.push(GITHUB_TOKEN_KEY);
   }
 
   try {
@@ -114,18 +120,27 @@ async function reuseExistingRepo(
 ): Promise<ProvisionResult> {
   let metadata = await extractGitMetadata(cloneDir, url, backend, targetSubdir);
 
-  const githubToken = envVars.GITHUB_TOKEN;
-  if (configureCredentials && githubToken && isGitHubHttpsUrl(url)) {
-    const configured = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
-    if (configured) {
-      metadata = { ...metadata, gitCredentialsConfigured: true };
+  // The token counts as consumed only where the clone holds it, as on the
+  // cloning turn: the credential store configured here (cloud), or the
+  // origin remote the clone wrote with this very token (local). A clone
+  // made without a token, or a store that failed to configure, holds none.
+  const githubToken = envVars[GITHUB_TOKEN_KEY];
+  let tokenInClone = false;
+  if (githubToken && isGitHubHttpsUrl(url)) {
+    if (configureCredentials) {
+      tokenInClone = await configureGitCredentialStore(backend, cloneDir, url, githubToken);
+      if (tokenInClone) {
+        metadata = { ...metadata, gitCredentialsConfigured: true };
+      }
+    } else {
+      tokenInClone = await originCarries(backend, cloneDir, injectToken(url, githubToken));
     }
   }
 
   return {
     rootDir: cloneDir,
     sourceType: "git_repo",
-    consumedKeys: [],
+    consumedKeys: tokenInClone ? [GITHUB_TOKEN_KEY] : [],
     workspaceDescription: describeClone(url, metadata.branch),
     gitMetadata: metadata,
     entryName: "",
@@ -209,6 +224,19 @@ async function extractGitMetadata(
     baseCommit: headSha,
     gitCredentialsConfigured: false,
   };
+}
+
+/** Whether the clone's origin remote is exactly `remoteUrl`; a failed read is "no". */
+async function originCarries(
+  backend: WorkspaceBackend,
+  cloneDir: string,
+  remoteUrl: string,
+): Promise<boolean> {
+  try {
+    return (await backend.execute("git remote get-url origin", { cwd: cloneDir })).trim() === remoteUrl;
+  } catch {
+    return false;
+  }
 }
 
 /**

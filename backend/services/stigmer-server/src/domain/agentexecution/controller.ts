@@ -371,7 +371,7 @@ async function createExecution(
     .addStep(newRecordRunnerLineageLabelsStep(deps.runnerCredentialProvider))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newEnsureEngineAvailableStep(deps.engineState));
   // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4): after
   // every pure validation/resolution step, before the first side-effecting
@@ -493,7 +493,7 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newValidateSessionImmutabilityStep())
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(

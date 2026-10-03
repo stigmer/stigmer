@@ -10,8 +10,9 @@
  * BuildNewState/BuildUpdateState, before Persist.
  *
  * ValidateReferences runs directly after it and asks `checkReference` for
- * every reference the walk finds. The rule has three clauses, in the
- * order they are asked:
+ * every reference the walk finds, then the writer clause of (ii) for the
+ * ones that clear it. The rule has three clauses, in the order they are
+ * asked:
  *
  *   (i)  A reference with no organization is refused. After the normalize
  *        step the only way an org is still empty is a resource that has
@@ -25,11 +26,36 @@
  *        What a person can run they must also be able to read: an
  *        org-visible agent over a private MCP server would run for every
  *        member and be readable by one. Environments, OAuth apps and
- *        channel apps are resolved by the server on the run's behalf and
- *        never read by the person, so their level is not a leak the floor
- *        closes, and an org-visible instance may hold a private personal
- *        environment as it always has. A RELATIVE reference (below) is
- *        compared against the resource's level capped at org.
+ *        channel apps are resolved by the server on the run's behalf, so
+ *        their level is not a leak the floor closes, and an org-visible
+ *        instance may hold its owner's private environment: attaching it
+ *        is the owner's choice to let that instance's runs use it. A
+ *        RELATIVE reference (below) is compared against the resource's
+ *        level capped at org.
+ *
+ *        The WRITER clause, for the kinds whose row says what the writer
+ *        must hold (`writerMust`): a same-organization reference the write
+ *        INTRODUCES — one the stored row does not already carry — must
+ *        name a target the writer holds that permission on, asked of the
+ *        edition's Authorizer. Environments carry it with `can_view`: the
+ *        server resolves an environment for the run, and the run is a
+ *        person with a shell, so attaching a teammate's private
+ *        environment by name would hand its values to the attacher. A
+ *        refusal is PERMISSION_DENIED with its own sentence, the answer
+ *        the read by reference already gives that writer. Judging only
+ *        what a write introduces is the reserved-label guard's echo rule
+ *        (guard-reserved-labels.ts): an edit that keeps an attachment
+ *        someone else made passes. The server acting as itself (the
+ *        `internal` class) is exempt, as at every authorization step.
+ *        Two limits hold until access to an environment is its own
+ *        permission: `can_view` is held by every member on an org-visible
+ *        environment and by an explicit viewer grantee on a private one,
+ *        and each of them may attach it; and an editor who keeps an
+ *        attachment someone else made may change what consumes it (an
+ *        `agent_call` task's agent, a schedule's agent), since who may edit
+ *        the row is that kind's own permission. Grant view on an
+ *        environment, and edit on a row that carries one, as you would its
+ *        values.
  *   (iii) Another organization: the target must exist AND be
  *        platform-visible, answered with ONE sentence that does not say
  *        which failed. The caller has no standing to learn what another
@@ -99,6 +125,7 @@
 import type { DescField, DescMessage, Message } from "@bufbuild/protobuf";
 import { fromBinary, getOption, hasOption } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
+import type { ConnectError } from "@connectrpc/connect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -111,15 +138,21 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
 import type { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
 import {
   failedPreconditionError,
   internalError,
   invalidArgumentError,
+  permissionDeniedError,
 } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
+import { evaluateAuthorizer } from "./authorize.js";
+import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { messageFieldByName, metadataOf } from "./shapes.js";
 
 const API_RESOURCE_REFERENCE_TYPE =
@@ -139,6 +172,12 @@ export interface ReferenceTargetKind {
   readonly label: string;
   /** The CLI command a refusal points at, or undefined where the CLI has no verb for the kind. */
   readonly listHint: string | undefined;
+  /**
+   * What a writer must hold on a target their write introduces (the
+   * writer clause of the module header), or undefined for a kind judged by
+   * existence and the floor alone.
+   */
+  readonly writerMust: IamPermission | undefined;
 }
 
 export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
@@ -148,6 +187,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: true,
     label: "skill(s)",
     listHint: "stigmer list skills",
+    writerMust: undefined,
   },
   {
     kind: ApiResourceKind.mcp_server,
@@ -155,6 +195,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: true,
     label: "MCP server(s)",
     listHint: "stigmer get mcp-servers",
+    writerMust: undefined,
   },
   {
     kind: ApiResourceKind.agent,
@@ -162,6 +203,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: true,
     label: "agent(s)",
     listHint: "stigmer list agents",
+    writerMust: undefined,
   },
   {
     kind: ApiResourceKind.environment,
@@ -169,6 +211,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: false,
     label: "environment(s)",
     listHint: "stigmer list environments",
+    writerMust: IamPermission.can_view,
   },
   {
     kind: ApiResourceKind.channel_app,
@@ -176,6 +219,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: false,
     label: "channel app(s)",
     listHint: "stigmer list channel-app",
+    writerMust: undefined,
   },
   {
     kind: ApiResourceKind.oauth_app,
@@ -183,6 +227,7 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: false,
     label: "OAuth app(s)",
     listHint: undefined,
+    writerMust: undefined,
   },
 ];
 
@@ -229,11 +274,20 @@ export type ReferenceVerdict =
       readonly targetVisibility: ApiResourceVisibility;
     }
   /** Clause (iii): the other-organization target is missing or not platform-visible — one answer. */
-  | { readonly kind: "not-available" };
+  | { readonly kind: "not-available" }
+  /** The writer clause: the writer does not hold the kind's `writerMust` on the target. */
+  | { readonly kind: "not-viewable" };
 
-/** The visibility of every referenced row the rule may need, one scan per kind (the module header). */
+/** The visibility and id of every referenced row the rule may need, one scan per kind (the module header). */
 export interface ReferenceTargets {
   visibilityOf(ref: SpecReference): ApiResourceVisibility | undefined;
+  idOf(ref: SpecReference): string | undefined;
+}
+
+/** One indexed target: what the floor reads and what the writer clause asks about. */
+interface IndexedTarget {
+  readonly visibility: ApiResourceVisibility;
+  readonly id: string;
 }
 
 /**
@@ -247,7 +301,7 @@ export async function loadReferenceTargets(
   store: Store,
   refs: ReadonlyArray<SpecReference>,
 ): Promise<ReferenceTargets> {
-  const byKind = new Map<ApiResourceKind, Map<string, ApiResourceVisibility>>();
+  const byKind = new Map<ApiResourceKind, Map<string, IndexedTarget>>();
   for (const kind of new Set(refs.map((ref) => ref.kind))) {
     const entry = referenceTargetKind(kind);
     if (entry === undefined) {
@@ -258,7 +312,7 @@ export async function loadReferenceTargets(
         "reference rule table has no entry for the referenced kind",
       );
     }
-    const index = new Map<string, ApiResourceVisibility>();
+    const index = new Map<string, IndexedTarget>();
     for (const data of await store.listResources(kind)) {
       let metadata;
       try {
@@ -269,13 +323,20 @@ export async function loadReferenceTargets(
       if (metadata === undefined || metadata.slug === "") {
         continue;
       }
-      index.set(targetKey(metadata.org, metadata.slug), metadata.visibility);
+      index.set(targetKey(metadata.org, metadata.slug), {
+        visibility: metadata.visibility,
+        id: metadata.id,
+      });
     }
     byKind.set(kind, index);
   }
   return {
     visibilityOf(ref) {
-      return byKind.get(ref.kind)?.get(targetKey(ref.org, ref.slug));
+      return byKind.get(ref.kind)?.get(targetKey(ref.org, ref.slug))
+        ?.visibility;
+    },
+    idOf(ref) {
+      return byKind.get(ref.kind)?.get(targetKey(ref.org, ref.slug))?.id;
     },
   };
 }
@@ -310,6 +371,66 @@ export function checkReference(
     return { kind: "below-floor", targetVisibility: target };
   }
   return { kind: "ok" };
+}
+
+/** The writer a write's references are judged for (the module header's writer clause). */
+export interface ReferenceWriter {
+  readonly authorizer: Authorizer;
+  readonly caller: CallerIdentity;
+  /** The references the stored row already carries; empty on a create. */
+  readonly stored: ReadonlyArray<SpecReference>;
+}
+
+/**
+ * The writer clause for one reference that cleared the three clauses:
+ * `ok` unless its kind names a `writerMust`, the reference is the write's
+ * own (same organization, not already on the stored row), the writer is
+ * not the server itself, and the Authorizer does not admit the writer. A
+ * target the Authorizer cannot find has left since the scan and is the
+ * `missing` verdict; an evaluation failure is thrown as an infrastructure
+ * fault, never answered as a refusal or an admission.
+ */
+export async function checkWriter(
+  targets: ReferenceTargets,
+  parent: ReferenceParent,
+  ref: SpecReference,
+  writer: ReferenceWriter,
+): Promise<ReferenceVerdict> {
+  const permission = referenceTargetKind(ref.kind)?.writerMust;
+  if (
+    permission === undefined ||
+    ref.org !== parent.org ||
+    writer.caller.callerClass === "internal" ||
+    writer.stored.some((held) => sameReference(held, ref))
+  ) {
+    return { kind: "ok" };
+  }
+  // The three clauses admitted a same-organization target only if the scan
+  // found it, so its id is known; a row that left since then is the
+  // Authorizer's not-found, read as missing below.
+  const resourceId = targets.idOf(ref) ?? "";
+  const decision = await evaluateAuthorizer(writer.authorizer, writer.caller, {
+    permission,
+    resourceKind: ref.kind,
+    resourceId,
+  });
+  if (decision.kind === "allow") {
+    return { kind: "ok" };
+  }
+  if (decision.kind === "deny") {
+    return { kind: "not-viewable" };
+  }
+  if (decision.kind === "not-found") {
+    return { kind: "missing" };
+  }
+  throw internalError(
+    decision.cause,
+    "failed to authorize a referenced resource",
+  );
+}
+
+function sameReference(a: SpecReference, b: SpecReference): boolean {
+  return a.kind === b.kind && a.org === b.org && a.slug === b.slug;
 }
 
 /**
@@ -409,6 +530,19 @@ export function notAvailableReferenceMessage(
   return `referenced ${singular(entry)} '${ref.org}/${ref.slug}' is not available to this organization; another organization's resource can be referenced only when that organization shares it at platform visibility.`;
 }
 
+/** The writer clause's sentence: the target, and what the writer may attach instead. */
+export function notViewableReferenceMessage(
+  entry: ReferenceTargetKind,
+  ref: SpecReference,
+): string {
+  return `referenced ${singular(entry)} '${ref.org}/${ref.slug}' is not one you can view; attach ${article(entry)} ${singular(entry)} you own or one shared with the organization.`;
+}
+
+/** The indefinite article before the kind's singular label. */
+function article(entry: ReferenceTargetKind): string {
+  return /^[aeiou]/i.test(singular(entry)) ? "an" : "a";
+}
+
 /** "MCP server(s)" → "MCP server" and "MCP servers": the label's two readings. */
 function singular(entry: ReferenceTargetKind): string {
   return entry.label.replace("(s)", "");
@@ -423,9 +557,11 @@ function plural(entry: ReferenceTargetKind): string {
  * Missing same-organization targets are grouped per kind into one sentence
  * (the contract's shape); every other refusal is its own sentence; the
  * sentences are joined in the order the references were read. A no-org
- * reference is malformed input (INVALID_ARGUMENT); everything else is a
- * precondition the store does not meet (FAILED_PRECONDITION), the code the
- * MCP-server contract already answers.
+ * reference is malformed input (INVALID_ARGUMENT); a target the writer may
+ * not attach is PERMISSION_DENIED (the writer clause); everything else is
+ * a precondition the store does not meet (FAILED_PRECONDITION), the code
+ * the MCP-server contract already answers. The first that applies, in
+ * that order, is the code of the whole refusal.
  */
 export function referenceRefusal(
   parent: ReferenceParent,
@@ -433,7 +569,7 @@ export function referenceRefusal(
     readonly ref: SpecReference;
     readonly verdict: ReferenceVerdict;
   }>,
-): ReturnType<typeof failedPreconditionError> | undefined {
+): ConnectError | undefined {
   // Missing same-organization targets, grouped per kind in the order the
   // first of each kind was read.
   const missingByKind = new Map<ApiResourceKind, SpecReference[]>();
@@ -450,6 +586,7 @@ export function referenceRefusal(
   const sentences: string[] = [];
   const groupedKindsSaid = new Set<ApiResourceKind>();
   let malformed = false;
+  let notPermitted = false;
   for (const { ref, verdict } of verdicts) {
     const entry = referenceTargetKind(ref.kind);
     if (entry === undefined) {
@@ -483,6 +620,10 @@ export function referenceRefusal(
       case "not-available":
         sentences.push(notAvailableReferenceMessage(entry, ref));
         break;
+      case "not-viewable":
+        notPermitted = true;
+        sentences.push(notViewableReferenceMessage(entry, ref));
+        break;
       default: {
         const exhaustive: never = verdict;
         throw new Error(`unknown verdict: ${JSON.stringify(exhaustive)}`);
@@ -493,7 +634,12 @@ export function referenceRefusal(
     return undefined;
   }
   const text = sentences.join(" ");
-  return malformed ? invalidArgumentError(text) : failedPreconditionError(text);
+  if (malformed) {
+    return invalidArgumentError(text);
+  }
+  return notPermitted
+    ? permissionDeniedError(text)
+    : failedPreconditionError(text);
 }
 
 // ---------------------------------------------------------------------------
@@ -528,8 +674,15 @@ export function newNormalizeReferencesStep<
   };
 }
 
+/**
+ * ValidateReferences: every reference the spec carries, judged for the
+ * request's caller against the stored row (EXISTING_RESOURCE_KEY on an
+ * update; none on a create) — the module header's clauses and its writer
+ * clause.
+ */
 export function newValidateReferencesStep<Desc extends DescMessage>(
   store: Store,
+  authorizer: Authorizer,
 ): PipelineStep<Desc> {
   return {
     name: "ValidateReferences",
@@ -551,7 +704,15 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
         org: metadata.org,
         visibility: metadata.visibility,
       };
-      const refusal = await checkReferences(store, parent, refs);
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
+      const refusal = await checkReferences(store, parent, refs, {
+        authorizer,
+        caller: ctx.callerIdentity,
+        stored:
+          existing === undefined
+            ? []
+            : collectSpecReferences(ctx.schema, existing),
+      });
       if (refusal !== undefined) {
         throw refusal;
       }
@@ -559,17 +720,30 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
   };
 }
 
-/** The rule over a collected list: load once, check each, render the refusal. */
+/**
+ * The rule over a collected list for one writer: load once, check each
+ * against the three clauses and then the writer clause, render the
+ * refusal.
+ */
 export async function checkReferences(
   store: Store,
   parent: ReferenceParent,
   refs: ReadonlyArray<SpecReference>,
+  writer: ReferenceWriter,
 ): Promise<ReturnType<typeof referenceRefusal>> {
   const targets = await loadReferenceTargets(store, refs);
-  return referenceRefusal(
-    parent,
-    refs.map((ref) => ({ ref, verdict: checkReference(targets, parent, ref) })),
-  );
+  const verdicts: Array<{ ref: SpecReference; verdict: ReferenceVerdict }> = [];
+  for (const ref of refs) {
+    const verdict = checkReference(targets, parent, ref);
+    verdicts.push({
+      ref,
+      verdict:
+        verdict.kind === "ok"
+          ? await checkWriter(targets, parent, ref, writer)
+          : verdict,
+    });
+  }
+  return referenceRefusal(parent, verdicts);
 }
 
 /** The references a stored row carries, for the escalation door; a chain passes one collector per place its row keeps them. */

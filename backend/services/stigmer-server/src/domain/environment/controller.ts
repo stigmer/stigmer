@@ -204,6 +204,7 @@ async function createEnvironment(
     .addStep(newEnforcePersonalUniquenessStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newGuardShareRestrictedStateStep())
     .addStep(newPreserveRedactedSecretsStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
@@ -246,10 +247,11 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newGuardShareRestrictedStateStep())
     .addStep(newPreserveRedactedSecretsStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newDestroyDroppedEnvironmentSecretsStep(deps.secretService, deps.logger),
@@ -466,6 +468,35 @@ function newValidateEnvironmentShareRestrictionStep(): PipelineStep<UpdateVisibi
       }
       const env = ctx.get(UPDATE_VISIBILITY_ENVIRONMENT_KEY) as Environment;
       const reason = shareRestrictionReason(env.metadata);
+      if (reason !== "") {
+        throw failedPreconditionError(reason);
+      }
+    },
+  };
+}
+
+/**
+ * The same restriction over the row about to persist, on the create and
+ * update chains: a personal or OAuth-managed environment is never
+ * org-visible, whichever door it comes through. A create may name the
+ * level, and an update may add the personal label to a row already shared
+ * (update keeps the stored level, BuildUpdateState), so both are judged on
+ * the state itself rather than on a transition. Together with
+ * ValidateEnvironmentShareRestriction above, every write enforces one
+ * invariant in one sentence (redact.ts shareRestrictionReason): a member's
+ * personal environments are their own, never listed to the organization.
+ */
+function newGuardShareRestrictedStateStep(): PipelineStep<
+  typeof EnvironmentSchema
+> {
+  return {
+    name: "GuardShareRestrictedState",
+    execute(ctx: RequestContext<typeof EnvironmentSchema>): void {
+      const metadata = ctx.newState.metadata;
+      if (metadata?.visibility !== ApiResourceVisibility.visibility_org) {
+        return;
+      }
+      const reason = shareRestrictionReason(metadata);
       if (reason !== "") {
         throw failedPreconditionError(reason);
       }
