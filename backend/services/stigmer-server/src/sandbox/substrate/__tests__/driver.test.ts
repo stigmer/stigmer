@@ -27,10 +27,10 @@
  *     before the call from a fresh read and thaws when the sweep says it is
  *     no longer idle afterwards, a guarded suspend asks before; `maintain`
  *     repeats a stuck delete, makes an awake sandbox's egress current once
- *     per process, moves only a sleeping sandbox off an older template, then
- *     retires, skipping a sandbox whose upkeep fails and stopping before
- *     retirement when asked; `prepare` readies the template and never
- *     rejects.
+ *     per process for a sandbox still awake, moves only a sleeping sandbox
+ *     off an older template, then retires, skipping a sandbox whose upkeep fails and stopping before
+ *     retirement when asked; `deleteByName` deletes only a name this driver
+ *     gives; `prepare` readies the template and never rejects.
  */
 import { describe, expect, it } from "vitest";
 
@@ -931,6 +931,38 @@ describe("the lifecycle a composition's own sweep calls", () => {
     sleeping.state = ActorState.RUNNING;
     expect((await h.driver.lifecycle.maintain(listed)).moved).toBe(0);
     expect(h.substrate.calls).not.toContain(`moveActor ${ACTOR}`);
+  });
+
+  it("makes egress current only for a sandbox still awake when its turn in the queue comes", async () => {
+    const h = harness();
+    const awake = h.substrate.put({
+      name: ACTOR,
+      state: ActorState.PAUSED,
+      template: "t",
+    });
+    const listed = await h.driver.lifecycle.list();
+    awake.state = ActorState.SUSPENDED;
+    expect((await h.driver.lifecycle.maintain(listed)).egressReconciled).toBe(
+      0,
+    );
+    expect(h.substrate.calls).not.toContain(`ensureEgressPolicy ${ACTOR}`);
+  });
+
+  it("deletes a sandbox known only by its name, and refuses a name it never gives", async () => {
+    const h = harness();
+    h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
+    await h.driver.lifecycle.deleteByName(ACTOR);
+    expect(h.substrate.actors.has(ACTOR)).toBe(false);
+    await h.driver.lifecycle.deleteByName(ACTOR);
+    h.substrate.put({
+      name: "golden-t",
+      state: ActorState.RUNNING,
+      template: "t",
+    });
+    await expect(h.driver.lifecycle.deleteByName("golden-t")).rejects.toThrow(
+      /not a sandbox this driver names/,
+    );
+    expect(h.substrate.actors.has("golden-t")).toBe(true);
   });
 
   it("skips a sandbox whose upkeep fails, and stops before retiring when asked", async () => {

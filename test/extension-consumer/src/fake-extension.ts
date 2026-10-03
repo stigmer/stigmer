@@ -971,6 +971,9 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
       await lifecycle.list(),
     );
     void upkeep.retired;
+    for (const orphan of await lifecycle.list()) {
+      await lifecycle.deleteByName(orphan.name);
+    }
   };
   void sweep;
   const pauseBound: number = SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS;

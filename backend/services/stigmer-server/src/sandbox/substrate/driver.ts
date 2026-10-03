@@ -178,7 +178,7 @@ export type SubstrateSleepOutcome = "done" | "skipped" | "thawed";
 export interface SubstrateMaintenance {
   /** Sandboxes left DELETING by a delete that failed part-way, deleted again. */
   readonly redeleted: number;
-  /** Awake sandboxes whose egress policy this process made its configuration's. */
+  /** Awake sandboxes whose egress policy this pass made this configuration's. */
   readonly egressReconciled: number;
   /** Sleeping sandboxes moved to the current template. */
   readonly moved: number;
@@ -211,6 +211,13 @@ export interface SubstrateSandboxLifecycle {
     env: SandboxEnvironment,
   ): Promise<void>;
   delete(scope: SandboxScope, id: string): Promise<void>;
+  /**
+   * Deletes a sandbox known only by its listed name (list()): a
+   * composition's orphan, whose owner is gone, so its scope and id are
+   * not to hand. Refuses a name this driver never gives (a template's own
+   * actor).
+   */
+  deleteByName(name: string): Promise<void>;
   /**
    * A push with no lifecycle call: hands a running sandbox a fresh token
    * for its next restart, for a composition that renews tokens. A sandbox
@@ -283,6 +290,9 @@ export interface SubstrateDriverOptions {
   readonly now?: () => number;
   readonly sleep?: (ms: number) => Promise<void>;
 }
+
+/** Every sandbox this driver names starts so (naming.ts's sandboxBaseName). */
+const SANDBOX_NAME_PREFIX = "sbx-";
 
 /** The most state transitions one ensure walks before it gives up. */
 const MAX_TRANSITIONS = 8;
@@ -644,12 +654,17 @@ export function newSubstrateSandboxDriverOverGateway(
 
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
     const name = sandboxBaseName(scope, id);
+    await deleteNamed(name);
+    logger.info("Substrate sandbox deleted", { scope, id, actor: name });
+  }
+
+  /** Deletes the actor `name` and forgets what this process knew of it. */
+  async function deleteNamed(name: string): Promise<void> {
     await serialize(name, () => gateway.deleteActor(name));
     ensuredAt.delete(name);
     sessionByActor.delete(name);
     egressReconciled.delete(name);
     startedHere.delete(name);
-    logger.info("Substrate sandbox deleted", { scope, id, actor: name });
   }
 
   const provisioner: SandboxProvisioner = {
@@ -707,6 +722,15 @@ export function newSubstrateSandboxDriverOverGateway(
     },
     resume: (scope, id, env) => ensure(scope, id, env),
     delete: (scope, id) => deprovision(scope, id),
+    async deleteByName(name) {
+      if (!name.startsWith(SANDBOX_NAME_PREFIX)) {
+        throw new Error(
+          `${name} is not a sandbox this driver names (${SANDBOX_NAME_PREFIX}*); refusing to delete it`,
+        );
+      }
+      await deleteNamed(name);
+      logger.info("Substrate sandbox deleted by name", { actor: name });
+    },
     reattach: (scope, id, env) => {
       assertQueue(scope, id, env.taskQueue);
       const name = sandboxBaseName(scope, id);
@@ -764,10 +788,22 @@ export function newSubstrateSandboxDriverOverGateway(
               // Any scope: a sandbox awake since before this process started
               // gets this configuration's egress rules now, not at its next
               // wake (module header).
-              if (!egressReconciled.has(actor.name)) {
-                await serialize(actor.name, () => reconcileEgress(actor.name));
+              // Re-read in the queue: an ensure may have reconciled it, or
+              // the sweep put it to sleep, since the listing was taken.
+              if (
+                await serialize(actor.name, async () => {
+                  if (egressReconciled.has(actor.name)) return false;
+                  const fresh = await gateway.getActor(actor.name);
+                  if (
+                    fresh?.state !== ActorState.RUNNING &&
+                    fresh?.state !== ActorState.PAUSED
+                  )
+                    return false;
+                  await reconcileEgress(actor.name);
+                  return true;
+                })
+              )
                 reconciled += 1;
-              }
               break;
             default:
               break;
@@ -855,8 +891,8 @@ const STATE_WORDS: Record<ActorState, SubstrateSandboxState> = {
   [ActorState.REVERTING]: "reverting",
 };
 
-/** An actor as a composition sees it (the lifecycle's listing and guards, the sweep). */
-export function summaryOf(actor: SubstrateActorView): SubstrateActorSummary {
+/** An actor as a composition sees it (the lifecycle's listing and its guards). */
+function summaryOf(actor: SubstrateActorView): SubstrateActorSummary {
   return {
     name: actor.name,
     state: STATE_WORDS[actor.state] ?? "unknown",

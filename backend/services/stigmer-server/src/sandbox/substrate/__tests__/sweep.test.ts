@@ -213,12 +213,14 @@ describe("the ladder", () => {
         });
     };
     await h.pass();
-    // The pass's upkeep (the egress policy, once per process) runs after
-    // the ladder, over the same listing.
+    // The pass's upkeep (the egress policy, once per process, for a
+    // sandbox still awake when read again) runs after the ladder, over the
+    // same listing.
     expect(h.substrate.calls.filter((c) => c.endsWith(name))).toEqual([
       `getActor ${name}`,
       `pauseActor ${name}`,
       `resumeActor ${name}`,
+      `getActor ${name}`,
       `ensureEgressPolicy ${name}`,
     ]);
     expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);
