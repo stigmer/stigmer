@@ -398,32 +398,28 @@ export async function checkWriter(
   ) {
     return { kind: "ok" };
   }
-  const resourceId = targets.idOf(ref);
-  if (resourceId === undefined) {
-    return { kind: "missing" };
-  }
+  // The three clauses admitted a same-organization target only if the scan
+  // found it, so its id is known; a row that left since then is the
+  // Authorizer's not-found, read as missing below.
+  const resourceId = targets.idOf(ref) ?? "";
   const decision = await evaluateAuthorizer(writer.authorizer, writer.caller, {
     permission,
     resourceKind: ref.kind,
     resourceId,
   });
-  switch (decision.kind) {
-    case "allow":
-      return { kind: "ok" };
-    case "deny":
-      return { kind: "not-viewable" };
-    case "not-found":
-      return { kind: "missing" };
-    case "unavailable":
-      throw internalError(
-        decision.cause,
-        "failed to authorize a referenced resource",
-      );
-    default: {
-      const exhaustive: never = decision;
-      throw new Error(`unknown decision: ${JSON.stringify(exhaustive)}`);
-    }
+  if (decision.kind === "allow") {
+    return { kind: "ok" };
   }
+  if (decision.kind === "deny") {
+    return { kind: "not-viewable" };
+  }
+  if (decision.kind === "not-found") {
+    return { kind: "missing" };
+  }
+  throw internalError(
+    decision.cause,
+    "failed to authorize a referenced resource",
+  );
 }
 
 function sameReference(a: SpecReference, b: SpecReference): boolean {

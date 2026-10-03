@@ -109,7 +109,11 @@ const ANAS = personalEnvironment("env_ana", ANA, 2_000, {
   GITHUB_TOKEN: "ghp-ana",
   NOTES_TOKEN: "nt-ana",
 });
-const ENVIRONMENTS = [ANAS, BENS];
+// Carol saved one too, holding her notes token and no GitHub token.
+const CAROLS = personalEnvironment("env_carol", "acc_carol", 1_500, {
+  NOTES_TOKEN: "nt-carol",
+});
+const ENVIRONMENTS = [ANAS, BENS, CAROLS];
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-personal-reach-"));
@@ -151,9 +155,10 @@ interface Reads {
 function depsFor(
   reads: Reads,
   createdEcs: ExecutionContext[],
+  storeFor: Store,
 ): ExecutionContextBuilderDeps {
   return {
-    store,
+    store: storeFor,
     logger: silentLogger,
     agentLoader: () => ({
       get: async () =>
@@ -236,14 +241,17 @@ function executionBy(
   });
 }
 
-async function build(execution: AgentExecution): Promise<{
+async function build(
+  execution: AgentExecution,
+  storeFor: Store = store,
+): Promise<{
   readonly data: NonNullable<ExecutionContext["spec"]>["data"];
   readonly reads: Reads;
 }> {
   const reads: Reads = { environments: [] };
   const createdEcs: ExecutionContext[] = [];
   await buildAndPersistExecutionContext(
-    depsFor(reads, createdEcs),
+    depsFor(reads, createdEcs, storeFor),
     execution,
     "",
   );
@@ -281,6 +289,39 @@ describe("whose personal environment a run reads", () => {
   it("a run whose creator holds no personal environment reads none (a visitor's, a channel's)", async () => {
     const { data, reads } = await build(
       executionBy("aexec_lane", "acc_guest_lane"),
+    );
+    expect(data["GITHUB_TOKEN"]).toBeUndefined();
+    expect(data["NOTES_TOKEN"]).toBeUndefined();
+    expect(reads.environments).toEqual([]);
+  });
+
+  it("a person whose personal environment lacks a key gets only what it holds", async () => {
+    const { data, reads } = await build(
+      executionBy("aexec_carol", "acc_carol"),
+    );
+    expect(data["GITHUB_TOKEN"]).toBeUndefined();
+    expect(data["NOTES_TOKEN"]?.value).toBe("nt-carol");
+    expect(reads.environments).toEqual(["env_carol"]);
+  });
+
+  it("a store fault scanning personal environments leaves the run without them, never failing it", async () => {
+    // Only the environment scan fails; the session's server still loads.
+    const failingScan = new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === "listResources") {
+          return async (kind: ApiResourceKind) => {
+            if (kind === ApiResourceKind.environment) {
+              throw new Error("store offline");
+            }
+            return target.listResources(kind);
+          };
+        }
+        return Reflect.get(target, property, receiver) as unknown;
+      },
+    });
+    const { data, reads } = await build(
+      executionBy("aexec_fault", BEN),
+      failingScan,
     );
     expect(data["GITHUB_TOKEN"]).toBeUndefined();
     expect(data["NOTES_TOKEN"]).toBeUndefined();

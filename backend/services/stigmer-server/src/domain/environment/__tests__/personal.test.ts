@@ -16,7 +16,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -178,6 +178,18 @@ describe("personalEnvironmentsOf", () => {
 
   it("never answers a teammate's row, whoever saved last", async () => {
     const ids = (await personalEnvironmentsOf(store, ORG, ANA)).map(
+      (e) => e.metadata?.id,
+    );
+    expect(ids).toEqual(["env_ana"]);
+  });
+
+  it("skips a row that does not decode, as every scan does", async () => {
+    const rows = [
+      new Uint8Array([0x0f]),
+      toBinary(EnvironmentSchema, ROWS[0]!),
+    ];
+    const scanning = { listResources: async () => rows } as unknown as Store;
+    const ids = (await personalEnvironmentsOf(scanning, ORG, ANA)).map(
       (e) => e.metadata?.id,
     );
     expect(ids).toEqual(["env_ana"]);

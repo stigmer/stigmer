@@ -784,6 +784,7 @@ describe("the writer clause: a write may introduce only an environment its write
       ["env_ana_keys", "ana-keys", V.visibility_private],
       ["env_team_keys", "team-keys", V.visibility_org],
       ["env_flaky", "flaky", V.visibility_private],
+      ["env_left", "left", V.visibility_private],
     ] as const) {
       await store.saveResource(
         K.environment,
@@ -811,6 +812,9 @@ describe("the writer clause: a write may introduce only an environment its write
         checks.push(`${caller.identityId}:${IamPermission[check.permission]}:${check.resourceId}`);
         if (check.resourceId === "env_flaky") {
           return { kind: "unavailable", cause: new Error("authorization store offline") };
+        }
+        if (check.resourceId === "env_left") {
+          return { kind: "not-found" };
         }
         if (check.resourceId === "env_ana_keys" && caller.identityId !== "acc_ana") {
           return { kind: "deny", reason: "not a viewer" };
@@ -916,6 +920,14 @@ describe("the writer clause: a write may introduce only an environment its write
   it("an unavailable authorizer is an internal fault, never a refusal or an admission", async () => {
     const error = await write({ writer: "acc_ben", names: ["flaky"] });
     expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
+  it("a target the Authorizer no longer finds (it left since the scan) answers the missing copy", async () => {
+    const error = await write({ writer: "acc_ben", names: ["left"] });
+    expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((error as ConnectError).rawMessage).toBe(
+      missingReferencesMessage(referenceTargetKind(K.environment)!, [{ slug: "left", org: "acme" }]),
+    );
   });
 
   it("a malformed reference beside a refused one still answers INVALID_ARGUMENT first", async () => {
