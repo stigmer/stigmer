@@ -3,7 +3,8 @@
  *
  * Every beat is prop-driven: the created key arrives through
  * `ApiKeyCreatedAlert`'s props, and the editor/terminal beats render pure
- * `@scenar/react` shells. The router registers no fixture (the fixture-determinism rule, demos/README.md:
+ * `@scenar/react` shells. The router registers no fixture (the
+ * fixture-determinism rule, demos/README.md:
  * fixtures only for data a component fetches — and nothing here
  * fetches at all; `ApiKeyCreatedAlert` is pure local state).
  *

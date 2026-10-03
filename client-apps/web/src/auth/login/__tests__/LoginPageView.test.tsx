@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // LoginPageView — shaped by the edition's tiers, not by a guess
 //
-// /login is the signed-out landing. Its shape follows the codebase's one mechanism for "what does
+// /login is the signed-out landing. Its shape follows the codebase's one
+// mechanism for "what does
 // this edition serve": the SSO organization prompt renders only where
 // `identity_provider` is available (tier enterprise, so Enterprise and
 // Cloud); everywhere else the page is the logo and one "Sign in" button —

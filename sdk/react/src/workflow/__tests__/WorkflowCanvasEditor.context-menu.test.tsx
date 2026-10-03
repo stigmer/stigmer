@@ -155,7 +155,8 @@ describe("WorkflowCanvasEditor — context menus and the task picker", () => {
     // The menu hands off to the picker.
     expect(await screen.findByRole("dialog", { name: "Select task type" })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: /^Add task after/ })).toBeNull();
-    // The picker can list a kind twice (a suggestion and its category); either picks it.
+    // The picker can list a kind twice (a suggestion and its category); either
+    // picks it.
     fireEvent.click((await screen.findAllByRole("option", { name: /LLM Call/ }))[0]!);
 
     await waitFor(() => expect(nodeNames()).toHaveLength(before.length + 1));

@@ -28,7 +28,8 @@ describe("library deep-link pages", () => {
   // /library/<type>/<org>/<slug> for every resource type it knows. A cold
   // load of that URL — reload, bookmark, shared link — is served from the
   // static export, which only contains routes with a page file. A type
-  // navigable in-app but missing its page file ships a 404 (workflows was navigable for months with no deep-link page).
+  // navigable in-app but missing its page file ships a 404 (workflows was
+  // navigable for months with no deep-link page).
   for (const resourceType of LIBRARY_RESOURCE_TYPES) {
     it(`${resourceType} has a deep-link detail page`, () => {
       const pageFile = join(

@@ -26,7 +26,8 @@ import "./fonts/fonts.css";
 // The COMPILED stylesheet — since #454 the workspace export
 // `@stigmer/react/styles.css` points at the same dist artifact npm consumers
 // receive (the export used to point at the uncompiled Tailwind source, which
-// `scenar pack` cannot process — it deliberately does not run Tailwind). `npm run build:css -w @stigmer/react` produces it
+// `scenar pack` cannot process — it deliberately does not run Tailwind).
+// `npm run build:css -w @stigmer/react` produces it
 // (pack-all runs that automatically).
 import "@stigmer/react/styles.css";
 

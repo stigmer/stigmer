@@ -406,7 +406,8 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     }
   }, []);
 
-  // One-time cleanup of the abandoned unversioned key (an effect, not the read path —
+  // One-time cleanup of the abandoned unversioned key (an effect, not
+  // the read path —
   // reads must stay side-effect-free).
   useEffect(() => {
     try {

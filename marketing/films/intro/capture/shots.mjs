@@ -1,5 +1,6 @@
 /**
- * The shot registry — the film's shot list as executable capture drives. One entry per
+ * The shot registry — the film's shot list as executable capture
+ * drives. One entry per
  * shot id; `node capture.mjs <id...>` records them.
  *
  * Notes against the shot list:
@@ -153,7 +154,8 @@ export const SHOTS = {
   /**
    * S4d — the payoff beat: Meridian's own React app with the assistant
    * integrated through @stigmer/react (the React component, not the
-   * iframe widget — richer UX, and the whole film stays local). A before/after story: the page with NO assistant,
+   * iframe widget — richer UX, and the whole film stays local). A
+   * before/after story: the page with NO assistant,
    * then the panel appears (the composition cuts the JSX snippet graphic
    * between the two), then a real traveler question answered on camera
    * against the live local stack.

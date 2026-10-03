@@ -5,7 +5,8 @@
 // anything else — so "cloud" for every self-host) and corrects itself when
 // getServerInfo answers. Anything rendered on the first frame is rendered
 // on the guess. The hook says which it is returning, so a surface that
-// must not show the wrong shape (the login page) can wait for `resolved` instead of branching on the
+// must not show the wrong shape (the login page) can wait for `resolved`
+// instead of branching on the
 // guess. A server that cannot answer (an older server without the RPC, or
 // no server at all) resolves to the guess: the fallback is the best answer
 // there is, and a skeleton that never lifts would be worse than a guess.

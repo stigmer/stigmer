@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * CLI E2E smoke (born as the TypeScript server's cutover gate): `stigmer up` → apply →
+ * CLI E2E smoke (born as the TypeScript server's cutover gate): `stigmer
+ * up` → apply →
  * run → stream → `stigmer down`, against an ISOLATED home, proving the
  * daemon launches the packaged server end-to-end. Nothing else exercises
  * `stigmer up` whole — the e2e suites boot the server entry directly,

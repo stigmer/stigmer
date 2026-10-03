@@ -3,7 +3,8 @@
 // must pin the thread exactly once — default-ON, opt-out via
 // `scrollOnSend={false}` (a deliberate exception to opt-in defaults). The
 // REAL scroll mechanics (pin + follow re-engagement under real layout) are
-// pinned in `internal/__tests__/useAutoScroll.layout.browser.test.tsx`; this file pins the
+// pinned in `internal/__tests__/useAutoScroll.layout.browser.test.tsx`;
+// this file pins the
 // surface's signal derivation through a spied `jumpToLatest`, with the real
 // `usePinToLatestOnSignal` connecting them.
 

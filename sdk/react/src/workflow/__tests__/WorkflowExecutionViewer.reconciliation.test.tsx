@@ -43,7 +43,8 @@ vi.mock("../useWorkflowExecutionActions", () => ({
 }));
 
 // The graph is React Flow — replaced with a memoized stub whose render
-// counter is the referential-stability probe: if the viewer hands the graph a fresh prop
+// counter is the referential-stability probe: if the viewer hands the
+// graph a fresh prop
 // identity on panel interactions (e.g. an inline handler), the memo stops
 // bailing and the counter catches it. The graph is a passive
 // visualization — the stub records its props so the suite can assert no
