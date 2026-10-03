@@ -1,7 +1,7 @@
 /**
  * OAuth token-endpoint client — ports pkg/domain/mcpserver/oauth/token.go
- * whole: the pre-flight refresh (#17) and the authorization-code exchange
- * (#19). Proven by mcpserver-oauth.conformance.test.ts and the Class B
+ * whole: the pre-flight refresh and the authorization-code exchange.
+ * Proven by mcpserver-oauth.conformance.test.ts and the Class B
  * mcpserver-connect suite.
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";

@@ -35,7 +35,7 @@ import "buf/validate/validate.proto";
 //
 // Artifacts are created by the runner when task
 // outputs exceed the auto-promotion threshold or when the workflow author
-// explicitly declares an artifact (Phase 1).
+// explicitly declares an artifact.
 //
 // The content blob is stored externally (local filesystem in OSS, S3 in Cloud).
 // The Artifact resource holds metadata and a content hash that references

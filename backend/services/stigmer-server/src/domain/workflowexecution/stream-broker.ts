@@ -19,8 +19,8 @@
  * domain. Consolidating into a shared `StreamBroker<T>` is a possible
  * cleanup.
  *
- * ONE instance serves both routers (serving + in-process): #21's Temporal
- * activities will update status through the in-process client, and those
+ * ONE instance serves both routers (serving + in-process): the Temporal
+ * activities update status through the in-process client, and those
  * broadcasts must reach externally-connected subscribers — the same
  * reason Go exposes GetStreamBroker. The composition root owns the
  * instance.

@@ -1,6 +1,6 @@
 /**
  * AgentExecution search extractor — ports pkg/query/search/extractor/
- * agent_execution_extractor.go (both sides: the #4 index side, the #14
+ * agent_execution_extractor.go (both sides: the index side, the
  * query side). Agent executions are individual invocation records with no
  * description field. Go's GetSearchSummary returns metadata.name, but BOTH
  * projections deliberately ignore it: ToSearchResult pins Description ""

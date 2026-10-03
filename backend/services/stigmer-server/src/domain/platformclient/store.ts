@@ -37,8 +37,8 @@
  *   - `findByOrg` answers every client of the organization and no other,
  *     in no promised order (the chain sorts);
  *   - a typed not-found reads as `undefined`; any other storage failure
- *     propagates as the infrastructure fault it is (the ratified
- *     store-fault mapping — an outage must never read as "no client", which
+ *     propagates as the infrastructure fault it is (the store-fault
+ *     mapping — an outage must never read as "no client", which
  *     on the verifier's path would revoke every live token).
  */
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";

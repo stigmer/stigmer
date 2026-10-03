@@ -5,14 +5,14 @@
  *
  * resolveExecutionTarget is the SINGLE definition of the
  * UNSPECIFIED-resolution rule (oss#397) — dispatch (the agentexecution
- * domain, #17/#18) and policy enforcement (the session update pipeline's
+ * domain) and policy enforcement (the session update pipeline's
  * execution-target immutability step) must both use it rather than
  * re-deriving the default, so they can never disagree about where an
  * execution runs. Mirrors the cloud edition's
  * AgentExecutionTemporalConfig.resolveExecutionTarget.
  *
- * This module is the first resident of the agentexecution domain directory
- * (the domain itself is a later sub-project); the tree corresponds to Go's,
+ * This module was the first resident of the agentexecution domain
+ * directory; the tree corresponds to Go's,
  * same precedent as src/domain/mcpserver/enabledtools/.
  */
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -92,8 +92,7 @@ export class AgentExecutionTemporalConfig {
 /**
  * Builds the config from environment variables with Go NewConfig's
  * defaults. Env-derived strings only — no Temporal connection is made
- * here (the temporal seam stays empty until the execution cluster
- * sub-projects land).
+ * here (the TemporalManager owns the connection).
  */
 export function newConfigFromEnv(): AgentExecutionTemporalConfig {
   return new AgentExecutionTemporalConfig(

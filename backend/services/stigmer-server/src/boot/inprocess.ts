@@ -9,7 +9,7 @@
  * position-1 identity source: this chain stamps the
  * `internal` caller class only it can mint, where the serving chain runs
  * the verifier chassis over the wire's credentials. Chain traversal proven
- * by spike SP-B (src/pipeline/__tests__/router-transport.test.ts): every
+ * by src/pipeline/__tests__/router-transport.test.ts: every
  * interceptor runs, in registration order, and a chain rejection
  * short-circuits with a ConnectError the in-process caller sees.
  *
@@ -104,8 +104,8 @@ export interface InProcessClients {
   /**
    * Reads for the EC builder plus the full managed-environment lifecycle
    * (ManagedEnvironmentClient): the secret rewrite the OAuth pre-flight
-   * refresh needs (#17) and the create/delete edges the connect/OAuth
-   * slice mints and tears managed environments with (#19) — one surface,
+   * refresh needs and the create/delete edges the connect/OAuth
+   * slice mints and tears managed environments with — one surface,
    * every call through the full chain.
    */
   readonly executionEnvironmentReader: EnvironmentReader &

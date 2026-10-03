@@ -3,7 +3,8 @@
  * through the REAL stack: a composed server on an ephemeral port, a
  * native gRPC client, the full interceptor chain. Executions cannot be
  * created through the RPC surface here (the engine gate refuses without
- * Temporal — exactly the production posture until #21), so records are
+ * Temporal — the production posture while no engine is connected), so
+ * records are
  * seeded directly through the store, the same way Go's controller tests
  * seed with SaveResource.
  *

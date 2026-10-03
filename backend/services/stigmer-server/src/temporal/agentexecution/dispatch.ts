@@ -11,7 +11,7 @@
  * The `wfexec:{id}` override lane: a parent workflow execution passes its
  * OWN queue so child agents share its sandbox. This domain honors the
  * override as an opaque string (the prefix constant belongs to
- * workflowexecution, #21) and forces ExecutionTarget LOCAL to suppress
+ * workflowexecution) and forces ExecutionTarget LOCAL to suppress
  * sandbox provisioning — exactly Go's contract.
  *
  * Proven by the agentexecution suites on local-execution and by the

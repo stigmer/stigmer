@@ -14,7 +14,7 @@
  *      owning user (the runner's credential lane — the runner
  *      presents exactly such a key via STIGMER_TOKEN);
  *   4. deleting the key revokes it on the very next request;
- *   5. garbage credentials keep the Q6 unclaimed-token rejection;
+ *   5. garbage credentials keep the unclaimed-token rejection;
  *   6. the identity-account arms: an unprovisioned subject is
  *      idp-shaped (whoAmI NOT_FOUND, writes stamped with the raw sub);
  *      provisionMyAccount creates the account under the derived id with
@@ -264,7 +264,7 @@ describe("the require-authentication posture on the wire", () => {
     expect(response.status).toBe(HealthCheckResponse_ServingStatus.SERVING);
   });
 
-  it("a garbage bearer keeps the Q6 unclaimed-token rejection", async () => {
+  it("a garbage bearer keeps the unclaimed-token rejection", async () => {
     const query = createClient(
       ApiKeyQueryController,
       transportWith("not-a-credential"),

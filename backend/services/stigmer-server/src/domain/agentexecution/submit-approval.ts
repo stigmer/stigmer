@@ -19,7 +19,7 @@
  *
  * The approvalGateResolved signal fires ONLY when the unified HITL gate
  * fully clears — no pending approval AND no change set awaiting review.
- * With the engine disconnected (pre-#18) the signal is skipped with a
+ * With the engine disconnected the signal is skipped with a
  * WARN and the decision still persists (Go's nil-creator arm).
  */
 import { create } from "@bufbuild/protobuf";
@@ -331,7 +331,7 @@ export async function submitApproval(
         const engine = deps.engineState();
         if (!engine.connected) {
           // Go's nil-creator arm: the decision persists; the signal is
-          // skipped until #18 connects an engine.
+          // skipped while no engine is connected.
           deps.logger.warn(
             "Workflow creator not available - skipping Temporal signal",
           );

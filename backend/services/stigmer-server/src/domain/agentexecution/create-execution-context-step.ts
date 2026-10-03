@@ -1321,7 +1321,7 @@ async function injectMcpOAuthFromManagedEnvironment(
  * the access token is expired; undefined when the refresh token is
  * unavailable (Go inlineRefreshIfExpired). No client_secret resolution on
  * this path — DCR/public clients work without it, and vendor OAuth's
- * connect pre-flight (#19) owns the OAuthApp lookup; no secret means no
+ * connect pre-flight owns the OAuthApp lookup; no secret means no
  * token-endpoint auth method either.
  */
 async function inlineRefreshIfExpired(

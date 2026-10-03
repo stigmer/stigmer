@@ -1,7 +1,7 @@
 /**
  * Pins the platform domain against Go's platform_controller_test.go +
  * get_runner_scoped_token_test.go — through the real stack (composed
- * server, native gRPC client, full interceptor chain; the #15 pattern),
+ * server, native gRPC client, full interceptor chain),
  * plus a keyless-service arm on an in-process router.
  *
  * The load-bearing pins the conformance suite deliberately does NOT cover

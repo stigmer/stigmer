@@ -11,7 +11,7 @@
  *
  * resolveWorkflowExecutionTarget is the single definition of the
  * UNSPECIFIED-resolution rule for WORKFLOW executions (Go
- * resolveWorkflowExecutionTarget) — dispatch resolution (#21's engine)
+ * resolveWorkflowExecutionTarget) — dispatch resolution (the engine)
  * is its one consumer today; a future policy consumer must use it rather
  * than re-derive the default, the same one-definition discipline the
  * agentexecution config records (oss#397).

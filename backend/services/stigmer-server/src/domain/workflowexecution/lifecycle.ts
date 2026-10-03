@@ -5,11 +5,11 @@
  * over one shared step vocabulary.
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
- * disconnected (pre-#21) the signal/cancel/terminate steps refuse
+ * disconnected the signal/cancel/terminate steps refuse
  * FailedPrecondition("Temporal is not available") and recover's
  * fresh-start refuses the creator-specific variant — Go's nil-client
- * arms, asserted by the Class B conformance suites once #21 wires the
- * engine. With a connected engine, workflow-not-found is warn-and-proceed
+ * arms, asserted by the Class B conformance suites. With a connected
+ * engine, workflow-not-found is warn-and-proceed
  * (the local state update still applies; the workflow may simply have
  * completed).
  *

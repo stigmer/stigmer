@@ -15,9 +15,9 @@
  * workflow types from export names, so no explicit registration option
  * exists or is needed.
  *
- * Workflow source: runtime bundling from the compiled entry (ratified
- * brief #7 — the operative mode until #24 ships prebuilt bundles; the
- * prebuilt sibling is the hook it fills).
+ * Workflow source: runtime bundling from the compiled entry in a tsc
+ * build, and the prebuilt bundle in a slim artifact (see
+ * workflow-source.ts).
  */
 import type { Logger } from "../../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/agentexecution/temporal/config.js";

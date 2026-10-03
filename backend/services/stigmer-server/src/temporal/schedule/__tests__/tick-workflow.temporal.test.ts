@@ -19,8 +19,7 @@
  *
  * Follows the invoke-workflow precedent: TestWorkflowEnvironment
  * .createLocal (needs the `temporal` CLI on PATH); every test skips
- * VISIBLY when the local test server cannot start — never a vacuous green
- * (the #18 panel lesson).
+ * VISIBLY when the local test server cannot start — never a vacuous green.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 

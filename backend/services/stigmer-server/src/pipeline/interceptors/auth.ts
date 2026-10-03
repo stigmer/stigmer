@@ -56,7 +56,7 @@
  *     tokenless Health/Check; without this arm the posture crash-loops the
  *     pod, stigmer#974). Extension-only verifier sets that declare
  *     nothing keep the fall-to-trusted-local arm: strictness against
- *     PRESENTED tokens is a function of verifier count (Q6); strictness
+ *     PRESENTED tokens is a function of verifier count; strictness
  *     against ABSENT tokens is the composition's explicit ask.
  *
  * # Trusted-local identity (the explicit modeled state)
@@ -295,7 +295,7 @@ export function createVerifierChainInterceptor(
       requireAuthentication &&
       !isAuthenticationExempt(request.method)
     ) {
-      // Rulings Q1+Q2: the auth-enabled posture requires a credential on
+      // The auth-enabled posture requires a credential on
       // every non-exempt method — the Java interceptor's exact behavior
       // and copy. is_public methods and the health service stay reachable
       // tokenless (the Java isPublic and by-name skips), so the console's
@@ -427,7 +427,7 @@ export function createInProcessCallerInterceptor(): Interceptor {
  * mapping, any other throw is an infrastructure fault (INTERNAL — a JWKS
  * outage must never read as a credential rejection). `undefined` means no
  * verifier claimed the token — the CALLER decides what that means
- * (the serving interceptor applies the Q6 strictness contract above).
+ * (the serving interceptor applies the strictness contract above).
  *
  * Exported (stigmer#991) so a composition's extension-owned HTTP lanes —
  * edges that are not Connect requests and so never pass through

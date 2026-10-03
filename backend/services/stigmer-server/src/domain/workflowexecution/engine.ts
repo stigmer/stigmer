@@ -45,7 +45,7 @@ import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
  * InvokeWorkflowExecutionWorkflowInput): only orchestration coordinates —
  * the slim-input doctrine keeps secrets out of Temporal history (they were
  * already consumed into the ExecutionContext). executionTarget feeds
- * #21's dispatch resolution ("global" → stigmer_runner, "execution" →
+ * the engine's dispatch resolution ("global" → stigmer_runner, "execution" →
  * wfexec:{id}); the cloud-only CallbackToken/InvokerIdentityAccountID
  * fields have no OSS producer and are not modeled.
  */
@@ -61,7 +61,7 @@ export interface StartWorkflowExecutionInput {
 
 /**
  * The engine operations this controller consumes once Temporal is wired.
- * Implemented by #21; empty by design until then — see the module header.
+ * Implemented by temporal/workflowexecution/engine-client.ts.
  */
 export interface ConnectedWorkflowExecutionEngine {
   /**
@@ -112,7 +112,7 @@ export interface ConnectedWorkflowExecutionEngine {
 
 /**
  * The engine's "workflow not found" sentinel (Go *serviceerror.NotFound
- * from the Temporal client). #21's implementation maps Temporal's
+ * from the Temporal client). The engine client maps Temporal's
  * not-found onto it; tests construct it directly.
  */
 export class EngineWorkflowNotFoundError extends Error {
@@ -131,14 +131,14 @@ export type WorkflowExecutionEngineState =
   | { readonly connected: false };
 
 /**
- * The permanent pre-#21 state: no Temporal behind this server. A frozen
+ * The disconnected state: no Temporal behind this server. A frozen
  * singleton so identity comparisons in tests stay meaningful.
  */
 export const ENGINE_DISCONNECTED: WorkflowExecutionEngineState =
   Object.freeze({ connected: false });
 
 /**
- * A provider rather than a value: #21's TemporalManager re-injects on
+ * A provider rather than a value: the TemporalManager re-injects on
  * every reconnect (Go's SetWorkflowCreator/SetTemporalClient), so
  * consumers must observe the CURRENT state at request time, never a
  * boot-time snapshot.

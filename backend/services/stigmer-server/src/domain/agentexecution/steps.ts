@@ -78,7 +78,7 @@ export function newValidateListRequestStep(): PipelineStep<ListDesc> {
 /**
  * QueryExecutionPage — one page of the request's executions: its org
  * through the index when it names one, its phase when it names one, the
- * read scope last (census lane 4; with no scope composed, every matching
+ * read scope last (with no scope composed, every matching
  * execution — the OSS single-user posture).
  */
 export function newQueryExecutionPageStep(
@@ -138,7 +138,7 @@ export function newValidateListBySessionRequestStep(): PipelineStep<ListBySessio
 /**
  * QueryExecutionsBySession — list_by_session.go: the session's executions
  * through the index's session key, whole and newest first, then the read
- * scope (census lane 5; bounded by the session id, org never consulted).
+ * scope (bounded by the session id, org never consulted).
  */
 export function newQueryExecutionsBySessionStep(
   store: Store,

@@ -3,10 +3,9 @@
  * (config → storage → temporal → controllers → routes → listen).
  *
  * Deliberately covers ONLY the env contract the transport scaffold consumes.
- * Go's full config surface (pkg/config/config.go) is ported alongside the
- * sub-projects that consume each entry — DB_PATH/STORAGE_PATH arrive with
- * storage (#4), Temporal pins with the workers, artifact storage with its
- * domain — so no config entry exists here before the code that reads it.
+ * Go's full config surface (pkg/config/config.go) is ported entry by entry
+ * with the code that consumes it, so no config entry exists here before the
+ * code that reads it.
  *
  * Env semantics mirror Go exactly (pkg/config/config.go getEnvInt/
  * getEnvString): a missing OR malformed value falls back to the default,
@@ -63,7 +62,7 @@ export interface ServerConfig {
   readonly operatorName: string;
   /**
    * Temporal coordinates this server runs against (Go TemporalHostPort/
-   * TemporalNamespace). The Temporal workers (#18) read the same fields;
+   * TemporalNamespace). The Temporal workers read the same fields;
    * connection failure is NON-fatal (the server serves with the engine
    * unavailable and the TemporalManager's health monitor keeps retrying —
    * Go server.go InitialConnect posture). The address runners are told to
@@ -102,8 +101,8 @@ export interface ServerConfig {
   /** The artifact root — shared with the runner's LOCAL_ARTIFACT_PATH (#285). */
   readonly artifactLocalBasePath: string;
   /**
-   * Base URL for local artifact download URLs (ARTIFACT_LOCAL_SERVE_URL;
-   * #13); no trailing path segment (the storage key carries the full path).
+   * Base URL for local artifact download URLs (ARTIFACT_LOCAL_SERVE_URL);
+   * no trailing path segment (the storage key carries the full path).
    * "" = unset: the URL follows the port the artifact file server actually
    * bound (boot/artifact-lane.ts), so an ephemeral lane mints URLs that
    * reach it.

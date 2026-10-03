@@ -5,11 +5,12 @@
  *
  * Every request message is validated against its proto rules BEFORE any
  * handler code, including in-process calls through the router transport —
- * that traversal is the validation-parity property spike SP-B proved.
+ * that traversal is the validation-parity property router-transport.test.ts
+ * proves.
  * Client/bidi-streaming requests validate each message as it arrives.
  *
  * Violations map to InvalidArgument carrying the library's violation text.
- * WATCH ITEM for the first domain port (#4): protovalidate-es and
+ * WATCH ITEM: protovalidate-es and
  * protovalidate-go may format violation strings differently; if a
  * conformance suite pins validation MESSAGE bytes (not just the code),
  * that divergence surfaces there and goes to the owner — do not paper over

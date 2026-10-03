@@ -16,7 +16,7 @@
  *     a keyless one (stigmer/stigmer#1257; the Go port returned it);
  *   - the referential delete guard's resolution semantics (stigmer#584),
  *     proven by seeding McpServer rows directly through the store — the
- *     McpServer RPC surface belongs to #9 and is not required here.
+ *     McpServer RPC surface is not required here.
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
  * before its file steps — the real ~/.stigmer is never touched. Who may

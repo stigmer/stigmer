@@ -40,7 +40,7 @@ message ArtifactSpec {
   // Shown in the execution viewer's artifact list and download dialogs.
   // When auto-promoted, this is derived from the task name and output field
   // (e.g., "analyze_code — output.json"). When explicitly created by a
-  // workflow author (Phase 1), this is user-provided.
+  // workflow author, this is user-provided.
   //
   // Does not need to be unique — multiple tasks can produce artifacts
   // with the same display name across different executions.

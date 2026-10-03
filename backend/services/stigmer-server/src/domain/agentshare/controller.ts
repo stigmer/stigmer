@@ -10,7 +10,7 @@
  * search-indexed by design (the kind declares not_search_indexed — a share
  * is channel configuration reached through its agent, not a library
  * artifact), so no index steps appear in any chain. The agent-delete
- * cascade of same-org shares lives in the AGENT domain (ported with #6);
+ * cascade of same-org shares lives in the AGENT domain;
  * share delete itself cascades nothing.
  *
  * Every chain opens with Authorize. create asks can_edit on the referenced

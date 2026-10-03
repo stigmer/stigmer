@@ -4,10 +4,10 @@
  * ApiResourceReference on McpServerAuth) to a stored OAuthApp. One small
  * module holds a cross-domain semantic so its consumers cannot drift
  * apart (stigmer/stigmer#584, which found three divergent hand-rolled
- * answers): the read-path oauth_status enricher (mcpserver, #9), the
- * OAuth initiate and token-refresh paths (#19 — refresh MUST use the app
+ * answers): the read-path oauth_status enricher (mcpserver), the
+ * OAuth initiate and token-refresh paths (refresh MUST use the app
  * initiate selected or it runs against the wrong vendor credentials), and
- * the OAuthApp delete guard (#13). Every consumer imports it from here,
+ * the OAuthApp delete guard. Every consumer imports it from here,
  * so there is one ladder to change (stigmer/stigmer#1173 removed a
  * second copy the delete guard had read).
  *

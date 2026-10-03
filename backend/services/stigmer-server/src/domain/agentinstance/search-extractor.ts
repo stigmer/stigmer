@@ -1,6 +1,6 @@
 /**
  * AgentInstance search extractor — ports pkg/query/search/extractor/
- * agent_instance_extractor.go (both sides: the #4 index side, the #14
+ * agent_instance_extractor.go (both sides: the index side, the
  * query side). Agent instances are configured incarnations of an agent
  * blueprint; the summary is spec.description.
  */

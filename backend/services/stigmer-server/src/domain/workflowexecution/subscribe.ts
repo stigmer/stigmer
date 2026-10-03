@@ -22,9 +22,8 @@
  *   - The terminal set is COMPLETED/FAILED/CANCELLED — it OMITS
  *     TERMINATED, so a stream over a terminated execution never
  *     self-closes. Known Go quirk (isWorkflowTerminalPhase,
- *     subscribe.go:216), ported byte-faithfully; disclosed as a
- *     both-editions issue candidate, the same finding #17 made on
- *     agentexecution.
+ *     subscribe.go:216), ported byte-faithfully, as agentexecution's
+ *     subscribe does.
  */
 import { equals } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";

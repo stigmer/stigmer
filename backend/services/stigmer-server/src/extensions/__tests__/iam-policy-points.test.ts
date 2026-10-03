@@ -19,7 +19,7 @@
  *     that is not a person (a team); single instance; absent = the id
  *     fallback shape;
  *   - `ResourceAuthorizationLifecycle` gains the OPTIONAL `onPolicyGranted`
- *     and `onPolicyRevoked` (Q7 i): a unit's lifecycle that carries them
+ *     and `onPolicyRevoked`: a unit's lifecycle that carries them
  *     resolves through the existing single-instance point with both hooks
  *     intact, and one that implements only the three required methods
  *     still resolves — the widening is additive.

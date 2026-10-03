@@ -1,8 +1,8 @@
 /**
  * Managed-environment access — ports pkg/domain/mcpserver/oauth/
- * managed_env.go whole: reading and rewriting OAuth token secrets (#17's
- * EC-builder slice) plus creating and deleting the managed environments
- * themselves (#19's connect/OAuth slice). Every operation rides the
+ * managed_env.go whole: reading and rewriting OAuth token secrets (for the
+ * EC builder) plus creating and deleting the managed environments
+ * themselves (for the connect/OAuth lane). Every operation rides the
  * environment domain's in-process client, so encryption, validation, and
  * audit come from the environment pipeline automatically (full
  * interceptor traversal on every internal call).

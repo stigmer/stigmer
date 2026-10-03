@@ -1,6 +1,6 @@
 /**
  * A recording stub of the connected workflow-execution engine for unit
- * tests — the #21 implementation's test double. Records every call and
+ * tests — the engine client's test double. Records every call and
  * throws the configured error per operation (EngineWorkflowNotFoundError
  * for the warn-and-proceed arms, plain errors for the Internal arms).
  */

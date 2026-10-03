@@ -257,14 +257,14 @@ export interface ComposedServer {
    */
   runnerAuthService: RunnerAuthService;
   /**
-   * The agentexecution broadcast fabric (exposed for tests and, with #18,
-   * the Temporal worker's recovery broadcasts — Go's GetStreamBroker).
+   * The agentexecution broadcast fabric (exposed for tests and for the
+   * Temporal worker's recovery broadcasts — Go's GetStreamBroker).
    * UpdateStatus is the production writer.
    */
   agentExecutionStreamBroker: StreamBroker;
   /**
    * The workflowexecution broadcast fabric (exposed for tests and for the
-   * Temporal worker's persist broadcasts, #21 — Go's GetStreamBroker).
+   * Temporal worker's persist broadcasts — Go's GetStreamBroker).
    * UpdateStatus, the lifecycle RPCs, and the worker's activities are the
    * production writers.
    */
@@ -782,7 +782,7 @@ export async function composeServer(
           : "open-source ladder",
     signing: platformTokenKeys?.signer !== undefined,
   });
-  // Stage: temporal (#18). Construction is sync and connection-free —
+  // Stage: temporal. Construction is sync and connection-free —
   // initialConnect/startWorkers/startHealthMonitor run in start(), all
   // NON-fatal (Go server.go: the server boots and serves with the engine
   // unavailable; the health monitor keeps retrying). The one boot-fatal
@@ -796,7 +796,7 @@ export async function composeServer(
   // dispatch uses — one definition, so policy and dispatch can never
   // disagree (oss#397).
   const temporalConfig = newConfigFromEnv();
-  // The workflow-execution twin (#21) — its config has no policy
+  // The workflow-execution twin — its config has no policy
   // consumer, so it lives here with the temporal stage.
   const workflowExecutionTemporalConfig = newWorkflowExecutionConfigFromEnv();
   // The sandbox lane: the configured driver — built-in tier or
@@ -853,7 +853,7 @@ export async function composeServer(
   // validation, the pin checks, and the transport's registry lane, so the
   // pickers and validation can never drift — on either arm. With
   // no extension provider composed, the OSS domain-owned ModelRegistryStore
-  // (workflow-family DD-A, restoring Go's ownership) is constructed and
+  // (restoring Go's ownership) is constructed and
   // this root owns its refresh lifecycle; with one composed, the OSS store
   // and its hourly upstream refresh are never built — a substituted
   // composition must not keep fetching registry data nobody reads.
@@ -884,7 +884,7 @@ export async function composeServer(
   // recovery/fallback updates reach externally-connected subscribe
   // streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
-  // The workflowexecution twin (domain-local); #21's activities
+  // The workflowexecution twin (domain-local); its Temporal activities
   // broadcast through it the same way.
   const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
     logger,
@@ -894,7 +894,7 @@ export async function composeServer(
   // router waits for one over the other.
   const agentExecutionRecoverSerializer = new KeyedSerializer();
   const workflowExecutionRecoverSerializer = new KeyedSerializer();
-  // Stage: schedule clock (#22) — Go server.go 578–592 injection order:
+  // Stage: schedule clock — Go server.go 578–592 injection order:
   // config → artifact → syncer → run starter → (worker below) →
   // reconciler. The client provider closes over `temporalManager`,
   // declared just below — legal and deliberate: the manager's factory list
@@ -938,8 +938,8 @@ export async function composeServer(
     logger,
   );
   // The manager owns the connection lifecycle; one factory per domain
-  // worker (Go createWorkers' list) — agent-execution (#18),
-  // workflow-execution (#21), and the schedule clock (#22).
+  // worker (Go createWorkers' list) — agent-execution,
+  // workflow-execution, and the schedule clock.
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
@@ -1002,7 +1002,7 @@ export async function composeServer(
     logger,
   });
   // The workflow-execution twin: the same provider-is-the-injection
-  // mechanism, filling the seam #20 left disconnected.
+  // mechanism, filling the workflow-execution engine seam.
   const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider({
     manager: temporalManager,
     config: workflowExecutionTemporalConfig,
@@ -1010,8 +1010,8 @@ export async function composeServer(
     logger,
   });
   // The artifact blob store (Go server.go 349: shared by agentexecution
-  // attachments, the artifact domain (#13), and skill push (#8)). The r2
-  // arm landed with #13; the health probe runs in start(), matching Go's
+  // attachments, the artifact domain, and skill push). The health probe
+  // runs in start(), matching Go's
   // boot check. The factory consults the composition's registered
   // drivers for non-built-in types.
   //
@@ -1224,7 +1224,7 @@ export async function composeServer(
           logger,
         })
       : undefined;
-  // The search read side (#14): the 13-kind extractor registry, the query
+  // The search read side: the 13-kind extractor registry, the query
   // store over the driver's index read (no DB() escape hatch), and
   // the CQRS handler. Registry validation is warn-only, Go server.go:509's
   // posture — run ONCE here rather than inside routes(), which executes
@@ -1241,9 +1241,9 @@ export async function composeServer(
     logger,
     listReadScope,
   );
-  // The activity recents feed (#14) — pure reads over listResources.
+  // The activity recents feed — pure reads over listResources.
   const activityHandler = new ActivityHandler(store, logger, listReadScope);
-  // The environment runtime-resolution service (#5) — the decrypt-for-
+  // The environment runtime-resolution service — the decrypt-for-
   // execution path the EC builder uses to resolve environment_refs (the
   // RPC surface redacts secret values, oss#405).
   const environmentResolution = new RuntimeResolutionService(
@@ -1253,7 +1253,7 @@ export async function composeServer(
   );
   // The managed-environment lifecycle — OAuth token access for the EC
   // builder's injection (server.go 732–735) plus the create/delete halves
-  // the connect/OAuth slice mints and tears environments with (#19).
+  // the connect/OAuth slice mints and tears environments with.
   // Rides the environment in-process client so encryption, validation,
   // and audit ride the environment pipeline. ONE instance shared by
   // agentexecution and mcpserver — Go builds two, both stateless over the
@@ -2074,7 +2074,7 @@ export async function composeServer(
       await artifactFileServer?.shutdown();
       // The reconciler stops before the manager: a pass mid-flight may
       // still call through the manager's client, and nothing may fire
-      // after shutdown (the #18 close-race lesson).
+      // after shutdown.
       await scheduleReconciler.stop();
       // Workers stop before the transport drains: an in-flight activity
       // may still write through the store, which closes LAST.

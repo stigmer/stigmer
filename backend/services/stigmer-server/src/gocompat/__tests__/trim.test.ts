@@ -3,7 +3,7 @@
  * exactly the characters where JS's .trim()/\s+ disagree: U+FEFF (JS
  * trims/splits, Go does NOT) and U+0085 (Go trims/splits, JS does NOT).
  * A regression here flips search-mode selection and search-term
- * tokenization on BOM'd or NEL-padded queries (the #8 BOM divergence class).
+ * tokenization on BOM'd or NEL-padded queries (the BOM divergence class).
  */
 import { describe, expect, it } from "vitest";
 

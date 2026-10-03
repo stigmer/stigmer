@@ -171,7 +171,7 @@ async function boundaryError(
 ): Promise<ConnectError> {
   const procedure = `/${request.service.typeName}/${request.method.name}`;
 
-  // Arm 1: the structural raw-error conversion (Q2). The logging
+  // Arm 1: the structural raw-error conversion. The logging
   // interceptor inside already recorded unary failures; this line is the
   // only record for mid-stream and identity-chassis raws, and it names
   // the conversion the operator would otherwise not know happened.
@@ -226,7 +226,7 @@ async function boundaryError(
   }
 
   const ref = mintSupportRef();
-  // The correlation point (Q3): the visitor holds the ref, this line
+  // The correlation point: the visitor holds the ref, this line
   // holds the original description — the log-based rendering of the
   // Java span attribute + boundary WARN pair.
   logger.warn("sanitized a visitor-facing error", {

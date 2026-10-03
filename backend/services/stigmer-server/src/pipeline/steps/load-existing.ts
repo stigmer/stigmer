@@ -4,7 +4,7 @@
  * fallback populates the id back into metadata so merge/persist have it).
  * NotFound FAILS here — apply's tolerant probe is LoadForApply.
  *
- * Deliberate divergence from the Go source (ratified 2026-08-26): Go
+ * Deliberate divergence from the Go source (decided 2026-08-26): Go
  * mapped ANY store error to NotFound. Here only the typed
  * ResourceNotFoundError is NotFound; other store failures rethrow to the
  * executor's sanitized Internal (see pipeline.ts and load-target.ts —

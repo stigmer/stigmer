@@ -348,7 +348,7 @@ function convertRaiseTask(cfg: RaiseTaskConfig): YamlMap {
 
   // hasOwn guards the prototype chain: an error named "constructor" (any
   // casing) must fall back to the runtime default like every other unknown
-  // name, not resolve Object.prototype.constructor (panel finding).
+  // name, not resolve Object.prototype.constructor.
   const key = cfg.error.toLowerCase();
   const mapped = Object.hasOwn(RAISE_ERROR_TYPE_MAPPING, key)
     ? RAISE_ERROR_TYPE_MAPPING[key]

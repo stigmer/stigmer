@@ -1,6 +1,6 @@
 /**
  * Organization search extractor — ports pkg/query/search/extractor/
- * organization_extractor.go (both sides: the #4 index side, the #14 query
+ * organization_extractor.go (both sides: the index side, the query
  * side; the search summary is spec.description). Organizations are the
  * top-level container for all Stigmer resources.
  */

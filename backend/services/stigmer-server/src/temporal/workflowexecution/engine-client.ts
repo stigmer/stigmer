@@ -5,10 +5,10 @@
  * operations the lifecycle steps consume (lifecycle_steps.go: raw
  * signal, cancel, terminate).
  *
- * #20 modeled the engine as the ConnectedWorkflowExecutionEngine seam
+ * The domain models the engine as the ConnectedWorkflowExecutionEngine seam
  * (src/domain/workflowexecution/engine.ts); this module fills it.
  * Dispatch-queue resolution lives INSIDE startInvokeWorkflow/
- * signalWithStart (the seam's ratified boundary — Go's controller calls
+ * signalWithStart (the seam's boundary — Go's controller calls
  * ResolveWorkflowTaskQueue immediately before Create/SignalWithStart).
  * Unlike agentexecution's dispatch it is PURE (no store read), so there
  * is no EngineDispatchError lane — Go's Create has no dispatch failure
@@ -185,7 +185,7 @@ export class TemporalWorkflowExecutionEngine
    * The slim input with Go's omitempty shape (workflow-input.ts): zero
    * values are omitted so TS-authored histories carry the same keys a
    * Go-authored one would. The cloud-only fields are unmodeled (the
-   * seam's ratified boundary). The run credential is the one key minted
+   * seam's boundary). The run credential is the one key minted
    * here rather than copied from the caller (module header).
    */
   private buildWorkflowInput(
@@ -231,8 +231,7 @@ export interface WorkflowExecutionEngineStateProviderDeps {
 
 /**
  * Builds the provider compose hands the workflowexecution registration —
- * replacing the pre-#21 `() => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED`
- * lambda.
+ * in place of a fixed `() => WORKFLOW_EXECUTION_ENGINE_DISCONNECTED`.
  *
  * Availability parity with Go (manager.ts module header): disconnected
  * ONLY until the first successful connect; afterwards the engine wraps

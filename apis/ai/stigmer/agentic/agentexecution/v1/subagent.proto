@@ -48,7 +48,7 @@ message SubAgentExecution {
   google.protobuf.Struct metadata = 9;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Internal Execution Visibility (Phase 2.3)
+  // Internal Execution Visibility
   //
   // These fields capture what happened inside the sub-agent execution,
   // enabling debugging when sub-agents fail mid-execution.

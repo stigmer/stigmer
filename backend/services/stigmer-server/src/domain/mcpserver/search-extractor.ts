@@ -1,6 +1,6 @@
 /**
  * McpServer search extractor — ports pkg/query/search/extractor/
- * mcpserver_extractor.go (both sides: the #4 index side, the #14 query
+ * mcpserver_extractor.go (both sides: the index side, the query
  * side). The search summary is spec.description; MCP servers are one of
  * the two kinds carrying an icon_url on the search projection.
  */

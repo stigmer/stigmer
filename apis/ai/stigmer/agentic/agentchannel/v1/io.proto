@@ -89,7 +89,7 @@ message InitiateChannelInstallOutput {
   // source of install-style truth.
   //
   // @internal
-  // DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+  // The seam behind it is the sealed ChannelInstaller split:
   // AuthorizationRedirectInstaller populates authorization_url + state;
   // DirectInstaller populates completed.
   bool completed = 3;

@@ -4,7 +4,8 @@
  * (extractFieldValue :991, toSnakeCase :1027, extractLabelValue :951, git
  * history) plus the kind-name mapping Go got from `kind.String()`.
  *
- * Lived at sqlite/proto-fields.ts through Phase 1; promoted here when the
+ * Lived at sqlite/proto-fields.ts while SQLite was the only driver;
+ * promoted here when the
  * Postgres driver became the second consumer (the codecs/gocompat
  * second-consumer rule) — by then five modules OUTSIDE the driver already
  * imported it, so the move also restores the layering the path implied.

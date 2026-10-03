@@ -165,8 +165,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * redacted AFTER the pipeline: the persisted resource is echoed back, and
  * without redaction the echo would leak either the plaintext the caller
  * just sent or the stored ciphertext. The internal builders (agent
- * execution, workflow execution, MCP connect — they arrive with #17/#19/
- * #20) only read metadata.id from the echo, so they are unaffected.
+ * execution, workflow execution, MCP connect) only read metadata.id from
+ * the echo, so they are unaffected.
  */
 async function createExecutionContext(
   deps: ExecutionContextControllerDeps,

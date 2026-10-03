@@ -1,6 +1,6 @@
 /**
  * WorkflowExecution search extractor — ports pkg/query/search/extractor/
- * workflow_execution_extractor.go (both sides: the #4 index side, the #14
+ * workflow_execution_extractor.go (both sides: the index side, the
  * query side). Workflow executions are invocation records with no
  * description field: Go's GetSearchSummary returns "" and BOTH
  * projections leave the description at its zero value.

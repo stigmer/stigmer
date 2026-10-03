@@ -1,6 +1,6 @@
 /**
  * Session search extractor — ports pkg/query/search/extractor/
- * session_extractor.go (both sides: the #4 index side, the #14 query
+ * session_extractor.go (both sides: the index side, the query
  * side). Sessions are conversation threads between a user and an agent
  * instance; the summary is spec.subject (the conversation topic).
  */

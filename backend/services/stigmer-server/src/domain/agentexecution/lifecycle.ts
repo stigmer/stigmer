@@ -5,7 +5,7 @@
  * step vocabulary.
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
- * disconnected (pre-#18) the Temporal steps refuse
+ * disconnected the Temporal steps refuse
  * FailedPrecondition("Temporal is not available") — Go's nil-client arm,
  * asserted by the Class A conformance lifecycle negatives. With a
  * connected engine, workflow-not-found is warn-and-proceed (the local

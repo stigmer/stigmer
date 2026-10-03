@@ -8,7 +8,7 @@
  * identical (stigmer#461). Both loads read the request's org through the
  * list index (every org when blank) — the same narrowing the per-kind
  * lists it summarizes apply, so recents is never stricter than they are —
- * and, with a composed ListReadScope (census lane 22), offer those rows to
+ * and, with a composed ListReadScope, offer those rows to
  * its restrict verb: one read per kind, exact, where the Java handler
  * enumerated the caller's authorized ids and then scanned. Recents orders
  * by the last update, not by creation, so each kind's org is read whole
@@ -240,7 +240,7 @@ function hasRuntimeOriginLabel(
     return false;
   }
   // Object.hasOwn, not `in`: own keys only, matching Go's map lookup
-  // (the #17 least-privilege-filter precedent).
+  // (the least-privilege filter's precedent).
   return RUNTIME_ORIGIN_LABELS.some((key) => Object.hasOwn(labels, key));
 }
 

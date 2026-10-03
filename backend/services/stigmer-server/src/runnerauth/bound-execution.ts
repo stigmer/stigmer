@@ -38,8 +38,8 @@
  *     `spec.execution_id` for a connect, the read `getByExecutionId`
  *     already makes); a missing row is `undefined` (the credential is
  *     invalid — the run is not the caller's to learn about); any other
- *     store failure propagates as the fault it is (the ratified
- *     store-fault mapping), so an outage never reads as a bad credential.
+ *     store failure propagates as the fault it is (the store-fault
+ *     mapping), so an outage never reads as a bad credential.
  *
  * Liveness is the row's, not a clock's, and it is the same rule on both
  * lanes that accept a run credential: a run is live while its phase is

@@ -1,7 +1,7 @@
 /**
  * Interceptor-chain behavior tests, exercised through the REAL stigmer
- * service descriptors over the in-process router transport (the SP-B path,
- * so these tests double as proof that in-process calls get full pipeline
+ * service descriptors over the in-process router transport (so these
+ * tests double as proof that in-process calls get full pipeline
  * treatment — the Go bufconn parity property).
  *
  * Pinned behaviors:

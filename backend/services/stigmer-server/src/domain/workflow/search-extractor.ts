@@ -1,6 +1,6 @@
 /**
  * Workflow search extractor — ports pkg/query/search/extractor/
- * workflow_extractor.go (both sides: the #4 index side, the #14 query
+ * workflow_extractor.go (both sides: the index side, the query
  * side). The search summary is spec.description (workflows are serverless
  * workflow definitions; the spec-level description is the authored
  * summary).

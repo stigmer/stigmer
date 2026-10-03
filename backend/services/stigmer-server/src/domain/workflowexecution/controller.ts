@@ -149,8 +149,8 @@ export interface WorkflowExecutionControllerDeps {
    */
   readonly gateSteps: ResolvedGateSteps;
   /**
-   * The workflow-execution engine seam (engine.ts): permanently
-   * disconnected until #21's TemporalManager flips it. Consumed by the
+   * The workflow-execution engine seam (engine.ts): disconnected until
+   * the TemporalManager flips it. Consumed by the
    * create gate, the lifecycle RPCs, sendSignal, and
    * submitWorkflowTaskApproval.
    */
@@ -159,7 +159,7 @@ export interface WorkflowExecutionControllerDeps {
    * The shared broadcast fabric for subscribe streams. ONE instance spans
    * both routers (serving + in-process) — see stream-broker.ts; the
    * composition root owns it (Go: NewStreamBroker in the controller
-   * constructor + GetStreamBroker for #21's Temporal activities).
+   * constructor + GetStreamBroker for the Temporal activities).
    */
   readonly broker: StreamBroker;
   /**

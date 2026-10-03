@@ -785,7 +785,7 @@ message EventEmittedPayload {
 // @internal
 // Emitted when a task output is persisted as an artifact, either because
 // it exceeded the auto-promotion size threshold (256KB) or because the
-// workflow author explicitly declared artifact persistence (Phase 1).
+// workflow author explicitly declared artifact persistence.
 //
 // The artifact_id can be used with the Artifact.get() and
 // Artifact.getDownloadUrl() RPCs to retrieve or download the content.

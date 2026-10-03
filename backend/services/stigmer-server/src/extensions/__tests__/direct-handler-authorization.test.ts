@@ -119,7 +119,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
         metadata: { id: "ach_01authztarget", name: "target", org: "acme" },
       }),
     );
-    // The Q8 mid-chain-check targets: the two listVersions
+    // The mid-chain-check targets: the two listVersions
     // lanes resolve by org+slug before their can_view checks.
     await server.store.saveResource(
       ApiResourceKind.workflow,
@@ -259,7 +259,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("artifact listByExecution denies on the PARENT execution with the Java handler's copy (Q8)", async () => {
+  it("artifact listByExecution denies on the PARENT execution with the Java handler's copy", async () => {
     const query = createClient(ArtifactQueryController, transport);
     await expectDenied(
       () => query.listByExecution({ workflowExecutionId: "wfe_01any" }),
@@ -271,7 +271,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("workflow listVersions denies on the RESOLVED workflow with the Java handler's copy (Q8)", async () => {
+  it("workflow listVersions denies on the RESOLVED workflow with the Java handler's copy", async () => {
     const query = createClient(WorkflowQueryController, transport);
     await expectDenied(
       () => query.listVersions({ slug: "authz-target", org: "acme" }),
@@ -287,7 +287,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     expect((error as ConnectError).code).toBe(Code.NotFound);
   });
 
-  it("skill listVersions denies on the RESOLVED skill with the Java handler's copy (Q8)", async () => {
+  it("skill listVersions denies on the RESOLVED skill with the Java handler's copy", async () => {
     const query = createClient(SkillQueryController, transport);
     await expectDenied(
       () => query.listVersions({ slug: "authz-target", org: "acme" }),

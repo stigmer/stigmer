@@ -539,7 +539,7 @@ describe("per-kind emission", () => {
     });
 
     // Prototype-chain probe: "Constructor" must take the runtime fallback,
-    // never resolve Object.prototype.constructor (panel finding).
+    // never resolve Object.prototype.constructor.
     const proto = taskDef(
       makeSpec([
         {

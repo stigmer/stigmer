@@ -19,8 +19,8 @@
  *
  * Key shape: a LITERAL forward-slash join, never path.join — the key is a
  * wire-visible identifier (status.artifact_storage_key, download URLs, the
- * lane's prefix check) and Windows support arrives only through this server
- * (#24); path.join would mint backslash keys there.
+ * lane's prefix check), and on Windows path.join would mint backslash
+ * keys.
  *
  * Proven by the skill store's __tests__/artifact-storage.test.ts (the
  * `skills/` instance) and by __tests__/content-store.test.ts.

@@ -50,7 +50,7 @@ import type { ConnectWorkflowOutput } from "./engine.js";
  * structpb.NewStruct error arm has no TS equivalent (the value arrived
  * through JSON and is representable by construction).
  *
- * Watch item (oss#862, ratified DB-3): Go persists the Struct with
+ * Watch item (oss#862): Go persists the Struct with
  * SORTED JSON keys while this path keeps the runner's insertion order —
  * the runner's reconnect signature compares stringified schemas, so
  * ordering feeds the filed carry-forward defect. The conformance suite
@@ -189,7 +189,7 @@ export function settleConnectStatus(
  * RPC returned, so a plain read-modify-write would risk clobbering a
  * concurrent update (a manual reconnect or an edit) made in that window.
  *
- * The result fields follow the deliberate Phase-6 asymmetry, unchanged:
+ * The result fields follow the deliberate asymmetry, unchanged:
  * discovered_capabilities is a point-in-time snapshot, overwritten on
  * every connect; tool_approvals are safety-critical gates (see
  * setToolApprovalsFromConnect). The connect_status settle rides the same

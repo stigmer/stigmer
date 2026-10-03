@@ -191,8 +191,8 @@ export interface AgentExecutionControllerDeps {
    */
   readonly recoverSerializer: KeyedSerializer;
   /**
-   * The execution-engine seam (engine.ts): permanently disconnected until
-   * #18's TemporalManager flips it. Consumed by the engine gate, the
+   * The execution-engine seam (engine.ts): disconnected until the
+   * TemporalManager flips it. Consumed by the engine gate, the
    * lifecycle RPCs, the create/recover workflow starts, and the two HITL
    * signal steps.
    */

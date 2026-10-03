@@ -22,7 +22,7 @@
  *
  * Tie order in the two ranked lists is not wire-stable in Go (map
  * iteration feeds a stable sort), so ties here — deterministic first-seen
- * order — are not a wire divergence (the #6 sort-stability precedent).
+ * order — are not a wire divergence.
  */
 import { create } from "@bufbuild/protobuf";
 import { DurationSchema } from "@bufbuild/protobuf/wkt";

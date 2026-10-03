@@ -351,7 +351,7 @@ describe("trigger — the two-level contract", () => {
     // refuses Unavailable — an infrastructure failure, propagated as the
     // trigger's OWN error (Go: "Manual trigger's run start failed on
     // infrastructure"). The re-mint matters: echoing the in-process error
-    // corrupts HTTP/2 trailers (the #18 transport finding).
+    // corrupts HTTP/2 trailers.
     const err = await refusal(() => command.trigger({ value: id }));
     expect(err.code).toBe(Code.Unavailable);
     // No fire happened: no ledger row, no last_fire_at.

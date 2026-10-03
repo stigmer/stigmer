@@ -2,7 +2,7 @@
  * ExecutionContext domain constants — the byte-pinned wire copy shared
  * with the Go server. Every string here reaches clients verbatim (the
  * conformance suite and the runner's error surfaces read them), so none
- * is editable without an owner-ratified wire change.
+ * is editable without an deliberate wire change.
  *
  * The redaction marker itself is NOT defined here: it is imported from
  * the environment domain's constants (the single source of truth both Go

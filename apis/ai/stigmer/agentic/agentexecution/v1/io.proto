@@ -109,7 +109,7 @@ message UpdateStatusResponse {
   string signal_reason = 2;
 }
 
-// Input for submitting an approval decision (HITL Phase 1).
+// Input for submitting an approval decision.
 //
 // All required fields must be provided. The handler validates:
 // 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase
@@ -166,7 +166,7 @@ message ApprovalDecisionList {
 //
 // The decision is recorded in the append-only file_review event stream as a
 // FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
-// runner reconciles approved bytes (Phase 2); this RPC only records the
+// runner reconciles approved bytes; this RPC only records the
 // decision and enforces that expected_digest still matches what the user saw.
 //
 // Example:

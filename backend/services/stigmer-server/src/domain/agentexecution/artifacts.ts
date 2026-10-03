@@ -17,10 +17,8 @@
  * getArtifactDownloadUrl returns a time-limited direct-download URL;
  * ownership is the artifacts/{execution_id}/ prefix OR a key listed
  * verbatim in spec.attachments (attachment keys carry no execution id, so
- * membership is the proof). COEXISTENCE NOTE (disclosed in the plan): on
- * local storage the URL points at the port+1 artifact file server, which
- * lands with #13 — the URL is correctly shaped before then, with nothing
- * serving it on THIS server.
+ * membership is the proof). On local storage the URL points at the port+1
+ * artifact file server (src/domain/artifact/file-server.ts).
  */
 import path from "node:path";
 
@@ -161,9 +159,8 @@ export async function uploadAttachment(
   if (contentType === "") {
     // Go's UPLOAD path consults ONLY mime.TypeByExtension — never the
     // artifact-relevant knownContentTypes table, which is a read-path
-    // (detectContentType) concern. Mirrored so stored object metadata
-    // stays edition-identical when the R2 backend (#13) starts carrying
-    // it.
+    // (detectContentType) concern. Mirrored so the content type the R2
+    // backend stores as object metadata stays edition-identical.
     contentType = osMimeTypeByExtension(req.filename);
   }
 

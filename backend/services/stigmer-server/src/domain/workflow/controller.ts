@@ -1080,7 +1080,7 @@ function newLoadAndMapWorkflowVersionsStep(
 /**
  * Base64 offset token → index; malformed tokens are InvalidArgument.
  *
- * Decoding mirrors Go's exact acceptance set (panel finding — Node's
+ * Decoding mirrors Go's exact acceptance set (Node's
  * Buffer.from is far more lenient): base64.StdEncoding.DecodeString
  * requires the standard alphabet with proper trailing padding but ignores
  * \r and \n; strconv.Atoi accepts an optional sign and leading zeros. The

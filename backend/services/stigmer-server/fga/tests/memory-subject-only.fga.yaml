@@ -1,4 +1,4 @@
-# Memory is subject-only (as ratified 2026-08-18): the identity account the
+# Memory is subject-only (since 2026-08-18): the identity account the
 # memory is ABOUT is its only principal. These tests pin the platform's
 # strictest model — org membership grants nothing, org ADMINSHIP grants
 # nothing (admins govern the memory_enabled switch, never the content),

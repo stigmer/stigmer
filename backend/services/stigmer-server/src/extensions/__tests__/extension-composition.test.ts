@@ -819,7 +819,7 @@ describe("extension composition (driver substitution)", () => {
         DB_PATH: path.join(dir, "stigmer.db"),
         STORAGE_PATH: path.join(dir, "storage"),
         // The registered driver serves the GENERIC artifact store; the
-        // skill store stays on its default local arm (Q2b: per-domain).
+        // skill store stays on its default local arm (per-domain).
         ARTIFACT_STORAGE_TYPE: "fake-blob",
         ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
       }),
@@ -868,7 +868,7 @@ describe("extension composition (driver substitution)", () => {
  * session and organization chains), after it on the post-persist slot
  * (the row survives the failed request, the inherited Java semantics);
  * the status observers
- * see the terminal updateStatus transition exactly once (the Q4
+ * see the terminal updateStatus transition exactly once (the
  * phase-change rule) and the response decorator contributes the control
  * signal on the shared reply schema.
  */
@@ -1102,7 +1102,7 @@ describe("extension composition (gate slots + status hooks)", () => {
     expect(observed[0]?.execution.metadata?.id).toBe(executionId);
 
     // A repeat report with the phase unchanged decorates the reply but
-    // does NOT re-notify (the Q4 phase-change rule).
+    // does NOT re-notify (the phase-change rule).
     const repeat = await command.updateStatus({
       executionId,
       status: {
@@ -1637,7 +1637,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   it("the server's own delete of an execution context cleans it as its delete RPC would", async () => {
     const command = createClient(ExecutionContextCommandController, server.inProcessTransport);
     const query = createClient(ExecutionContextQueryController, server.inProcessTransport);
-    const executionId = "aex_c2_internal_delete";
+    const executionId = "aex_internal_delete";
     const context = await command.create(
       create(ExecutionContextSchema, {
         apiVersion: "agentic.stigmer.ai/v1",

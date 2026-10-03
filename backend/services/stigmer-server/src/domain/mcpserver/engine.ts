@@ -194,6 +194,6 @@ export const MCP_SERVER_ENGINE_DISCONNECTED: McpServerEngineState =
 /**
  * A provider rather than a value: consumers observe the CURRENT state at
  * request time, never a boot-time snapshot — reconnects propagate
- * automatically (the #18 engine-state idiom).
+ * automatically (the agent-execution engine-state idiom).
  */
 export type McpServerEngineStateProvider = () => McpServerEngineState;

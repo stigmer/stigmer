@@ -181,7 +181,7 @@ describe("verifier chain walk", () => {
  * separately so an edge that consumes it can rely on the contract without
  * a Connect request in hand: first claim wins, pass moves on, ConnectError
  * propagates, plain throw is INTERNAL, and no claim is `undefined` — the
- * strictness decision (Q6) is the caller's, never the walk's.
+ * strictness decision is the caller's, never the walk's.
  */
 describe("authenticateBearerToken (the exported walk)", () => {
   it("first claim wins; later verifiers never run", async () => {

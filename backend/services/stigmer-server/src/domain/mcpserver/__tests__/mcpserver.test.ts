@@ -154,8 +154,8 @@ async function expectCode(
 
 /**
  * Grafts discovered capabilities onto a stored server, modeling the state
- * a connect leaves behind — the only way to reach the #402 arms before
- * #19 ports the connect slice.
+ * a connect leaves behind — the direct way to reach the #402 arms without
+ * running a connect.
  */
 async function seedCapabilities(
   serverId: string,

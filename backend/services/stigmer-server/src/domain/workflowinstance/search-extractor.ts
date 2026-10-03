@@ -1,6 +1,6 @@
 /**
  * WorkflowInstance search extractor — ports pkg/query/search/extractor/
- * workflow_instance_extractor.go (both sides: the #4 index side, the #14
+ * workflow_instance_extractor.go (both sides: the index side, the
  * query side). The search summary is spec.description (for the default
  * instance that is the factory's canonical copy).
  */

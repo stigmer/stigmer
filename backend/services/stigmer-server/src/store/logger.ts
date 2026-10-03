@@ -1,8 +1,8 @@
 /**
  * Minimal logging seam shared by the store drivers — structurally
  * compatible with boot/logger.ts, declared here so the store layer never
- * imports upward from boot/. Lived inline in sqlite/store.ts through
- * Phase 1; promoted when the Postgres driver became the second consumer.
+ * imports upward from boot/. Lived inline in sqlite/store.ts while SQLite
+ * was the only driver; promoted when the Postgres driver became the second consumer.
  * `info` carries what an operator reads at boot (the list index's
  * reconciliation count).
  */

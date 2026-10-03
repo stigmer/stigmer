@@ -1,7 +1,7 @@
 /**
  * Pre-flight token refresh — ports pkg/domain/mcpserver/oauth/refresh.go.
- * Consumed by the agentexecution EC builder's OAuth injection (#17); the
- * connect-lane refresh callers arrive with #19.
+ * Consumed by the agentexecution EC builder's OAuth injection and by the
+ * connect lane (connect.ts).
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import type { OAuthGrant } from "../../../store/interface.js";

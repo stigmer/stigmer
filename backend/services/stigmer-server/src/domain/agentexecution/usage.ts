@@ -18,8 +18,8 @@
  *     comparison sits inside Go's envelope.
  *   - Rank/summary tie order: Go iterates maps (nondeterministic) and
  *     sorts unstably; TS Maps iterate insertion-ordered and Array.sort is
- *     stable. Ties are not wire-assertable — the disclosed cross-edition
- *     nuance from the agent-family sub-project applies here unchanged.
+ *     stable. Ties are not wire-assertable — the same cross-edition
+ *     nuance as the agent family's lists.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { Duration } from "@bufbuild/protobuf/wkt";

@@ -1,6 +1,6 @@
 /**
  * ExecutionContext search extractor — ports pkg/query/search/extractor/
- * execution_context_extractor.go (both sides: the #4 index side, the #14
+ * execution_context_extractor.go (both sides: the index side, the
  * query side). Execution contexts have no description field, so the
  * summary is empty everywhere — and secret DATA is deliberately never
  * indexed nor projected: only name, tags, org, and visibility reach the

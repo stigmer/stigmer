@@ -7,7 +7,7 @@
  * keywords like set:, call:, ...) that the TS workflow engine (the runner's
  * loader.ts) parses and executes.
  *
- * CANONICAL RENDERING (sub-project DD-B): the emitted YAML is the input to
+ * CANONICAL RENDERING: the emitted YAML is the input to
  * the version hash (SHA-256 over the string — version_steps), so rendering
  * must be a pure function of the spec: identical specs produce identical
  * bytes regardless of wire key order (the #341 no-phantom-version rule,
@@ -65,7 +65,7 @@ export function protoToYaml(spec: WorkflowSpec | undefined): string {
     do: doTasks,
   };
 
-  // sortKeys makes the rendering canonical (DD-B above); lineWidth -1
+  // sortKeys makes the rendering canonical (see above); lineWidth -1
   // disables folding so long expressions and prompts stay single-line
   // scalars; noRefs keeps repeated structures inline (Go never emits
   // anchors); js-yaml appends a trailing newline like yaml.v3.

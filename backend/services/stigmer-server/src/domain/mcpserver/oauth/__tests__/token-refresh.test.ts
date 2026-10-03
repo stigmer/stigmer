@@ -2,7 +2,7 @@
  * OAuth token/refresh slice tests — ports the refresh-relevant halves of
  * pkg/domain/mcpserver/oauth/token_test.go (the Slack authed_user
  * "which token wins" resolution + the #410 client-secret placement pins,
- * RefreshToken arm; ExchangeCode arrives with #19) and pins
+ * RefreshToken arm; ExchangeCode is token-exchange.test.ts's) and pins
  * refreshTokenIfExpired's expiry-buffer / rotation contract that Go
  * asserts through the connect pre-flight. The token endpoint is a fetch
  * stub — deterministic, no sockets.

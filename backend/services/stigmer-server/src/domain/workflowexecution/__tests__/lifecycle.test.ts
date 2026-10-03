@@ -836,8 +836,7 @@ describe("recover engineless posture (fresh-start message)", () => {
   it("start-fresh's creator-specific copy is distinct", async () => {
     // Reach StartFreshWorkflow with a connected-then-broken engine is not
     // possible through one provider — instead pin the constant here so a
-    // rename breaks loudly (the Class B suite asserts the wire arm once
-    // #21 wires a real engine).
+    // rename breaks loudly (the Class B suite asserts the wire arm).
     expect(TEMPORAL_UNAVAILABLE_CREATOR_MESSAGE).toBe(
       "Temporal is not available (workflow creator not set)",
     );
