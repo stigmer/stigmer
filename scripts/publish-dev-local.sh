@@ -146,7 +146,10 @@ EPOCH="$(date -u +%s)"
 DIRTY=""; git diff --quiet HEAD 2>/dev/null || DIRTY="-dirty"
 
 MAVEN_VERSION="${BASE}-SNAPSHOT"
-NPM_VERSION="${BASE}-dev.${STAMP}"
+# The same rule release.dev.yaml stamps: a clean tree names its commit
+# (`.g<sha>`); a tree with an uncommitted or untracked file names none, since
+# its build is not that commit's code.
+NPM_VERSION="$(node scripts/lib/dev-version.mjs --base "$BASE" --stamp "$STAMP")"
 PY_VERSION="${BASE}.dev${EPOCH}"
 
 log "Local dev publish — base ${BASE} (targets: ${TARGETS})"
