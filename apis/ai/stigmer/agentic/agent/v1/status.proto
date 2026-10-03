@@ -16,7 +16,7 @@ message AgentStatus {
   string default_instance_id = 1;
 
   // Field 2 held the rotatable share-link token until sharing was promoted
-  // to the first-class AgentShare resource (decision 011); the token now
+  // to the first-class AgentShare resource; the token now
   // lives in AgentShareStatus.share_link_token.
   reserved 2;
   reserved "share_link_token";

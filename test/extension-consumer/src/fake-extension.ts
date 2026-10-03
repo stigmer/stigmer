@@ -763,7 +763,7 @@ const responseDecorator: AgentExecutionResponseDecorator = (
 };
 
 // The factory constructs through deps.createWorker — the ONLY worker
-// construction path the seam offers a consumer (finding 16: a consumer
+// construction path the seam offers a consumer (a consumer
 // importing @temporalio/worker itself pairs the server's connection with
 // a second native bridge and its pollers die at boot). This proof never
 // runs; it pins that the capability's option surface stays sufficient

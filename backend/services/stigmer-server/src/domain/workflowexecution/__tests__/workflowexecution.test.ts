@@ -997,7 +997,7 @@ describe("subscribeEvents over the wire (the first server-side poll loop)", () =
   });
 });
 
-describe("create over the wire (the engine gate, F7 regression)", () => {
+describe("create over the wire (the engine gate)", () => {
   async function seedWorkflow(slug: string): Promise<string> {
     const id = `wf_${slug.replaceAll("-", "_")}`;
     await server.store.saveResource(

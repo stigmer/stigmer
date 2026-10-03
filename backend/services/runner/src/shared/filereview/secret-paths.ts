@@ -1,5 +1,5 @@
 /**
- * The secret-safety gate for CAS capture (design doc 12).
+ * The secret-safety gate for CAS capture.
  *
  * The git substrate never captures gitignored paths, which was an accidental
  * safety property: `.gitignore` is where projects keep secrets (`.env`, private

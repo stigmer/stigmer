@@ -40,12 +40,12 @@ test("a render without secrets.existingSecret is refused with the .env.example s
 test("the reserved Enterprise keys are refused when turned on", () => {
   for (const key of ["openfga", "redis", "openbao"]) {
     const result = helmTemplate("bundled", { sets: [`${key}.enabled=true`] });
-    expectRefusal(result, /Enterprise/, `${key}.enabled=true`);
+    expectRefusal(result, /reserved for Stigmer Enterprise.*leave openfga\/redis\/openbao at enabled: false/s, `${key}.enabled=true`);
   }
   const license = helmTemplate("bundled", {
     sets: ["licenseKeySecret=my-license"],
   });
-  expectRefusal(license, /Enterprise/, "licenseKeySecret");
+  expectRefusal(license, /reserved for Stigmer Enterprise.*licenseKeySecret empty/s, "licenseKeySecret");
 });
 
 test("an unknown top-level values key is refused rather than ignored", () => {

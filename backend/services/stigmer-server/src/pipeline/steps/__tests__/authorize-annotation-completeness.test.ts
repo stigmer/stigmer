@@ -188,7 +188,7 @@ describe("the IamPolicy contract names its targets (read by descriptor)", () => 
     expect(get?.skipsResolution).toBe(false);
   });
 
-  it("listAuthorizedResourceIds carries NO rpc.config and skips — its trust rule is the handler's (finding 7)", () => {
+  it("listAuthorizedResourceIds carries NO rpc.config and skips — its trust rule is the handler's", () => {
     // Read the descriptor directly: `annotationTargets` lists only
     // config-carrying methods, and this one must have left that set.
     const method = IamPolicyQueryController.method.listAuthorizedResourceIds;

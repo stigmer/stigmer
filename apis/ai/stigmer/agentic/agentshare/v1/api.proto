@@ -18,7 +18,7 @@ import "buf/validate/validate.proto";
 // operations.
 //
 // @internal
-// Promoted from Agent.spec.sharing (decision 011): sharing is channel
+// Promoted from Agent.spec.sharing: sharing is channel
 // configuration with its own writer, lifecycle, and — in Phase B — its own
 // billing org per channel. metadata.slug appears in the hosted chat URL,
 // defaults to the referenced agent's slug, and is unique per org.

@@ -415,7 +415,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
         });
 
-        it("an outsider on an EXISTING resource is DENIED, never not-found — the cloud's answer (finding 20 closed)", async () => {
+        it("an outsider on an EXISTING resource is DENIED, never not-found — the cloud's answer", async () => {
           const auth = authorizer();
           expect(
             await auth.authorize(

@@ -177,7 +177,7 @@ export async function captureCandidateToLedger(opts: {
    * Ignored / non-git paths captured this turn (before/after bytes the harness
    * recorded at mutation time). When present, they are stored as content-
    * addressed CAS blobs and composed with the git-tracked changes into ONE
-   * hybrid change set (design doc 11). Omit for a git-only turn — existing
+   * hybrid change set. Omit for a git-only turn — existing
    * callers are unaffected.
    */
   readonly casCaptures?: readonly CasPathCapture[];

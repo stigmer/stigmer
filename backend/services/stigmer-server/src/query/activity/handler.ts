@@ -70,7 +70,7 @@ export const UNTITLED_EXECUTION_SUBJECT = "Untitled execution";
 
 /**
  * Marks a session as runtime-originated. Recents shows personal sessions
- * only (cloud design decision 012): channel conversations, guest/share
+ * only: channel conversations, guest/share
  * sessions, and schedule-triggered sessions are excluded for every caller
  * — each runtime surface owns its own list. Keys match the cloud's
  * RUNTIME_ORIGIN_LABELS exactly; share/guest are cloud-only today but

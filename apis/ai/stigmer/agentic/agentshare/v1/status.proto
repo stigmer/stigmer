@@ -39,7 +39,7 @@ message AgentShareStatus {
   // instead of silently attaching to the new agent.
   //
   // @internal
-  // Server-owned rebind guard (decision 013): agent_ref is org+slug, and
+  // Server-owned rebind guard: agent_ref is org+slug, and
   // slugs are reusable after delete — without the pin, a stale share's
   // audience, link token, and bound credentials would transfer to whatever
   // agent later claims the slug. Stamped once at create (the defaults

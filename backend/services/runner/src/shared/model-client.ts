@@ -134,8 +134,7 @@ export interface BuiltChatModel {
    * The canonical provider API id the registry resolved to — what pricing
    * and usage metrics key on. A backend adapter may translate it for the
    * wire (Vertex separates the snapshot date with `@`), but the translated
-   * form never leaves the adapter: this field stays canonical (the
-   * canonical-id invariant in design decision 001-provider-backends).
+   * form never leaves the adapter: this field stays canonical.
    */
   readonly apiModelId: string;
 }

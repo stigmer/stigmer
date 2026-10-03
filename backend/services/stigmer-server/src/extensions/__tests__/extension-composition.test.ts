@@ -1257,7 +1257,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Agent",
         metadata: {
-          name: "seeded-seeded-agent",
+          name: "seeded-agent",
           org: "seededorg",
           visibility: ApiResourceVisibility.visibility_org,
         },

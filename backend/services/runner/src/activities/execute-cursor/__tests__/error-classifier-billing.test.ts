@@ -105,7 +105,7 @@ describe("error-classifier billing category", () => {
   });
 });
 
-describe("D4 platform attribution of billing errors (proxy mode)", () => {
+describe("platform attribution of billing errors (proxy mode)", () => {
   // The exact message the 2026-08-15 pool-drain incident put in front of a
   // customer: Cursor's team-usage-limit prose relayed raw, telling them to
   // "reach out to an admin" of a Cursor team they cannot see.

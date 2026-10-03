@@ -565,7 +565,7 @@ export class TemporalManager {
       // run() resolves on graceful shutdown and rejects on fatal worker
       // errors; a rejection is logged and left to the health monitor —
       // Go's "worker died, reconnect recreates it" model. ERROR level with
-      // the queue identity, deliberately: a PERMANENT death (finding 16's
+      // the queue identity, deliberately: a PERMANENT death (the
       // dual-module-instance class) re-dies on every recreate while the
       // worker still reports RUNNING — this line is the only signal.
       const runPromise = worker.run().catch((error: unknown) => {

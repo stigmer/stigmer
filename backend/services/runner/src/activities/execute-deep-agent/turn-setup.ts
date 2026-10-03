@@ -190,7 +190,7 @@ export async function openCheckpointer(input: TurnInput, sink: TurnSink, config:
  * (the one root). The platform dir the shared provision ensured rides along so
  * the backend routes `.stigmer/…` reads to it.
  *
- * CAS capture (design docs 08/11/12): the single per-turn observer owns the
+ * CAS capture: the single per-turn observer owns the
  * before-bytes of first-touched CAS-owned paths AND the secret-blocked
  * paths, keyed workspace-root-relative. Shared by the parent AND every
  * sub-agent CAS backend, giving race-free first-touch-wins across

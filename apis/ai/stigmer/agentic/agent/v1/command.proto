@@ -81,7 +81,7 @@ service AgentCommandController {
   // silently rebind a stale share (audience, link token, bound
   // credentials) to whatever agent is later created at that slug, while
   // cascading ANOTHER org's share would make delete a cross-principal
-  // destructive action (decision 013). Cross-org shares instead fail
+  // destructive action. Cross-org shares instead fail
   // closed via the dangling-ref check and the status.agent_id pin; their
   // owning orgs clean up their own rows. Cloud additionally cleans each
   // cascaded child's FGA tuples.

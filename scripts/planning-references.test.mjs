@@ -149,6 +149,9 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
     ["ruling id", "ruled at Q-AB-1"],
     ["finding id", "closes F-12"],
     ["task id", "// @since T13"],
+    ["decision number", "chose it in decision 013"],
+    ["design document number", "per design doc 12"],
+    ["finding number", "as finding 16 showed"],
     ["record stage", "landed in C2 Stage 4"],
     ["private repository reference", "tracked as stigmer-cloud#12"],
     ["entry name", "decided in sp.some-entry"],
@@ -165,7 +168,8 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
   }
   for (const nearMiss of [
     "At 2026-09-30T12:00 the job ran.",
-    "Dates read DD-MM-YYYY, stamps DD-HHmmss.",
+    "Dates read DD-MM-YYYY, DD-MMM-YYYY or DD-MON-YY; stamps DD-HHmmss.",
+    "The model's F-1 score; see stigmer/stigmer#778 finding 3.",
     "return Date.parse(`${day}T00:00:00Z`);",
     "# Stage 1 — sequential prep (tree mutations + shared artifact builds).",
     "RFC 6749 §2.3.1 requires it.",

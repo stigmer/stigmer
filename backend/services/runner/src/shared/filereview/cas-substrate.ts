@@ -42,7 +42,7 @@
  * It is harness-agnostic and wiring-agnostic: it takes explicit before/after
  * bytes, never reads gitignore, never talks to a hook. WHICH paths flow here (vs
  * stay on the deny-gate or block as DIFF_UNREVIEWABLE), and the secret-safety
- * gate (design doc 12), are the harness adapter's concern, applied BEFORE bytes
+ * gate, are the harness adapter's concern, applied BEFORE bytes
  * reach this module. This module never persists a path it is not given.
  */
 
@@ -127,7 +127,7 @@ export interface CasPathCapture {
 }
 
 // ---------------------------------------------------------------------------
-// Key namespace (design doc 08: execution-scoped, reuse existing authz)
+// Key namespace (execution-scoped, reusing the existing authorization)
 // ---------------------------------------------------------------------------
 
 /** The CAS blob key for a content hash, under the execution's artifact prefix. */

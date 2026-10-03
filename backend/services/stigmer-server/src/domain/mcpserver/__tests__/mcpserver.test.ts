@@ -271,7 +271,7 @@ describe("CRUD", () => {
   });
 });
 
-describe("updateVisibility (no conformance coverage for this domain — the D4-disclosed gap)", () => {
+describe("updateVisibility (no conformance coverage for this domain, a known gap)", () => {
   it("flips only metadata.visibility, stamps status_audit, and leaves spec_audit alone (#540)", async () => {
     const created = await command.create(serverInput());
     const updated = await command.updateVisibility({

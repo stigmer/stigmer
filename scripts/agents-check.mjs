@@ -174,8 +174,11 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * private repository may cite (`privateOk`), because a record path carries its
  * id and the cited-path check then proves the record exists. The record-internal
  * ids follow (task files `T01_` and bare tasks `T07` or `T13b`, decisions
- * `DD-012`, `DD-12` or `DD-AB-1`, though never a `DD-MM` date format, rulings
- * `Q-AB-1` or `Q-AB`, findings `F-CD-2` or `F-12`,
+ * `DD-012`, `DD-12` or `DD-AB-1` but never a date format such as `DD-MM`,
+ * `DD-MMM` or `DD-YYYY`, rulings `Q-AB-1` or `Q-AB`, findings `F-CD-2` or
+ * `F-12` but never `F-1` (the F-1 score), the same ids spelled out
+ * (`decision 013`, `design doc 12`, `finding 16`, though a public issue's
+ * `#778 finding 3` is not one),
  * and a short code's stage `C2 Stage 4`): only a holder of the records can
  * resolve them, and they stay findings everywhere. A bare `Stage 3` is not one
  * of them, because a build's own steps are named that way. Last, a private
@@ -189,10 +192,13 @@ export const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },
   { name: "planning-record id", re: /\b20[0-9]{6}\.[0-9]{2}\b/, privateOk: true },
   { name: "task file id", re: /\bT0[0-9]_[0-9]/, privateOk: false },
-  { name: "decision id", re: /\bDD-(?!MM\b|HH)(?:[0-9]{2,3}|[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?)\b/, privateOk: false },
+  { name: "decision id", re: /\bDD-(?!(?:MM|MMM|MON|YY|YYYY)\b|HH)(?:[0-9]{2,3}|[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?)\b/, privateOk: false },
   { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?\b/, privateOk: false },
-  { name: "finding id", re: /\bF-(?:[A-Z][A-Z0-9]*-)?[0-9]+\b/, privateOk: false },
+  { name: "finding id", re: /\bF-(?:[A-Z][A-Z0-9]*-[0-9]+|[0-9]{2,})\b/, privateOk: false },
   { name: "task id", re: /\bT[01][0-9][a-z]?\b(?!:[0-9])/, privateOk: false },
+  { name: "decision number", re: /\b(?:design[- ])?decisions? [0-9]{3}\b/, privateOk: false },
+  { name: "design document number", re: /\bdesign docs? [0-9]{1,3}\b/, privateOk: false },
+  { name: "finding number", re: /(?<!#[0-9]{1,6} )\bfindings? [0-9]+\b/, privateOk: false },
   { name: "record stage", re: /\b[A-Z][0-9]{1,2}[ -](?:[Ss]tage|[Ss]lice)[ -]?[0-9]/, privateOk: false },
   {
     name: "private repository reference",

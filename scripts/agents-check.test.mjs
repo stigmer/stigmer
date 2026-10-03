@@ -283,12 +283,15 @@ test("bare task ids, two-digit decisions, bare rulings and findings, record stag
       "Then at T13b.",
       "See DD-12 and Q-OR.",
       "Then DD-AB-1.",
+      "Per decision 013.",
+      "See design doc 12.",
+      "As finding 16 showed.",
       "Closes F-12.",
       "Shipped in C2 Stage 4.",
       "Tracked as stigmer-cloud#12.",
       // Near-misses: an ISO time, a timestamp, a bare build stage, a standard's
       // section, a public issue.
-      "At 2026-09-30T12:00, `${day}T00:00:00Z`, a DD-MM-YYYY or DD-HHmmss format, Stage 1 of make check, RFC 6749 §2.3.1, #1249 and stigmer#1249 are fine.",
+      "At 2026-09-30T12:00, `${day}T00:00:00Z`, a DD-MM-YYYY, DD-MMM-YYYY, DD-MON-YY or HH:MM DD-YYYY format, an F-1 score, stigmer#778 finding 3, Stage 1 of make check, RFC 6749 §2.3.1, #1249 and stigmer#1249 are fine.",
     ].join("\n"),
   });
   try {
@@ -300,6 +303,9 @@ test("bare task ids, two-digit decisions, bare rulings and findings, record stag
       "decision id in public guidance: DD-12",
       "ruling id in public guidance: Q-OR",
       "decision id in public guidance: DD-AB-1",
+      "decision number in public guidance: decision 013",
+      "design document number in public guidance: design doc 12",
+      "finding number in public guidance: finding 16",
       "finding id in public guidance: F-12",
       "record stage in public guidance: C2 Stage 4",
       "private repository reference in public guidance: stigmer-cloud#12",
@@ -312,6 +318,9 @@ test("bare task ids, two-digit decisions, bare rulings and findings, record stag
         "decision id in public guidance: DD-12",
         "ruling id in public guidance: Q-OR",
         "decision id in public guidance: DD-AB-1",
+        "decision number in public guidance: decision 013",
+        "design document number in public guidance: design doc 12",
+        "finding number in public guidance: finding 16",
         "finding id in public guidance: F-12",
         "record stage in public guidance: C2 Stage 4",
       ],
