@@ -1085,7 +1085,7 @@ const registerBillingService = (router: ConnectRouter): void => {
         .addStep(newValidateProtoStep())
         .build()
         .execute(reqCtx);
-      return create(BillingAccountSchema, { orgId: reqCtx.newState.orgId });
+      return create(BillingAccountSchema, { org: reqCtx.newState.org });
     },
   });
 };
