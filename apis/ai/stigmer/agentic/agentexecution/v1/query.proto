@@ -181,21 +181,21 @@ service AgentExecutionQueryController {
   //
   // Returns aggregated tokens, cost, and per-session breakdown for one
   // organization's executions of the agent. Requires can_view on the
-  // organization named in org_id; executions outside that organization are
+  // organization named in org; executions outside that organization are
   // never included, so the report is the per-agent drill-down of
   // getOrgUsageReport.
   //
   // @internal
   // Org-scoped by design (oss#389). Agent can_view is a consumption
   // permission — public agents grant it to every authenticated account via
-  // the FGA wildcard — so gating on the agent would leak cross-tenant usage.
-  // Gating on the organization also keeps other tenants' sessions of a
+  // the FGA wildcard — so gating on the agent would leak usage across organizations.
+  // Gating on the organization also keeps other organizations' sessions of a
   // shared agent out of the report. Consumed by the CLI (`stigmer usage
   // agent`).
   rpc getAgentUsageReport(GetAgentUsageReportInput) returns (GetAgentUsageReportOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view agent usage report";
   }
 
@@ -205,7 +205,7 @@ service AgentExecutionQueryController {
   rpc getOrgUsageReport(GetOrgUsageReportInput) returns (GetOrgUsageReportOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view organization usage report";
   }
 

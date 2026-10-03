@@ -128,7 +128,7 @@ message MintUserTokenRequest {
   // supported. When set, this value must equal that owning organization;
   // any other value is rejected INVALID_ARGUMENT before the user is
   // resolved or provisioned. When empty, the owning organization applies.
-  string org_id = 6;
+  string org = 6;
 }
 
 // MintUserTokenResponse contains the Stigmer-signed JWT and its metadata.

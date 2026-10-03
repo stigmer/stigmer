@@ -26,7 +26,7 @@ service BillingCommandController {
   rpc getOrCreateBillingAccount(GetOrCreateBillingAccountInput) returns (BillingAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
   }
 
@@ -37,7 +37,7 @@ service BillingCommandController {
   // @internal
   // Checked on platform:stigmer, never on the organization: credit made
   // without a purchase is the platform's decision, and every person owns an
-  // organization. org_id names the wallet; an org with no billing account
+  // organization. org names the wallet; an org with no billing account
   // is NOT_FOUND.
   rpc adjustCredits(AdjustCreditsInput) returns (CreditLedgerEntry) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
@@ -126,7 +126,7 @@ service BillingCommandController {
   rpc createCreditCheckoutSession(CreateCreditCheckoutSessionInput) returns (CreateCreditCheckoutSessionResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to purchase credits for this organization";
   }
 
@@ -138,7 +138,7 @@ service BillingCommandController {
   rpc createBillingPortalSession(CreateBillingPortalSessionInput) returns (CreateBillingPortalSessionResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
   }
 
@@ -154,7 +154,7 @@ service BillingCommandController {
   rpc createPaymentMethodSetupSession(CreatePaymentMethodSetupSessionInput) returns (CreatePaymentMethodSetupSessionResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
   }
 
@@ -166,7 +166,7 @@ service BillingCommandController {
   rpc setAutoRechargeConfig(SetAutoRechargeConfigInput) returns (BillingAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage auto-recharge for this organization";
   }
 

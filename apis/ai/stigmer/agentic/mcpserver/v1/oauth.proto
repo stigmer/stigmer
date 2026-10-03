@@ -8,7 +8,7 @@ package ai.stigmer.agentic.mcpserver.v1;
 // @internal
 // Infrastructure-only. Not a public API resource — no kind, no apiVersion,
 // no CRUD RPCs. Stored in the backend's database, keyed by the composite
-// of (identity_account_id, resource_id, org_id).
+// of (identity_account_id, resource_id, org).
 //
 // The grant is resource-agnostic: currently used for MCP servers, but the
 // data model supports any API resource kind that needs OAuth credentials
@@ -32,7 +32,7 @@ message OAuthGrant {
 
   // System-generated ID (metadata.id) of the API resource this grant
   // provides OAuth tokens for. Part of the composite key:
-  // (identity_account_id, resource_id, org_id).
+  // (identity_account_id, resource_id, org).
   string resource_id = 2;
 
   // When the current access token expires (Unix timestamp seconds).
@@ -73,9 +73,9 @@ message OAuthGrant {
   string resource_kind = 10;
 
   // Organization context for this grant. Part of the composite key:
-  // (identity_account_id, resource_id, org_id). Enables the same user to
+  // (identity_account_id, resource_id, org). Enables the same user to
   // maintain separate OAuth connections for a shared resource across orgs.
-  string org_id = 11;
+  string org = 11;
 }
 
 // OAuthAppOverride binds a specific OAuthApp to an API resource within an
@@ -84,7 +84,7 @@ message OAuthGrant {
 // @internal
 // Infrastructure-only. Not a public API resource — no kind, no apiVersion,
 // no CRUD RPCs. Stored in the backend's database, keyed by the composite
-// of (resource_id, resource_kind, org_id).
+// of (resource_id, resource_kind, org).
 //
 // This is the "Bring Your Own App" (BYOA) binding: it records that org Z
 // wants resource Y to use OAuthApp X instead of the platform default
@@ -98,7 +98,7 @@ message OAuthGrant {
 //   Analogous to OAuthGrant, which maps (user, resource, org) to token metadata.
 //
 // Resolution chain (evaluated at connect time and token refresh):
-//   1. OAuthAppOverride for (resource_id, resource_kind, org_id) — org override
+//   1. OAuthAppOverride for (resource_id, resource_kind, org) — org override
 //   2. McpServerAuth.oauth_app_ref on the resource spec — platform default
 //   3. None — no OAuth app available (manual token or DCR only)
 //
@@ -112,7 +112,7 @@ message OAuthGrant {
 // composite key supports any API resource kind that needs BYOA (e.g., workflows).
 message OAuthAppOverride {
   // System-generated ID (metadata.id) of the API resource this override
-  // applies to. Part of the composite key: (resource_id, resource_kind, org_id).
+  // applies to. Part of the composite key: (resource_id, resource_kind, org).
   string resource_id = 1;
 
   // Kind of the API resource identified by resource_id (e.g., "mcp_server").
@@ -123,7 +123,7 @@ message OAuthAppOverride {
   // Organization that owns this override. Part of the composite key.
   // Different orgs can maintain independent BYOA overrides for the same
   // shared (platform-scoped) resource.
-  string org_id = 3;
+  string org = 3;
 
   // ID of the OAuthApp resource that holds the org's client credentials.
   // Created by the setOrgOAuthApp handler, which clones the platform

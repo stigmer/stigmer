@@ -166,10 +166,11 @@ message IdentityProviderSpec {
     max_len: 200
   }];
 
-  // A requests-per-minute budget that no server enforces.
-  // The value is accepted and stored, and it has no effect on sign-in or on
-  // request rates.
-  int32 rate_limit_budget = 5;
+  // Field 5 held a requests-per-minute budget that no server ever enforced;
+  // it was removed rather than left as a setting that does nothing, and is
+  // reserved so the number and name cannot return with another meaning.
+  reserved 5;
+  reserved "rate_limit_budget";
 
   // OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
   // When Stigmer auto-provisions a federated account from a token that carries

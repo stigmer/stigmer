@@ -960,7 +960,7 @@ message GetAgentUsageReportInput {
   // Organization scope for the report: usage of this agent within this
   // organization. Only executions belonging to this organization are
   // aggregated. The caller must hold can_view on the organization.
-  string org_id = 6 [(buf.validate.field).string.min_len = 1];
+  string org = 6 [(buf.validate.field).string.min_len = 1];
 }
 
 // GetAgentUsageReportOutput returns aggregated usage for an agent.
@@ -1001,7 +1001,7 @@ message GetAgentUsageReportOutput {
 // time range.
 message GetOrgUsageReportInput {
   // Organization ID.
-  string org_id = 1 [(buf.validate.field).string.min_len = 1];
+  string org = 1 [(buf.validate.field).string.min_len = 1];
 
   // Start of time range filter (ISO 8601, inclusive, required).
   // Example: "2026-03-01"
@@ -1018,7 +1018,7 @@ message GetOrgUsageReportInput {
 // and a daily cost trend for capacity planning and budget monitoring.
 message GetOrgUsageReportOutput {
   // Organization identifier.
-  string org_id = 1;
+  string org = 1;
 
   // Total distinct agents with executions in the time range.
   int32 total_agents = 2;

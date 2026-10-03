@@ -180,15 +180,15 @@ service IamPolicyQueryController {
   // - Organization members count badge in navigation
   // - Settings page member summary
   //
-  // Input: GetPrincipalsCountInput with org_id and principal_kind
+  // Input: GetPrincipalsCountInput with org and principal_kind
   // Output: PrincipalsCount with integer count
   //
   // @internal
-  // Authorization: can_view_access on the organization named by org_id.
+  // Authorization: can_view_access on the organization named by org.
   rpc getPrincipalsCount(GetPrincipalsCountInput) returns (PrincipalsCount) {
     option (ai.stigmer.commons.rpc.config).permission = can_view_access;
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view principals count";
   }
 }

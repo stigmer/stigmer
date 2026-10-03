@@ -457,7 +457,7 @@ message LlmCallUsageRecord {
   // Populated at write time by the billing handler.
 
   // Organization that owns this execution.
-  string org_id = 7;
+  string org = 7;
 
   // Session this execution belongs to.
   string session_id = 8;

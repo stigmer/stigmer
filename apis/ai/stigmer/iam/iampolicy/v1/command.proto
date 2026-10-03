@@ -67,7 +67,7 @@ service IamPolicyCommandController {
   // (domain "stigmer.ai"):
   //
   //   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
-  //     the feature. Metadata: feature ("teams"), org_id.
+  //     the feature. Metadata: feature ("teams"), org.
   rpc create(IamPolicySpec) returns (IamPolicy) {
     option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
     option (ai.stigmer.commons.rpc.config).resource_kind_path = "resource.kind";
@@ -215,7 +215,7 @@ service IamPolicyCommandController {
   //
   // @internal
   // The operation:
-  // 1. Validates the input (identity_account_id and organization_id are present)
+  // 1. Validates the input (identity_account_id and org are present)
   // 2. Authorizes caller (can_grant_access on the organization)
   // 3. Revokes the account's policies on the organization itself
   // 4. Revokes the account's policies on resources the organization holds,
@@ -237,12 +237,12 @@ service IamPolicyCommandController {
   // - Removing a member from an organization
   // - Offboarding a user from all org resources in one operation
   //
-  // Input: RevokeOrgAccessInput with identity_account_id and organization_id
+  // Input: RevokeOrgAccessInput with identity_account_id and org
   // Output: Empty (google.protobuf.Empty)
   rpc revokeOrgAccess(RevokeOrgAccessInput) returns (google.protobuf.Empty) {
     option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).field_path = "organization_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to revoke organization access";
   }
 
@@ -278,7 +278,7 @@ service IamPolicyCommandController {
   // End-user member removal must use revokeOrgAccess, which checks
   // can_grant_access on the organization.
   //
-  // Input: RevokeOrgAccessInput with identity_account_id and organization_id
+  // Input: RevokeOrgAccessInput with identity_account_id and org
   // Output: Empty (google.protobuf.Empty)
   rpc bootstrapRevokeOrgAccess(RevokeOrgAccessInput) returns (google.protobuf.Empty) {
     option (ai.stigmer.commons.rpc.config).permission = can_bootstrap_iam;
