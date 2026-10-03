@@ -48,14 +48,9 @@
  * so a fix to the model or the contract fails here until its line is
  * removed.
  *
- * The walk reads the stubs' built `dist`. `make test-server` builds them
- * first; a bare `vitest` run in a checkout whose `dist` is stale reads
- * services the contract no longer has.
+ * The walk over every service is contract-support.ts's, which reads the
+ * stubs' built `dist`: `make test-server` builds them first.
  */
-import { readdirSync } from "node:fs";
-import { createRequire } from "node:module";
-import path from "node:path";
-
 import type { DescService } from "@bufbuild/protobuf";
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -74,6 +69,7 @@ import { IamPermission, IamPermissionSchema } from "@stigmer/protos/ai/stigmer/i
 import { grantableRolesFor, kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { builtInModel } from "../model/index.js";
 import type { Rewrite } from "../model/rewrite.js";
+import { everyService } from "./contract-support.js";
 
 /**
  * Today's disagreements between the contract and the model, each with its
@@ -106,38 +102,6 @@ interface WireQuestion {
   readonly kind: ApiResourceKind;
   readonly kindPath: string;
   readonly permission: string;
-}
-
-/** Every service descriptor the stubs package exports, loaded through its own specifiers. */
-async function everyService(): Promise<ReadonlyArray<DescService>> {
-  const require = createRequire(import.meta.url);
-  const anchor = "ai/stigmer/iam/v1/enum_pb";
-  const resolved = require.resolve(`@stigmer/protos/${anchor}`);
-  const dist = resolved.slice(0, resolved.length - `${anchor}.js`.length);
-  const modules = readdirSync(path.join(dist, "ai"), { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith("_pb.js"))
-    .map((file) => `ai/${file.slice(0, -".js".length).split(path.sep).join("/")}`)
-    .sort();
-  const services: DescService[] = [];
-  for (const specifier of modules) {
-    const loaded: Record<string, unknown> = await import(`@stigmer/protos/${specifier}`);
-    for (const value of Object.values(loaded)) {
-      if (isService(value)) {
-        services.push(value);
-      }
-    }
-  }
-  return services;
-}
-
-function isService(value: unknown): value is DescService {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "kind" in value &&
-    value.kind === "service" &&
-    "methods" in value
-  );
 }
 
 /** The model's relations on a kind, or none when the model does not define it. */
