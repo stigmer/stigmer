@@ -31,8 +31,9 @@
  * minted since 3.15.0), then as the raw issuer subject a key minted
  * before its owner was provisioned carries, so no write over a legacy key
  * mints a raw-subject stamp again. One primary-key read for an
- * account-id stamp, hit or miss; a raw-subject stamp costs a second. No
- * cache. On a hit the caller is the account's principal
+ * account-id stamp, hit or miss (no account carries an `ida_` as its
+ * subject, so no subject read follows a miss); a raw-subject stamp costs
+ * a second. No cache. On a hit the caller is the account's principal
  * (domain/identityaccount/actor.ts `principalOf`): its id, and the email
  * and display name the row carries, the stamp's own filling only what
  * the row leaves empty. A key minted over a session whose token carried

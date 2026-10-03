@@ -71,8 +71,8 @@ export interface CallerIdentity {
   /** The raw presented token, carried for downstream propagation. */
   readonly rawToken: string;
   /**
-   * Optional display identity for the audit-actor seam (O2 ruling Q5, the
-   * ratified DD-007 amendment). A verifier that resolved its caller to an
+   * Optional display identity for the audit-actor seam. A verifier that
+   * resolved its caller to an
    * identity account carries the email and display name the account row
    * holds, its credential's own claims filling only what the row leaves
    * empty (domain/identityaccount/actor.ts `principalOf`); an

@@ -644,8 +644,7 @@ const consumerPrincipalDisplay: PrincipalDisplay = {
  * principalForSubject over the composition's own driver, so a provisioned
  * subject is stamped with its account id and the name its row carries,
  * and an unprovisioned one stays idp-shaped. This is the convergence a
- * composition's own verifier makes instead of restating the rule
- * (20260911.11 S2 slice 3 ruling).
+ * composition's own verifier makes instead of restating the rule.
  */
 const verifier: IdentityVerifier = {
   name: "consumer-fake",

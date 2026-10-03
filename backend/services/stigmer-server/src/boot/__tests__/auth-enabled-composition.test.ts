@@ -28,7 +28,7 @@
  *      provisioning, names the caller on the OIDC lane and through a key
  *      minted from that session; and once that account is deleted, its
  *      key is refused on the very next request;
- *   8. (20260913.02, sp.console-login) the console the server serves is
+ *   8. the console the server serves is
  *      told the posture through /config.json — the issuer and audience
  *      this composition runs under, with the console client id the
  *      operator did NOT register here left empty — and the composition

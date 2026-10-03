@@ -1,7 +1,6 @@
 /**
- * Subject → identity resolution (20260911.11; T01_0_plan.md Q-IA-2,
- * T01_1_review.md A1 and A6): the ONE statement of "which principal does
- * this subject get stamped as", `principalForSubject`, called by a
+ * Subject → identity resolution: the ONE statement of "which principal
+ * does this subject get stamped as", `principalForSubject`, called by a
  * verifier after its own credential checks pass with the subject its
  * credential names (the OIDC lane with the token's `sub`). The principal
  * is the account id with the email and display name the account row
@@ -54,7 +53,9 @@
  * account a `created_by.id` names, read the two ways a stamp has been
  * written — as an account id (rows stamped since 3.15.0) and as the raw
  * issuer subject (rows the 3.14.x verifiers stamped) — in
- * `accountForCaller`'s order. Three lanes make the server act as the
+ * `accountForCaller`'s order, with no subject read for an account-id
+ * stamp the id read missed: no account carries an `ida_` as its subject,
+ * so that read could only miss. Three lanes make the server act as the
  * person a row names: the built-in schedule fire caller (a fire acts as
  * the schedule's creator), the runner-subject verifier (a run credential
  * admits its bearer as the execution's creator) and the API-key verifier
@@ -86,7 +87,7 @@
  * admission. That RPC provisions the DIRECT account of the credential's
  * subject, and a subject names a direct account only when the lane that
  * admitted the caller is one of the platform's own. Every such lane
- * resolves its caller through `identityIdForSubject` and stamps the `user`
+ * resolves its caller through `principalForSubject` and stamps the `user`
  * class, so its caller is either idp-shaped (no account, and the identity
  * is the subject itself) or the direct account of that subject. Anything
  * else was vouched for by another lane: an organization's identity
@@ -204,10 +205,11 @@ export async function accountForStamp(
   if (stamp === "") {
     return undefined;
   }
-  return (
-    (await accounts.findById(stamp)) ??
-    (await accounts.findDirectByIdpId(stamp))
-  );
+  const byId = await accounts.findById(stamp);
+  if (byId !== undefined || isAccountIdShaped(stamp)) {
+    return byId;
+  }
+  return accounts.findDirectByIdpId(stamp);
 }
 
 /**
