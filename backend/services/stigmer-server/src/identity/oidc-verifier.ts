@@ -47,8 +47,9 @@
  * admitted idp-shaped (identityId = sub) so whoAmI can answer NOT_FOUND
  * and provisionMyAccount can run. One primary-key read per request, no
  * cache; a store fault is an infrastructure fault. The issuer is the
- * configured issuer. The standard `email` and `name` claims fill only
- * what the row leaves empty, and are all an unprovisioned caller has:
+ * configured issuer. The standard `email` and `name` claims stand in
+ * only where the row says nothing (actor.ts has the rule), and are all
+ * an unprovisioned caller has:
  * the row is the platform's record, and many issuers put no profile
  * claims in access tokens (Auth0's carry none by default), which left
  * every resource such a person created naming an id and nothing else

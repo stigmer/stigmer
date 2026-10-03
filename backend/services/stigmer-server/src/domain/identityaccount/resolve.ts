@@ -5,7 +5,7 @@
  * credential names (the OIDC lane with the token's `sub`). The principal
  * is the account id with the email and display name the account row
  * carries (actor.ts `principalOf`: the row wins, the credential's own
- * claims fill only what it leaves empty), so a resource a person creates
+ * claims standing in where it says nothing), so a resource a person creates
  * names them, not just their id, however few profile claims their
  * provider puts in an access token (stigmer/stigmer#1226).
  * `identityIdForSubject` is the same read answering the id alone, kept
@@ -125,8 +125,8 @@ export type SubjectPrincipal = Pick<
 
 /**
  * The principal `subject` stands for. A subject with a direct account is
- * that account, with the row's email and display name (`claims` filling
- * only the fields the row leaves empty); a subject without one is
+ * that account, with the row's email and display name (`claims`
+ * standing in where the row says nothing, actor.ts); a subject without one is
  * admitted idp-shaped, as itself with its `claims`. One primary-key read,
  * no cache; faults propagate as they are.
  */

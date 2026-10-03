@@ -332,7 +332,7 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
     });
   });
 
-  it("an account named only by its address stamps the address as its name, the claim filling nothing the row has", async () => {
+  it("an account named only by its address takes the token's name — userinfo gave no first or last name", async () => {
     const accounts = seeded("auth0|plain", "plain@example.com");
     const token = await mintToken({ sub: "auth0|plain", name: "Plain Claim" });
     const identity = await newOidcIdentityVerifier({
@@ -343,7 +343,7 @@ describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
     }).verify(token);
     expect(identity).toMatchObject({
       email: "plain@example.com",
-      displayName: "plain@example.com",
+      displayName: "Plain Claim",
     });
   });
 

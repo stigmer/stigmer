@@ -7,10 +7,12 @@
  *     account's own name, then its email, so the trusted-local operator
  *     reads as the name it configured and a provisioned person as their
  *     provider's name, or their address when the provider gave none;
- *   - `principalOf`: the account id with the row's email and display
- *     name, a credential's claims filling only a field the row leaves
- *     empty, an empty result left out, and a row with no id a loud fault
- *     rather than a `""` principal;
+ *   - `principalOf`: the account id with the row's email and person name
+ *     (first and last), which a credential's claims never override; a
+ *     claimed name comes before the account's own name and email, which
+ *     are labels (a provisioned account is named by its email); an empty
+ *     result left out, and a row with no id a loud fault rather than a
+ *     `""` principal;
  *   - both constructions built on it (`accountAsCaller`,
  *     `accountAsRunnerCaller`) carry the same principal.
  */
@@ -91,16 +93,42 @@ describe("principalOf", () => {
     });
   });
 
-  it("the row wins over a claim, field by field", () => {
+  it("the row's email and person name win over a claim", () => {
     expect(
-      principalOf(account({ email: "ada@example.com", name: "Ada" }), {
-        email: "stale@example.com",
-        displayName: "Stale Name",
-      }),
+      principalOf(
+        account({
+          email: "ada@example.com",
+          firstName: "Ada",
+          lastName: "Lovelace",
+        }),
+        { email: "stale@example.com", displayName: "Stale Name" },
+      ),
     ).toEqual({
       identityId: "ida_ada",
       email: "ada@example.com",
-      displayName: "Ada",
+      displayName: "Ada Lovelace",
+    });
+  });
+
+  it("a claimed name comes before the account's own name and email, which are labels rather than a name", () => {
+    expect(
+      principalOf(
+        account({ email: "ada@example.com", name: "ada@example.com" }),
+        { displayName: "Ada Lovelace" },
+      ),
+    ).toEqual({
+      identityId: "ida_ada",
+      email: "ada@example.com",
+      displayName: "Ada Lovelace",
+    });
+    expect(
+      principalOf(
+        account({ email: "ada@example.com", name: "ada@example.com" }),
+      ),
+    ).toEqual({
+      identityId: "ida_ada",
+      email: "ada@example.com",
+      displayName: "ada@example.com",
     });
   });
 

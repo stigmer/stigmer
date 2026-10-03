@@ -27,17 +27,18 @@
  * The stamp is then resolved to the owner's account through the
  * identity-account domain's `accountForStamp`
  * (domain/identityaccount/resolve.ts), the read the runner-subject and
- * schedule-fire lanes make of a row's creator: by account id (every key
- * minted since 3.15.0), then as the raw issuer subject a key minted
- * before its owner was provisioned carries, so no write over a legacy key
+ * schedule-fire lanes make of a row's creator: by account id (the stamp
+ * of every key a provisioned owner mints), then as the raw issuer subject
+ * a key minted before its owner was provisioned carries, so no write over a legacy key
  * mints a raw-subject stamp again. One primary-key read for an
  * account-id stamp, hit or miss (no account carries an `ida_` as its
  * subject, so no subject read follows a miss); a raw-subject stamp costs
  * a second. No cache. On a hit the caller is the account's principal
  * (domain/identityaccount/actor.ts `principalOf`): its id, and the email
- * and display name the row carries, the stamp's own filling only what
- * the row leaves empty. A key minted over a session whose token carried
- * no profile claims recorded an empty actor, and passing that on left
+ * and display name the row carries, the stamp's own standing in where
+ * the row says nothing (actor.ts has the rule). A key minted over a
+ * session whose token carried no profile claims recorded an empty actor,
+ * and passing that on left
  * every resource created with the key naming an id and nothing else
  * (stigmer/stigmer#1226). The credential checks run first, so a revoked
  * or expired key never reaches the account store.
@@ -50,7 +51,10 @@
  * caller guard, because this is where the owner's row is already read;
  * the hosted edition guarded it one layer up only while open source had
  * no account domain. The refusal is logged with the key's id and the
- * owner's account id, never the token, and records no use. A raw-subject
+ * owner's account id, never the token, and records no use. It holds only
+ * while no account answers for the id: a direct account's id is derived
+ * from its issuer subject, so the same person signing up again brings
+ * the id, and these keys, back (stigmer/stigmer#1771). A raw-subject
  * stamp that names no account is different: its owner has not been
  * provisioned yet, and is admitted idp-shaped exactly as the OIDC lane
  * admits that subject.

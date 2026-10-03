@@ -42,11 +42,16 @@
  * names them the same way whichever credential they presented
  * (stigmer/stigmer#1226). Those lanes also hold what the credential
  * asserted (a token's `email` and `name` claims, the key's creator
- * stamp), and the row wins field by field: the account is the platform's
- * record and survives a profile change at the identity provider, while a
- * claim is one token's snapshot, and many providers mint access tokens
- * with no profile claims at all (Auth0's carry none by default). A claim
- * fills only a field the row leaves empty.
+ * stamp), and the row wins: the account is the platform's record and
+ * survives a profile change at the identity provider, while a claim is
+ * one token's snapshot, and many providers mint access tokens with no
+ * profile claims at all (Auth0's carry none by default). The email is
+ * the row's whenever it has one. The display name is the row's person
+ * name (first and last) whenever it has one; when it has none, the
+ * credential's name comes before the account's own name and email,
+ * which are labels rather than a name: a provisioned account is named
+ * by its email, so on an issuer whose userinfo gives no first or last
+ * name, a real `name` claim would otherwise lose to the address.
  *
  * `accountDisplayName` is the one rule for what a person is called:
  * first and last name, then either alone, then the account's own name,
@@ -98,8 +103,9 @@ export interface DisplayClaims {
 }
 
 /**
- * The account id as principal, with the display identity the row knows;
- * `claims` fill only the fields the row leaves empty.
+ * The account id as principal, with the display identity the row knows:
+ * the row's email, else the claim's; the row's person name, else the
+ * claim's name, else the account's own name, else its email.
  */
 export function principalOf(
   account: IdentityAccount,
@@ -113,8 +119,10 @@ export function principalOf(
   }
   const email = firstNonEmpty(account.spec?.email, claims.email);
   const displayName = firstNonEmpty(
-    accountDisplayName(account),
+    personNameOf(account),
     claims.displayName,
+    account.metadata?.name,
+    account.spec?.email,
   );
   return {
     identityId: accountId,
@@ -125,17 +133,21 @@ export function principalOf(
 
 /** What a person is called: first + last > first > last > the account's name > email. */
 export function accountDisplayName(account: IdentityAccount): string {
+  return firstNonEmpty(
+    personNameOf(account),
+    account.metadata?.name,
+    account.spec?.email,
+  );
+}
+
+/** The person's name the row carries: first + last, or either alone. */
+function personNameOf(account: IdentityAccount): string {
   const firstName = account.spec?.firstName ?? "";
   const lastName = account.spec?.lastName ?? "";
   if (firstName !== "" && lastName !== "") {
     return `${firstName} ${lastName}`;
   }
-  return firstNonEmpty(
-    firstName,
-    lastName,
-    account.metadata?.name,
-    account.spec?.email,
-  );
+  return firstNonEmpty(firstName, lastName);
 }
 
 function firstNonEmpty(...values: ReadonlyArray<string | undefined>): string {
