@@ -45,7 +45,7 @@
  * answer "why can Alice not see this" — and never the token. Allows are
  * silent; they are the common case.
  *
- * Cost, per check (measured at slice 4): the target row (1), the caller's
+ * Cost, per check (as measured): the target row (1), the caller's
  * account (1 primary-key read; 2 for a caller a composition verifier left
  * idp-shaped), the person's IamPolicy rows (1 read of the port, once per
  * source, indexed by principal on the OSS adapter; one more per team the

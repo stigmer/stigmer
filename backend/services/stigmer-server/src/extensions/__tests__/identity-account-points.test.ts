@@ -1,6 +1,6 @@
 /**
  * Pins the two registry points the identity-account domain adds
- * (20260911.11, Q-IA-9), in the O5 driver-point shape the registry already
+ * in the driver-point shape the registry already
  * enforces for organizationDirectory and listReadScope:
  *
  *   - `drivers.identityAccountStore` — the store driver (the cloud serves

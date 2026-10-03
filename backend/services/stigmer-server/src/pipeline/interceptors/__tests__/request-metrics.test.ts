@@ -1,5 +1,5 @@
 /**
- * Pins the request-metrics interceptor (20260909.02, gate rulings Q1–Q5)
+ * Pins the request-metrics interceptor
  * against a REAL MeterProvider (in-memory exporter) through the REAL
  * serving chain over the router transport — Java's
  * GrpcRequestMetricsInterceptor contract, label for label:
@@ -8,7 +8,7 @@
  *     status NAME (`OK`, `NOT_FOUND`, `UNKNOWN` for a raw throw — the
  *     logging interceptor's derivation, INTERNAL on the wire);
  *   - the health service is never measured; an identity refusal at
- *     position 1 is never counted (the paging property ruling Q1 protects);
+ *     position 1 is never counted (the paging property the placement protects);
  *     the in-process chain records nothing;
  *   - a server stream is measured to its END — OK on completion, the
  *     error's code on a mid-stream throw, CANCELLED when the consumer
@@ -114,7 +114,7 @@ interface Handlers {
 /**
  * The serving chain as compose.ts builds it — boundary, identity source
  * (zero verifiers unless `requireAuthentication`), the metrics emitter
- * under test with a hand-advanced clock, then the ratified inner three.
+ * under test with a hand-advanced clock, then the inner three.
  */
 function servingTransport(
   handlers: Handlers,
@@ -293,7 +293,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
     }
   });
 
-  it("does not count an identity refusal — position 1's own record, Java's position (ruling Q1)", async () => {
+  it("does not count an identity refusal — position 1's own record, Java's position", async () => {
     const meter = await inMemoryMeter();
     try {
       const transport = servingTransport({}, fakeClock().now, {
@@ -568,6 +568,6 @@ describe("the rpc-metrics registry", () => {
 });
 
 // Type-level pin: the interceptor is a plain Connect Interceptor, so
-// chain.ts can hold it where the ruling placed it.
+// chain.ts can hold it at its placed position.
 const _typed: Interceptor = createRequestMetricsInterceptor();
 void _typed;

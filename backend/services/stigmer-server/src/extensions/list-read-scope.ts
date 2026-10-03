@@ -1,8 +1,7 @@
 /**
- * The list-read-scope extension point (convergence program, pre-X1 entry
- * 20260830.01.sp.list-read-scoping; generalizes and ABSORBS the C2
- * Stage-4 ExecutionReadScope, whose two summary consumers now ride the
- * enumeration verb below). OSS list-shaped reads — the list/getByAgent
+ * The list-read-scope extension point (it generalizes and ABSORBS the
+ * earlier execution-only read scope, whose two summary consumers now ride
+ * the enumeration verb below). OSS list-shaped reads — the list/getByAgent
  * chains, apikey findAll, search, recent activity, the two dashboard
  * summaries — are deliberate full scans on OSS (single-user: everything
  * is yours). On a multi-tenant edition the same scans serve OTHER
@@ -11,8 +10,8 @@
  * on can_view), with a second guest
  * cookie-label rule on the session and agent-execution lanes.
  *
- * This port is the ONE seam for that fork (DD-007 addendum 3: every
- * list-shaped fork rides a driver; the Authorizer keeps one verb — the
+ * This port is the ONE seam for that fork (every list-shaped fork rides
+ * a driver; the Authorizer keeps one verb — the
  * organizationDirectory precedent, never a second registration of an
  * OSS-served RPC). Two verbs, each with a distinct consumer family:
  *
@@ -28,7 +27,7 @@
  *     and therefore self-limiting: it only bites rows carrying the guest
  *     label, so the uniform call is correct on every lane).
  *
- * The contract, ratified at this entry's plan gate (T01_1_review.md):
+ * The contract:
  *
  *   - No scope composed = the OSS full scan, byte-identical (the four
  *     local conformance rosters pin it; the org argument is then not
@@ -46,7 +45,7 @@
  *   - A scope that cannot answer THROWS — never an empty set. An empty
  *     set is a REAL answer ("authorized to see nothing"); an
  *     authorization-backend outage surfaces as the pipeline's sanitized
- *     INTERNAL, exactly the Java baseline (DD-007: unavailable is never
+ *     INTERNAL, exactly the Java baseline (unavailable is never
  *     softened).
  *   - THE `internal` CLASS IS ANSWERED HERE, NEVER OFFERED TO
  *     `restrictListEntries`. The server acting as itself over the
@@ -69,8 +68,8 @@
  *     reaches `authorizedResourceIds`, and only a scanning driver can
  *     say "all", so that verb's internal arm stays the driver's and is
  *     stated in its doc below.
- *   - THE SCOPE IS THE LAST PER-ROW PREDICATE IN A LANE (stigmer-cloud
- *     20260913.04 T02, Q-LB-11). Every request predicate a lane applies
+ *   - THE SCOPE IS THE LAST PER-ROW PREDICATE IN A LANE. Every request
+ * predicate a lane applies
  *     — the request's org, a phase, labels, a parent id, filter criteria
  *     — is a pure function of one row and the request; the scope is a
  *     pure function of one row and the caller; an intersection of
@@ -91,7 +90,7 @@
  *     and pass `""` too. `apiKey.findAll` has no org on the wire and offers
  *     the kind: a few rows per person.
  *   - A KIND WHOSE AUTHORIZATION IS ITS PARENT'S CARRIES THAT PARENT ON
- *     EVERY CANDIDATE (stigmer-cloud 20260913.04 T04, Q-LB-33..36). When
+ *     EVERY CANDIDATE. When
  *     `kind_meta` declares PARENT scope with INHERITED owner
  *     (`inheritedAuthorizationParentOf`; today agent_execution → session),
  *     the helper fills `ListEntryMeta.authorizationParent` from the row's
@@ -154,7 +153,7 @@ import type {
 export interface ListEntryMeta extends RowAuthorizationFacts {
   readonly labels: Readonly<Record<string, string>>;
   /**
-   * OPTIONAL (added 20260913.04 T04): the parent this row's authorization
+   * OPTIONAL: the parent this row's authorization
    * IS — present only for a kind whose `kind_meta` is PARENT scope with
    * INHERITED owner (the header's contract line), the same
    * `ResolvedParentLink` the tuple lifecycle wrote for the row and one of
@@ -172,7 +171,7 @@ export interface ListReadScope {
    * The resource ids `caller` may read for `kind` (the Java baseline:
    * FGA listAuthorizedResourceIds on can_view). An empty set is a real
    * answer — consumers map it to their lane's empty shape without
-   * touching the store. A scope may throw on a kind it was never ruled
+   * touching the store. A scope may throw on a kind it was never meant
    * to serve (a consumer bug by contract).
    *
    * The `internal` class CAN reach this verb (no helper stands between a
@@ -261,8 +260,9 @@ export interface ScopedListResource {
  *     scope-less server would be a silent wire change);
  *   - scope composed → entries narrowed to `requestOrg` when non-blank
  *     FIRST (the Java repos' uniform posture: blank org =
- *     permission-bounded across orgs, verified per lane in the entry's
- *     census — lanes Java does not org-narrow pass ""), then to the kept
+ *     permission-bounded across orgs, verified per lane in the coverage
+ *     census, docs/authorization-coverage.md — lanes Java does not
+ * org-narrow pass ""), then to the kept
  *     ids. The same set either way (both are per-row predicates); the
  *     order is the header's contract line: the scope sees the org's
  *     rows, not the kind's;

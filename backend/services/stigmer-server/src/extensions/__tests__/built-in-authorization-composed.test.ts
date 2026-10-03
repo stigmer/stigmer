@@ -38,17 +38,16 @@
  *   - a unit's own Authorizer: nothing built in is installed; the unit's
  *     answer stands even against the founder.
  *
- * Written RED at S1 (2026-09-15), before src/authorization/ existed, and
- * turned green by slice 3 (the drivers and the composition root). Every
+ * Written RED on 2026-09-15, before src/authorization/ existed, and
+ * turned green once the drivers and the composition root landed. Every
  * negative assertion sits beside a positive one (the owner's own read and
  * edit succeed) so the file cannot pass vacuously. The per-module proofs
  * (the evaluator, the model tables, the drivers) live in
- * src/authorization/__tests__; this file is the entry's definition of
- * done at the wire.
+ * src/authorization/__tests__; this file is the proof at the wire.
  *
  * Why agents and not sessions: a session create needs an engine and an
  * instance; the blueprint kinds exercise the visibility axis (the
- * `organization#viewer` userset tuple — cloud#257's shape — is written for
+ * `organization#viewer` userset tuple is written for
  * `visibility_org` only) and the admin-edits / member-reads split with no
  * engine. The agent kind defaults unspecified visibility to org
  * (`defaults_to_org_visibility`), so the private arm sets
@@ -728,15 +727,15 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
 });
 
 /**
- * C4 (the plan's claim check): for the sole person on a server, the four
+ * The single-person check: for the sole person on a server, the four
  * enumeration consumers and the restrict lanes answer byte-for-byte what
  * they answered before any scope was composed. Two boots of the OIDC
  * posture on one seed; the only variable is the scope — the built-in one,
  * or a unit's pass-through (every offered id kept, every id enumerated:
- * the branch's own state between slices 3 and 4, and the `??` proving
+ * a unit that keeps everything, and the `??` proving
  * that a unit's driver still wins over the built-in one).
  */
-describe("built-in list scope (C4: two boots, one seed — the scope is the only variable)", () => {
+describe("built-in list scope (two boots, one seed — the scope is the only variable)", () => {
   interface Boot {
     readonly dir: string;
     readonly server: ComposedServer;
@@ -755,7 +754,7 @@ describe("built-in list scope (C4: two boots, one seed — the scope is the only
   const boots: Boot[] = [];
 
   async function boot(scope: ListReadScope | undefined): Promise<Boot> {
-    const dir = mkdtempSync(path.join(tmpdir(), "built-in-list-scope-c4-"));
+    const dir = mkdtempSync(path.join(tmpdir(), "built-in-list-scope-"));
     const unit: ServerExtension = {
       name: "fake-oidc-only",
       requireAuthentication: true,
@@ -786,16 +785,16 @@ describe("built-in list scope (C4: two boots, one seed — the scope is the only
     );
     const agents = createClient(AgentCommandController, founder);
     await agents.create(
-      agentInput("C4 Private Agent", ApiResourceVisibility.visibility_private),
+      agentInput("Scoped Private Agent", ApiResourceVisibility.visibility_private),
     );
     await agents.create(
-      agentInput("C4 Org Agent", ApiResourceVisibility.visibility_org),
+      agentInput("Scoped Org Agent", ApiResourceVisibility.visibility_org),
     );
     await createClient(ApiKeyCommandController, founder).create(
-      apiKeyInput("c4 key"),
+      apiKeyInput("scope key"),
     );
     await createClient(EnvironmentCommandController, founder).create(
-      environmentInput("c4 env"),
+      environmentInput("scope env"),
     );
   }
 
@@ -864,9 +863,9 @@ describe("built-in list scope (C4: two boots, one seed — the scope is the only
     const afterReadout = await readout(after.port);
     expect(afterReadout).toEqual(beforeReadout);
     // Not vacuous: the seed is visible through every lane read.
-    expect(afterReadout.search).toEqual(["C4 Org Agent", "C4 Private Agent"]);
-    expect(afterReadout.keys).toEqual(["c4 key"]);
-    expect(afterReadout.environments).toEqual(["c4 env"]);
+    expect(afterReadout.search).toEqual(["Scoped Org Agent", "Scoped Private Agent"]);
+    expect(afterReadout.keys).toEqual(["scope key"]);
+    expect(afterReadout.environments).toEqual(["scope env"]);
   });
 });
 

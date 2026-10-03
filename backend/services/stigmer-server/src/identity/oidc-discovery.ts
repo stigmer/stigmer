@@ -1,5 +1,5 @@
 /**
- * OIDC issuer discovery (20260911.11, T01_1_review.md A8) — the one
+ * OIDC issuer discovery — the one
  * reader of `/.well-known/openid-configuration`, shared by every lane
  * that needs an issuer's endpoints: the userinfo client (oidc-userinfo.ts)
  * and the identity verifier's JWKS location (oidc-verifier.ts), so one

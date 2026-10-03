@@ -1,5 +1,5 @@
 /**
- * Pins the ListReadScope seam END TO END (20260830.01.sp.list-read-scoping):
+ * Pins the ListReadScope seam END TO END:
  * one composed server with a fake scope extension, probed over the wire —
  * transport → registered handler → the compose.ts driver wiring → the
  * scope. Representative lanes from each consumer family:

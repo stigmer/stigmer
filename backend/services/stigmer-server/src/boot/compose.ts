@@ -1,21 +1,17 @@
 /**
- * The staged composition root (D2 §2, ratified against Go's two-phase
+ * The staged composition root (modelled on Go's two-phase
  * nil-then-inject wiring): plain functions building the graph in
  * dependency order — config → storage → temporal → controllers → routes →
  * listen. Every dependency is a required parameter; a missing one is a
  * compile error or a loud boot throw, NEVER a silent no-op (the Go bug
  * class the inventory flags).
  *
- * Scaffold stage: the storage and temporal stages are seams (src/store/,
- * src/temporal/ — sub-project #4 and the execution cluster fill them); the
- * served surface is the health service and the registry lanes.
- *
  * Boot ordering is contract (Go server.go:739-743, 806, 839-843): health
  * flips SERVING only when wiring is complete, and the port binds AFTER
  * that — the CLI's serverGate TCP probe treats port-bind as readiness.
  * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then drain.
  *
- * Extensions (DD-006, sub-project 20260826.09/O1): the optional
+ * Extensions: the optional
  * `extensions` units resolve FIRST — a bad registry aborts boot before any
  * stage has side effects — and their contributions ride the existing
  * stages (services in the one routes closure, workers on the manager's
@@ -241,8 +237,7 @@ export interface ComposedServer {
    * domain seals and opens with (one facade per composition, the Go
    * one-pointer posture). Exposed for compositions whose extensions run
    * maintenance lanes over stored ciphertext — the secret-convergence
-   * sweep's reencrypt door and the encryption-state census (convergence
-   * 20260830.04 Stage 3, gate ruling G2): a twin facade built from the
+   * sweep's reencrypt door and the encryption-state census: a twin facade built from the
    * same codec map would duplicate KEK caches and silently drift from
    * the boot-resolved write version.
    */
@@ -257,8 +252,8 @@ export interface ComposedServer {
   /**
    * The runner-token service (exposed for boot tests and for the
    * executioncontext decrypt-lane tests, which mint scope-bound tokens
-   * against the SAME key the server verifies with; the platform exchange
-   * RPC — the mint side — lands with its own sub-project).
+   * against the SAME key the server verifies with; the mint side is the
+   * platform controller's getRunnerScopedToken).
    */
   runnerAuthService: RunnerAuthService;
   /**
@@ -277,12 +272,12 @@ export interface ComposedServer {
   /**
    * The in-process router transport — the same routes and interceptor
    * chain as the serving router EXCEPT the position-1 identity source
-   * (DD-002's bufconn shape; O2 ruling Q4: this lane stamps the internal
+   * (Go's bufconn shape: this lane stamps the internal
    * caller class, the serving chain runs the verifier chassis). Exposed
    * because it is the one lane that reaches EVERY registered service,
-   * extension services included (blueprint 20260826.02/03 §8):
+   * extension services included:
    * compositions build clients to their extension services over it, and
-   * the O1 extension suite proves both-router visibility through it.
+   * the extension suite proves both-router visibility through it.
    */
   inProcessTransport: Transport;
   /**
@@ -292,7 +287,8 @@ export interface ComposedServer {
    * through `authenticateBearerToken` (stigmer#991). Exposed rather than
    * rebuilt at the edge because the OSS entries are constructed HERE from
    * the store and the config; an edge that rebuilt the list would drop
-   * them or reorder them, and both are the drift DD-007 rules out.
+   * them or reorder them, and the edge would then authenticate
+   * differently from the server it fronts.
    */
   identityVerifiers: ReadonlyArray<IdentityVerifier>;
   /**
@@ -359,7 +355,7 @@ export async function composeServer(
   const { config, logger } = options;
 
   // Stage: extensions — resolves and validates BEFORE any stage has side
-  // effects (DD-006 §2b: a bad registry is a loud boot throw, never a
+  // effects (a bad registry is a loud boot throw, never a
   // partially-wired server). The empty set resolves to explicit defaults
   // and logs nothing, keeping today's boot output stable.
   const extensions = resolveExtensions(options.extensions);
@@ -371,7 +367,7 @@ export async function composeServer(
   // Stage: storage — the driver selection seam: DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
   // sqlite on DB_PATH (its whole chain, incl. adopting a Go-created
-  // database — D2 §3 schema continuity). Postgres wins when both are set:
+  // database — schema continuity). Postgres wins when both are set:
   // DB_PATH always has a default value, so no other precedence could ever
   // select Postgres (config.ts documents the contract). Either driver
   // opens with the list indexes (list-indexes.ts) and reconciles them
@@ -393,8 +389,8 @@ export async function composeServer(
   }
 
   // The require-authentication posture has two sources OR'd here: the
-  // OSS OIDC issuer (O3 rulings Q1+Q2) and a composed unit's declaration
-  // (registry point, entry 20260904.02). Neither source = the OSS
+  // OSS OIDC issuer and a composed unit's declaration (registry
+  // point). Neither source = the OSS
   // trusted-local posture, byte-identical wire behavior. Resolved in the
   // storage stage because the posture decides a WRITE below (the operator
   // account); the verifier chain it also governs is built at the end.
@@ -451,7 +447,7 @@ export async function composeServer(
 
   // Stage: identity accounts — the first domain whose
   // persistence is a PORT rather than the generic Store. The composed
-  // driver (`drivers.identityAccountStore`, Q-IA-9) serves when a unit
+  // driver (`drivers.identityAccountStore`) serves when a unit
   // registers one; otherwise open source's adapter over `store` installs
   // HERE (the default lives with the consumer, never in the registry).
   // This ONE binding is what the create path, the provisioner, the
@@ -463,11 +459,11 @@ export async function composeServer(
     extensions.drivers.identityAccountStore ??
     newResourceIdentityAccountStore(store);
   // The IamPolicy row half: the store PORT bound the same way
-  // (`drivers.iamPolicyStore`, Q-OR-10; open source's adapter over `store`
+  // (`drivers.iamPolicyStore`; open source's adapter over `store`
   // when absent) and the domain's ONE grant and revoke path built over it.
   // The grant path's lifecycle is the composed DRIVER — the cloud's tuple
   // hooks — never the built-in lifecycle below, which sits ON TOP of the
-  // grant path; that direction keeps the two acyclic (S1 finding B). Both
+  // grant path; that direction keeps the two acyclic. Both
   // bindings are what the IamPolicy controller registers over (routes).
   const iamPolicies =
     extensions.drivers.iamPolicyStore ?? newResourceIamPolicyStore(store);
@@ -485,7 +481,7 @@ export async function composeServer(
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
   });
-  // The C2 tuple-lifecycle driver (ruling Q2): undefined = the three
+  // The tuple-lifecycle driver: undefined = the three
   // shared tuple steps (CreateAuthorizationTuples / CleanupIamPolicies /
   // UpdateVisibilityTuples) no-op before any resolution work — OSS
   // behavior byte-identical. Handed to every resource controller as an
@@ -493,7 +489,7 @@ export async function composeServer(
   const authorizationLifecycle =
     extensions.drivers.resourceAuthorizationLifecycle;
   // The lifecycle the ORGANIZATION and IDENTITY-ACCOUNT controllers get
-  // (20260913.01 slice 4, Q-S4-8): the composed driver when a unit
+  // the composed driver when a unit
   // registers one; otherwise, under the built-in posture, open source's
   // role lifecycle — the organization creator's `owner` row, cleanup on
   // organization and account deletes — the row half of the seam that
@@ -529,7 +525,7 @@ export async function composeServer(
     : undefined;
   // Stage: runner credentials. The concrete service is
   // constructed and exposed UNCONDITIONALLY — its boot-fatal key posture
-  // is the ratified cross-domain invariant, and the boot/EC-decrypt tests
+  // is a cross-domain invariant, and the boot/EC-decrypt tests
   // mint against the server's own key through it. The provider over it is
   // the edition's whole credential story in one object: a composed
   // driver; otherwise, under the built-in authorization posture, open
@@ -556,7 +552,7 @@ export async function composeServer(
   // The ONE composed Authorizer, bound here — after the store,
   // the account port and the IamPolicy port it reads — and handed to every
   // controller as an explicit dependency; the Authorize step at position 1
-  // of every chain calls it (O2). By posture: an extension's registration;
+  // of every chain calls it. By posture: an extension's registration;
   // open source's built-in Authorizer (authorization/authorizer.ts — the
   // cloud's model evaluated over the tuples the row would have had), which
   // checks every caller on the run gate as the person it acts for: a
@@ -653,7 +649,7 @@ export async function composeServer(
     ApiResourceKind.identity_account,
   );
   // ONE issuer discovery for every lane that reads a well-known document
-  // (A8): provisioning's userinfo client here and the OIDC verifier's
+  // provisioning's userinfo client here and the OIDC verifier's
   // JWKS location below share it, so an issuer is discovered once per
   // process and validated the same way wherever it is consumed. Built in
   // this stage, not inside routes() (which runs twice) — the same reason
@@ -661,7 +657,7 @@ export async function composeServer(
   const issuerDiscovery = newIssuerDiscovery();
   // Provisioning reads the caller's profile from the userinfo endpoint of
   // the issuer that vouched for the token, discovered per issuer and
-  // cached (A8) — so a composition whose own verifiers name their issuer
+  // cached — so a composition whose own verifiers name their issuer
   // on the identity needs no knob here.
   const identityAccountProvisioner = newDirectAccountProvisioner({
     accounts: identityAccounts,
@@ -671,7 +667,7 @@ export async function composeServer(
   // Under the trusted-local posture the server knows its one principal
   // from the operator seam (the SAME seam the interceptor stamps callers
   // from — never config directly, so the row and the stamp cannot
-  // disagree; T01_1_review.md A2, A5) and states the fact at boot:
+  // disagree) and states the fact at boot:
   // create-if-absent, so preferences set later survive every reboot. A
   // composition with an authentication posture never creates one — its
   // users provision themselves on first sign-in. A stage that writes a
@@ -715,8 +711,7 @@ export async function composeServer(
     logger.info("built-in posture role reconciliation ensured");
   }
 
-  // Stage: keys — the ratified fail-loud boot ASYMMETRY (D2 cross-domain
-  // invariants; Go server.go:277-293):
+  // Stage: keys — the fail-loud boot ASYMMETRY (Go server.go:277-293):
   //
   //   - Encryption key failure → WARN and continue with a keyless
   //     pass-through v1 codec. Plaintext at rest is tolerable (the write
@@ -725,13 +720,12 @@ export async function composeServer(
   //     by default, so a server that cannot mint runner tokens would hand
   //     every execution redaction markers instead of its secrets — the
   //     exact silent-junk failure the oss#405 fail-loud doctrine forbids.
-  //     (The verify side is live: the executioncontext decrypt lane. The
-  //     mint side — the platform exchange RPC — arrives with its
-  //     sub-project.)
+  //     (The verify side is the executioncontext decrypt lane; the mint
+  //     side is the platform controller's getRunnerScopedToken.)
   //
-  // The versioned-codec seam (20260830.04 Stage 1, ruling Q2): the
-  // built-in v1 codec installs HERE, never in the registry (the
-  // default-lives-with-the-consumer doctrine), and merges with the
+  // The versioned-codec seam: the
+  // built-in v1 codec installs HERE, never in the registry (a default
+  // lives with its consumer), and merges with the
   // extension-registered codecs. The write version resolves FAIL-FAST:
   // naming a version with no codec is a boot throw (deliberately outside
   // the WARN-degrade catch — only the KEY ladder degrades; a
@@ -849,7 +843,7 @@ export async function composeServer(
   }
   // ONE terminal observer instance feeds all three workflow-execution
   // status write sites (the UpdateStatus RPC, the orchestrator's persist
-  // activity, the lifecycle persists) — gate ruling Q3b.
+  // activity, the lifecycle persists).
   const workflowSandboxTerminalObserver = newWorkflowSandboxTerminalObserver(
     sandboxLane,
     logger,
@@ -890,8 +884,8 @@ export async function composeServer(
   // recovery/fallback updates reach externally-connected subscribe
   // streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
-  // The workflowexecution twin (domain-local per that sub-project's
-  // DD-002); #21's activities broadcast through it the same way.
+  // The workflowexecution twin (domain-local); #21's activities
+  // broadcast through it the same way.
   const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
     logger,
   );
@@ -920,7 +914,7 @@ export async function composeServer(
   // Every fire enters the FULL execution create pipeline through the
   // in-process agentexecution client (Go server.go 581: the RunStarter's
   // ExecutionCreator edge). The scheduleFireCaller driver bound in the
-  // identity stage (stigmer-cloud#572; a unit's, or open source's under
+  // identity stage (a unit's, or open source's under
   // the built-in posture), when present, gives each fire its identity —
   // propagated by the creator's asCaller lane.
   const scheduleRunStarter = new RunStarter({
@@ -966,7 +960,7 @@ export async function composeServer(
         // create edge above, resolved lazily for the same boot-ordering
         // reason. The lane's position 1 mints the internal caller class
         // the Authorize step honors, and its handler IS the runner's
-        // updateStatus path, so the composed Authorizer, the O4 status
+        // updateStatus path, so the composed Authorizer, the status
         // hooks, and the broadcast reach the workflow's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
@@ -993,7 +987,7 @@ export async function composeServer(
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,
-      // the Java worker-per-queue split as precedent (blueprint §8).
+      // the Java worker-per-queue split as precedent.
       ...extensions.workers,
     ],
   });
@@ -1018,7 +1012,7 @@ export async function composeServer(
   // The artifact blob store (Go server.go 349: shared by agentexecution
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
-  // boot check. Since O5 the factory consults the composition's registered
+  // boot check. The factory consults the composition's registered
   // drivers for non-built-in types.
   //
   // The download lane's placement (boot/artifact-lane.ts): the configured
@@ -1064,8 +1058,8 @@ export async function composeServer(
   // FailedPrecondition lane-absent arms exist for construction-order
   // safety, and the capability matrix pins skillArtifactTransferLane=true.
   //
-  // Since O5 the store is the skill-domain port over a PER-DOMAIN blob
-  // driver (§6b, Q2/Q2b rulings): skill keeps its own root and its own
+  // The store is the skill-domain port over a PER-DOMAIN blob
+  // driver: skill keeps its own root and its own
   // backend knob (SKILL_ARTIFACT_STORAGE_TYPE), so an r2-configured
   // deployment changes nothing for skill artifacts until it opts in
   // explicitly, and the Go-written skills/ directory keeps serving in
@@ -1113,7 +1107,7 @@ export async function composeServer(
         mode: 0o755,
       });
       // The local presigned-PUT arm rides the skill transfer lane's slot
-      // mechanism (§6b Q1 ruling: one upload surface, no new lane). The
+      // mechanism (one upload surface, no new lane). The
       // slots stage inside THIS driver's root under the domain's staging
       // key, so download(key) reads back what the lane received; the
       // serve URL is the lane's download route, so getSignedUrl renders
@@ -1184,7 +1178,7 @@ export async function composeServer(
       { baseUrl: transferOrigin.baseUrl },
     );
   }
-  // The console lane (lane 4, DD-012): present only when a static export
+  // The console lane (lane 4): present only when a static export
   // is bundled (slim artifacts) or configured (STIGMER_CONSOLE_DIR) —
   // "not bundled" is a modeled state, logged once, with the router
   // behaving exactly as it did before the lane existed.
@@ -1201,8 +1195,8 @@ export async function composeServer(
   // OSS issuer arm of the posture, in the console's vocabulary. A composed
   // unit's own `requireAuthentication` is NOT expressed here — a
   // composition whose verifiers resolve its users serves its console its
-  // own way (the cloud's container does); the Enterprise console story is
-  // P4's. Issuer set but no console client registered is WARN-degrade, the
+  // own way (the cloud's container does). Issuer set but no console
+  // client registered is WARN-degrade, the
   // STIGMER_OAUTH_REDIRECT_URI posture: the CLI and SDKs keep working with
   // API keys, and the served console refuses with copy naming the knob.
   const consoleSignIn: ConsoleSignInPosture = authEnabled
@@ -1231,7 +1225,7 @@ export async function composeServer(
         })
       : undefined;
   // The search read side (#14): the 13-kind extractor registry, the query
-  // store over the driver's index read (OD-3 — no DB() escape hatch), and
+  // store over the driver's index read (no DB() escape hatch), and
   // the CQRS handler. Registry validation is warn-only, Go server.go:509's
   // posture — run ONCE here rather than inside routes(), which executes
   // twice (serving router + in-process router).
@@ -1342,7 +1336,7 @@ export async function composeServer(
   // as one server — Go's single-server bufconn shape. Chain traversal on
   // internal calls is the point: an in-process apply/get is
   // validated, logged, and kind-tagged exactly like an external one — the
-  // one deliberate difference is position 1 (O2): internal calls carry the
+  // one deliberate difference is position 1: internal calls carry the
   // internal caller class, wire calls the verifier chassis's identity.
   //
   // requireInProcess breaks the routes↔clients definition cycle: the lazy
@@ -1358,8 +1352,9 @@ export async function composeServer(
   }
   const routes = (router: ConnectRouter): void => {
     registerHealthService(router, healthState);
-    // The O4 extension points ride the same explicit-deps pattern the
-    // authorizer established: the three slot-hosting domains receive the
+    // The gate-slot and status-hook extension points ride the same
+    // explicit-deps pattern the authorizer established: the three
+    // slot-hosting domains receive the
     // merged gateSteps; agentexecution additionally receives the
     // status-transition hooks (both empty in the no-extension composition).
     registerOrganizationServices(router, {
@@ -1375,8 +1370,8 @@ export async function composeServer(
       authorizationLifecycle: roleLifecycle,
       organizationDirectory,
     });
-    // ApiKey is the first domain born AFTER the Go port (O3, 20260827.06 —
-    // DD-003: the apikey contract is wholly OSS), so it has no Go
+    // ApiKey is the first domain born AFTER the Go port (the apikey
+    // contract is wholly OSS), so it has no Go
     // registration order to mirror; it registers with the tenancy/IAM
     // family at the top. The chassis's apikey VERIFIER shares this
     // domain's lookup module — not the RPC (domain/apikey/lookup.ts).
@@ -1523,7 +1518,7 @@ export async function composeServer(
       // and the registry lanes read — the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
       modelRegistry: modelCatalog,
-      // DD-004's serving seam (C3): undefined = the byte-pinned refusal
+      // The channel runtime seam: undefined = the byte-pinned refusal
       // posture; a composed runtime serves install + write/delete hooks.
       channelRuntime: extensions.drivers.channelRuntime,
     });
@@ -1544,7 +1539,8 @@ export async function composeServer(
     // 417 → 426 → 436). The clock and runner ride constant providers —
     // production wiring always has both (Go SetClock/SetRunner beside the
     // manager); the provider SHAPE exists for embedded/test assemblies
-    // that skip Temporal wiring, where undefined degrades per DD-015 D-A.
+    // that skip Temporal wiring, where undefined degrades to the refusal
+    // the provider models.
     registerScheduleServices(router, {
       store,
       logger,
@@ -1656,11 +1652,11 @@ export async function composeServer(
           requireInProcess().executionContextDeleter,
       },
     });
-    // The whole surface: the CRUD slice (D4 #9) plus the connect/OAuth
-    // slice (D4 #19). All connect deps are wired unconditionally per the
+    // The whole surface: the CRUD slice plus the connect/OAuth
+    // slice. All connect deps are wired unconditionally per the
     // composition-root idiom — engine availability is the modeled state
     // the provider answers at request time, and the managed-env service
-    // has no Temporal dependency (DB-1, sub-project 20260825.02).
+    // has no Temporal dependency.
     registerMcpServerServices(router, {
       store,
       logger,
@@ -1755,8 +1751,8 @@ export async function composeServer(
     });
     // Extension services register after the whole OSS set, inside the ONE
     // routes closure — so the serving router AND the in-process transport
-    // see them by construction (blueprint §2a; DD-002's parity doctrine
-    // extends to extension services unchanged). A registration that would
+    // see them by construction (the two routers serve the same set,
+    // extension services included). A registration that would
     // shadow a route already served is a boot throw (route-shadowing.ts).
     registerExtensionServicesUnshadowed(router, extensions.services);
   };
@@ -1853,8 +1849,8 @@ export async function composeServer(
   // A declared posture whose unit registers no verifier OF ITS OWN is a
   // boot fault, not a running server. The API-key lane alone cannot admit
   // the first caller — minting a key requires an authenticated caller, so
-  // an apikey-only chain locks everyone out forever (O3 ruling Q1's
-  // first-key bootstrap problem, which is why apikey-only mode was
+  // an apikey-only chain locks everyone out forever (the first-key
+  // bootstrap problem, which is why apikey-only mode was
   // deferred). The same class as a misconfigured registry,
   // caught before any side effect.
   if (
@@ -1891,18 +1887,18 @@ export async function composeServer(
     logger,
     routes,
     // The serving chain's position-1 identity source is the verifier
-    // chassis over the composed verifiers (O2; zero verifiers and no
+    // chassis over the composed verifiers (zero verifiers and no
     // declared posture = trusted-local, byte-identical wire behavior)
     // under the resolved require-authentication posture (issuer OR unit
     // declaration, above), followed by the composed caller guards
-    // (20260902.02; zero guards = today's behavior). The in-process
+    // (zero guards = today's behavior). The in-process
     // transport above carries its own
     // position-1 source — the internal caller class only it can mint
-    // (ruling Q4), and NO guards: the in-process exemption is structural
+    // and NO guards: the in-process exemption is structural
     // (caller-guards.ts). The serving-only pair: position 0 is the error
     // boundary — the raw-error conversion net plus the
     // composed visitor sanitizer — and the request-metrics emitter sits
-    // just inside the identity source (20260909.02, Java's position). Both
+    // just inside the identity source (Java's position). Both
     // are SERVING chain only, so in-process hops keep full diagnostics
     // and are never counted as requests, by construction.
     interceptors: buildInterceptorChain(

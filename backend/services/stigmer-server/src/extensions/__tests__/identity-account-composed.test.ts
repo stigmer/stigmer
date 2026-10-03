@@ -1,6 +1,6 @@
 /**
- * Pins the identity-account registry points END TO END (20260911.11
- * Q-IA-9, S2 slice 3): a composed server with a fake unit, probed over the
+ * Pins the identity-account registry points END TO END: a composed server
+ * with a fake unit, probed over the
  * wire — transport → registered handler → the compose.ts wiring → the
  * point. The registry's own merge rules are identity-account-points.test.ts;
  * this file proves compose CONSUMES what the registry resolved, which is
@@ -8,7 +8,7 @@
  *
  * Three composed servers, one per describe, because a unit that registers
  * into a slot the build does not declare makes resolveExtensions throw at
- * boot (the §2b loud-fail contract): the slot gets its own server, so the
+ * boot (the loud-fail contract): the slot gets its own server, so the
  * driver and federation arms stay red for THEIR reasons while the slot is
  * still undeclared.
  *
@@ -35,7 +35,7 @@
  *   (C) the same posture and verifier + the provision slot registered by
  *       two units: first provisioning persists the row THEN fires the gates
  *       with the caller re-stamped as the account; the idempotent second
- *       call fires them again (the backfill Q-IA-9 chose a slot for); an
+ *       call fires them again (the backfill a slot was chosen for); an
  *       in-process create never fires them; a throwing gate fails the
  *       request and the row survives; unit order holds.
  *
@@ -391,7 +391,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
         expect(answer.metadata?.id).toBe(`ida_federated_${name}`);
         // The caller reaches the arm AS STAMPED at position 1: under the
         // trusted-local posture that is the operator's email, not the
-        // operator's account id (Q-IA-3 kept the interceptor unchanged so
+        // operator's account id (the interceptor stays unchanged so
         // the `created_by.id` on every existing self-host resource still
         // names its owner).
         expect(armCalls).toEqual([

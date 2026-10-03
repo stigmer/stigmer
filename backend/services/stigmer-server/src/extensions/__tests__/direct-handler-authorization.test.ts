@@ -1,8 +1,8 @@
 /**
- * Pins the C2 Stage-4 enforcement END TO END for the direct handlers whose
+ * Pins the direct-handler authorization END TO END for the handlers whose
  * domain suites run through full composed servers (session updateSubject,
  * workflow getVersion, artifact delete/getDownloadUrl/getContent, and the
- * channel install pair added at the C2 close-out): one
+ * channel install pair): one
  * composed server with a DENYING extension Authorizer, probed over the
  * wire. This proves the whole path — transport → registered handler →
  * authorizeDirect → the composed Authorizer — not just the handler
@@ -191,7 +191,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("workflow getVersion denies with its annotation copy (the ruled Java-gap divergence)", async () => {
+  it("workflow getVersion denies with its annotation copy (a deliberate divergence from Java)", async () => {
     const query = createClient(WorkflowQueryController, transport);
     await expectDenied(
       () =>
@@ -231,7 +231,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("channel initiateInstall and completeInstall deny with their annotation copy (C2 close-out — the arm both sides deferred)", async () => {
+  it("channel initiateInstall and completeInstall deny with their annotation copy", async () => {
     const command = createClient(AgentChannelCommandController, transport);
     // PermissionDenied — NOT the storing edition's FailedPrecondition —
     // proves the authorization runs before the refuse-or-delegate split.

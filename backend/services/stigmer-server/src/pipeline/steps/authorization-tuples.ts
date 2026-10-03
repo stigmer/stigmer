@@ -1,12 +1,11 @@
 /**
- * Authorization-tuple lifecycle steps — the OSS half of the C2 seam
- * (convergence 20260827.10, ruling Q2). Ports the Java service's
+ * Authorization-tuple lifecycle steps — the OSS half of the
+ * resource-authorization lifecycle seam. Ports the Java service's
  * config-driven tuple machinery: CreateAuthorizationTuplesStepV2 (create
  * chains, post-persist), DeleteOperationCleanupIamPoliciesStep (delete
  * chains, best-effort), and the VisibilityTupleReconciler's level→shape
  * policy with set-diff transitions (updateVisibility chains,
- * post-persist). Verified against the Java sources 2026-08-27; the
- * behavioral inventory lives in the sub-project's T01 records.
+ * post-persist). Verified against the Java sources 2026-08-27.
  *
  * Everything edition-neutral resolves HERE — the kind's proto
  * AuthorizationConfig (via kind_meta, the apiresource-meta idiom),
@@ -66,8 +65,8 @@ import type {
 } from "../../extensions/resource-authorization.js";
 
 /**
- * Fires the driver's default-instance link event (C2 Stage 3 — the
- * default_of invariant). Called by the pointer-persist sites — every
+ * Fires the driver's default-instance link event (the default_of
+ * invariant). Called by the pointer-persist sites — every
  * flow that writes a blueprint's `status.defaultInstanceId` — AFTER the
  * pointer lands, so the tuple exists iff the pointer names the instance.
  * No driver (or a driver without the optional method) = no-op — OSS

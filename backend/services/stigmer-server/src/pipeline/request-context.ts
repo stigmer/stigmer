@@ -13,8 +13,8 @@
  *     the ConnectRPC contextValues (apiResourceKindKey) once and passes it
  *     explicitly — a missing kind is a compile error, not a zero-value
  *     surprise (the composition-root idiom, guidelines §4).
- *   - The CallerIdentity is a REQUIRED constructor parameter (O2, ruling
- *     Q3 — the same doctrine delivered for real): position 1 of every
+ *   - The CallerIdentity is a REQUIRED constructor parameter (the same
+ *     idiom): position 1 of every
  *     chain stamps it, the controller reads it once (callerIdentityOf),
  *     and every construction site that forgets it is a compile error.
  *     The Authorize step and the audit-actor derivation read it here.
@@ -45,7 +45,7 @@ export class RequestContext<Desc extends DescMessage> {
   readonly input: MessageShape<Desc>;
   /** The request's message schema (steps clone/compare through it). */
   readonly schema: Desc;
-  /** The authenticated caller, produced at chain position 1 (O2). */
+  /** The authenticated caller, produced at chain position 1. */
   readonly callerIdentity: CallerIdentity;
   /**
    * The resource kind of the target service (Go: injected by the

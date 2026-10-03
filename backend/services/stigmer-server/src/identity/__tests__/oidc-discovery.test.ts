@@ -1,6 +1,6 @@
 /**
- * Pins the shared OIDC discovery reader (oidc-discovery.ts; 20260911.11
- * A8): the verifier's validation rules kept (issuer must match exactly,
+ * Pins the shared OIDC discovery reader (oidc-discovery.ts): the verifier's
+ * validation rules kept (issuer must match exactly,
  * jwks_uri required), userinfo_endpoint carried when present and absent
  * otherwise, one fetch per issuer after a success, and a failure that is
  * NOT cached so a flaky IdP at boot cannot brick a lane. The fetch is

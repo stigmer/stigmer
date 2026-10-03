@@ -1,6 +1,6 @@
 /**
  * Protovalidate interceptor — chain position 3, the boundary validator
- * (D2 §2; Go registers protovalidateinterceptor on both the unary and
+ * (Go registers protovalidateinterceptor on both the unary and
  * stream chains, pkg/server/server.go:253-254).
  *
  * Every request message is validated against its proto rules BEFORE any

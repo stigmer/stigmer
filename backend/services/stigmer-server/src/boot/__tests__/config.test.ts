@@ -55,7 +55,7 @@ describe("loadConfig", () => {
     expect(loadConfig({ LOG_LEVEL: "" }).logLevel).toBe("info");
   });
 
-  // DD-013 / Phase-2 P4: the loopback default is the retired Go server's
+  // The loopback default is the retired Go server's
   // posture and must survive any future refactor — a changed default would
   // silently expose every bare-metal install's artifact lane.
   it("defaults the artifact file server host to loopback", () => {
@@ -91,7 +91,7 @@ describe("loadConfig", () => {
     ).toBe("https://artifacts.stigmer.test");
   });
 
-  // 20260913.02: the console's public PKCE client
+  // The console's public PKCE client
   // id is lenient on purpose — a CLI-only self-host that set the issuer
   // before this knob existed must keep booting on upgrade, and the served
   // console reports the gap itself.

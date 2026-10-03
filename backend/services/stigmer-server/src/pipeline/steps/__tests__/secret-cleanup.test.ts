@@ -1,6 +1,6 @@
 /**
- * Pins the secret backing-state cleanup contract (convergence 20260830.04
- * Stage 3, gate ruling Q7) at the unit level: the destroyer walks every
+ * Pins the secret backing-state cleanup contract at the unit level: the
+ * destroyer walks every
  * sealed value best-effort — one failure logs ERROR and never interrupts
  * the rest or the request — while plaintext, markers, and blanks are
  * silent no-ops by the facade's own dispatch (the property that keeps the

@@ -1,5 +1,5 @@
 /**
- * The OIDC userinfo client (20260911.11, T01_1_review.md A8) — the
+ * The OIDC userinfo client — the
  * infrastructure behind the identity-account domain's UserInfoClient
  * port (domain/identityaccount/provisioning.ts): the profile of the
  * bearer of an access token, from the `userinfo_endpoint` the token's

@@ -1,12 +1,11 @@
 /**
- * The post-authentication caller-guard seam (convergence entry
- * 20260902.02, gate ruling Q1) — enforcement of the MINTING CLIENT's
+ * The post-authentication caller-guard seam — enforcement of the MINTING CLIENT's
  * contract, run by the serving chassis after the position-1 identity
  * stamp. The TS rendering of the cloud Java
  * PlatformClientEnforcementInterceptor's home: verification says who the
  * caller IS (the IdentityVerifier chain, deliberately token-only); a
  * guard says whether the client that minted the credential may still be
- * served (deletion-revocation liveness, cloud#342; Origin vs
+ * served (deletion-revocation liveness; Origin vs
  * allowed_origins, oss#375). Java separates the two classes the same way.
  *
  * List point — guards concatenate in unit order and run in composed
@@ -30,9 +29,9 @@
  * trusted-local): which tokens a guard exempts (claim-less tokens, the
  * load-bearing token_type skip, health/reflection services) is edition
  * policy, decoded by the guard from CallerIdentity.rawToken — never OSS
- * type widening (the O5 Q4 vocabulary doctrine).
+ * type widening (OSS types never grow an edition's vocabulary).
  *
- * Fault doctrine (the verifier-chain doctrine applied to admission): a
+ * Fault mapping (the verifier chain's rule applied to admission): a
  * guard that REFUSES throws a ConnectError — its own wire mapping, and
  * deliberate-refusal codes pass the position-0 error boundary untouched,
  * so byte-pinned refusal copy survives to the wire. Any other throw is

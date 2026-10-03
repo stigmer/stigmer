@@ -1,7 +1,6 @@
 /**
- * The organization-directory extension point (convergence program C2,
- * 20260827.10; plan-gate ruling Q7). Three organization query behaviors
- * fork between editions — the forks are ratified vocabulary as the
+ * The organization-directory extension point. Three organization query behaviors
+ * fork between editions — the forks are named vocabulary as the
  * conformance capability flags, and this port is their ONE seam:
  *
  *   - `find` (org enumeration; capability `organizationEnumeration`):

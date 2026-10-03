@@ -6,7 +6,7 @@
  *
  * Pinned behaviors:
  *   - protovalidate refuses an invalid Agent BEFORE the handler runs,
- *     with InvalidArgument (D2 §2);
+ *     with InvalidArgument;
  *   - a valid request reaches the handler with the apiresource kind
  *     injected from the service option (interceptor.go parity);
  *   - the logging tiers (grpc lib server.go:295-345): success info,
@@ -77,7 +77,7 @@ function testHarness(handlers: {
       });
     },
     // The serving-shape identity source with zero verifiers — the OSS
-    // default posture (O2): every request resolves to trusted-local.
+    // default posture: every request resolves to trusted-local.
     {
       router: {
         interceptors: buildInterceptorChain(

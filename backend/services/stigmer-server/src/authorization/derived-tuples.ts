@@ -11,7 +11,7 @@
  *   - owner DIRECT:   <row>#owner@identity_account:<creator stamp>
  *   - owner SELF:     <row>#owner@identity_account:<row id>
  *   - creator:        <row>#creator@identity_account:<creator stamp>   (kinds flagged requires_creator_tuple)
- *   - org-viewer:     <row>#viewer@organization:<org>#viewer          (visibility_org; cloud#257's shape)
+ *   - org-viewer:     <row>#viewer@organization:<org>#viewer          (visibility_org)
  *   - platform-viewer: none — it fans out over identity providers, which this edition does not serve: the model defines the type, and no tuple of it is derived here
  *
  * Two facts are this edition's own and are stated here, nowhere else:

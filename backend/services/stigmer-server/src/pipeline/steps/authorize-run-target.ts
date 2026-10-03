@@ -1,6 +1,6 @@
 /**
- * AuthorizeRunTarget — the run gate (P1 sp.run-gate, 2026-09-11;
- * stigmer-cloud#709): may this caller RUN what this record targets?
+ * AuthorizeRunTarget — the run gate (2026-09-11): may this caller RUN what
+ * this record targets?
  *
  * Every create that starts or continues a run names a target — a blueprint
  * (`agent`, `workflow`), an instance (`agent_instance`, `workflow_instance`)
@@ -15,8 +15,8 @@
  * step over a domain extractor). The resolver is a PURE function of the
  * record being built (`ctx.newState`, where the chain's own resolution
  * steps write) that names the target and the domain's byte-pinned deny
- * copy; this step hands it to authorizeResolvedResource — the ratified
- * mid-chain resolved-id form (DD-007; the ListVersions and listByChannel
+ * copy; this step hands it to authorizeResolvedResource — the
+ * mid-chain resolved-id form (the ListVersions and listByChannel
  * precedent) for lanes the position-1 annotation cannot express. A
  * resolver that answers no target makes NO check: the chain's own
  * invariant guards (EnsureSessionOrAgentResolved,

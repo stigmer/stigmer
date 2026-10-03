@@ -1,5 +1,5 @@
 /**
- * Pins the auth-enabled modeled state end to end (O3 rulings Q1+Q2+Q3)
+ * Pins the auth-enabled modeled state end to end
  * through the REAL stack: a composed server with STIGMER_OIDC_ISSUER
  * pointing at a hermetic local issuer, real RS256 tokens, real gRPC.
  *
@@ -7,11 +7,11 @@
  *   1. tokenless requests are UNAUTHENTICATED "authentication token
  *      missing" (the Java copy) — except is_public methods (getServerInfo)
  *      and the gRPC health service by name (a Kubernetes grpc probe;
- *      stigmer#974, entry 20260904.02);
+ *      stigmer#974);
  *   2. an OIDC access token authenticates; the caller's sub becomes the
  *      audit identity on resources it creates;
  *   3. an API key minted over that OIDC session authenticates as its
- *      owning user (the runner's credential lane, ruling Q3 — the runner
+ *      owning user (the runner's credential lane — the runner
  *      presents exactly such a key via STIGMER_TOKEN);
  *   4. deleting the key revokes it on the very next request;
  *   5. garbage credentials keep the Q6 unclaimed-token rejection;
@@ -33,7 +33,7 @@
  *      this composition runs under, with the console client id the
  *      operator did NOT register here left empty — and the composition
  *      root WARNs at wiring time that the served console cannot sign in
- *      (Q-CL-2), the STIGMER_OAUTH_REDIRECT_URI precedent. Proven through
+ *      — the STIGMER_OAUTH_REDIRECT_URI precedent. Proven through
  *      compose.ts with STIGMER_CONSOLE_DIR at a fixture export, not
  *      through the lane alone (handler.test.ts covers that).
  */
@@ -90,7 +90,7 @@ let server: ComposedServer;
 let port: number;
 // A key minted while its owner was still idp-shaped: its creator stamp is
 // the raw sub. The identity-account arms prove that stamp resolves to the
-// owner's account once one exists (20260911.11 A1's derived id).
+// owner's account once one exists (the account's derived id).
 let keyMintedBeforeProvisioning: string;
 // Every WARN the composition root logged while wiring — the console
 // sign-in arm (8) reads it.
@@ -137,7 +137,7 @@ beforeAll(async () => {
   };
   issuerServer = createServer((req, res) => {
     if (req.url === "/.well-known/openid-configuration") {
-      // The provisioning lane reads userinfo_endpoint from here (A8) —
+      // The provisioning lane reads userinfo_endpoint from here —
       // never a guessed `<issuer>/userinfo`.
       res.setHeader("content-type", "application/json");
       res.end(

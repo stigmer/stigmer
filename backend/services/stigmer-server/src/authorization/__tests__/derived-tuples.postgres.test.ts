@@ -12,7 +12,7 @@
  * The second half runs the tuple SOURCE over both store drivers: rows and
  * derived tuples unioned per object, the person's rows read once per
  * source, an absent object answering nothing, a store fault propagating
- * as the fault it is — the ratified store-fault mapping, which is what
+ * as the fault it is — the store-fault mapping, which is what
  * lets the driver above fold it to `unavailable` and never to a denial.
  * Its grants-to-teams arm evaluates the built-in model's Enterprise team
  * type: a grant to a team reaches its members and nobody
@@ -79,7 +79,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
-  it("an org-visible blueprint adds the organization's VIEWER userset (cloud#257's shape, not `#member`)", () => {
+  it("an org-visible blueprint adds the organization's VIEWER userset (not `#member`)", () => {
     expect(
       derivedFor("workflow", {
         visibility: ApiResourceVisibility.visibility_org,
