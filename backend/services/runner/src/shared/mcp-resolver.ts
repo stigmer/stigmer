@@ -114,7 +114,7 @@ export async function resolveMcpServers(
       const serverEnv = filterEnvToDeclaredKeys(
         mcpServer.spec?.env,
         fillPlatformServerAddress(mcpServer, envVars, platformEndpoints),
-        ref.slug,
+        `MCP server '${ref.slug}'`,
       );
       const server = mcpServerToResolved(
         mcpServer,

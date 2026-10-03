@@ -5,9 +5,10 @@
  *
  * Inclusion rule: a name belongs here iff the runner reads it from its own
  * `process.env` to authenticate the runner's own outbound calls. User-supplied
- * credentials resolved from ExecutionContext (e.g. GITHUB_TOKEN, read only
- * from mergedEnvVars) must NEVER be listed — the ExecutionContext overlay is
- * their sanctioned delivery channel, and denying them here would break it.
+ * credentials resolved from ExecutionContext (e.g. GITHUB_TOKEN) must NEVER be
+ * listed: they reach the agent's shell through the overlay of the keys the
+ * agent declares (and a git clone's token), and denying them here would break
+ * that delivery (shell-env.ts shellRunValues).
  *
  * Consumers:
  * - runner-credential-store.ts: captures every name listed in this module
@@ -37,7 +38,8 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // that reads this could forge approval receipts.
   "STIGMER_RUNNER_HITL_SECRET",
   // Stigmer control-plane auth (config.ts; rotated at runtime by
-  // runner-manager.ts). Executions receive theirs via ExecutionContext.
+  // runner-manager.ts). An agent whose shell needs one declares the key and
+  // receives the run's own through the ExecutionContext overlay.
   "STIGMER_TOKEN",
   // Fallback bearer token for model-registry/pricing fetches when
   // STIGMER_TOKEN is unset (registry-endpoint.ts).
