@@ -615,11 +615,14 @@ export { MAX_IN_PLACE_PAUSE_SECONDS as SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS } fr
 // outside a turn (a renewed token).
 export { sandboxTaskQueue } from "./sandbox/naming.js";
 // How a sandbox image's runner is started: a composition's own driver
-// launches the runner with this command, so it moves with the release that
-// names the image.
+// launches the runner with this command, as this user and with this home,
+// so they move with the release that names the image.
 export {
   RUNNER_ENTRY,
+  RUNNER_HOME,
   RUNNER_NODE,
+  RUNNER_START,
+  RUNNER_UID,
   WAITER_ENTRY,
   runnerCommand,
   waiterCommand,

@@ -201,6 +201,9 @@ export const LANES = {
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
       "backend/services/runner/Dockerfile.sandbox",
+      // The runner image's launch command (its CMD): a change to it is a
+      // change to how the runner starts.
+      "backend/services/runner/layer/**",
       // The runner image bundles the slim runner artifact in its build
       // (Dockerfile.sandbox's builder stage runs build:slim), so the
       // bundler, the native-bridge shim it aliases and the attach rule it
@@ -387,6 +390,9 @@ export const LANES = {
       // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
+      // The compose-runner image itself, and the start script its CMD runs.
+      "backend/services/runner/Dockerfile.sandbox",
+      "backend/services/runner/layer/**",
       // The runner image bundles the slim runner artifact in its build
       // (Dockerfile.sandbox's builder stage runs build:slim), so the
       // bundler, the native-bridge shim it aliases and the attach rule it
@@ -538,6 +544,9 @@ export const LANES = {
       // release wrote is still readable after the upgrade.
       "backend/services/stigmer-server/Dockerfile",
       "backend/services/runner/Dockerfile.sandbox",
+      // The runner image's launch command (its CMD): a change to it is a
+      // change to how the runner starts.
+      "backend/services/runner/layer/**",
       // The runner image bundles the slim runner artifact in its build
       // (Dockerfile.sandbox's builder stage runs build:slim), so the
       // bundler, the native-bridge shim it aliases and the attach rule it

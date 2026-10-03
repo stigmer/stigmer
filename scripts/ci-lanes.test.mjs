@@ -98,6 +98,15 @@ test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer 
   assert.ok(selected(["backend/services/runner/Dockerfile.sandbox"]).includes("upgrade-rehearsal"));
 });
 
+test("the runner image's start script runs every lane that boots the compose runner", () => {
+  for (const changed of ["backend/services/runner/layer/start.sh", "backend/services/runner/Dockerfile.sandbox"]) {
+    const lanes = selected([changed]);
+    for (const lane of ["compose-stack", "helm-chart", "upgrade-rehearsal"]) {
+      assert.ok(lanes.includes(lane), `${changed} does not run ${lane}`);
+    }
+  }
+});
+
 test("a lane's own workflow file runs that lane, and the workflow audit", () => {
   // ci.workflows.yaml audits every file under .github, so it runs beside the lane.
   assert.deepEqual(selected([".github/workflows/ci.crate.yaml"]), ["crate", "ts-workspace", "workflows"]);

@@ -6,8 +6,9 @@
 // Dockerfile.sandbox, and its compose-runner stage bakes the same command
 // as its CMD, because compose sets none. The two files live in two
 // packages, so this test reads both and fails when the CMD is not the
-// server's runner command, or when the runner layer does not put the Node
-// and the slim artifact where that command looks for them.
+// server's runner command, or when the runner layer does not put the start
+// script, the Node it execs and the slim artifact where that command looks
+// for them.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -20,7 +21,7 @@ const DOCKERFILE = readFileSync(
   join(ROOT, "backend/services/runner/Dockerfile.sandbox"),
   "utf8",
 );
-const { RUNNER_NODE, RUNNER_ENTRY, runnerCommand } = await import(
+const { RUNNER_START, RUNNER_NODE, RUNNER_ENTRY, runnerCommand } = await import(
   join(ROOT, "backend/services/stigmer-server/src/sandbox/runner-launch.ts")
 );
 
@@ -41,13 +42,15 @@ test("the compose runner's CMD is the server's runner command", () => {
   assert.deepEqual(JSON.parse(cmd[0].replace(/^CMD\s+/, "")), runnerCommand());
 });
 
-test("the runner layer puts the Node and the artifact where the command starts them", () => {
+test("the runner layer puts the start script, the Node and the artifact where the command starts them", () => {
   const copies = stage("runner-layer").filter((line) => /^COPY\s/.test(line));
   const destinations = copies.map((line) => line.trim().split(/\s+/).at(-1));
-  assert.ok(
-    destinations.includes(RUNNER_NODE),
-    `no COPY lands on ${RUNNER_NODE}: ${destinations.join(", ")}`,
-  );
+  for (const path of [RUNNER_START, RUNNER_NODE]) {
+    assert.ok(
+      destinations.includes(path),
+      `no COPY lands on ${path}: ${destinations.join(", ")}`,
+    );
+  }
   assert.ok(
     destinations.includes(`${dirname(RUNNER_ENTRY)}/`),
     `no COPY lands on ${dirname(RUNNER_ENTRY)}/: ${destinations.join(", ")}`,

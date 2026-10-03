@@ -29,7 +29,10 @@ import {
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
 import { SERVER_VERSION } from "../domain/platform/version.js";
-import { SANDBOX_DRIVER_OWNED_RUNNER_ENV } from "../sandbox/provisioner.js";
+import {
+  SANDBOX_CLEARED_RUNNER_ENV,
+  SANDBOX_DRIVER_OWNED_RUNNER_ENV,
+} from "../sandbox/provisioner.js";
 import { RUNNER_SECRET_NAMES } from "../sandbox/runner-secret-names.js";
 
 export interface ServerConfig {
@@ -576,6 +579,8 @@ function defaultArtifactPath(): string {
  * environment variable names, and never one a driver sets itself
  * (SANDBOX_DRIVER_OWNED_RUNNER_ENV and the Temporal connection names): a
  * list must not be able to replace a sandbox's queue, token or endpoints.
+ * Nor one the runner layer clears at start (SANDBOX_CLEARED_RUNNER_ENV),
+ * which would never reach the runner.
  */
 function loadSandboxRunnerEnv(env: NodeJS.ProcessEnv): {
   sandboxRunnerEnv: Readonly<Record<string, string>>;
@@ -623,6 +628,11 @@ function sandboxRunnerList(
     ) {
       throw new Error(
         `${key} lists ${name}, which every sandbox driver sets itself — remove it from the list`,
+      );
+    }
+    if (SANDBOX_CLEARED_RUNNER_ENV.includes(name)) {
+      throw new Error(
+        `${key} lists ${name}, which the runner layer clears when the runner starts, so the runner's Node and the commands its agents run never see it — remove it from the list`,
       );
     }
     const value = env[name];

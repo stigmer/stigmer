@@ -9,8 +9,9 @@
  * the boot on a contradiction, and its own suite pins each rule; here the
  * config only has to carry its result. The sandbox runner lists are a
  * second exception, pinned below: a listed variable the server does not
- * have, a name on both lists, a runner secret on the plain list, or a name
- * a driver sets itself fails the boot.
+ * have, a name on both lists, a runner secret on the plain list, a name
+ * a driver sets itself, or a Node setting the runner layer clears at start
+ * fails the boot.
  */
 import { describe, expect, it } from "vitest";
 
@@ -267,10 +268,20 @@ describe("loadConfig", () => {
       expect(() => loadConfig({ STIGMER_SANDBOX_RUNNER_ENV: "ANTHROPIC_API_KEY", ANTHROPIC_API_KEY: "sk" })).toThrow(
         /one of the runner's secrets/,
       );
-      for (const owned of ["STIGMER_TOKEN", "STIGMER_TASK_QUEUE", "STIGMER_TEMPORAL_API_KEY"]) {
+      for (const owned of ["STIGMER_TOKEN", "STIGMER_TASK_QUEUE", "STIGMER_TEMPORAL_API_KEY", "HOME"]) {
         expect(() => loadConfig({ STIGMER_SANDBOX_RUNNER_SECRETS: owned, [owned]: "x" })).toThrow(
           /every sandbox driver sets itself/,
         );
+      }
+    });
+
+    it("fail the boot on a Node setting the runner layer clears at start, rather than drop it", () => {
+      for (const cleared of ["NODE_OPTIONS", "NODE_PATH"]) {
+        for (const list of ["STIGMER_SANDBOX_RUNNER_ENV", "STIGMER_SANDBOX_RUNNER_SECRETS"]) {
+          expect(() => loadConfig({ [list]: cleared, [cleared]: "--max-old-space-size=4096" })).toThrow(
+            `${list} lists ${cleared}, which the runner layer clears when the runner starts, so the runner's Node and the commands its agents run never see it — remove it from the list`,
+          );
+        }
       }
     });
   });

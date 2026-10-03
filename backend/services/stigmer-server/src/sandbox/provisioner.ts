@@ -243,8 +243,22 @@ export const SANDBOX_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
   "TEMPORAL_SERVICE_ADDRESS",
   "TEMPORAL_NAMESPACE",
   "WORKSPACE_ROOT_DIR",
+  "HOME",
   "STIGMER_ATTACH_PORT",
   "STIGMER_SANDBOX_NAME_FILE",
+];
+
+/**
+ * The runner variables the runner layer's start script unsets before it
+ * starts the runner's Node (backend/services/runner/layer/start.sh), so
+ * neither the runner nor the commands its agents run inherit a base
+ * image's Node settings. No driver sets them, and a value listed for one
+ * would never arrive, so the operator's runner lists refuse them at boot
+ * rather than drop them in silence.
+ */
+export const SANDBOX_CLEARED_RUNNER_ENV: readonly string[] = [
+  "NODE_OPTIONS",
+  "NODE_PATH",
 ];
 
 /** Constructs a driver. Factories, not instances — an unselected driver constructs nothing. */

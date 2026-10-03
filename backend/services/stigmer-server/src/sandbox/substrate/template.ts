@@ -29,13 +29,18 @@
  * A template whose snapshot failed (a terminal error on its status) is
  * deleted and created once more per process; after that its error is
  * thrown into every ensure until the operator fixes the cause.
+ *
+ * The runner's HOME is set here, as every driver sets it (runner-launch.ts).
+ * Its user is not: Substrate's container carries no user or working
+ * directory, so the base image's own USER decides, and the layer's start
+ * script refuses one that is not root.
  */
 import { createHash } from "node:crypto";
 
 import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
-import { waiterCommand } from "../runner-launch.js";
+import { RUNNER_HOME, waiterCommand } from "../runner-launch.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import {
   ActorMetadataField,
@@ -112,6 +117,7 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
     TEMPORAL_SERVICE_ADDRESS: config.temporalAddress,
     TEMPORAL_NAMESPACE: config.temporalNamespace,
     WORKSPACE_ROOT_DIR: WORKSPACE_MOUNT_PATH,
+    HOME: RUNNER_HOME,
     STIGMER_ATTACH_PORT: String(WAITER_PORT),
     STIGMER_SANDBOX_NAME_FILE: `${SYSTEM_INFO_MOUNT_PATH}/${ACTOR_NAME_FILE}`,
   };
