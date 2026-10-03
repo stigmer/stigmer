@@ -13,7 +13,8 @@
  * with a resolve hook and refuses any module of the runner proper or of
  * `@temporalio`: the snapshot holds this process, so it must stay small (the
  * same rule `src/attach/__tests__/import-graph.test.ts` pins on the source).
- * Needs `npm run build` first and Node 22.15 or later (`module.registerHooks`);
+ * Needs `npm run build` first and a Node with `module.registerHooks` (22.15+ on
+ * 22.x, 23.5+ on 23.x; the repository's `.nvmrc` has it);
  * runs in about a second.
  */
 
@@ -45,7 +46,7 @@ const graphCheck = spawnSync(process.execPath, ["--input-type=module", "-e", `
   console.log(JSON.stringify(seen));
 `], { encoding: "utf8" });
 if (graphCheck.status !== 0) fail(`loading the entry's module graph failed:\n${graphCheck.stderr}`);
-if (graphCheck.stdout.trim() === "NO_HOOKS") fail("this Node has no module.registerHooks; run it on Node 22.15 or later (.nvmrc)");
+if (graphCheck.stdout.trim() === "NO_HOOKS") fail("this Node has no module.registerHooks (it arrived in 22.15 on 22.x and 23.5 on 23.x); run it on the repository's .nvmrc Node");
 const loaded = JSON.parse(graphCheck.stdout);
 const heavy = loaded.filter((url) => /@temporalio|\/dist\/(main|runner|runner-manager|worker)\.js$|\/dist\/(harness|activities)\//.test(url));
 if (heavy.length > 0) fail(`the attach entry loads modules a snapshot must not hold:\n${heavy.join("\n")}`);

@@ -28,8 +28,8 @@ import { onlyTokenRotated, startAttachWaiter, type AttachWaiter, type RunnerSpaw
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
 
-// Records its environment under OUT_DIR as <pid>.json, then either exits at
-// once (EXIT_AT_ONCE, a crashing runner) or stays until SIGTERM, logging it.
+// Records its environment under OUT_DIR as <pid>.json, then stays until
+// SIGTERM, logging it.
 const FAKE_RUNNER = `
 const { writeFileSync, appendFileSync } = require("node:fs");
 const { join } = require("node:path");
@@ -38,7 +38,6 @@ writeFileSync(join(process.env.OUT_DIR, process.pid + ".json"), JSON.stringify({
   queue: pick("STIGMER_TASK_QUEUE"), token: pick("STIGMER_TOKEN"), key: pick("STIGMER_PAYLOAD_ENCRYPTION_KEY"),
   base: pick("TEMPLATE_VALUE"), port: pick("STIGMER_ATTACH_PORT"), nameFile: pick("STIGMER_SANDBOX_NAME_FILE"),
 }));
-if (process.env.EXIT_AT_ONCE === "1") process.exit(3);
 process.on("SIGTERM", () => { appendFileSync(join(process.env.OUT_DIR, "sigterm.log"), process.pid + "\\n"); process.exit(0); });
 setInterval(() => {}, 1 << 30);
 `;
@@ -167,12 +166,30 @@ describe("attach waiter", () => {
   });
 
   it("backs off a runner that dies at once instead of spinning", async () => {
-    const w = await start({ EXIT_AT_ONCE: "1" });
-    await push(w, { taskQueue: SESSION_QUEUE, secrets: {} });
-    await new Promise((r) => setTimeout(r, 700));
-    // 50, 100, 200, 200 ms delays: a handful of starts, never dozens.
-    expect(started().length).toBeGreaterThanOrEqual(2);
-    expect(started().length).toBeLessThanOrEqual(6);
+    // A stand-in that exits as soon as it starts; only the gaps between
+    // starts are asserted, as lower bounds, since a timer never fires early.
+    const startedAt: number[] = [];
+    const dying: RunnerSpawner = () => {
+      startedAt.push(Date.now());
+      const fake = new EventEmitter() as unknown as ChildProcess;
+      setImmediate(() => fake.emit("exit", 3, null));
+      return fake;
+    };
+    waiter = await startAttachWaiter({
+      port: 0,
+      readSandboxName: () => SESSION_SANDBOX,
+      runnerEntry: entry,
+      baseEnv: {},
+      spawnRunner: dying,
+      restartDelayMs: 50,
+      maxRestartDelayMs: 200,
+      log: () => {},
+    });
+    await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} });
+    await until(() => startedAt.length >= 5);
+    const gaps = startedAt.slice(1, 5).map((t, i) => t - startedAt[i]!);
+    // 50, 100, 200, then held at the 200 ms cap.
+    [50, 100, 200, 200].forEach((floor, i) => expect(gaps[i]).toBeGreaterThanOrEqual(floor - 5));
   });
 
   it("starts nothing for another sandbox's queue, a malformed push or a wrong method", async () => {
