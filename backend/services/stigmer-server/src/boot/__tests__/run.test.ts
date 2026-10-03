@@ -173,6 +173,23 @@ describe("runServer", () => {
     expect(host.stdout).toEqual([]);
   });
 
+  it("the real host registers its signal handlers and exits through the process", () => {
+    const on = vi.spyOn(process, "on").mockImplementation(() => process);
+    const exit = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => undefined) as never);
+    try {
+      const handler = (): void => {};
+      nodeProcessHost.onSignal("SIGTERM", handler);
+      nodeProcessHost.exit(3);
+      expect(on).toHaveBeenCalledWith("SIGTERM", handler);
+      expect(exit).toHaveBeenCalledWith(3);
+    } finally {
+      on.mockRestore();
+      exit.mockRestore();
+    }
+  });
+
   it("the real host writes the ready line to the process's stdout", () => {
     const write = vi
       .spyOn(process.stdout, "write")

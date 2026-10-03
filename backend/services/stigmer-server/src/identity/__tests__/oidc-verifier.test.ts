@@ -214,6 +214,13 @@ describe("identity mapping", () => {
     const error = await rejectionOf(verifier().verify(token));
     expect(ConnectError.from(error).rawMessage).toBe(INVALID_TOKEN_MESSAGE);
   });
+
+  it("a sub in the trusted-local operator's namespace (local|…) is invalid: no issuer may claim the laptop's principal", async () => {
+    const token = await mintToken({ sub: "local|system" });
+    const error = await rejectionOf(verifier().verify(token));
+    expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
+    expect(ConnectError.from(error).rawMessage).toBe(INVALID_TOKEN_MESSAGE);
+  });
 });
 
 describe("the byte-pinned classifyAuthError arms", () => {

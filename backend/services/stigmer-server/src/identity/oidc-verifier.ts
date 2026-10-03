@@ -40,8 +40,11 @@
  * rejection (an unavailable dependency is never read as a refusal).
  *
  * Identity (the cloud's direct-login posture):
- * after the token verifies, `sub` (rejected as invalid when absent) is
- * resolved through the identity-account domain (principalForSubject):
+ * after the token verifies, `sub` (rejected as invalid when absent, and
+ * when it names the trusted-local operator's own namespace `local|…`,
+ * which no issuer may claim: the membership rules read that prefix as the
+ * laptop's one principal) is resolved through the identity-account domain
+ * (principalForSubject):
  * a subject with a direct account stamps the ACCOUNT id with the email
  * and display name the account row carries; a subject without one is
  * admitted idp-shaped (identityId = sub) so whoAmI can answer NOT_FOUND
@@ -65,6 +68,7 @@ import {
 import type { JWTPayload } from "jose";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { LOCAL_IDP_ID_PREFIX } from "../domain/identityaccount/constants.js";
 import { principalForSubject } from "../domain/identityaccount/resolve.js";
 import type { AccountsBySubject } from "../domain/identityaccount/resolve.js";
 import type {
@@ -128,7 +132,11 @@ export function newOidcIdentityVerifier(
       } catch (error) {
         throw classifyJoseError(error);
       }
-      if (typeof payload.sub !== "string" || payload.sub === "") {
+      if (
+        typeof payload.sub !== "string" ||
+        payload.sub === "" ||
+        payload.sub.startsWith(LOCAL_IDP_ID_PREFIX)
+      ) {
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
       return {

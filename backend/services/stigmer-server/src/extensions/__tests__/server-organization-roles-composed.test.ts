@@ -27,7 +27,9 @@
  * made it.
  *
  * And a sign-in install upgraded with its one organization: a member an
- * admin removed before the upgrade stays removed after it. Only a store the
+ * admin removed before the upgrade stays removed after it, and an operator
+ * who signed in before it keeps the admin role they had (no role changes at
+ * boot; one who first signs in after the upgrade owns it). Only a store the
  * server made its organization on owes its people their roles.
  *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
@@ -57,6 +59,10 @@ import type { ComposedServer } from "../../boot/compose.js";
 import { SERVER_ORGANIZATION_ROLES_KEY } from "../../domain/iampolicy/constants.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { SINGLE_ORG_KEY } from "../../domain/organization/limit.js";
+import {
+  resetOperatorIdentityForTests,
+  setOperatorIdentity,
+} from "../../pipeline/steps/defaults.js";
 import type { Store } from "../../store/interface.js";
 import type { ServerExtension } from "../registry.js";
 import {
@@ -377,5 +383,74 @@ describe("a sign-in install upgraded with its one organization (composed server,
     expect(await rolesIn(server.store)).toEqual([
       `${firstId()}:owner@acme|by:${firstId()}`,
     ]);
+  });
+});
+
+describe("a sign-in install with an operator email, upgraded with its one organization (composed server)", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let port: number;
+  const OPERATOR = "fake|operator";
+  const operatorId = (): string => accountIdFor(OPERATOR);
+
+  const anyNumber: ServerExtension = {
+    name: "fake-oidc-only",
+    requireAuthentication: true,
+    identityVerifiers: [fakeVerifier],
+  };
+
+  async function boot(unit: ServerExtension): Promise<void> {
+    server = await composeServer({
+      config: loadConfig(baseConfig(dir)),
+      logger: silentLogger,
+      extensions: [unit],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+  }
+
+  beforeAll(async () => {
+    setOperatorIdentity("operator@example.com", "Operator");
+    dir = mkdtempSync(path.join(tmpdir(), "upgraded-operator-"));
+    await boot(anyNumber);
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    resetOperatorIdentityForTests();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("an operator who signed in before the upgrade keeps admin; nothing is changed at boot", async () => {
+    const asFounder = () =>
+      transportFor(port, fakeJwt(FIRST, "first@example.com"));
+    await createClient(
+      IdentityAccountCommandController,
+      asFounder(),
+    ).provisionMyAccount({});
+    await createClient(OrganizationCommandController, asFounder()).create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: "acme", slug: "acme", org: "" },
+      spec: { description: "founded under sign-in" },
+    });
+    await createClient(
+      IdentityAccountCommandController,
+      transportFor(port, fakeJwt(OPERATOR, "operator@example.com")),
+    ).provisionMyAccount({});
+    const before = await rolesIn(server.store);
+    expect(before).toEqual(
+      [
+        `${firstId()}:owner@acme|by:${firstId()}`,
+        `${operatorId()}:admin@acme|by:${operatorId()}`,
+      ].sort(),
+    );
+    await server.shutdown();
+
+    await boot({ ...anyNumber, orgLimit: 1 });
+
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("acme");
+    expect(await rolesIn(server.store)).toEqual(before);
   });
 });
