@@ -19,8 +19,6 @@ export interface UseWorkflowDashboardSummaryOptions {
   /**
    * When set, scopes the summary to executions of this workflow only.
    * When omitted, aggregates across all workflows in the organization.
-   *
-   * @since T12 (Overview Page Redesign)
    */
   readonly workflowId?: string;
   /** Refetch interval in milliseconds. `0` or `false` disables. @default 0 */

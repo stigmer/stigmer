@@ -1,5 +1,5 @@
 // Conformance suite for the semantic memory retriever WITH an embedder present
-// (stigmer/stigmer#293 Phase 3a, DD-008) — the selection-active posture.
+// (stigmer/stigmer#293 Phase 3) — the selection-active posture.
 // Domain: agentic / agentexecution — the runner-side selection of recalled
 // memories, observed through the RecalledMemoriesReport on execution status
 // and through the one embeddings call the retriever makes.
@@ -8,19 +8,18 @@
 // posture (the mock fences the OpenAI path, the retriever degrades to wholesale
 // with an honest report). This file flips the mock's embeddings posture on
 // (MockLlmProxy.serveEmbeddings, computed vectors — header of mock-llm.ts) and
-// pins the other half of DD-008: at the activation threshold the retriever
-// injects wholesale and never calls the embedder; above it, it makes exactly
-// ONE batched embeddings call (the query first, then every candidate in
-// snapshot order), ranks by cosine, and injects the top k — which under the
-// mock's deterministic vectors is exactly the first k facts of the snapshot,
-// in order. Both editions run the same runner, so the property is
+// pins the other half of the retriever's contract: at the activation threshold
+// the retriever injects wholesale and never calls the embedder; above it, it
+// makes exactly ONE batched embeddings call (the query first, then every
+// candidate in snapshot order), ranks by cosine, and injects the top k — which
+// under the mock's deterministic vectors is exactly the first k facts of the
+// snapshot, in order. Both editions run the same runner, so the property is
 // edition-neutral; the capability gate is on SEEDING memories, which only the
 // first-party capture lane can do (targets/target.ts firstPartyMemoryCapture).
 //
-// DD-001 of entry 20260910.02; replaces the two embedder-posture subtests of
-// the Go offline suite's memory_retrieval_offline_test.go (rows 65–66). The
-// opted-out-member subtest is cloud IAM vocabulary and is covered there
-// (ruling 5).
+// Replaces the two embedder-posture subtests of the Go offline suite's
+// memory_retrieval_offline_test.go. The opted-out-member subtest is cloud IAM
+// vocabulary and is covered there.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";

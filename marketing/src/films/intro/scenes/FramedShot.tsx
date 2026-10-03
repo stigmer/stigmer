@@ -6,12 +6,11 @@ import { theme } from "../../../theme";
 import { EASE_GRAND, enter, exitFade } from "../graphics/motion";
 
 /**
- * The film's product-shot treatment (rough-cut gate, 2026-09-02): product
- * beats sit as a rounded window on a soft brand backdrop instead of
- * full-bleed — the Linear register the owner asked for. FramedShot also
- * hosts the camera rig (manifest `camera` keyframes) and spotlights
- * (manifest `spotlights`), so every "look here" gesture is editorial data
- * composited in one place.
+ * The film's product-shot treatment: product beats sit as a rounded
+ * window on a soft brand backdrop instead of full-bleed, in Linear's
+ * register. FramedShot also hosts the camera rig (manifest `camera`
+ * keyframes) and spotlights (manifest `spotlights`), so every "look here"
+ * gesture is editorial data composited in one place.
  */
 
 /** How much of the frame the product window occupies. */

@@ -152,7 +152,7 @@ export {
 export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
 
 // Session facet components — the panel's rail views (Config et al.), also
-// independently importable (DD-003).
+// independently importable.
 export { SetupTab } from "./facets/index.js";
 export type {
   SetupTabProps,

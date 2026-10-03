@@ -107,7 +107,7 @@ describe("MemoryListPanel", () => {
     );
 
     // The review surface never paraphrases: what is confirmed is what
-    // future prompts inject, byte for byte (DD-005 D6).
+    // future prompts inject, byte for byte.
     await waitFor(() =>
       expect(screen.getByText("Prefers terse answers.")).toBeTruthy(),
     );
@@ -152,7 +152,7 @@ describe("MemoryListPanel", () => {
       screen.getByRole("button", { name: /Reject memory: Prefers terse answers./ }),
     );
 
-    // One click, straight to the RPC (DD-005 D4): expensive review
+    // One click, straight to the RPC: expensive review
     // teaches users to ignore the queue.
     await waitFor(() => expect(client.memory.reject).toHaveBeenCalledWith("mem_proposed"));
   });

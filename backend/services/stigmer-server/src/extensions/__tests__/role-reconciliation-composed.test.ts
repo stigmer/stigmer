@@ -8,7 +8,7 @@
  * Three boots over ONE data directory, the shape proven by behaviour over
  * real boots:
  *   1. A fresh server: the founder provisions and founds an organization
- *      (the owner row, 2b's lifecycle), the member provisions afterwards
+ *      (the owner row, the role lifecycle), the member provisions afterwards
  *      (the member row, the hook). Then the 3.15.x shape is made
  *      literally on the store the server used: every role row deleted and
  *      the reconciliation marker deleted. Accounts, organization and

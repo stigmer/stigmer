@@ -17,7 +17,8 @@
  * traffic is POST on service-qualified paths, and OPTIONS preflights keep
  * flowing to the RPC lane's CORS handling — and it never claims:
  *   - `/v1/*`: the registry/skill lanes' namespace; unknown paths there
- *     must keep reaching the adapter's 404 (the CW-10 pinned contract).
+ *     must keep reaching the adapter's 404 (the contract the registry-proxy
+ *     conformance suite pins).
  *   - service-shaped paths (`/<package.Service>/<Method>` — exactly two
  *     segments with a dotted first): even though no RPC answers GET today
  *     (zero no_side_effects methods), the adapter must stay the authority

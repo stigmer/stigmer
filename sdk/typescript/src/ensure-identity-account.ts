@@ -2,7 +2,7 @@
  * The first-sign-in flow, once: make sure the authenticated caller has an
  * identity account, creating it if this is the first time they arrive.
  *
- * Every edition serves `IdentityAccount` from one controller (20260911.11),
+ * Every edition serves `IdentityAccount` from one controller,
  * and every surface that greets a signed-in person runs the same two-step
  * flow — the console's `useIdentityAccountGate` (`@stigmer/react`), the
  * CLI's `auth login` and `auth whoami`, and any platform builder's own

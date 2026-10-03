@@ -95,11 +95,11 @@ const MIN_FOLLOWUP_LENGTH = 5;
  *   — presence of YAML indicates a definition fix; absence indicates a
  *   runtime error with explanation only
  *
- * Auto-starts diagnosis on mount by default (AD-B5-002). The agent uses
+ * Auto-starts diagnosis on mount by default. The agent uses
  * `get_workflow_execution` and `get_workflow_execution_events` MCP tools
  * to inspect the failure autonomously.
  *
- * Framework-agnostic (DD-004), referentially stable returns (DD-010).
+ * Framework-agnostic, referentially stable returns.
  *
  * @example
  * ```tsx
@@ -362,7 +362,7 @@ export function useDiagnoseExecutionFlow(
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Auto-start on mount (AD-B5-002)
+  // Auto-start on mount
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (autoStart && phase === "idle" && !autoStartedRef.current) {
@@ -372,7 +372,7 @@ export function useDiagnoseExecutionFlow(
   }, [autoStart, phase, diagnose]);
 
   // ---------------------------------------------------------------------------
-  // Referentially stable return (DD-010)
+  // Referentially stable return
   // ---------------------------------------------------------------------------
   return useMemo(
     () => ({

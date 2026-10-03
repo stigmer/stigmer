@@ -1,13 +1,13 @@
 // Resolution and on-demand acquisition of the stigmer server — the
-// TypeScript implementation serving since the DD-006 cutover (D4 #24; the Go
-// binary ladder that backed rollback retired with #25).
+// TypeScript implementation (the Go binary ladder that backed rollback
+// retired with the Go server).
 //
 // The server is launched exactly like the runner: a compiled `node main.js`,
 // never `tsx src/main.ts` (the workers bundle Temporal workflows on boot in
 // dev shape, and the slim artifact ships pre-built bundles — either way the
 // entry must be compiled; see the server package's workflow-source.ts).
 //
-// Resolution order (the D2 §6 switch semantics):
+// Resolution order:
 //   1. STIGMER_SERVER_DIR — an explicit server package dir (dist/main.js
 //      required), the STIGMER_RUNNER_DIR mirror.
 //   2. The repo-tree server package (dev; build required).

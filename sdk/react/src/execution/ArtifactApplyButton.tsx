@@ -25,7 +25,7 @@ export interface ArtifactApplyButtonProps {
  * action bar and the editor-area `ArtifactDocument` toolbar) so its
  * terminal-gating, in-flight, and disabled states are single-source.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function ArtifactApplyButton({
   label,

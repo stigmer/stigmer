@@ -1,7 +1,7 @@
 // `stigmer auth whoami` — who the connected server says you are.
 //
 // Runs the SDK's ensureMyIdentityAccount, the same first-sign-in flow the
-// console's gate runs (20260911.11 A3): an authenticated caller with no
+// console's gate runs: an authenticated caller with no
 // account yet is provisioned here rather than told "not found", so a person
 // who only ever uses the CLI is never left without an account. The result
 // says when THIS call created it — a first sign-in is visible, never silent.

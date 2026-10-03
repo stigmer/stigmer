@@ -41,8 +41,6 @@ export interface UseDashboardSummaryReturn {
  *   summing agent + workflow costs. See AD-DASH-005.
  *
  * Follows the same client-side merge pattern as `useRecentActivity`.
- *
- * @since Unified Platform Dashboard
  */
 export function useDashboardSummary(
   options: UseDashboardSummaryOptions,

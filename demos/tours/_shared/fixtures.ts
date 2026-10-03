@@ -19,14 +19,14 @@ export const DEMO_ORG = "acme";
 /**
  * The tour world's clock, as a `Date` — the reference instant the shells
  * pass to the real sidebar so relative stamps ("2h") and time buckets
- * ("Today"/"Yesterday") never read the live clock (scenar-cloud DD-006).
+ * ("Today"/"Yesterday") never read the live clock (the
+ * fixture-determinism rule, demos/README.md).
  */
 export const DEMO_NOW = sampleDate();
 
 /**
  * The depicted user, passed to the real `UserMenu` in the shell footers.
- * (The depicted-identity consolidation is tracked in the docs-revamp debt
- * register; these values match what the shells hardcoded before.)
+ * These values match what the shells hardcoded before.
  */
 export const DEMO_USER: UserMenuProps["user"] = {
   name: "You",

@@ -11,8 +11,8 @@
  * `--check` is the CI gate (`make check-docs-inventory`): it prints every
  * violation and exits 1 if any exist. The report is a generated VIEW of
  * docs/_inventory/classification.yaml and is never committed to the docs
- * tree — reviewed snapshots live in the revamp project docs, stamped with
- * the provenance header this script prepends.
+ * tree; a saved snapshot carries the provenance header this script
+ * prepends.
  *
  * Runs as part of: make check-docs-inventory (check-site bucket, ci.docs)
  */

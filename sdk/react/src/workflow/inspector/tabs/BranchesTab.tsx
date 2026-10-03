@@ -23,8 +23,6 @@ export interface BranchesTabProps {
  *
  * - switch_case: shows case listing with conditions, default marking, reorder, remove
  * - fork: shows branch listing, join policy toggle, reorder, remove
- *
- * @since T09 (Branch Management UX)
  */
 export const BranchesTab = memo(function BranchesTab({
   node,

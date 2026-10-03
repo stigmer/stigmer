@@ -73,7 +73,7 @@ export function isInformativePolicySource(
     case ApprovalPolicySource.AUTO_APPROVE_ALL:
     case ApprovalPolicySource.APPROVAL_LEASE:
     // An unattended skip is a platform RESOLUTION, not an everyday gating
-    // default: an org admin reviewing a channel conversation (DD-012
+    // default: an org admin reviewing a channel conversation (a read-only
     // observer) needs to see why the tool did not run — and that no human
     // declined it.
     case ApprovalPolicySource.UNATTENDED_SKIP:

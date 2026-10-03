@@ -9,7 +9,7 @@
  * connect flows in detail. All three depict the same server, sourced from
  * `_shared/order-management-mcp.ts`, so the page cannot contradict itself.
  *
- * DD-004 note: the narration deliberately never says "one click connects" —
+ * Honest depiction: the narration deliberately never says "one click connects" —
  * tour 5 on this page establishes the shipped flow is two clicks (Connect
  * opens the credential form; Save connects). The overview describes the
  * *outcome* of connecting and leaves the click-by-click story to the detail

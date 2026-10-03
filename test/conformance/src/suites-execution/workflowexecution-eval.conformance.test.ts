@@ -9,8 +9,8 @@
 // the script is one tool_use turn named `extract` carrying the verdict fields:
 // `{pass, reasoning}` for EVAL_PASS_FAIL, `{score, reasoning}` for
 // EVAL_NUMERIC_SCORE, `{criteria: [{name, score, reasoning}]}` for
-// EVAL_MULTI_CRITERIA. Pinned (DD-001 of entry 20260910.02; the Go offline
-// suite's eval_offline_test.go; stigmer#1293):
+// EVAL_MULTI_CRITERIA. Pinned (the Go offline suite's eval_offline_test.go;
+// stigmer#1293):
 // - a passing pass/fail verdict completes the run;
 // - a numeric score above the threshold completes the run;
 // - a multi-criteria eval binds the judge's `extract` tool to the verdict's

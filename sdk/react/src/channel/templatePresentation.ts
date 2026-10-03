@@ -13,7 +13,7 @@ import type { StatusPhase } from "../resource-workbench/types.js";
  * for `StatusBadge` coloring.
  *
  * The wire carries the provider's own vocabulary, never a Stigmer enum
- * (DD-003 D6) — so the caller renders the verbatim status string as the
+ * — so the caller renders the verbatim status string as the
  * badge label and uses this phase only for the color. WhatsApp's
  * observed set exceeds the documented five (IN_APPEAL, LIMIT_EXCEEDED,
  * PENDING_DELETION, DELETED occur, and Meta can add more), so unknown

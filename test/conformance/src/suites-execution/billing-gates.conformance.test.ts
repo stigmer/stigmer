@@ -1,8 +1,7 @@
 // Billing gates conformance — the settle observer, the approval STOP gate and
 // the recover re-arm, observed through real agent executions (Class B;
-// billingGates + billingLedger targets). E1 of the DD-012 reset (entry
-// 20260906.04); the sibling of billing-denial, which pins the create-time
-// reserve gate.
+// billingGates + billingLedger targets); the sibling of billing-denial,
+// which pins the create-time reserve gate.
 // Domain: billing (execution-time gates).
 //
 // Why Class B: these arms need an execution that RUNS — the reservation is
@@ -13,7 +12,7 @@
 // adjustCredits, through the target's credit issuer (owning the org does not
 // let anyone change its credits), so a gate can be observed flipping.
 //
-// Java's copy is the contract (byte-pinned by the C5 facade's gates.ts too):
+// The copy is the contract, byte-pinned:
 //   approval on STOP  → FAILED_PRECONDITION "Insufficient credits to continue
 //                       this execution. Please add credits before acting on
 //                       this approval, or cancel the execution."

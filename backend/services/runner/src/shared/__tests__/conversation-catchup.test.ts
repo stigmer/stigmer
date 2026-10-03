@@ -69,7 +69,7 @@ describe("formatConversationCatchupText", () => {
 
   it("defines the send-outcome lines and the no-verbatim-resend contract", () => {
     // The agent's own failed sends reach it as `You (not delivered):`
-    // lines and `System:` delivery-failure notices. The owner-ruled
+    // lines and `System:` delivery-failure notices. The required
     // behavior: unfinished business, re-said naturally — never a
     // word-for-word resend (a multi-chunk send can partially land, and an
     // exact repeat reads as a duplicate).

@@ -1,7 +1,7 @@
 /**
  * Pins the behaviour of `useIdentityAccountGate` — the console's first-sign-in
  * gate — so the hook can delegate its whoAmI → NOT_FOUND → provisionMyAccount
- * machine to `@stigmer/sdk`'s `ensureMyIdentityAccount` (20260911.11 A3)
+ * machine to `@stigmer/sdk`'s `ensureMyIdentityAccount`
  * without changing what any consumer observes. Written green against the
  * hook as it stood before the delegation; it must stay green after.
  *

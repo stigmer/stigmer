@@ -12,7 +12,7 @@ import {
 
 /**
  * The docs layout shape: one provider, two triggers, one panel. Both
- * triggers live in DocsHeader (DD-02) — `header` on desktop, `nav` on the
+ * triggers live in DocsHeader — `header` on desktop, `nav` on the
  * mobile cluster — CSS-gated by breakpoint.
  */
 function Harness() {

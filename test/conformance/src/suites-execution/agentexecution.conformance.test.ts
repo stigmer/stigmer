@@ -37,8 +37,8 @@
 // fixture and approval choreography, and this file is already large):
 // - submitApproval / HITL tool approval -> agentexecution-approval.conformance.test.ts.
 //
-// Deliberately out of scope (each needs machinery this slice doesn't build, and
-// is recorded as a conscious deferral in DD-009, not shipped as a thin partial):
+// Deliberately out of scope (each needs machinery this suite doesn't build, and
+// is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
 // - usage reports, artifact download/content, subscribe streaming, sub-agents.
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -450,7 +450,7 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
   // whose button was clicked twice) must not see an error for a state it
   // asked for. Distinct from a cancel on a COMPLETED run, which the negatives
   // below reject — the precondition is "not terminal by another outcome".
-  // (Entry 20260910.02, from the Go offline suite's lifecycle arms; DD-001.)
+  // (From the Go offline suite's lifecycle arms.)
   it("[rpc:AgentExecutionCommandController.cancel] a second cancel on a CANCELLED execution is a benign no-op", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
@@ -906,10 +906,10 @@ describe("AgentExecution conformance — attachments (#285)", () => {
       `expected COMPLETED; error: ${final.status?.error || "(none)"}`,
     ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
 
-    // And the materialized bytes match end to end. The runner writes attachments
-    // to the session platform dir under ITS home — the harness-owned directory
-    // the target spawned it with (DD-002 of entry 20260910.02), never this
-    // process's — and it never deletes the session tree, so we read it there.
+    // And the materialized bytes match end to end. The runner writes
+    // attachments to the session platform dir under ITS home — the
+    // harness-owned directory the target spawned it with, never this process's
+    // — and it never deletes the session tree, so we read it there.
     const sessionId = final.spec?.sessionId;
     expect(sessionId, "execution should carry a session id").toBeTruthy();
     if (target.runnerHomeDir === undefined) {
@@ -981,13 +981,13 @@ describe("AgentExecution conformance — attachments (#285)", () => {
     await awaitTerminal(clients, execution.metadata!.id);
   });
 
-  // The T04 vision contract, proven at the provider boundary: an image
+  // The vision contract, proven at the provider boundary: an image
   // attachment must reach the model as an inline image block, not just as a
   // file on disk. This is the offline substitute for a live vision probe — the
   // captured request is byte-for-byte what Anthropic would have received
   // (@langchain/anthropic converts the runner's image_url data-URL block into
   // the native base64 source block on the wire).
-  it("delivers an image attachment to the provider as an inline base64 image block (vision, T04)", async () => {
+  it("delivers an image attachment to the provider as an inline base64 image block (vision)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org, uniqueName("agent-vision"));
 
@@ -1072,12 +1072,12 @@ describe("AgentExecution conformance — attachments (#285)", () => {
   });
 });
 
-// --- CW-7: the subscribe lane and the read surfaces a real run populates ----
+// --- the subscribe lane and the read surfaces a real run populates ---------
 //
 // Streams are consumed through collectStream, the bounded reader that keeps
-// the S4 idle-forever quirk (pinned below) from hanging the suite.
+// the idle-forever quirk (pinned below) from hanging the suite.
 
-describe("AgentExecution conformance — subscribe & populated read surfaces (CW-7)", () => {
+describe("AgentExecution conformance — subscribe & populated read surfaces", () => {
   it("[rpc:AgentExecutionQueryController.subscribe] subscribe on a LIVE run streams the snapshot, its updates, and closes on the terminal one", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
@@ -1095,7 +1095,7 @@ describe("AgentExecution conformance — subscribe & populated read surfaces (CW
     expect(stream.messages.at(-1)?.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 
-  it("[rpc:AgentExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned S4 quirk)", async () => {
+  it("[rpc:AgentExecutionQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);
     const created = await createExecution(org, agentId);
@@ -1103,8 +1103,8 @@ describe("AgentExecution conformance — subscribe & populated read surfaces (CW
 
     // The terminal-close check fires only on broker UPDATES, never on the
     // initial snapshot — a subscription to a finished run receives the
-    // snapshot and then idles forever. Pinned deliberately (wave-2 S4): the
-    // TS port must reproduce it consciously or fix it in both editions.
+    // snapshot and then idles forever. Pinned deliberately: the server keeps
+    // it consciously, or fixes it in both editions.
     const stream = await collectStream(
       (signal) => clients.agentExecutionQuery.subscribe({ value: created.metadata!.id }, { signal }),
       { timeoutMs: 3_000 },
@@ -1145,10 +1145,11 @@ describe("AgentExecution conformance — subscribe & populated read surfaces (CW
 
     // A text-only completed run has an empty file-review stream AND a
     // terminal phase — both fold into the same precondition refusal (there
-    // is deliberately no separate wrong-phase arm). The deeper arms (digest
-    // mismatch, unknown change set) need file-edit choreography and land
-    // with #17. Message prefix only: the copy embeds the phase enum's
-    // rendering, which is the Go formatter's, not a contract.
+    // is deliberately no separate wrong-phase arm). The deeper arms need
+    // file-edit choreography; the digest-mismatch arm lives in
+    // agentexecution-file-review.conformance.test.ts. Message prefix only:
+    // the copy embeds the phase enum's rendering, which is the Go
+    // formatter's, not a contract.
     const err = await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({

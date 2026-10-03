@@ -1,5 +1,5 @@
-// Memory — agent-proposed, user-confirmed facts (stigmer/stigmer#293
-// Phase 2). The record is the trust surface over the recall seam: every
+// Memory — agent-proposed, user-confirmed facts (stigmer/stigmer#293).
+// The record is the trust surface over the recall seam: every
 // fact is individually reviewable, editable, and deletable, and nothing
 // is recalled until its subject confirms it.
 

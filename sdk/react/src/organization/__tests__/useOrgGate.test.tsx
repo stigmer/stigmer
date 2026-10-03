@@ -1,12 +1,10 @@
-// Pins useOrgGate as a pure derivation over useOrg() (20260913.02,
-// sp.console-login Q-CL-5). The hook once carried a "provisioning" arm that
-// polled for a personal organization the server was "still creating"; the
-// cloud has created that organization synchronously inside
-// provisionMyAccount since 20260911.11, and the step is best-effort, so by
-// the time the identity gate is ready the organization list is final in
-// every edition. Zero organizations is therefore `no-orgs` at once — no
-// timers, no options beyond the route bypass — and the arms below fail if
-// a wait ever comes back.
+// Pins useOrgGate as a pure derivation over useOrg(). The hook once carried a
+// "provisioning" arm that polled for a personal organization the server was
+// "still creating"; the cloud creates that organization synchronously inside
+// provisionMyAccount, and the step is best-effort, so by the time the identity
+// gate is ready the organization list is final in every edition. Zero
+// organizations is therefore `no-orgs` at once — no timers, no options beyond
+// the route bypass — and the arms below fail if a wait ever comes back.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";

@@ -148,7 +148,7 @@ describe("WorkflowUsageTab", () => {
     expect(screen.getByRole("listitem").textContent).toContain("running");
   });
 
-  it("renders rows as static (non-interactive) entries — the breakdown reports, never navigates (T06)", () => {
+  it("renders rows as static (non-interactive) entries — the breakdown reports, never navigates", () => {
     render(
       <WorkflowUsageTab
         costSummary={costSummary({ costConsumedMicros: 100_000n })}

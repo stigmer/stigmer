@@ -1,4 +1,4 @@
-// The shared harness for the browser-mode accessibility audits (DD-22).
+// The shared harness for the browser-mode accessibility audits.
 //
 // Renders an audited component inside the `.stgm` scope against the SDK's
 // SHIPPED stylesheet (the prebuilt `dist/styles.css`, not a test-time
@@ -46,7 +46,7 @@ export type ColorMode = (typeof COLOR_MODES)[number];
  * badges, captions across the consoles) falls below WCAG AA 4.5:1 in both
  * modes. This is a PRE-EXISTING, app-wide design-token/density concern (the
  * `--stgm-muted-foreground` token at small sizes), and its fix needs a
- * deliberate design pass across presets (tracked in DD-22's Follow-ups).
+ * deliberate design pass across presets.
  * Kept advisory so the audits guard the STRUCTURAL accessibility (roles,
  * names, relationships, nesting) now. Promote back to blocking once the
  * contrast pass ships.

@@ -3,8 +3,7 @@
  * S3e transcript capture: runs the real `stigmer apply` against the live
  * local stack and records the exact command + output as JSON. The scene-3
  * terminal shot is a styled replay of THIS transcript inside a Remotion
- * terminal component (owner decision, 2026-09-02): deterministic and
- * re-renderable, content 100% real.
+ * terminal component: deterministic and re-renderable, content 100% real.
  *
  * Environment: STIGMER_BIN / HOME as for seed.mjs.
  * Output: assets/recordings/s3e-apply-transcript.json

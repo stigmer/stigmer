@@ -38,7 +38,7 @@ const EMPTY_EDGES: Edge[] = [];
 /**
  * Behavior hook that builds a complete diff visualization from two YAML strings.
  *
- * Pipeline (all in useMemo for referential stability — DD-010):
+ * Pipeline (all in useMemo for referential stability):
  * 1. Parse beforeYaml → before graph model (empty string → empty model)
  * 2. Parse afterYaml → after graph model
  * 3. Compute diff between before and after
@@ -46,8 +46,6 @@ const EMPTY_EDGES: Edge[] = [];
  * 5. Apply dagre layout to merged graph
  * 6. Convert to React Flow elements
  * 7. Merge diff status into node/edge data
- *
- * @since T14 (AI-Assisted Workflow Creation)
  */
 export function useWorkflowDiffGraph(
   options: UseWorkflowDiffGraphOptions,

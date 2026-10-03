@@ -77,7 +77,7 @@ export interface UseArtifactContentByIdReturn {
  * for binary artifacts, use `getDownloadUrl` instead of this hook.
  *
  * @param artifactId - The `Artifact` resource id (`art_…`), or `null` to skip.
- * @param cacheKey - Optional cross-mount cache key (DD-014). When set, a
+ * @param cacheKey - Optional cross-mount cache key. When set, a
  *   remount with the same key renders previously-fetched content instantly
  *   and refetches in the background — used by the workflow artifact document
  *   so switching back to a recently-viewed tab is instant.

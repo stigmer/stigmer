@@ -20,7 +20,7 @@ import { assertNoErrorBoundary } from "../../helpers/navigation";
 //   (workflow-execution-thread.spec.ts); the graph wires no selection.
 // - "Event Timeline" drawer: retired with the bottom drawer; per-task
 //   visibility is the thread's job.
-test.describe("Workflow execution graph (T04)", () => {
+test.describe("Workflow execution graph", () => {
   test("Graph view renders the workflow graph canvas", async ({
     page,
     stigmerClient,

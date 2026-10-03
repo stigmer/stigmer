@@ -1,11 +1,9 @@
 // Conformance suite for environment-merge precedence — the WORKFLOW half
 // (Class B). The agent-instance half lives in
 // envmerge-agent.conformance.test.ts: rosters are file-granular and the
-// TS-server program's local-execution target rosters agent-execution
-// suites before the workflow-execution engine exists (D4 #18 vs #20/#21),
-// so the two aggregates' assertions ship as two files (sub-project
-// 20260824.03 ratified brief #3). Roster-neutral here: the execution
-// config includes by glob.
+// local-execution target rostered agent-execution suites before the
+// workflow-execution engine existed, so the two aggregates' assertions ship
+// as two files. Roster-neutral here: the execution config includes by glob.
 //
 // Domain: agentic — the env layering that populates an ExecutionContext at
 // run start, exercised through WorkflowExecution (via WorkflowInstance).
@@ -207,9 +205,9 @@ describe("envmerge conformance — Workflow precedence", () => {
     expect(secretEntry?.isSecret, "is_secret is preserved through the merge in both editions").toBe(true);
     expect(data.PLAIN_KEY?.value, "plaintext values are never redacted").toBe("plain-value");
     // The harness is a user-shaped caller, so the merged secret is redacted
-    // (stigmer#535 — the stigmer-cloud#152 contract on both editions). That
-    // the RUNNER receives the decrypted value is proven separately by the
-    // set_vars proof test below.
+    // (stigmer#535, on both editions). That the RUNNER receives the
+    // decrypted value is proven separately by the set_vars proof test
+    // below.
     expect(secretEntry?.value, "no user-shaped read returns the plaintext secret").not.toBe(secretValue);
   });
 

@@ -8,7 +8,7 @@ import { useActiveOrgSlug } from "../organization/OrgProvider.js";
  * Settings section listing everything the platform remembers about the
  * caller in the active organization.
  *
- * The helper copy carries the DD-006 D6 transparency statement: a
+ * The helper copy carries the memory transparency statement: a
  * confirmed memory is injected into the caller's future sessions and
  * appears in those executions' records. Memory content everywhere else
  * is subject-only — this page shows the caller their own records and

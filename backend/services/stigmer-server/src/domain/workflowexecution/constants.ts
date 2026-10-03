@@ -98,7 +98,8 @@ export const HUMAN_INPUT_SIGNAL_PREFIX = "human_input_";
 
 /**
  * getEventLog pagination bounds (get_event_log.go): requests default to
- * 100 events and are capped at 500 — the pinned CW-7 pagination contract.
+ * 100 events and are capped at 500 — the pagination contract the
+ * workflowexecution conformance suite pins.
  */
 export const DEFAULT_EVENT_PAGE_SIZE = 100;
 export const MAX_EVENT_PAGE_SIZE = 500;

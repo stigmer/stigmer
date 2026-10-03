@@ -414,7 +414,7 @@ function useInstallChannel(): UseInstallChannelReturn
   type={{
     clearError: { type: "() => void", description: "Reset the hook to idle state." },
     error: { type: "Error | null", description: "Error from the most recent unsuccessful attempt, or `null`." },
-    install: { type: "(channelId: string) => Promise<void>", description: "Run the direct install flow for a channel.  One `initiateInstall` call does everything: the server validates the declared provider identity against the provider's API, persists the install facts on status, and answers `completed=true` (DD-WA-1). Works for first installs and retries of a pending channel alike.  The server's `completed` field is the authoritative outcome (DD-WA-1b): `false` means this channel's provider actually wants the redirect flow — surfaced as an error rather than silently ignored, because this hook cannot run a consent redirect.  Failure modes surface as `error` with server-authored copy: bad or expired app credentials, an unrecognized provider identity, a dangling app reference, or a duplicate install (carrying a `google.rpc.ErrorInfo` reason readable via `getErrorReason`)." },
+    install: { type: "(channelId: string) => Promise<void>", description: "Run the direct install flow for a channel.  One `initiateInstall` call does everything: the server validates the declared provider identity against the provider's API, persists the install facts on status, and answers `completed=true`. Works for first installs and retries of a pending channel alike.  The server's `completed` field is the authoritative outcome: `false` means this channel's provider actually wants the redirect flow — surfaced as an error rather than silently ignored, because this hook cannot run a consent redirect.  Failure modes surface as `error` with server-authored copy: bad or expired app credentials, an unrecognized provider identity, a dangling app reference, or a duplicate install (carrying a `google.rpc.ErrorInfo` reason readable via `getErrorReason`)." },
     isInProgress: { type: "boolean", description: "`true` while the install call is in flight." },
     phase: { type: "InstallChannelPhase", description: "Current phase of the install flow.", typeDescriptionLink: "#installchannelphase" },
   }}
@@ -490,7 +490,7 @@ Self-contained: owns its dialog, its confirmation prompts, and its
 refetch-after-mutation — hosts render it with just the agent (plus the
 external-connect delegate where popups are unavailable).
 
-This is an SDK component (DD-001) — embeddable by platform builders.
+This is an SDK component — embeddable by platform builders.
 
 **Props** — `AgentChannelsPanelProps`
 
@@ -500,7 +500,7 @@ This is an SDK component (DD-001) — embeddable by platform builders.
     channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). Threaded to the connect dialog's \"Register a channel app\" affordance; absent, the affordance degrades to plain guidance text." },
     className: { type: "string", description: "Additional CSS class names." },
     onConnectExternal: { type: "(channel: AgentChannel | null) => void", description: "When provided, connect actions for redirect-style providers (Slack) delegate to the host instead of running the in-app popup flow. For hosts whose webview cannot open popups (the desktop app): the delegate typically opens the web console in the system browser. Called with the channel being (re)connected, or `null` for a brand-new connection. Direct-install providers (WhatsApp) always connect in-app — their flow is a plain API call with nothing for a popup to do — so they never invoke the delegate." },
-    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). Threaded to each card's Conversations dialog so rows link to the read-only transcript; absent, the rows render without links (DD-004 — the SDK never assumes a routing scheme)." },
+    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). Threaded to each card's Conversations dialog so rows link to the read-only transcript; absent, the rows render without links (the SDK never assumes a routing scheme)." },
   }}
 />
 
@@ -509,15 +509,14 @@ This is an SDK component (DD-001) — embeddable by platform builders.
 
 Lists the SESSIONS a channel created — the session-level forensics view
 (which execution containers served the channel's traffic), visible to
-exactly the channel's viewers (the connector and org admins; design
-decision 012).
+exactly the channel's viewers (the connector and org admins).
 
 Deliberately titled "Sessions", not "Conversations": the customer-facing
 Conversations surface is the top-level `ConversationsWorkbench` over the
-conversation timeline API, which supersedes this read for that purpose
-(channel-conversations DD-004 D-g). This dialog remains what it actually
-is — the observability view underneath a conversation. The component
-name keeps its historical export for API stability.
+conversation timeline API, which supersedes this read for that purpose.
+This dialog remains what it actually is — the observability view
+underneath a conversation. The component name keeps its historical
+export for API stability.
 
 Each row shows the session subject, the external platform user it
 belongs to (an opaque provider id in v1), and the last activity time.
@@ -537,7 +536,7 @@ channel card action.
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
-    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). When absent, rows render without links — the SDK never assumes a routing scheme (DD-004)." },
+    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). When absent, rows render without links — the SDK never assumes a routing scheme." },
   }}
 />
 
@@ -576,7 +575,7 @@ Edits an installed channel's run settings (`AgentChannelSpec.run_config`)
 the Edit-YAML detour for the model pin the write-time validation guards
 (stigmer/stigmer#774).
 
-Speaks the schedule form's vocabulary (DD-018 D-5): the model pin uses
+Speaks the schedule form's vocabulary: the model pin uses
 the composer's own [`ModelSelector`](/docs/sdk/react/models#modelselector) (with the fast-tier and
 thinking switches, #357/#772) and the budget is the one run bound a
 user owns; `max_tool_rounds` is an operator knob, API-reachable only —
@@ -715,10 +714,10 @@ Render it directly only when you own the open-state.
 The connect flow for a WhatsApp channel: create the
 `AgentChannel` (create mode), then run the direct install — one
 server call that verifies the declared phone number against Meta's
-Graph API through the selected channel app's credentials (DD-WA-1).
+Graph API through the selected channel app's credentials.
 No consent popup, no callback route.
 
-WhatsApp is BYO-only (DD-WA-2): there is no platform Meta app, so a
+WhatsApp is BYO-only: there is no platform Meta app, so a
 serving channel app is required — with none registered, the flow
 blocks on registering one first. The declared phone number ID is
 likewise required: the install proves it, and an empty value can only
@@ -850,7 +849,7 @@ Map a provider-verbatim template status onto a [`StatusPhase`](/docs/sdk/react/r
 for `StatusBadge` coloring.
 
 The wire carries the provider's own vocabulary, never a Stigmer enum
-(DD-003 D6) — so the caller renders the verbatim status string as the
+— so the caller renders the verbatim status string as the
 badge label and uses this phase only for the color. WhatsApp's
 observed set exceeds the documented five (IN_APPEAL, LIMIT_EXCEEDED,
 PENDING_DELETION, DELETED occur, and Meta can add more), so unknown

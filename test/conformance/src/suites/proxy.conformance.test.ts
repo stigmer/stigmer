@@ -1,7 +1,7 @@
 // Side-channel proxy conformance — the HTTP lanes runners use so they carry
-// zero provider secrets (Class A; no runner, the suite IS the runner). E1 of
-// the DD-012 reset (entry 20260906.04): Java's behavior is the spec; the
-// composition's reds are C6's acceptance.
+// zero provider secrets (Class A; no runner, the suite IS the runner). The
+// rows were first read from the retired Java service's behavior, and the
+// composition is held to them.
 // Domain: proxy.
 //
 // Lanes and what this file asserts:
@@ -13,8 +13,8 @@
 //                  scope 403, pool-exhausted 503 (relay rows are `smoke`)
 //   cursor-bidi  — the handshake refusals over raw h2c (relay is `smoke`)
 //   artifact / checkpointer — presign and storage lanes: scope, key rules,
-//                  round-trips, 413 (claimcheck: ruled debris at C6's gate —
-//                  no caller, stigmer#992; rows kept in the inventory as `debris`)
+//                  round-trips, 413 (claimcheck: debris — no caller,
+//                  stigmer#992; rows kept in the inventory as `debris`)
 //   model-registry, health
 //
 // The upstream is the run's fake LLM provider (test/support/src/fake-llm-upstream.ts):
@@ -24,10 +24,9 @@
 //
 // Authentication-class arms (401 without a bearer, foreign tokens,
 // x-api-key resolution, denyAll, require-scope-header) run on every cloud
-// environment: the hermetic launcher boots Java in production security mode
-// (HttpSecurityConfig loaded, require-scope-header at production's `true`)
-// since entry 20260907.02, so they measure Java's real edge alongside the
-// authorization arms (FGA 403).
+// environment: the conformance environment boots the composition in its
+// production posture (require-scope-header at production's `true`), so they
+// measure the real edge alongside the authorization arms (FGA 403).
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, mintCloudUserToken } from "../harness/cloud-env";
@@ -184,7 +183,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
         // A keep-alive value NO server framing would produce on its own: Node's
         // http server advertises `timeout=5` by default on every keep-alive
         // response, so asserting on that value would read the proxy's own
-        // framing as a relayed upstream header (the C6 composition tripped it).
+        // framing as a relayed upstream header (the composition once tripped it).
         headers: { "request-id": "req_conf_1", "x-fake-upstream-request-id": "infra_1", "keep-alive": "timeout=42, max=7" },
       });
 
@@ -503,9 +502,9 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       const document = { thread_id: threadId, checkpoint_ns: "", checkpoint_id: checkpointId, checkpoint: { v: 1, ts: "now" }, metadata: { step: 1 } };
 
       const put = await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(document) });
-      // A bodiless ok(): Java answered 204 on one hermetic run and 200 on the
-      // next for the identical request, so the contract pinned is "2xx, no
-      // body" — recorded on the inventory row; C6 answers 200.
+      // A bodiless ok(): the contract pinned is "2xx, no body" (the retired
+      // Java service answered 204 or 200 run to run), recorded on the
+      // inventory row; the composition answers 200.
       expect([200, 204]).toContain(put.status);
       const get = await proxyFetch(`/v1/proxy/checkpoints/checkpoint?thread_id=${threadId}&checkpoint_id=${checkpointId}`);
       expect(get.status).toBe(200);

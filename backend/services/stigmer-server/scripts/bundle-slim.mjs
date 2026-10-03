@@ -404,8 +404,8 @@ async function buildMainBundle() {
       ),
     },
     // pg's optional native bindings are never installed; leave the
-    // require() in the bundle so pg's try/catch takes the JS client
-    // (D-5). Aliasing to an empty module would make pg THINK native
+    // require() in the bundle so pg's try/catch takes the JS client.
+    // Aliasing to an empty module would make pg THINK native
     // exists and then crash calling into it.
     external: ["pg-native"],
     banner: { js: CJS_BANNER },

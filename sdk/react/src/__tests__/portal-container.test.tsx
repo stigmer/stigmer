@@ -6,7 +6,7 @@ import { useStigmerPortalContainer } from "../portal-container";
 import { Menu, MenuTrigger, MenuContent, MenuItem } from "../internal/menu";
 import { openMenu } from "./helpers/open-menu";
 
-// Regression tests for stigmer-cloud#271: Base UI treats an EXPLICIT
+// Regression tests for a popup that rendered nowhere: Base UI treats an EXPLICIT
 // `container={null}` as "wait for a container" and renders the popup
 // NOWHERE; only `undefined` falls back to `document.body`. The hook
 // therefore returns a three-state value (undefined / null / element)
@@ -49,7 +49,7 @@ describe("useStigmerPortalContainer contract", () => {
     // The load-bearing distinction: `undefined` makes Base UI portals
     // fall back to `document.body` (standalone components work);
     // an explicit `null` makes them render NOWHERE. A default of
-    // `null` is exactly the cloud#271 defect.
+    // `null` is exactly the popup-renders-nowhere defect.
     expect(result.current).toBeUndefined();
     expect(result.current).not.toBeNull();
   });

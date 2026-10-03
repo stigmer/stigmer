@@ -1,8 +1,9 @@
-// Scroll-behavior regression suite for useAutoScroll (channel-conversations
-// F-09). Runs in a real Chromium via `vitest.a11y.config.ts` — the defect
-// lives in IntersectionObserver/ResizeObserver timing against real layout,
-// which happy-dom cannot evaluate (there, every scrollHeight is 0 and the
-// observers are mocks).
+// Scroll-behavior regression suite for useAutoScroll (the conversation
+// timeline's late-mounting content). Runs in a real Chromium via
+// `vitest.a11y.config.ts` — the defect lives in
+// IntersectionObserver/ResizeObserver timing against real layout, which
+// happy-dom cannot evaluate (there, every scrollHeight is 0 and the observers
+// are mocks).
 //
 // The production shape under test: a chat thread whose items arrive ASYNC
 // after mount, so the content wrapper renders inside a loading branch and
@@ -84,7 +85,7 @@ async function settled(assertion: () => void): Promise<void> {
 
 afterEach(() => cleanup());
 
-describe("useAutoScroll under real layout (F-09)", () => {
+describe("useAutoScroll under real layout", () => {
   it("pins to the newest content when items arrive after mount", async () => {
     const { rerender } = render(<AsyncThread items={[]} />);
 
@@ -130,7 +131,7 @@ describe("useAutoScroll under real layout (F-09)", () => {
     await settled(() => expect(latest.isFollowing).toBe(false));
 
     // Growth while disengaged (an INCOMING message): the view must NOT
-    // move under them. Unchanged by scroll-on-send (stigmer-cloud#267):
+    // move under them. Unchanged by scroll-on-send:
     // the reader's OWN send now pins via the surface-driven signal
     // (`usePinToLatestOnSignal`, suite below) — the hook's growth pathway
     // itself still never moves a scrolled-up reader.
@@ -149,7 +150,7 @@ describe("useAutoScroll under real layout (F-09)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scroll-on-send: the surface-driven pin signal (stigmer-cloud#267)
+// Scroll-on-send: the surface-driven pin signal
 // ---------------------------------------------------------------------------
 
 /**
@@ -190,14 +191,14 @@ function SignalThread({
   );
 }
 
-describe("usePinToLatestOnSignal under real layout (stigmer-cloud#267)", () => {
+describe("usePinToLatestOnSignal under real layout", () => {
   it("a signal increment pins a scrolled-up reader to the latest content and re-engages follow", async () => {
     const { rerender } = render(<SignalThread items={[]} signal={0} />);
     rerender(<SignalThread items={messages(30)} signal={0} />);
     await settled(() => {
       expect(isPinnedToBottom(scroller())).toBe(true);
-      // Follow-STATE quiescence before the reader scrolls (the F-09
-      // case's own discipline) — a queued pre-scroll TRUE must not
+      // Follow-STATE quiescence before the reader scrolls (the
+      // late-mount case's own discipline) — a queued pre-scroll TRUE must not
       // re-arm follow behind the scroll-up.
       expect(latest.isFollowing).toBe(true);
     });
@@ -208,7 +209,7 @@ describe("usePinToLatestOnSignal under real layout (stigmer-cloud#267)", () => {
 
     // Their OWN send: the surface increments the signal. The pin fires
     // AND re-engages follow, so the reply that streams in next stays in
-    // view — the whole point of stigmer-cloud#267.
+    // view — the whole point of pinning on send.
     rerender(<SignalThread items={messages(30)} signal={1} />);
     await settled(() => {
       expect(isPinnedToBottom(scroller())).toBe(true);

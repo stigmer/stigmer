@@ -24,7 +24,7 @@ export interface UseFileReferencesReturn {
  * filesystem post-provisioning.
  *
  * This hook is independently importable by platform builders who want
- * to manage file references with their own UI (headless-first, DD-003).
+ * to manage file references with their own UI (headless-first).
  */
 export function useFileReferences(): UseFileReferencesReturn {
   const [refs, setRefs] = useState<string[]>([]);

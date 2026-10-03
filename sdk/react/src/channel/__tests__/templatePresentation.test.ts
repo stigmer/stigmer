@@ -5,8 +5,8 @@ import {
 } from "../templatePresentation";
 
 describe("templateStatusPhase", () => {
-  // The documented five (DD-003) plus the observed extras (DD-005 D7:
-  // Meta's live vocabulary exceeds the documented set).
+  // The documented five plus the observed extras (Meta's live
+  // vocabulary exceeds the documented set).
   it.each([
     ["APPROVED", "ready"],
     ["PENDING", "pending"],

@@ -61,7 +61,7 @@ describe("loadDocuments", () => {
     expect(() => loadDocuments(join(dir, "broken.yaml"), { strict: true })).toThrow(UsageError);
   });
 
-  it("tolerates malformed YAML in lenient mode (Wave-1 parity)", () => {
+  it("tolerates malformed YAML in lenient mode, as validate always has", () => {
     expect(() => loadDocuments(join(dir, "broken.yaml"))).not.toThrow();
   });
 });

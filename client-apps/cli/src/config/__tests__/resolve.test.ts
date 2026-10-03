@@ -1,4 +1,4 @@
-// Pins the effective-value resolvers over the named-backend model (O3):
+// Pins the effective-value resolvers over the named-backend model:
 // env > active entry > defaults for endpoint/token/org/console-URL, the
 // selfhost credential lane (api_key), and the auth gate's three postures
 // (local never, selfhost never client-side, cloud requires a credential).

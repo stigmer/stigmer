@@ -28,7 +28,7 @@ waivers:
     kind: proven-elsewhere
     proven_by: backend/services/stigmer-server/src/domain/apikey/__tests__/apikey.test.ts
     reason: >-
-      The editions gate it differently by design (a platform-admin check on the cloud, open on the single-team default), so no one cross-edition answer exists to pin; the open-source server's suite pins its lookup.
+      A hash-lookup RPC the identity verifier never calls (it reads the same lookup, domain/apikey/lookup.ts, in process), served the same way to any authenticated caller in every edition; a client holding the plaintext key authenticates with it instead, so the lookup and its NotFound are the server's own contract, pinned by the open-source server's suite.
   - rpc: CursorAccountCommandController.addCursorMemberKey
     kind: gap
     issue: 1548

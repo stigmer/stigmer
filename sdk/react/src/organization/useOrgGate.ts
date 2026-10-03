@@ -94,7 +94,7 @@ export interface UseOrgGateReturn {
  * that never provisions one, every first sign-in paid the full wait.)
  *
  * The consumer computes `isBypassed` using framework-specific APIs and
- * passes it in, keeping this hook free of routing dependencies (DD-004).
+ * passes it in, keeping this hook free of routing dependencies.
  *
  * @example
  * ```tsx

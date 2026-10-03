@@ -13,7 +13,7 @@ import { useStigmerPortalContainer } from "../portal-container.js";
 // of truth for dropdown menu styling across SDK styled components
 // (OrgSwitcher, UserMenu, etc.) so that every menu looks identical.
 //
-// Portaled content uses popover-* / main-area tokens per DD-005.
+// Portaled content uses popover-* / main-area tokens.
 // ---------------------------------------------------------------------------
 
 function Menu(props: MenuPrimitive.Root.Props) {

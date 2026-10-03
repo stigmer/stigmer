@@ -81,7 +81,7 @@ export interface McpServerDetailViewProps {
    * - A guided tour or demo supplies frozen state
    *   (`{ mcpServer, isLoading: false, isRefetching: false, error: null,
    *   refetch: noop }`) so every depicted beat renders deterministically
-   *   from data the tour owns (scenar-cloud DD-006).
+   *   from data the tour owns, so every replay matches.
    *
    * When omitted, the view fetches by `org`/`slug` itself, as before.
    */

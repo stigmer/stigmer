@@ -18,10 +18,9 @@
 //
 // WHY this is a separate file: the accept-path test creates/deletes an
 // McpServer as a fixture, so the suite requires the McpServer service. It
-// was split out of agent.conformance.test.ts during the TS port (sub-project
-// decision DD-001, sp.agent-family) so the agent suite could roster before
-// McpServer CRUD landed (D4 entry #9); the split stays because the fixture
-// dependency it isolates is real either way.
+// was split out of agent.conformance.test.ts during the TS port so the agent
+// suite could roster before McpServer CRUD landed; the split stays because the
+// fixture dependency it isolates is real either way.
 //
 // Note: the missing-reference rejection test below does NOT need the
 // McpServer fixture (it only calls agentCommand.create), and that rejection

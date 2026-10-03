@@ -40,7 +40,7 @@ export interface AttachmentImageLightboxProps {
  *
  * The backdrop uses the `--stgm-backdrop` theme token ("modal backdrop
  * overlay behind dialogs") rather than the `bg-black/50` hardcode found in
- * older dialogs — the token is the designed value (Dont-Do #3).
+ * older dialogs — the token is the designed value, never a hardcoded color.
  */
 export function AttachmentImageLightbox({
   src,

@@ -17,7 +17,7 @@
  * The re-read is kept on purpose: a shell command may have rewritten an earlier
  * turn's file, and only its bytes can say so.
  *
- * DD-7: No skill-aware directory publishing. Individual files only.
+ * No skill-aware directory publishing: individual files only.
  */
 
 import { createHash } from "node:crypto";

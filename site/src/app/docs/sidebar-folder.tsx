@@ -39,7 +39,7 @@ export function DocsSidebarFolder({
 
   return (
     <SidebarFolder defaultOpen={(item.defaultOpen ?? false) || path.includes(item)}>
-      {/* py-1.5 matches the DocsSidebarItem density override (DD-02) so
+      {/* py-1.5 matches the DocsSidebarItem density override so
           folder rows and page rows share one rhythm. */}
       {item.index !== undefined ? (
         <SidebarFolderLink

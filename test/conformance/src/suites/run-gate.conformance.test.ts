@@ -1,4 +1,4 @@
-// Run-gate conformance (P1 sp.run-gate, 2026-09-11; stigmer-cloud#709).
+// Run-gate conformance.
 //
 // The contract: a caller may START or CONTINUE a run only on what they can
 // see. The three create chains — session, agent execution, workflow

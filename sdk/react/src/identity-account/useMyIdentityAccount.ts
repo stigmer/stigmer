@@ -47,7 +47,7 @@ export interface UseMyIdentityAccountReturn {
  * gets NOT_FOUND — the first-sign-in flow (`ensureMyIdentityAccount`, run by
  * {@link useIdentityAccountGate} and the CLI) is what creates one.
  *
- * Cached across mounts under a {@link FetchCacheProvider} (DD-014): a
+ * Cached across mounts under a {@link FetchCacheProvider}: a
  * revisit renders the previous result immediately and refetches in the
  * background, so consumers that seed UI from the account (e.g. composer
  * defaults) settle synchronously after the first visit.

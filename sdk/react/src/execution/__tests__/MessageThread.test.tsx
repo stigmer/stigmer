@@ -367,7 +367,7 @@ describe("MessageThread", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show" }));
     // The changed file renders as a FilePathLink whose accessible name
     // carries the full path (the hover reveal is the house tooltip now —
-    // native titles are banned, stigmer-cloud#268).
+    // native titles are banned).
     expect(
       screen.getByRole("button", { name: /Copy path: src\/a\.ts/ }),
     ).toBeTruthy();
@@ -862,7 +862,7 @@ describe("MessageThread", () => {
       expect(onOpenPlan).toHaveBeenCalledWith("exec-live");
     });
 
-    it("keeps the plan streaming inline for hosts without a plan surface (DD-011)", () => {
+    it("keeps the plan streaming inline for hosts without a plan surface", () => {
       render(
         <MessageThread
           executions={[]}

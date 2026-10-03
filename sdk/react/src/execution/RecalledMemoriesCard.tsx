@@ -37,7 +37,7 @@ export interface RecalledMemoriesCardProps {
 /**
  * Inline timeline card disclosing the semantic retriever's selection for
  * one execution: "Recalled N of M memories", expandable to the injected
- * facts (stigmer/stigmer#293 Phase 3a, DD-008 D5's transparency promise).
+ * facts (stigmer/stigmer#293 Phase 3's transparency promise).
  *
  * Renders at the top of the execution's {@link MessageThread} segment,
  * right after the user's turn — `spec.message` is the query the

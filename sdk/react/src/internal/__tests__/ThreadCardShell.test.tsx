@@ -1,7 +1,7 @@
-// Contract tests for the shared thread-card shell (T05/T06): the chrome
+// Contract tests for the shared thread-card shell: the chrome
 // tiers (card / nested divider row / quiet unboxed line, gate accent), the
 // header gestures (`expand` / `none` — `select` died with the Inspect
-// drill-down, T06) with their ARIA semantics, and the nested-button keydown
+// drill-down) with their ARIA semantics, and the nested-button keydown
 // guard. The two consuming threads pin their own compositions; this file
 // pins what they share.
 

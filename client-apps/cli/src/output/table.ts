@@ -1,7 +1,7 @@
 // Shared table renderer for list/collection views. Mirrors the column model of
 // the Go CLI's pkg/display table (dynamic widths, dash separator, 3-space gap).
 //
-// Wave 1 implements the non-adaptive path: columns size to their widest cell.
+// This implements the non-adaptive path: columns size to their widest cell.
 // Terminal-width adaptation and ANSI-aware measurement can be layered on later
 // without changing the call sites.
 

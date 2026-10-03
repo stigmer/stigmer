@@ -37,7 +37,7 @@
         },
         "approval_events": {
           "type": "array",
-          "description": "Optional. ApprovalEvent protos as protojson. Omitted in Phase 1 (see README).",
+          "description": "Optional. ApprovalEvent protos as protojson. Omitted today (see README).",
           "items": { "type": "object" }
         }
       }

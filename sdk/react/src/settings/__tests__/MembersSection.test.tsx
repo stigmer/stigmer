@@ -1,5 +1,5 @@
 /**
- * Pins MembersSection's edition posture (20260913.01 slice 5, Q-S5-6):
+ * Pins MembersSection's edition posture:
  * the Members page renders the members panel in EVERY edition —
  * `iam_policy` is an open-source kind since the row half moved into
  * @stigmer/server — and says how people join on an edition that serves

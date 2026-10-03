@@ -7,8 +7,8 @@
 //   - api_key    → addressable by ID only (not slug)
 //
 // The deletion verbs are id-shaped mutations, so they ride the high-level
-// `client.stigmer.*` sub-clients — only `apply` needs raw controllers (see the
-// Wave 2 architecture note). Fetching reuses the `get` bindings rather than
+// `client.stigmer.*` sub-clients — only `apply` needs raw controllers.
+// Fetching reuses the `get` bindings rather than
 // re-implementing a second fetch path.
 //
 // Each kind produces a DeletePlan: a warning to show before confirming, the

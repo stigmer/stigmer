@@ -138,7 +138,7 @@ function formatKindName(kind: WorkflowTaskKind): string {
 /**
  * Renders a task kind icon by name. Uses simple SVG placeholders --
  * the full Lucide icon set is intentionally avoided in the SDK to
- * keep the bundle size minimal (DD-004).
+ * keep the bundle size minimal.
  */
 function TaskKindIcon({
   className,

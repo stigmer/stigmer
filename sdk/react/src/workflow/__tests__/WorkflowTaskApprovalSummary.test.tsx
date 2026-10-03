@@ -74,8 +74,8 @@ describe("WorkflowTaskApprovalSummary", () => {
         />,
       );
       const name = screen.getByText("Ada Lovelace");
-      // The email rides the house tooltip now (native titles are banned,
-      // stigmer-cloud#268); the name span stays title-free.
+      // The email rides the house tooltip now (native titles are banned);
+      // the name span stays title-free.
       expect(name.getAttribute("title")).toBeNull();
       expect(document.querySelector('img[src="https://example.com/ada.png"]')).toBeTruthy();
       // The raw identity is never shown when a display identity exists.

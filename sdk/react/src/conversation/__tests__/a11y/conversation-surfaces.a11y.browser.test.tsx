@@ -5,7 +5,7 @@
 // indicator strengths), the WhatsApp-style timeline (both bubble sides,
 // the two status axes, the visible receipt-failure explanation,
 // internal-lane system rows, the Slack honesty notice), the staff
-// composer with the closed-window advisory (T07 DD-014), and the empty
+// composer with the closed-window advisory, and the empty
 // states including the filtered one — each in light + dark against the
 // shipped stylesheet.
 
@@ -68,7 +68,7 @@ const conversations = [
     org: "acme",
     control: ConversationControl.control_human,
     controlledBy: "idt_staff",
-    // Human-held and awaiting: the strong indicator strength (F-13).
+    // Human-held and awaiting: the strong indicator strength.
     awaitingReply: true,
     lastActivityAt: timestampFromDate(new Date("2026-08-07T09:00:00Z")),
   }),
@@ -112,7 +112,7 @@ const timelineItems = [
     text: "I'll take this personally",
     deliveryStatus: ChannelDeliveryStatus.delivered,
     receiptState: ChannelReceiptState.receipt_failed,
-    // The T07 visible explanation line (DD-014 D-c) rides the audit.
+    // The visible receipt explanation line rides the audit.
     receiptDetail:
       "More than 24 hours have passed since the recipient last replied to the sender number.",
     receiptErrorCode: 131047,

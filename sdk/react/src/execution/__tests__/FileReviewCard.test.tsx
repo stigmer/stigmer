@@ -107,7 +107,8 @@ function capturedBinaryChange(opts: {
 /**
  * A diff-unavailable change (real wire shape): content-less + incomplete — the
  * shape both the secret gate and the size backstop produce. `blockedReason`
- * carries the honest cause (doc 15); omit it to model a pre-doc-15/unknown row.
+ * carries the honest cause; omit it to model an unknown row or one recorded
+ * before the runner recorded block reasons.
  */
 function capturedUnavailableChange(opts: {
   id: string;
@@ -223,7 +224,7 @@ describe("FileReviewCard", () => {
     it("switches a single INCOMPLETE file to the per-file control (no CHANGE_SET footer)", () => {
       // A lone binary set is BINARY_SUMMARY_ONLY, but "Keep all" is a multi-file
       // affordance: with a single file the bulk footer is dropped and the per-file
-      // "Keep anyway" / Discard control (DD-16) is the only decision surface.
+      // "Keep anyway" / Discard control is the only decision surface.
       render(
         <FileReviewCard
           fileChangeSet={changeSet({
@@ -502,8 +503,8 @@ describe("FileReviewCard", () => {
     });
   });
 
-  describe("blocked / partial states (Slice 6)", () => {
-    it("labels a binary file and offers an enabled 'Keep anyway' (DD-16)", () => {
+  describe("blocked / partial states", () => {
+    it("labels a binary file and offers an enabled 'Keep anyway'", () => {
       const onSubmit = vi.fn();
       render(
         <FileReviewCard
@@ -564,7 +565,7 @@ describe("FileReviewCard", () => {
       expect(okGroup.getAttribute("aria-describedby")).toBeFalsy();
     });
 
-    it("gives a secret-withheld file its own honest copy (doc 15)", () => {
+    it("gives a secret-withheld file its own honest copy", () => {
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({
@@ -584,7 +585,7 @@ describe("FileReviewCard", () => {
       expect(screen.queryByText(/full diff isn.t available to review/i)).toBeNull();
     });
 
-    it("gives a size-elided file its own honest copy, distinct from secret (doc 15)", () => {
+    it("gives a size-elided file its own honest copy, distinct from secret", () => {
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({
@@ -642,7 +643,7 @@ describe("FileReviewCard", () => {
       expect(screen.getByText(/isn.t available to review, so the whole set/i)).toBeTruthy();
     });
 
-    it("offers per-file granular control alongside 'Keep all' in a binary-only set (DD-17)", () => {
+    it("offers per-file granular control alongside 'Keep all' in a binary-only set", () => {
       // A binary-only set is keepable in one shot, but the per-file escape hatch
       // stays: keep the reviewable text file on its own, keep-anyway or discard
       // the binary. Bulk "Keep all" and the granular rows coexist.
@@ -692,7 +693,7 @@ describe("FileReviewCard", () => {
       });
     });
 
-    it("offers an enabled 'Keep all' for a BINARY_SUMMARY_ONLY set that acknowledges the whole set (DD-17)", () => {
+    it("offers an enabled 'Keep all' for a BINARY_SUMMARY_ONLY set that acknowledges the whole set", () => {
       // A set whose only blocker is binary files is keepable in one action: the
       // bulk approve is enabled, relabeled "Keep all", and carries the whole-set
       // acknowledgment bound to the aggregate digest.
@@ -806,7 +807,7 @@ describe("FileReviewCard", () => {
       expect(screen.queryByText("Not reviewed")).toBeNull();
     });
 
-    it("labels a policy auto-kept set 'Kept automatically' — never as a human review (DD-28)", () => {
+    it("labels a policy auto-kept set 'Kept automatically' — never as a human review", () => {
       // The approved-command auto-keep authors a CHANGE_SET approve with origin
       // POLICY_APPROVED_COMMAND. The record must say the platform kept it
       // because the user approved the command — not read like a human decided

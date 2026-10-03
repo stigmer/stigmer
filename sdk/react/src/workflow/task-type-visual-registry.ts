@@ -34,8 +34,7 @@ export type VisualClass =
 /**
  * Describes how a task kind's connection handles are structured.
  *
- * T02 (NodeShell) reads this to render the appropriate React Flow Handles.
- * T01 defines the patterns; T02 implements the rendering.
+ * `NodeShell` reads this to render the appropriate React Flow Handles.
  */
 export type PortPattern =
   | "standard"
@@ -50,9 +49,9 @@ export type PortPattern =
  * Visual specification for a single workflow task kind.
  *
  * Combines shape, dimension, port, and accessibility metadata.
- * The layout engine (dagre today, ELK in T03) uses `defaultWidth`
+ * The layout engine (dagre, or ELK when installed) uses `defaultWidth`
  * and `defaultHeight + captionHeight` for node sizing. The renderer
- * (T02 NodeShell) uses `visualClass` to select the SVG shape component.
+ * (`NodeShell`) uses `visualClass` to select the SVG shape component.
  *
  * For non-rectangular shapes (diamond, octagon, circle), the task name
  * renders as an external caption BELOW the shape. `captionHeight` reserves

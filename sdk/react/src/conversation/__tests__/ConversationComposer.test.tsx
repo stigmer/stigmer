@@ -40,7 +40,7 @@ describe("ConversationComposer", () => {
     const input = screen.getByLabelText("Reply to the customer");
     await user.type(input, "on my way{Enter}");
 
-    // One reply command, two lanes (cloud#260): the textarea always
+    // One reply command, two lanes: the textarea always
     // submits the text lane of the payload union.
     expect(onSend).toHaveBeenCalledWith({ kind: "text", body: "on my way" });
     await waitFor(() => expect((input as HTMLTextAreaElement).value).toBe(""));
@@ -112,7 +112,7 @@ describe("ConversationComposer", () => {
     expect((input as HTMLTextAreaElement).value).toBe("");
   });
 
-  it("shows the spinner and blocks input while a reply is in flight (F-05)", () => {
+  it("shows the spinner and blocks input while a reply is in flight", () => {
     render(<ConversationComposer onSend={vi.fn()} isSending={true} disabledReason={null} />);
 
     const button = screen.getByRole("button", { name: "Send reply" });
@@ -126,7 +126,7 @@ describe("ConversationComposer", () => {
     ).toBe(true);
   });
 
-  it("annotates an ENABLED input with the advisory, wired as the input's description (DD-014 D-e)", () => {
+  it("annotates an ENABLED input with the advisory, wired as the input's description", () => {
     render(
       <ConversationComposer
         onSend={vi.fn()}
@@ -140,20 +140,20 @@ describe("ConversationComposer", () => {
     // A forecast, not a block: the input stays usable.
     expect(input.disabled).toBe(false);
 
-    // R-2 (Sitting 2 gate ruling): the advisory is the input's
-    // aria-describedby target — read at the moment of action — never a
-    // live region (it is state a reader meets on open, not an event).
+    // The advisory is the input's aria-describedby target — read at
+    // the moment of action — never a live region (it is state a reader
+    // meets on open, not an event).
     const describedBy = input.getAttribute("aria-describedby");
     expect(describedBy).toBeTruthy();
     const advisoryEl = document.getElementById(describedBy as string);
     expect(advisoryEl?.textContent).toContain("24-hour reply window has closed");
     expect(advisoryEl?.getAttribute("role")).toBeNull();
 
-    // Zero new tab stops (the F-18 discipline).
+    // Zero new tab stops: the advisory is description, never a control.
     expect(advisoryEl?.querySelector("button, a, [tabindex]")).toBeNull();
   });
 
-  it("keeps the advisory interaction-free even with a template picker wired (F-18)", () => {
+  it("keeps the advisory interaction-free even with a template picker wired", () => {
     render(
       <ConversationComposer
         onSend={vi.fn()}

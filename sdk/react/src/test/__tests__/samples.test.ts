@@ -176,7 +176,7 @@ describe("samples", () => {
 // Determinism — the reason these factories exist. A `samples.*` value is
 // rendered into Scenar tours that replay in the browser and export to video
 // frame by frame, so any live-clock read paints a pixel that changes between
-// runs (scenar-cloud DD-006). These tests are the regression lock: each one
+// runs. These tests are the regression lock: each one
 // FAILS if a factory is reverted to reading the clock.
 // ---------------------------------------------------------------------------
 

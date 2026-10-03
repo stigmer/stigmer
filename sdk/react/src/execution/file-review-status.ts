@@ -13,7 +13,7 @@ import {
 
 /**
  * Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
- * runner records on `CapturedFileChange.blocked_reason` (design doc 15).
+ * runner records on `CapturedFileChange.blocked_reason`.
  *
  * - `"secret"` — the path looks like a secret; the bytes were deliberately never
  *   captured (there is nothing to review, by design).
@@ -64,13 +64,13 @@ export type FileReviewability =
  *    `is_binary` on its blob ref. `is_binary` is preserved when a large body is
  *    offloaded from an inline value to a storage ref, so this holds regardless
  *    of offload. Binary is therefore derived here, never duplicated onto the
- *    block reason (doc 15).
+ *    block reason.
  * 3. otherwise → `"unavailable"` with the honest cause from
  *    `blocked_reason`: `SECRET_WITHHELD → "secret"`, `SIZE_ELIDED → "size"`,
- *    else `"unknown"`. Before doc 15 this bucket was cause-agnostic (the wire
- *    could not prove secret-withheld vs size-dropped); the runner now records
- *    the cause at capture time, so the UI can say *why* rather than only *that*
- *    the diff is unavailable.
+ *    else `"unknown"`. Before the runner recorded it, this bucket was
+ *    cause-agnostic (the wire could not prove secret-withheld vs
+ *    size-dropped); the runner now records the cause at capture time, so the
+ *    UI can say *why* rather than only *that* the diff is unavailable.
  */
 export function fileReviewability(change: CapturedFileChange): FileReviewability {
   if (change.diffComplete) return { kind: "reviewable" };

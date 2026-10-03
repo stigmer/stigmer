@@ -24,7 +24,7 @@ export interface ScheduleRowActionsProps {
  * schedule renders neither (its remedy lives on the detail page).
  *
  * Shared by every console's schedule workbench via `renderItemAction`
- * so row behavior never diverges between apps (DD-016).
+ * so row behavior never diverges between apps.
  */
 export function ScheduleRowActions({
   schedule,

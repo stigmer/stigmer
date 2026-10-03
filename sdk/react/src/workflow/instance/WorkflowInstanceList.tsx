@@ -54,7 +54,7 @@ export interface WorkflowInstanceListProps {
  * Enhanced workflow instance list with environment badges, visibility controls,
  * and action buttons. Filters out the platform-managed default instance.
  *
- * This is an SDK component (DD-001) — embeddable by platform builders.
+ * This is an SDK component — embeddable by platform builders.
  */
 export function WorkflowInstanceList({
   workflowId,

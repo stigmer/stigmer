@@ -26,7 +26,7 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * the session has exactly one git entry every write-back applies to it;
  * multi-entry sessions match strictly by name.
  *
- * **Reference stability (DD-010):** the decorated array is memoized on the
+ * **Reference stability:** the decorated array is memoized on the
  * entries array and a value signature of the derived refs — streaming frames
  * that don't change any write-back SHA return the identical array, so
  * downstream listing/content effects never churn.

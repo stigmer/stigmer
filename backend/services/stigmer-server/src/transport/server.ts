@@ -15,7 +15,7 @@
  *   5. RPC adapter  gRPC + gRPC-Web + Connect      (replaces Go's lanes
  *                                                   4–5; WebSocket retired
  *                                                   deliberately)
- *   6. 404          (the adapter's fallback — CW-10 asserts unknown
+ *   6. 404          (the adapter's fallback — conformance asserts unknown
  *                    /v1/proxy/* paths land here)
  *
  * The demux (demux.ts) fronts the port; both protocol servers run this same

@@ -1,10 +1,10 @@
-// Accessibility audit (DD-22) — the explorer tree and both search surfaces.
+// Accessibility audit — the explorer tree and both search surfaces.
 //
-// Covers the Session 18 hardening for these surfaces: file-tree `role="tree"` +
-// `aria-level` + `aria-hidden` glyphs, the neutral truncation banner + Retry
-// focus ring, the search `role="status"` live region, the combobox/listbox
-// results, and the `Name | Text` search-mode radiogroup — each in light + dark
-// against the shipped stylesheet.
+// Covers the accessibility hardening for these surfaces: file-tree
+// `role="tree"` + `aria-level` + `aria-hidden` glyphs, the neutral truncation
+// banner + Retry focus ring, the search `role="status"` live region, the
+// combobox/listbox results, and the `Name | Text` search-mode radiogroup — each
+// in light + dark against the shipped stylesheet.
 
 import { describe, it, afterEach } from "vitest";
 import { screen, fireEvent } from "@testing-library/react";

@@ -98,7 +98,7 @@ describe("CreateChannelAppForm — WhatsApp branch", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: /whatsapp/i }));
 
-    // Generated, not empty: the token is customer-authored (DD-WA-3) but
+    // Generated, not empty: the token is customer-authored but
     // a strong default prevents guessable handshake secrets.
     const tokenInput = screen.getByLabelText(/verify token/i) as HTMLInputElement;
     expect(tokenInput.value).toMatch(/^[0-9a-f]{64}$/);

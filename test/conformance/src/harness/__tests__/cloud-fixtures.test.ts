@@ -1,7 +1,7 @@
 // Unit arms for the cloud-capability fixtures: the three fakes' wire behavior
 // and the control API round-trip through the typed client. Pure loopback —
 // no target, no launcher.
-// Domain: conformance harness (cloud-capability fixtures, E1).
+// Domain: conformance harness (cloud-capability fixtures).
 import { execFileSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

@@ -86,7 +86,7 @@ describe("ArtifactRow — presentation", () => {
   });
 });
 
-describe("ArtifactRow — nested-interactive avoidance (DD-22)", () => {
+describe("ArtifactRow — nested-interactive avoidance", () => {
   it("renders the Download control as a SIBLING of the open button, never nested", () => {
     renderRow({ artifact: fileArtifact("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;
@@ -135,7 +135,7 @@ describe("ArtifactRow — download", () => {
   it("renders the directory Download control with no native title", () => {
     renderRow({ artifact: dirArtifact("return-policy") });
     // The "Download ZIP" copy moved to the house tooltip (native titles
-    // are banned — stigmer-cloud#268); its reveal is pinned in the
+    // are banned); its reveal is pinned in the
     // real-browser suite (artifact-row-tooltips.layout.browser.test.tsx).
     expect(screen.getByLabelText("Download return-policy")).toBeTruthy();
     expect(document.querySelector("[title]")).toBeNull();

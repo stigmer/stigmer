@@ -33,7 +33,7 @@ import type { UseMcpServerReturn } from "../useMcpServer";
 
 /**
  * Pins the edition degradation of the BYOA (org-OAuth-app override) surface
- * (stigmer/stigmer#558, DD-019).
+ * (stigmer/stigmer#558).
  *
  * The org-override RPCs (getOrgOAuthApp / setOrgOAuthApp / deleteOrgOAuthApp)
  * are hosted-only by design: OSS has a flat OAuthApp store with no override

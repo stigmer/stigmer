@@ -115,7 +115,7 @@ export function WorkflowChangesTab({
 
 /**
  * A failed child fetch never blanks the facet — partial results render and
- * the failure is named (DD-006: what happened + what it means).
+ * the failure is named (what happened + what it means).
  */
 function ErrorNotice({ error }: { readonly error: Error }) {
   return (

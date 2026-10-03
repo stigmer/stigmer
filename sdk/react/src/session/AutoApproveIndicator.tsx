@@ -11,7 +11,7 @@
  * gate-time "Approve & don't ask again", the account's `default_auto_approve`
  * preference, the host's `approvalDefaults`); this strip is deliberately only
  * the way OFF plus the disclosure. Shared by `SessionViewer` and
- * `NewSessionViewer` (DD-016) — a persisted account preference can arm the
+ * `NewSessionViewer` — a persisted account preference can arm the
  * launcher before the first message, so both surfaces need the disclosure.
  */
 export function AutoApproveIndicator({ onTurnOff }: { readonly onTurnOff: () => void }) {

@@ -25,6 +25,7 @@ import type {
 } from "@kubernetes/client-node";
 
 import { sandboxBaseName } from "../naming.js";
+import { runnerCommand } from "../runner-launch.js";
 import type { SandboxDriverConfig } from "../provisioner.js";
 import type { KubernetesSandboxGateway } from "../kubernetes.js";
 import {
@@ -202,7 +203,7 @@ describe("the manifest shapes (the Java SandboxManifestFactory pins)", () => {
     const deployment = buildSandboxDeployment("session", "ses_1", env, config);
     expect(deployment.spec?.strategy?.type).toBe("Recreate");
     const container = deployment.spec?.template.spec?.containers[0];
-    expect(container?.command).toEqual(["node", "/runner/dist/main.js"]);
+    expect(container?.command).toEqual(runnerCommand());
     const envByName = new Map(
       (container?.env ?? []).map((entry) => [entry.name, entry]),
     );

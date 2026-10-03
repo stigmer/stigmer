@@ -7,8 +7,8 @@ import type { RefreshedRunnerToken } from "../bootstrap.js";
  *
  * The load-bearing guarantee here is the anti-staleness regression: once the
  * runner mints its own proxy token, a control-plane token push must NOT clobber
- * it (the bug fixed in stigmer-cloud _changelog 2026-05-26 / 2026-06-01 was the
- * inverse — the proxy token froze and never refreshed). These tests pin both
+ * it (the bug two earlier production fixes closed was the inverse — the proxy
+ * token froze and never refreshed). These tests pin both
  * directions of that invariant.
  */
 

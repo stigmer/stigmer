@@ -69,8 +69,8 @@ export interface AgentChannelsPanelProps {
    * Maps a session id to the host's session route (the console passes
    * `` (id) => `/sessions/${id}` ``). Threaded to each card's
    * Conversations dialog so rows link to the read-only transcript;
-   * absent, the rows render without links (DD-004 — the SDK never
-   * assumes a routing scheme).
+   * absent, the rows render without links (the SDK never assumes a
+   * routing scheme).
    */
   readonly sessionHref?: (sessionId: string) => string;
   /** Additional CSS class names. */
@@ -98,7 +98,7 @@ export interface AgentChannelsPanelProps {
  * refetch-after-mutation — hosts render it with just the agent (plus the
  * external-connect delegate where popups are unavailable).
  *
- * This is an SDK component (DD-001) — embeddable by platform builders.
+ * This is an SDK component — embeddable by platform builders.
  */
 export function AgentChannelsPanel({
   agent,
@@ -153,14 +153,13 @@ export function AgentChannelsPanel({
   const [editingCredentials, setEditingCredentials] =
     useState<AgentChannel | null>(null);
 
-  // The channel whose conversations are being viewed (DD-012: read-only
+  // The channel whose conversations are being viewed (read-only
   // channel-session observability for the channel's viewers).
   const [viewingConversations, setViewingConversations] =
     useState<AgentChannel | null>(null);
 
-  // The channel whose provider message templates are being viewed
-  // (proactive-messaging DD-007: the business-messaging diagnosis
-  // surface).
+  // The channel whose provider message templates are being viewed (the
+  // business-messaging diagnosis surface).
   const [viewingTemplates, setViewingTemplates] =
     useState<AgentChannel | null>(null);
 
@@ -377,8 +376,7 @@ export function AgentChannelsPanel({
           channel={viewingTemplates}
           // The dialog's not-proactive teaching state routes to the
           // panel's own YAML editor — the one place the grant can be
-          // set today (proactive-messaging DD-007's named follow-up is
-          // a first-class card affordance).
+          // set today.
           onEditYaml={() => {
             const channel = viewingTemplates;
             setViewingTemplates(null);
@@ -456,9 +454,9 @@ function ChannelCard({
   const id = meta?.id ?? "";
   const enabled = channel.spec?.enabled ?? false;
   const installState = installStateOf(channel);
-  // The serving app (T04 item 2): set means the channel installs through
+  // The serving app: set means the channel installs through
   // the org's own channel app; absent means the platform Stigmer app
-  // (Slack only — WhatsApp always has one, DD-WA-2). The app's NAME is
+  // (Slack only — WhatsApp always has one). The app's NAME is
   // the identity people address, so prefer it over the ref's slug when
   // the app is in the fetched list (it may not be — e.g. the app was
   // deleted after install).
@@ -491,12 +489,11 @@ function ChannelCard({
     "can_delete",
   );
 
-  // The channel's canonical access-management home (channel-conversations
-  // F-11): a participant grant covers every conversation on the channel,
-  // so the affordance belongs on the channel card. The conversation
-  // header's "Channel access" button is the point-of-need shortcut to
-  // the same dialog. Self-gates on can_view_access — `action` is null
-  // for viewers who may not see the access list.
+  // The channel's canonical access-management home: a participant grant covers
+  // every conversation on the channel, so the affordance belongs on the channel
+  // card. The conversation header's "Channel access" button is the
+  // point-of-need shortcut to the same dialog. Self-gates on can_view_access —
+  // `action` is null for viewers who may not see the access list.
   const access = useManageAccess({
     resource: id
       ? {
@@ -567,7 +564,7 @@ function ChannelCard({
             )}
           {/* The menu always renders: everyone who can see the card holds
               can_view on the channel (the FGA-filtered list), which is
-              exactly the bar for viewing its conversations (DD-012). */}
+              exactly the bar for viewing its conversations. */}
           <ActionMenu>
             <ActionMenu.Trigger
               aria-label={`Actions for ${meta?.name || meta?.slug}`}
@@ -582,7 +579,7 @@ function ChannelCard({
                    dialog is the session-level forensics view (which
                    sessions served a conversation). The word
                    Conversations belongs to the top-level customer
-                   surface (channel-conversations DD-004 D-g). */
+                   surface. */
                 data-cursor-target="channel-conversations"
               >
                 Sessions

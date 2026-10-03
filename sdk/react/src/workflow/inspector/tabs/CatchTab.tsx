@@ -17,8 +17,6 @@ export interface CatchTabProps {
  * - Catch configuration (error variable, compensate toggle)
  * - Catch tasks list
  * - Remove catch handler action
- *
- * @since T09 (Branch Management UX)
  */
 export const CatchTab = memo(function CatchTab({ node, mutations }: CatchTabProps) {
   const config = node.config as Record<string, unknown>;

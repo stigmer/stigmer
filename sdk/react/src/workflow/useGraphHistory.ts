@@ -34,8 +34,6 @@ export interface UseGraphHistoryReturn {
  * orchestrator's syncing wrappers (`useWorkflowCanvas.undo`/`redo`).
  *
  * @param initialModel - The starting graph model (from YAML parse).
- *
- * @since T15 Batch 2 (Node Authoring)
  */
 export function useGraphHistory(
   initialModel: WorkflowGraphModel | null,

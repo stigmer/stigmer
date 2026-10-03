@@ -3,7 +3,7 @@
 // the approval gate a workflow `human_input` task goes through.
 //
 // This is the workflow analogue of the AgentExecution tool-approval suite, but a
-// genuinely different machine, so it is a separate file (DD-011):
+// genuinely different machine, so it is a separate file:
 //   - AgentExecution gates at the *execution* level (EXECUTION_WAITING_FOR_APPROVAL)
 //     and resolves a DB-backed pending_approvals projection via submitApproval.
 //   - WorkflowExecution has no execution-level waiting phase. A `human_input` task
@@ -52,7 +52,7 @@
 //   on a non-signalable (terminal) execution -> FailedPrecondition. (This tightens
 //   beyond the Go integration tests, which only assert that an error is returned.)
 //
-// Deliberately NOT asserted (DD-011): idempotency of a re-submit. Unlike the
+// Deliberately NOT asserted: idempotency of a re-submit. Unlike the
 // agent DB-projection gate, this gate resolves via a fire-and-forget Temporal
 // signal the handler does not dedupe, so a re-submit is timing-dependent (it
 // either races into FailedPrecondition once terminal, or sends a duplicate signal
@@ -198,7 +198,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
       ExecutionPhase.EXECUTION_IN_PROGRESS,
     );
 
-    // The gate is also the listPendingApprovals populated arm (CW-7): the
+    // The gate is also the listPendingApprovals populated arm: the
     // read scans per-task status projections, and the entry carries the
     // TASK NAME (deliberately not the composite task id — the value
     // submitWorkflowTaskApproval accepts).
@@ -293,7 +293,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
 
     // "deny" is a declared outcome, so it is recorded as data and the workflow
     // continues — it does NOT fail the execution (the proto's "deny fails" note
-    // describes only the implicit no-outcomes binary form; see DD-011).
+    // describes only the implicit no-outcomes binary form).
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "a declared deny outcome still COMPLETES the run").toBe(
       ExecutionPhase.EXECUTION_COMPLETED,

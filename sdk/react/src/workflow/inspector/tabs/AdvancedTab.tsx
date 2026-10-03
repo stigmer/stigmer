@@ -18,8 +18,6 @@ const BRANCHING_KINDS = new Set(["switch_case", "human_input"]);
  *
  * Shows the `flow.then` directive (hidden for branching kinds whose routing
  * is managed by the Configure tab's specialized editors).
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const AdvancedTab = memo(function AdvancedTab({
   node,

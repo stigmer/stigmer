@@ -13,7 +13,7 @@ import type { ResourceDetailShellProps } from "./types.js";
  * visibility control), an action bar (primary button + kebab overflow),
  * optional tabs, and a content area — all themed via `--stgm-*` tokens.
  *
- * The shell receives pre-fetched data via props (DD-T03-001). It does
+ * The shell receives pre-fetched data via props. It does
  * NOT own data fetching — resource-specific hooks (`useAgent`, `useSkill`,
  * etc.) handle that. The shell is a layout + behavior coordinator, not
  * a data-fetching component.

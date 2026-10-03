@@ -15,9 +15,10 @@
  *
  * The organization's roles are READ from the proto through
  * `grantableRolesFor`, not written here: the four words the Members page
- * shows and entry 3's authorizer enforces have one source, and a proto
- * change is the only way to change them (grant-scope.test.ts pins the
- * equality; grantable-roles-for.test.ts pins the four).
+ * shows and the authorizer (authorization/authorizer.ts) enforces have one
+ * source, and a proto change is the only way to change them
+ * (grant-scope.test.ts pins the equality; grantable-roles-for.test.ts pins
+ * the four).
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 

@@ -292,7 +292,7 @@ describe("Workflow conformance — delete cascades instances (stigmer#592)", () 
     );
 
     // The workflow slug is free again: recreate converges instead of
-    // colliding with the orphaned default instance (the DD-010 poison).
+    // colliding with the orphaned default instance, which once held the slug.
     const recreated = await createWorkflow(org, name);
     expect(recreated.metadata?.slug).toBe(created.metadata?.slug);
     expect(recreated.metadata?.id).not.toBe(workflowId);

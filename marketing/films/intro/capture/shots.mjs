@@ -1,15 +1,15 @@
 /**
- * The shot registry — the approved shot list (stigmer-cloud project
- * 20260902.01, script v1) as executable capture drives. One entry per
- * shot id; `node capture.mjs <id...>` records them.
+ * The shot registry — the film's shot list as executable capture
+ * drives. One entry per shot id; `node capture.mjs <id...>` records
+ * them.
  *
  * Notes against the shot list:
  * - s4-chat is ONE continuous take covering S4a (chat + tool calls),
  *   S4b (the approval hero shot), and S4c (approve → resume → done);
  *   the composition cuts it into beats. S2e reuses S4b's frames.
  * - S3e (terminal) is not a browser capture — see transcript.mjs.
- * - S4d (embed) records against Stigmer Cloud (owner decision at the
- *   demo-content gate) — see s4d below for its preconditions.
+ * - S4d (embed) is the React app on the local stack — see s4d below for
+ *   its preconditions.
  * - The chat scene is the owner-approved two-turn beat: natural ask,
  *   agent proposes, a quick "yes", then the gate.
  */
@@ -24,7 +24,7 @@ export const SHOTS = {
    * sub-agents. The console has no YAML surface for agents, so the
    * script's "YAML in editor" drift is proposed as a styled Remotion
    * code panel over the real manifest (the S3e terminal treatment);
-   * this take is the real-console alternative for the footage gate.
+   * this take is the real-console alternative.
    */
   "s3b-agent-overview": async (page, human) => {
     await ensureOrg(page, human);
@@ -153,9 +153,9 @@ export const SHOTS = {
 
   /**
    * S4d — the payoff beat: Meridian's own React app with the assistant
-   * integrated through @stigmer/react (owner ruling at the v2 gate:
-   * the React component, not the iframe widget — richer UX and the whole
-   * film stays local). A before/after story: the page with NO assistant,
+   * integrated through @stigmer/react (the React component, not the
+   * iframe widget — richer UX, and the whole film stays local). A
+   * before/after story: the page with NO assistant,
    * then the panel appears (the composition cuts the JSX snippet graphic
    * between the two), then a real traveler question answered on camera
    * against the live local stack.

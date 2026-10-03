@@ -14,8 +14,6 @@ export interface SentinelInspectorProps {
  * Inspector for sentinel nodes (Start / End).
  *
  * Shows a brief description of the sentinel's role in the workflow.
- *
- * @since T10 (Inspector Panel Refactor) — extracted from WorkflowInspectorPanel
  */
 export function SentinelInspector({ node, className }: SentinelInspectorProps) {
   const isStart = node.id === START_NODE_ID;

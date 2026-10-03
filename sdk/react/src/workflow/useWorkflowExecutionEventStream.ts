@@ -112,7 +112,7 @@ const TERMINAL_PHASES = new Set<ExecutionPhase>([
  * Returns `false` when either phase is `undefined` (initial load or
  * unresolved execution), preventing false resets on first render.
  *
- * Extracted for testability (DD-003).
+ * Extracted for testability.
  */
 export function isRecoveryTransition(
   prevPhase: ExecutionPhase | undefined,

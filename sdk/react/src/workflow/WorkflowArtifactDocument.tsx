@@ -52,9 +52,9 @@ function isTextContentType(contentType: string): boolean {
  * bytes, CORS-safe for embedded hosts) only for text content types; binary
  * artifacts show an honest "not available for preview" body with Download as
  * the escape hatch. A `cacheKey` keeps reopening a recently-viewed tab
- * instant (DD-014).
+ * instant.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function WorkflowArtifactDocument({
   artifact,
@@ -94,7 +94,7 @@ export function WorkflowArtifactDocument({
       {/* Toolbar sticks to the top of the editor pane's scroll container so the
           file identity and actions stay visible while the body scrolls. Rows
           wrap on narrow panes (min-w-0 + flex-wrap) rather than forcing a
-          horizontal scrollbar — the DD-20 reflow contract. */}
+          horizontal scrollbar, so the header reflows on any pane width. */}
       <div className="stg:sticky stg:top-0 stg:z-10 stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-1.5 stg:border-b stg:border-border stg:bg-background stg:px-4 stg:py-2">
         <span className="stg:shrink-0 stg:text-muted-foreground">
           <FileIcon />

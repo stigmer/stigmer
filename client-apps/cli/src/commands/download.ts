@@ -1,6 +1,6 @@
 // `stigmer download <type> <id>` — download artifacts produced by an execution.
 // Only agent executions (`aex_`) are supported today. Heavy modules are
-// lazy-imported inside the action so `--help` stays fast (DD-001).
+// lazy-imported inside the action so `--help` stays fast.
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../config/index.js";
 import { UsageError } from "../errors/index.js";

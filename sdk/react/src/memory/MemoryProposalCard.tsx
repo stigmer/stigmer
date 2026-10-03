@@ -16,10 +16,10 @@ export interface MemoryProposalCardBodyProps {
   /** The proposed memory's resource id (from the remember tool's answer). */
   readonly memoryId: string;
   /**
-   * The proposed fact as frozen in the tool result — shown VERBATIM
-   * (DD-005 D6: what you confirm is what future prompts inject, byte for
-   * byte). The live record's text supersedes it once fetched, so an edit
-   * made on the memory page is reflected here too.
+   * The proposed fact as frozen in the tool result — shown VERBATIM (what you
+   * confirm is what future prompts inject, byte for byte). The live record's
+   * text supersedes it once fetched, so an edit made on the memory page is
+   * reflected here too.
    */
   readonly fact: string;
   /** Additional CSS class names for the root container. */
@@ -27,7 +27,7 @@ export interface MemoryProposalCardBodyProps {
 }
 
 /**
- * The in-session consent surface for a memory proposal (DD-005 D4): the
+ * The in-session consent surface for a memory proposal: the
  * body of a `remember` tool call's row in the message thread, rendering
  * the proposed fact verbatim with one-click Confirm / Reject actions.
  *
@@ -37,8 +37,8 @@ export interface MemoryProposalCardBodyProps {
  * the memory settings page (or another device) shows its decided state
  * here instead of stale action buttons, and a deleted record reads
  * "no longer stored" rather than failing. Rejection is one click, no
- * confirmation dialog (the T04 Cursor lesson: expensive review teaches
- * users to ignore the queue); deletion-with-confirmation lives on the
+ * confirmation dialog (expensive review teaches users to ignore the
+ * queue); deletion-with-confirmation lives on the
  * memory page, the catch-up surface.
  *
  * Borderless by design (the {@link ApprovalCardBody} posture): the tool

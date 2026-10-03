@@ -1,7 +1,7 @@
 # HITL Approval Fingerprint Contract
 
 This directory pins the **approval fingerprint** — the exact-match enforcement
-identity the HITL Tool Execution Gateway (Phase 2) compares at the moment a side
+identity the HITL tool-execution gate compares at the moment a side
 effect would happen. It builds directly on the canonical form pinned in
 `../canonicalization/`.
 
@@ -37,8 +37,8 @@ the fingerprint has two fidelities over the same canonicalization core:
 `computeApprovalFingerprint(key, input)` must equal each `full[].expected`, and
 `computeCoarseApprovalFingerprint(key, input)` each `coarse[].expected`, in every
 edition. The TS implementation is
-`backend/services/runner/src/shared/approval-fingerprint.ts`; the Go/Java editions
-added in Phase 2 (Slice E) load this same file and must reproduce every value
+`backend/services/runner/src/shared/approval-fingerprint.ts`; any other
+implementation loads this same file and must reproduce every value
 byte-for-byte against the fixed key.
 
 These values are machine-generated (an HMAC hex is not hand-writable). To

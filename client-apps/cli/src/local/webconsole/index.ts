@@ -1,14 +1,14 @@
 // Web-console availability against the server's unified port.
 //
-// Since DD-012 (oss sub-project console-serving) the SERVER serves the
-// console: the static export ships inside @stigmer/server-slim and the
-// unified port's lane 4 serves it, synthesizing /config.json in-process.
-// The CLI therefore PROBES rather than serves — /config.json answers 200
-// exactly when a console export is bundled with the running server (a
-// dev-tree server without the export falls through to the RPC adapter's
-// 404), so the daemon's component state reports what a browser would
-// actually find. The Go-era embedded console (go:embed on :8234) and the
-// T05/T06 stub this file used to be are both retired by that design.
+// The SERVER serves the console: the static export ships inside
+// @stigmer/server-slim and the unified port's lane 4 serves it,
+// synthesizing /config.json in-process. The CLI therefore PROBES rather
+// than serves — /config.json answers 200 exactly when a console export
+// is bundled with the running server (a dev-tree server without the
+// export falls through to the RPC adapter's 404), so the daemon's
+// component state reports what a browser would actually find. The Go-era
+// embedded console (go:embed on :8234) and the stub this file used to be
+// are both retired by that design.
 
 import { SERVER_PORT } from "../constants.js";
 

@@ -5,7 +5,7 @@
  *
  * The connected server is the shared `ORDER_MGMT_CONNECTED` snapshot,
  * injected through `McpServerDetailView`'s `mcpServerState` prop (no
- * `getByReference` fires — scenar-cloud DD-006). The approval story's two
+ * `getByReference` fires). The approval story's two
  * `AgentExecution` snapshots are built once at module load, entirely from
  * frozen data:
  *
@@ -13,7 +13,7 @@
  *   `tc-process-return-1`. The id match is what routes the gate INLINE onto
  *   the tool row (`ApprovalCardBody`, timestamp-free); an unmatched approval
  *   falls through to `MessageThread`'s bottom backstop card, whose header
- *   ticks a live elapsed-time counter — a DD-006 violation in an embed.
+ *   ticks a live elapsed-time counter, which no packed embed may render.
  * - `PendingApproval.requestedAt` is deliberately OMITTED as belt and
  *   braces: `useElapsedSince` renders nothing for an absent timestamp, so
  *   even a broken id match cannot tick.
@@ -188,7 +188,7 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
         // Stable contentKey: both detail beats show one page, so AppShell
         // must not replay its navigation transition between them. The inner
         // key remounts the view exactly when defaultCapabilityTab changes
-        // (the reset idiom — stigmer DD-014); step 1's scroll_to
+        // (the `key` reset idiom); step 1's scroll_to
         // re-establishes scroll after the remount.
         <AppShell activeNav="library" contentKey="mcp-detail">
           <div key={`detail-${data.tab}`} style={DETAIL_SCROLL} inert>

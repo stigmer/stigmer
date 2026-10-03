@@ -15,18 +15,19 @@
 // lifecycle, and it is explicitly deferred from the Class A Session suite. It is
 // placed here with the execution-domain suites for that reason.
 //
-// Sentinel seeding — important design note: harness_state_id is documented to be
-// engine-populated after the first execution. In this conformance environment that
-// path is not reachable: only the CURSOR harness persists harness_state_id (it
-// stores the Cursor agentId), and the suite has no Cursor backend; the NATIVE
-// deep-agent path's EnsureThread computes a thread id but does NOT persist it to
-// the session (a known gap between the proto's documented intent and the runner
-// implementation, recorded in the Session-13 checkpoint / DD-013). So instead of
-// driving an execution, the suite sets harness_state_id directly — it is a plain,
-// client-settable spec field with no output-only annotation, so writing it through
-// create/apply is within the public contract and exercises the validators exactly
-// as a post-execution session would. The first test below verifies the seed
-// actually round-trips, so the immutability assertions rest on a confirmed sentinel.
+// Sentinel seeding — important design note: harness_state_id is documented to
+// be engine-populated after the first execution. In this conformance
+// environment that path is not reachable: only the CURSOR harness persists
+// harness_state_id (it stores the Cursor agentId), and the suite has no Cursor
+// backend; the NATIVE deep-agent path's EnsureThread computes a thread id but
+// does NOT persist it to the session (a known gap between the proto's
+// documented intent and the runner implementation). So instead of driving an
+// execution, the suite sets harness_state_id directly — it is a plain,
+// client-settable spec field with no output-only annotation, so writing it
+// through create/apply is within the public contract and exercises the
+// validators exactly as a post-execution session would. The first test below
+// verifies the seed actually round-trips, so the immutability assertions rest
+// on a confirmed sentinel.
 //
 // Asserted contract:
 // - harness/execution_target are freely mutable while harness_state_id is empty.

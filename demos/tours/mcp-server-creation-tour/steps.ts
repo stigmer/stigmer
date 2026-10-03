@@ -8,7 +8,7 @@
  * Deliberately NOT an AI-conversation flow — the console's "Add MCP Server"
  * button opens this form wizard, not the mcp-server-creator agent (which
  * still exists as a separate, optional path). A Getting Started tour must
- * depict what a viewer can actually do (scenar-cloud DD-004).
+ * depict what a viewer can actually do.
  *
  * The failure beats are the point of this tour: the wizard's real inline
  * validation ("HTTP URL is required") and a real server error on create.

@@ -40,7 +40,7 @@ A tour is the directory shape Scenar's `pack` / `narrate` / `serve` consume:
 `api-exchange/`) frames real components inside the console's own surfaces —
 and "own" is literal, not aspirational: the two shells render the SDK's
 `WorkspaceSidebar` and `SettingsSidebar` — the same components the web
-console and desktop app ship (sdk-console DD-020; stigmer/stigmer#317) —
+console and desktop app ship (stigmer/stigmer#317) —
 so the depicted sidebar cannot drift from the product. What a shell adds
 is only the Scenar seams: the 240px column the console's app shell owns,
 `data-cursor-target` markers and `PulseHighlight` attached through the
@@ -49,8 +49,7 @@ the content transition; the sidebar subtree is `inert`. `SessionView` and
 `ResourceListPage` apply the same mechanism to their zones: the session
 surface renders the SDK's own `SessionViewerLayout` — the same frame
 `SessionViewer` and `NewSessionViewer` ship — with the panel chip,
-`WorkspaceSurface`, and the `useSessionRailViews` facet rail (scenar-cloud
-DD-010), and the library page renders the real `ResourceWorkbench` over a
+`WorkspaceSurface`, and the `useSessionRailViews` facet rail, and the library page renders the real `ResourceWorkbench` over a
 fixture `listFn`, hand-drawing only the page framing the console's library
 zone hands out (breadcrumb, header ramp) and an inert create-button twin
 that carries the cursor target. **Product glue**
@@ -177,20 +176,20 @@ the viewport boundary owns it.
   sidebar — which made every component read oversized.) The docs embed re-states this viewport as its
   pre-handshake aspect pin (`site/src/components/docs/scenar-embed.tsx`);
   gate invariant 9 holds the two in lockstep.
-- **The iframe is the canonical viewport** (M2, iframe-as-screen — landed
-  with `@scenar/embed`'s scale-at-the-boundary mode). The embed host lays
-  the iframe out at the canonical size the bundle reports over the `ready`
-  handshake and scales it as one unit, so CSS media queries resolve against
-  the 1440px canvas and every `lg:`-conditional style renders the same
-  variant a real console window shows. The pre-M2 debt class (embeds
-  rendering narrow variants — `ResourceCards` at 2 columns instead of 3,
-  `max-lg:hidden` computing to `display:none`) is retired. `SessionView`
-  still passes `SessionViewerLayout` `responsive={false}`: the authoring
-  preview (`scenar serve`) is not an embed, and the conversation pane must
-  survive open-panel beats there too.
+- **The iframe is the canonical viewport** (`@scenar/embed`'s
+  scale-at-the-boundary mode). The embed host lays the iframe out at the
+  canonical size the bundle reports over the `ready` handshake and scales
+  it as one unit, so CSS media queries resolve against the 1440px canvas
+  and every `lg:`-conditional style renders the same variant a real
+  console window shows. The earlier failure (embeds rendering narrow
+  variants — `ResourceCards` at 2 columns instead of 3, `max-lg:hidden`
+  computing to `display:none`) is retired. `SessionView` still passes
+  `SessionViewerLayout` `responsive={false}`: the authoring preview
+  (`scenar serve`) is not an embed, and the conversation pane must survive
+  open-panel beats there too.
 - **Author at the console's real metrics.** The sidebar needs no
   transcription — the shells render the SDK's own sidebar components
-  (DD-020), so its metrics are the console's by construction. What the
+  so its metrics are the console's by construction. What the
   demos still re-state is pinned by gate invariant 7: the 240px sidebar
   column (`w-60`, owned by the console's app shell, not its sidebar) and
   `SessionView`'s frame. Page content uses the real zone geometry (library
@@ -208,9 +207,6 @@ the viewport boundary owns it.
   with the depicted `app.stigmer.ai` route in the address bar; editor and
   terminal beats keep their own window shells. `pack-all` passes `--stage`,
   which floats each beat's window on the backdrop with a real shadow.
-
-Decisions of record: scenar-cloud DD-008 (one scale factor) and DD-009
-(stage framing + rendering mechanism).
 
 ---
 
@@ -231,7 +227,7 @@ Most tours render Scenar shells and CSS-drawn pages — those need **no**
 providers. A tour only needs providers when it renders **real `@stigmer/react`
 components** that fetch through the `Stigmer` SDK. Those components need a
 client, a theme scope, and fixture data — with no backend and no MSW in the
-packed embed (see scenar-cloud DD-002).
+packed embed.
 
 `scenar pack` walks up from the tour dir to the nearest `.scenar/providers.tsx`
 and wraps the whole tour in its exported `PreviewProviders`. The repeated wiring
@@ -260,7 +256,7 @@ surface. A tour whose beats are entirely prop-driven passes a no-op register.
 ## Fixture determinism
 
 A packed tour must render identical pixels on every browser replay and every
-video-export frame (scenar-cloud DD-006), so fixtures must never read the live
+video-export frame, so fixtures must never read the live
 clock. The `@stigmer/react/test` `samples.*` factories guarantee this by
 construction: every timestamp they stamp is frozen at their exported
 `SAMPLE_INSTANT`, and their own SDK test suite locks it in. Call any of them

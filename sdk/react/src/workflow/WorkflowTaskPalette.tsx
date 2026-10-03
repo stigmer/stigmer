@@ -23,11 +23,9 @@ export interface WorkflowTaskPaletteProps {
  * reads the task kind from the drag transfer data using
  * {@link TASK_KIND_DRAG_MIME} and creates a new node.
  *
- * Self-contained SDK component (DD-001, AD-T15-B2-005): depends only
+ * Self-contained SDK component: depends only
  * on `useTaskKindRegistry()` and `--stgm-*` theme tokens. No canvas
  * or React Flow dependency.
- *
- * @since T15 Batch 2 (Node Authoring)
  */
 export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
   className,

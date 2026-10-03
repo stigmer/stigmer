@@ -89,10 +89,10 @@ const DEFAULT_OUTCOMES: readonly TaskOutcome[] = [
  * optional `formData`.
  *
  * Follows SDK component standards:
- * - All colors via `--stgm-*` tokens (DD-005)
+ * - All colors via `--stgm-*` tokens
  * - Keyboard navigable with ARIA labels (a11y)
- * - `React.memo` for referential stability (DD-010)
- * - Zero framework dependencies (DD-004)
+ * - `React.memo` for referential stability
+ * - Zero framework dependencies
  *
  * @example
  * ```tsx

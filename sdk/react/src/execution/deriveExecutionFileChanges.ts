@@ -31,7 +31,7 @@ import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
  * projection or folds the durable ledger for a terminal execution (whose
  * projection is nil), and each captured change is projected onto the display
  * {@link FileChange} via {@link toDisplayFileChange}. The execution-scoped
- * ledger already includes sub-agent captures (DD-19), so one pass per
+ * ledger already includes sub-agent captures, so one pass per
  * execution suffices.
  *
  * **Net-diff (not latest-wins).** A {@link FileChange} is a *delta* — an
@@ -42,7 +42,7 @@ import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
  * `first.before → last.after` is exactly the net change. A group with one
  * change (the common case) is passed through untouched; multi-edit groups
  * synthesize a net {@link FileChange} so every consumer speaks one proto
- * type (DD-007).
+ * type.
  *
  * **Ordering is a correctness input.** `executions` MUST be chronological:
  * the net collapse anchors on each path's first and last change, so two

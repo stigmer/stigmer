@@ -1,13 +1,13 @@
 // Conformance suite for the semantic memory retriever's deployment posture
-// (stigmer/stigmer#293 Phase 3a, DD-008).
+// (stigmer/stigmer#293 Phase 3).
 // Domain: agentic / agentexecution — the runner-side selection of recalled
 // memories, observed through the RecalledMemoriesReport on execution status.
 //
 // The conformance environment runs with NO embeddings-capable provider (the
 // mock proxy speaks only Anthropic and fences every other provider path with
-// a 500), which is exactly the deployment posture DD-008 D4 names for
-// Anthropic-only and Cursor-only OSS operators. The cross-edition property
-// pinned here is therefore CREDENTIAL PRESENCE, not edition: both editions
+// a 500), which is exactly the deployment posture of Anthropic-only and
+// Cursor-only OSS operators. The cross-edition property pinned here is
+// therefore CREDENTIAL PRESENCE, not edition: both editions
 // run the same runner code, and without an embedder every execution injects
 // the full candidate set (Phase 2 behavior, unchanged) with an honest
 // selection_active=false report — never a failed or degraded execution.
@@ -111,7 +111,7 @@ describe("AgentExecution memory retrieval (no-embedder posture)", () => {
 
     // The embeddings attempt hit the (embedder-less) proxy and was refused;
     // the execution completed anyway on the full snapshot, honestly
-    // reported. This is DD-008's no-embedder deployment posture: OSS
+    // reported. This is the no-embedder deployment posture: OSS
     // operators without an OpenAI credential run Phase 2 behavior forever.
     const embedAttempts = mock.requests().filter((r) => r.path.includes("/embeddings"));
     expect(embedAttempts).toHaveLength(1);

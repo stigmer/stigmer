@@ -510,7 +510,7 @@ describe("enforceStatusSizeLimit", () => {
     expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
   });
 
-  it("marks a size-elided file-review change SIZE_ELIDED and PARTIAL_BLOCKED (doc 15)", () => {
+  it("marks a size-elided file-review change SIZE_ELIDED and PARTIAL_BLOCKED", () => {
     const big = "Z".repeat(50_000);
     const ctx: ChangeSetContext = {
       changeSetId: "exec-1:0",

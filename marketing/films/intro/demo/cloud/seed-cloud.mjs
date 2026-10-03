@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
- * Seeds the MINIMAL Meridian world onto Stigmer Cloud — only what the
- * S4d embed shot needs: the widget on the Meridian page rendering a live
- * chat shell over the public-audience guest path (cloud-only RPCs; the
- * shot's owner ruling in stigmer-cloud project 20260902.01).
+ * Seeds the MINIMAL Meridian world onto Stigmer Cloud — only what an
+ * embed-element demo needs: the widget on the Meridian page rendering a
+ * live chat shell over the public-audience guest path (cloud-only RPCs).
  *
  * Deliberately NOT the full local seed (../seed.mjs): the workflow and
  * its daily schedule stay off cloud — a live schedule on a real backend

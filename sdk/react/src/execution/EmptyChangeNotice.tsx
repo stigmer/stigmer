@@ -44,7 +44,7 @@ export interface EmptyChangeNoticeProps {
  * empty.
  *
  * Styled to match the `Notice` used elsewhere in the change views (neutral
- * border + muted surface, tokens only — DD-005).
+ * border + muted surface, tokens only).
  */
 export function EmptyChangeNotice({ kind, className }: EmptyChangeNoticeProps) {
   return (

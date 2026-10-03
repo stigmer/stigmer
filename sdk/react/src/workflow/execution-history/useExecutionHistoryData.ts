@@ -22,7 +22,7 @@ export interface UseExecutionHistoryDataOptions {
   readonly pageToken?: string;
   /**
    * Client-side filters applied post-fetch to the loaded page.
-   * These are a stopgap until server-side filters are wired (Phase 2).
+   * These are a stopgap until server-side filters are wired.
    */
   readonly clientFilters?: ExecutionClientFilters;
 }

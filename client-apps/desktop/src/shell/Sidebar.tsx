@@ -18,7 +18,7 @@ import { useRunner } from "../hooks/EmbeddedRunnerContext";
 
 /**
  * Workspace-zone sidebar — a thin wrapper over the SDK's
- * {@link WorkspaceSidebar} (DD-002): this file only bridges React Router
+ * {@link WorkspaceSidebar}: this file only bridges React Router
  * and the embedded runner's background-run indicator into the shared
  * chrome.
  */
@@ -42,9 +42,8 @@ export function Sidebar() {
   const recentActivity = useRecentActivity();
   const { refetch, prependOptimistic } = recentActivity;
   const org = useActiveOrgSlug();
-  // The Conversations badge: conversations wanting a human right now
-  // (channel-conversations DD-011 D-f). Data as props — the SDK sidebar
-  // never fetches for itself (DD-020). Mirrors web (DD-016).
+  // The Conversations badge: conversations wanting a human right now. Data as
+  // props — the SDK sidebar never fetches for itself. Mirrors web.
   const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
 
   // Sessions whose runner worker is still alive but which are NOT the one being
@@ -135,7 +134,7 @@ export function Sidebar() {
   );
 
   // Stable callbacks so the sidebar's memoized recents rows only re-render
-  // when the background set actually changes (DD-010).
+  // when the background set actually changes.
   const renderEntryAccessory = useCallback(
     (entry: RecentActivityEntry) =>
       entry.type === "session" && backgroundSessionIds.has(entry.id) ? (
@@ -144,7 +143,7 @@ export function Sidebar() {
     [backgroundSessionIds],
   );
   // Org switch is a full context change: navigate to the org-neutral
-  // Dashboard (matching web, DD-016). The SDK's OrgProvider clears the fetch
+  // Dashboard (matching web). The SDK's OrgProvider clears the fetch
   // cache. Landing on "/dashboard" (not "/") also overwrites the persisted
   // stigmer:lastRoute — the route persister skips "/" — so the previous
   // org's deep link can't be restored on next launch.

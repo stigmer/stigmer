@@ -1,6 +1,6 @@
 // Correlate an open workspace-file selection with the session file change that
-// touched it, so the read-only Viewer can default a changed file to its diff
-// (Slice 4). This is the change-side peer of `resolveWorkspaceFileSelection`.
+// touched it, so the read-only Viewer can default a changed file to its diff.
+// This is the change-side peer of `resolveWorkspaceFileSelection`.
 //
 // The hard part is again PATH FORM, and — critically — ENTRY IDENTITY. A
 // `FileChange` carries a capture-side path (`path` is workspace-root-relative,
@@ -16,7 +16,7 @@
 // the open file's change iff it resolves to the exact `{ entryId, path }`
 // currently selected. Single-entry sessions match exactly; ambiguous
 // multi-entry / absolute paths degrade to "no match" (never a wrong match),
-// inheriting DD-08's honesty. One resolver, one truth.
+// the same honesty as `resolveWorkspaceFileSelection`. One resolver, one truth.
 
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";

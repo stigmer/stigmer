@@ -39,8 +39,6 @@ export interface OperationalDashboardProps {
  *   onFailedRunClick={(id, type) => navigate(`/executions/${id}`)}
  * />
  * ```
- *
- * @since Unified Platform Dashboard
  */
 export const OperationalDashboard = memo(function OperationalDashboard({
   org,

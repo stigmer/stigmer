@@ -31,7 +31,7 @@ describe("renderSessionHeader", () => {
     expect(agent.text()).not.toContain("Mode:");
   });
 
-  it("surfaces the cursor harness but not native/default (oss#293 D2 visibility)", () => {
+  it("surfaces the cursor harness but not native/default (oss#293)", () => {
     // A cursor session may have been selected by the account preference, not
     // a flag — the header is the CLI's only pre-stream channel to say so.
     const cursor = capture();

@@ -1,9 +1,9 @@
-// Direct-login conformance (stigmer-cloud#604 — the X1 checklist's S1 lane).
+// Direct-login conformance.
 // Pins what the serving edge does with the raw access token a console,
 // desktop, CLI or MCP client obtains from the PLATFORM'S OWN identity tenant
 // — the credential every first-party login presents, and the one lane five
 // green readouts never drove because the cloud target authenticates with
-// PlatformClient-minted tokens (the entry's origin story):
+// PlatformClient-minted tokens:
 //   - a token for a subject with NO account is ADMITTED, idp-shaped: whoAmI
 //     answers NOT_FOUND with the byte-pinned copy (the console's signal to
 //     call provisionMyAccount), never UNAUTHENTICATED — the Java mapper's
@@ -12,7 +12,7 @@
 //     account for that subject from the tenant's /userinfo, the personal
 //     org it creates is OWNED BY the new account (findMyOrganizations as the
 //     same token lists it — the owner tuple names the ida_, not the raw
-//     subject, the defect entry 20260905.01 fixed), and the next whoAmI
+//     subject, a defect once fixed here), and the next whoAmI
 //     resolves the token to the account;
 //   - the tenant's MCP audience (the hosted MCP server forwards tokens
 //     minted for its own resource) is accepted beside the API audience;

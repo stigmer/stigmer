@@ -183,14 +183,15 @@ export interface SessionViewerProps {
   /**
    * Platform-injected file lister for workspace entries. When provided,
    * each entry in the Setup tab's workspace section renders an
-   * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
+   * expandable file tree. (Capability injection, opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
   /**
    * Platform-injected content reader for the read-only file viewer. When
    * provided, clicking a file in the Workspace tree opens it in a contextual
    * "Viewer" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined`
-   * degrades the viewer to an "unavailable here" state (DD-004, DD-011 opt-in).
+   * degrades the viewer to an "unavailable here" state (capability injection,
+   * opt-in).
    */
   readonly workspaceFileReader?: WorkspaceFileReader;
   /**
@@ -198,7 +199,8 @@ export interface SessionViewerProps {
    * panel's Search pane gains a `Name | Text` toggle for full-text search
    * across the workspace. Desktop injects a native ripgrep-backed searcher;
    * web leaves it undefined (git content search needs a branch-accurate
-   * backend — DD-09), keeping Search filename-only there (DD-004, DD-011 opt-in).
+   * backend), keeping Search filename-only there (capability injection,
+   * opt-in).
    */
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   /**
@@ -250,7 +252,7 @@ export interface SessionViewerProps {
   /**
    * The user's account-level execution defaults, typically from
    * `useAccountExecutionDefaults()` — same seam as
-   * `NewSessionViewer.accountDefaults` (DD-016). On the session page only
+   * `NewSessionViewer.accountDefaults`. On the session page only
    * the `autoApprove` default applies: it seeds the session-scoped
    * auto-approve state so a declared `default_auto_approve` preference
    * covers follow-ups on existing sessions too. An explicit flip of the
@@ -309,7 +311,7 @@ export interface SessionViewerProps {
   /**
    * Slot for host-injected header actions. Rendered in the top-right corner
    * of the viewer, beside the panel chip. Keeps the SDK organism
-   * unopinionated about Console auth (DD-004).
+   * unopinionated about Console auth.
    */
   readonly headerActions?: ReactNode;
   /**
@@ -329,7 +331,7 @@ export interface SessionViewerProps {
    * Host-injected access management control (e.g. the Console's
    * `ManageAccessButton` with its own permission gating). Rendered inside
    * the panel's Config facet rather than the header — access is session
-   * configuration, not a moment-to-moment action (DD-004 slot injection).
+   * configuration, not a moment-to-moment action (slot injection).
    */
   readonly accessSlot?: ReactNode;
   /** Called after a resource is applied from the Artifacts tab. */
@@ -364,7 +366,7 @@ export interface SessionViewerProps {
  * with {@link NewSessionViewer} — with the chat width persisted per viewer.
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
- * apps inject platform-specific values via props (DD-004/DD-016).
+ * apps inject platform-specific values via props.
  *
  * @example
  * ```tsx
@@ -495,7 +497,7 @@ export function SessionViewer({
   // WHICH plan the panel's plan document tab shows. `null` means the session's
   // current (latest) plan — the editable, buildable one; an execution id
   // selects that turn's historical plan, rendered read-only. One tab, host-
-  // controlled content (Decision 3 in DD-16).
+  // controlled content.
   const [openPlanExecutionId, setOpenPlanExecutionId] = useState<string | null>(null);
 
   // The plan tab's identity across both plan lifecycles: while a plan
@@ -521,11 +523,11 @@ export function SessionViewer({
   }
 
   // The unified-panel controller: owns the open-editor group store, the
-  // open/collapsed state, and the rail-view FSM. Shared with the launcher
-  // (DD-016). The editor store is owned here (never subscribed at this level)
+  // open/collapsed state, and the rail-view FSM. Shared with the launcher.
+  // The editor store is owned here (never subscribed at this level)
   // so opening/switching files re-renders only the panel subtree — the
   // SessionPanelRegion subscribes, not the conversation column — preserving
-  // streaming render isolation (DD-009/DD-010, invariant 2).
+  // streaming render isolation.
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
@@ -937,7 +939,7 @@ const ConversationColumn = memo(function ConversationColumn({
   // gives the dock's file list the same path resolution and click routing
   // (open in the panel's viewer; GitHub/copy fallback) as the transcript —
   // one click behavior for a path everywhere in the session. Memoized so the
-  // dock's memoized cards are not invalidated by unrelated renders (DD-010).
+  // dock's memoized cards are not invalidated by unrelated renders.
   const dockFilePathCtx = useMemo<FilePathContextValue>(
     () => ({
       workspaceEntries: conv.workspaceEntries ?? [],
@@ -960,8 +962,8 @@ const ConversationColumn = memo(function ConversationColumn({
         // a plan read-only in the panel remains — reading is the point.
         onRetrySend={isObserver ? undefined : conv.retryLastSend}
         onRetryExecution={isObserver ? undefined : onRetryExecution}
-        // Approval mechanics are an OPERATOR surface, never a guest's
-        // (DD-014): the HITL gate protects the org's tools, and an anonymous
+        // Approval mechanics are an OPERATOR surface, never a guest's:
+        // the HITL gate protects the org's tools, and an anonymous
         // visitor is not its trustee. Guest executions run unattended
         // (gated tools auto-skip server-side), so nothing is ever pending on
         // a new execution — withholding the callback is the belt-and-braces
@@ -1018,7 +1020,7 @@ const ConversationColumn = memo(function ConversationColumn({
             settled records; this is the one decision surface. Observers get
             the read-only progress strip but never the decision dock. */}
         <FilePathContext.Provider value={dockFilePathCtx}>
-          {/* Mid-run live capture (DD-32): the "N files changed so far" strip for
+          {/* Mid-run live capture: the "N files changed so far" strip for
               a still-running turn. Mutually exclusive with the dock below —
               progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
               hands off cleanly when review opens. Non-interactive. */}
@@ -1179,7 +1181,7 @@ function SessionPanelRegion({
     reveal && reveal.key === activeKey ? reveal : undefined;
 
   // Correlate the active file with its session change for diff-as-default
-  // (DD-06 parity with the transcript's rendering of the same change). A
+  // (parity with the transcript's rendering of the same change). A
   // virtual document (the plan tab) is not a workspace file — pass `null` so
   // the hook's no-file guard skips the net-change fold entirely, rather than
   // relying on the correlation harmlessly missing the sentinel id.
@@ -1215,7 +1217,7 @@ function SessionPanelRegion({
   // a STREAMING plan owns the tab (live document, no actions); otherwise the
   // resolved `openPlan` renders in the editor (keyed by plan identity so
   // switching plans resets view state cleanly); otherwise an honest empty
-  // notice (DD-006) — reachable only when a streaming plan auto-opened the
+  // notice — reachable only when a streaming plan auto-opened the
   // tab and its turn then ended without publishing, with no earlier plan to
   // fall back to.
   const openPlanIsLatest = openPlan?.executionId === sessionPlan?.executionId;
@@ -1340,7 +1342,7 @@ function SessionPanelRegion({
       // Transcript export is view-scoped, so observers keep it (#814).
       sessionId: exportSessionId,
       // Curated audiences see the configuration but cannot strip it — the
-      // Config facet renders read-only without mutation callbacks (DD-011).
+      // Config facet renders read-only without mutation callbacks.
       mutations: isCurated
         ? undefined
         : {
@@ -1475,7 +1477,7 @@ function SessionStarting() {
  * auto-opened the tab and its turn then ended without publishing (stopped or
  * failed) while the session has no earlier published plan to fall back to.
  * The partial plan reverts to the conversation (the thread un-collapses it),
- * so the notice points there. Never a blank pane (DD-006).
+ * so the notice points there. Never a blank pane.
  */
 function PlanUnavailableNotice() {
   return (

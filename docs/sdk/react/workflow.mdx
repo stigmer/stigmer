@@ -142,11 +142,11 @@ Manages a multi-turn conversation within a single Session:
   — presence of YAML indicates a definition fix; absence indicates a
   runtime error with explanation only
 
-Auto-starts diagnosis on mount by default (AD-B5-002). The agent uses
+Auto-starts diagnosis on mount by default. The agent uses
 `get_workflow_execution` and `get_workflow_execution_events` MCP tools
 to inspect the failure autonomously.
 
-Framework-agnostic (DD-004), referentially stable returns (DD-010).
+Framework-agnostic, referentially stable returns.
 
 **Signature**
 
@@ -192,7 +192,7 @@ const flow = useDiagnoseExecutionFlow({
 
 ### useElkLayoutEngine
 
-Behavior hook (DD-003 layer 2) that asynchronously creates an ELK layout
+Behavior hook (the headless layer) that asynchronously creates an ELK layout
 engine and manages its lifecycle.
 
 Returns the engine once ready, or `null` while loading / if `elkjs` is
@@ -324,7 +324,7 @@ Manages a multi-turn conversation within a single Session:
 The `currentYaml` prop is captured at send-time (ref-based, not reactive)
 and included in the message only when it differs from the last-sent version.
 
-Framework-agnostic (DD-004), referentially stable returns (DD-010).
+Framework-agnostic, referentially stable returns.
 
 **Signature**
 
@@ -774,8 +774,8 @@ Composes existing infrastructure:
 - [`extractWorkflowYaml`](#extractworkflowyaml) to parse YAML from agent messages
 - `workflow.apply()` to persist the generated workflow
 
-The hook is framework-agnostic (DD-004) and returns referentially
-stable values (DD-010).
+The hook is framework-agnostic and returns referentially
+stable values.
 
 **Signature**
 
@@ -852,7 +852,7 @@ function useWorkflowArtifactDownload(): UseWorkflowArtifactDownloadReturn
 Orchestrator hook for the workflow canvas editor.
 
 Manages the [`WorkflowGraphModel`](#workflowgraphmodel) through a command/history pipeline
-(AD-T15-B2-001). Structural mutations (add/delete nodes and edges) go
+so every edit is undoable. Structural mutations (add/delete nodes and edges) go
 through `GraphCommand`s dispatched to the history. React Flow state
 is derived from the model after each mutation.
 
@@ -1325,7 +1325,7 @@ fetch surfaces `error` but never blocks the other children's results.
 **Stability.** The fetch effect and all derived memos key on the
 enumeration *signature*, not the `taskStates` map identity (which churns
 per event during a live run) — so mid-task events cause zero fetches and
-zero re-derivation. The returned object is memoized (DD-010).
+zero re-derivation. The returned object is memoized.
 
 **Signature**
 
@@ -1431,7 +1431,7 @@ domain-pure surface).
 
 The panel carries the execution-level facets only (Artifacts / Changes /
 Usage): per-task detail lives on the thread cards, the single home for a
-task's data (T06 — the Inspect drill-down is gone). The facets are ALWAYS
+task's data (the Inspect drill-down is gone). The facets are ALWAYS
 offered while the panel renders (the session gates its execution facets
 behind `includeExecutionFacets` only for the pre-session launcher — the
 workflow viewer has no such pre-execution state). Empty data is handled by
@@ -1612,7 +1612,7 @@ function useWorkflowSave(org: string): UseWorkflowSaveReturn
 
 Behavior hook binding [`projectThreadItems`](#projectthreaditems) to a render loop with
 structural sharing: items whose fields did not change keep their object
-identity across event appends, so memoized card rows bail (DD-010).
+identity across event appends, so memoized card rows bail.
 
 The projection is cheap (one pass over the task map), so it recomputes
 per render of the (memoized) thread organism rather than adding a
@@ -1643,7 +1643,7 @@ Parses the YAML into tasks and builds a node + edge graph suitable
 for rendering. Handles sequential flow, explicit `flow.then` directives,
 and `switch_case` branching edges.
 
-Returns stable refs (DD-010) — the result is memoized and only
+Returns stable refs — the result is memoized and only
 recomputed when the YAML content changes.
 
 **Signature**
@@ -1813,7 +1813,7 @@ owns. Empty `pendingApprovals` renders nothing.
   type={{
     approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-gate failures, keyed by `toolCallId` (pass `approvalErrorsByToolCallId` straight through) — surfaced in-card beside the gate that failed." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Optional deep-link to open the gate's child agent execution in its own view. When provided, each gate renders a \"View agent execution\" affordance — with parallel children, it names which child a gate belongs to. Routing is the host's responsibility (DD-004)." },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Optional deep-link to open the gate's child agent execution in its own view. When provided, each gate renders a \"View agent execution\" affordance — with parallel children, it names which child a gate belongs to. Routing is the host's responsibility." },
     onSubmitApproval: { type: "WorkflowApprovalSubmit", description: "Forwards a decision to the child (see WorkflowApprovalSubmit).", required: true, typeDescriptionLink: "#workflowapprovalsubmit" },
     pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "The parent workflow's surfaced tool-approval gates (`status.pending_approvals`) — each pairs a child's full `PendingApproval` with the child agent execution to route the decision to.", required: true },
     submittingToolCallIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose decision is in flight (pass `approvalSubmittingToolCallIds` straight through). Keyed per gate so deciding one never spins another." },
@@ -1836,7 +1836,7 @@ response, shown in a read-only preview alongside the agent's explanation.
 The user can create the workflow, try again, or close.
 
 Uses the same `<dialog>` + `showModal()` pattern as `WorkflowRunDialog`.
-Styled via `--stgm-*` design tokens (DD-005).
+Styled via `--stgm-*` design tokens.
 
 **Props** — `WorkflowArchitectDialogProps`
 
@@ -1877,9 +1877,9 @@ Content is fetched through `stigmer.artifact.getContent` (server-proxied
 bytes, CORS-safe for embedded hosts) only for text content types; binary
 artifacts show an honest "not available for preview" body with Download as
 the escape hatch. A `cacheKey` keeps reopening a recently-viewed tab
-instant (DD-014).
+instant.
 
-All visual properties flow through `--stgm-*` tokens (DD-005).
+All visual properties flow through `--stgm-*` tokens.
 
 **Props** — `WorkflowArtifactDocumentProps`
 
@@ -2013,7 +2013,7 @@ This is the file-review sibling of the workflow tool-approval surface
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures (pass `fileDecisionErrorsByKey` straight through)." },
-    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Optional deep-link to open the child agent execution in its own view. When provided, each child's review renders a \"View agent execution\" affordance. Routing is the host's responsibility (DD-004)." },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Optional deep-link to open the child agent execution in its own view. When provided, each child's review renders a \"View agent execution\" affordance. Routing is the host's responsibility." },
     onSubmitFileDecision: { type: "WorkflowFileDecisionSubmit", description: "Forwards a decision to the child (see WorkflowFileDecisionSubmit).", required: true, typeDescriptionLink: "#workflowfiledecisionsubmit" },
     pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "The parent workflow's surfaced file-review references (`status.pending_file_reviews`) — one entry per child agent execution.", required: true },
     submittingDecisionKeys: { type: "ReadonlySet<string>", description: "In-flight decision keys (pass `fileDecisionSubmittingKeys` straight through)." },
@@ -2068,7 +2068,7 @@ icon and copy are specific to workflow instances.
 Enhanced workflow instance list with environment badges, visibility controls,
 and action buttons. Filters out the platform-managed default instance.
 
-This is an SDK component (DD-001) — embeddable by platform builders.
+This is an SDK component — embeddable by platform builders.
 
 **Props** — `WorkflowInstanceListProps`
 
@@ -2102,7 +2102,7 @@ in code mode, or as a sidebar in visual mode). Layout:
 
 Powered by the Organization's Workflow Architect agent via
 [`useRefineWorkflowFlow`](#userefineworkflowflow). Styled via `--stgm-*` design tokens.
-Zero console dependencies (DD-004).
+Zero console dependencies.
 
 **Props** — `WorkflowRefinePanelProps`
 
@@ -2121,7 +2121,7 @@ Zero console dependencies (DD-004).
 ### WorkflowRepairCard
 
 Panel component that displays agent-powered diagnosis of a failed workflow
-execution. Designed for the execution viewer's right panel (AD-B5-001).
+execution. Designed for the execution viewer's right panel.
 
 Layout:
 1. Header — "AI Diagnosis" title with sparkles icon + close button
@@ -2129,10 +2129,10 @@ Layout:
 3. Result strip (conditional) — fix explanation, diff preview, Apply Fix / Discard
 4. Follow-up composer (pinned to bottom) — text input for additional questions
 
-Auto-starts diagnosis on mount (AD-B5-002). Supports multi-turn
-follow-up questions within the same session (AD-B5-003).
+Auto-starts diagnosis on mount. Supports multi-turn
+follow-up questions within the same session.
 
-Styled via `--stgm-*` design tokens. Zero console dependencies (DD-004).
+Styled via `--stgm-*` design tokens. Zero console dependencies.
 
 **Props** — `WorkflowRepairCardProps`
 
@@ -2141,7 +2141,7 @@ Styled via `--stgm-*` design tokens. Zero console dependencies (DD-004).
     className: { type: "string", description: "Additional CSS class names." },
     currentWorkflowYaml: { type: "string", description: "Current workflow YAML for diff computation (optional)." },
     executionId: { type: "string", description: "ID of the failed workflow execution to diagnose.", required: true },
-    onApplyFix: { type: "(yaml: string) => void", description: "Called when the user clicks \"Apply Fix\". Receives the suggested YAML. The host application handles navigation to the workflow editor (DD-004)." },
+    onApplyFix: { type: "(yaml: string) => void", description: "Called when the user clicks \"Apply Fix\". Receives the suggested YAML. The host application handles navigation to the workflow editor." },
     onClose: { type: "() => void", description: "Called when the panel should close." },
     org: { type: "string", description: "Organization slug for authorization and resource context.", required: true },
   }}
@@ -2367,7 +2367,7 @@ The fetch-plan signature of an enumeration: one line per child,
 need identical fetches AND produce identically-ordered rollups — so it is
 both the effect dependency and the memo key that shields downstream
 consumers from the event store's per-event `taskStates` identity churn
-(DD-009/DD-010: never key an effect on the map reference itself).
+(never key an effect on the map reference itself).
 
 ```tsx
 function agentCallChildrenSignature(children: readonly AgentCallChild[]): string
@@ -2393,7 +2393,8 @@ Specialized inspector editor for `human_input` task nodes.
 
 Organized into collapsible sections: Prompt, Outcomes, Form Fields,
 Timeout, Approvers, and Notification Channels. Outcome routing uses
-name-based handle IDs (`outcome_{name}`) per AD-T15-B4.
+name-based handle IDs (`outcome_{name}`), so reordering needs no edge
+remapping.
 
 
 ### ApprovalFormBuilderProps
@@ -2433,7 +2434,7 @@ Specialized inspector editor for `switch_case` task nodes.
 
 Renders an ordered list of conditional branches with name, condition
 expression (`when`), and target task routing. Handles are name-based
-(`case_{name}`) per AD-T15-B4, making reorder operations safe without
+(`case_{name}`), making reorder operations safe without
 edge remapping.
 
 Edges are the source of truth for routing — the builder reads target
@@ -3144,7 +3145,7 @@ Structural sharing: pass the previous call's `items` and any task whose
 fields are unchanged keeps its previous object identity. The store
 rebuilds every `DerivedTaskState` on each event append, so without this,
 every card would get a fresh item per event and `React.memo` rows could
-never bail (DD-009/DD-010 — only the actively-changing card re-renders).
+never bail (only the actively-changing card re-renders).
 
 ```tsx
 function projectThreadItems(taskStates: ReadonlyMap<string, DerivedTaskState>, totalTasks: number, previousItems?: readonly WorkflowThreadItem[]): WorkflowThreadProjection
@@ -3433,7 +3434,7 @@ via the `open` / `onOpenChange` props.
 
 Uses `@base-ui/react/popover` for positioning and focus management,
 `useTaskKindRegistry()` for the available task kinds, and `--stgm-*`
-tokens for all styling (DD-005).
+tokens for all styling.
 
 
 ### TaskPickerPopoverProps
@@ -3535,7 +3536,7 @@ Options for [`useExecutionHistoryData`](#useexecutionhistorydata).
 
 <TypeTable
   type={{
-    clientFilters: { type: "ExecutionClientFilters", description: "Client-side filters applied post-fetch to the loaded page. These are a stopgap until server-side filters are wired (Phase 2).", typeDescriptionLink: "#executionclientfilters" },
+    clientFilters: { type: "ExecutionClientFilters", description: "Client-side filters applied post-fetch to the loaded page. These are a stopgap until server-side filters are wired.", typeDescriptionLink: "#executionclientfilters" },
     pageSize: { type: "number", description: "Maximum executions per page." },
     pageToken: { type: "string", description: "Opaque cursor for paginated fetching." },
     workflowId: { type: "string | null", description: "When set, scopes the list to executions of this workflow. When omitted, lists all executions across all workflows." },
@@ -3708,7 +3709,7 @@ Options for [`useWorkflowExecutionPanel`](#useworkflowexecutionpanel).
   type={{
     defaultOpen: { type: "boolean", description: "Initial open state in uncontrolled mode. Ignored when UseWorkflowExecutionPanelOptions.open is provided." },
     defaultView: { type: "string", description: "The panel's home view. Defaults to `\"artifacts\"` — the one facet this panel carries today (there is no workspace file source yet, so no built-in Explorer to land on)." },
-    onOpenChange: { type: "(open: boolean) => void", description: "Called on every effective open/close transition — in BOTH modes, matching `useSessionPanel`'s convention (and departing from `useDetailTabs`'s DD-T05A-001 for the same principled reason): this panel opens ITSELF (`openDiagnosis`, `openArtifact`, `openFileChange`, `openFile` all expand a collapsed panel), and an embedding host that must react to those moments — widen a dock, make room for a diagnosis conversation — has no other seam. Passing only this callback observes the panel without controlling it.  In controlled mode this fires once per open/close REQUEST (the host may decline by not updating `open` — a later identical request re-fires); in uncontrolled mode it fires once per actual transition." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called on every effective open/close transition — in BOTH modes, matching `useSessionPanel`'s convention (and departing from `useDetailTabs`, which swallows it when uncontrolled): this panel opens ITSELF (`openDiagnosis`, `openArtifact`, `openFileChange`, `openFile` all expand a collapsed panel), and an embedding host that must react to those moments — widen a dock, make room for a diagnosis conversation — has no other seam. Passing only this callback observes the panel without controlling it.  In controlled mode this fires once per open/close REQUEST (the host may decline by not updating `open` — a later identical request re-fires); in uncontrolled mode it fires once per actual transition." },
     open: { type: "boolean", description: "Controlled open state. When provided, the host owns whether the panel is expanded: internal open intents (the chip toggle, Diagnose, an artifact/file-change/file open) no longer flip state themselves — they surface through UseWorkflowExecutionPanelOptions.onOpenChange and the panel follows this value. Leave `undefined` for the self-managing default. The same seam `useSessionPanel` carries (#651); kept domain-local, like the controllers themselves." },
   }}
 />
@@ -3772,14 +3773,14 @@ hits its cap it stops growing, so the card height stabilizes and the
 OUTER thread's auto-follow stops chasing it — the bound fixes both the
 inner and the outer scroll ergonomics at once.
 
-VIEWPORT-GATED STREAMING. Every mounted card fetches its (DD-014-cached)
+VIEWPORT-GATED STREAMING. Every mounted card fetches its (cached)
 snapshot so the body renders immediately, but the live subscription opens
 only while the card is on-screen (`useInViewport` → the hook's `live`
 gate). Off-screen running children pause their stream and keep the
 last-streamed snapshot visible (never a rewind); scrolling back — or
 toggling back from the CSS-hidden Graph view — re-attaches in place. This
-preserves the bounded-concurrency intent of the S4 single-active-tab
-design (DD-LIVE-006) for fan-out workflows: N concurrent children cost at
+preserves the bounded-concurrency intent of the earlier single-active-tab
+design for fan-out workflows: N concurrent children cost at
 most the streams the user can actually see.
 
 MINIMAL CHROME. The card header already owns the task's identity and
@@ -3796,7 +3797,7 @@ server-equivalent (the workflow RPC forwards to the child), but they
 differ in authorization: the workflow RPC checks `can_edit` on the
 workflow execution — the resource the operator owns — while the child
 path checks the runner-spawned AgentExecution, which the operator may
-not (the S5 rationale).
+not own.
 
 FILE-REVIEW DOCK. Pending (AWAITING_REVIEW) sets derive from the CHILD's
 own live stream — the freshest source this component already holds — not
@@ -3806,7 +3807,7 @@ child is blocked on can never scroll out of view; settled sets render as
 read-only records in-thread (`showFileReviewRecords`) — the two surfaces
 partition by the same pending test `MessageThread` uses.
 
-All visual properties flow through `--stgm-*` tokens (DD-005).
+All visual properties flow through `--stgm-*` tokens.
 
 
 ### WorkflowAgentCallTranscriptProps
@@ -3818,8 +3819,8 @@ Props for [`WorkflowAgentCallTranscript`](#workflowagentcalltranscript).
     agentSlug: { type: "string", description: "Slug of the agent the task called, when known (labels the region)." },
     childExecutionId: { type: "string", description: "ID of the child AgentExecution whose transcript to render.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root element." },
-    hitl: { type: "WorkflowAgentExecutionHitl", description: "Workflow-level HITL handlers. When provided, the transcript is interactive: tool-approval gates render their decision cards inline on the gated rows, and pending file reviews dock at the bottom. When omitted, the transcript is read-only — gates show status only (backward compatible, DD-011).", typeDescriptionLink: "#workflowagentexecutionhitl" },
-    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Open the child execution as a standalone page — the deep-dive escape hatch now that the card is the transcript's single home. Host-routed (DD-004)." },
+    hitl: { type: "WorkflowAgentExecutionHitl", description: "Workflow-level HITL handlers. When provided, the transcript is interactive: tool-approval gates render their decision cards inline on the gated rows, and pending file reviews dock at the bottom. When omitted, the transcript is read-only — gates show status only (backward compatible).", typeDescriptionLink: "#workflowagentexecutionhitl" },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Open the child execution as a standalone page — the deep-dive escape hatch now that the card is the transcript's single home. Host-routed." },
   }}
 />
 
@@ -3911,7 +3912,7 @@ Props for [`WorkflowCanvasEditor`](#workflowcanvaseditor).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     isSaving: { type: "boolean", description: "Whether a save is currently in progress." },
     layoutEngine: { type: "LayoutEngine | null", description: "Layout engine for the \"Auto Layout\" action. Pass the result of useElkLayoutEngine for ELK-powered layout. When omitted, dagre is used as the default." },
-    loadingFallback: { type: "ReactNode", description: "Fallback to show while the canvas loads (DD-013 lazy loading)." },
+    loadingFallback: { type: "ReactNode", description: "Fallback to show while the lazily loaded canvas loads." },
     nodeErrors: { type: "ReadonlyMap<string, readonly string[]>", description: "Map of nodeId -> error messages for validation badge rendering." },
     onDirtyChange: { type: "(dirty: boolean) => void", description: "Called when the canvas dirty state changes." },
     onEdgeSelect: { type: "(edgeId: string) => void", description: "Called when an edge is selected." },
@@ -3931,7 +3932,7 @@ Read-only React Flow graph preview for the code-mode editor side panel.
 
 Accepts YAML directly (unlike `WorkflowOverviewGraph` which requires
 a `Workflow` proto). Uses the unified `WorkflowNode` / `CanvasTransitionEdge`
-rendering system in `"overview"` mode for DD-001 consistency.
+rendering system in `"overview"` mode, so every workflow graph looks the same.
 
 
 ### WorkflowCodePreviewGraphProps
@@ -4036,7 +4037,7 @@ Props for [`WorkflowExecutionHeader`](#workflowexecutionheader).
     className: { type: "string", description: "" },
     costSummary: { type: "DerivedCostSummary", description: "", required: true },
     execution: { type: "WorkflowExecution", description: "", required: true, typeDescriptionLink: "/docs/sdk/resources/workflow-execution" },
-    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered at the trailing edge of the header (e.g. a Share control). Kept routing/auth-agnostic per DD-004 — the SDK renders the slot; the host owns its behavior." },
+    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered at the trailing edge of the header (e.g. a Share control). Kept routing/auth-agnostic — the SDK renders the slot; the host owns its behavior." },
     isDiagnosing: { type: "boolean", description: "Whether the diagnosis panel is currently active." },
     onCompare: { type: "() => void", description: "Called when the user clicks \"Compare with...\" on a terminal execution." },
     onDiagnose: { type: "() => void", description: "Called when the user clicks \"Diagnose with AI\" on a failed execution." },
@@ -4172,7 +4173,7 @@ collapsible `WorkspaceSurface` panel carrying the execution-level facets
 (Artifacts/Changes/Usage on the rail) and the rich documents (transcripts,
 diffs, artifacts, AI diagnosis in the editor area). A task's detail —
 preview, I/O, errors, and every HITL decision surface — lives on its
-thread card, the single home for task data (T06).
+thread card, the single home for task data.
 
 This component is designed to work identically whether rendered
 in the Stigmer Console or embedded in a third-party dashboard.
@@ -4195,10 +4196,10 @@ Props for [`WorkflowExecutionViewer`](#workflowexecutionviewer).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultPanelOpen: { type: "boolean", description: "Initial open state of the execution panel in uncontrolled mode — a docking host that wants the artifacts rail visible from the first paint passes `true`. Ignored when WorkflowExecutionViewerProps.panelOpen is provided." },
     executionId: { type: "string", description: "ID of the workflow execution to display.", required: true },
-    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered in the header action group (e.g. a Share control). Routing/auth-agnostic per DD-004." },
+    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered in the header action group (e.g. a Share control). Routing/auth-agnostic: the host owns its behavior." },
     nodesDraggable: { type: "boolean", description: "Whether task nodes in the execution graph can be dragged to rearrange the layout for presentations. Drag positions are ephemeral and not persisted." },
-    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Callback when the user clicks a link to a child agent execution. Receives the AgentExecution ID. The host application is responsible for navigation — this keeps the component routing-agnostic (DD-004)." },
-    onNavigateToWorkflowEditor: { type: "(yaml: string, workflowSlug: string) => void", description: "Callback when the user clicks \"Apply Fix\" in the repair card. Receives the suggested YAML and the workflow slug. The host application handles navigation to the workflow editor (DD-004)." },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Callback when the user clicks a link to a child agent execution. Receives the AgentExecution ID. The host application is responsible for navigation — this keeps the component routing-agnostic." },
+    onNavigateToWorkflowEditor: { type: "(yaml: string, workflowSlug: string) => void", description: "Callback when the user clicks \"Apply Fix\" in the repair card. Receives the suggested YAML and the workflow slug. The host application handles navigation to the workflow editor." },
     onPanelOpenChange: { type: "(open: boolean) => void", description: "Called on every panel open/close transition, in BOTH modes — pass it alone (uncontrolled) to simply observe the panel, e.g. widening a docked pane when Diagnose expands it and reclaiming the room on close. See UseWorkflowExecutionPanelOptions.onOpenChange for the exact request-vs-transition semantics in each mode." },
     org: { type: "string", description: "Organization slug — needed for AI diagnosis authorization." },
     panel: { type: "WorkflowExecutionPanelMode", description: "Whether the viewer offers the execution panel at all. `\"none\"` removes the panel AND its toggle chip and withholds the Diagnose action (its conversation renders inside the panel) — for hosts whose surrounding surface already presents the execution's artifacts and usage.", typeDescriptionLink: "#workflowexecutionpanelmode" },
@@ -4416,7 +4417,7 @@ Each task kind entry is draggable. The drop target (the canvas)
 reads the task kind from the drag transfer data using
 [`TASK_KIND_DRAG_MIME`](#task_kind_drag_mime) and creates a new node.
 
-Self-contained SDK component (DD-001, AD-T15-B2-005): depends only
+Self-contained SDK component: depends only
 on `useTaskKindRegistry()` and `--stgm-*` theme tokens. No canvas
 or React Flow dependency.
 
@@ -4505,18 +4506,18 @@ Props for [`WorkflowTaskReviewGate`](#workflowtaskreviewgate).
 ### WorkflowTaskThread
 
 Session-style task thread for a workflow execution: one card per task in
-execution order (first-started first — D-T02-1), streaming live as the
+execution order (first-started first), streaming live as the
 run progresses, with a collapsed preview and an expandable detail body
 per card — the workflow analog of the session viewer's tool-call cards.
 
-Pending tasks render no cards (D-T02-5); the progress header keeps
+Pending tasks render no cards; the progress header keeps
 overall status visible. Retries collapse into one card with an attempt
-indicator (D-T02-6). AGENT_CALL cards render the child's FULL transcript
-inline as the card body (T07) — live-streaming while the child runs,
+indicator. AGENT_CALL cards render the child's FULL transcript
+inline as the card body — live-streaming while the child runs,
 complete history once settled — the session experience in place, with an
-"Open standalone" pop-out for a deep dive. Since T04 the card is the
+"Open standalone" pop-out for a deep dive. The card is the
 PRIMARY surface for a task's data (kind-aware preview line + bounded I/O
-body); since T06 it is the ONLY one — the Inspect drill-down is gone, and
+body), and the ONLY one — the Inspect drill-down is gone, and
 cards compose the session card language exactly (expand-or-none headers,
 no selection).
 
@@ -4525,7 +4526,7 @@ sentinel keeps the list pinned to the latest card until the user scrolls
 up, with a jump-to-latest affordance to re-engage.
 
 With `hitl` wired, a gating task's card carries its decision surface
-in-thread (S10/T06/T07): the child's own inline transcript renders the
+in-thread: the child's own inline transcript renders the
 canonical `ApprovalCard`s and `FileReviewCard`s for child gates, and the
 full `WorkflowTaskReviewGate` (custom review renderers included) renders
 for task-level human_input gates — with a read-only
@@ -4543,11 +4544,11 @@ Props for [`WorkflowTaskThread`](#workflowtaskthread).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    hitl: { type: "WorkflowThreadHitl", description: "Workflow-level HITL wiring (see WorkflowThreadHitl). When provided, a gating task's card renders its decision surface directly in the thread — always visible while the gate is pending, never behind the expand chevron (the run is blocked). Omitted → the thread is read-only and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).", typeDescriptionLink: "#workflowthreadhitl" },
+    hitl: { type: "WorkflowThreadHitl", description: "Workflow-level HITL wiring (see WorkflowThreadHitl). When provided, a gating task's card renders its decision surface directly in the thread — always visible while the gate is pending, never behind the expand chevron (the run is blocked). Omitted → the thread is read-only and behaves exactly as before (backward compatible).", typeDescriptionLink: "#workflowthreadhitl" },
     isRunning: { type: "boolean", description: "Whether the execution is still running (drives streaming affordances).", required: true },
-    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Open an AGENT_CALL task's child execution as a standalone page — the inline transcript's deep-dive pop-out. Host-routed (DD-004). Omitted → the affordance is not rendered." },
-    scrollOnSend: { type: "boolean", description: "Scroll to the latest content when the reader submits a HITL decision from a scrolled-up position (stigmer-cloud#267) — the workflow surface's send-analog: approving a gate, deciding a file review, or answering a task-level human_input gate re-engages follow mode, so the run's continuation lands in view. Incoming task activity is unaffected — it still never moves a scrolled-up reader. Default `true` on all three SDK thread surfaces at once (the ratified DD-011 divergence — cross-surface consistency is the point); set `false` to keep today's behavior." },
-    taskSnapshotsByName: { type: "ReadonlyMap<string, WorkflowTask>", description: "Per-task status snapshots (`status.tasks[]`) keyed by task name — the FULL I/O source for card bodies (T04), never an event-log scan (DD-T04-5). The map's identity changes only on a snapshot refetch (rare), never on stream event appends, so memoized cards keep bailing during streaming. Omitted → bodies degrade to the truncated event summaries already on the items." },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Open an AGENT_CALL task's child execution as a standalone page — the inline transcript's deep-dive pop-out. Host-routed. Omitted → the affordance is not rendered." },
+    scrollOnSend: { type: "boolean", description: "Scroll to the latest content when the reader submits a HITL decision from a scrolled-up position — the workflow surface's send-analog: approving a gate, deciding a file review, or answering a task-level human_input gate re-engages follow mode, so the run's continuation lands in view. Incoming task activity is unaffected — it still never moves a scrolled-up reader. Default `true` on all three SDK thread surfaces at once (a deliberate change of default — cross-surface consistency is the point); set `false` to keep today's behavior." },
+    taskSnapshotsByName: { type: "ReadonlyMap<string, WorkflowTask>", description: "Per-task status snapshots (`status.tasks[]`) keyed by task name — the FULL I/O source for card bodies, never an event-log scan The map's identity changes only on a snapshot refetch (rare), never on stream event appends, so memoized cards keep bailing during streaming. Omitted → bodies degrade to the truncated event summaries already on the items." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Live derived task states from the execution event stream.", required: true },
     totalTasks: { type: "number", description: "Total planned tasks (from `execution_started`); `0` when unknown.", required: true },
   }}
@@ -4605,14 +4606,14 @@ on template cards and preview dialogs.
 
 Presentation variant for a task card in the workflow task thread.
 
-Deliberately NOT a new task-kind classification (D-T02-3): variants are a
+Deliberately NOT a new task-kind classification: variants are a
 thin presentation projection of the canonical categories from
 `kind-metadata.ts` (`categorizeKind` — the single source of truth that
 already consolidated three drifted client-side classifications), plus one
 kind-level special case for the flagship `agent_call` card.
 
 - `agent-call` — the flagship: live agent slug, current tool, message and
-  tool-call counts, transcript expansion (D-T02-2).
+  tool-call counts, transcript expansion.
 - `control` — control-flow tasks (switch/fork/for-each/try-catch/wait).
 - `gate` — governance tasks (human_input); the stop-sign of the thread.
 - `event` — signal/timing tasks (listen/emit/notification/raise-error).
@@ -4627,11 +4628,11 @@ The workflow-level HITL wiring a decision-capable thread needs — a `Pick`
 of the single `useWorkflowExecutionActions` instance's return (cannot
 drift; same convention as `WorkflowAgentExecutionHitl`). Covers all three
 gate kinds: child tool approvals, child file reviews, and task-level
-(human_input) approvals — since T06 the gating card is the ONLY decision
+(human_input) approvals — the gating card is the ONLY decision
 surface, so the thread carries the full set. Decisions route through the
 WORKFLOW-level RPCs only — never the child's own `agentExecution.*` path,
 whose authorization checks the runner-spawned child rather than the
-workflow execution the operator owns (S5 rationale).
+workflow execution the operator owns.
 
 
 ### WorkflowThreadItem
@@ -4643,20 +4644,20 @@ is a shallow field compare, which powers the structural sharing below.
 <TypeTable
   type={{
     agentSlug: { type: "string", description: "", required: true },
-    approvalRequest: { type: "ApprovalRequestedPayload | null", description: "The human_input gate's captured request/resolution payloads (T06) — the in-card review surface's data. Reference-stable like the summaries: the store carries the immutable events' payload messages, so the identity compare below holds across appends and only the gating card's item changes identity when a gate opens or resolves.", required: true },
+    approvalRequest: { type: "ApprovalRequestedPayload | null", description: "The human_input gate's captured request/resolution payloads — the in-card review surface's data. Reference-stable like the summaries: the store carries the immutable events' payload messages, so the identity compare below holds across appends and only the gating card's item changes identity when a gate opens or resolves.", required: true },
     approvalResolution: { type: "ApprovalResolvedPayload | null", description: "", required: true },
     attemptNumber: { type: "number", description: "", required: true },
     childExecutionId: { type: "string", description: "", required: true },
     costMicros: { type: "bigint", description: "", required: true },
     currentToolName: { type: "string", description: "", required: true },
-    disclosure: { type: "WorkflowTaskDisclosure", description: "Card disclosure mode (T04). Pure function of `taskKind` (like `variant`/`kindLabel`), so it is not part of the equality compare.", required: true, typeDescriptionLink: "#workflowtaskdisclosure" },
+    disclosure: { type: "WorkflowTaskDisclosure", description: "Card disclosure mode. Pure function of `taskKind` (like `variant`/`kindLabel`), so it is not part of the equality compare.", required: true, typeDescriptionLink: "#workflowtaskdisclosure" },
     durationMs: { type: "number", description: "", required: true },
     error: { type: "string", description: "", required: true },
     inputSummary: { type: "JsonObject | null", description: "Truncated event summaries carried for the card body's fallback ladder (snapshot → event summary → none). Reference-stable: the store reads them off the same immutable events on every re-derivation, so the identity compare below holds across appends.", required: true },
     kindLabel: { type: "string", description: "Human label for the kind, from the canonical `kindToDisplayName`. The empty string for `unspecified` kinds (the snapshot-derived fallback map carries no kind) — consumers hide the kind chip rather than render a meaningless \"Unknown\" label.", required: true },
     messagesCount: { type: "number", description: "", required: true },
     outputSummary: { type: "JsonObject | null", description: "", required: true },
-    previewLine: { type: "string", description: "Kind-aware one-line preview from `resolveTaskPreview` (T04) — a primitive computed HERE (not in a card hook) so the structural-sharing compare below stays a cheap string check. The empty string when there is nothing kind-specific to say.", required: true },
+    previewLine: { type: "string", description: "Kind-aware one-line preview from `resolveTaskPreview` — a primitive computed HERE (not in a card hook) so the structural-sharing compare below stays a cheap string check. The empty string when there is nothing kind-specific to say.", required: true },
     status: { type: "\"completed\" | \"failed\" | \"skipped\" | \"running\" | \"pending\" | \"retrying\" | \"waiting_approval\"", description: "", required: true },
     taskKind: { type: "WorkflowTaskKind", description: "", required: true },
     taskName: { type: "string", description: "", required: true },
@@ -4669,8 +4670,8 @@ is a shallow field compare, which powers the structural sharing below.
 
 ### WorkflowThreadProgress
 
-Progress line for the thread header. Pending tasks render no cards
-(D-T02-5); this is where "what's coming" stays visible (Nielsen #1).
+Progress line for the thread header. Pending tasks render no cards;
+this is where "what's coming" stays visible (Nielsen #1).
 
 <TypeTable
   type={{

@@ -3,20 +3,25 @@ name: release.sandbox-cloud
 # Builds and publishes the cloud sandbox runner image, ghcr.io/stigmer/runner,
 # the image the hosted edition launches its sandboxes from.
 #
-# This pipeline is a pure artifact publisher: build -> push (latest + main-<sha>)
-# -> smoke-test -> on a release tag that passed, promote. The tag policy is the
-# self-host runner's (ghcr.io/stigmer/stigmer-runner in release.npm-libs.yaml):
-#   - latest, main-<sha>: every build, before the smoke (development and the
-#     OSS drivers follow latest).
-#   - v<X.Y.Z>: a v* tag's build, pushed only after the smoke passes, so a
-#     version tag existing means that release's runner booted. A deployment
-#     that runs a server release names the runner of the same release by it.
+# This pipeline is a pure artifact publisher: build -> push (main-<sha>) ->
+# smoke-test -> promote what passed. The tags:
+#   - main-<sha>: every build, before the smoke; the bytes the smoke tests.
+#   - latest: every build that passed the smoke (development, and an OSS
+#     server with no release of its own, follow latest).
+#   - v<X.Y.Z>: a v* tag's build that passed the smoke, so a version tag
+#     existing means that release's runner booted. A server release launches
+#     the runner of the same release by it (the OSS default and the cloud).
 #   - prod: the latest smoke-tested release. Moved only on a release tag,
 #     never on a main push, a prerelease tag, or a rebuild dispatched from
 #     main, so nothing unreleased reaches a deployment that follows it.
-# The version tag is added after the smoke, not before as the self-host lane
-# does: that lane smokes the pushed version tag itself, while this one smokes
-# the pushed main-<sha> bytes the version tag then names.
+# Every tag but main-<sha> is added after the smoke, not before as the
+# self-host lane does: that lane smokes the pushed version tag itself, while
+# this one smokes the pushed main-<sha> bytes the other tags then name.
+# A dispatch runs the workflow of the ref it is dispatched from: from a tag
+# whose workflow predates the in-image smoke below, that workflow pushes
+# latest at build time, which would move latest back to an image without
+# /runner/bin/node, the launch path every newer server uses. Re-publish
+# such a release by its version tag only, never by dispatching its build.
 #
 # Triggers:
 #   - push to main: rebuild when runner code, proto stubs, or Dockerfile
@@ -67,6 +72,10 @@ jobs:
               - 'backend/services/runner/package-lock.json'
               - 'backend/services/runner/tsconfig*.json'
               - 'backend/services/runner/Dockerfile.sandbox'
+              # The image's runner is the slim artifact these scripts build
+              # (bundle-slim.mjs and what it imports and aliases).
+              - 'backend/services/runner/scripts/**'
+              - 'scripts/lib/source-map-pragma.mjs'
               - 'apis/stubs/ts/**'
               - 'backend/libs/ts/**'
 
@@ -131,18 +140,19 @@ jobs:
           fi
           echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
           echo "moves_prod=$MOVES_PROD" >> "$GITHUB_OUTPUT"
-          echo "Building: latest + main-$SHORT_SHA; after the smoke: version tag '${VERSION_TAG:-none}', moves prod: $MOVES_PROD"
+          echo "Building: main-$SHORT_SHA; after the smoke: latest, version tag '${VERSION_TAG:-none}', moves prod: $MOVES_PROD"
 
       # --target sandbox: the Dockerfile's final stage is the self-host
       # compose runner (sandbox + stigmer CLI, published separately as
       # ghcr.io/stigmer/stigmer-runner by release.npm-libs.yaml); this lane
-      # ships the CLOUD sandbox stage, byte-identical to before the stage
-      # split. amd64 stays this lane's platform — the cloud fleet is amd64;
+      # ships the CLOUD sandbox stage: the default base image plus the runner
+      # layer. amd64 stays this lane's platform — the cloud fleet is amd64;
       # the multi-arch proof lives on the compose-runner lane.
       # The layer cache is what lets an unchanged step produce the SAME layer
       # bytes build after build, so a node holding the last image pulls only
       # what changed (stigmer/stigmer#1244; the Dockerfile cuts its layers
-      # by what changes them). A registry cache in its own package, not
+      # by owner: the base's change with its tools, the runner layer with
+      # each runner change). A registry cache in its own package, not
       # type=gha, whose export has hung releases for up to an hour
       # (release.mcp-server, v3.1.11); a failed cache export is ignored, so
       # the cache can slow a release down but never fail one.
@@ -157,7 +167,6 @@ jobs:
             --cache-from "type=registry,ref=$CACHE_REF" \
             --cache-to "type=registry,ref=$CACHE_REF,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true" \
             --file backend/services/runner/Dockerfile.sandbox \
-            --tag ghcr.io/${{ github.repository_owner }}/runner:latest \
             --tag ghcr.io/${{ github.repository_owner }}/runner:main-"${STEPS_TAGS_OUTPUTS_SHORT_SHA}" \
             --push \
             .
@@ -166,35 +175,43 @@ jobs:
       # REST endpoint for it; the PUT this job carried answered 404 on
       # every run, masked into an error annotation). `runner` is public.
 
-      - name: Smoke-test runner image
-        # Gate before promotion. Boot a sandbox from the freshly built SHA image:
-        # if the image is broken/unpullable or the runner crashes on boot (the
-        # 2026-04 stale-image failure mode), creation fails and neither the
-        # version tag nor :prod is written.
-        # The smoke runs on Daytona (that is where CI has credentials); it validates
-        # "the runner boots", not k8s-specific concerns (PVC/gVisor). A deeper
-        # worker-level assertion is a future enhancement.
+      - name: Set up the Temporal CLI
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
+
+      # Gate before promotion: the runner itself boots inside the built image,
+      # started as the drivers start it (its own /runner/bin/node, the slim
+      # artifact at /runner/dist). The runner's slim check runs from the
+      # checkout, mounted read-only (its scripts import only Node built-ins
+      # and each other), against a Temporal dev server on the host network:
+      # the cloud-mode boot to the Temporal dial, @cursor/sdk and its platform
+      # package, the attach waiter, a worker that reaches RUNNING, the
+      # manager lifecycle, and a warm-pool member booted with an OTLP endpoint
+      # set, as production sets one. A broken image or a runner that dies at boot (the
+      # 2026-04 stale-image failure mode) fails here, and no tag but
+      # main-<sha> names it.
+      - name: Smoke-test the runner in the image
         timeout-minutes: 8
         env:
-          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}
         run: |
-          pip install daytona-sdk
-          python - <<'PYEOF'
-          import os, time
-          from daytona_sdk import Daytona, DaytonaConfig, CreateSandboxFromImageParams
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          docker run --rm --network host \
+            --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
+            --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
+            "$IMAGE" \
+            /runner/bin/node /verify/verify-slim-artifact.mjs --node /runner/bin/node --artifact /runner/dist
 
-          d = Daytona(DaytonaConfig(api_key=os.environ["DAYTONA_API_KEY"]))
-          image = os.environ["IMAGE"]
-
-          print(f"Smoke-testing {image} …")
-          t0 = time.monotonic()
-          sandbox = d.create(CreateSandboxFromImageParams(image=image))
-          print(f"Sandbox {sandbox.id} booted in {time.monotonic() - t0:.1f}s")
-
-          d.delete(sandbox)
-          print("Smoke test passed — sandbox booted from the image and was cleaned up")
-          PYEOF
+      - name: Promote the smoke-tested image
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/runner
+          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+        run: docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE:main-$SHORT_SHA"
 
       - name: Promote the tested release image
         # Only a smoke-tested build of a v* tag gets here: the version tag
@@ -223,7 +240,7 @@ jobs:
             echo "## Cloud Sandbox Image Published"
             echo ""
             echo "**Image:** \`$IMAGE\`"
-            echo "**Tags:** \`latest\`, \`main-$SHORT_SHA\`${VERSION_TAG:+, \`$VERSION_TAG\` (after the smoke)}"
+            echo "**Tags:** \`main-$SHORT_SHA\`; after the smoke \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}"
             echo "**Architecture:** linux/amd64"
             if [ "$MOVES_PROD" = "true" ]; then
               echo "**prod:** moved to \`$VERSION_TAG\`, the latest smoke-tested release"

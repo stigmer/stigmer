@@ -4,7 +4,7 @@
 // execution query and command controllers (including the server-streaming
 // subscribe / subscribeEvents methods), points an SDK node client at it, and
 // drives the resource layer end to end: lifecycle control, approval submission
-// (asserting D-EX-1 comment carry + D-EX-2 reviewer-unset), trace rendering, and
+// (asserting the comment carry and the unset reviewer), trace rendering, and
 // log streaming (workflow event stream + agent snapshot diffing).
 
 import { create } from "@bufbuild/protobuf";
@@ -191,7 +191,7 @@ describe("lifecycle control", () => {
 });
 
 describe("approval submission", () => {
-  it("carries --comment onto the agent SubmitApprovalInput (D-EX-1)", async () => {
+  it("carries --comment onto the agent SubmitApprovalInput", async () => {
     await approveAgentToolCall(client, { executionId: "aex_1", toolCallId: "tc_1", action: "deny", comment: "unsafe" });
     expect(agentApproval).toHaveLength(1);
     expect(agentApproval[0].comment).toBe("unsafe");
@@ -200,7 +200,7 @@ describe("approval submission", () => {
     expect(agentApproval[0].action).toBe(3);
   });
 
-  it("leaves the workflow reviewer unset (D-EX-2 — server-attributed)", async () => {
+  it("leaves the workflow reviewer unset (server-attributed)", async () => {
     await approveWorkflowTask(client, { executionId: "wex_1", taskName: "review", outcome: "approve", comment: "lgtm" });
     expect(workflowApproval).toHaveLength(1);
     expect(workflowApproval[0].reviewer).toBe("");

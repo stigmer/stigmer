@@ -1,6 +1,6 @@
 {
   "name": "binary-summary-only-keep-all",
-  "description": "A mixed set whose ONLY blocker is binary: a fully-reviewable text edit (diff_complete=true) plus a binary ADD (is_binary=true, diff_complete=false). The runner rolls this up to BINARY_SUMMARY_ONLY (DD-17), the keepable-in-one-action case. This vector pins that the BINARY_SUMMARY_ONLY rollup projects onto the FileChangeSet identically in Go and Java (protojson round-trip); the CHANGE_SET-scoped acknowledged keep-all gate behavior is proven end-to-end by the offline/unit gate tests.",
+  "description": "A mixed set whose ONLY blocker is binary: a fully-reviewable text edit (diff_complete=true) plus a binary ADD (is_binary=true, diff_complete=false). The runner rolls this up to BINARY_SUMMARY_ONLY, the keepable-in-one-action case. This vector pins that the BINARY_SUMMARY_ONLY rollup projects onto the FileChangeSet identically in every implementation that loads this corpus (protojson round-trip); the CHANGE_SET-scoped acknowledged keep-all gate behavior is proven end-to-end by the offline/unit gate tests.",
   "execution_id": "aex_binary_summary_only",
   "phase": "EXECUTION_WAITING_FOR_APPROVAL",
   "events": [

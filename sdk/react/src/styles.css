@@ -305,7 +305,7 @@
   }
 
   /* The provider's in-tree container ([data-stgm-root]) ships with NO
-     layout styling — deliberately (#260, DD-019). A default
+     layout styling — deliberately (#260). A default
      `height: 100%` looks benign ("resolves to auto under auto-height
      parents") but is not: when the container's parent is a flex item
      (e.g. a `flex-1` prose column), flexbox treats the item's flexed
@@ -331,7 +331,7 @@
 }
 
 @layer stgm {
-  /* T06: Active edge animation (marching ants for currently-flowing edges) */
+  /* Active edge animation (marching ants for currently-flowing edges) */
   @keyframes stgm-marching-ants {
     to {
       stroke-dashoffset: -12;
@@ -342,7 +342,7 @@
     animation: stgm-marching-ants 0.6s linear infinite;
   }
 
-  /* T16: Running node border pulse — subtle glow to indicate active execution */
+  /* Running node border pulse — subtle glow to indicate active execution */
   @keyframes stgm-running-pulse {
     0%, 100% {
       box-shadow: 0 0 0 0 var(--stgm-primary, #6366f1);
@@ -405,7 +405,7 @@
     }
 
     /* The shimmer is pure decoration: under reduced motion the label drops
-       the clipped gradient entirely and reads as ordinary text (DD-015) —
+       the clipped gradient entirely and reads as ordinary text —
        a frozen gradient band would look like a rendering glitch. */
     .stgm-shimmer-label {
       background-image: none;

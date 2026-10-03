@@ -1,9 +1,9 @@
 // Vitest configuration for the gRPC conformance suite (Class A: CRUD, no
 // Temporal), running the full suite glob against the local TS server.
 //
-// The glob replaced the explicit local-ts roster at go-server-retirement
-// (D4 #25): the roster mechanism existed to grow suite-by-suite toward glob
-// equality during the port, and equality was reached at the #24 cutover gate.
+// The glob replaced the explicit local-ts roster when the Go server retired:
+// the roster mechanism existed to grow suite-by-suite toward glob equality
+// during the port, and equality was reached before the cutover.
 // The per-entry roster history lives in git (vitest.local-ts.config.ts).
 //
 // globalSetup compiles the TS server once per run (expensive cold build);

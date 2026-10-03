@@ -21,11 +21,11 @@ export interface UseInstallChannelReturn {
    *
    * One `initiateInstall` call does everything: the server validates the
    * declared provider identity against the provider's API, persists the
-   * install facts on status, and answers `completed=true` (DD-WA-1).
+   * install facts on status, and answers `completed=true`.
    * Works for first installs and retries of a pending channel alike.
    *
-   * The server's `completed` field is the authoritative outcome
-   * (DD-WA-1b): `false` means this channel's provider actually wants the
+   * The server's `completed` field is the authoritative outcome:
+   * `false` means this channel's provider actually wants the
    * redirect flow — surfaced as an error rather than silently ignored,
    * because this hook cannot run a consent redirect.
    *

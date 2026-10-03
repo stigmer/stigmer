@@ -10,8 +10,8 @@
 // gated tool is the built-in `execute` (approval category `shell`), which gates
 // fail-closed in EVERY stack shape with no MCP fixture or agent override. It
 // deliberately is NOT `write_file`: this stack has a capture substrate (local
-// artifact store), so file writes follow apply-then-review (phase-7 capture
-// mode) and never gate — the file-write GATE surface lives in
+// artifact store), so file writes follow apply-then-review (capture mode)
+// and never gate — the file-write GATE surface lives in
 // tool-card-ux.spec.ts against the file-gate stack (STIGMER_E2E_FILE_GATES).
 //
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1`

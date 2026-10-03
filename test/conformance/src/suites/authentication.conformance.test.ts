@@ -1,4 +1,4 @@
-// Authentication posture conformance (entry 20260904.02).
+// Authentication posture conformance.
 // Pins the serving edge's position-1 contract — what a request gets BEFORE
 // any handler runs, as a function of the credential it presents:
 //   - NO credential on a non-public method: refused UNAUTHENTICATED
@@ -19,7 +19,7 @@
 //   - a credential NOTHING claims: refused UNAUTHENTICATED where a verifier
 //     is composed (code only — Java's classifyAuthError copy and the TS
 //     chassis's differ by design); admitted as the operator on the
-//     verifier-less local targets (the O2 ruling-Q6 fall-through);
+//     verifier-less local targets (the trusted-local fall-through);
 //   - an API-KEY credential (stigmer#984): a server-minted `stk_` key
 //     authenticates AS its owner wherever a posture is on — a write through
 //     it is audited to the owning account; garbage or deleted keys refuse
@@ -29,17 +29,17 @@
 //     lane because only a posture composes the key's verifier.
 // Coverage of the absent-token arm was ZERO before this suite: every
 // conformance RPC carried the primary credential, so a composition that
-// admitted anonymous callers as `system` passed five green readouts
-// (the entry's origin story). The arms below drive credential-less and
-// garbage-credential clients through the TARGET's own seams
-// (anonymousClients / clientsPresenting), never a hand-built transport.
+// admitted anonymous callers as `system` passed five green readouts. The
+// arms below drive credential-less and garbage-credential clients through
+// the TARGET's own seams (anonymousClients / clientsPresenting), never a
+// hand-built transport.
 //
-// Every environment shows the contract. The hermetic cloud launcher boots
-// Java in PRODUCTION security mode against its own mock identity tenant
-// (entry 20260907.02, closing D-S1 option (ii) of 20260904.02), so the
-// credential arms measure Java's real interceptor there — the harness no
-// longer has a "bypassed edge" posture to skip on, by design: a target whose
-// edge admits anonymous callers FAILS these arms, never skips them.
+// Every environment shows the contract. The cloud conformance environment
+// boots the composition in its production authentication posture against
+// its own mock identity tenant, so the credential arms measure the real
+// serving edge there — the harness has no "bypassed edge" posture to skip
+// on, by design: a target whose edge admits anonymous callers FAILS these
+// arms, never skips them.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
 import { HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
@@ -125,7 +125,7 @@ describe("authentication posture: a request with a credential nothing claims", (
       );
       return;
     }
-    // Zero verifiers: nothing can claim the token, and the O2 ruling-Q6
+    // Zero verifiers: nothing can claim the token, and the trusted-local
     // contract falls through SILENTLY to the trusted-local operator — the
     // runner presents a proxy bearer on every control-plane RPC and the
     // single-operator server must keep admitting it.
@@ -137,18 +137,18 @@ describe("authentication posture: a request with a credential nothing claims", (
   });
 });
 
-// The API-key credential (stigmer#984; the cloud's stigmer-cloud#627): an
-// `stk_` key the server itself minted must authenticate AS its owning
-// account wherever an authentication posture is on — the SDKs, the CLI and
-// the hosted MCP server present exactly this credential. The proof is
-// edition-agnostic: a write made THROUGH the key carries the key owner's
-// id on its audit, the same principal the primary credential carries.
-// Where authentication is required, a garbage or deleted key is refused
-// with the byte-pinned copy both editions share (`invalid token` — the
-// Java classifyAuthError fallback and the TS apikey verifier's
-// INVALID_TOKEN_MESSAGE are the same bytes by contract). On verifier-less
-// local targets the key is one more unclaimed credential and falls through
-// to the operator (ruling Q6) — pinned as that contract, not as key
+// The API-key credential (stigmer#984): an `stk_` key the server itself
+// minted must authenticate AS its owning account wherever an
+// authentication posture is on — the SDKs, the CLI and the hosted MCP
+// server present exactly this credential. The proof is edition-agnostic: a
+// write made THROUGH the key carries the key owner's id on its audit, the
+// same principal the primary credential carries. Where authentication is
+// required, a garbage or deleted key is refused with the byte-pinned copy
+// both editions share (`invalid token` — the Java classifyAuthError
+// fallback and the TS apikey verifier's INVALID_TOKEN_MESSAGE are the same
+// bytes by contract). On verifier-less local targets the key is one more
+// unclaimed credential and falls through to the operator (the
+// trusted-local fall-through) — pinned as that contract, not as key
 // verification.
 describe("authentication posture: a request with an API-key credential", () => {
   const fixtures = new FixtureTracker();

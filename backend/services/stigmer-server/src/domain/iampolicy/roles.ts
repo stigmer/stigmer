@@ -12,9 +12,9 @@
  * it as the `policyGrantScope` driver.
  *
  * The four words this table renders for an organization are the four
- * roles every edition grants there and the ladder entry 3's
- * authorizer enforces; the copy is shown verbatim by the console's role
- * badges and selector, so it is contract.
+ * roles every edition grants there and the ladder the authorizer
+ * enforces; the copy is shown verbatim by the console's role badges and
+ * selector, so it is contract.
  */
 import { create } from "@bufbuild/protobuf";
 

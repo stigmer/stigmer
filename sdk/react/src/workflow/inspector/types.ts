@@ -6,7 +6,7 @@ import type { TopologyNodeCategory } from "../useWorkflowTopology.js";
 /** Identifiers for design-mode inspector tabs. */
 export type DesignTabId = "configure" | "branches" | "catch" | "iteration" | "data" | "runtime" | "advanced" | "docs";
 
-/** Identifiers for execution-mode inspector tabs (matches T05). */
+/** Identifiers for execution-mode inspector tabs. */
 export type ExecutionTabId = "summary" | "input" | "output" | "error" | "retries" | "agent" | "events";
 
 /** Union of all possible inspector tab identifiers. */

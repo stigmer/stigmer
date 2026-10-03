@@ -1,8 +1,8 @@
-// Unit tests for the thread projection (S8): ordering, variant mapping,
+// Unit tests for the thread projection: ordering, variant mapping,
 // progress accounting, and the structural sharing that lets memoized card
-// rows bail during streaming (DD-009/DD-010). The fan-out suite (S9) runs
+// rows bail during streaming. The fan-out suite runs
 // real events through the store derivation to validate the flat
-// start-order model against parallel branches (D-T02-1's revisit hook).
+// start-order model against parallel branches.
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -66,7 +66,7 @@ describe("threadCardVariant", () => {
 });
 
 describe("projectThreadItems", () => {
-  it("preserves the map's insertion order (first-started order, D-T02-1)", () => {
+  it("preserves the map's insertion order (first-started order)", () => {
     const { items } = projectThreadItems(
       statesOf(
         taskState({ taskName: "fetch", status: "completed" }),
@@ -192,7 +192,7 @@ describe("projectThreadItems", () => {
       expect(second.items[0].status).toBe("completed");
     });
 
-    it("keeps the bail when the preview-affecting fields are unchanged (T04)", () => {
+    it("keeps the bail when the preview-affecting fields are unchanged", () => {
       // Same summary OBJECT identity across projections — the store contract
       // (summaries are read off the same immutable stored events).
       const output = { valid: true };
@@ -220,7 +220,7 @@ describe("projectThreadItems", () => {
       expect(second.items[0]).toBe(first.items[0]);
     });
 
-    it("gate payloads ride the identity compare: same capture bails, a gate opening produces a fresh item (T06)", () => {
+    it("gate payloads ride the identity compare: same capture bails, a gate opening produces a fresh item", () => {
       const request = { prompt: "Ship it?" } as never;
       const gated = () =>
         taskState({
@@ -251,7 +251,7 @@ describe("projectThreadItems", () => {
       expect(third.items[0]).not.toBe(second.items[0]);
     });
 
-    it("produces a fresh item when the output summary arrives (preview change, T04)", () => {
+    it("produces a fresh item when the output summary arrives (preview change)", () => {
       const first = projectThreadItems(
         statesOf(
           taskState({
@@ -279,7 +279,7 @@ describe("projectThreadItems", () => {
     });
   });
 
-  describe("preview resolution (T04)", () => {
+  describe("preview resolution", () => {
     it("populates previewLine and disclosure from resolveTaskPreview", () => {
       const { items } = projectThreadItems(
         statesOf(
@@ -316,7 +316,7 @@ describe("projectThreadItems", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Fan-out validation (S9 — D-T02-1's revisit hook)
+// Fan-out validation
 //
 // A realistic parallel workflow driven through the REAL event-store
 // derivation, not hand-built maps: prepare → four concurrent fetches
@@ -363,7 +363,7 @@ function completedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
   });
 }
 
-describe("fan-out ordering through the store derivation (D-T02-1)", () => {
+describe("fan-out ordering through the store derivation", () => {
   it("keeps first-started order while parallel branches complete out of order", () => {
     const store = new WorkflowExecutionEventStore();
 

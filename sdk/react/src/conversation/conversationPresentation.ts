@@ -86,10 +86,9 @@ export function sendAttemptOf(item: ConversationTimelineItem): SendAttemptKind |
  * The provider's receipt report, in render vocabulary. `null` until the
  * provider reports (and always on items with no receipt axis).
  *
- * A SECOND axis beside {@link sendAttemptOf}, never collapsed into it
- * (channel-conversations DD-004 D-d): "we handed it to WhatsApp" and
- * "it reached the phone" are different facts — an item can be
- * `delivered` + `receipt_failed`.
+ * A SECOND axis beside {@link sendAttemptOf}, never collapsed into it:
+ * "we handed it to WhatsApp" and "it reached the phone" are different
+ * facts — an item can be `delivered` + `receipt_failed`.
  */
 export type ReceiptKind = "sent" | "delivered" | "read" | "failed";
 
@@ -114,8 +113,8 @@ export function receiptOf(item: ConversationTimelineItem): ReceiptKind | null {
  * the platform classifies (rows failed before the classification
  * existed, and every non-failed item).
  *
- * The structured twin of {@link attemptExplanationOf}'s prose
- * (cloud#262): a renderer that branches on the failure keys on this,
+ * The structured twin of {@link attemptExplanationOf}'s prose: a
+ * renderer that branches on the failure keys on this,
  * never on the explanation's words.
  */
 export type AttemptFailureKind = "refused" | "errored" | "withdrawn";
@@ -139,8 +138,8 @@ export function attemptFailureOf(item: ConversationTimelineItem): AttemptFailure
  * item carries none to show (non-failed items, and rows failed before
  * the platform classified failures).
  *
- * The attempt-axis sibling of the receipt explanation (cloud#262,
- * closing F-25): `attempt_detail` is PLATFORM-authored thread-safe copy
+ * The attempt-axis sibling of the receipt explanation:
+ * `attempt_detail` is PLATFORM-authored thread-safe copy
  * — the write side guarantees raw diagnostics never occupy it — so it
  * renders verbatim when present (refusals and withdrawn sends). An
  * `errored` failure deliberately carries no detail (its diagnostic is
@@ -249,8 +248,7 @@ export function conversationContactOf(
  * messages for 24 hours after the customer's last inbound message; after
  * that, only template messages deliver. The constant lives beside its
  * only consumer and is promoted to `ChannelProviderDescriptor` only if a
- * second windowed provider ever appears (the second-sighting rule,
- * DD-014 D-a).
+ * second windowed provider ever appears (the second-sighting rule).
  */
 const WHATSAPP_SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -258,25 +256,24 @@ const WHATSAPP_SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 export type ServiceWindowState = "open" | "closed";
 
 /**
- * Estimate whether the provider's free-form reply window is open
- * (channel-conversations DD-014 D-a). Provider-aware like
- * {@link conversationLabelOf}: WhatsApp is the only windowed provider, so
- * every other provider answers `null` — no window, no claim — as does a
- * conversation whose customer has never written
+ * Estimate whether the provider's free-form reply window is open.
+ * Provider-aware like {@link conversationLabelOf}: WhatsApp is the only
+ * windowed provider, so every other provider answers `null` — no window,
+ * no claim — as does a conversation whose customer has never written
  * (`last_customer_message_at` unset; that conversation takes the
  * composer's disabled branch instead).
  *
- * Client-derived on purpose, and NOT a divergence from DD-011 A-1's
- * "the predicate is expressed once, in SQL" rule: the window is
+ * Client-derived on purpose, and NOT a divergence from the rule that a
+ * server predicate is expressed once, in SQL: the window is
  * wall-clock-anchored — it flips with NO row change — so a
  * server-computed boolean would be stale by construction between polls.
  * Time-decaying presentation derived from wire instants is this
  * surface's established class (relative timestamps, day grouping).
  *
- * Honesty caveat (DD-014 D-a): the anchor is the platform's receipt
+ * Honesty caveat: the anchor is the platform's receipt
  * instant, minutes AFTER Meta's own clock started the window, so the
  * estimate can claim "open" briefly after Meta closed it — which is why
- * consumers warn and never block (D-b). For the same reason the exact
+ * consumers warn and never block. For the same reason the exact
  * 24-hour tie reads "closed": erring a moment early offsets an anchor
  * that always errs late.
  */
@@ -294,18 +291,17 @@ export function serviceWindowOf(
 
 /**
  * How strongly the awaiting-reply indicator renders. Two strengths, not
- * one, because "waiting" means different things per holder (DD-011 D-a).
+ * one, because "waiting" means different things per holder.
  */
 export type AwaitingIndicator = "strong" | "muted";
 
 /**
- * The awaiting-reply indicator for a conversation (channel-conversations
- * DD-011 D-a): `"strong"` when a human holds it — the agent will not
- * answer, so a person must (F-13's exact case) — and `"muted"` when the
- * agent holds it: the agent is about to answer, and if its turn dies the
- * conversation stays visibly waiting, which is the built-in recovery
- * path (DD-011 D-b). `null` when the customer's last message has been
- * answered (or the customer has not written).
+ * The awaiting-reply indicator for a conversation: `"strong"` when a
+ * human holds it — the agent will not answer, so a person must — and
+ * `"muted"` when the agent holds it: the agent is about to answer, and
+ * if its turn dies the conversation stays visibly waiting, which is the
+ * built-in recovery path. `null` when the customer's last message has
+ * been answered (or the customer has not written).
  *
  * The fact itself is server-derived (`awaiting_reply` rides the wire as
  * a boolean precisely so no client re-implements the NULL-and-compare
@@ -326,7 +322,7 @@ export function awaitingIndicatorOf(
  * `outbound_message_id` — the contract
  * `useConversationParticipation.reply` documents ("the item will
  * appear on the timeline as `ob:<that id>`"). The workbench's
- * post-send busy state watches for exactly this id (F-05).
+ * post-send busy state watches for exactly this id.
  */
 export function outboundItemIdOf(outboundMessageId: string): string {
   return `ob:${outboundMessageId}`;

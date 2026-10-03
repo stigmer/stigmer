@@ -321,8 +321,7 @@ export function useMcpServerCredentials(
   //     the caller's active org is client-side context the read RPCs never
   //     carry (get has no org; getByReference's org is the server's OWNING
   //     org, which differs from the caller's org when browsing another
-  //     org's public server), so the fetched McpServer cannot answer this
-  //     (stigmer-cloud#401).
+  //     org's public server), so the fetched McpServer cannot answer this.
   // Scoped to vendor-OAuth servers with a platform app ref — the only
   // shape an override can exist for — so manual/DCR servers pay no RPC.
   const orgOverride = useOrgOAuthApp(

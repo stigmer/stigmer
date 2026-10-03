@@ -47,7 +47,7 @@ export interface UseUpdateScheduleSpecReturn {
  * generalized from one hardcoded field to any spec edit.
  *
  * Errors are NOT toasted here: inline editors surface the server's
- * message next to the field that was edited (DD-006), and a toast on
+ * message next to the field that was edited, and a toast on
  * top would say the same thing twice.
  *
  * @example

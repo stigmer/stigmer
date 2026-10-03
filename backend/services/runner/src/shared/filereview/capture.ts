@@ -691,7 +691,7 @@ function casToCapturedChangeInput(
  * PARTIAL_BLOCKED (never BINARY_SUMMARY_ONLY) — approval is blocked and the path
  * is surfaced honestly, while its CONTENT never enters the ledger or storage.
  * `blockedReason=SECRET_WITHHELD` records the honest cause so the review UI can say
- * *why* rather than a cause-agnostic "unavailable" (doc 15). Callers supply the
+ * *why* rather than a cause-agnostic "unavailable". Callers supply the
  * id / paths / kind / captureClass so each producer keeps its own honest identity.
  */
 function secretWithheldChangeInput(

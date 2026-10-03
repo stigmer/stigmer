@@ -7,7 +7,7 @@ import { useSidebarOpen } from "./use-layout-state";
 
 /**
  * Settings-zone sidebar — a thin wrapper over the SDK's
- * {@link SettingsSidebar} (DD-002): this file only bridges React Router
+ * {@link SettingsSidebar}: this file only bridges React Router
  * and the app's user menu into the shared chrome.
  */
 export function ManagementSidebar({
@@ -35,7 +35,7 @@ export function ManagementSidebar({
   );
 
   // Org switch leaves the settings zone for the org-neutral Dashboard
-  // (matching web and the workspace sidebar, DD-016). Landing on
+  // (matching web and the workspace sidebar). Landing on
   // "/dashboard" also overwrites the persisted stigmer:lastRoute so the
   // previous org's deep link can't be restored on next launch.
   const handleOrgChanged = useCallback(() => navigate("/dashboard"), [navigate]);

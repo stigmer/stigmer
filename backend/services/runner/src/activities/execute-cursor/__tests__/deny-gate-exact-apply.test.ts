@@ -1,5 +1,5 @@
 /**
- * @regression file-hitl-phase0 — pins the no-storage deny-gate exact-apply
+ * @regression file-hitl-gate — pins the no-storage deny-gate exact-apply
  * composition: the exact approved bytes are applied AND excluded from the
  * resource grants, so a further write to that path is re-gated while a
  * co-approved shell still flows.
@@ -163,7 +163,7 @@ describe("deny-gate exact-apply seam (real LocalWorkspaceBackend, storage off)",
     // LocalWorkspaceBackend created without a platformDir does not mkdir parents,
     // so exact-apply's write throws ENOENT and degrades to the grant+reinvocation
     // path — never a partial/corrupt file. This documents that pre-existing, safe
-    // behavior (see the plan's out-of-scope note).
+    // behavior.
     const root = tempWorkspace();
     const nested = adjudicatedCall("tc-nested", "write", { file_path: "sub/nested.txt", content: "z" }, ApprovalAction.APPROVE);
 

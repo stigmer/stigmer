@@ -15,7 +15,7 @@ import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
  * Structurally satisfied by BOTH sources a human turn can carry — the
  * `Attachment` proto on a persisted execution's `spec.attachments` and the
  * `AttachmentInput` a just-submitted (pending) turn holds — so the thread
- * renders either without conversion code or a duplicated type (DD-007).
+ * renders either without conversion code or a duplicated type.
  */
 export interface MessageAttachmentView {
   /** Original filename, e.g. `"screenshot.png"`. */
@@ -306,7 +306,7 @@ function DocumentChip({
 /**
  * Feeds the previewed attachment's presigned URL to the shared
  * {@link AttachmentImageLightbox}. The URL hook is cross-mount cached by
- * storage key (DD-014), so opening the lightbox reuses the thumbnail's minted
+ * storage key, so opening the lightbox reuses the thumbnail's minted
  * URL instead of a second RPC; `src` is `null` for at most the first frame.
  */
 function AttachmentPreviewLightbox({

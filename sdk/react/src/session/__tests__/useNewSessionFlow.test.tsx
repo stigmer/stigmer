@@ -880,7 +880,7 @@ describe("useNewSessionFlow", () => {
     });
   });
 
-  describe("accountDefaults (oss#293 Phase 1.5 layered seed)", () => {
+  describe("accountDefaults (the layered seed)", () => {
     // Two native models so "stored pick outranks account default" is
     // distinguishable; the shared TEST_MODELS carries one per harness.
     const SEED_MODELS = parseRegistryJson({
@@ -1006,7 +1006,7 @@ describe("useNewSessionFlow", () => {
       expect(result.current.modelId).toBe("composer-2.5");
     });
 
-    it("submits the seeded model explicitly — the pill promise (#663) and the DD-003 seed rule", async () => {
+    it("submits the seeded model explicitly — the pill promise (#663): the preference seeds, the execution spec records", async () => {
       const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 

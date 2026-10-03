@@ -30,9 +30,9 @@ export interface UseAgentSharesReturn {
  * channels carrying its hosted-chat configuration (audience, allowed
  * origins, visitor messages, tool credentials, link token).
  *
- * Sharing is channel configuration, not agent behavior (decision 011):
- * an agent can carry N shares, each with its own URL, audience and
- * credentials (decision 011 D3), all in the agent's own organization.
+ * Sharing is channel configuration, not agent behavior: an agent can carry N
+ * shares, each with its own URL, audience and credentials, all in the agent's
+ * own organization.
  *
  * Pass `org` to scope the list to one organization's channels — the
  * agent's organization is the one a console tab asks for. The server

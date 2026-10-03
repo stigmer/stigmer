@@ -74,8 +74,6 @@ const STAT_CARDS: readonly StatCardDef[] = [
  *
  * Cost comes from the billing source of truth (getOrgUsageReport),
  * not from summing per-domain costs. See AD-DASH-005.
- *
- * @since Unified Platform Dashboard
  */
 export const DashboardKPICards = memo(function DashboardKPICards({
   summary,

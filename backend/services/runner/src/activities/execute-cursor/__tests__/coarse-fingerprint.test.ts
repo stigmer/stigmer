@@ -1,8 +1,8 @@
 /**
- * @regression file-hitl-phase0 — pins content-exact approval identity: approving
+ * @regression file-hitl-gate — pins content-exact approval identity: approving
  * one edit never lets a DIFFERENT edit to the same path ride the grant.
  *
- * Slice D — the Cursor grant token / fingerprint as the substrate-coarsened
+ * The Cursor grant token / fingerprint as the substrate-coarsened
  * projection of the shared canonical action.
  *
  * These tests pin the three properties that give the lease its teeth on the
@@ -27,7 +27,7 @@ import {
 import { fingerprintCoarseIdentity } from "../../../shared/approval-fingerprint.js";
 import { POLICY_ENGINE_VERSION } from "../approval-policy.js";
 
-const KEY = "slice-d-test-key";
+const KEY = "coarse-fingerprint-test-key";
 
 function grantOf(toolName: string, mcpServerSlug: string, args: Record<string, unknown>): ApprovalGrant {
   const id = toolIdentity(toolName, mcpServerSlug, args);
@@ -37,7 +37,7 @@ function grantOf(toolName: string, mcpServerSlug: string, args: Record<string, u
   return { toolName, mcpServerSlug, key: id.key, salient: id.salient, contentDigest: "", sourceToolCallId: "consent-1" };
 }
 
-describe("Cursor coarse fingerprint (Slice D)", () => {
+describe("Cursor coarse fingerprint", () => {
   it("hook taxonomy and stream taxonomy yield ONE fingerprint and ONE token", () => {
     const hook = grantOf("Write", "", { file_path: "/x/a.txt" });
     const stream = grantOf("edit", "", { path: "/x/a.txt" });

@@ -45,7 +45,7 @@ export interface WorkflowArchitectDialogProps {
  * The user can create the workflow, try again, or close.
  *
  * Uses the same `<dialog>` + `showModal()` pattern as `WorkflowRunDialog`.
- * Styled via `--stgm-*` design tokens (DD-005).
+ * Styled via `--stgm-*` design tokens.
  *
  * @example
  * ```tsx

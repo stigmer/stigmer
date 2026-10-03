@@ -1,4 +1,4 @@
-// In-process test for the Wave 2b read surface: search, execution
+// In-process test for the read surface: search, execution
 // get/list, session list, and usage reports.
 //
 // Stands up a real Connect backend over h2c serving the controllers these paths

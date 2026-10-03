@@ -82,7 +82,7 @@ describe("buildThreadItems spec.attachments stamping", () => {
     expect(prompt!.executionId).toBe("exec-attach");
     // Stamped BY REFERENCE: structural sharing keeps spec.attachments stable
     // across streaming frames, so the memoized bubble must receive the same
-    // array object, not a copy (DD-010).
+    // array object, not a copy.
     expect(prompt!.attachments).toBe(exec.spec!.attachments);
     expect(prompt!.attachments).toHaveLength(2);
   });

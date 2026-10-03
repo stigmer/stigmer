@@ -56,8 +56,8 @@ export interface WorkflowTaskApprovalSummaryProps {
  * never offered for a second decision.
  *
  * Designed for embedding in both the Stigmer Console and third-party
- * dashboards — no routing, auth, or app-shell dependencies (DD-004). All
- * visual properties flow through `--stgm-*` tokens (DD-005).
+ * dashboards — no routing, auth, or app-shell dependencies. All
+ * visual properties flow through `--stgm-*` tokens.
  *
  * @example
  * ```tsx

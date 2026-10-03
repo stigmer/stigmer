@@ -19,9 +19,9 @@ import "buf/validate/validate.proto";
 //
 // @internal
 // Promoted from Agent.spec.sharing: sharing is channel
-// configuration with its own writer, lifecycle, and — in Phase B — its own
-// billing org per channel. metadata.slug appears in the hosted chat URL,
-// defaults to the referenced agent's slug, and is unique per org.
+// configuration with its own writer and lifecycle. metadata.slug
+// appears in the hosted chat URL, defaults to the referenced
+// agent's slug, and is unique per org.
 message AgentShare {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];

@@ -1,6 +1,6 @@
 // Unified output-format resolution.
 //
-// The Go CLI grew three inconsistent output conventions (D-CLI-2): reads used
+// The Go CLI grew three inconsistent output conventions: reads used
 // `-o table|json|yaml`, mutations used `--json`/`--quiet`, and streaming used
 // `--json` for NDJSON. The TS CLI unifies the *surface* on a single
 // `-o/--output` flag with one universal vocabulary — table | json | yaml |

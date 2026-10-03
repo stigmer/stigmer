@@ -1,5 +1,5 @@
 // Runs the cloud-capability fixtures standalone (`npm run fixtures:serve`).
-// Domain: conformance harness (cloud-capability fixtures, E1).
+// Domain: conformance harness (cloud-capability fixtures).
 //
 // For environments the hermetic global setup does not boot — the TS
 // composition readout (stigmer-cloud `spike/readout-bootstrap.ts`), a

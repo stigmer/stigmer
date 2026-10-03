@@ -36,13 +36,13 @@ export interface MemoryListPanelProps {
 
 /**
  * Lists everything the platform remembers about the caller in an
- * organization, grouped pending-proposals-first (DD-005 D4): proposals
+ * organization, grouped pending-proposals-first: proposals
  * awaiting a decision, then confirmed facts, then rejected proposals
  * kept for audit.
  *
  * Every fact is shown VERBATIM — the exact stored text is what future
- * prompts inject, byte for byte, so the review surface never paraphrases
- * (DD-005 D6). Provenance renders beside each agent-proposed fact.
+ * prompts inject, byte for byte, so the review surface never paraphrases.
+ * Provenance renders beside each agent-proposed fact.
  * Actions per state: confirm/reject/delete on proposals (reject is
  * one-click — no confirmation dialog), edit/delete on confirmed facts,
  * delete on rejected ones. Delete asks inline; it works in any state.
@@ -316,7 +316,7 @@ function MemoryRow({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0 stg:flex-1">
           {/* The exact stored text, verbatim — what is confirmed is what
-              future prompts inject, byte for byte (DD-005 D6). */}
+              future prompts inject, byte for byte. */}
           <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">
             {content}
           </p>

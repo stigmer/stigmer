@@ -130,7 +130,7 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   await clock.sleep(SETTLE_DELAY_MS);
   supervisor.settleCheck();
 
-  // Web console: the SERVER serves it from its unified port (DD-012); the
+  // Web console: the SERVER serves it from its unified port; the
   // daemon probes and records what a browser would actually find. pid 0 is
   // truthful — there is no separate console process to supervise.
   const consoleAvailable = config.noWeb ? false : await isWebConsoleAvailable();

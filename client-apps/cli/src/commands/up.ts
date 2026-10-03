@@ -5,7 +5,7 @@
 //
 // Thin handler: parse flags, delegate to the local daemon launcher, render the
 // outcome. The launcher (and the heavy resolvers it pulls in) load lazily so
-// `--help` stays fast (DD-001).
+// `--help` stays fast.
 
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -28,7 +28,7 @@ interface UpRun {
   foreground: boolean;
 }
 
-// The server serves the web console from its unified port (DD-012); the
+// The server serves the web console from its unified port; the
 // flag suppresses probing/reporting it, not the serving itself (one
 // process, one origin — there is no separate console to not-start).
 const NO_WEB_HELP = "don't report the web console URL";
@@ -94,7 +94,7 @@ async function renderUpCard(run: UpRun, flags: OutputFlags): Promise<void> {
   const section = result.addSection("Endpoints");
   section.field("server", `http://localhost:${SERVER_PORT}`);
   if (await consoleReported()) {
-    // Same origin as the API: the server serves the console (DD-012). Only
+    // Same origin as the API: the server serves the console. Only
     // printed when the daemon's probe found a bundled export — a dev-tree
     // server without one must not advertise a dead URL.
     section.field("console", `http://localhost:${SERVER_PORT}`);

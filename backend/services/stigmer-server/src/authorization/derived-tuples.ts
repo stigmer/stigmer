@@ -15,7 +15,7 @@
  *   - platform-viewer: none — it fans out over identity providers, which this edition does not serve: the model defines the type, and no tuple of it is derived here
  *
  * Two facts are this edition's own and are stated here, nowhere else:
- *   - The ORGANIZATION's owner is a ROW, not a derivation. 2b's role
+ *   - The ORGANIZATION's owner is a ROW, not a derivation. The role
  *     lifecycle (domain/iampolicy/role-lifecycle.ts) writes the creator's
  *     `owner` row for exactly that kind, and the grant path writes every
  *     other role; deriving an owner tuple from the creator stamp as well

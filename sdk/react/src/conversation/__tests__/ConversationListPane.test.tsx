@@ -91,7 +91,7 @@ describe("ConversationListPane", () => {
     expect(screen.getByText("15550001111")).toBeDefined();
   });
 
-  it("keeps the number visible under a display name — and never twice (F-17)", () => {
+  it("keeps the number visible under a display name — and never twice", () => {
     // A display name wins the row title, so the call-back path renders
     // as the muted sub-line. When the number IS the title (no display
     // name), no sub-line repeats it — pinned by the fallback test above
@@ -145,7 +145,7 @@ describe("ConversationListPane", () => {
     ).toBeDefined();
   });
 
-  it("uses the house tooltip for the attention badge and awaiting dot, no native titles anywhere (F-18)", () => {
+  it("uses the house tooltip for the attention badge and awaiting dot, no native titles anywhere", () => {
     const { container } = render(
       <ConversationListPane
         {...baseProps()}
@@ -194,7 +194,7 @@ describe("ConversationListPane", () => {
     expect(screen.getByText("Human has the conversation")).toBeDefined();
   });
 
-  it("marks an awaiting conversation strongly when a human holds it — the agent will not answer (DD-011 D-a, F-13)", () => {
+  it("marks an awaiting conversation strongly when a human holds it — the agent will not answer", () => {
     render(
       <ConversationListPane
         {...baseProps()}
@@ -207,7 +207,7 @@ describe("ConversationListPane", () => {
       />,
     );
 
-    // The copy names the stake, not just the fact (cloud#266): a
+    // The copy names the stake, not just the fact: a
     // human-held wait is one only a person can end.
     expect(
       screen.getByText(

@@ -142,7 +142,7 @@ function readInitialWidth(
  *
  * Design:
  * - Pointer-based drag with `setPointerCapture` for reliable tracking
- * - `requestAnimationFrame` coalescing during drag (DD-009 pattern)
+ * - `requestAnimationFrame` coalescing during drag
  * - Keyboard accessible: arrow keys nudge by {@link KEYBOARD_STEP_PX}, oriented
  *   so the pane always grows toward its own side
  * - Optional `localStorage` persistence via `storageKey`, re-initialized when

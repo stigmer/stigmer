@@ -16,7 +16,7 @@
 // against the FILE-GATE stack (STIGMER_E2E_FILE_GATES: runner boots with
 // ARTIFACT_STORAGE_TYPE=none). File-write GATES exist only there — on the
 // capture-substrate stack the other approval specs use, writes follow
-// apply-then-review (phase-7) and never pause. The specs skip against the
+// apply-then-review and never pause. The specs skip against the
 // wrong stack shape rather than fail confusingly.
 import { test, expect } from "../../fixtures";
 import AxeBuilder from "@axe-core/playwright";

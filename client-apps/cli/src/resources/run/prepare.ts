@@ -99,7 +99,7 @@ export interface PrepareAgentExecOptions {
    * `whoAmI()`. The caller answers this from the connected server's edition
    * and the kind's tier —
    * `client.isResourceAvailable(ApiResourceKind.identity_account)` — never
-   * from the config's backend type (20260911.11 A3): a server that does not
+   * from the config's backend type: a server that does not
    * serve identity accounts is not even asked, and the omitted values keep
    * resolving to the platform defaults.
    */
@@ -123,7 +123,7 @@ export async function prepareAgentExec(
   validateThinking(flags.thinking);
   validateHarness(flags.harness);
 
-  // Layered seeds (oss#293, DD-003): explicit flag > account preference
+  // Layered seeds (oss#293): explicit flag > account preference
   // (where the server serves identity accounts) > platform default. Harness resolves first because the model
   // fill is harness-aware: a cursor session fills from default_cursor_model,
   // everything else from default_native_model. `run` always creates a NEW

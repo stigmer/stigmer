@@ -1,18 +1,18 @@
 // CLI configuration model and persistence (~/.stigmer/config.yaml).
 //
-// Named backends (O3, 20260827.06 — the parent program's recorded revisit:
-// "a named backend without a credential story is half a feature"): the
-// `backends` map + `current_backend` are the kubectl-context model — each
-// entry carries its own endpoint AND its own credentials, so switching
-// between Stigmer Cloud and a self-hosted server never clobbers either
-// side's login state. Two names are reserved: "local" (the managed daemon,
-// never stored in the map — its endpoint and no-auth posture are fixed)
-// and "cloud" (where `stigmer auth login` lands by default).
+// Named backends ("a named backend without a credential story is half a
+// feature"): the `backends` map + `current_backend` are the
+// kubectl-context model — each entry carries its own endpoint AND its own
+// credentials, so switching between Stigmer Cloud and a self-hosted server
+// never clobbers either side's login state. Two names are reserved:
+// "local" (the managed daemon, never stored in the map — its endpoint and
+// no-auth posture are fixed) and "cloud" (where `stigmer auth login` lands
+// by default).
 //
-// Legacy shape + migration: pre-O3 files carried one `backend.cloud` slot
+// Legacy shape + migration: older files carried one `backend.cloud` slot
 // selected by `backend.type`. Loading migrates that shape in memory
 // (cloud section → `backends.cloud`, type → `current_backend`); the first
-// save writes the new shape — the ruled one-time write migration. The
+// save writes the new shape — a one-time write migration. The
 // legacy `backend.type` is still WRITTEN (mirroring local vs non-local)
 // so older readers keep a coherent view, and the opaque `backend.local`
 // section (daemon/LLM/Temporal settings owned by other tools) is
@@ -60,7 +60,7 @@ export interface NamedBackendConfig {
   api_key?: string;
 }
 
-/** Cloud backend connection — the LEGACY single-slot shape (pre-O3 files). */
+/** Cloud backend connection — the LEGACY single-slot shape (older files). */
 export interface CloudBackendConfig {
   endpoint?: string;
   token?: string;
@@ -153,7 +153,7 @@ export function load(path: string = configPath()): Config {
  * (the one-time migration): the legacy cloud slot is dropped — its content
  * lives in `backends.cloud` — and `backend.type` is written as the
  * local-vs-not mirror. A pristine local config (no named backends) writes
- * exactly the pre-O3 bytes.
+ * exactly the legacy bytes.
  */
 export function save(config: Config, path: string = configPath()): void {
   mkdirSync(dirname(path), { recursive: true, mode: 0o755 });
@@ -203,7 +203,7 @@ function normalize(parsed: Partial<Config> | null): Config {
   const legacy = parsed.backend;
   const backends = normalizeBackends(parsed.backends);
 
-  // Migration: a pre-O3 cloud slot becomes the reserved "cloud" entry —
+  // Migration: a legacy cloud slot becomes the reserved "cloud" entry —
   // unless a named shape already exists (then the named shape wins and the
   // stale legacy slot is ignored).
   if (Object.keys(backends).length === 0 && legacy?.cloud !== undefined) {

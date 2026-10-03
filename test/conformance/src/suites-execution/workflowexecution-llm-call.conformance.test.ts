@@ -7,17 +7,16 @@
 //
 // The task runs in the shared runner's workflow engine (call:function llm);
 // each task makes exactly one provider call, scripted on the mock LLM. What is
-// pinned is the status contract a console or SDK renders (DD-001 of entry
-// 20260910.02; the Go offline suite's llm_call_offline_test.go and
-// workflow_task_io_test.go, plus the llm_call half of
-// model_resolution_offline_test.go):
+// pinned is the status contract a console or SDK renders (the Go offline
+// suite's llm_call_offline_test.go and workflow_task_io_test.go, plus the
+// llm_call half of model_resolution_offline_test.go):
 // - a plain llm_call and a schema-bound llm_call both COMPLETE;
 // - per-task status carries task_type (TRANSFORM for set_vars, API_CALL for
 //   llm_call), an output, and for the LLM task the input/output token counts
 //   the provider reported; the execution's totals sum them;
 // - the registry id the task names (LLM_TASK_MODEL) reaches the provider as
 //   the registry's apiModelId — asserted against the document the runner read
-//   (target.modelRegistryDocument(), DD-002), never a pinned string.
+//   (target.modelRegistryDocument()), never a pinned string.
 import { ExecutionPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

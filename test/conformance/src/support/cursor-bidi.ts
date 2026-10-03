@@ -1,11 +1,11 @@
 // Drives the Cursor BiDi proxy's HANDSHAKE over raw HTTP/2 (h2c).
-// Domain: conformance support (proxy suites, E1).
+// Domain: conformance support (proxy suites).
 //
 // The bidi proxy is a Netty h2c listener that authenticates a Connect stream
 // from its headers (x-stigmer-auth, else authorization / x-api-key),
 // authorizes /agent.v1.* paths against the execution scope, and only then
-// relays to Cursor over TLS. The relay cannot be driven hermetically (ruling
-// Q4 of E1 — its upstream is api2.cursor.sh), but the handshake's three
+// relays to Cursor over TLS. The relay cannot be driven hermetically (its
+// upstream is api2.cursor.sh), but the handshake's three
 // refusals can, and they are the contract runners hit first: a missing token
 // is an RST_STREAM(REFUSED_STREAM); a token nothing claims is a Connect error
 // 401 / code 16 "Authentication failed"; an FGA denial is 403 / code 7

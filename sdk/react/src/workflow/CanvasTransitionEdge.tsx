@@ -13,7 +13,7 @@ import { useWorkflowGraphMode } from "./WorkflowGraphModeContext.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 // ---------------------------------------------------------------------------
-// Execution-state visual mapping (DD-T06-005)
+// Execution-state visual mapping
 // ---------------------------------------------------------------------------
 
 interface EdgeVisualStyle {
@@ -77,12 +77,10 @@ const EDGE_DIFF_STYLES: Record<EdgeDiffStatus, EdgeVisualStyle> = {
  * human_input outcomes).
  *
  * In execution mode, applies per-edge visual treatment based on
- * `data.executionState` (T06): taken/not_taken/active/not_reached.
+ * `data.executionState`: taken/not_taken/active/not_reached.
  *
  * Shows a "+" button at the midpoint on hover in design mode. Clicking
  * the button inserts a new task node between the source and target.
- *
- * @since T15 (Visual Canvas Editor), T06 (Branch Highlighting)
  */
 export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
   id,

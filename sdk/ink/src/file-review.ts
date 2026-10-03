@@ -55,7 +55,7 @@ export function changeDisplayPath(change: CapturedFileChange): string {
 }
 
 /**
- * The path to show for a mid-run progress entry (DD-32), using the same
+ * The path to show for a mid-run progress entry, using the same
  * rename-aware rule as {@link changeDisplayPath}. The slim entry carries no
  * bodies or digests, only the same before/after/kind triple, so the terminal
  * renders its path identically to the reviewable surfaces.

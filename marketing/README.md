@@ -1,6 +1,6 @@
 # @stigmer/marketing
 
-Remotion workspace for Stigmer marketing films. The first film is **Intro to Stigmer** (`films/intro/`), produced under stigmer-cloud project `20260902.01.stigmer-intro-video`.
+Remotion workspace for Stigmer marketing films. The first film is **Intro to Stigmer** (`films/intro/`).
 
 ## Model
 
@@ -9,7 +9,7 @@ A film is a manifest (`films/<film>/manifest.json`) plus scene components (`src/
 Generated and captured media is **never committed** (see `.gitignore`): the repo carries code and manifests, and every asset is re-derivable:
 
 - **Narration** — `npm run narrate` regenerates `assets/narration/` from the manifest via ElevenLabs (millisecond-exact durations, cached by text+voice hash). Key: `planton secret get elevenlabs-api-key --ignore-env -o json`.
-- **Presenter clips** — HeyGen lip-synced avatar clips driven by the narration MP3s; generation is scripted per film (see the project's records for the casting decisions).
+- **Presenter clips** — HeyGen lip-synced avatar clips driven by the narration MP3s; generation is scripted per film.
 - **Music bed** — `npm run music -- --yes` generates `assets/music/bed.mp3` from the manifest's `music` block via ElevenLabs Music (cached by prompt hash; paid API, so the flag is required). The composition mounts the bed only when the file exists.
 - **Screen recordings** — `npm run capture` drives the live local console with Playwright (`films/intro/capture/`, one drive per shot id) against the demo world seeded by `npm run demo:seed` (`films/intro/demo/`, see its README). The on-camera arrow cursor is drawn by the harness itself (`capture/lib/cursor.mjs` + `human.mjs` — driven positioning, so it survives iframe boundaries like the embed widget). `npm run capture:transcript` captures the real `stigmer apply` output for the rendered terminal scene and stages the agent YAML for the code panel.
 

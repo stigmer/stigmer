@@ -6,7 +6,7 @@ import { registryNodeDimensions } from "./registry-dimensions.js";
 
 /**
  * Synchronous dagre layout that uses per-node dimensions from the visual
- * registry (T01). Produces a positioned `WorkflowGraphModel` suitable for
+ * registry. Produces a positioned `WorkflowGraphModel` suitable for
  * immediate rendering without a blank-canvas flash.
  *
  * This is the shared layout utility used by both the interactive canvas

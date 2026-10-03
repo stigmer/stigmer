@@ -1,4 +1,4 @@
-// Unit tests for the approval-boundary watcher (S9): entering/exiting
+// Unit tests for the approval-boundary watcher: entering/exiting
 // crossings, the enabled gate (tracking continues while disabled — no
 // replayed crossings on enable), first-observation semantics, and callback
 // identity churn safety.

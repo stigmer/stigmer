@@ -63,8 +63,6 @@ const MODE_CONFIG: Record<
  * - switch-case: name + condition expression
  * - fork-branch: name only
  * - catch-handler: name + error type filter
- *
- * @since T08 (Contextual Task Picker)
  */
 export const BranchAddPopover = memo(function BranchAddPopover({
   open,

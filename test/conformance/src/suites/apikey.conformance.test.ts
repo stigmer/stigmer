@@ -1,6 +1,5 @@
-// Conformance suite for the ApiKey domain (O3, 20260827.06 — the shared
-// credential contract, served by the OSS TS server and the cloud Java
-// service alike).
+// Conformance suite for the ApiKey domain (the shared credential contract,
+// served alike by every edition).
 // Domain: iam / apikey.
 //
 // Drives ApiKeyCommandController + ApiKeyQueryController through the raw
@@ -14,18 +13,16 @@
 //   - the fingerprint is the plaintext's last 6 characters;
 //   - update round-trips the expiry fields; delete returns the resource and
 //     the key stops resolving;
-//   - update NEVER changes key material (ruling Q9, closed by
-//     stigmer-cloud#544): altered spec.key_hash/fingerprint in an update
-//     are ignored and the stored values survive, proven on a post-update
-//     read. Both editions strip-and-restore (TS PreserveKeyMaterial;
-//     Java ApiKeyUpdateHandler.PreserveKeyMaterial) — this arm is red
-//     against a cloud target older than the #544 fix by design.
+//   - update NEVER changes key material: altered spec.key_hash/fingerprint
+//     in an update are ignored and the stored values survive, proven on a
+//     post-update read (the server strips and restores them,
+//     PreserveKeyMaterial).
 //
-// Deliberately OUT of this suite (edition authorization postures, not
-// contract divergences — O3 gate ruling Q5):
-//   - getByKeyHash: the cloud gates it behind a platform-admin FGA check;
-//     OSS's permissive single-team default serves it openly. The lookup
-//     path is pinned by the server's own unit suites on both sides.
+// Deliberately OUT of this suite:
+//   - getByKeyHash: a hash lookup the identity verifier does not use, served
+//     the same way to any authenticated caller in every edition; its lookup
+//     and NotFound are pinned by the open-source server's own suite (the
+//     waiver in inventory/rpc-waivers.yaml).
 import { createHash } from "node:crypto";
 
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -167,7 +164,7 @@ describe("ApiKey conformance", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
-  it("[rpc:ApiKeyCommandController.update] update ignores altered key material — the stored hash and fingerprint survive (ruling Q9 / stigmer-cloud#544)", async () => {
+  it("[rpc:ApiKeyCommandController.update] update ignores altered key material — the stored hash and fingerprint survive", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createKey(org);
     const plaintext = created.spec?.keyHash ?? "";

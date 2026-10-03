@@ -35,6 +35,7 @@ import { createHash } from "node:crypto";
 import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
+import { waiterCommand } from "../runner-launch.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import {
   ActorMetadataField,
@@ -48,8 +49,6 @@ import {
 import { delay } from "./delay.js";
 import type { SubstrateGateway } from "./gateway.js";
 
-/** The waiter entry the template runs (the runner package's dist/attach/main.js). */
-const WAITER_COMMAND = ["node", "/runner/dist/attach/main.js"];
 /** The waiter's port: the one Substrate's router reaches without a CONNECT tunnel. */
 const WAITER_PORT = 80;
 /** The workspace mount, the same path every driver gives the runner. */
@@ -81,21 +80,34 @@ const LIMITS = [
 /** Every template this driver writes carries this prefix; nothing else may. */
 export const TEMPLATE_NAME_PREFIX = "stigmer-runner-";
 
+/**
+ * Where the runner believes it runs, its MODE. Open source's sandboxes are
+ * `local`, the runner's own default. A composition that hosts many
+ * organisations' sandboxes runs them `cloud`, which makes the runner's
+ * web-fetch guard refuse private addresses, forbids a user's stdio MCP
+ * servers and expects the composition's lanes (the runner's config.ts,
+ * url-guard.ts, mcp-transport-guard.ts). It is the driver's to write, never
+ * an operator's runner setting, because the runner reads it once as the
+ * single statement of where it is.
+ */
+export type SubstrateRunnerMode = "local" | "cloud";
+
 /** What a template is built from. */
 export interface RunnerTemplateInput {
   readonly config: SandboxDriverConfig;
   readonly settings: SubstrateDriverSettings;
+  readonly runnerMode: SubstrateRunnerMode;
 }
 
 /** The template, named by its content. */
 export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
-  const { config, settings } = input;
+  const { config, settings, runnerMode } = input;
   const https = settings.httpsEgress === "all";
   const trustBundlePath = `${SYSTEM_INFO_MOUNT_PATH}/${TRUST_BUNDLE_FILE}`;
 
   const env: Record<string, string> = {
     ...config.runnerEnv,
-    MODE: "local",
+    MODE: runnerMode,
     STIGMER_BACKEND_ENDPOINT: config.backendEndpoint,
     TEMPORAL_SERVICE_ADDRESS: config.temporalAddress,
     TEMPORAL_NAMESPACE: config.temporalNamespace,
@@ -117,7 +129,7 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
       {
         name: "runner",
         image: config.runnerImage,
-        command: [...WAITER_COMMAND],
+        command: waiterCommand(),
         // Sorted, so the same configuration always encodes the same bytes.
         env: Object.keys(env)
           .sort()

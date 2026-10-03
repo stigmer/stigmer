@@ -102,7 +102,7 @@ function baseProps() {
   };
 }
 
-describe("WorkspaceSidebar — Conversations badge (channel-conversations DD-011 D-f)", () => {
+describe("WorkspaceSidebar — Conversations badge", () => {
   const conversationsRow = (container: HTMLElement) =>
     container.querySelector<HTMLAnchorElement>('[data-row-id="conversations"]')!;
 

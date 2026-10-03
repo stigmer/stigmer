@@ -26,8 +26,6 @@ export interface UseWorkflowYamlReturn {
  *
  * @param org - Organization slug, or `null` to skip fetching.
  * @param slug - Workflow slug, or `null` to skip fetching.
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 export function useWorkflowYaml(
   org: string | null,

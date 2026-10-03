@@ -9,6 +9,8 @@
  *     trust variable at it; off, neither is there;
  *   - its name is its content: the same input the same name, a new image a
  *     new name;
+ *   - it writes the runner's mode it is given (`cloud` for a composition
+ *     hosting many organisations), which no operator setting overrides;
  *   - the keeper prepares once however many callers wait, waits for the
  *     golden snapshot, recreates a failed template once and then fails, and
  *     gives up after its cap.
@@ -17,6 +19,7 @@ import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { SandboxDriverConfig } from "../../provisioner.js";
+import { waiterCommand } from "../../runner-launch.js";
 import { FakeSubstrate } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
@@ -76,9 +79,10 @@ describe("the template", () => {
     const template = buildRunnerTemplate({
       config,
       settings,
+      runnerMode: "local",
     });
     const container = template.containers[0];
-    expect(container?.command).toEqual(["node", "/runner/dist/attach/main.js"]);
+    expect(container?.command).toEqual(waiterCommand());
     expect(container?.image).toBe(config.runnerImage);
     expect(container?.wakeupProbe?.httpGet).toMatchObject({
       path: "/readyz",
@@ -110,6 +114,7 @@ describe("the template", () => {
     const template = buildRunnerTemplate({
       config,
       settings: { ...settings, httpsEgress: "none" },
+      runnerMode: "local",
     });
     expect(template.volumes.map((v) => v.name)).toEqual([
       "workspace",
@@ -152,6 +157,7 @@ describe("the template", () => {
     const template = buildRunnerTemplate({
       config,
       settings,
+      runnerMode: "local",
     });
     expect(
       template.volumes[1]?.systemInfo?.dataSources[0]?.trustBundle,
@@ -173,20 +179,49 @@ describe("the template", () => {
       buildRunnerTemplate({
         config,
         settings: { ...settings, httpsEgress: "none" },
+        runnerMode: "local",
       }),
     );
     expect(off).not.toHaveProperty("NODE_EXTRA_CA_CERTS");
   });
 
+  it("writes the runner's mode it is given, which names a different template", () => {
+    const local = buildRunnerTemplate({
+      config,
+      settings,
+      runnerMode: "local",
+    });
+    const cloud = buildRunnerTemplate({
+      config,
+      settings,
+      runnerMode: "cloud",
+    });
+    expect(envOf(cloud)["MODE"]).toBe("cloud");
+    expect(envOf(local)["MODE"]).toBe("local");
+    expect(cloud.metadata?.name).not.toBe(local.metadata?.name);
+  });
+
+  it("keeps the mode its own: an operator's runner setting cannot name it", () => {
+    const template = buildRunnerTemplate({
+      config: { ...config, runnerEnv: { ...config.runnerEnv, MODE: "cloud" } },
+      settings,
+      runnerMode: "local",
+    });
+    expect(envOf(template)["MODE"]).toBe("local");
+  });
+
   it("is named by its content", () => {
-    const a = buildRunnerTemplate({ config, settings }).metadata?.name;
-    const b = buildRunnerTemplate({ config, settings }).metadata?.name;
+    const a = buildRunnerTemplate({ config, settings, runnerMode: "local" })
+      .metadata?.name;
+    const b = buildRunnerTemplate({ config, settings, runnerMode: "local" })
+      .metadata?.name;
     const c = buildRunnerTemplate({
       config: {
         ...config,
         runnerImage: `localhost:5001/runner@sha256:${"b".repeat(64)}`,
       },
       settings,
+      runnerMode: "local",
     }).metadata?.name;
     expect(a).toMatch(/^stigmer-runner-[0-9a-f]{12}$/);
     expect(b).toBe(a);
@@ -199,7 +234,7 @@ describe("the keeper", () => {
     let t = 0;
     return newTemplateKeeper({
       gateway: substrate,
-      template: buildRunnerTemplate({ config, settings }),
+      template: buildRunnerTemplate({ config, settings, runnerMode: "local" }),
       logger: silentLogger,
       now: () => t,
       sleep: async (ms) => {

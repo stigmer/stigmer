@@ -456,7 +456,7 @@ export interface DefaultModelResolution {
 /**
  * Resolve the default model for a given harness using a priority chain.
  *
- * Priority (Phase 1 — no backend):
+ * Priority (resolved client-side, no backend):
  * 1. localStorage user preference (passed in as `userPreference`)
  * 2. What the platform actually runs when nothing is pinned (see below)
  * 3. Hardcoded platform fallback

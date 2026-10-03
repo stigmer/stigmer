@@ -6,8 +6,7 @@
  * editor — audience, hosted link, embed snippet, allowed origins, and the
  * who-pays affordance. The guide's numbered steps describe *creating* a share
  * (the dialog's name/slug step, reached by omitting the `share` prop); that
- * create-flow choreography is a recorded follow-up, not this beat (see the
- * migration project's debt notes in scenar-cloud).
+ * create-flow choreography is a follow-up, not this beat.
  *
  * Ported from the `share-agent-dialog` docs inline demo.
  */
@@ -45,7 +44,7 @@ export function buildDemoAgent() {
 
 /**
  * The settled share the dialog edits — enabled, one allowed embed origin.
- * Sharing lives in its own AgentShare resource (console decision 011): the
+ * Sharing lives in its own AgentShare resource: the
  * dialog edits exactly the share it is given. A playback never applies, so
  * this is a plain settled state, not the legacy demo's mutable echo.
  */

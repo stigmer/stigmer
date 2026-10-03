@@ -10,7 +10,7 @@ export interface ApplyTranscript {
 /**
  * S3e — "one command, and our agent is live": a styled terminal replaying
  * the REAL `stigmer apply` transcript captured by capture/transcript.mjs
- * (owner decision: rendered terminal, real command and output — a screen
+ * (a rendered terminal, real command and output — a screen
  * recording of a terminal app is neither reproducible nor crisper).
  */
 export const TerminalScene = ({ transcript }: { transcript: ApplyTranscript }) => {

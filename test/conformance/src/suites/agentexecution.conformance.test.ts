@@ -221,7 +221,7 @@ describe("AgentExecution conformance — thinking-mode fail-closed validation (#
   });
 });
 
-// --- CW-7: the engineless read surfaces -------------------------------------
+// --- the engineless read surfaces -------------------------------------------
 //
 // No execution record can exist on this target (create's engine gate below),
 // so every read RPC is asserted in its zero-record / validation arm — the
@@ -260,7 +260,7 @@ describe("AgentExecution conformance — a turn belongs to its session's organiz
   });
 });
 
-describe("AgentExecution conformance — the engine gate (CW-7)", () => {
+describe("AgentExecution conformance — the engine gate", () => {
   it("[rpc:AgentExecutionCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets observe this boundary —
     // scheduleFiring doubles as "a Temporal engine backs this target", and
@@ -285,7 +285,7 @@ describe("AgentExecution conformance — the engine gate (CW-7)", () => {
   });
 });
 
-describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () => {
+describe("AgentExecution conformance — zero-record read surfaces", () => {
   it("[rpc:AgentExecutionQueryController.getExecutionSummary] getExecutionSummary answers the pinned zero shape — no cost fields by design", async () => {
     const { org } = await target.provisionTenancy();
     const summary = await clients.agentExecutionQuery.getExecutionSummary({ org });
@@ -410,7 +410,7 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
     );
     // Single-user arm here; on the multi-tenant edition an unresolvable id
     // answers the SAME NotFound through the authorizer's deny-path
-    // existence probe (the ruled uniform Q1 posture, C2 Stage 4) — pinned
+    // existence probe (the uniform not-found posture) — pinned
     // with an outsider caller in the direct-handler-authorization suite.
     if (target.capabilities.enforcingAuthorizer) return;
     await expectGrpcCode(
@@ -424,11 +424,11 @@ describe("AgentExecution conformance — zero-record read surfaces (CW-7)", () =
   });
 });
 
-describe("AgentExecution conformance — submitFileDecision negatives (CW-7)", () => {
+describe("AgentExecution conformance — submitFileDecision negatives", () => {
   // Single-user-posture arms: the multi-tenant edition's authorization
   // interceptor resolves the execution BEFORE proto validation, so invalid
-  // or unknown ids surface as NotFound/PermissionDenied there instead — the
-  // ordering divergence disclosed in the wave-2 PR.
+  // or unknown ids surface as NotFound/PermissionDenied there instead — a
+  // known ordering divergence.
   it("[rpc:AgentExecutionCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(

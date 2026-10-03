@@ -109,8 +109,6 @@ interface RawTask {
  * branches, `human_input` outcomes, and fallback task references.
  *
  * @throws {Error} When the YAML is fundamentally unparseable or lacks required structure.
- *
- * @since T15 (Visual Canvas Editor)
  */
 export function yamlToGraph(yaml: string): WorkflowGraphModel {
   const parsed = parseYamlSafe(yaml);
@@ -289,8 +287,6 @@ export function yamlToGraph(yaml: string): WorkflowGraphModel {
  * Uses topological sort to determine task ordering. Sequential transitions
  * (task N → task N+1 in sorted order) are implicit and omitted from YAML.
  * Non-sequential transitions emit explicit `flow.then` directives.
- *
- * @since T15 (Visual Canvas Editor)
  */
 export function graphToYaml(graph: WorkflowGraphModel): string {
   const taskNodes = graph.nodes.filter(
@@ -381,8 +377,6 @@ export function graphToYaml(graph: WorkflowGraphModel): string {
  *
  * This will be the primary save path in Batch 3 when `useWorkflowSave`
  * is extended to accept `WorkflowInput` directly.
- *
- * @since T15 (Visual Canvas Editor)
  */
 export function graphToWorkflowInput(
   graph: WorkflowGraphModel,
@@ -501,22 +495,22 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   isSentinel: boolean;
   errorCount?: number;
   executionState?: NodeExecutionState;
-  /** Fork branch completion progress (T06). Present only for fork nodes in execution mode. */
+  /** Fork branch completion progress. Present only for fork nodes in execution mode. */
   forkProgress?: { readonly completed: number; readonly total: number; readonly compete: boolean };
   /** Tool name awaiting approval. Present when status is waiting_approval and a tool name is known. */
   approvalToolName?: string;
   /** Live agent activity summary. Present on running agent_call nodes when progress events arrive. */
   agentActivity?: { readonly agentSlug: string; readonly currentToolName: string; readonly messagesCount: number; readonly toolCallsCount: number };
-  /** Diff state (T14). Present only in diff mode. */
+  /** Diff state. Present only in diff mode. */
   diffState?: { readonly status: import("./diff/types").NodeDiffStatus; readonly changedFields?: readonly string[] };
 }
 
 /** Data payload attached to canvas transition edges. */
 export interface CanvasTransitionEdgeData extends Record<string, unknown> {
   label?: string;
-  /** Edge execution state (T06). Present only in execution mode. */
+  /** Edge execution state. Present only in execution mode. */
   executionState?: import("./execution").EdgeExecutionState;
-  /** Edge diff state (T14). Present only in diff mode. */
+  /** Edge diff state. Present only in diff mode. */
   diffState?: import("./diff/types").EdgeDiffStatus;
 }
 
@@ -524,8 +518,6 @@ export interface CanvasTransitionEdgeData extends Record<string, unknown> {
  * Converts a `WorkflowGraphModel` into React Flow node and edge arrays
  * with the custom type identifiers used by `CanvasTaskNode` and
  * `CanvasTransitionEdge`.
- *
- * @since T15 (Visual Canvas Editor)
  */
 export function toReactFlowElements(graph: WorkflowGraphModel): {
   nodes: Node[];

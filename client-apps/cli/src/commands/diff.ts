@@ -1,7 +1,7 @@
 // `stigmer diff -f <file|dir>` — show a unified diff of local YAML vs remote
 // state, per document. Auto-detects each document's kind; only workflows are
 // diffable today (others render as "new"). Heavy modules are lazy-imported
-// inside the action so `--help` stays fast (DD-001).
+// inside the action so `--help` stays fast.
 
 import { basename } from "node:path";
 import type { Command } from "commander";

@@ -12,7 +12,7 @@
 //
 // Two seeds are load-bearing, and both come from the runner's own tests
 // (shared/filereview's shadow-capture test) via the Go reference fixture
-// (test/integration/harness/git_workspace.go, retired with entry 20260910.02):
+// (test/integration/harness/git_workspace.go, since retired):
 //
 // - `.stigmer/` is git-IGNORED, in both .gitignore and .git/info/exclude. The
 //   runner persists per-session state under {workspace}/.stigmer/, and the

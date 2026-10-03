@@ -9,12 +9,12 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 /**
- * The Conversations area (channel-conversations T04) — the desktop twin
- * of web's `domain/conversations/ConversationsPage` (DD-016 parity): a
+ * The Conversations area — the desktop twin of web's
+ * `domain/conversations/ConversationsPage`: a
  * thin shell over the SDK's `ConversationsWorkbench`, owning only the
  * router mapping (`/conversations/:channelId/:key`), the CHANNEL access
  * trigger mount (participant grants are per channel, never per
- * conversation — DD-010 D-c / F-11), and the header's channel link to
+ * conversation), and the header's channel link to
  * the owning agent's Channels tab.
  */
 export default function ConversationsPage() {
@@ -60,7 +60,7 @@ export default function ConversationsPage() {
                     id: selected.agentChannelId,
                     org,
                     // The dialog's subtitle names the channel — the
-                    // scope every grant covers (F-11).
+                    // scope every grant covers.
                     name: channel?.metadata?.name || channel?.metadata?.slug,
                   }}
                   label="Channel access"

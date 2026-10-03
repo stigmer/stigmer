@@ -65,7 +65,7 @@ export interface FileReviewDockProps {
  * unconstrained list in a fixed strip would swallow the viewport.
  *
  * Purely presentational — the data and decision routing live in
- * `useSessionConversation` (headless-first, DD-003). `SessionViewer` wires it
+ * `useSessionConversation` (headless-first). `SessionViewer` wires it
  * in by default; platform builders composing a custom layout mount it over the
  * same seam.
  *

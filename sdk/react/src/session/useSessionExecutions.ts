@@ -47,7 +47,7 @@ export interface UseSessionExecutionsReturn {
  *
  * Pass `null` to skip fetching (stable no-op). Call `refetch()` to
  * re-query after a new execution is created within the same session
- * (needed by the follow-up conversation loop in SP2).
+ * (needed by the follow-up conversation loop).
  *
  * Returns up to 100 executions per call. Sessions rarely exceed a
  * handful of executions; full cursor-based pagination can be added

@@ -334,7 +334,7 @@ describe("FileViewer", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Diff mode (Slice 4) — a changed file defaults to its authoritative diff
+// Diff mode — a changed file defaults to its authoritative diff
 // ---------------------------------------------------------------------------
 
 describe("FileViewer — diff mode", () => {
@@ -591,7 +591,7 @@ describe("FileViewer — reveal (jump-to-line)", () => {
       scrollIntoView as unknown as typeof Element.prototype.scrollIntoView;
   });
 
-  it("opens a changed file in the live File view when a reveal is present (DR-1)", async () => {
+  it("opens a changed file in the live File view when a reveal is present", async () => {
     render(
       <FileViewer
         selectedFile={{ entryId: "e1", path: "src/a.ts" }}

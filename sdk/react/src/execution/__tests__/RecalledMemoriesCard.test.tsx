@@ -1,5 +1,5 @@
-// The retriever transparency card (stigmer/stigmer#293 Phase 3a, DD-008
-// D5): an honest "Recalled N of M memories" join of the status report
+// The retriever transparency card (stigmer/stigmer#293 Phase 3): an
+// honest "Recalled N of M memories" join of the status report
 // against the spec snapshot — and NOTHING for wholesale, the majority
 // case that must stay noise-free.
 

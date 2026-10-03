@@ -1,4 +1,4 @@
-// The T07 stacked-live-region check: several inline transcripts mount
+// The stacked-live-region check: several inline transcripts mount
 // several REAL MessageThreads, each carrying its own `role="log"
 // aria-live="polite"` scroller, under the viewer's one task-state
 // announcer. This pins the a11y-relevant facts that make the stack
@@ -14,7 +14,7 @@
 //
 // If a live round ever proves this noisy in real screen readers, the
 // planned fallback is a backward-compatible `ariaLive` opt-out prop on
-// MessageThread (DD-011) — not committed speculatively.
+// MessageThread — not committed speculatively.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, within, screen } from "@testing-library/react";
@@ -79,7 +79,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("WorkflowAgentCallTranscript — stacked live regions (T07 a11y)", () => {
+describe("WorkflowAgentCallTranscript — stacked live regions (a11y)", () => {
   it("scopes each transcript's polite log region to its own child's content, under the viewer-style announcer", () => {
     mockUseLiveAgentExecution.mockImplementation((id) => ({
       execution: executionWithMessage(id!, `report from ${id}`),

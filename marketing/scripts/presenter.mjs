@@ -26,7 +26,7 @@ if (!apiKey) {
   console.error("HEYGEN_API_KEY is required (planton secret get heygen-api-key --ignore-env -o json)");
   process.exit(1);
 }
-// Cast at the owner casting gate (2026-09-02): Abigail, native 1920x1080.
+// The presenter the film is cast with: Abigail, native 1920x1080.
 const avatarId = process.env.HEYGEN_AVATAR_ID ?? "Abigail_standing_office_front";
 
 const manifest = JSON.parse(readFileSync(join(filmDir, "manifest.json"), "utf8"));

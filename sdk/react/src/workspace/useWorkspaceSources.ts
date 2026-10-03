@@ -45,7 +45,7 @@ export interface UseWorkspaceSourcesReturn {
  *
  * This hook centralises the policy so all consumer sites (launcher
  * and session page, across desktop and web) stay in lockstep without
- * duplicating conditional logic (DD-016).
+ * duplicating conditional logic.
  *
  * @example
  * ```tsx

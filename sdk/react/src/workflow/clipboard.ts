@@ -8,8 +8,6 @@
  * Cross-workflow clipboard is intentionally not supported. Pasted nodes
  * receive new unique names and remapped edge references, keeping the
  * graph model self-consistent.
- *
- * @since T11 (Context Menus and Keyboard Shortcuts)
  */
 
 import type {

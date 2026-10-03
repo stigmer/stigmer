@@ -34,7 +34,7 @@ export interface RunnerLaunch {
 
 /**
  * Resolved server launch coordinates: a node binary + bundled entry — the
- * same launch shape as the runner. (Until #25 go-server-retirement this was
+ * same launch shape as the runner. (Until the Go server retired this was
  * a discriminated union whose "binary" variant carried the Go rollback
  * executable.)
  */

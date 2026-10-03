@@ -28,7 +28,7 @@ const DOCS_ROOT: BreadcrumbItem = { name: "Docs", url: "/docs" };
  * Returns `[]` on tab landing pages (`/docs`, `/docs/sdk`, `/docs/cli`): the
  * tab bar and page title already establish context there, so the breadcrumb
  * is hidden. Pages that exist as routes but not as sidebar entries (e.g. the
- * generated task-type pages, see DD-01 §5) have no tree path; they fall back
+ * generated task-type pages) have no tree path; they fall back
  * to the root crumb alone, matching their previous rendering.
  */
 export function buildBreadcrumbItems(

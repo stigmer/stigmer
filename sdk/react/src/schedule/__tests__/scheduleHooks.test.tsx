@@ -226,8 +226,8 @@ describe("useTriggerSchedule", () => {
   });
 
   it("resolves a REFUSED result and toasts the gate's reason verbatim", async () => {
-    // A refused run is a SUCCESSFUL trigger honestly reported (DD-017
-    // D-6): the promise resolves, and the gate's own copy is surfaced,
+    // A refused run is a SUCCESSFUL trigger honestly reported: the
+    // promise resolves, and the gate's own copy is surfaced,
     // never paraphrased.
     const refused = create(ScheduleTriggerResultSchema, {
       outcome: ScheduleRunOutcome.REFUSED,

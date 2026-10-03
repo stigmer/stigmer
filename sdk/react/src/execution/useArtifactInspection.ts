@@ -17,7 +17,7 @@ import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 /** Options for {@link useArtifactInspection}. */
 export interface UseArtifactInspectionOptions {
   /**
-   * Cross-mount cache key for the content fetch (DD-014). Set it so a remount
+   * Cross-mount cache key for the content fetch. Set it so a remount
    * with the same key renders the previously-fetched content instantly and
    * refetches in the background — the artifact document passes it so switching
    * back to a recently-viewed tab is instant. Omit for fetch-on-mount (the
@@ -87,7 +87,7 @@ export interface ArtifactInspection {
  *
  * It is the single writer of this pipeline's derived state, consumed by every
  * artifact chrome — the modal action bar and the editor-area
- * `ArtifactDocument` toolbar (DD-003 headless-first). Because there is exactly
+ * `ArtifactDocument` toolbar (headless-first). Because there is exactly
  * one place computing `detectionLabel` / `ctaLabel` / the apply flow, the two
  * surfaces cannot drift.
  *

@@ -3,9 +3,9 @@
  *
  * The resource that varies across the timeline — the server before vs after
  * discovery — is injected by `index.tsx` through `McpServerDetailView`'s
- * `mcpServerState` prop, so the router registers no fixture for it
- * (scenar-cloud DD-006: fixtures only for tour-constant data, props for
- * anything that changes per step).
+ * `mcpServerState` prop, so the router registers no fixture for it (the
+ * fixture-determinism rule, demos/README.md: fixtures only for
+ * tour-constant data, props for anything that changes per step).
  *
  * The view's remaining lookups (personal environment list, org OAuth app,
  * permission check) fall through to the router's built-in `unimplemented`

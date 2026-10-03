@@ -24,8 +24,8 @@
 //     streaming — the opposite of getEventLog).
 //   - submitFileDecision's engineless negatives: proto-validation arms and
 //     the unknown-execution NotFound. The deeper arms (digest mismatch,
-//     unknown change set) need a live file review and land with the
-//     execution-domain ports (#17/#20 — disclosed in the wave-2 PR).
+//     unknown change set) need a live file review, which an engineless
+//     class cannot hold.
 //
 // The populated arms of every one of these RPCs are Class B and live in
 // suites-execution/.
@@ -102,9 +102,8 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     expect(summary.activeCount).toBe(0);
     expect(summary.phaseCounts).toEqual({});
     expect(summary.totalCount).toBe(0);
-    // The zero-record success rate is a VERIFIED cross-edition
-    // inconsistency, pinned as-is per edition (the wave-2 PR records the
-    // harmonization candidate): OSS answers the -1 "no terminal runs yet"
+    // The zero-record success rate is a VERIFIED cross-edition inconsistency,
+    // pinned as-is per edition: OSS answers the -1 "no terminal runs yet"
     // sentinel — deliberately distinguishable from a real 0% — while the
     // multi-tenant edition answers a plain 0.
     expect(summary.successRate).toBe(target.capabilities.multiTenant ? 0 : -1);
@@ -143,7 +142,7 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     // The unknown-id arm is single-user-posture only: on the multi-tenant
     // edition the annotation check runs first and an unresolvable id
     // answers NOT_FOUND through the authorizer's deny-path existence probe
-    // (the ruled uniform Q1 posture, C2 Stage 4 — pinned in the
+    // (the uniform not-found posture — pinned in the
     // direct-handler-authorization suite), never reaching the handler's
     // no-existence-check behavior.
     if (!target.capabilities.enforcingAuthorizer) {
@@ -177,9 +176,9 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
       "subscribeEvents with an empty id",
     );
 
-    // The unknown-id NotFound arms hold on BOTH postures since C2 Stage 4
-    // (multi-tenant: the deny-path existence probe answers the same
-    // NOT_FOUND — the ruled uniform Q1 posture), but the multi-tenant arm
+    // The unknown-id NotFound arms hold on BOTH postures (multi-tenant: the
+    // deny-path existence probe answers the same NOT_FOUND — the uniform
+    // not-found posture), but the multi-tenant arm
     // is pinned with an OUTSIDER caller in the direct-handler-authorization
     // suite; here the single-user arm keeps its original pin.
     if (target.capabilities.enforcingAuthorizer) return;
@@ -212,8 +211,7 @@ describe("WorkflowExecution conformance — submitFileDecision negatives (Class 
   // Single-user-posture arms: the multi-tenant edition's authorization
   // interceptor resolves the execution BEFORE proto validation, so
   // structurally invalid or unknown ids surface as NotFound/PermissionDenied
-  // there instead — a verified ordering divergence, disclosed in the wave-2
-  // PR for the parity register.
+  // there instead — a verified ordering divergence.
   it("[rpc:WorkflowExecutionCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     // Proto-validation arms: min_len on the ids/digest, defined-and-nonzero

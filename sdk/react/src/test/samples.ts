@@ -99,7 +99,7 @@ import {
  * These factories must never read the live clock. A `samples.*` value is
  * rendered into Scenar tours that replay in the browser and export to video
  * frame by frame; a clock read paints a pixel that changes between runs, which
- * breaks the "same source, same result" guarantee (scenar-cloud DD-006).
+ * breaks the "same source, same result" guarantee.
  *
  * The date is `2026-07-20`, the tour world's demo day. The time is 11:00 UTC,
  * chosen by the *reader offset window*: components format dates in the
@@ -260,8 +260,8 @@ export interface SearchResultOverrides {
  *
  * Every timestamp is frozen at {@link SAMPLE_INSTANT} — these factories never
  * read the live clock, so a fixture renders identical pixels on every browser
- * replay and every video-export frame (scenar-cloud DD-006). Do not
- * reintroduce `Date.now()` or `new Date()` here.
+ * replay and every video-export frame. Do not reintroduce `Date.now()` or
+ * `new Date()` here.
  *
  * For a value the overrides do not cover — a different timestamp, a distinct
  * tool-call id — modify the returned object directly rather than growing the

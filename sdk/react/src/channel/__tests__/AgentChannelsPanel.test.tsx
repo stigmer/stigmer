@@ -306,7 +306,7 @@ describe("AgentChannelsPanel", () => {
     );
 
     // Two channels of one workspace are only tellable apart by their
-    // serving app — the whole point of BYO (T04 item 2). The line also
+    // serving app — the whole point of BYO. The line also
     // names the bot members @mention (falls back to the ref slug when
     // the app isn't in the fetched list).
     await waitFor(() =>
@@ -419,7 +419,7 @@ describe("AgentChannelsPanel", () => {
 
     // The card menu still renders: Sessions is a viewer-level action
     // (everyone who sees the card holds can_view on the channel — the same
-    // bar as viewing its sessions, DD-012). Mutation items stay
+    // bar as viewing its sessions). Mutation items stay
     // permission-gated and absent.
     await openMenu(screen.getByRole("button", { name: /actions for/i }));
     // The awaited query anchors on the portaled menu's mount (#323) — only
@@ -429,7 +429,7 @@ describe("AgentChannelsPanel", () => {
     expect(screen.queryByRole("menuitem", { name: /disconnect/i })).toBeNull();
   });
 
-  it("offers Manage access from the card menu — the channel's canonical access home (F-11)", async () => {
+  it("offers Manage access from the card menu — the channel's canonical access home", async () => {
     const client = createMockStigmer({
       channels: [makeChannel({ teamName: "Acme HQ" })],
     });
@@ -687,7 +687,7 @@ describe("AgentChannelsPanel", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
 
     // WhatsApp credentials live on the shared ChannelApp and survive the
-    // channel (DD-WA-3) — the prompt must not claim they are removed.
+    // channel — the prompt must not claim they are removed.
     await screen.findByText("Disconnect channel?");
     expect(screen.getByText(/number binding is removed/i)).toBeTruthy();
     expect(screen.queryByText(/including credentials/i)).toBeNull();
@@ -713,7 +713,7 @@ describe("AgentChannelsPanel", () => {
       await screen.findByRole("heading", { name: "Templates" }),
     ).toBeTruthy();
     // This channel has no proactive grant — the dialog teaches instead
-    // of firing a doomed listTemplates call (project DD-007 D4).
+    // of firing a doomed listTemplates call.
     expect(
       screen.getByText("Business-initiated messaging is not enabled"),
     ).toBeTruthy();

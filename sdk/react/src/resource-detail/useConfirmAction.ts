@@ -41,8 +41,7 @@ export interface UseConfirmActionReturn {
  * paired with `confirmState` for rendering a `ConfirmDialog`.
  *
  * Separates the state logic (this hook) from the visual presentation
- * (ConfirmDialog component) following the headless-first architecture
- * (DD-003).
+ * (ConfirmDialog component) following the headless-first architecture.
  */
 export function useConfirmAction(): UseConfirmActionReturn {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);

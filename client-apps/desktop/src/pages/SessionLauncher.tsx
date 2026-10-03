@@ -23,7 +23,7 @@ export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const org = useActiveOrgSlug();
-  // The account's saved execution defaults seed the launcher (DD-016 parity
+  // The account's saved execution defaults seed the launcher (parity
   // with web). Every edition serves the account: a local desktop reads the
   // operator account its embedded server creates at boot.
   const accountDefaults = useAccountExecutionDefaults();

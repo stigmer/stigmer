@@ -201,6 +201,13 @@ export const LANES = {
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
       "backend/services/runner/Dockerfile.sandbox",
+      // The runner image bundles the slim runner artifact in its build
+      // (Dockerfile.sandbox's builder stage runs build:slim), so the
+      // bundler, the native-bridge shim it aliases and the attach rule it
+      // imports are what the image contains.
+      "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/core-bridge-shim.cjs",
+      "backend/services/runner/scripts/attach-graph-rule.mjs",
       "backend/services/stigmer-server/Dockerfile",
       // The server's packaging script, which `make smoke-compose` runs
       // (scripts/lane-triggers.test.mjs fails when it is missing).
@@ -380,6 +387,13 @@ export const LANES = {
       // CLI tarballs these two stage (ci.compose-stack lists them too).
       "scripts/stage-compose-runner-cli.mjs",
       "scripts/publish-libs.mjs",
+      // The runner image bundles the slim runner artifact in its build
+      // (Dockerfile.sandbox's builder stage runs build:slim), so the
+      // bundler, the native-bridge shim it aliases and the attach rule it
+      // imports are what the image contains.
+      "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/core-bridge-shim.cjs",
+      "backend/services/runner/scripts/attach-graph-rule.mjs",
       // The server's packaging script, which `make smoke-helm` runs
       // (scripts/lane-triggers.test.mjs fails when it is missing).
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
@@ -524,6 +538,13 @@ export const LANES = {
       // release wrote is still readable after the upgrade.
       "backend/services/stigmer-server/Dockerfile",
       "backend/services/runner/Dockerfile.sandbox",
+      // The runner image bundles the slim runner artifact in its build
+      // (Dockerfile.sandbox's builder stage runs build:slim), so the
+      // bundler, the native-bridge shim it aliases and the attach rule it
+      // imports are what the image contains.
+      "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/core-bridge-shim.cjs",
+      "backend/services/runner/scripts/attach-graph-rule.mjs",
       // The server's packaging script, which the compose, Helm and CLI
       // rehearsals run (scripts/lane-triggers.test.mjs fails when it is missing).
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",

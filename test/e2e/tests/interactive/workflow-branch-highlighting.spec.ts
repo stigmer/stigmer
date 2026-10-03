@@ -150,7 +150,7 @@ async function createForkWorkflow(
   };
 }
 
-test.describe("T06: Branch and parallel execution highlighting", () => {
+test.describe("Branch and parallel execution highlighting", () => {
   test("switch_case: taken branch edge shows taken state, untaken shows not_taken", async ({
     page,
     stigmerClient,

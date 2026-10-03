@@ -10,12 +10,13 @@
  * all sourced from `_shared/order-management-mcp.ts` so the embeds on the
  * same docs page cannot drift apart.
  *
- * Determinism (scenar-cloud DD-006): the resource that CHANGES across the
- * timeline — the server before vs after discovery — is data this tour owns.
- * `index.tsx` passes frozen `McpServer` snapshots into the view through its
- * `mcpServerState` prop, so no beat depends on an RPC resolving; the router
- * in `.scenar/providers.tsx` registers nothing. Depicted states via props,
- * remounts via `key` for internal-state resets, never synthetic events.
+ * Determinism (the fixture-determinism rule, demos/README.md): the resource
+ * that CHANGES across the timeline — the server before vs after discovery —
+ * is data this tour owns. `index.tsx` passes frozen `McpServer` snapshots
+ * into the view through its `mcpServerState` prop, so no beat depends on an
+ * RPC resolving; the router in `.scenar/providers.tsx` registers nothing.
+ * Depicted states via props, remounts via `key` for internal-state resets,
+ * never synthetic events.
  *
  * The one thing deliberately not depicted is the "Connecting..." busy state:
  * it lives in `useMcpServerConnect`'s transient state and is not

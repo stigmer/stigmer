@@ -5,9 +5,8 @@ import { useFetch } from "../useFetch";
 import { advanceInSlices } from "./fake-timer-slices";
 
 /**
- * The F-14 starvation net (channel-conversations T06): a polling
- * `useFetch` must keep its interval's phase across re-renders of its
- * host component.
+ * The poll-starvation net: a polling `useFetch` must keep its
+ * interval's phase across re-renders of its host component.
  *
  * Every real consumer passes an inline closure as `fetchFn`, which is
  * referentially new on each render. If the interval effect keys on that
@@ -50,7 +49,7 @@ function RenderPressureHost({ onFetch }: { readonly onFetch: () => void }) {
   return <PollingConsumer onFetch={onFetch} />;
 }
 
-describe("useFetch — polling under render pressure (F-14)", () => {
+describe("useFetch — polling under render pressure", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });

@@ -7,8 +7,9 @@
 // a test title, a private issue in an error message, an internal entry name in
 // the Helm chart's refusal. A reader of this repository cannot open any of
 // them, so each was a dead reference where the reason should have been. The
-// root AGENTS.md forbids them; this guard is what holds the rule for the files
-// the guidance gate never reads (code, protos, tests, workflows, the chart).
+// root AGENTS.md forbids them; this guard is what holds the rule for every
+// file the guidance gate never reads (code, protos, tests, docs, workflows,
+// the chart), across the whole repository.
 //
 // The shapes come from the guidance gate itself, scripts/agents-check.mjs:
 // every entry of LEAK_PATTERNS (its `privateOk` flag does not apply, since
@@ -20,18 +21,17 @@
 // (`Stage 3`) are not used: they collide with ordinary names (Amazon S3, a
 // build's own steps), so they are left to review.
 //
-// ROOTS lists the trees already swept, together with every tree generated
-// from them. Reading the generated trees proves the generators were re-run
-// after a proto or schema comment changed. The rest of the repository joins
-// when it is swept, and then ROOTS goes away.
-//
-// The guard reads the working tree's copy of each tracked file, so it judges
-// what is about to be committed, and it skips files that hold hashes rather
-// than prose (a lockfile's `sha512-` digests contain any short shape by
-// chance). A file that must name the shapes, such as the gate that defines
-// them, goes in ALLOWED with its reason. An allowance that no longer names a
-// tracked file carrying a reference fails, so the list cannot outlive its
-// reasons.
+// It reads the working tree's copy of every tracked file, generated trees
+// included, so it judges what is about to be committed and proves the
+// generators were re-run after a source comment changed. It skips files that
+// hold hashes rather than prose (a lockfile's `sha512-` digests contain any
+// short shape by chance), and the vendored plugin folders that
+// plugins/vendor.json declares: their bytes are a vendor's, pinned by digest
+// and never edited here (plugins/README.md), so a vendor's own "Finding 1" is
+// not this repository's planning. A file that must name the shapes, such as
+// the gate that defines them, goes in ALLOWED with its reason. An allowance
+// that no longer names a tracked file carrying a reference fails, so the list
+// cannot outlive its reasons.
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -43,24 +43,6 @@ import { test } from "node:test";
 import { LEAK_PATTERNS, RECORD_CODE_PATTERNS } from "./agents-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-
-/** The trees this guard walks: path prefixes, and "" for the files at the repository root. */
-export const ROOTS = [
-  "",
-  ".github/",
-  "apis/ai/",
-  "apis/stubs/",
-  "backend/",
-  "deploy/",
-  "docs/guides/workflows/task-types/",
-  "docs/sdk/resources/",
-  "mcp-server/",
-  "scripts/",
-  "sdk/go/proto/",
-  "sdk/typescript/src/gen/",
-  "test/extension-consumer/",
-  "tools/",
-];
 
 /** Files that hold hashes, not prose. */
 const SKIPPED_FILE_NAMES = new Set(["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "go.sum", "go.work.sum", "Cargo.lock"]);
@@ -99,14 +81,18 @@ export function planningReferences(text, patterns) {
   return found;
 }
 
-/** Whether a repository path sits under one of the roots ("" is a file at the repository root). */
-export function isUnder(path, roots) {
-  return roots.some((r) => (r === "" ? !path.includes("/") : path.startsWith(r)));
+/** The folder of every vendored plugin, from the catalogue's own declaration of what it copied. */
+export function vendoredPluginDirs(vendorJson) {
+  const plugins = JSON.parse(vendorJson).plugins;
+  if (!Array.isArray(plugins) || plugins.length === 0) {
+    throw new Error("plugins/vendor.json declares no `plugins` array; the guard cannot tell vendored text from ours");
+  }
+  return plugins.map(({ name }) => `plugins/${name}/`);
 }
 
-/** The tracked files under the roots, less the hash-holding files. */
-export function filesUnder(roots, tracked) {
-  return tracked.filter((p) => isUnder(p, roots) && !SKIPPED_FILE_NAMES.has(basename(p)));
+/** The tracked files the guard reads: all of them, less the hash-holding files and the vendored folders. */
+export function guardedFiles(tracked, vendored) {
+  return tracked.filter((p) => !SKIPPED_FILE_NAMES.has(basename(p)) && !vendored.some((d) => p.startsWith(d)));
 }
 
 function trackedFiles() {
@@ -132,12 +118,25 @@ function readText(rel) {
 
 const patterns = guardPatterns();
 const tracked = trackedFiles();
+const vendored = vendoredPluginDirs(readFileSync(join(root, "plugins/vendor.json"), "utf8"));
+const guarded = guardedFiles(tracked, vendored);
 
-test("the readers find files under every root, so a pass is not vacuous", () => {
-  for (const r of ROOTS) {
-    assert.ok(filesUnder([r], tracked).length > 0, `no tracked file under ${r || "the repository root"}`);
+test("the guard reads every tree, skips only hashes and vendored plugins, so a pass is not vacuous", () => {
+  for (const known of [
+    "AGENTS.md",
+    "backend/services/stigmer-server/package.json",
+    "sdk/react/src/index.ts",
+    "client-apps/cli/package.json",
+    "test/conformance/README.md",
+    "site/package.json",
+    "plugins/linear/plugin.json",
+  ]) {
+    assert.ok(guarded.includes(known), `${known} is read`);
   }
-  assert.ok(!filesUnder([""], tracked).includes("package-lock.json"), "lockfiles are skipped");
+  assert.ok(!guarded.includes("package-lock.json"), "lockfiles are skipped");
+  assert.ok(vendored.includes("plugins/superpowers/"), "a vendored plugin is declared");
+  assert.ok(!guarded.some((p) => p.startsWith("plugins/superpowers/")), "a vendored plugin's files are skipped");
+  assert.throws(() => vendoredPluginDirs('{"sources":{}}'), /declares no `plugins` array/);
 });
 
 test("every shape the guard uses matches its fixture, and none matches a near-miss", () => {
@@ -198,9 +197,9 @@ test("every allowance names a tracked file that still carries a reference", () =
   }
 });
 
-test("no file under the guarded roots names a private planning record", () => {
+test("no file in the repository names a private planning record", () => {
   const findings = [];
-  for (const rel of filesUnder(ROOTS, tracked)) {
+  for (const rel of guarded) {
     if (ALLOWED.has(rel)) continue;
     const text = readText(rel);
     if (text === null) continue;

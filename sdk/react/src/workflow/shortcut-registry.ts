@@ -7,8 +7,6 @@
  * help dialog or documentation generator.
  *
  * Pure TypeScript — no React dependency. Safe to import from any layer.
- *
- * @since T11 (Context Menus and Keyboard Shortcuts)
  */
 
 // ---------------------------------------------------------------------------

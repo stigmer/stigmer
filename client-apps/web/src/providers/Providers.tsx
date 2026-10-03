@@ -71,7 +71,7 @@ const queryClient = new QueryClient({
  * 5. StigmerTransportBridge   — bridges console auth to @stigmer/* library transport
  * 6. IdentityAccountGate      — ensures the caller's identity account exists (provisions on first signup)
  * 7. FetchCacheProvider       — cross-mount fetch cache; ABOVE OrgProvider so an org
- *                               switch can clear it (and matching desktop's order, DD-016)
+ *                               switch can clear it (and matching desktop's order)
  * 8. OrgProvider              — fetches organizations and provides OrgContext
  * 9. OrgGate                  — blocks app until user has at least one organization
  * 10. Toaster                 — sonner toast container (themed, top-right)

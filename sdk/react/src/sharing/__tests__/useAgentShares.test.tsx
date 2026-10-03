@@ -105,9 +105,9 @@ describe("useAgentShares", () => {
   });
 
   it("returns the FULL list — never collapses to a canonical share", async () => {
-    // An agent can carry N shares across N orgs (decision 011 D3 +
-    // decision 013): the owner's, a renamed sibling, another org's
-    // external channel. The management surface shows them all.
+    // An agent can carry N shares across N orgs: the owner's, a renamed
+    // sibling, another org's external channel. The management surface shows
+    // them all.
     const owner = makeShare("acme", "support-agent");
     const renamed = makeShare("acme", "support-help-desk");
     const external = makeShare("consumer-org", "support-agent");

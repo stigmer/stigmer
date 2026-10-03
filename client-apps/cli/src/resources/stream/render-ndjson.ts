@@ -1,7 +1,7 @@
 // NDJSON headless renderer: StreamEvent → Go's run --json wire taxonomy.
 //
 // Mirrors run_stream_json.go's handleJSONEvent one case at a time — the event
-// `type` strings and payload keys are a parity contract (DD-005). The envelope
+// `type` strings and payload keys are a parity contract. The envelope
 // + payload cleaning live in output/ndjson.ts; this module only maps events to
 // `{type, payload}` and applies the headless approval policy.
 

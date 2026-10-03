@@ -13,8 +13,7 @@
 // brace object; trailing commas repaired before every parse); and when tier 1
 // finds nothing, tier 2, ONE more LLM call that asks a model to extract the
 // value through function calling (shared/extract-structured-output.ts) —
-// on both harnesses since the turn runtime owns the epilogue (S2 M3 for
-// Cursor, S3 M2a for native; harness runtime program Q-S3-7). What this suite
+// on both harnesses, since the turn runtime owns the epilogue. What this suite
 // pins is the extraction contract a consumer can rely on, read through
 // status:
 // - pure JSON, fenced JSON, and JSON inside prose all populate the field
@@ -30,12 +29,11 @@
 // - without a schema the field is never populated and tier 2 is never asked;
 // - the schema itself round-trips on spec.execution_config as submitted.
 //
-// Deliberately NOT asserted (entry 20260910.02, ruling 1): whether the
-// fallback validates the value against the schema (extra fields, a missing
-// required field, a wrong type). The fallback does no validation today, and
-// pinning that would bless the absence of validation as contract; the question
-// is filed as a runner issue. DD-001; replaces the Go offline suite's
-// structured_output_offline_test.go hard arms.
+// Deliberately NOT asserted: whether the fallback validates the value against
+// the schema (extra fields, a missing required field, a wrong type). The
+// fallback does no validation today, and pinning that would bless the absence
+// of validation as contract; the question is filed as a runner issue. Replaces
+// the Go offline suite's structured_output_offline_test.go hard arms.
 import type { JsonObject } from "@bufbuild/protobuf";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";

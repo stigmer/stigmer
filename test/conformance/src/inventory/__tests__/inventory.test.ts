@@ -11,8 +11,6 @@ rows:
     surface: billing
     lane: rpc.adjustCredits
     behavior: An org owner adjusts credits and the balance reflects the amount.
-    java_source: domain/billing/request/handler/AdjustCreditsHandler.java:40
-    java_test: none
     class: behavior
     disposition: conformance
     observability: launcher
@@ -56,21 +54,19 @@ describe("parseInventory", () => {
   });
 });
 
-// The metric inventory (C5/C6 gates, checklist line 80): a Java metric name is
-// either ported byte-exact or dropped with a reason; the section is typed so a
+// The metric inventory: a Java metric name is either ported byte-exact or
+// dropped with a reason; the section is typed so a
 // misspelt name or a silent drop is a schema problem, not a table nobody reads.
 const METRICS = `
 metrics:
   - name: stigmer.proxy.llm.platform_provider_errors
     surface: proxy
-    java_source: proxy/llm/PlatformProviderErrorMetrics.java
     disposition: ported
     alerts: [platform-provider-errors-log]
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
-    java_source: proxy/cursor/keyselection/CompositionAuthorityExecutionContextSource.java
     disposition: dropped
-    note: the D3 seam retires with Java
+    note: the mechanism retired with Java
 `;
 
 describe("parseInventory — metrics", () => {
@@ -81,7 +77,7 @@ describe("parseInventory — metrics", () => {
   });
 
   it("requires a note on a dropped metric", () => {
-    const silentDrop = `${ROW}${METRICS.replace("    note: the D3 seam retires with Java\n", "")}`;
+    const silentDrop = `${ROW}${METRICS.replace("    note: the mechanism retired with Java\n", "")}`;
     const { problems } = parseInventory(silentDrop);
     expect(problems.some((p) => p.kind === "schema" && p.message.includes("dropped metric must say why"))).toBe(true);
   });

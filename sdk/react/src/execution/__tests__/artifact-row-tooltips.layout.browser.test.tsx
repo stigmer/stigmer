@@ -1,5 +1,5 @@
-// The interactive-trigger tooltip contract from the native-title sweep
-// (stigmer-cloud#268), pinned in a real Chromium on ArtifactRowView. When
+// The interactive-trigger tooltip contract from the native-title sweep,
+// pinned in a real Chromium on ArtifactRowView. When
 // an enabled control is its own tooltip trigger, keyboard FOCUS opens the
 // hint too — the concrete accessibility gain over the native `title` this
 // replaced, which no keyboard user ever saw. Focus-open is real focus

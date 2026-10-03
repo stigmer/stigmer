@@ -4,7 +4,7 @@
 //
 // Mirrors Go's NewExecutionCommand (cmd/stigmer/root/execution.go). Each
 // subcommand is a thin handler that resolves the backend client and delegates to
-// a resources/ module; heavy modules load lazily inside the actions (DD-001).
+// a resources/ module; heavy modules load lazily inside the actions.
 
 import type { Command } from "commander";
 import { registerExecutionApprove } from "./approve.js";

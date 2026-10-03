@@ -556,7 +556,7 @@ export interface AgentCallWorkflowOptions {
 // Unlike the hermetic wait/human_input fixtures, driving the child to its gate
 // needs the mock LLM + MCP tool fixture (the agent must reference an
 // approval-gated tool), so this pairs with the suite's provisionGatedAgent. It is
-// only exercised on the workflowChildApprovalForwarding capability (DD-012).
+// only exercised on the workflowChildApprovalForwarding capability.
 export function makeAgentCallWorkflow(
   opts: AgentCallWorkflowOptions,
 ): InitShape<typeof WorkflowSchema> {

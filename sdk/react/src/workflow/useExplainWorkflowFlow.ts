@@ -56,8 +56,6 @@ const EXPLAIN_PROMPT_PREFIX =
  *
  * Single-turn flow using the `workflow-architect` agent with
  * `action: "no_changes"` (explanation only, no YAML returned).
- *
- * @since T14 (AI-Assisted Workflow Creation)
  */
 export function useExplainWorkflowFlow(
   options: UseExplainWorkflowFlowOptions,

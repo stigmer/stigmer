@@ -1,6 +1,7 @@
 /**
  * Unified-port lane router smoke tests, pinned to the Go router's verified
- * behavior (pkg/server/server.go:812-836) and the CW-10 suite's assertions:
+ * behavior (pkg/server/server.go:812-836) and the registry-proxy conformance
+ * suite's assertions:
  *
  *   - lane priority: exact registry paths win over everything;
  *   - unknown paths (incl. unknown /v1/proxy/*) reach the adapter's 404;
@@ -70,7 +71,7 @@ describe("lane priority", () => {
     expect(model.headers.get("x-lane")).toBe("model");
   });
 
-  it("answers 404 for unknown /v1/proxy/* paths (CW-10 fallthrough contract)", async () => {
+  it("answers 404 for unknown /v1/proxy/* paths (the conformance fallthrough contract)", async () => {
     const response = await fetch(`${baseUrl}/v1/proxy/does-not-exist`);
     expect(response.status).toBe(404);
   });

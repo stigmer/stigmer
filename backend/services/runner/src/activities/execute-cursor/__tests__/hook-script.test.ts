@@ -1,5 +1,5 @@
 /**
- * @regression file-hitl-phase0 — pins that decisions bind to the active turn's
+ * @regression file-hitl-gate — pins that decisions bind to the active turn's
  * denial ledger, never a stale one, and that a resume respects its order.
  *
  * Behavior tests for the generated preToolUse bash hook.

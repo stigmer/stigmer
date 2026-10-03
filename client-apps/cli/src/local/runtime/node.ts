@@ -4,7 +4,7 @@
 // We reuse the very Node that is running the CLI (process.execPath). The CLI is
 // itself an npm package with `engines: node >= 22.13`, so a suitable Node is
 // always present by construction — there is deliberately no hermetic Node
-// download (DD-002: keep the base install lean; nothing to acquire that the host
+// download (keep the base install lean: nothing to acquire that the host
 // already guarantees). This is exactly what the conformance harness does
 // (`spawn(process.execPath, ...)`). An explicit STIGMER_NODE_BIN override is
 // honored and capability-checked for advanced/multi-runtime setups.
@@ -19,8 +19,8 @@
 //   runner boot with a raw ERR_UNKNOWN_BUILTIN_MODULE.
 // - The SERVER additionally needs `node:sqlite` compiled WITH FTS5 (its
 //   search index; migration v3 creates an fts5 virtual table at boot). Node
-//   23.4 PROVIDES node:sqlite but its sqlite build LACKS FTS5 — found by
-//   D4 #14 and the reason the module-presence probe alone is insufficient
+//   23.4 PROVIDES node:sqlite but its sqlite build LACKS FTS5 — the reason
+//   the module-presence probe alone is insufficient
 //   for the server. Probing "can this binary create an fts5 table?" directly
 //   cannot drift; the version floors survive only in the error messages,
 //   where staleness is harmless.

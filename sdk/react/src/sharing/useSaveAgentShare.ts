@@ -54,7 +54,7 @@ export interface AgentShareDraft {
    * how a tool-using agent becomes chattable over a share link without
    * touching its pristine default instance. Public-audience only (the
    * proto CEL rule rejects bindings on org-audience shares, whose member
-   * sessions carry no share linkage in Phase A — decision 011 addendum).
+   * sessions carry no share linkage).
    */
   readonly environmentRefs: readonly ResourceRef[];
   /**
@@ -126,7 +126,7 @@ export function draftFromShare(share: AgentShare | null): AgentShareDraft {
 /**
  * Identity for a share being created: its display name and URL slug in
  * the sharing org's namespace. Only consulted when `current` is `null`
- * — an existing share's identity is immutable (decision 011 D2).
+ * — an existing share's identity is immutable.
  */
 export interface AgentShareCreateIdentity {
   /** Display name for the new share. */
@@ -171,8 +171,8 @@ export interface UseSaveAgentShareReturn {
  * collides on `(org, slug)` rejects with an already-exists error rather
  * than touching the existing share.
  *
- * Disabling is a save with `enabled: false` — a config-preserving pause
- * (decision 011 D1). Deleting the share is a separate, destructive
+ * Disabling is a save with `enabled: false` — a config-preserving pause.
+ * Deleting the share is a separate, destructive
  * operation ({@link useDeleteAgentShare}).
  *
  * A created share lives in the agent's own organization: the share's URL,
@@ -220,7 +220,7 @@ export function useSaveAgentShare(
           // share may carry a non-default slug — apply with the agent's
           // slug would create a SECOND share); when creating, the
           // agent's org + the caller-chosen identity, falling back to
-          // the agent's own slug/name (the server's D2 default, made
+          // the agent's own slug/name (the server's default, made
           // explicit).
           org: current?.metadata?.org || agentOrg,
           slug: current?.metadata?.slug || createIdentity?.slug || agentSlug,

@@ -1,6 +1,6 @@
 // Resolve a transcript tool-call file path to an openable workspace-file
 // selection. This is the seam that lets a click on a path in the message thread
-// route to the same read-only Viewer a file-tree click drives (Slice 3).
+// route to the same read-only Viewer a file-tree click drives.
 //
 // The hard part is NOT identity ("which entry") but PATH FORM. The reader and
 // lister contracts are strict: `WorkspaceFileReader` / the GitHub Trees lister

@@ -309,7 +309,7 @@ describe("updateVisibility (no conformance coverage for this domain, a known gap
   });
 });
 
-/** A fully-typed update request for an existing server (no casts — N5). */
+/** A fully-typed update request for an existing server (no casts). */
 function updateInput(created: McpServer, defaultEnabledTools: string[]) {
   return {
     apiVersion: API_VERSION,

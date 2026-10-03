@@ -1,4 +1,5 @@
-# The docs inventory classification — the docs revamp's source of truth.
+# The docs inventory classification — the source of truth for every page's
+# fate, kind and medium.
 #
 # One entry per hand-authored page, keyed by extension-less docs-relative
 # path (the docs root is "index"). Generated pages are covered by the
@@ -12,11 +13,11 @@
 #   diataxis  tutorial | how-to | explanation | reference | landing
 #   teaches   One sentence: what the reader walks away knowing or having done.
 #   medium    none | diagram | still | screenshot-journey | animated-tour |
-#             interactive — the page's TARGET demonstration centerpiece
-#             (DD-01 in the 20260727.01.docs-revamp project). Prose and code
-#             are the substrate of every page, not a medium. `still` and
-#             `screenshot-journey` are Scenar-rendered `<Still>`s (see
-#             docs/STYLE.md "Stills") — never hand-captured screenshots.
+#             interactive — the page's TARGET demonstration centerpiece.
+#             Prose and code are the substrate of every page, not a
+#             medium. `still` and `screenshot-journey` are Scenar-rendered
+#             `<Still>`s (see docs/STYLE.md "Stills") — never hand-captured
+#             screenshots.
 #   why       Rationale, required by the gate for a non-"none" medium (why
 #             that centerpiece) and for a non-"keep" fate (why the page
 #             doesn't survive as-is) — one sentence each when both apply.
@@ -138,9 +139,8 @@ pages:
     medium: animated-tour
     why:
       The payoff is the chat streaming inside a third-party product; the motion
-      is the demonstration (owner-ratified deviation from the
-      screenshot-journey default for getting-started pages, T03 review
-      2026-08-23).
+      is the demonstration (a deliberate deviation from the
+      screenshot-journey default for getting-started pages, 2026-08-23).
     embeds:
       embed-agent-tour: keep
 

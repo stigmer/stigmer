@@ -87,7 +87,7 @@ const EMPTY_APPROVAL_ERRORS: ReadonlyMap<string, Error> = new Map();
  *
  * Define slot components at module level (or memoize them). The thread's
  * rows rely on `React.memo` + structural sharing to skip re-renders during
- * streaming (DD-009/DD-010); a slot component recreated on every host
+ * streaming; a slot component recreated on every host
  * render defeats that for its rows.
  */
 export interface MessageThreadSlots {
@@ -117,7 +117,7 @@ export interface MessageThreadSlots {
   readonly SetupProgress?: ComponentType<SetupProgressProps>;
   /**
    * The retriever transparency card at a selection-active execution's
-   * segment start — "Recalled N of M memories" (DD-008 D5).
+   * segment start — "Recalled N of M memories".
    */
   readonly RecalledMemoriesCard?: ComponentType<RecalledMemoriesCardProps>;
   /**
@@ -179,7 +179,7 @@ export interface MessageThreadProps {
   readonly onRetrySend?: () => void;
   /**
    * Scroll to the reader's own message when they send one from a
-   * scrolled-up position (stigmer-cloud#267 — the WhatsApp convention:
+   * scrolled-up position (the WhatsApp convention:
    * showing the result of the reader's own action is Nielsen #1
    * system-status feedback). The send moment is the
    * {@link pendingUserMessage} transition from empty to present; the pin
@@ -187,11 +187,10 @@ export interface MessageThreadProps {
    * reply stay in view. Incoming content is unaffected — it still never
    * moves a scrolled-up reader.
    *
-   * Default `true` on all three SDK thread surfaces at once — a deliberate,
-   * ratified divergence from DD-011's opt-in default: the issue's whole
-   * point is cross-surface consistency, and a per-surface opt-in would
-   * re-create the inconsistency it fixes. Set `false` to keep today's
-   * leave-the-reader-alone behavior.
+   * Default `true` on all three SDK thread surfaces at once — a deliberate
+   * exception to opt-in defaults: cross-surface consistency is the point,
+   * and a per-surface opt-in would re-create the inconsistency it fixes.
+   * Set `false` to keep today's leave-the-reader-alone behavior.
    *
    * @default true
    */
@@ -257,7 +256,7 @@ export interface MessageThreadProps {
    * surface is the composer-docked {@link FileReviewDock}, which cannot scroll
    * out of view. The stamped rows' badges carry the pending state in-thread.
    *
-   * Opt-in with a backward-compatible default (DD-011); `SessionViewer`
+   * Opt-in with a backward-compatible default; `SessionViewer`
    * enables it.
    *
    * @default false
@@ -359,14 +358,14 @@ export interface MessageThreadProps {
    * - `"start"` — column anchored to the left edge, so the thread's left
    *   edge stays put when a sibling panel opens/closes beside it.
    *
-   * When omitted, content spans the full width. Opt-in per DD-011 —
+   * When omitted, content spans the full width. Opt-in —
    * existing consumers see no layout change.
    */
   readonly contentColumn?: ThreadContentColumn;
   /**
    * Component overrides for the thread's chrome — see
    * {@link MessageThreadSlots}. Omitted slots render the built-ins;
-   * omitting the prop entirely changes nothing (DD-011).
+   * omitting the prop entirely changes nothing.
    */
   readonly slots?: MessageThreadSlots;
 }
@@ -751,7 +750,7 @@ export function buildThreadItems(
     // in favor of a live plan-writing card, mirroring the completed-turn
     // collapse above, while the panel's plan tab renders the document live.
     // Two gates: collapseStreamingPlan (the host wired onOpenPlan — without a
-    // document surface the plan must keep streaming inline, DD-011) and
+    // document surface the plan must keep streaming inline) and
     // isActiveStreamExec (a stale non-terminal execution left in the
     // completed list by the transient skew documented above must never
     // sprout a live card). Mutually exclusive with collapsePlanMessage by
@@ -832,7 +831,7 @@ export function buildThreadItems(
       });
     }
 
-    // The retriever transparency card (stigmer#293 Phase 3a, DD-008 D5):
+    // The retriever transparency card (stigmer#293 Phase 3):
     // this execution ran semantic selection over its memory snapshot, so
     // its segment discloses the subset right after the user's turn —
     // spec.message is the query the retriever embedded. Absent report or
@@ -894,7 +893,7 @@ export function buildThreadItems(
       // satisfy the backend's append-only guard. Filtering them here keeps a
       // message whose tool calls are ALL collapsed from emitting an empty group.
       // Preserve the original array reference when nothing is collapsed (the
-      // common case) so structural sharing / memoization (T04) is not defeated by
+      // common case) so structural sharing / memoization is not defeated by
       // a fresh array on every build.
       const renderableToolCalls =
         msg.type === MessageType.MESSAGE_AI && msg.toolCalls.some(isCollapsedToolCall)
@@ -1125,7 +1124,7 @@ export function buildThreadItems(
 
   // The ambient-liveness line (stigmer#277): the thread's tail is never a
   // dead frame while the agent is alive. Emitted only when
-  //  - the execution is IN_PROGRESS (phase-driven, DD-009 — WAITING/PAUSED
+  //  - the execution is IN_PROGRESS (phase-driven — WAITING/PAUSED
   //    mean the agent is NOT working, and shimmering there would lie),
   //  - it is past the pre-first-content window (setup-progress owns that),
   //  - nothing else on screen carries its own live signal (a running tool
@@ -1236,7 +1235,7 @@ export function MessageThread({
   const editableActiveTurn = onEditMessage != null;
   // A streaming plan is collapsed behind its live card only when the host can
   // open the plan document surface — a panel-less host (no onOpenPlan) keeps
-  // the plan streaming inline, where it remains readable (DD-011).
+  // the plan streaming inline, where it remains readable.
   const collapseStreamingPlan = onOpenPlan != null;
   const items = useMemo(
     () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments),
@@ -1245,7 +1244,7 @@ export function MessageThread({
 
   useKeyStability(items);
 
-  // Scroll-on-send (stigmer-cloud#267): the send moment is the optimistic
+  // Scroll-on-send: the send moment is the optimistic
   // message's empty→present transition — the one signal both render paths
   // share. A monotonic counter (not the message text) carries it down, so
   // repeated sends of identical text still pin and a retry of a FAILED send
@@ -1553,7 +1552,7 @@ export interface ThreadItemRendererProps {
  *
  * Slot resolution happens here, per case, as `slots?.X ?? X` — no merged
  * defaults object, no allocation, and the memoized row wrappers below
- * (`ApprovalCardRow`, `FileReviewRecordRow`) keep their DD-010 callback
+ * (`ApprovalCardRow`, `FileReviewRecordRow`) keep their callback
  * stabilization around whichever component renders inside them.
  *
  * Does not receive a `key` prop — the caller is responsible for

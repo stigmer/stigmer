@@ -1,5 +1,5 @@
-// The platform identity tenant's MINT for the direct-login suite
-// (stigmer-cloud#604, the S1 lane). Domain: conformance harness.
+// The platform identity tenant's MINT for the direct-login suite.
+// Domain: conformance harness.
 //
 // The suite never forges the platform tenant's tokens from thin air: the
 // readout substrate runs a mock tenant whose JWKS the server under test
@@ -104,7 +104,7 @@ export function newDirectLoginTenant(
 // iat is not "expired", it is malformed — Spring's Jwt constructor refuses it
 // as "expiresAt must be after issuedAt", which classifies as `invalid token`,
 // not the expiry copy the suite pins. Found when the hermetic Java launcher
-// first ran production security mode (entry 20260907.02).
+// first ran production security mode.
 const EXPIRED_TOKEN_LIFETIME_SECONDS = 60;
 
 // The claim set Auth0 mints for a first-party client — exported so the suite's

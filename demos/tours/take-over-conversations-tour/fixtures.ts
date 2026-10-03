@@ -115,7 +115,7 @@ export const JORDAN = conversation({
 /**
  * Sam — human-held and quiet since yesterday: the last customer message is
  * 25 hours old, so WhatsApp's 24-hour free-form window is closed and the
- * composer renders the advisory (with its template lane, cloud#260).
+ * composer renders the advisory (with its template lane).
  */
 export const SAM = conversation({
   conversationKey: "15550000103",
@@ -139,7 +139,7 @@ export const ALL_CONVERSATIONS: readonly ChannelConversation[] = [
  * The server-evaluated Needs-human predicate over the cast: the Agent
  * escalated (Riley), or a customer is waiting on a reply only a person
  * will send (Jordan). Also the sidebar badge's count — the badge and the
- * filter share one predicate by design (DD-011 D-f/D-g).
+ * filter share one predicate by design.
  */
 export const WANTS_HUMAN_CONVERSATIONS: readonly ChannelConversation[] = [
   RILEY,

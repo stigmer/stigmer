@@ -3,7 +3,7 @@
 // The strictness contract matches `stigmer apply -f`: YAML syntax errors and
 // unknown fields both fail loudly (`ignoreUnknownFields: false`) — silently
 // applying a half-parsed or typo'd document would be dangerous. Error
-// messages are written for end users (DD-006): what failed, where, and what
+// messages are written for end users: what failed, where, and what
 // a valid document looks like.
 
 import { fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";

@@ -1,5 +1,5 @@
 // A hermetic fake of the two Stripe surfaces the billing engine touches.
-// Domain: conformance harness (cloud-capability fixtures, E1).
+// Domain: conformance harness (cloud-capability fixtures).
 //
 // Outbound: the server under test is booted with its Stripe API base pointed
 // at this fixture, so the purchase money path — customer create, checkout
@@ -7,7 +7,7 @@
 // PaymentIntent create, the default-payment-method reads and customer updates
 // the webhook handlers make — lands here instead of api.stripe.com. Every
 // request is captured with its form-encoded params and its Idempotency-Key
-// header (a DD-012 carve-out: idempotency keys must be identical between the
+// header (a carve-out: idempotency keys must be identical between the
 // editions). Ids are unique for the whole run — a run nonce plus a counter
 // that `reset()` deliberately does NOT rewind: Java pins stripe_customer_id
 // unique across billing accounts, so a fixture that re-minted `cus_..._0001`
@@ -24,12 +24,13 @@
 // Why not stripe-mock: it mints static ids (two tests' sessions collide on
 // the purchase lookup) and captures nothing (idempotency keys unassertable).
 //
-// The api_version trap (finding F12 of entry 20260906.04): the Java handlers
-// read event data through `getDataObjectDeserializer().getObject()`, which
-// answers EMPTY unless the event's `api_version` equals the stripe-java pin —
-// every handler then logs "Failed to deserialize event data" and does
-// nothing, with no pointer at the cause. Events built here carry the pin. The
-// composition (stripe-node) parses regardless; C5 must not copy the strictness.
+// The api_version trap: the retired Java handlers read event data through
+// `getDataObjectDeserializer().getObject()`, which answered EMPTY unless the
+// event's `api_version` equalled the stripe-java pin — every handler then
+// logged "Failed to deserialize event data" and did nothing, with no pointer
+// at the cause. Events built here carry the pin. The
+// composition (stripe-node) parses regardless and must not copy the
+// strictness.
 import { createHmac, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -38,7 +39,7 @@ import { writeJson } from "@stigmer/test-support/llm-wire";
 
 // The API version the retired Java service's stripe-java 32.1.0 pinned in
 // com.stripe.Stripe.API_VERSION — read from the published jar's class
-// constant pool on 2026-09-06, before the service left (stigmer-cloud#698).
+// constant pool on 2026-09-06, before the service left.
 export const STRIPE_JAVA_API_VERSION = "2026-04-22.dahlia";
 
 // The one card this fixture knows. Every payment method it answers carries
@@ -79,10 +80,10 @@ export class FakeStripeApi {
   // Java expects; payment methods are minted on first retrieve.
   private readonly customers = new Map<string, Record<string, unknown>>();
   // Checkout Sessions and PaymentIntents this fixture created, so the
-  // reconciliation sweep's reads (C5 S3: GET /v1/checkout/sessions/{id},
+  // reconciliation sweep's reads (GET /v1/checkout/sessions/{id},
   // GET /v1/payment_intents/{id}) answer the object as last minted — status
-  // `open` / `processing` — instead of the unhandled 404 that turned every
-  // sweep run red on the S3 readout substrate.
+  // `open` / `processing` — instead of an unhandled 404 that would turn every
+  // sweep run red.
   private readonly checkoutSessions = new Map<string, Record<string, unknown>>();
   private readonly paymentIntents = new Map<string, Record<string, unknown>>();
 
@@ -207,7 +208,7 @@ export class FakeStripeApi {
       this.checkoutSessions.set(id, session);
       return { status: 200, id, body: session };
     }
-    // The reconciliation sweep's reads (C5 S3): a session or intent this
+    // The reconciliation sweep's reads: a session or intent this
     // fixture minted answers as it was minted (still `open` / `processing`,
     // so the sweep leaves the row alone — Java's SKIPPED arm); an id the
     // fixture never issued is Stripe's resource_missing.
@@ -296,7 +297,7 @@ export interface StripeEventOptions {
   // replay arm (dedup → 200, no second effect).
   id?: string;
   // Defaults to the stripe-java pin; pass another value ONLY to demonstrate
-  // the Java-side strictness (F12).
+  // the Java-side strictness (the api_version trap above).
   apiVersion?: string;
   created?: number;
 }

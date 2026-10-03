@@ -1,4 +1,4 @@
-// Unit tests for the headless task-presentation layer (T04): the built-in
+// Unit tests for the headless task-presentation layer: the built-in
 // per-kind preview lines across all 20 task kinds, the status-line
 // precedence, the disclosure taxonomy, defensive Struct parsing (summaries
 // are runner-dependent — malformed shapes must degrade, never break), and
@@ -287,7 +287,7 @@ describe("per-kind preview lines", () => {
       expected: "blog-writer · 12 msgs · 5 tools",
     },
     {
-      label: "switch_case settled on a target branch (R6-5)",
+      label: "switch_case settled on a target branch",
       kind: WorkflowTaskKind.switch_case,
       overrides: { outputSummary: { __flow_directive__: "approved-path" } },
       expected: "→ approved-path",
@@ -299,7 +299,7 @@ describe("per-kind preview lines", () => {
       expected: "→ exit",
     },
     {
-      label: "try_catch recovered via catch retry (R6-5)",
+      label: "try_catch recovered via catch retry",
       kind: WorkflowTaskKind.try_catch,
       overrides: { attemptNumber: 3, outputSummary: { result: "ok" } },
       expected: "recovered after 3 attempts",
@@ -316,7 +316,7 @@ describe("per-kind preview lines", () => {
   });
 
   // switch_case degrades to status-only when no case matched: the executor
-  // returns no directive, so there is honestly nothing to say (R6-5).
+  // returns no directive, so there is honestly nothing to say.
   it("switch_case yields an empty line without a flow directive", () => {
     const { previewLine } = resolveTaskPreview(
       state({
@@ -428,10 +428,10 @@ type JsonValueLike = Parameters<typeof valueSnippet>[0];
 // ---------------------------------------------------------------------------
 
 describe("defaultDisclosureForKind", () => {
-  // T05 (DD-T05-5): every kind whose output CAN matter is a preview kind —
+  // Every kind whose output CAN matter is a preview kind —
   // the showBody gate keeps output-less cards as one-line rows, so preview
-  // disclosure costs nothing until the runner writes real output. R6-5
-  // adds try_catch (its output is the block's settled result) and
+  // disclosure costs nothing until the runner writes real output. That
+  // includes try_catch (its output is the block's settled result) and
   // raise_error (always fails; the preview body IS the always-visible
   // failure detail). Only genuinely body-less kinds remain summary —
   // including switch_case DELIBERATELY: its whole content is the one-word

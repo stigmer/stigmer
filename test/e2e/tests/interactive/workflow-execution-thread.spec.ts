@@ -15,7 +15,7 @@ import {
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 
 // The task thread is the PRIMARY surface of the redesigned execution page
-// (project 20260714.02, thread-primary pivot): one card per started task,
+// (the thread-primary redesign): one card per started task,
 // with the card as the single home for that task's status, timing, and
 // I/O. This file is the successor of the retired waterfall and inspector
 // specs — their durable promises (per-task rows, visible timing, task
@@ -100,7 +100,7 @@ test.describe("Workflow execution thread", () => {
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
-      // Preview-kind cards (T04): the output body renders without any
+      // Preview-kind cards: the output body renders without any
       // expand gesture — a user scans results straight down the thread.
       const card = getThreadTaskCard(page, "step_one");
       const previewBody = card.locator('[data-cursor-target="task-preview"]');
@@ -127,8 +127,8 @@ test.describe("Workflow execution thread", () => {
       // The wait workflow blocks ~10s before completing.
       await waitForPhaseBadge(page, "Completed", { timeout: 45_000 });
 
-      // The retired inspector's promise, on its successor surface: since
-      // R6-6 the card HEADER is the single source for a task's status
+      // The retired inspector's promise, on its successor surface: the
+      // card HEADER is the single source for a task's status
       // (glyph) and duration (meta chip) — the old Status/Duration detail
       // rows are gone. A settled wait task has nothing left for a detail
       // body, so the card offers no expand gesture at all (stigmer#886) —

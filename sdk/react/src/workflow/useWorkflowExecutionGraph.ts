@@ -226,7 +226,7 @@ export function useWorkflowExecutionGraph(
     ? options.taskStates
     : ownStream.taskStates;
 
-  // ── Merge execution state into nodes (T04) + fork progress (T06) + agent activity ──
+  // ── Merge execution state into nodes + fork progress + agent activity ──
 
   const pendingApprovals = execution?.status?.pendingApprovals;
 
@@ -249,7 +249,7 @@ export function useWorkflowExecutionGraph(
           }
         : { status: "not_reached" };
 
-      // T06: Derive fork progress for fork nodes.
+      // Derive fork progress for fork nodes.
       const forkProgress =
         nodeData.kind === WorkflowTaskKind.fork && nodeData.config
           ? deriveForkProgress(nodeData.config, taskStates)
@@ -295,7 +295,7 @@ export function useWorkflowExecutionGraph(
     });
   }, [baseElements, taskStates, pendingApprovals, nodesDraggable]);
 
-  // ── Merge execution state into edges (T06) ──────────────────────
+  // ── Merge execution state into edges ──────────────────────
 
   const edgesWithExecution = useMemo<Edge[]>(() => {
     if (!baseElements || !graphModel) return [];

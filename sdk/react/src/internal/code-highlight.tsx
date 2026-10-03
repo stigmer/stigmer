@@ -3,11 +3,12 @@ import { jsx, jsxs } from "react/jsx-runtime";
 import { createLowlight } from "lowlight";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 
-// Dependency licensing (DD-012): `lowlight` and `hast-util-to-jsx-runtime` are
-// MIT; `highlight.js` is BSD-3-Clause. BSD-3-Clause is a permissive, OSI-approved
-// license, compatible with MIT/Apache-2.0, that imposes no obligations on SDK
-// consumers beyond attribution — so it satisfies DD-012's "MIT or Apache-2.0
-// compatible" rule. Recorded here so the choice is auditable at the point of use.
+// Dependency licensing: `lowlight` and `hast-util-to-jsx-runtime` are
+// MIT; `highlight.js` is BSD-3-Clause. BSD-3-Clause is a permissive,
+// OSI-approved license, compatible with MIT/Apache-2.0, that imposes no
+// obligations on SDK consumers beyond attribution — so it satisfies the SDK's
+// "MIT or Apache-2.0 compatible" dependency rule. Recorded here so the choice
+// is auditable at the point of use.
 import bash from "highlight.js/lib/languages/bash";
 import css from "highlight.js/lib/languages/css";
 import dockerfile from "highlight.js/lib/languages/dockerfile";
@@ -36,11 +37,11 @@ import yaml from "highlight.js/lib/languages/yaml";
  * with no hardcoded values, exactly like the CodeMirror YAML editor.
  *
  * **Eager, not lazy.** Highlighting is on the core path (almost every
- * `SessionViewer` consumer renders agent messages containing code), so DD-013's
- * lazy pattern (for rarely-used heavy deps) does not apply. The grammars are
- * imported eagerly; because this module is only reachable through the markdown
- * components, normal tree-shaking still keeps it out of bundles that never
- * render markdown.
+ * `SessionViewer` consumer renders agent messages containing code), so the
+ * SDK's lazy-loading pattern (for rarely-used heavy deps) does not apply. The
+ * grammars are imported eagerly; because this module is only reachable through
+ * the markdown components, normal tree-shaking still keeps it out of bundles
+ * that never render markdown.
  *
  * **Curated grammar set.** Only the languages agents commonly emit are
  * registered, to keep the payload small. Anything else falls back to flat

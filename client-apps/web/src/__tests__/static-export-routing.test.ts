@@ -6,8 +6,8 @@ import { PLATFORM_SETTINGS_NAV_GROUP, SETTINGS_NAV_GROUPS } from "@stigmer/react
 import { LIBRARY_RESOURCE_TYPES } from "@/domain/library/library-navigation";
 
 // These tests pin two bug classes specific to static-export deployments
-// (`output: "export"`), both of which shipped before being caught
-// (cloud#274). Neither is covered by scripts/verify-static-export-routes.mjs,
+// (`output: "export"`), both of which shipped before being caught.
+// Neither is covered by scripts/verify-static-export-routes.mjs,
 // which verifies that EXISTING routes are servable — not that a route that
 // should exist does, nor that a redirect's baked target is usable.
 
@@ -28,8 +28,8 @@ describe("library deep-link pages", () => {
   // /library/<type>/<org>/<slug> for every resource type it knows. A cold
   // load of that URL — reload, bookmark, shared link — is served from the
   // static export, which only contains routes with a page file. A type
-  // navigable in-app but missing its page file ships a 404 (cloud#274:
-  // workflows was navigable for months with no deep-link page).
+  // navigable in-app but missing its page file ships a 404 (workflows was
+  // navigable for months with no deep-link page).
   for (const resourceType of LIBRARY_RESOURCE_TYPES) {
     it(`${resourceType} has a deep-link detail page`, () => {
       const pageFile = join(

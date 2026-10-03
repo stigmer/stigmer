@@ -8,7 +8,7 @@
  * fixtures, so each tour's `.scenar/providers.tsx` stays a few lines.
  *
  * Data is mocked with an in-process Connect **router transport** rather than a
- * service worker (scenar-cloud DD-002): `providers.tsx` is the one artifact
+ * service worker: `providers.tsx` is the one artifact
  * `scenar pack` and `scenar render` wrap every step in, so a transport here
  * covers both the dev preview and the packed embed with a single mechanism —
  * no network, no MSW.
@@ -26,8 +26,8 @@ import "./fonts/fonts.css";
 // The COMPILED stylesheet — since #454 the workspace export
 // `@stigmer/react/styles.css` points at the same dist artifact npm consumers
 // receive (the export used to point at the uncompiled Tailwind source, which
-// `scenar pack` cannot process — it deliberately does not run Tailwind,
-// scenar-cloud DD-003). `npm run build:css -w @stigmer/react` produces it
+// `scenar pack` cannot process — it deliberately does not run Tailwind).
+// `npm run build:css -w @stigmer/react` produces it
 // (pack-all runs that automatically).
 import "@stigmer/react/styles.css";
 

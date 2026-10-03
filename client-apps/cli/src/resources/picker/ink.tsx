@@ -5,7 +5,7 @@
 // caller continue its flow.
 //
 // This module is only ever reached through a dynamic import() in the command
-// action (DD-001), so React/Ink load lazily — non-interactive commands never
+// action, so React/Ink load lazily — non-interactive commands never
 // pay for them. Within this already-lazy module, ordinary JSX/imports are fine.
 
 import React from "react";

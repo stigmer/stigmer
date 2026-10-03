@@ -641,7 +641,7 @@ export async function compileSubagents(
  * 1. Built-in subagent creation (explore, shell, general-purpose)
  * 2. Per-subagent transformation (proto → TransformedSubagent)
  * 3. MCP tool filtering per subagent
- * 4. Skill resolution and prompt injection (Session 2)
+ * 4. Skill resolution and prompt injection
  * 5. Compilation with middleware + gate wrapping
  *
  * Returns null if no valid subagents after transformation.

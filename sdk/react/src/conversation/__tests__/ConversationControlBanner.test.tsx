@@ -84,7 +84,7 @@ describe("ConversationControlBanner", () => {
     expect(screen.getByText(/A teammate has this conversation/)).toBeDefined();
   });
 
-  it("never claims a teammate holds it when the host passed no identity (F-01)", () => {
+  it("never claims a teammate holds it when the host passed no identity", () => {
     // Identity omitted: the holder may be the viewer themself, so the
     // only honest statement is that a human holds it.
     render(
@@ -116,7 +116,7 @@ describe("ConversationControlBanner", () => {
     expect(p.handBack).toHaveBeenCalled();
   });
 
-  it("guards handback behind a confirm while the customer awaits an answer (DD-007 D-e)", async () => {
+  it("guards handback behind a confirm while the customer awaits an answer", async () => {
     const user = userEvent.setup();
     const p = participation();
     render(
@@ -157,7 +157,7 @@ describe("ConversationControlBanner", () => {
     expect(screen.getByRole("button", { name: "Hand back to agent" })).toBeDefined();
   });
 
-  it("disables takeover on senderless providers with the reason VISIBLE (F-18)", () => {
+  it("disables takeover on senderless providers with the reason VISIBLE", () => {
     const { container } = render(
       <ConversationControlBanner {...baseProps()} supportsStaffReplies={false} />,
     );

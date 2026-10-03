@@ -65,7 +65,7 @@ export interface ApprovalCardProps {
  * only a path is known, otherwise the shared {@link ToolArgsView}
  * dispatch, keeping pixel-level parity with the detail view.
  *
- * Wrapped in `React.memo` — structural sharing (T04) preserves the
+ * Wrapped in `React.memo` — structural sharing preserves the
  * `PendingApproval` reference when unchanged, so approval cards
  * skip re-renders during unrelated stream updates.
  *
@@ -387,7 +387,7 @@ export function ApprovalCardBody({
 
       {preview}
 
-      {/* Consent stated at grant time (DD-28): approving a shell command covers
+      {/* Consent stated at grant time: approving a shell command covers
           the files it creates or changes — when the turn's mutations all come
           from approved commands, the file-change set is kept automatically and
           never re-gates. A mixed turn (commands + file-tool edits) still

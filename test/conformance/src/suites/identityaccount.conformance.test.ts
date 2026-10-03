@@ -1,5 +1,5 @@
-// Conformance suite for the IdentityAccount domain (20260911.11 — the
-// identity-account domain served ONCE by @stigmer/server in every edition;
+// Conformance suite for the IdentityAccount domain (the identity-account
+// domain served ONCE by @stigmer/server in every edition;
 // the cloud composition serves it over its own table through the store
 // driver).
 // Domain: iam / identityaccount.
@@ -7,10 +7,9 @@
 // Drives IdentityAccountCommandController + IdentityAccountQueryController
 // through the raw proto stubs and asserts the cross-edition contract. The
 // shared arms run on the CALLER'S OWN account, reached through whoAmI —
-// the console's real flow — because `create` is a system RPC: the cloud#393
-// gate is core since T01_1_review.md A7, so over the wire a user is
-// PERMISSION_DENIED on every edition and no arm may create a fixture
-// account. What runs on every target:
+// the console's real flow — because `create` is a system RPC: its gate is
+// core, so over the wire a user is PERMISSION_DENIED on every edition and no
+// arm may create a fixture account. What runs on every target:
 //   - create over the wire is PERMISSION_DENIED with the byte-pinned copy
 //     and writes nothing;
 //   - get / getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy
@@ -19,8 +18,7 @@
 //     caller's own account;
 //   - update round-trips preferences — the console's one write; an update
 //     that changes spec.idp_id is FAILED_PRECONDITION (the subject IS the
-//     identity; A1). That arm is red against a cloud composition older
-//     than the re-point BY DESIGN, the #544 precedent in the apikey suite;
+//     identity);
 //   - getActorInfo names the account as audit stamps do;
 //   - the four federation RPCs are UNIMPLEMENTED where no unit composes the
 //     capability (the local OSS targets) — pinned through the capability
@@ -28,27 +26,25 @@
 //     (position 3, before any handler) so the refusal under test is the
 //     handler's.
 //
-// Posture arms, gated on capability flags:
-//   - trusted-local (requiresAuthentication false): whoAmI answers the
-//     operator's account (A2: ensured at boot, create-if-absent);
-//     provisionMyAccount is the idempotent early return.
-//   - the OIDC lane (Q-IA-2, Q-IA-10): on a target that can spawn a
-//     sibling server (spawnSibling), one server boots in the OIDC posture
-//     against the harness's local issuer (test/support/src/local-oidc-issuer.ts):
-//     an unprovisioned subject is idp-shaped (whoAmI NOT_FOUND with the
-//     cloud's copy), provisionMyAccount creates the account from the
-//     issuer's /userinfo, the next request resolves to it, an API key
-//     minted over that session answers as the owner (A6), two concurrent
-//     first logins end in one account, delete frees the subject, and a
-//     userinfo outage is UNAVAILABLE and creates nothing. The cloud's own
-//     lane is the direct-login suite (directLogin), the oracle this move
-//     keeps green; where no sibling can be spawned the arms skip VISIBLY
-//     with the target's reason.
+// Posture arms, gated on capability flags: - trusted-local
+// (requiresAuthentication false): whoAmI answers the operator's account
+// (ensured at boot, create-if-absent); provisionMyAccount is the idempotent
+// early return. - the OIDC lane: on a target that can spawn a sibling
+// server (spawnSibling), one server boots in the OIDC posture against the
+// harness's local issuer (test/support/src/local-oidc-issuer.ts): an
+// unprovisioned subject is idp-shaped (whoAmI NOT_FOUND with the cloud's
+// copy), provisionMyAccount creates the account from the issuer's
+// /userinfo, the next request resolves to it, an API key minted over that
+// session answers as the owner, two concurrent first logins end in one
+// account, delete frees the subject, and a userinfo outage is UNAVAILABLE
+// and creates nothing. The cloud's own lane is the direct-login suite
+// (directLogin); where no sibling can be spawned the arms skip VISIBLY with
+// the target's reason.
 //
 // Deliberately OUT of this suite: how the id is derived (server-internal;
 // the server's unit suites pin it), the personal organization (a cloud
 // composition arm, pinned by the direct-login suite), authorization
-// postures on update/delete (edition-specific, DD-012), and the cloud's
+// postures on update/delete (edition-specific), and the cloud's
 // POSITIVE federation behavior (needs an IdentityProvider fixture no
 // hermetic target provisions; the composition's own tests carry it).
 import { Code } from "@connectrpc/connect";
@@ -115,7 +111,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
           },
         }),
       Code.PermissionDenied,
-      "create from a wire user (the cloud#393 gate, core since A7)",
+      "create from a wire user (the system-RPC gate, core in every edition)",
     );
     expect(error.rawMessage).toBe(CREATE_IS_INTERNAL_MESSAGE);
 
@@ -170,7 +166,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     if (email === "") {
       // The trusted-local operator has an email only when the server was
       // booted with STIGMER_OPERATOR_EMAIL; the harness leaves it unset (the
-      // unconfigured-laptop posture A2 was ruled for). The OSS lane's cover
+      // unconfigured-laptop posture). The OSS lane's cover
       // for this lookup is the sibling block below, whose provisioned user
       // has the email /userinfo asserted.
       ctx.skip(
@@ -311,7 +307,7 @@ describe.skipIf(capabilities.federatedIdentityAccounts)(
 );
 
 describe.skipIf(capabilities.requiresAuthentication)(
-  "IdentityAccount conformance — the trusted-local posture (A2)",
+  "IdentityAccount conformance — the trusted-local posture",
   () => {
     it("[rpc:IdentityAccountQueryController.whoAmI] whoAmI answers the operator's account: a direct person under the local| subject namespace", async () => {
       const me = await whoAmI();
@@ -335,7 +331,7 @@ describe.skipIf(capabilities.requiresAuthentication)(
   },
 );
 
-describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-IA-2, Q-IA-10)", () => {
+describe("IdentityAccount conformance — the OIDC lane on a sibling server", () => {
   let issuer: LocalOidcIssuer | undefined;
   let sibling: SiblingServer | undefined;
 
@@ -436,7 +432,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-I
     );
 
     // And over the key, whoAmI is the owner's account — the key is the user
-    // (A6: every verifier resolves to the account when one exists).
+    // (every verifier resolves to the account when one exists).
     const overKey = sibling.clientsPresenting(key.spec?.keyHash ?? "");
     expect((await whoAmI(overKey)).metadata?.id).toBe(account.metadata?.id);
   });

@@ -4,8 +4,6 @@
  * Consolidates formatting logic previously duplicated across
  * WorkflowExecutionViewer, WorkflowExecutionHeader, and
  * WorkflowExecutionTaskPanel.
- *
- * @since T05 (Runtime Inspector)
  */
 
 const BIGINT_ZERO = BigInt(0);

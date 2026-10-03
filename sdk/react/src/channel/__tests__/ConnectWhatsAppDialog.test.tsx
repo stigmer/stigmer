@@ -196,7 +196,7 @@ describe("ConnectWhatsAppDialog", () => {
       </Providers>,
     );
 
-    // BYO-only (DD-WA-2): no platform fallback exists, so the zero-apps
+    // BYO-only: no platform fallback exists, so the zero-apps
     // state is a blocking register-first path, not a soft default.
     expect(
       await screen.findByText(/there is no shared platform app/i),

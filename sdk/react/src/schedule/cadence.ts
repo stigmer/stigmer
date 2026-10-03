@@ -5,7 +5,7 @@
  *
  * Deliberately NOT a cron parser. The platform owns no cron parsing in
  * either edition — calendar and DST semantics live in the Temporal server
- * (see stigmer-server's schedule/controller/cron.go, DD-008 D2). This
+ * (see stigmer-server's `domain/schedule/cron.ts`). This
  * module only:
  *
  *   1. GENERATES cron strings from presets (`cadenceToCron`) — trivial

@@ -420,7 +420,7 @@ describe("get / list / listByWorkflow over the wire", () => {
   });
 });
 
-describe("getEventLog over the wire (CW-7 pagination contract)", () => {
+describe("getEventLog over the wire (the pinned pagination contract)", () => {
   it("empty id refuses InvalidArgument; unknown id answers an empty page", async () => {
     await expectCode(
       () => query.getEventLog({ executionId: "" }),

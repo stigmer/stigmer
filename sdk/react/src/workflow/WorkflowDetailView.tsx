@@ -119,15 +119,11 @@ export interface WorkflowDetailViewProps {
    * Called when the user clicks "Open in editor" from the overview graph
    * node popover. Receives the task name. Wire this to switch to the
    * editor tab and optionally select the node.
-   *
-   * @since T12 (Overview Page Redesign)
    */
   readonly onOpenInEditor?: (taskName: string) => void;
   /**
    * Called when the user clicks "View latest run" in the overview quick
    * actions. Receives the execution ID of the most recent execution.
-   *
-   * @since T12 (Overview Page Redesign)
    */
   readonly onViewLatestRun?: (executionId: string) => void;
   /** Additional CSS classes for the root container. */

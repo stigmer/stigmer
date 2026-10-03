@@ -220,7 +220,7 @@ export type MintGuestTokenResponse = Message<"ai.stigmer.iam.platformclient.v1.M
   expiresIn: number;
 
   /**
-   * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+   * Visitor cookie id to persist client-side, as an httpOnly cookie.
    *
    * Echoes guest_cookie_id from the request when provided; otherwise a newly
    * generated high-entropy value.

@@ -23,7 +23,7 @@ interface StillProps {
   /**
    * Screen description for readers who get text instead of pixels — it lands
    * verbatim in llms-full.txt, the per-page .md export, and Copy-as-Markdown.
-   * Describe the screen, don't repeat the narration (DD-02: two texts).
+   * Describe the screen, don't repeat the narration: the two are different texts.
    * Required here and enforced in CI, since MDX is never typechecked.
    */
   alt: string;
@@ -37,8 +37,7 @@ interface StillProps {
  * deliberately light-on-dark — a bright frame that reads as content against
  * the dark page (the Cursor-docs convention). This also matches the markdown
  * exports, where `llms-pages.ts` has always linked the light variant.
- * (`scenar shoot` still produces a dark capture per shot; it is unused here —
- * tracked in the docs-revamp debt register.)
+ * (`scenar shoot` still produces a dark capture per shot; it is unused here.)
  *
  * Composes the registered `<ImageZoom>` (click-to-zoom at the full
  * 2560x1600 capture).

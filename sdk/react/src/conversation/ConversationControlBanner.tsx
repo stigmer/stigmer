@@ -21,12 +21,11 @@ export interface ConversationControlBannerProps {
    * `true` when the customer's last message has not been answered —
    * the conversation row's server-derived `awaiting_reply` fact, which
    * is bounce-aware: a staff reply the provider later failed does not
-   * count as an answer (channel-conversations F-28/DD-015). Arms the
-   * handback confirm guard (DD-007 D-e): handing back runs NO turn, so
-   * the agent stays quiet until the customer next speaks, and the
-   * unanswered state must be unmissable. Never derive this from
-   * timeline authorship — the send attempt's presence on the timeline
-   * says nothing about whether the customer received it.
+   * count as an answer. Arms the handback confirm guard: handing back
+   * runs NO turn, so the agent stays quiet until the customer next
+   * speaks, and the unanswered state must be unmissable. Never derive
+   * this from timeline authorship — the send attempt's presence on the
+   * timeline says nothing about whether the customer received it.
    */
   readonly unansweredCustomer: boolean;
   /**
@@ -109,7 +108,7 @@ export function ConversationControlBanner({
                   : // Without the host's identity the holder may be the
                     // viewer themself — claiming "a teammate" would be a
                     // guess. State only what the row proves: a human
-                    // holds it (channel-conversations F-01).
+                    // holds it.
                     "This conversation is with a human — the agent is quiet until handback."}
             </>
           ) : (
@@ -159,7 +158,7 @@ export function ConversationControlBanner({
         ) : (
           <div className="stg:flex stg:items-center stg:gap-2">
             {!supportsStaffReplies && (
-              // Visible text, never a native title (F-18): a disabled
+              // Visible text, never a native title: a disabled
               // Button swallows hover (disabled:pointer-events-none) and
               // leaves the tab order, so a title on it is unreachable by
               // every input method. Kept short — the composer's own

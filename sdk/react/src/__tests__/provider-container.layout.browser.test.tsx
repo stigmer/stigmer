@@ -1,5 +1,5 @@
 // Layout-contract regression suite for the provider's in-tree container
-// (#260, DD-019). Runs in a real Chromium via `vitest.a11y.config.ts` —
+// (#260). Runs in a real Chromium via `vitest.a11y.config.ts` —
 // resolving percentage heights and flex min-size behavior requires a real
 // layout engine, which happy-dom does not have.
 //
@@ -15,7 +15,7 @@
 //    embedding: percentage chains pass through, and the container shrinks
 //    inside flex layouts so content scrolls internally.
 //
-// Like the a11y harness (DD-21), this renders against the SHIPPED
+// Like the a11y harness, this renders against the SHIPPED
 // stylesheet (`dist/styles.css`, built by `npm run build:libs`), so the
 // contract is verified on the artifact consumers actually load.
 

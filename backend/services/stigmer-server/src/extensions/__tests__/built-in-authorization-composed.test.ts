@@ -3,7 +3,7 @@
  * posture, when no unit
  * registers an Authorizer, open source composes one that evaluates the
  * cloud's authorization model over the tuples it would have written,
- * derived from the row. The roles 2b records stop being decorative.
+ * derived from the row. The role rows stop being decorative.
  *
  * Three postures, proven by BEHAVIOUR over real boots, never by the
  * identity of the composed object:
@@ -51,7 +51,7 @@
  * `visibility_org` only) and the admin-edits / member-reads split with no
  * engine. The agent kind defaults unspecified visibility to org
  * (`defaults_to_org_visibility`), so the private arm sets
- * `visibility_private` explicitly. The outsider: 2b's membership rules
+ * `visibility_private` explicitly. The outsider: the membership rules
  * run at a person's FIRST provisioning only, so an organization the
  * founder creates AFTER the member provisioned has no row for the member
  * — a two-organization server with an outsider, no revoke needed.
@@ -219,8 +219,8 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     });
     port = await server.start();
 
-    // The founder provisions, founds the organization (owner row, 2b's
-    // lifecycle), and the member provisions afterwards (member row, 2b's
+    // The founder provisions, founds the organization (owner row, the role
+    // lifecycle), and the member provisions afterwards (member row, the
     // membership rules). Both blueprints are the founder's.
     const founderAccounts = createClient(
       IdentityAccountCommandController,
@@ -244,7 +244,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     );
 
     // The second organization, founded AFTER the member provisioned: the
-    // founder is its owner (2b's lifecycle); the member holds no row on
+    // founder is its owner (the role lifecycle); the member holds no row on
     // it — an outsider, on a real two-organization server.
     await createClient(OrganizationCommandController, asFounder()).create(
       organizationInput(OTHER_ORG),
@@ -388,7 +388,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     ).toBe(Code.Unimplemented);
   });
 
-  it("checkMyPermission tells the truth through the built-in authorizer (2b's arm 3)", async () => {
+  it("checkMyPermission tells the truth through the built-in authorizer", async () => {
     const ask = (transport: ReturnType<typeof asMember>) =>
       createClient(IamPolicyQueryController, transport).checkMyPermission({
         relation: "can_edit",
@@ -570,7 +570,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
       IdentityAccountCommandController,
       asStranger(),
     ).provisionMyAccount({});
-    // A member now (2b's arm 5): reads the org-visible agent, and
+    // A member now: reads the org-visible agent, and
     // `can_create_agent` still says `admin`.
     expect(
       (

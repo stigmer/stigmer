@@ -230,12 +230,11 @@ describe("ExecutionContext conformance — secrets", () => {
     // getByExecutionId is the runner's secret-delivery path, but it decrypts
     // only for scope-bound runner credentials (cloud: token_type of sandbox /
     // workflow_sandbox / connect_sandbox, each bound to the EC it reads, with
-    // the unscoped embedded_runner bootstrap credential refused —
-    // stigmer-cloud#218; OSS: the execution-scoped token minted by
-    // getRunnerScopedToken — stigmer#535). The conformance harness
-    // authenticates as a user, so it must see the same redaction as get —
-    // the stigmer-cloud#152 contract: no read RPC hands plaintext secrets to
-    // a user-class caller.
+    // the unscoped embedded_runner bootstrap credential refused; OSS: the
+    // execution-scoped token minted by getRunnerScopedToken — stigmer#535).
+    // The conformance harness authenticates as a user, so it must see the
+    // same redaction as get: no read RPC hands plaintext secrets to a
+    // user-class caller.
     const { org } = await target.provisionTenancy();
     const secretValue = "runtime-secret-value";
     const executionId = uniqueName("aex");
@@ -254,7 +253,7 @@ describe("ExecutionContext conformance — secrets", () => {
     expect(fetched.spec?.data?.AWS_REGION?.value, "plaintext values are never redacted").toBe("us-east-1");
     expect(
       secretEntry?.value,
-      "no read RPC hands the plaintext secret to a user-class caller (stigmer-cloud#152 / stigmer#535)",
+      "no read RPC hands the plaintext secret to a user-class caller (stigmer#535)",
     ).not.toBe(secretValue);
   });
 });
@@ -366,9 +365,8 @@ describe("[rpc:ExecutionContextCommandController.create] ExecutionContext confor
 
 describe("ExecutionContext conformance — cross-org authorization", () => {
   // A direct (external) caller may only create an ExecutionContext in an org
-  // where they hold can_create_execution_in (member or guest). This is the
-  // external half of the stigmer-cloud#297 fix: create no longer skips
-  // authorization, so an outsider can no longer plant an EC — and thus poison
+  // where they hold can_create_execution_in (member or guest). Create never
+  // skips authorization, so an outsider can no longer plant an EC — and thus poison
   // a runner's environment — in a victim's org. Internal execution pipelines
   // still create ECs on the caller's behalf over the in-process transport,
   // which this external-client suite never exercises.

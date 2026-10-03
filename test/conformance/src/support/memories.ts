@@ -2,11 +2,11 @@
 // for the conformance suite.
 // Domain: conformance support.
 //
-// A Memory is an agent-proposed, user-confirmed fact (DD-004/DD-005/
-// DD-006): the fact text lives in spec.content; the subject and
-// provenance are SERVER-OWNED at create (client values overwritten);
-// the consent lifecycle (proposed → confirmed/rejected) lives in status
-// and is written only by create and the confirm/reject commands.
+// A Memory is an agent-proposed, user-confirmed fact: the fact text lives in
+// spec.content; the subject and provenance are SERVER-OWNED at create
+// (client values overwritten); the consent lifecycle (proposed →
+// confirmed/rejected) lives in status and is written only by create and the
+// confirm/reject commands.
 //
 // The exported copy constants are CROSS-EDITION CONTRACT STRINGS: the Go
 // controller (stigmer) and the Java handlers (stigmer-cloud) each pin
@@ -32,18 +32,18 @@ export const MEMORY_API_VERSION = "agentic.stigmer.ai/v1";
 export const MEMORY_KIND = "Memory";
 
 // The server-enforced per-subject-per-org record ceiling, all lifecycle
-// states counted (DD-006 D5).
+// states counted.
 export const MEMORY_CAP = 100;
 
 // ─── Contract copy (byte-pinned in both editions' unit tests) ──────────────
 
 // Refusing a create once the subject's ceiling is reached — visible-full,
-// never silent eviction (the ChatGPT Memory-Full pattern, DD-006 D5).
+// never silent eviction (the ChatGPT Memory-Full pattern).
 export const MEMORY_FULL_MESSAGE =
   "memory is full — review and delete existing memories";
 
 // Refusing a create while the organization has not enabled memory —
-// memory writes fail closed (DD-005 D2).
+// memory writes fail closed.
 export function memoryDisabledMessage(org: string): string {
   return `memory is not enabled for organization ${org} — an organization admin can enable it in organization preferences`;
 }

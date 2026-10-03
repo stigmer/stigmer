@@ -18,7 +18,7 @@ export interface TodoCardProps {
   /**
    * The agent's todo map for one execution — the proto map shape
    * (`execution.status.todos`) passed through by reference so a settled
-   * card skips re-renders while siblings stream (DD-009/010).
+   * card skips re-renders while siblings stream.
    */
   readonly todos: { readonly [key: string]: TodoItem };
   /** Additional CSS class names for the root container. */

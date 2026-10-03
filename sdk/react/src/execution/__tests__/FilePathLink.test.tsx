@@ -56,8 +56,7 @@ describe("FilePathLink full path resolution", () => {
     );
     const el = screen.getByRole("button");
     // The resolved path is observable in the accessible name; the visual
-    // hover reveal is the house tooltip (native titles are banned,
-    // stigmer-cloud#268).
+    // hover reveal is the house tooltip (native titles are banned).
     expect(el.getAttribute("aria-label")).toBe("Copy path: /Users/dev/my-app/src/main.go");
     expect(el.getAttribute("title")).toBeNull();
   });

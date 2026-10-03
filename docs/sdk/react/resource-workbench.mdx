@@ -68,7 +68,7 @@ a resource collection.
 
 State changes are communicated to the consumer via `onStateChange`
 so they can be synced to URL search params. The hook itself has
-**zero router dependency** (DD-004 compliance).
+**zero router dependency**.
 
 Platform builders use this alongside [`useResourceCollection`](#useresourcecollection)
 for full control. The `ResourceWorkbench` shell composes both.
@@ -470,7 +470,7 @@ individual hooks and view components directly.
     renderInspector: { type: "(item: TData) => ReactNode", description: "Inspector content renderer. When provided, clicking an item opens the split-panel inspector with this content. When omitted, the inspector is disabled." },
     renderItemAction: { type: "(item: TData) => ReactNode", description: "Per-item action renderer (shown in table rows, card corners, list ends)." },
     renderRow: { type: "(item: TData, index: number) => ReactNode", description: "Custom row renderer for list view. Receives the item and its index. When omitted, falls back to a default row layout." },
-    searchable: { type: "boolean", description: "Whether the toolbar renders the text-search input. Set `false` for kinds whose list backend has no text search (e.g. schedules, which use the direct query instead of the search service) — a search box that silently matches nothing is worse than none (DD-006). Opt-in per DD-011: existing consumers keep the search box." },
+    searchable: { type: "boolean", description: "Whether the toolbar renders the text-search input. Set `false` for kinds whose list backend has no text search (e.g. schedules, which use the direct query instead of the search service) — a search box that silently matches nothing is worse than none. Opt-in, so existing consumers keep the search box." },
     searchPlaceholder: { type: "string", description: "Search input placeholder text." },
     viewModes: { type: "readonly ViewMode[]", description: "Available view modes." },
     viewModeStorageKey: { type: "string", description: "localStorage key for persisting view mode preference. Pass `undefined` to disable persistence." },

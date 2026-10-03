@@ -80,9 +80,10 @@ import { rpcRecorder } from "./rpc-recorder";
 export interface ConformanceClients {
   activityQuery: Client<typeof ActivityQueryController>;
   apiKeyCommand: Client<typeof ApiKeyCommandController>;
-  // The billing engine's two controllers. Cloud-only by DD-001: the local OSS
-  // targets route neither, so every call answers Unimplemented there — the
-  // boundary the billing suite pins where `billingLedger` is false.
+  // The billing engine's two controllers. Cloud-only by the edition
+  // boundary: the local OSS targets route neither, so every call answers
+  // Unimplemented there — the boundary the billing suite pins where
+  // `billingLedger` is false.
   billingCommand: Client<typeof BillingCommandController>;
   billingQuery: Client<typeof BillingQueryController>;
   // The plan catalog and subscriptions: cloud_only kinds, so the local OSS

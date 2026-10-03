@@ -13,8 +13,6 @@ export interface DocsTabProps {
  *
  * Shows YAML usage examples from the task kind registry and a link to the
  * full documentation page when available.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const DocsTab = memo(function DocsTab({ descriptor }: DocsTabProps) {
   const hasExamples = descriptor.yamlExamples && descriptor.yamlExamples.length > 0;

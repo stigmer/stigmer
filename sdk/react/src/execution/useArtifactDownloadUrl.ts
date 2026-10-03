@@ -62,7 +62,7 @@ export interface UseArtifactDownloadUrlOptions {
  * artifact. For text that should render in-app, prefer {@link useArtifactContent}
  * (CORS-safe, no presign).
  *
- * The URL is cached cross-mount by `storageKey` (DD-014), so repeated renders
+ * The URL is cached cross-mount by `storageKey`, so repeated renders
  * and remounts reuse the same minted URL instead of re-hitting the API.
  *
  * Pass `enabled: false` (or `null` for either id) to skip fetching — consistent

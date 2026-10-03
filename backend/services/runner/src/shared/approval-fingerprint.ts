@@ -129,9 +129,8 @@ export function computeCoarseApprovalFingerprint(key: FingerprintKey, input: Too
  * The key is scoped to one `execution_id`: stable across Temporal re-invocations
  * of the same execution (the gateway approves on one invocation and enforces on
  * the next), and isolated between executions so a fingerprint approved for one
- * cannot be replayed against another. The master-secret source is wired when the
- * gateway first consumes the fingerprint (Slices C/D); until then this is
- * exercised only by tests against a fixed master secret.
+ * cannot be replayed against another. The master secret is the runner's HITL
+ * secret (fingerprint-secret.ts), which both harnesses' turn setup reads.
  */
 export function deriveExecutionFingerprintKey(masterSecret: FingerprintKey, executionId: string): Buffer {
   return createHmac("sha256", masterSecret).update(executionId, "utf8").digest();

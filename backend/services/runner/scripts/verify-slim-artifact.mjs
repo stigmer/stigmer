@@ -21,21 +21,43 @@
  *      second failure: a bundle that flattened the dynamic-import load order
  *      (e.g. an ESM esbuild bundle hoisting node:http2) aborts here. Needs no
  *      Temporal — the guard runs before any network I/O.
- *   3. Static mode — boots, creates a Worker (native bridge + pre-built
+ *   3. Cloud mode (not on Windows, see 5) — boots static mode as a cloud
+ *      sandbox starts it (MODE=cloud, a token, a backend endpoint), so the
+ *      cloud-only paths (the http checkpointer, the strict URL guard, the
+ *      stdio MCP refusal) load from the bundle, and treats reaching the
+ *      Temporal dial (an unroutable sentinel address, refused) as success,
+ *      the signal verify-dist-boot.mjs uses. A served turn is the cluster's
+ *      proof.
+ *   4. Cursor SDK — @cursor/sdk imports, and its platform package (the
+ *      helper binaries) resolves, from the artifact as the runner resolves it.
+ *   5. Attach entry (not on Windows) — attach/main.js beside the entry serves readiness,
+ *      refuses a foreign push and stops cleanly (verify-attach-boot.mjs, run
+ *      by the same Node). Skipped on Windows: the waiter runs only in a
+ *      Linux sandbox, and Node on Windows cannot deliver SIGTERM as a signal
+ *      (kill force-terminates), so the clean-stop check could never pass there
+ *      (the desktop's Windows release leg runs this script).
+ *   6. Static mode — boots, creates a Worker (native bridge + pre-built
  *      workflow bundle + sandbox worker thread), reaches RUNNING, and shuts
  *      down gracefully on SIGINT.
- *   4. Manager mode — full IPC lifecycle: ready → addSession → sessionAdded
+ *   7. Manager mode — full IPC lifecycle: ready → addSession → sessionAdded
  *      → shutdown → shutdownComplete, exit 0 — run both tokenless and on the
  *      authenticated path (so the lifecycle is proven with the interceptors armed).
+ *   8. Pool mode (not on Windows) — boots as a hosted warm-pool sandbox does
+ *      (MODE=cloud, STIGMER_POOL_MEMBER_ID, a pool_sandbox-class token whose
+ *      claims are read but never verified at boot) with an OTLP endpoint set,
+ *      as production sets one, and reaches "[pool-member] … ready" polling its
+ *      control queue. Pool mode runs the runner manager, so this is the path
+ *      that once died resolving the OTel workflow module the slim artifact
+ *      does not stage (stigmer/stigmer#1810).
  *
- * Checks 1–2 need no Temporal; checks 3–4 require a reachable Temporal server
+ * Checks 1–5 need no Temporal; checks 6–8 require a reachable Temporal server
  * (default localhost:7233, override with TEMPORAL_SERVICE_ADDRESS), e.g.:
  *
  *   temporal server start-dev --headless
  *
  * Usage:
  *   node scripts/verify-slim-artifact.mjs               # full suite (needs Temporal)
- *   node scripts/verify-slim-artifact.mjs --no-temporal # size + authed guard only
+ *   node scripts/verify-slim-artifact.mjs --no-temporal # checks 1–5 only
  *
  * By default the subject is this package's dist-slim/, booted by `node` from
  * PATH. Two options point the same checks at the artifact as an embedder ships
@@ -47,13 +69,16 @@
  *
  * The desktop app runs exactly that after staging its bundle
  * (client-apps/desktop/scripts/verify-staged-runtime.mjs): its pinned Node
- * runtime against resources/runner, whose entry is dist/main.js.
+ * runtime against resources/runner, whose entry is dist/main.js. The sandbox
+ * image's release smoke runs it inside the image against /runner/dist with
+ * /runner/bin/node. The script imports only Node built-ins and its sibling
+ * verify-attach-boot.mjs, so it runs from a mounted checkout.
  */
 
-import { spawn } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -74,10 +99,10 @@ const entry = options.entry;
 const temporalAddress = process.env.TEMPORAL_SERVICE_ADDRESS ?? "localhost:7233";
 const sizeBudgetMb = Number(process.env.SLIM_SIZE_BUDGET_MB ?? 120);
 
-// When set, run only the checks that need no Temporal server: the size budget
-// and the authenticated boot guard. This is the slice the dev-publish fast path
-// (publish-dev-local.sh) runs, so a slim build can never reach the dev channel
-// without at least proving its interceptor load order survived bundling.
+// When set, run only the checks that need no Temporal server (1–5 above).
+// This is the slice the dev-publish fast path (publish-dev-local.sh) runs, so
+// a slim build can never reach the dev channel without at least proving its
+// interceptor load order survived bundling.
 const skipTemporalBoots = options["no-temporal"] || process.env.SLIM_VERIFY_SKIP_TEMPORAL === "1";
 
 const BOOT_TIMEOUT_MS = 90_000;
@@ -223,7 +248,81 @@ async function verifyAuthedGuard() {
   });
 }
 
-// ─── 2. Static mode ──────────────────────────────────────────────────────────
+// ─── Cloud mode (no Temporal required) ──────────────────────────────────────
+
+/**
+ * Boots static mode the way a cloud sandbox starts the runner and succeeds at
+ * the Temporal dial: the runner logs its mode once its configuration loaded,
+ * then dies dialing a sentinel address only this script uses. A fatal error
+ * that does not name the sentinel is a load failure before the dial.
+ */
+const CLOUD_SENTINEL_ADDRESS = "127.0.0.1:65003";
+
+async function verifyCloudMode() {
+  return new Promise((resolve, reject) => {
+    const proc = bootRunner({
+      MODE: "cloud",
+      STIGMER_TOKEN: DUMMY_TOKEN,
+      STIGMER_BACKEND_ENDPOINT: "http://127.0.0.1:65004",
+      STIGMER_TASK_QUEUE: "session:verify-slim",
+      TEMPORAL_SERVICE_ADDRESS: CLOUD_SENTINEL_ADDRESS,
+      HOME: join(isolatedDir, "home"),
+    });
+    let output = "";
+    const timer = setTimeout(() => {
+      proc.kill("SIGKILL");
+      reject(new Error(`cloud mode did not reach the Temporal dial within ${BOOT_TIMEOUT_MS}ms.\n${output.slice(-2000)}`));
+    }, BOOT_TIMEOUT_MS);
+    proc.stdout.on("data", (chunk) => (output += chunk));
+    proc.stderr.on("data", (chunk) => (output += chunk));
+    proc.on("exit", (code) => {
+      clearTimeout(timer);
+      if (/Mode: cloud/.test(output) && output.includes(CLOUD_SENTINEL_ADDRESS)) resolve();
+      else reject(new Error(`cloud mode exited (code ${code}) before the Temporal dial.\n${output.slice(-2000)}`));
+    });
+  });
+}
+
+// ─── Cursor SDK (no Temporal required) ──────────────────────────────────────
+
+/**
+ * Imports @cursor/sdk and resolves its platform package from beside the
+ * entry, where the runner's own dynamic import resolves them. The probe is
+ * written into the isolated copy, so nothing resolves from this checkout.
+ */
+function verifyCursorSdk() {
+  const probe = join(dirname(join(isolatedDir, entry)), "verify-cursor-sdk.mjs");
+  writeFileSync(
+    probe,
+    `import { createRequire } from "node:module";
+await import("@cursor/sdk");
+const sdk = createRequire(import.meta.resolve("@cursor/sdk"));
+console.log(sdk.resolve(\`@cursor/sdk-\${process.platform}-\${process.arch}/package.json\`));
+`,
+  );
+  const result = spawnSync(nodeBinary, [probe], { cwd: isolatedDir, encoding: "utf8", timeout: BOOT_TIMEOUT_MS });
+  rmSync(probe);
+  if (result.status !== 0) {
+    throw new Error(`@cursor/sdk did not load from the artifact (exit ${result.status}).\n${(result.stderr ?? "").slice(-2000)}`);
+  }
+  return result.stdout.trim();
+}
+
+// ─── Attach entry (no Temporal required) ────────────────────────────────────
+
+function verifyAttachEntry() {
+  const script = fileURLToPath(new URL("./verify-attach-boot.mjs", import.meta.url));
+  const artifact = dirname(join(isolatedDir, entry));
+  const result = spawnSync(nodeBinary, [script, "--node", nodeBinary, "--artifact", artifact], {
+    encoding: "utf8",
+    timeout: BOOT_TIMEOUT_MS,
+  });
+  if (result.status !== 0) {
+    throw new Error(`the attach entry failed its boot.\n${`${result.stdout}${result.stderr}`.slice(-2000)}`);
+  }
+}
+
+// ─── 6. Static mode ──────────────────────────────────────────────────────────
 
 async function verifyStaticMode() {
   return new Promise((resolve, reject) => {
@@ -259,7 +358,50 @@ async function verifyStaticMode() {
   });
 }
 
-// ─── 3. Manager mode ─────────────────────────────────────────────────────────
+// ─── 8. Pool mode ────────────────────────────────────────────────────────────
+
+/** An unsigned JWT whose only claim is a pool member's token class. */
+function poolSandboxToken() {
+  const part = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${part({ alg: "none", typ: "JWT" })}.${part({ token_type: "pool_sandbox" })}.verify-slim`;
+}
+
+async function verifyPoolMode() {
+  return new Promise((resolve, reject) => {
+    const proc = bootRunner({
+      MODE: "cloud",
+      STIGMER_POOL_MEMBER_ID: "pm_verify_slim",
+      STIGMER_TOKEN: poolSandboxToken(),
+      STIGMER_BACKEND_ENDPOINT: "http://127.0.0.1:65004",
+      // Unreachable on purpose: nothing exports before ready; what matters is
+      // that the OTel interceptors load as they do in production.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:65005",
+      HOME: join(isolatedDir, "home-pool"),
+    });
+    let output = "";
+    let ready = false;
+    const timer = setTimeout(() => {
+      proc.kill("SIGKILL");
+      reject(new Error(`pool mode did not reach ready within ${BOOT_TIMEOUT_MS}ms.\n${output.slice(-2000)}`));
+    }, BOOT_TIMEOUT_MS);
+    const onData = (chunk) => {
+      output += chunk;
+      if (!ready && /\[pool-member\] pm_verify_slim ready/.test(output)) {
+        ready = true;
+        proc.kill("SIGKILL");
+      }
+    };
+    proc.stdout.on("data", onData);
+    proc.stderr.on("data", onData);
+    proc.on("exit", (code) => {
+      clearTimeout(timer);
+      if (ready) resolve();
+      else reject(new Error(`pool mode exited (code ${code}) before ready.\n${output.slice(-2000)}`));
+    });
+  });
+}
+
+// ─── 7. Manager mode ─────────────────────────────────────────────────────────
 
 async function verifyManagerMode(extraEnv = {}) {
   return new Promise((resolve, reject) => {
@@ -338,9 +480,27 @@ try {
   // bundling. This is the check the dev-publish fast path relies on.
   await verifyAuthedGuard();
   console.log("[guard]  OK: authenticated boot passed assertHttp2ConnectPatched (interceptor load order intact)");
+  // Cloud mode and the attach waiter run only in Linux sandboxes; Windows
+  // (the desktop's release leg runs this script there) has neither, and its
+  // Node cannot deliver SIGTERM as a signal, so both are skipped there.
+  const windows = process.platform === "win32";
+  if (windows) {
+    console.log("[cloud]  skipped on Windows: cloud mode runs only in Linux sandboxes");
+  } else {
+    await verifyCloudMode();
+    console.log("[cloud]  OK: MODE=cloud loaded its configuration and reached the Temporal dial");
+  }
+  const cursorPlatform = verifyCursorSdk();
+  console.log(`[cursor] OK: @cursor/sdk imported; its platform package resolved at ${cursorPlatform}`);
+  if (windows) {
+    console.log("[attach] skipped on Windows: the attach waiter runs only in Linux sandboxes");
+  } else {
+    verifyAttachEntry();
+    console.log("[attach] OK: the attach entry served readiness, refused a foreign push and stopped cleanly");
+  }
 
   if (skipTemporalBoots) {
-    console.log("verify-slim-artifact: PASS (size + authed guard; Temporal boots skipped via --no-temporal)");
+    console.log("verify-slim-artifact: PASS (checks 1–5; Temporal boots skipped via --no-temporal)");
   } else {
     await verifyStaticMode();
     console.log("[static] OK: worker reached RUNNING and shut down gracefully");
@@ -355,6 +515,12 @@ try {
       STIGMER_PROXY_ENDPOINT: DUMMY_PROXY_ENDPOINT,
     });
     console.log("[mgr+auth] OK: authenticated manager lifecycle booted end-to-end against Temporal");
+    if (windows) {
+      console.log("[pool]   skipped on Windows: pool mode runs only in Linux sandboxes");
+    } else {
+      await verifyPoolMode();
+      console.log("[pool]   OK: a warm-pool member with an OTLP endpoint reached ready on its control queue");
+    }
     console.log("verify-slim-artifact: PASS");
   }
 } catch (err) {

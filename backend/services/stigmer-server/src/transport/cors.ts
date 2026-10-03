@@ -6,7 +6,7 @@
  * byte-for-byte port of pkg/server/registry_cors.go (oss#571) —
  * `Access-Control-Allow-Origin: *` on every response; OPTIONS answered 204
  * with the fixed `GET, OPTIONS` / `Authorization, Content-Type` allow-lists.
- * Asserted by the CW-10 conformance suite.
+ * Asserted by the registry-proxy conformance suite.
  *
  * RPC lane (`applyRpcCors`/`isRpcPreflight`): mirrors what the Go server's
  * gRPC-Web wrapper actually does — improbable-eng/grpc-web v0.15.0 wrapping

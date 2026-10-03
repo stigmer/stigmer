@@ -19,10 +19,10 @@ export interface UseConversationListOptions {
   /** Optional filter: only conversations on this agent channel. */
   readonly agentChannelId?: string;
   /**
-   * Optional server-evaluated predicate filter (channel-conversations
-   * DD-011 D-g). The generated enum is the vocabulary on purpose — the
-   * predicate lives in ONE place, the server, and the hook never
-   * re-expresses it. Defaults to unspecified (no filter).
+   * Optional server-evaluated predicate filter. The generated enum is
+   * the vocabulary on purpose — the predicate lives in ONE place, the
+   * server, and the hook never re-expresses it. Defaults to
+   * unspecified (no filter).
    */
   readonly filter?: ChannelConversationListFilter;
   /** Page size for the head page and each loadMore page. Default 50. */
@@ -66,8 +66,8 @@ export interface UseConversationListReturn {
   /**
    * Adopt a fresh row the server just returned — every participation
    * command answers the post-command state, and that answer is newer
-   * than anything a poll already in flight will deliver (DD-012 D-a:
-   * your own action reflects immediately, zero polls involved). The row
+   * than anything a poll already in flight will deliver (your own
+   * action reflects immediately, zero polls involved). The row
    * overrides the listed copy for exactly one round-trip: applying also
    * starts a fresh head fetch, and the override is dropped when a page
    * provably fetched after the apply answers.
@@ -109,10 +109,10 @@ function activityMillisOf(conversation: ChannelConversation): number {
 }
 
 /**
- * Data hook for the org-wide conversation list (channel-conversations
- * DD-004): newest activity first across every channel the caller can
- * view, optionally narrowed to one channel and/or a server-evaluated
- * predicate ({@link ChannelConversationListFilter}).
+ * Data hook for the org-wide conversation list: newest activity first
+ * across every channel the caller can view, optionally narrowed to one
+ * channel and/or a server-evaluated predicate ({@link
+ * ChannelConversationListFilter}).
  *
  * The head page rides `useFetch` and polls; older pages accumulate via
  * {@link UseConversationListReturn.loadMore} and are merged with head
@@ -138,7 +138,7 @@ function activityMillisOf(conversation: ChannelConversation): number {
  * equality — the same scope the hook sends to the server), and under a
  * server-evaluated predicate filter the overlay is update-only, because
  * the client cannot honestly claim membership the server has not
- * asserted (the DD-011 A-1 one-predicate discipline). Updates in place
+ * asserted (the predicate lives once, on the server). Updates in place
  * are always honest: the server listed the row.
  */
 export function useConversationList(
@@ -185,7 +185,7 @@ export function useConversationList(
     EMPTY_HEAD,
     {
       refetchInterval: refetchIntervalMs,
-      // DD-012 D-a: returning to the tab is fresh.
+      // Returning to the tab is fresh.
       refetchOnWindowFocus: true,
     },
   );

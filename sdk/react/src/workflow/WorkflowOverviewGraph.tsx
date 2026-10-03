@@ -65,7 +65,7 @@ const defaultEdgeOptions = {
  * Supports pan, zoom, minimap, and a click-to-inspect popover on task nodes.
  *
  * Designed for embedding in both the Stigmer Console and third-party
- * dashboards — no routing, auth, or app-shell dependencies (DD-004).
+ * dashboards — no routing, auth, or app-shell dependencies.
  *
  * @example
  * ```tsx

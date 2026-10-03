@@ -2,7 +2,7 @@
 // runner, web console) plus the effective LLM configuration.
 //
 // Thin handler: build the structured result in the local subsystem and render
-// it. The local module loads lazily so `--help` stays fast (DD-001).
+// it. The local module loads lazily so `--help` stays fast.
 
 import type { Command } from "commander";
 import { type OutputFlags, renderResult } from "../output/index.js";

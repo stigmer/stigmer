@@ -9,7 +9,7 @@ import { toast } from "../feedback/toast.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import { useEditResourceYaml } from "./useEditResourceYaml.js";
 
-// CodeMirror loads only when an editor dialog actually opens (DD-013).
+// CodeMirror loads only when an editor dialog actually opens.
 const LazyYamlEditor = lazy(() =>
   import("./YamlEditor.js").then((m) => ({ default: m.YamlEditor })),
 );

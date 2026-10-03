@@ -279,7 +279,7 @@ export interface UseSessionConversationReturn {
   /** Captured change sets awaiting file review on the active execution, empty when none. */
   readonly fileChangeSets: readonly FileChangeSet[];
   /**
-   * Mid-run live capture (DD-32): the transient, non-authoritative snapshot of the
+   * Mid-run live capture: the transient, non-authoritative snapshot of the
    * workspace delta accumulating during the active turn ("N files changed so far").
    * Undefined when no turn is currently capturing. Never decidable — the reviewed
    * diff is {@link fileChangeSets}.
@@ -564,7 +564,7 @@ export function useSessionConversation(
   // Dep is the scalar link, NOT stream.execution: the stream object changes
   // reference every frame, and rebuilding the Set per frame would hand
   // MessageThread a fresh executions array mid-stream, defeating its
-  // memoization (DD-010).
+  // memoization.
   const streamSupersededId =
     stream.execution?.spec?.supersedesExecutionId || null;
   const supersededIds = useMemo(
@@ -746,10 +746,10 @@ export function useSessionConversation(
     [activeStreamExecution],
   );
 
-  // Mid-run live capture (DD-32): the transient, non-authoritative "N files
+  // Mid-run live capture: the transient, non-authoritative "N files
   // changed so far" snapshot for the active turn. The server clears it once the
   // turn's change set leaves CAPTURING, so its mere presence means a turn is
-  // still accumulating changes. Reference-stable per DD-010 (it rides the
+  // still accumulating changes. Reference-stable (it rides the
   // structurally-shared live status).
   const fileChangeProgress = useMemo<FileChangeProgress | undefined>(
     () => activeStreamExecution?.status?.fileChangeProgress,

@@ -118,8 +118,6 @@ const SEPARATOR_CLASS =
  * Uses `@base-ui/react/menu` in controlled mode with a virtual anchor
  * positioned at the right-click coordinates. Portaled via
  * `useStigmerPortalContainer()` to inherit `--stgm-*` tokens.
- *
- * @since T05 (Context Menu + Duplicate)
  */
 export const CanvasContextMenu = memo(function CanvasContextMenu({
   open,

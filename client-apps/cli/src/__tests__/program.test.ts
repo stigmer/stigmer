@@ -10,19 +10,19 @@ describe("buildProgram", () => {
     expect(names).toContain("completion");
   });
 
-  it("registers the Wave 2b read commands", () => {
+  it("registers the read commands", () => {
     const program = buildProgram();
     const names = program.commands.map((command) => command.name());
     expect(names).toEqual(expect.arrayContaining(["search", "usage", "diff"]));
   });
 
-  it("registers the Wave 2d artifact commands", () => {
+  it("registers the artifact commands", () => {
     const program = buildProgram();
     const names = program.commands.map((command) => command.name());
     expect(names).toEqual(expect.arrayContaining(["push", "download"]));
   });
 
-  it("registers the Wave 3c streaming commands", () => {
+  it("registers the streaming commands", () => {
     const program = buildProgram();
     const names = program.commands.map((command) => command.name());
     expect(names).toEqual(expect.arrayContaining(["run", "resume"]));

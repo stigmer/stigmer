@@ -35,13 +35,13 @@ const NEEDS_CREDENTIALS: ToolCredentialsReadiness = { status: "needs-credentials
  * shared with the organization (`visibility_org`).
  *
  * The runtime resolves connection-bound credentials exclusively through
- * the org-shared environment seam (decision 011 — the agent's default
+ * the org-shared environment seam (the agent's default
  * instance stays pristine and is never consulted). So a tool-using
  * agent with an empty binding list is *guaranteed* broken for the
  * connection's users, and this hook says so explicitly
  * (`needs-credentials`) instead of staying silent — the gap that made a
  * share misconfiguration invisible until a visitor's first message
- * failed (sharing project, session 12).
+ * failed.
  *
  * `applicable` is the caller's predicate: connection kinds differ in
  * when the check matters (shares add an audience arm; channels do not),

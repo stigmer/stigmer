@@ -165,13 +165,24 @@ Session), `kubernetes` (a Deployment per Session in the namespace
 per Session that sleeps while the Session is idle, below). The container drivers
 need the addresses a sandbox reaches the server and Temporal on,
 `STIGMER_SANDBOX_BACKEND_ENDPOINT` and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and
-take the image and command from `STIGMER_SANDBOX_RUNNER_IMAGE` and
-`STIGMER_SANDBOX_RUNNER_COMMAND`. Every driver hands its runners the server's
-public address when `STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT` names it; without it,
-remote tool servers that declare `STIGMER_SERVER_ADDRESS` get no address. Each
-sandboxed runner gets the server's Temporal namespace and its
-`STIGMER_TEMPORAL_*` connection settings, the credentials through the same
+take the image from `STIGMER_SANDBOX_RUNNER_IMAGE`; `local-process` runs the
+executable `STIGMER_SANDBOX_RUNNER_COMMAND` names. Every driver hands its
+runners the server's public address when `STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`
+names it; without it, remote tool servers that declare `STIGMER_SERVER_ADDRESS`
+get no address. Each sandboxed runner gets the server's Temporal namespace and
+its `STIGMER_TEMPORAL_*` connection settings, the credentials through the same
 channel as the runner's token.
+
+A released server (the server image, the all-in-one image) defaults the image to
+`ghcr.io/stigmer/runner` at its own release, `v<version>`, so it starts a runner
+it knows how to launch. A development build, or a program that embeds the
+`@stigmer/server` library, defaults to `latest`; name the image there. The image
+is Stigmer's default base image (Debian with git, Node.js, Python, Go, ripgrep,
+and the other tools Agents use) with the runner layer added. Everything of the
+runner lives under `/runner`, and the drivers start it with its own Node,
+`/runner/bin/node`, so the `node` an Agent's commands run is the base image's,
+not the runner's. The image's own command is a shell; the container drivers set
+the runner's command themselves.
 
 A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
 runner needs the keys the shared runner would have. Name them in two lists on

@@ -13,7 +13,7 @@
 //
 // Resources marshal strictly from YAML to full protos and apply through the raw
 // command controllers (preserving metadata.id so updates aren't misrouted as
-// creates). Heavy modules are lazy-imported so `--help` stays fast (DD-001).
+// creates). Heavy modules are lazy-imported so `--help` stays fast.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Command } from "commander";

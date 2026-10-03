@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 // Monochrome, shape-differentiated file icons. Deliberately NOT colored with
-// language brand colors: DD-005 forbids hardcoded colors, and every glyph must
+// language brand colors: the SDK forbids hardcoded colors, and every glyph must
 // tint from `currentColor` so it inherits the row's `--stgm-*` token in every
 // preset and color mode (like VS Code's "Minimal" icon theme). Recognition
 // comes from distinct shapes per broad category, not from color.

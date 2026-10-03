@@ -91,7 +91,7 @@ async function openAddAfterPicker(page: Page, node: Locator): Promise<void> {
   await waitForPickerLoaded(page);
 }
 
-test.describe("Workflow task insertion (T08)", () => {
+test.describe("Workflow task insertion", () => {
   // Canvas interactions are geometry-sensitive: at the default 1280×720
   // viewport the editor canvas column is ~330px wide and the minimap
   // overlay covers most of its lower area, intercepting pointer events on

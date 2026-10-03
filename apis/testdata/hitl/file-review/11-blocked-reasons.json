@@ -1,6 +1,6 @@
 {
   "name": "blocked-reasons",
-  "description": "A PARTIAL_BLOCKED change set carrying all three per-file block reasons (doc 15): a reviewable file (UNSPECIFIED), a secret-withheld content-less file (SECRET_WITHHELD), and a size-elided file (SIZE_ELIDED, digests kept, bodies dropped). Locks that blocked_reason survives the protojson persist->project->read round-trip identically in Go and Java (Java's JsonFormat drops UNKNOWN fields, so this proves the regenerated stubs carry the field), and — since aggregate_digest is 'agg-cs11' regardless — that the informational reason is never folded into a digest.",
+  "description": "A PARTIAL_BLOCKED change set carrying all three per-file block reasons: a reviewable file (UNSPECIFIED), a secret-withheld content-less file (SECRET_WITHHELD), and a size-elided file (SIZE_ELIDED, digests kept, bodies dropped). Locks that blocked_reason survives the protojson persist->project->read round-trip identically in every implementation that loads this corpus (stubs without the field would refuse or drop it on read, so the round-trip proves the regenerated stubs carry it), and — since aggregate_digest is 'agg-cs11' regardless — that the informational reason is never folded into a digest.",
   "execution_id": "aex_blocked_reasons",
   "phase": "EXECUTION_WAITING_FOR_APPROVAL",
   "events": [

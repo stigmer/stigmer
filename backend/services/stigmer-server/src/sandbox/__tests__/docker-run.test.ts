@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import { buildDockerRun } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
 import type { SandboxDriverConfig } from "../provisioner.js";
+import { runnerCommand } from "../runner-launch.js";
 
 const config: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
@@ -43,8 +44,7 @@ describe("buildDockerRun", () => {
     expect(args).not.toContain("STIGMER_MCP_PUBLIC_ENDPOINT=");
     expect(args.slice(-3)).toEqual([
       "ghcr.io/stigmer/runner:latest",
-      "node",
-      "/runner/dist/main.js",
+      ...runnerCommand(),
     ]);
   });
 

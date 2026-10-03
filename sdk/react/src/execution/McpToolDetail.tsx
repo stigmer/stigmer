@@ -87,7 +87,7 @@ function formatBytes(n: number): string {
  * computer-use screenshot). The bytes are resolved on demand from the stable
  * `storageKey` — never from a baked URL, which expires. Images render inline via
  * a freshly minted URL; other large output expands in-app. Mirrors ResultView's
- * outputRef treatment so MCP and non-MCP offloads look consistent (DD-016).
+ * outputRef treatment so MCP and non-MCP offloads look consistent.
  */
 function McpOffloadedOutputView({
   outputRef,

@@ -7,8 +7,6 @@
  * 3. All edges from the "after" graph plus removed edges from "before"
  *
  * Caller applies `applyDagreLayout()` to the result for positioning.
- *
- * @since T14 (AI-Assisted Workflow Creation)
  */
 
 import type {

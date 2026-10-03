@@ -85,9 +85,24 @@
  * Every ensure, delete and lifecycle operation on one actor runs through
  * one in-process queue, so a turn and the idle sweep (sweep.ts) never
  * interleave on an actor within one server.
+ *
+ * The lifecycle is everything an idle sweep needs except the decision of
+ * what is idle, which belongs to whoever keeps the sweep: open source's
+ * own (sweep.ts) or a composition that keeps records of its sandboxes and
+ * runs its own. So pause and suspend take a guard the sweep answers inside
+ * the actor's queue, from fresh reads, right before the call (and, after a
+ * pause, once more: a turn that arrived while the pause was in flight
+ * thaws the sandbox at once); `maintain` is a pass's upkeep over the
+ * sweep's own listing (a delete repeated, egress made current, a sleeping
+ * sandbox moved to the current template, unused templates retired); and
+ * `prepare` readies the template before the first turn needs it.
  */
 import type { Logger } from "../../boot/logger.js";
-import { SANDBOX_QUEUE_PREFIXES, sandboxBaseName } from "../naming.js";
+import {
+  isSandboxBaseName,
+  sandboxBaseName,
+  sandboxTaskQueue,
+} from "../naming.js";
 import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
 import type {
   SandboxDriverConfig,
@@ -115,6 +130,7 @@ import {
   buildRunnerTemplate,
   newTemplateKeeper,
   TEMPLATE_NAME_PREFIX,
+  type SubstrateRunnerMode,
   type TemplateKeeper,
 } from "./template.js";
 
@@ -141,13 +157,57 @@ export interface SubstrateActorSummary {
 }
 
 /**
+ * The sweep's answer, asked inside the actor's queue right before a pause
+ * or suspend, from the actor as it is now: whether the call should still
+ * be made. A turn that woke the sandbox, or a session that became busy,
+ * since the sweep decided says no.
+ */
+export interface SubstrateSleepGuard {
+  proceed(actor: SubstrateActorSummary): Promise<boolean>;
+}
+
+/**
+ * A pause's guard also answers once the pause has landed: a turn that
+ * arrived while it was in flight (on this server or another) is seen here
+ * and the sandbox is thawed in place.
+ */
+export interface SubstratePauseGuard extends SubstrateSleepGuard {
+  stillIdle(): Promise<boolean>;
+}
+
+/** What a guarded pause or suspend did. */
+export type SubstrateSleepOutcome = "done" | "skipped" | "thawed";
+
+/** What one pass of upkeep did (SubstrateSandboxLifecycle.maintain). */
+export interface SubstrateMaintenance {
+  /** Sandboxes left DELETING by a delete that failed part-way, deleted again. */
+  readonly redeleted: number;
+  /** Awake sandboxes whose egress policy this pass made this configuration's. */
+  readonly egressReconciled: number;
+  /** Sleeping sandboxes moved to the current template. */
+  readonly moved: number;
+  /** Templates no sandbox uses any more, deleted. */
+  readonly retired: number;
+}
+
+/**
  * The lifecycle operations, once, for every composition of this driver:
  * the open-source idle sweep uses them, and a composition with its own
- * records and its own sweep calls the same ones.
+ * records and its own sweep calls the same ones (module header).
  */
 export interface SubstrateSandboxLifecycle {
-  pause(scope: SandboxScope, id: string): Promise<void>;
-  suspend(scope: SandboxScope, id: string): Promise<void>;
+  /** Pauses; with a guard, only if it proceeds, and thawed again if it is no longer idle afterwards. */
+  pause(
+    scope: SandboxScope,
+    id: string,
+    guard?: SubstratePauseGuard,
+  ): Promise<SubstrateSleepOutcome>;
+  /** Suspends to storage; with a guard, only if it proceeds. */
+  suspend(
+    scope: SandboxScope,
+    id: string,
+    guard?: SubstrateSleepGuard,
+  ): Promise<SubstrateSleepOutcome>;
   /** The ensure: wakes (or creates) the sandbox and pushes its attachment. */
   resume(
     scope: SandboxScope,
@@ -155,6 +215,13 @@ export interface SubstrateSandboxLifecycle {
     env: SandboxEnvironment,
   ): Promise<void>;
   delete(scope: SandboxScope, id: string): Promise<void>;
+  /**
+   * Deletes a sandbox known only by its listed name (list()): a
+   * composition's orphan, whose owner is gone, so its scope and id are
+   * not to hand. Refuses a name this driver never gives (a template's own
+   * actor).
+   */
+  deleteByName(name: string): Promise<void>;
   /**
    * A push with no lifecycle call: hands a running sandbox a fresh token
    * for its next restart, for a composition that renews tokens. A sandbox
@@ -167,8 +234,26 @@ export interface SubstrateSandboxLifecycle {
     env: SandboxEnvironment,
   ): Promise<SubstrateReattachResult>;
   list(): Promise<SubstrateActorSummary[]>;
+  /**
+   * One pass of upkeep over the caller's listing (list()): repeats a delete
+   * left part-way, makes an awake sandbox's egress policy this
+   * configuration's (once per process), moves a sleeping sandbox on an
+   * older template to the current one, then retires unused templates. A
+   * sandbox whose upkeep fails is logged and skipped. `stopping` ends the
+   * pass after the sandbox in hand, before any template is retired.
+   */
+  maintain(
+    listed: readonly SubstrateActorSummary[],
+    options?: { readonly stopping?: () => boolean },
+  ): Promise<SubstrateMaintenance>;
   /** Deletes this server's templates no actor uses any more; returns how many. */
   retireTemplates(): Promise<number>;
+  /**
+   * Prepares the current template (its golden snapshot) so the first turn
+   * rarely waits for it. Never rejects: a failure is logged and the next
+   * ensure prepares it again.
+   */
+  prepare(): Promise<void>;
 }
 
 /** What a reattach did: pushed, with the waiter's answer, or nothing, because the sandbox was not running. */
@@ -190,13 +275,6 @@ export interface SubstrateDriverInternals {
   lastEnsuredAt(name: string): Date | undefined;
   /** The session a session actor serves, as this process's ensures learned it. */
   readonly sessionByActor: Map<string, string>;
-  /**
-   * Makes the actor's egress policy this configuration's, once per process
-   * for an actor this process has not reconciled yet (module header).
-   */
-  reconcileEgress(name: string): Promise<void>;
-  /** Moves a SUSPENDED actor to the current template when it is ready; logs a refusal once. */
-  moveToCurrent(actor: SubstrateActorView): Promise<void>;
 }
 
 export interface SubstrateSandboxDriver {
@@ -210,6 +288,8 @@ export interface SubstrateDriverOptions {
   readonly settings: SubstrateDriverSettings;
   readonly logger: Logger;
   readonly gateway: SubstrateGateway;
+  /** The runner's MODE in every sandbox (template.ts); `local` when absent. */
+  readonly runnerMode?: SubstrateRunnerMode;
   readonly fetch?: typeof fetch;
   readonly now?: () => number;
   readonly sleep?: (ms: number) => Promise<void>;
@@ -285,7 +365,11 @@ export function newSubstrateSandboxDriverOverGateway(
   const egressRules: readonly EgressRule[] = buildEgressRules(config, settings);
   const keeper = newTemplateKeeper({
     gateway,
-    template: buildRunnerTemplate({ config, settings }),
+    template: buildRunnerTemplate({
+      config,
+      settings,
+      runnerMode: options.runnerMode ?? "local",
+    }),
     logger,
     sleep: wait,
     now,
@@ -335,7 +419,7 @@ export function newSubstrateSandboxDriverOverGateway(
     id: string,
     taskQueue: string,
   ): void {
-    const expected = `${SANDBOX_QUEUE_PREFIXES[scope]}${id}`;
+    const expected = sandboxTaskQueue(scope, id);
     if (taskQueue !== expected) {
       throw new Error(
         `the ${scope} sandbox for ${id} serves ${expected}, not ${taskQueue}`,
@@ -366,8 +450,9 @@ export function newSubstrateSandboxDriverOverGateway(
     );
   }
 
-  async function moveToCurrent(actor: SubstrateActorView): Promise<void> {
-    if (actor.template === keeper.name || !keeper.readyNow()) return;
+  /** Moves a SUSPENDED actor to the current template when it is ready; logs a refusal once; true when it moved. */
+  async function moveToCurrent(actor: SubstrateActorView): Promise<boolean> {
+    if (actor.template === keeper.name || !keeper.readyNow()) return false;
     const moved = await gateway.moveActor(actor, keeper.name);
     if (moved === "moved") {
       logger.info("Substrate sandbox moved to the current template", {
@@ -375,7 +460,7 @@ export function newSubstrateSandboxDriverOverGateway(
         from: actor.template,
         to: keeper.name,
       });
-      return;
+      return true;
     }
     if (!refusedMoves.has(actor.name)) {
       refusedMoves.add(actor.name);
@@ -384,6 +469,7 @@ export function newSubstrateSandboxDriverOverGateway(
         { actor: actor.name, template: actor.template, current: keeper.name },
       );
     }
+    return false;
   }
 
   async function settle(name: string): Promise<SubstrateActorView | undefined> {
@@ -569,12 +655,22 @@ export function newSubstrateSandboxDriverOverGateway(
 
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
     const name = sandboxBaseName(scope, id);
+    await deleteNamed(name);
+    logger.info("Substrate sandbox deleted", { scope, id, actor: name });
+  }
+
+  /** Deletes the actor `name` and forgets what this process knew of it. */
+  async function deleteNamed(name: string): Promise<void> {
     await serialize(name, () => gateway.deleteActor(name));
+    forget(name);
+  }
+
+  /** Forgets what this process knew of a deleted actor. */
+  function forget(name: string): void {
     ensuredAt.delete(name);
     sessionByActor.delete(name);
     egressReconciled.delete(name);
     startedHere.delete(name);
-    logger.info("Substrate sandbox deleted", { scope, id, actor: name });
   }
 
   const provisioner: SandboxProvisioner = {
@@ -599,17 +695,48 @@ export function newSubstrateSandboxDriverOverGateway(
     },
   };
 
+  /** Asks a guard about the actor as it is now; an actor that is gone never proceeds. */
+  async function proceeds(
+    name: string,
+    guard: SubstrateSleepGuard | undefined,
+  ): Promise<boolean> {
+    if (guard === undefined) return true;
+    const actor = await gateway.getActor(name);
+    return actor !== undefined && (await guard.proceed(summaryOf(actor)));
+  }
+
   const lifecycle: SubstrateSandboxLifecycle = {
-    pause: (scope, id) => {
+    pause: (scope, id, guard) => {
       const name = sandboxBaseName(scope, id);
-      return serialize(name, () => gateway.pauseActor(name));
+      return serialize(name, async (): Promise<SubstrateSleepOutcome> => {
+        if (!(await proceeds(name, guard))) return "skipped";
+        await gateway.pauseActor(name);
+        if (guard !== undefined && !(await guard.stillIdle())) {
+          await gateway.resumeActor(name);
+          return "thawed";
+        }
+        return "done";
+      });
     },
-    suspend: (scope, id) => {
+    suspend: (scope, id, guard) => {
       const name = sandboxBaseName(scope, id);
-      return serialize(name, () => gateway.suspendActor(name));
+      return serialize(name, async (): Promise<SubstrateSleepOutcome> => {
+        if (!(await proceeds(name, guard))) return "skipped";
+        await gateway.suspendActor(name);
+        return "done";
+      });
     },
     resume: (scope, id, env) => ensure(scope, id, env),
     delete: (scope, id) => deprovision(scope, id),
+    async deleteByName(name) {
+      if (!isSandboxBaseName(name)) {
+        throw new Error(
+          `${name} is not a sandbox this driver names (sbx-<scope>-<12 hex>); refusing to delete it`,
+        );
+      }
+      await deleteNamed(name);
+      logger.info("Substrate sandbox deleted by name", { actor: name });
+    },
     reattach: (scope, id, env) => {
       assertQueue(scope, id, env.taskQueue);
       const name = sandboxBaseName(scope, id);
@@ -631,6 +758,81 @@ export function newSubstrateSandboxDriverOverGateway(
     },
     async list() {
       return (await gateway.listActors()).map(summaryOf);
+    },
+    async maintain(listed, options) {
+      const stopping = options?.stopping ?? (() => false);
+      let redeleted = 0;
+      let reconciled = 0;
+      let moved = 0;
+      for (const actor of listed) {
+        // A shutdown waits for the sandbox in hand, never for the whole pass.
+        if (stopping())
+          return { redeleted, egressReconciled: reconciled, moved, retired: 0 };
+        try {
+          switch (actor.state) {
+            case "deleting":
+              // A delete that failed part-way leaves the actor DELETING;
+              // deleting again resumes it (Substrate's API guide). Re-read
+              // in the queue: the listing may be older than the actor.
+              if (
+                await serialize(actor.name, async () => {
+                  const fresh = await gateway.getActor(actor.name);
+                  if (fresh?.state !== ActorState.DELETING) return false;
+                  await gateway.deleteActor(actor.name);
+                  return true;
+                })
+              ) {
+                forget(actor.name);
+                redeleted += 1;
+              }
+              break;
+            case "suspended":
+              if (actor.template !== keeper.name) {
+                const didMove = await serialize(actor.name, async () => {
+                  const fresh = await gateway.getActor(actor.name);
+                  return fresh?.state === ActorState.SUSPENDED
+                    ? moveToCurrent(fresh)
+                    : false;
+                });
+                if (didMove) moved += 1;
+              }
+              break;
+            case "running":
+            case "paused":
+              // Any scope: a sandbox awake since before this process started
+              // gets this configuration's egress rules now, not at its next
+              // wake (module header).
+              // Re-read in the queue: an ensure may have reconciled it, or
+              // the sweep put it to sleep, since the listing was taken.
+              if (
+                await serialize(actor.name, async () => {
+                  if (egressReconciled.has(actor.name)) return false;
+                  const fresh = await gateway.getActor(actor.name);
+                  if (
+                    fresh?.state !== ActorState.RUNNING &&
+                    fresh?.state !== ActorState.PAUSED
+                  )
+                    return false;
+                  await reconcileEgress(actor.name);
+                  return true;
+                })
+              )
+                reconciled += 1;
+              break;
+            default:
+              break;
+          }
+        } catch (error) {
+          logger.warn("Substrate sandbox upkeep skipped a sandbox", {
+            actor: actor.name,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      if (stopping())
+        return { redeleted, egressReconciled: reconciled, moved, retired: 0 };
+      const retired = await lifecycle.retireTemplates();
+      return { redeleted, egressReconciled: reconciled, moved, retired };
     },
     async retireTemplates() {
       const [templates, actors] = await Promise.all([
@@ -658,6 +860,19 @@ export function newSubstrateSandboxDriverOverGateway(
       }
       return retired;
     },
+    async prepare() {
+      try {
+        await keeper.ready();
+      } catch (error) {
+        logger.error(
+          "Substrate template preparation failed; the next sandbox ensure retries it",
+          {
+            template: keeper.name,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
+      }
+    },
   };
 
   return {
@@ -673,8 +888,6 @@ export function newSubstrateSandboxDriverOverGateway(
         return at === undefined ? undefined : new Date(at);
       },
       sessionByActor,
-      reconcileEgress: (name) => reconcileEgress(name),
-      moveToCurrent,
     },
   };
 }
@@ -692,6 +905,7 @@ const STATE_WORDS: Record<ActorState, SubstrateSandboxState> = {
   [ActorState.REVERTING]: "reverting",
 };
 
+/** An actor as a composition sees it (the lifecycle's listing and its guards). */
 function summaryOf(actor: SubstrateActorView): SubstrateActorSummary {
   return {
     name: actor.name,

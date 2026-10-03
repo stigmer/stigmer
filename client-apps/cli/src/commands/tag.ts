@@ -1,6 +1,6 @@
 // `stigmer tag <type> <org/slug> <hash> <tag>` — assign a tag to a resource
 // version. Thin handler: resolve credentials/org, delegate to the resource
-// layer, render the result. Heavy modules are lazy-imported (DD-001).
+// layer, render the result. Heavy modules are lazy-imported.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";

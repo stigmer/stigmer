@@ -208,7 +208,7 @@ describe("useWorkspaceReadRefs", () => {
     expect(result.current).toBe(entries);
   });
 
-  it("returns a stable array across streaming frames that change no SHA (DD-010)", () => {
+  it("returns a stable array across streaming frames that change no SHA", () => {
     const entries = [gitEntry({ name: "acme/api" })];
     const { result, rerender } = renderHook(
       (props: { executions: readonly AgentExecution[] }) =>

@@ -6,8 +6,7 @@ import { Backdrop } from "./FramedShot";
  * S3b — "defined in YAML": a styled code window drifting slowly down the
  * real committed agent manifest (staged by capture/transcript.mjs). The
  * console has no YAML surface for agents, so this is the same treatment
- * as the S3e terminal (owner decision at the footage gate): rendered
- * chrome, real content.
+ * as the S3e terminal: rendered chrome, real content.
  */
 export const YamlPanel = ({ yaml, durationInFrames }: { yaml: string; durationInFrames: number }) => {
   const frame = useCurrentFrame();
