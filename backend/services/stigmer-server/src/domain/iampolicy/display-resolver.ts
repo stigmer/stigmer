@@ -9,17 +9,13 @@
  * port it already holds, never composed as a seam — the data is a domain
  * READ, the same in every edition.
  *
- * The display-name precedence is `first + last > first > last >
- * metadata.name > email`. The `metadata.name` arm is this domain's one
- * deliberate divergence from the Java code (Q-S5-4): the trusted-local
- * operator account carries its display name THERE and empty first/last
- * names (identityaccount/operator.ts), while the cloud names every
- * provisioned account by its EMAIL and fills first/last from userinfo
- * (identityaccount/provisioning.ts; the DefaultAccountName step) — so on
- * the cloud this arm and the email arm answer the same string, and on a
- * laptop the Members row reads the name the operator configured instead
- * of an address. `email` stays as the last resort for a row whose name
- * was never defaulted.
+ * The display name is the identity-account domain's one rule for what a
+ * person is called (`accountDisplayName`, identityaccount/actor.ts: first
+ * + last > first > last > metadata.name > email), the same rule every
+ * audit stamp built from a row and getActorInfo answer with, so a member
+ * row names a person exactly as their stamps do. The `metadata.name` arm
+ * is the deliberate divergence from the Java buildDisplayName this
+ * listing was ported from; actor.ts says why.
  *
  * The federated provider label stays empty (the cloud's 3C provider
  * display-name lookup never landed in the shared shape); direct and
@@ -37,6 +33,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
+import { accountDisplayName } from "../identityaccount/actor.js";
 import type { IdentityAccountStore } from "../identityaccount/store.js";
 import type { PrincipalDisplayResolver } from "./access-lists.js";
 
@@ -69,12 +66,7 @@ function viewOf(id: string, account: IdentityAccount): ApiResourceRefView {
   return create(ApiResourceRefViewSchema, {
     kind: kindEnumName(ApiResourceKind.identity_account),
     id,
-    name: displayNameOf(
-      spec?.firstName ?? "",
-      spec?.lastName ?? "",
-      account.metadata?.name ?? "",
-      spec?.email ?? "",
-    ),
+    name: accountDisplayName(account),
     email: spec?.email ?? "",
     avatar: spec?.pictureUrl ?? "",
     identityOrigin: create(IdentityOriginSchema, {
@@ -84,28 +76,6 @@ function viewOf(id: string, account: IdentityAccount): ApiResourceRefView {
       providerDisplayName: providerLabelOf(spec?.provisioningMode),
     }),
   });
-}
-
-/** The Java buildDisplayName precedence, with the account's own name before the email (Q-S5-4). */
-function displayNameOf(
-  firstName: string,
-  lastName: string,
-  accountName: string,
-  email: string,
-): string {
-  if (firstName !== "" && lastName !== "") {
-    return `${firstName} ${lastName}`;
-  }
-  if (firstName !== "") {
-    return firstName;
-  }
-  if (lastName !== "") {
-    return lastName;
-  }
-  if (accountName !== "") {
-    return accountName;
-  }
-  return email;
 }
 
 function providerLabelOf(

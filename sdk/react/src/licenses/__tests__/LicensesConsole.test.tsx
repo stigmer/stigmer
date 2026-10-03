@@ -1,7 +1,8 @@
 // The licenses console end to end over a mock client: every state (the
 // edition notice by provider and by server answer, the access notice, the
 // empty calendar), the calendar's order and summary, the detail's ticket
-// (read on open, copied without being shown), the issue path (the SDK input
+// (read on open, copied without being shown) and issuer line (a name and
+// an address, or an address once), the issue path (the SDK input
 // sent, landing on the detail with the created ticket and no second read),
 // the refusals (a contract rule before sending, a duplicate from the
 // server), the new-customer duplicate guard and Renew's pre-fill.
@@ -173,6 +174,23 @@ describe("LicensesConsole detail", () => {
 
     await user.click(screen.getByRole("button", { name: /Show ticket/ }));
     expect(screen.getByText("eyJhbGciOiJFZERTQSJ9.payload.sig")).toBeTruthy();
+  });
+
+  it.each([
+    ["a name and an address", "Ada Lovelace", "ada@stigmer.test", "by Ada Lovelace (ada@stigmer.test)"],
+    ["an account called by its address", "ada@stigmer.test", "ada@stigmer.test", "by ada@stigmer.test"],
+    ["an address alone", "", "ada@stigmer.test", "by ada@stigmer.test"],
+  ])("names the issuer once: %s", async (_case, displayName, email, line) => {
+    const user = userEvent.setup();
+    const issued = license({ ...PAID_RENEWAL, issuer: { displayName, email } });
+    const client = mockClient({
+      list: vi.fn().mockResolvedValue({ entries: [issued] }),
+      get: vi.fn().mockResolvedValue(issued),
+    });
+    renderConsole(client);
+
+    await user.click(await screen.findByRole("button", { name: "Acme Corp" }));
+    expect(await screen.findByText(line)).toBeTruthy();
   });
 });
 

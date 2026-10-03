@@ -99,6 +99,7 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { accountDisplayName } from "./actor.js";
 import {
   ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
   CREATE_IS_INTERNAL_MESSAGE,
@@ -426,7 +427,12 @@ async function get(
   return loadTarget(deps, IdentityAccountQueryController.method.get, id, ctx);
 }
 
-/** getActorInfo — the contract-shaped actor: id, avatar, "First Last", email. */
+/**
+ * getActorInfo — the contract-shaped actor: id, avatar, email, and the
+ * display name every audit stamp built from this row carries
+ * (`accountDisplayName`), so a console rendering a stamp's actor names
+ * the person exactly as the stamp does.
+ */
 async function getActorInfo(
   deps: IdentityAccountControllerDeps,
   id: IdentityAccountId,
@@ -438,12 +444,10 @@ async function getActorInfo(
     id,
     ctx,
   );
-  const firstName = account.spec?.firstName ?? "";
-  const lastName = account.spec?.lastName ?? "";
   return create(ApiResourceAuditActorSchema, {
     id: account.metadata?.id ?? "",
     avatar: account.spec?.pictureUrl ?? "",
-    displayName: `${firstName} ${lastName}`.trim(),
+    displayName: accountDisplayName(account),
     email: account.spec?.email ?? "",
   });
 }

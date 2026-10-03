@@ -24,15 +24,40 @@
  * deliberately not read — Java parity (never-expiring keys leave
  * expires_at unset).
  *
- * The stamp is then resolved the way the OIDC lane resolves `sub`
- * (20260911.11, T01_1_review.md A6; domain/identityaccount/resolve.ts):
- * a key minted before its owner was provisioned carries the raw subject
- * and answers the owner's ACCOUNT id once one exists, so no write over a
- * legacy key mints a raw-subject stamp again; a stamp that is already an
- * account id is kept — one primary-key read either way, no cache. Only
- * identityId changes on a hit: email/displayName stay the stamp's, the
- * actor the key recorded at minting. The credential checks run first, so
- * a revoked or expired key never reaches the account store.
+ * The stamp is then resolved to the owner's account through the
+ * identity-account domain's `accountForStamp`
+ * (domain/identityaccount/resolve.ts), the read the runner-subject and
+ * schedule-fire lanes make of a row's creator: by account id (the stamp
+ * of every key a provisioned owner mints), then as the raw issuer subject
+ * a key minted before its owner was provisioned carries, so no write over a legacy key
+ * mints a raw-subject stamp again. One primary-key read for an
+ * account-id stamp, hit or miss (no account carries an `ida_` as its
+ * subject, so no subject read follows a miss); a raw-subject stamp costs
+ * a second. No cache. On a hit the caller is the account's principal
+ * (domain/identityaccount/actor.ts `principalOf`): its id, and the email
+ * and display name the row carries, the stamp's own standing in where
+ * the row says nothing (actor.ts has the rule). A key minted over a
+ * session whose token carried no profile claims recorded an empty actor,
+ * and passing that on left
+ * every resource created with the key naming an id and nothing else
+ * (stigmer/stigmer#1226). The credential checks run first, so a revoked
+ * or expired key never reaches the account store.
+ *
+ * An account-id stamp that names no account is a key whose owner was
+ * deleted, and it is refused with the unknown-key copy, "invalid token"
+ * (stigmer/stigmer#1765): nothing deletes a key with its owner, and
+ * admitting it would let a deleted person's credential act as their old
+ * id with whatever grants outlived them. The check lives here, not in a
+ * caller guard, because this is where the owner's row is already read;
+ * the hosted edition guarded it one layer up only while open source had
+ * no account domain. The refusal is logged with the key's id and the
+ * owner's account id, never the token, and records no use. It holds only
+ * while no account answers for the id: a direct account's id is derived
+ * from its issuer subject, so the same person signing up again brings
+ * the id, and these keys, back (stigmer/stigmer#1771). A raw-subject
+ * stamp that names no account is different: its owner has not been
+ * provisioned yet, and is admitted idp-shaped exactly as the OIDC lane
+ * admits that subject.
  *
  * One stamp names nobody by construction: the operator's from before
  * sign-in was turned on (stigmer/stigmer#1169). A key created while the
@@ -47,9 +72,9 @@
  * API_KEY_CREATED_BEFORE_SIGN_IN reason, which the CLI turns into the two
  * commands that fix it. The alternative, admitting a bare email, made
  * every later check fail as a misleading "Permission denied". The
- * question is asked only of a stamp that resolved to nobody, through the
- * identity-account domain's `isPreSignInOperatorStamp`, which makes no
- * read for an account-id stamp. This verifier is composed only under an
+ * question is asked only of a stamp that is not an account id and
+ * resolved to nobody, through the identity-account domain's
+ * `isPreSignInOperatorStamp`. This verifier is composed only under an
  * authentication posture (boot/compose.ts), so a server that trusts every
  * caller never reaches the refusal. The reason is documented where a
  * key's authentication is (apis/ai/stigmer/iam/apikey/v1/README.md): it
@@ -78,11 +103,13 @@ import type {
 import { recordCredentialUse } from "../../identity/credential-use.js";
 import { unauthenticatedWithReasonError } from "../../pipeline/errors.js";
 import type { Store } from "../../store/interface.js";
+import { principalOf } from "../identityaccount/actor.js";
+import { isAccountIdShaped } from "../identityaccount/constants.js";
 import {
-  identityIdForSubject,
+  accountForStamp,
   isPreSignInOperatorStamp,
 } from "../identityaccount/resolve.js";
-import type { AccountsBySubject } from "../identityaccount/resolve.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import { hashApiKey, isApiKeyToken } from "./keymaterial.js";
 import { findApiKeyByHash } from "./lookup.js";
 
@@ -105,8 +132,8 @@ export const API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE =
 export interface ApiKeyVerifierDeps {
   /** Where the keys live — the generic Store, by hash (lookup.ts). */
   readonly store: Store;
-  /** The identity-account domain's subject lookup the creator stamp resolves through (A6). */
-  readonly accounts: AccountsBySubject;
+  /** The identity-account domain's reads the creator stamp resolves through: by id, then by subject. */
+  readonly accounts: AccountsByCaller;
   /** Where a failed last-use stamp is reported. */
   readonly logger: Logger;
   /** The clock both the expiry check and the last-use stamp read. */
@@ -139,24 +166,36 @@ export function newApiKeyIdentityVerifier(
         // through the pipeline; guards hand-seeded or corrupted rows).
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
-      const identityId = await identityIdForSubject(accounts, owner.id);
-      if (
-        identityId === owner.id &&
-        (await isPreSignInOperatorStamp(accounts, owner.id))
-      ) {
-        throw unauthenticatedWithReasonError(
-          API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE,
-          { reason: API_KEY_CREATED_BEFORE_SIGN_IN },
-        );
+      const stamped = {
+        identityId: owner.id,
+        ...(owner.email !== "" ? { email: owner.email } : {}),
+        ...(owner.displayName !== "" ? { displayName: owner.displayName } : {}),
+      };
+      const account = await accountForStamp(accounts, owner.id);
+      if (account === undefined) {
+        if (isAccountIdShaped(owner.id)) {
+          logger.info(
+            "API key refused: its owner's identity account no longer exists",
+            {
+              keyId: key.metadata?.id ?? "",
+              identityId: owner.id,
+            },
+          );
+          throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
+        }
+        if (await isPreSignInOperatorStamp(accounts, owner.id)) {
+          throw unauthenticatedWithReasonError(
+            API_KEY_CREATED_BEFORE_SIGN_IN_MESSAGE,
+            { reason: API_KEY_CREATED_BEFORE_SIGN_IN },
+          );
+        }
       }
       await recordKeyUse(store, logger, key, now);
       return {
-        identityId,
+        ...(account === undefined ? stamped : principalOf(account, stamped)),
         callerClass: "user",
         issuer: "",
         rawToken: token,
-        ...(owner.email !== "" ? { email: owner.email } : {}),
-        ...(owner.displayName !== "" ? { displayName: owner.displayName } : {}),
       };
     },
   };

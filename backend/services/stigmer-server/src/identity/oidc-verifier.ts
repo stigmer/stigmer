@@ -41,16 +41,20 @@
  *
  * Identity (20260911.11 Q-IA-2, A1 — the cloud's direct-login posture):
  * after the token verifies, `sub` (rejected as invalid when absent) is
- * resolved through the identity-account domain (identityIdForSubject):
- * a subject with a direct account stamps the ACCOUNT id; a subject
- * without one is admitted idp-shaped (identityId = sub) so whoAmI can
- * answer NOT_FOUND and provisionMyAccount can run. One primary-key read
- * per request, no cache; a store fault is an infrastructure fault. The
- * issuer is the configured issuer; email/displayName come from the
- * standard `email`/`name` claims when present (the DD-007 Q5 addendum
- * added the fields for exactly these claims), whichever way the subject
- * resolved. Claim-or-pass runs before any of this: a non-JWT token, and a
- * JWT from another issuer, passes with no network.
+ * resolved through the identity-account domain (principalForSubject):
+ * a subject with a direct account stamps the ACCOUNT id with the email
+ * and display name the account row carries; a subject without one is
+ * admitted idp-shaped (identityId = sub) so whoAmI can answer NOT_FOUND
+ * and provisionMyAccount can run. One primary-key read per request, no
+ * cache; a store fault is an infrastructure fault. The issuer is the
+ * configured issuer. The standard `email` and `name` claims stand in
+ * only where the row says nothing (actor.ts has the rule), and are all
+ * an unprovisioned caller has:
+ * the row is the platform's record, and many issuers put no profile
+ * claims in access tokens (Auth0's carry none by default), which left
+ * every resource such a person created naming an id and nothing else
+ * (stigmer/stigmer#1226). Claim-or-pass runs before any of this: a
+ * non-JWT token, and a JWT from another issuer, passes with no network.
  */
 import {
   createRemoteJWKSet,
@@ -61,7 +65,7 @@ import {
 import type { JWTPayload } from "jose";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { identityIdForSubject } from "../domain/identityaccount/resolve.js";
+import { principalForSubject } from "../domain/identityaccount/resolve.js";
 import type { AccountsBySubject } from "../domain/identityaccount/resolve.js";
 import type {
   CallerIdentity,
@@ -128,19 +132,22 @@ export function newOidcIdentityVerifier(
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
       return {
-        identityId: await identityIdForSubject(config.accounts, payload.sub),
+        ...(await principalForSubject(config.accounts, payload.sub, {
+          email: stringClaim(payload, "email"),
+          displayName: stringClaim(payload, "name"),
+        })),
         callerClass: "user",
         issuer: config.issuer,
         rawToken: token,
-        ...(typeof payload["email"] === "string" && payload["email"] !== ""
-          ? { email: payload["email"] }
-          : {}),
-        ...(typeof payload["name"] === "string" && payload["name"] !== ""
-          ? { displayName: payload["name"] }
-          : {}),
       };
     },
   };
+}
+
+/** A verified token's string claim, or undefined when it carries none. */
+function stringClaim(payload: JWTPayload, name: string): string | undefined {
+  const value = payload[name];
+  return typeof value === "string" ? value : undefined;
 }
 
 /**
