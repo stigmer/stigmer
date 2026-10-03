@@ -14,8 +14,8 @@
  *     console or CLI, or a start of this server that died before its
  *     record); a record that names another organization is replaced;
  *   - a store that holds several fills nothing and warns with the count;
- *   - a store whose ledger retired the slug, holding none, warns and fills
- *     nothing, and boots;
+ *   - a store whose ledger retired the slug, holding none, warns, fills
+ *     nothing, clears the roles pass it marked owed, and boots;
  *   - a create that loses the race to another replica, refused at the
  *     duplicate check (AlreadyExists) or at the limit
  *     (ORGANIZATION_LIMIT_REACHED), finds the winner's organization, fills
@@ -265,6 +265,10 @@ describe("ensureSingleOrganization", () => {
     expect(await organizations()).toHaveLength(0);
     expect(holder.current()).toBeUndefined();
     expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    // Marked owed before the create, which made nothing: no longer owed.
+    expect(
+      await server.store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
+    ).toBe("");
     expect(lines).toContainEqual(
       expect.objectContaining({ level: "warn", slug: "stigmer" }),
     );

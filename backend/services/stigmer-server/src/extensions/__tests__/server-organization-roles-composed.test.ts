@@ -32,6 +32,10 @@
  * boot; one who first signs in after the upgrade owns it). Only a store the
  * server made its organization on owes its people their roles.
  *
+ * And a server that cannot make its organization (its slug retired before
+ * the upgrade): the organization a person makes in the console later owes
+ * nobody a role, so a member removed there stays removed across a reboot.
+ *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
  * require-authentication posture with no Authorizer (composed-support.ts),
  * the open-source sign-in shape role-reconciliation-composed.test.ts boots;
@@ -452,5 +456,86 @@ describe("a sign-in install with an operator email, upgraded with its one organi
 
     expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("acme");
     expect(await rolesIn(server.store)).toEqual(before);
+  });
+});
+
+describe("a server that cannot make its organization (composed server, OIDC; its slug retired before the upgrade)", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let port: number;
+
+  const anyNumber: ServerExtension = {
+    name: "fake-oidc-only",
+    requireAuthentication: true,
+    identityVerifiers: [fakeVerifier],
+  };
+  const oneOrganization: ServerExtension = { ...anyNumber, orgLimit: 1 };
+
+  async function boot(unit: ServerExtension): Promise<void> {
+    server = await composeServer({
+      config: loadConfig(baseConfig(dir)),
+      logger: silentLogger,
+      extensions: [unit],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+  }
+
+  const asFirst = () => transportFor(port, fakeJwt(FIRST, "first@example.com"));
+  const organizationNamed = (slug: string) => ({
+    apiVersion: "tenancy.stigmer.ai/v1",
+    kind: "Organization",
+    metadata: { name: slug, slug, org: "" },
+    spec: { description: slug },
+  });
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "retired-slug-"));
+    await boot(anyNumber);
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("an organization made in the console later owes nobody a role: a member removed there stays removed", async () => {
+    // Before the upgrade: `stigmer` made and deleted, so its slug is retired.
+    await createClient(
+      IdentityAccountCommandController,
+      asFirst(),
+    ).provisionMyAccount({});
+    const made = await createClient(
+      OrganizationCommandController,
+      asFirst(),
+    ).create(organizationNamed("stigmer"));
+    await createClient(OrganizationCommandController, asFirst()).delete({
+      value: made.metadata?.id ?? "",
+    });
+    await server.shutdown();
+
+    // The one-organization server cannot make `stigmer`, and boots with none.
+    await boot(oneOrganization);
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    await createClient(OrganizationCommandController, asFirst()).create(
+      organizationNamed("acme"),
+    );
+    await createClient(
+      IdentityAccountCommandController,
+      transportFor(port, fakeJwt(SECOND, "second@example.com")),
+    ).provisionMyAccount({});
+    await createClient(IamPolicyCommandController, asFirst()).revokeOrgAccess({
+      identityAccountId: secondId(),
+      org: "acme",
+    });
+    await server.shutdown();
+
+    await boot(oneOrganization);
+
+    expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("acme");
+    expect(await rolesIn(server.store)).toEqual([
+      `${firstId()}:owner@acme|by:${firstId()}`,
+    ]);
   });
 });

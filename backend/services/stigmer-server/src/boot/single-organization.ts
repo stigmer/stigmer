@@ -35,7 +35,8 @@
  * race; the loser re-reads for about a second, since it can read the store
  * between the winner's slug claim and its row), and a store from before
  * this step may hold several. Exactly one turns the fill on; any other
- * count leaves it off for the process, clears the record, and logs one
+ * count leaves it off for the process, clears the record and any owed
+ * roles pass, and logs one
  * warning: the count when it holds several, the cause when it holds none.
  *
  * On an empty store, before the create, the step marks the membership
@@ -137,9 +138,18 @@ export async function ensureSingleOrganization(
   }
   deps.holder.settle(undefined);
   // The fill is off, so no organization is the server's: a record left by
-  // an earlier start must not keep the owner arms on one of several.
+  // an earlier start must not keep the owner arms on one of several, and a
+  // pass marked owed before a create that made nothing is owed to no
+  // organization (one a person makes later in the console owes nobody a
+  // role, and a role revoked there must stay revoked).
   if ((await store.bootstrapState.get(SINGLE_ORG_KEY)) !== "") {
     await store.bootstrapState.delete(SINGLE_ORG_KEY);
+  }
+  if (
+    (await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY)) ===
+    SERVER_ORGANIZATION_ROLES_OWED
+  ) {
+    await store.bootstrapState.delete(SERVER_ORGANIZATION_ROLES_KEY);
   }
   if (others.length > 0) {
     logger.warn(

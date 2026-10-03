@@ -14,8 +14,12 @@
  * chain's own step, not an entry in the slot, so the slot's list keeps
  * naming only what units registered there. The count is read, not locked:
  * two creates racing at one below the limit can both pass. The open-source
- * edition never races there, because its one organization is made at boot
- * before the port binds (boot/single-organization.ts).
+ * edition does not race there on its usual path, because its one
+ * organization is made at boot before the port binds
+ * (boot/single-organization.ts). It can when it boots with none (its slug
+ * retired, or a slug claim left with no row): two people creating one in
+ * the console at once can both pass, leaving a store of two whose fill is
+ * off until one is deleted.
  *
  * RefuseDeletingSingleOrganization runs in the delete chain under a
  * declared limit of 1, after the organization is loaded and before the
