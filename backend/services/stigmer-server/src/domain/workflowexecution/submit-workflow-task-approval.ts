@@ -1,6 +1,6 @@
 /**
- * SubmitWorkflowTaskApproval — ports submit_workflow_task_approval.go
- * (T13c): a human reviewer's decision for a workflow-level human_input
+ * SubmitWorkflowTaskApproval — ports submit_workflow_task_approval.go:
+ * a human reviewer's decision for a workflow-level human_input
  * task. Constructs the runner's HumanInputResult signal payload, wraps it
  * in the relaySignal envelope on the `human_input_{task}` channel, and
  * delivers via SignalWithStart (the orchestrator forwards to the TS child

@@ -33,7 +33,8 @@
  *   - Security-aware: logs the variable count, never names or values.
  *
  * Proven by executioncontext.test.ts (the seam's arms) and
- * extension-composition.test.ts's C2 arm (the real chain: the cleanup
+ * extension-composition.test.ts's case for the server's own delete (the
+ * real chain: the cleanup
  * event and the search row).
  */
 import { Code, ConnectError } from "@connectrpc/connect";

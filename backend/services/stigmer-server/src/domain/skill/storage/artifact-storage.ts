@@ -4,12 +4,12 @@
  * {storagePath}/skills/{sha256}.zip, byte-identical to the retired Go
  * server's paths: at cutover the TS server inherited a Go-written storage
  * directory and serves its artifacts in place. Write-once, never
- * garbage-collected (OD-5): there is deliberately NO delete method, so the
+ * garbage-collected: there is deliberately NO delete method, so the
  * storage keys listVersions exposes stay downloadable.
  *
- * Since O5 (20260827.02, blueprint 03 §6b) this is a DOMAIN PORT over the
- * one ArtifactStorage blob driver (the Q2 gate ruling); the compose root
- * hands it a PER-DOMAIN driver instance rooted at storagePath (Q2b), so
+ * This is a DOMAIN PORT over the one ArtifactStorage blob driver; the
+ * compose root hands it a PER-DOMAIN driver instance rooted at storagePath,
+ * so
  * skill artifacts never silently follow the generic artifact store's
  * backend selection. The port's implementation moved to src/archive when
  * plugins needed the identical shape under `plugins/`; the names exported

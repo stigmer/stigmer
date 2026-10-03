@@ -252,8 +252,8 @@ export function newRecordHarnessStateHistoryStep(): PipelineStep<SessionDesc> {
 // Delete guard + cascade — delete.go. Children before parent, so a
 // mid-failure retry converges (already-deleted executions are simply no
 // longer found; the reverse order would orphan executions permanently).
-// The cross-kind access to agent_execution rows (#17's kind) is RATIFIED
-// (project T01 brief) — the session owns its executions' lifecycle.
+// The cross-kind access to agent_execution rows (another domain's kind) is
+// deliberate — the session owns its executions' lifecycle.
 // ---------------------------------------------------------------------------
 
 /**
@@ -584,7 +584,7 @@ export function newFilterByChannelStep(
         throw invalidArgumentError("channel_id is required");
       }
 
-      // The channel's sessions through its key, the scope last (census lane 3).
+      // The channel's sessions through its key, the scope last.
       const page = await readSessionPage(
         store,
         logger,

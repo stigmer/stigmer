@@ -1,6 +1,5 @@
 /**
- * Pins the IamPolicy domain's constants (project 20260913.01,
- * T01_0_plan.md §3a, T01_1_review.md Q-OR-9):
+ * Pins the IamPolicy domain's constants:
  *
  *   - the policy-id derivation — `iamp_` + the top 130 bits of sha256 over
  *     the triple's canonical text as 26 lowercase Crockford-base32
@@ -19,8 +18,7 @@
  *     refusals a team grantee brought);
  *   - `USER_GRANT_PRINCIPAL_KINDS` — a person and a team, and no kind the
  *     hierarchy walk would read as a structural parent;
- *   - the canonical text's one weakness and its closure (slice 2 ruling
- *     Q-S2-1): `ApiResourceRef` fields carry no character pattern, so an
+ *   - the canonical text's one weakness and its closure: `ApiResourceRef` fields carry no character pattern, so an
  *     id or relation holding `:`, `#` or `@` could spell another triple's
  *     text. `malformedTripleField` names the offending field and
  *     `policyIdFor` refuses to hash such a spec; the grant path turns the
@@ -303,7 +301,7 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
     ]);
   });
 
-  it("never names a personal kind — those stay with their creator by DD-002 rule 2, no role needed", () => {
+  it("never names a personal kind — those stay with their creator, no role needed", () => {
     for (const personal of [
       ApiResourceKind.session,
       ApiResourceKind.agent_execution,

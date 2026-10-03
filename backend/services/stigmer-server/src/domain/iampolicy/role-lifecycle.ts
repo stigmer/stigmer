@@ -1,6 +1,5 @@
 /**
- * The built-in role lifecycle (20260913.01, T01_0_plan.md §3a; T01_1_review.md
- * Q-OR-6a): the ResourceAuthorizationLifecycle open source installs when
+ * The built-in role lifecycle: the ResourceAuthorizationLifecycle open source installs when
  * no unit registers one, under the built-in authorization posture
  * (boot/compose.ts `builtInAuthorization`). It is the ROW writer of that
  * posture at the resource lifecycle points — the one arm that makes an
@@ -8,8 +7,8 @@
  * more. The cloud's tuple driver plays the same part for tuples; a
  * composition that registers one never sees this object.
  *
- * It is handed to the ORGANIZATION and IDENTITY-ACCOUNT controllers only
- * (slice 4 ruling Q-S4-8), the two kinds whose events it reads. A
+ * It is handed to the ORGANIZATION and IDENTITY-ACCOUNT controllers only,
+ * the two kinds whose events it reads. A
  * lifecycle on a controller turns on the tuple steps' full event
  * resolution for that kind, and resolution fails a request whose
  * configured parent id is missing — Java parity the cloud relies on, and
@@ -44,15 +43,15 @@
  * resolves to no account (an idp-shaped subject before provisioning)
  * writes nothing: the membership rules heal a real person's ownership at
  * first provisioning through the organization's creator stamp
- * (membership.ts, Q-OR-6b), so the guard loses nobody. Non-`user` classes
+ * (membership.ts), so the guard loses nobody. Non-`user` classes
  * (`internal`, `runner`, a composition's own) write nothing by rule — the
  * roles are people's, and under trusted-local a daemon-origin
  * caller carries the operator's fields and would otherwise resolve.
  *
  * Acyclic by construction: this object sits ON TOP of the grant path and
  * defines neither policy hook. The grant path's own lifecycle is the
- * composed driver (undefined in open source), never this object (S1
- * finding B); the test pins both facts.
+ * composed driver (undefined in open source), never this object; the test
+ * pins both facts.
  *
  * Faults propagate. The create arm's throw fails the organization create
  * (the step maps it INTERNAL; the row survives, a retry converges through

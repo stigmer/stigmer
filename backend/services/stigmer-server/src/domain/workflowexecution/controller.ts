@@ -17,8 +17,8 @@
  * tuple-lifecycle steps against the composed lifecycle. The streams and
  * the event log evaluate their annotation through authorizeDirect; the
  * list, summary and pending-approval reads narrow through the composed
- * list read scope. Subscribe streams ride the in-memory stream broker
- * (ADR 011); there is no Redis. Per-RPC posture:
+ * list read scope. Subscribe streams ride the in-memory stream broker;
+ * there is no Redis. Per-RPC posture:
  * docs/authorization-coverage.md §19.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -137,7 +137,7 @@ export interface WorkflowExecutionControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
@@ -190,7 +190,7 @@ export interface WorkflowExecutionControllerDeps {
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
   /**
    * Fired after every persisted status write that transitions the phase
-   * (gate ruling Q3b) — updateStatus and the lifecycle persists call it;
+   * — updateStatus and the lifecycle persists call it;
    * the worker's activity carries its own copy of the same observer.
    */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
@@ -257,7 +257,7 @@ export function registerWorkflowExecutionServices(
  * Create — create.go buildCreatePipeline, step-for-step (the numbered
  * 15-step chain): validation (proto → visibility → slug →
  * workflow-or-instance presence, the #196 InvalidArgument contrast) →
- * the run gate (AuthorizeRunTarget, P1 sp.run-gate: the first step after
+ * the run gate (AuthorizeRunTarget: the first step after
  * the target reference is guaranteed, asking workflow_instance#can_execute
  * or workflow#can_execute by request shape — before the engine gate so a
  * denied caller learns nothing about engine state, and before the workflow
@@ -312,8 +312,8 @@ async function createExecution(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer));
-  // The ratified sandbox-acquisition gate slot (blueprint 03 §3a; C4):
-  // the Java-verified capacity-gate position — after Authorize and every
+  // The sandbox-acquisition gate slot: the Java-verified capacity-gate
+  // position — after Authorize and every
   // resolution step (the default instance, like Java's, side-effects
   // pre-gate: orphan-on-refusal is inherited semantics), before the
   // phase stamp and every later side effect, pre-provision. Empty in OSS.
@@ -532,8 +532,8 @@ async function list(
 /**
  * ListByWorkflow — list_by_workflow.go: the request field accepts either
  * a Workflow ID or a WorkflowInstance ID, so both of the index's keys are
- * read. Same filter, scope and order as list (census lane 7; bounded by
- * the workflow id, org never consulted).
+ * read. Same filter, scope and order as list (bounded by the workflow id,
+ * org never consulted).
  */
 async function listByWorkflow(
   deps: WorkflowExecutionControllerDeps,

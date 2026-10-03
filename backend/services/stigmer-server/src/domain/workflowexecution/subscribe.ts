@@ -1,6 +1,6 @@
 /**
  * Subscribe — ports controller/subscribe.go: the real-time
- * workflow-execution stream (ADR 011 read path), streaming full
+ * workflow-execution stream (the broker's read path), streaming full
  * WorkflowExecution snapshots. The generator shape follows the sibling
  * agentexecution subscribe (itself derived from transport/health.ts
  * watch); every delivery rule ports verbatim:
@@ -85,7 +85,7 @@ export async function* subscribeExecution(
   // The annotation's can_view check, once at subscription start — the
   // stream cannot run inside the pipeline executor, so the Authorize
   // evaluation runs here directly (the Java subscribe handlers' validate →
-  // authorize order; C2 Stage 4).
+  // authorize order).
   await authorizeDirect(
     WorkflowExecutionQueryController.method.subscribe,
     deps.authorizer,

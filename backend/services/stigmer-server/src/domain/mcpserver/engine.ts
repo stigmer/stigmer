@@ -186,8 +186,7 @@ export type McpServerEngineState =
 /**
  * The disconnected state: no Temporal behind this server (never
  * connected since boot). Connect/startConnect refuse with Go's
- * byte-pinned FailedPrecondition; the OAuth RPCs work fully — the
- * ratified DB-1 split (sub-project 20260825.02).
+ * byte-pinned FailedPrecondition; the OAuth RPCs work fully.
  */
 export const MCP_SERVER_ENGINE_DISCONNECTED: McpServerEngineState =
   Object.freeze({ connected: false });

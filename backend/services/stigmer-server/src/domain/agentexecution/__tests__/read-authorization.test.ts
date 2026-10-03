@@ -1,5 +1,5 @@
 /**
- * Pins the C2 Stage-4 enforcement on this domain's three config-annotated
+ * Pins the annotation enforcement on this domain's three config-annotated
  * direct read surfaces (subscribe, getArtifactDownloadUrl,
  * getArtifactContent): each evaluates its OWN annotation through
  * authorizeDirect, and a denying authorizer answers PERMISSION_DENIED

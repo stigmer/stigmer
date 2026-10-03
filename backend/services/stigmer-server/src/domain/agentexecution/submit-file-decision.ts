@@ -86,7 +86,7 @@ export interface SubmitFileDecisionDeps {
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
-  /** O4: the stale-workflow reconcile's →FAILED stamp is a notified transition. */
+  /** The stale-workflow reconcile's →FAILED stamp is a notified transition. */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
 }
 
@@ -467,7 +467,7 @@ async function reconcileStaleFileReviewExecution(
     { executionId },
   );
 
-  // O4 site 5 of 5 (status-observers.ts): the reconcile's →FAILED stamp
+  // Notify site 5 of 5 (status-observers.ts): the reconcile's →FAILED stamp
   // is a persisted terminal transition.
   await notifyStatusObservers(
     deps,

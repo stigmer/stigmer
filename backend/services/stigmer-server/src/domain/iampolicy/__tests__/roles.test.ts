@@ -3,7 +3,7 @@
  * metadata and the allowlist that keeps structural relations out of every
  * access listing — moved from the cloud's iam/policy/roles.ts (the Java
  * IamRoleMetadata port). The allowlist is proven by construction here:
- * `participant` must be in it (channel-conversations DD-010), and a
+ * `participant` must be in it (the channel-conversation role), and a
  * structural relation (`organization`, `owner_of`-style links) never is.
  */
 import { describe, expect, it } from "vitest";

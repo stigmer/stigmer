@@ -1,5 +1,5 @@
 /**
- * Pins the C2 Stage-4 enforcement on the six config-annotated connect
+ * Pins the annotation enforcement on the six config-annotated connect
  * lanes (connect, startConnect, initiateOAuthConnect,
  * completeOAuthConnect, disconnectOAuth, getOAuthGrantStatus): each
  * evaluates its OWN annotation through authorizeDirect, and a denying

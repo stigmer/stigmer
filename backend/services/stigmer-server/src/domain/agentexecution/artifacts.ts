@@ -11,7 +11,7 @@
  * getArtifactContent returns bytes through the API (no CORS concerns for
  * SDK consumers): key-prefix ownership check, CAS-blob serve-time
  * integrity (DATA_LOSS on mismatch, only over the complete object),
- * single-entry ZIP extraction (fflate — the ratified dependency; Node has
+ * single-entry ZIP extraction (fflate — the chosen dependency; Node has
  * no stdlib ZIP), 512KB default truncation.
  *
  * getArtifactDownloadUrl returns a time-limited direct-download URL;
@@ -67,8 +67,8 @@ export interface ArtifactRpcDeps {
   readonly artifactStorage: ArtifactStorage;
   /**
    * The composed authorization seam — the two artifact READ surfaces
-   * evaluate their can_view annotations before the ownership checks (the
-   * Java handler order; C2 Stage 4). uploadAttachment stays checkless by
+   * evaluate their can_view annotations before the ownership checks.
+   * uploadAttachment stays checkless by
    * annotation (is_skip_authorization — the storage_key is the capability).
    */
   readonly authorizer: Authorizer;
@@ -227,8 +227,7 @@ export async function getArtifactContent(
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");
   }
-  // The annotation's can_view check (validate → authorize → ownership,
-  // the Java AgentExecutionGetArtifactContentHandler order; C2 Stage 4).
+  // The annotation's can_view check (validate → authorize → ownership).
   await authorizeDirect(
     AgentExecutionQueryController.method.getArtifactContent,
     deps.authorizer,
@@ -419,8 +418,7 @@ export async function getArtifactDownloadUrl(
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");
   }
-  // The annotation's can_view check (validate → authorize → ownership,
-  // the Java AgentExecutionGetArtifactDownloadUrlHandler order; C2 Stage 4).
+  // The annotation's can_view check (validate → authorize → ownership).
   await authorizeDirect(
     AgentExecutionQueryController.method.getArtifactDownloadUrl,
     deps.authorizer,

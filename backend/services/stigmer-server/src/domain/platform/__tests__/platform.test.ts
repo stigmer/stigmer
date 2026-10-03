@@ -429,14 +429,14 @@ describe("platform domain (license status)", () => {
 });
 
 /**
- * The C4 capability delegation (gate ruling Q1), proven through the FULL
+ * The capability delegation, proven through the FULL
  * stack: a provider registered via the extension registry, the identity
  * interceptor stamping the trusted-local caller, and the platform
  * controller delegating every arm. This is the seam the cloud
  * composition's exchange rides — the fakes record exactly what crossed
  * it.
  */
-describe("platform domain (capability-delegating provider — C4)", () => {
+describe("platform domain (capability-delegating provider)", () => {
   let server: ComposedServer;
   let client: PlatformClient;
   let dir: string;

@@ -28,7 +28,7 @@ const MAX_MODEL_EDIT_DISTANCE = 5;
 
 /**
  * Maps the session harness enum to its registry section name. Unset
- * resolves to native — this edition's platform default harness (the DD-015
+ * resolves to native — this edition's platform default harness (the
  * edition-honest posture: each edition judges pins against the harness ITS
  * runs would actually use; the cloud edition resolves its own configured
  * default).

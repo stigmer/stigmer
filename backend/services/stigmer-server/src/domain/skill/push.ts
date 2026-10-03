@@ -408,7 +408,7 @@ export function newStoreSkillStep(store: Store): PipelineStep<PushDesc> {
 }
 
 /**
- * SkillPushAuthorizationTuples — the C2 tuple-lifecycle splice for the
+ * SkillPushAuthorizationTuples — the tuple-lifecycle splice for the
  * push lane. Domain-local for the same reason as IndexSkillSearch (the
  * skill rides SKILL_KEY, not newState), and push is an UPSERT, so the
  * lane has both arms:

@@ -110,7 +110,7 @@ export interface OAuthAppControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed list read scope — listByOrg narrows through it; undefined = the OSS full scan (stigmer/stigmer#1257). */
   readonly listReadScope: ListReadScope | undefined;

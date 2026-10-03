@@ -1,7 +1,7 @@
 /**
  * Pins the workflow family against Go's pkg/domain/workflow tests —
  * through the REAL stack: a composed server on an ephemeral port, a native
- * gRPC client, the full interceptor chain, and the DD-002 in-process
+ * gRPC client, the full interceptor chain, and the in-process
  * mutual edge (workflow create provisions its default instance through the
  * router transport; instance create loads its parent the same way).
  *

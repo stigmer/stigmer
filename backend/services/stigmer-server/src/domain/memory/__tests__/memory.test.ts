@@ -7,7 +7,7 @@
  *   - create starts the consent lifecycle at proposed with
  *     state_changed_at set; the subject is forced to the OSS single-user
  *     sentinel ""; provenance is stored as supplied with
- *     tool_call_id force-cleared (the Stage 3 contract); an unnamed
+ *     tool_call_id force-cleared; an unnamed
  *     create defaults its name from the minted mem_ id, and an id the
  *     request carried is replaced by that mint (stigmer#1266); a missing
  *     org is the exact InvalidArgument copy;

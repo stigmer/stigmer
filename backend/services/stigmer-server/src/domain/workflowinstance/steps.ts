@@ -7,8 +7,7 @@
  * audience's lifecycle: `spec.execution_visibility` is set at create and
  * changed only by updateExecutionVisibility (Update and Apply keep the
  * stored level, the oss#573 rule for metadata.visibility), and both doors
- * tell a composed tuple driver the audience the level names
- * (stigmer-cloud#720). Proven by
+ * tell a composed tuple driver the audience the level names. Proven by
  * workflowinstance.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the family test ../workflow/__tests__/workflow.test.ts (the mutual edge
  * makes the two domains one testable unit).

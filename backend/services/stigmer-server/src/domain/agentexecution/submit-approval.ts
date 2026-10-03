@@ -85,9 +85,9 @@ export interface SubmitApprovalDeps {
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
   readonly engineState: ExecutionEngineStateProvider;
-  /** The composed slot registrations — this chain's approval gate slot (O4). */
+  /** The composed slot registrations — this chain's approval gate slot. */
   readonly gateSteps: ResolvedGateSteps;
-  /** O4: the stale-workflow reconcile's →FAILED stamp is a notified transition. */
+  /** The stale-workflow reconcile's →FAILED stamp is a notified transition. */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
 }
 
@@ -199,7 +199,7 @@ export async function submitApproval(
         }
       },
     });
-  // The ratified approval gate slot (blueprint 03 §3a; O4): after
+  // The approval gate slot: after
   // ValidateApproval, before the approval side effects (the record is the
   // atomic read-modify-write). Empty in OSS.
   for (const step of stepsForSlot<SubmitApprovalDesc>(
@@ -477,7 +477,7 @@ async function reconcileStaleExecution(
     executionId,
   });
 
-  // O4 site 4 of 5 (status-observers.ts): the reconcile's →FAILED stamp
+  // Notify site 4 of 5 (status-observers.ts): the reconcile's →FAILED stamp
   // is a persisted terminal transition.
   await notifyStatusObservers(
     deps,

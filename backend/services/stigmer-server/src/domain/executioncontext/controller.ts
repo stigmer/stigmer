@@ -11,7 +11,7 @@
  *   - apply is create-or-FAIL: applying over an existing slug returns a
  *     real AlreadyExists, not an update.
  *
- * Secret handling (oss#535, the stigmer-cloud#152 contract ported):
+ * Secret handling (oss#535):
  * is_secret values rest encrypted (enc:v1:), leave the server as
  * ***REDACTED*** markers on EVERY user-shaped boundary — get,
  * getByReference, the create/apply and delete echoes — and are revealed
@@ -122,7 +122,7 @@ export interface ExecutionContextControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * Shared with the Environment/OAuthApp controllers so the

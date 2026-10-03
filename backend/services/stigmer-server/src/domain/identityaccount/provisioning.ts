@@ -1,5 +1,5 @@
 /**
- * Direct-account self-provisioning (20260911.11, Q-IA-2; the cloud's
+ * Direct-account self-provisioning (the cloud's former
  * iam/account/provisioning.ts steps 1 to 3 as OSS core): the console, the
  * CLI and the React hook call provisionMyAccount when whoAmI answers
  * NOT_FOUND on a first sign-in, and the caller's OWN authenticated request
@@ -10,8 +10,8 @@
  *      (a primary-key read of the derived id; no userinfo call).
  *   2. The profile. A token-bearing caller's comes from the userinfo
  *      endpoint of the issuer that vouched for the token, fetched with the
- *      caller's own access token — the token goes only where it came from
- *      (T01_1_review.md A8). One path for every issuer: `given_name` and
+ *      caller's own access token — the token goes only where it came
+ *      from. One path for every issuer: `given_name` and
  *      `family_name` as the IdP states them, where splitting a `name`
  *      claim would be guesswork. A caller with no issuer (the trusted-local
  *      operator) never dials out: its profile is what the CallerIdentity
@@ -26,10 +26,10 @@
  *
  * Step 4 of the cloud's flow (the personal organization) is not core: it
  * fires on the `identity-account-provision:post-persist` slot in the
- * composition (A10), wired by the controller.
+ * composition, wired by the controller.
  *
  * The answer says whether THIS call created the row (`ProvisionedAccount.
- * created`; 20260913.01 slice 4): the idempotent early return and the
+ * created`): the idempotent early return and the
  * race loser answer false. The slot above fires on every call by design
  * (the cloud's backfill needs that), so a CORE rule that must run exactly
  * once per person — the open-source membership rules, which hand out

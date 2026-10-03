@@ -1,18 +1,16 @@
 /**
  * Memory controller — ports pkg/domain/memory/controller (command + query
  * sides): agent-proposed, user-confirmed facts the platform remembers
- * about a person (decisions DD-004/DD-005/DD-006 of the
- * preferences-and-memory project, stigmer/stigmer#293).
+ * about a person (stigmer/stigmer#293).
  *
- * A memory is system-generated: an agent proposes it (Phase 2 Stage 3's
- * remember tool calls the create RPC), and it becomes recallable only
+ * A memory is system-generated: an agent proposes it (the remember tool
+ * calls the create RPC), and it becomes recallable only
  * after the person it is about confirms it. There is deliberately no
  * apply RPC — nobody authors a memory manifest. The kind belongs to the
  * Session/AgentExecution/Artifact family: records the platform creates
  * that users inspect and manage.
  *
- * Field ownership (DD-004, provenance revised by the Stage 3 decision,
- * owner-ratified 2026-08-22): spec.content is the subject's after capture
+ * Field ownership (provenance revised 2026-08-22): spec.content is the subject's after capture
  * (editable via update); spec.subject_identity_account_id is
  * server-derived at create and immutable forever; spec.provenance is
  * capture-path-supplied at create (the remember tool threads it; direct
@@ -25,8 +23,7 @@
  *
  * Consent posture: confirm/reject enforced at the control
  * plane is the ENTIRE consent mechanism. Client-side approval flows are
- * never trusted with retention — three shipped HITL bypasses are the
- * recorded evidence (see DD-005).
+ * never trusted with retention — three shipped HITL bypasses showed why.
  *
  * Caps: content length via protovalidate (500 chars); a
  * 100-records-per-subject-per-org ceiling across ALL lifecycle states
@@ -42,7 +39,7 @@
  * the memory is about and both memory_enabled flags must be on; under the
  * single-operator posture (trusted-local) the subject is the empty-string
  * sentinel (the OAuth grant store convention) and enablement is the org
- * flag alone (the user scope collapses — DD-002 D1). Every RPC's FGA
+ * flag alone (the user scope collapses). Every RPC's FGA
  * question is subject-only (can_view/can_edit/can_delete).
  *
  * Memory is deliberately NOT search-indexed (privacy — subject-only
@@ -131,7 +128,7 @@ export interface MemoryControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
@@ -146,7 +143,7 @@ export interface MemoryControllerDeps {
   /**
    * The composed runner-credential provider — GuardMemoryCapture consults
    * its authorizeMemoryCapture capability for the runner-credential
-   * eligibility arm (parity entry 20260830.05). The OSS default defines
+   * eligibility arm. The OSS default defines
    * no capabilities, so the gate's behavior is unchanged with it.
    */
   readonly runnerCredentialProvider: RunnerCredentialProvider;
@@ -242,7 +239,7 @@ async function createMemory(
 
 /**
  * Update — chain per Go buildUpdatePipeline: edits the fact text only
- * (DD-004: the content is the subject's; everything else on the record is
+ * (the content is the subject's; everything else on the record is
  * not up for editing). The spec is replaced wholesale (declarative
  * semantics), but only content may actually change: subject and
  * provenance are immutable (validate step), and the consent lifecycle is
@@ -292,9 +289,8 @@ async function update(
  *
  * This RPC and reject are the ONLY writers of status.lifecycle_state.
  * Consent is enforced here, at the control plane — never delegated to
- * client-side approval mechanisms (DD-005 D3 records the three shipped
- * HITL bypasses that make any client-side gate untrustworthy for
- * retention).
+ * client-side approval mechanisms (three shipped HITL bypasses showed that
+ * any client-side gate is untrustworthy for retention).
  */
 async function confirm(
   deps: MemoryControllerDeps,
@@ -315,8 +311,7 @@ async function confirm(
 /**
  * Reject — Go reject.go: moves a proposed memory to rejected. A rejected
  * memory is never recalled; the record is kept rather than deleted so the
- * decision is auditable and an identical re-proposal is visible as such
- * (DD-005).
+ * decision is auditable and an identical re-proposal is visible as such.
  *
  * Rejecting an already-rejected memory is an idempotent no-op. Rejecting
  * a confirmed memory is refused with FAILED_PRECONDITION: deleting a

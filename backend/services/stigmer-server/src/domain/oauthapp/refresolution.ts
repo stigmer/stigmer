@@ -13,7 +13,7 @@
  *
  * Resolution semantics: OSS has a flat OAuthApp store — no org-override
  * chain like the cloud's OAuthAppResolutionService, so the ref is the
- * whole resolution (#558 DD-019). Matching is by slug, with the ref's org
+ * whole resolution (#558). Matching is by slug, with the ref's org
  * as a preference rather than a gate:
  *
  *  1. An exact (org, slug) match wins. Uniqueness is guaranteed by the

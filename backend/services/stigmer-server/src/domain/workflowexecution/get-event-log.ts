@@ -53,7 +53,7 @@ export async function getEventLog(
     throw invalidArgumentError("execution_id is required");
   }
   // The annotation's can_view check (validate → authorize, the Java
-  // WorkflowExecutionGetEventLogHandler order; C2 Stage 4). The
+  // WorkflowExecutionGetEventLogHandler order). The
   // no-existence-check empty-page contract below is unchanged for
   // authorized callers.
   await authorizeDirect(

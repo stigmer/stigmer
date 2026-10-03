@@ -3,7 +3,7 @@
  * steps the six command chains splice after the shared `Authorize` and
  * `ValidateProto`. The write itself is never here — every step that writes
  * calls the ONE grant and revoke path (grant-path.ts, which owns the
- * cloud#425 orderings, the by-triple read and the wire refusals) and leaves
+ * row-and-tuple orderings, the by-triple read and the wire refusals) and leaves
  * its answer under POLICY_RESULT_KEY for the handler. The chains are
  * deliberately short: `Authorize → ValidateProto → <one of these>`, with
  * only the owner steps (the last section) before the write on the three
@@ -15,8 +15,7 @@
  * structural lane and skips it) is the one step with branching logic. It
  * runs BEFORE Grant — the cloud's validate-before-write order, so a held
  * legacy row under a role the kind does not grant is refused rather than
- * answered as a duplicate — and reads, in this order (Q-OR-3 as refined;
- * Q-S3-3):
+ * answered as a duplicate — and reads, in this order:
  *   1. the wire refusals: an unknown resource kind is `Unknown resource
  *      kind`, never a role sentence — the second line behind the
  *      controller's pre-position-1 refusal, kept so the step's
@@ -30,7 +29,7 @@
  *   4. proto ∩ scope, in proto order: the role must be in the
  *      intersection — the cloud's second copy listing it. Intersecting is
  *      what keeps a scope from WIDENING the contract by accident;
- *   5. the PRINCIPAL (Q-S9-2, 2026-09-14; constants.ts
+ *   5. the PRINCIPAL (since 2026-09-14; constants.ts
  *      USER_GRANT_PRINCIPAL_KINDS): a person grants roles to people and to
  *      teams of people, and to nothing else. A row whose principal is a
  *      resource is a structural link (the hierarchy walk's parent edge),

@@ -14,14 +14,13 @@
  * whose agent is in another organization — a row from before — fails
  * closed at the profile like a dangling reference.
  *
- * OD-1 (deliberate exclusion): Go's boot migration
+ * Deliberate exclusion: Go's boot migration
  * (pkg/domain/agentshare/migration/bootstrap_shares.go — protowire
  * decoding of the REMOVED Agent.spec.sharing fields into AgentShare rows)
  * is NOT ported. It exists only for self-hosters upgrading a SQLite file
- * across the decision-011 promotion; a TS server adopting such a database
- * arrives at cutover (D4 #24), by which time the Go binary has already
- * run the backfill on every upgraded installation. Ratified in the D4
- * breakdown (entry #12) and disclosed in the PR.
+ * across the move of sharing into its own kind; a TS server adopting such
+ * a database arrives after the Go binary has already run the backfill on
+ * every upgraded installation.
  *
  * Proven by agentshare.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/agentshare.test.ts.
@@ -357,7 +356,7 @@ export function newResolveShareDefaultsStep(
 
 /**
  * StampAgentPin — Go stampAgentPinStep: writes status.agent_id, the
- * server-owned rebind pin (decision 013). agent_ref is org+slug and slugs
+ * server-owned rebind pin. agent_ref is org+slug and slugs
  * are reusable after delete, so without the pin a stale share would
  * silently attach its audience, link token, and bound credentials to
  * whatever agent later claims the slug.

@@ -175,7 +175,7 @@ function deps(
     temporalConfig: newWorkflowExecutionConfigFromEnv(),
     sandboxTerminalObserver: () => {},
     // Empty slots — the OSS shape; the recover chain's
-    // sandbox-acquisition:gate splice contributes nothing here (C4).
+    // sandbox-acquisition:gate splice contributes nothing here.
     gateSteps: new Map(),
   };
 }

@@ -1,5 +1,5 @@
 /**
- * The agent-execution run-target resolver (P1 sp.run-gate, ruling Q-RG-2):
+ * The agent-execution run-target resolver:
  * an execution names its run target in one of three shapes, and the gate
  * dispatches on them in the CHAIN's own precedence so it authorizes the
  * target the chain will actually use (CreateDefaultInstanceIfNeeded and

@@ -15,7 +15,7 @@
  * annotation through authorizeDirect; uploadAttachment is authorized at
  * the create its storage key feeds. list, listBySession and
  * getExecutionSummary narrow through the composed list read scope.
- * Subscribe streams ride the in-memory stream broker (ADR 011); there is
+ * Subscribe streams ride the in-memory stream broker; there is
  * no Redis. Per-RPC posture: docs/authorization-coverage.md §16.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -159,7 +159,7 @@ export interface AgentExecutionControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
+  /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
@@ -199,7 +199,7 @@ export interface AgentExecutionControllerDeps {
   readonly engineState: ExecutionEngineStateProvider;
   /**
    * The bundled+refreshed model registry (the composition root's single
-   * instance, DD-004) — the #357/#772 tier and thinking-mode validators
+   * instance) — the #357/#772 tier and thinking-mode validators
    * read it at create.
    */
   readonly modelRegistry: ModelCatalogProvider;
@@ -207,14 +207,13 @@ export interface AgentExecutionControllerDeps {
   readonly artifactStorage: ArtifactStorage;
   /**
    * The composed runner-credential provider — RecordRunnerLineageLabels
-   * consults its vouchRunnerLineageLabels capability at create (parity
-   * entry 20260830.05). The OSS default defines no capabilities, so the
+   * consults its vouchRunnerLineageLabels capability at create. The OSS default defines no capabilities, so the
    * step is a no-op with it.
    */
   readonly runnerCredentialProvider: RunnerCredentialProvider;
   /**
    * The in-process edges the create pipeline consumes (lazy providers —
-   * the routes↔clients cycle resolves at request time, DD-002).
+   * the routes↔clients cycle resolves at request time).
    */
   readonly agentLoader: AgentLoaderProvider;
   readonly agentInstanceCreator: ExecutionAgentInstanceCreatorProvider;
@@ -222,7 +221,7 @@ export interface AgentExecutionControllerDeps {
   /** The shared EC-builder deps (create's step 16 + recover's recreate). */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
   /**
-   * The composed slot registrations (O4, blueprint 03 §3a) — this domain
+   * The composed slot registrations — this domain
    * splices the create, recover, and submit-approval slots.
    */
   readonly gateSteps: ResolvedGateSteps;
@@ -313,7 +312,7 @@ export function registerAgentExecutionServices(
 /**
  * Create — create.go buildCreatePipeline, step-for-step: validation
  * (proto → visibility → tier #357) → the run gate
- * (AuthorizeRunTarget, P1 sp.run-gate: asking the target's own permission
+ * (AuthorizeRunTarget: asking the target's own permission
  * by request shape — session, instance or blueprint; the all-empty shape
  * is the built-in assistant, which the run gate does not check (create is
  * is_skip_authorization; its auto-created session's own create authorizes
@@ -327,7 +326,7 @@ export function registerAgentExecutionServices(
  * session is read or disclosed before the caller may add a turn to it
  * (#1280) → the standard build
  * → the engine gate (fail fast BEFORE the first side effect, so a down
- * engine orphans nothing) → the pre-side-effect gate slot (O4; empty in OSS) → the
+ * engine orphans nothing) → the pre-side-effect gate slot (empty in OSS) → the
  * side-effecting steps (default instance, session bootstrap,
  * preference/memory snapshots, initial phase, the ExecutionContext with
  * merged env, attachment validation) → Persist → IndexSearch →
@@ -367,13 +366,13 @@ async function createExecution(
     .addStep(newBuildNewStateStep())
     // Vouches the runner-stamped workflow lineage labels (or refuses a
     // wrong-binding stamp) BEFORE the guard diffs them — the Java
-    // RecordRunnerLineageLabelsStep position (parity entry 20260830.05).
+    // RecordRunnerLineageLabelsStep position.
     .addStep(newRecordRunnerLineageLabelsStep(deps.runnerCredentialProvider))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newEnsureEngineAvailableStep(deps.engineState));
-  // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4): after
+  // The pre-side-effect gate slot: after
   // every pure validation/resolution step, before the first side-effecting
   // step — a refusal orphans nothing. Empty in OSS.
   for (const step of stepsForSlot<typeof AgentExecutionSchema>(

@@ -214,8 +214,8 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-// The connect lanes now evaluate their can_connect/can_view annotations
-// (C2 Stage 4); these direct-call tests exercise them under the OSS
+// The connect lanes evaluate their can_connect/can_view annotations;
+// these direct-call tests exercise them under the OSS
 // permissive authorizer with one fixed caller — authorize.test.ts owns
 // the deny/not-found arms.
 const testCaller = testCallerIdentity();

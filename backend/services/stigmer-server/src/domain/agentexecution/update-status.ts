@@ -11,10 +11,10 @@
  * could drop an approval event a concurrent SubmitApproval appended in
  * the window between the load and the save.
  *
- * O4 consumes the status-transition hooks here — one of
+ * The status-transition hooks are consumed here — one of
  * the five notifying sites (the exhaustive list: status-observers.ts):
  * observers fire post-persist and before broadcast; the response
- * decorators run on the reply (the §7 querySignal seam — the cloud
+ * decorators run on the reply (the querySignal seam — a composition
  * piggybacks its control signal on this response; OSS answers
  * UNSPECIFIED).
  *
@@ -35,7 +35,7 @@
  * and keeps streaming IN_PROGRESS until then, and without the latch its
  * stragglers un-pause the execution and Resume finds nothing to resume.
  *
- * Broadcast rides in-memory channels (ADR 011).
+ * Broadcast rides in-memory channels.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -108,7 +108,7 @@ export interface UpdateStatusDeps {
   readonly broker: StreamBroker;
   /** The composed status-transition observers. */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
-  /** The composed reply decorators — the §7 querySignal seam (O4). */
+  /** The composed reply decorators — the querySignal seam. */
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
 }
 
@@ -116,7 +116,7 @@ type UpdateStatusDesc =
   typeof AgentExecutionCommandController.method.updateStatus.input;
 
 const EXECUTION_KEY = "execution";
-// O4-internal handoff (not a ported Go key): the phase read inside the
+// An internal handoff (not a ported Go key): the phase read inside the
 // updateResource closure BEFORE the merge mutates, for the observer step.
 const OLD_PHASE_KEY = "o4OldPhase";
 
@@ -210,8 +210,8 @@ export async function updateStatus(
             "execution not found in context",
           );
         }
-        // Push to active subscribers AFTER the persist commits (ADR 011
-        // write path) — the ordering subscribe's register-before-snapshot
+        // Push to active subscribers AFTER the persist commits (the
+        // broker's write path) — the ordering subscribe's register-before-snapshot
         // guarantee builds on.
         deps.broker.broadcast(execution as AgentExecution);
       },
@@ -219,7 +219,7 @@ export async function updateStatus(
     .build()
     .execute(reqCtx);
 
-  // The §7 decorator seam: the cloud contributes its control signal to
+  // The decorator seam: a composition contributes its control signal to
   // fields the shared reply schema already carries; the OSS baseline
   // (UNSPECIFIED) is byte-identical when no decorator is composed.
   return applyResponseDecorators(

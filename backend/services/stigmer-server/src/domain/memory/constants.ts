@@ -3,9 +3,9 @@
  * ported character-for-character from Go
  * pkg/domain/memory/controller/steps.go. Every string here is pinned by
  * the conformance suite and mirrored byte-identically by the cloud
- * edition's handlers; none is editable without an owner-ratified wire
+ * edition's handlers; none is editable without an deliberate wire
  * change. Refusals are visible and actionable — never silent eviction
- * (the ChatGPT Memory-Full pattern, DD-006 D5).
+ * (the ChatGPT Memory-Full pattern).
  */
 
 /**

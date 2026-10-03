@@ -1,8 +1,7 @@
 /**
  * Pins the IamPolicy domain through a composed OSS server in the
  * trusted-local posture — the open-source behaviours the conformance suite
- * cannot express cross-edition (T01_0_plan.md §3a, §5; T01_1_review.md
- * Q-OR-3, Q-OR-5, Q-OR-6a, Q-OR-7, Q-OR-8, Q-OR-9):
+ * cannot express cross-edition:
  *
  *   - creating an organization makes its creator the owner: the built-in
  *     role lifecycle's one write arm, read back through the row-driven
@@ -345,7 +344,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
 
   describe("the grant scope: open source grants on organizations only", () => {
     it("a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT with the cloud's system-managed copy — no edition grants on it, so no edition is named", async () => {
-      // The proto is read BEFORE the scope (Q-OR-3 refinement, 2026-09-13):
+      // The proto is read BEFORE the scope (since 2026-09-13):
       // an identity account is system-managed in the cloud too, and
       // "served by the Enterprise and Cloud editions" would be a lie here.
       const bob = await newAccount();

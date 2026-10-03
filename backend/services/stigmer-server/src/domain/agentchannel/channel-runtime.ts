@@ -1,8 +1,7 @@
 /**
- * The channel-runtime driver seam — convergence program 20260826.02,
- * DD-004's "contract OSS, delivery runtime cloud" expressed as code;
- * ratified at C3's plan gate (20260827.11, ruling Q1, with the two hooks
- * added by the pre-Stage-1 deep pass recorded in its T01_1_review.md).
+ * The channel-runtime driver seam: open source serves the channel
+ * contract, and a composition with a delivery runtime serves the delivery,
+ * expressed as code.
  * Lives in src/domain/agentchannel beside the surfaces it fronts (the
  * ModelCatalogProvider / RunnerCredentialProvider placement precedent).
  *
@@ -24,7 +23,7 @@
  * the loaded channel is handed to the driver so nothing loads twice).
  * What the driver owns: provider I/O, runtime state, and its own error
  * semantics — including cloud's deliberate fail-closed arms (an unknown
- * send target answers PERMISSION_DENIED, DD-002 D4: no existence leak),
+ * send target answers PERMISSION_DENIED: no existence leak),
  * which is exactly why the messaging/conversation groups delegate WHOLE
  * methods rather than tail-ends.
  *
@@ -47,8 +46,8 @@
  *     never materializes (controller.ts delete header: the managed
  *     credentials environment, the OAuth grant, pending-delivery
  *     abandonment). Spliced teardown-BEFORE-row-delete so a failed
- *     teardown leaves the row for an idempotent retry (the cloud#425
- *     ordering family: dependent state dies before the row). A thrown
+ *     teardown leaves the row for an idempotent retry (dependent state
+ *     dies before the row). A thrown
  *     error fails the delete; fail-soft arms are the driver's own choice,
  *     made per cause, never imposed here.
  *

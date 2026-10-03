@@ -51,7 +51,7 @@ const ROLE_DISPLAY: ReadonlyArray<RoleDisplay> = [
     name: "Viewer",
     description: "Read-only access to the resource",
   },
-  // Grantable on agent_channel only (channel-conversations DD-010);
+  // Grantable on agent_channel only (the channel-conversation role);
   // omitting it would let the grant succeed while hiding the participant
   // from every access listing (the Java IamRoleMetadataTest lesson).
   {

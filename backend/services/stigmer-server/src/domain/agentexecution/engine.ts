@@ -1,19 +1,19 @@
 /**
  * The execution-engine seam — the ONE place the agentexecution controller
- * touches Temporal-shaped behavior before sub-project #18 lands the real
- * worker infrastructure.
+ * touches Temporal-shaped behavior.
  *
  * Go models engine availability as two separately-injected nilable fields
  * on the controller (workflowCreator for create/signal/recover,
  * temporalClient for the lifecycle RPCs), re-injected by TemporalManager
  * on every reconnect. The TS guidelines forbid nullable modeling of
  * optional infrastructure, so availability is an explicit two-variant
- * state instead; #18's TemporalManager will flip the provider between the
- * variants on connect/disconnect, exactly where Go calls
+ * state instead; the TemporalManager-backed provider
+ * (temporal/agentexecution/engine-client.ts) flips between the variants on
+ * connect/disconnect, exactly where Go calls
  * SetWorkflowCreator/SetTemporalClient.
  *
- * Until #18, the composition root wires ENGINE_DISCONNECTED permanently —
- * byte-identical behavior to the Go server running without Temporal:
+ * While disconnected (until the first successful connect) the behavior is
+ * byte-identical to the Go server running without Temporal:
  * create refuses Unavailable at the gate (create.go
  * ensureEngineAvailableStep), lifecycle RPCs refuse FailedPrecondition,
  * and submitApproval records the decision but skips the resolved-gate
@@ -21,9 +21,9 @@
  *
  * The connected variant's surface carries exactly the operations THIS
  * controller consumes (the seam Go defines through
- * workflowCreator/temporalClient method calls); #18 owns the
- * implementations. Operations the controller does not consume are not
- * pre-declared — #18's worker internals are its own plan's business.
+ * workflowCreator/temporalClient method calls); the temporal
+ * implementation owns them. Operations the controller does not consume are
+ * not pre-declared.
  */
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

@@ -1,6 +1,6 @@
 /**
- * API-key material — generation, hashing, fingerprinting (O3, 20260827.06;
- * DD-003 owner ruling: apikey wholly OSS). Ports the cloud Java library
+ * API-key material — generation, hashing, fingerprinting (the apikey
+ * contract lives wholly in open source). Ports the cloud Java library
  * (api-authentication/apikey/library: ApiKeyGenerator, ApiKeyHasher,
  * ApiKeyFingerprintExtractor) byte-format-for-byte-format — every value
  * this module produces is cross-edition wire/storage contract:

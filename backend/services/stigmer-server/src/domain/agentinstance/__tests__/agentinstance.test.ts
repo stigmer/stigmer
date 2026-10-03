@@ -1,7 +1,7 @@
 /**
  * Pins the agentinstance domain against Go's pkg/domain/agentinstance
  * tests — through the REAL stack: a composed server on an ephemeral port,
- * a native gRPC client, the full interceptor chain, and the DD-002
+ * a native gRPC client, the full interceptor chain, and the
  * in-process parent-agent edge (instance create loads its agent through
  * the router transport).
  *

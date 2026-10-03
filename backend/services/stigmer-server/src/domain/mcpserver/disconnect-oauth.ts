@@ -50,7 +50,7 @@ export async function disconnectOAuth(
   // The annotation's can_connect check (validate → authorize, the Java
   // McpServerDisconnectOAuthHandler order — no load step; on the
   // multi-tenant edition an unresolvable id answers through the
-  // authorizer's ruled uniform posture). C2 Stage 4.
+  // authorizer's uniform posture).
   await authorizeDirect(
     McpServerCommandController.method.disconnectOAuth,
     deps.authorizer,

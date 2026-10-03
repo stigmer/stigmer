@@ -1,5 +1,5 @@
 /**
- * The IamPolicyStore PORT (20260913.01, T01_0_plan.md §3a; Q-OR-1): the
+ * The IamPolicyStore PORT: the
  * storage contract the IamPolicy domain writes and reads through, cut from
  * the cloud's row store (iam/policy/store.ts) to what BOTH editions call.
  * The second OSS domain whose persistence is a port rather than the
@@ -13,7 +13,7 @@
  * `findUnsynced` (the cloud's tuple-mirror bookkeeping and boot backfill;
  * its store keeps them as extras) and `findByIdentityAccountInOrg` (the
  * cloud's org-column arm of revocation — the column was never stamped by
- * any writer, so it matched nothing; dropped, Q-OR-9). A port does not
+ * any writer, so it matched nothing; dropped). A port does not
  * carry methods only one edition calls or no edition needs.
  *
  * Contract every implementation must satisfy — proven by the port-contract
@@ -37,7 +37,7 @@
  *     is a Java-era name no ApiResourceKind carries; kept so the two
  *     editions' filters read alike);
  *   - a typed not-found reads as `undefined`; any other storage failure
- *     propagates as the infrastructure fault it is (the ratified
+ *     propagates as the infrastructure fault it is (the
  *     store-fault mapping — an outage must never read as "no grant");
  *   - a change record (change.ts) never changes what happens to the row:
  *     `save` and `deleteById` behave identically with and without one.

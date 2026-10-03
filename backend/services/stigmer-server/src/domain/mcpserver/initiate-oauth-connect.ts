@@ -83,7 +83,7 @@ export async function initiateOAuthConnect(
 
   // The annotation's can_connect check AFTER the load — the Java
   // McpServerInitiateOAuthConnectHandler order (load-before-authorize,
-  // stigmer#224). C2 Stage 4.
+  // stigmer#224).
   await authorizeDirect(
     McpServerCommandController.method.initiateOAuthConnect,
     deps.authorizer,
@@ -453,7 +453,7 @@ function generateState(): string {
  * Encrypts the two real secrets in the pending row — code_verifier (every
  * flow) and client_secret (vendor flow) — before they rest in SQLite, so
  * handshake secrets never leak through filesystem backups of the database
- * (oss#394; ports stigmer-cloud#294). The store itself stays a
+ * (oss#394). The store itself stays a
  * byte-faithful adapter; this call site is the single write seam.
  *
  * The row is a self-contained SNAPSHOT, never an alias of the OAuthApp's

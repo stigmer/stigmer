@@ -10,7 +10,7 @@
  * (capabilities only exist post-connect, which needs store seeding here),
  * the #523 oauth_status enrichment matrix (needs seeded OAuthApps), the
  * updateVisibility ordering (no conformance coverage for this domain —
- * the D4-disclosed gap), and the #558 UNIMPLEMENTED guard (unit-level in
+ * a known gap), and the #558 UNIMPLEMENTED guard (unit-level in
  * Go too).
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -498,7 +498,7 @@ describe("EnrichOAuthStatus (#523) — response-only oauth_status", () => {
   });
 });
 
-describe("org-OAuth-app surface — UNIMPLEMENTED by design (#558, DD-019)", () => {
+describe("org-OAuth-app surface — UNIMPLEMENTED by design (#558)", () => {
   // The three RPCs are ONE capability; the SDK probes getOrgOAuthApp and
   // hides every BYOA affordance on UNIMPLEMENTED. Codes AND grpc-go's
   // generated texts are pinned — implementing any one RPC without the

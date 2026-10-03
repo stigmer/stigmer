@@ -2,8 +2,8 @@
  * Test fixtures for the IamPolicy domain: an in-memory IamPolicyStore with
  * the primary-key semantics the OSS adapter has (a second save under a held
  * id is DuplicatePolicyError), a recording lifecycle that captures the two
- * policy hooks in the order they fire beside the store's writes (the shape
- * the cloud's service.test.ts used to pin cloud#425), and spec builders in
+ * policy hooks in the order they fire beside the store's writes, and spec
+ * builders in
  * the contract's own vocabulary. Driver-backed fixtures live with the
  * drivers (the sqlite and postgres __tests__/support modules under
  * src/store).

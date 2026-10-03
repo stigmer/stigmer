@@ -15,10 +15,10 @@
  *
  * The phase transition + persist is ONE atomic read-modify-write under
  * the store's per-resource write lock — the lifecycle counterpart of the
- * DD-001 updateStatus decision and the shape the sibling agentexecution
- * domain ratified: Go's separate load → mutate → SaveResource can clobber
+ * updateStatus decision and the shape the sibling agentexecution domain
+ * uses: Go's separate load → mutate → SaveResource can clobber
  * a runner updateStatus merge that lands between them. Wire-identical in
- * sequential flows; disclosed with DD-001.
+ * sequential flows.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
@@ -118,9 +118,9 @@ export interface LifecycleDeps {
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
   /**
    * The merged slot registrations — recover carries
-   * `sandbox-acquisition:gate` at the Java-verified position (C4):
+   * `sandbox-acquisition:gate` at the Java-verified position:
    * recover re-provisions a deprovisioned sandbox, which is capacity
-   * growth (cloud#355's recover-parity shape). Empty in OSS.
+   * growth. Empty in OSS.
    */
   readonly gateSteps: ResolvedGateSteps;
 }
@@ -291,8 +291,7 @@ export function applyLifecyclePhaseTransition(
 
 /**
  * The atomic phase-transition persist: one read-modify-write under the
- * per-resource write lock (see the module header for the DD-001-adjacent
- * rationale). updateResource requires existence: a lifecycle op racing a
+ * per-resource write lock (see the module header for the rationale). updateResource requires existence: a lifecycle op racing a
  * delete answers NotFound rather than resurrecting the row.
  */
 function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
@@ -907,11 +906,11 @@ function runRecoverPipeline(
         (phase) =>
           `cannot recover execution in phase ${phase}; only FAILED executions can be recovered`,
       ),
-      // The ratified sandbox-acquisition gate slot (blueprint 03 §3a;
-      // C4): after load/authorize/phase validation, before the first
+      // The sandbox-acquisition gate slot: after load/authorize/phase
+      // validation, before the first
       // side effect (the terminate) — recover re-provisions a
       // deprovisioned sandbox, which is capacity growth (the Java
-      // recover chain's verified 3b position, cloud#355). Empty in OSS.
+      // recover chain's verified position). Empty in OSS.
       ...stepsForSlot<Desc>(deps.gateSteps, "sandbox-acquisition:gate"),
       newTerminateExistingWorkflowStep(deps),
       newRecreateExecutionContextStep(deps),

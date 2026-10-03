@@ -1,7 +1,7 @@
 /**
  * Pins steps.ts: the IamPolicy chains' domain-local
- * steps. The one with branching logic is ValidateGrantableRole (Q-OR-3 as
- * refined; Q-S3-3; Q-S5-1): the wire refusal first (an unknown kind is
+ * steps. The one with branching logic is ValidateGrantableRole: the wire
+ * refusal first (an unknown kind is
  * `Unknown resource kind`, never a role sentence), then the three arms in
  * order — the PROTO lists no role for the kind → the cloud's
  * system-managed copy, byte-identical in every edition; the composed

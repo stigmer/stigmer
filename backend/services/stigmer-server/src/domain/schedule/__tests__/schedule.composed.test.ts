@@ -4,7 +4,7 @@
  * ephemeral port, a native gRPC client, the full interceptor chain, the
  * REAL in-process agentexecution create pipeline behind the trigger, and
  * a deterministically-closed Temporal port (the arming steps must degrade,
- * never refuse — DD-015 D-A).
+ * never refuse).
  *
  * The load-bearing pins the conformance suite does NOT own:
  *   - status preservation across apply-as-update (the auto-pause can never
@@ -61,7 +61,7 @@ beforeAll(async () => {
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
       // No engine behind composed tests: 127.0.0.1:1 is deterministically
-      // closed — arming degrades (DD-015 D-A) and the trigger's launch
+      // closed — arming degrades and the trigger's launch
       // gates refuse honestly.
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
@@ -168,7 +168,7 @@ describe("create — the defaults resolver through the real chain", () => {
     expect(created.metadata?.id).toMatch(/^sch_[0-9a-z]{26}$/);
     expect(created.metadata?.slug).toBe("morning-digest");
     // Temporal is a closed port: the arm degraded, next_fire_at absent —
-    // the write still succeeded (DD-015 D-A).
+    // the write still succeeded.
     expect(created.status?.nextFireAt).toBeUndefined();
     // The ref org normalized to the schedule's own.
     expect(
@@ -295,7 +295,7 @@ describe("update — immutable identity and the status-honest graft", () => {
   });
 });
 
-describe("resume — the one clearing path (DD-013 D-D)", () => {
+describe("resume — the one clearing path", () => {
   it("clears the latch AND the streak atomically and re-arms", async () => {
     const created = await command.create(scheduleInput({ name: "Resume Me", slug: "resume-me" }));
     const id = created.metadata?.id ?? "";

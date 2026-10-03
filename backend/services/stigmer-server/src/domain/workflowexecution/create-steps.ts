@@ -47,8 +47,8 @@ import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
 type ExecutionDesc = typeof WorkflowExecutionSchema;
 
 /**
- * The narrow workflowinstance CREATE edge — as the ORIGINAL caller since
- * C2 Stage 3 (ruling R5, the Java createAsCaller posture): real owner
+ * The narrow workflowinstance CREATE edge — as the ORIGINAL caller (the
+ * Java createAsCaller posture): real owner
  * attribution for the created instance under an enforcing Authorizer.
  */
 export interface ExecutionWorkflowInstanceCreator {

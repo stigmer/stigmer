@@ -152,7 +152,7 @@ export function autoKeepApprovedCommandSets(
     );
     kept++;
     logger.info(
-      "Auto-kept change set: every change produced by an approved command (DD-28)",
+      "Auto-kept change set: every change produced by an approved command",
       {
         executionId,
         changeSetId: cs.id,

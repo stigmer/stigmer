@@ -6,7 +6,7 @@
  * line-for-line (a zero value that Go omits is omitted here) so the two
  * editions emit semantically identical documents.
  *
- * Nil-deref arms (sub-project DD-001, owner-ratified): Go dereferences
+ * Nil-deref arms: Go dereferences
  * listen's `to` and emit_event's `event` without nil checks and PANICS on
  * their absence (verified by probe; the Go server has no panic recovery, so
  * the process crashes — filed as a Go bug). ConnectRPC catches thrown
@@ -247,7 +247,7 @@ function convertTryTask(
 
 function convertListenTask(cfg: ListenTaskConfig): YamlMap {
   if (cfg.to === undefined) {
-    // Go panics here (nil deref) — DD-001: throw the internal-style analog.
+    // Go panics here (nil deref): throw the internal-style analog.
     throw new Error("listen task config carries no 'to' block");
   }
 
@@ -507,7 +507,7 @@ function convertValidateTask(cfg: ValidateTaskConfig): YamlMap {
 
 function convertEmitEventTask(cfg: EmitEventTaskConfig): YamlMap {
   if (cfg.event === undefined) {
-    // Go panics here (nil deref) — DD-001: throw the internal-style analog.
+    // Go panics here (nil deref): throw the internal-style analog.
     throw new Error("emit_event task config carries no 'event' block");
   }
 

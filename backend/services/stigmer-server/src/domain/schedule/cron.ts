@@ -41,7 +41,7 @@ const CRON_SHORTHANDS = new Set([
 const CRON_FIELD_PATTERN = /^[0-9A-Za-z*,/-]+$/;
 
 /**
- * Enforces the DD-009 C-4 grammar; throws InvalidArgument with the
+ * Enforces the schedule cron grammar; throws InvalidArgument with the
  * cross-edition byte-pinned copy. Pure and deterministic.
  */
 export function validateScheduleCron(cron: string): void {
@@ -89,7 +89,7 @@ export function validateScheduleCron(cron: string): void {
 /**
  * Requires a name the platform tz database resolves — Go
  * validateScheduleTimeZone (the Temporal server loads the same database
- * when it evaluates the cron, DD-008 D2).
+ * when it evaluates the cron).
  *
  * "Local" is rejected explicitly: Go resolves it to the host's zone
  * (nondeterministic across replicas) while Java's ZoneId does not resolve

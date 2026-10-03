@@ -1,6 +1,6 @@
 /**
- * GetExecutionSummary — ports get_execution_summary.go (T14 dashboard,
- * T12 overview): a full scan aggregated into phase counts, cost totals,
+ * GetExecutionSummary — ports get_execution_summary.go (the dashboard and
+ * overview): a full scan aggregated into phase counts, cost totals,
  * average completed duration, top failure ranks, and per-workflow cost
  * breakdown, optionally scoped by time window and workflow.
  *

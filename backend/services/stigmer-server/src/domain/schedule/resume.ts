@@ -4,9 +4,9 @@
  *
  * "Paused" is the platform's latch (status.paused_reason, written by the
  * failure-streak auto-pause), distinct from "disabled", the owner's switch
- * (spec.enabled) — DD-013 D-E. Resume clears the latch and resets
+ * (spec.enabled). Resume clears the latch and resets
  * status.consecutive_failures, and is deliberately the ONLY path that does
- * either (DD-013 D-D): update and apply preserve status verbatim, so a
+ * either: update and apply preserve status verbatim, so a
  * routine manifest apply can never silently un-pause a failing schedule.
  *
  * Resuming a schedule that is not paused (and has no failure streak)
@@ -45,7 +45,7 @@ class NothingToClearError extends Error {
  * every other status leaf as the concurrent runtime last wrote it (Go
  * clearSchedulePauseStep).
  *
- * This is the revisit DD-013 D-D reserved for the clock slice: a previous
+ * Why atomic: a previous
  * load-mutate-save across step boundaries was safe only while nothing else
  * wrote schedule status. The clock ended that — a fire recorded (or a
  * streak advanced) between the load and the save would have been silently

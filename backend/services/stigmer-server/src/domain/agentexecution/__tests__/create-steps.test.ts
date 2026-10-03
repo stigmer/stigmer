@@ -1248,10 +1248,11 @@ describe("agentCallTaskEnvironmentRefs", () => {
   });
 });
 
-// O4 (20260827.07, ruling Q3): the StartWorkflow failure arm's
+// The StartWorkflow failure arm's
 // PENDING→FAILED stamp is notify site 3 of 5 — an execution that consumed
 // its create-gate side effects and then never started still reaches the
-// composed observers (the cloud settles its reservation on exactly this).
+// composed observers (a billing composition settles its reservation on
+// exactly this).
 describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
   it("persists FAILED and notifies the observers before surfacing Internal", async () => {
     const observed: AgentExecutionStatusTransition[] = [];

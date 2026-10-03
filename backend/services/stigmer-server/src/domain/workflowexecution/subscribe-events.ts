@@ -73,7 +73,7 @@ export async function* subscribeEvents(
     throw invalidArgumentError("execution_id is required");
   }
   // The annotation's can_view check, once at subscription start (the
-  // pre-stream Authorize evaluation — see subscribe.ts; C2 Stage 4).
+  // pre-stream Authorize evaluation — see subscribe.ts).
   await authorizeDirect(
     WorkflowExecutionQueryController.method.subscribeEvents,
     deps.authorizer,

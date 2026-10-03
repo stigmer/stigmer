@@ -1,5 +1,5 @@
 /**
- * Pins the agentexecution Phase-1 surfaces against Go's controller —
+ * Pins the agentexecution surfaces against Go's controller —
  * through the REAL stack: a composed server on an ephemeral port, a
  * native gRPC client, the full interceptor chain. Executions cannot be
  * created through the RPC surface here (the engine gate refuses without
@@ -9,7 +9,7 @@
  *
  * Load-bearing pins the conformance suite cannot cover:
  *   - the MANGLED unknown-execution message on getExecutionUsageReport,
- *     byte-for-byte (sub-project DD-001: faithful-port + OSS issue);
+ *     byte-for-byte (a faithful port of the Go message);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
  *     rule (Go get_agent_usage_report_test.go case-for-case);
  *   - list/listBySession filter semantics over seeded rows; list's cursor
@@ -841,7 +841,7 @@ function gatedSeed(overrides?: {
   };
 }
 
-describe("updateStatus over the wire (ADR 011 write path)", () => {
+describe("updateStatus over the wire (the broker's write path)", () => {
   it("answers NotFound for an unknown execution and InvalidArgument without a status", async () => {
     await expectCode(
       () =>
@@ -1306,7 +1306,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
     expect(final.status?.pendingApprovals).toHaveLength(0);
   });
 
-  // O4 (20260827.07, ruling Q3): the reconcile's →FAILED stamp is notify
+  // The reconcile's →FAILED stamp is notify
   // site 4 of 5 — a terminal transition the update-status chokepoint
   // never sees.
   it("the stale-workflow reconcile notifies the composed status observers", async () => {
@@ -1528,7 +1528,7 @@ describe("submitFileDecision over the wire", () => {
     expect(csRepeat?.decisions).toHaveLength(1);
   });
 
-  // O4 (20260827.07, ruling Q3): the file-review reconcile twin is notify
+  // The file-review reconcile twin is notify
   // site 5 of 5.
   it("the workflow-gone reconcile notifies the composed status observers", async () => {
     const { init, changeSetId, aggregate } = ledgerSeed();

@@ -6,9 +6,8 @@
  *
  * The load-bearing pins the conformance suite CANNOT cover:
  *   - the 50MB domain cap → ResourceExhausted with Go's copy (sits behind
- *     the transport's 10MB message cap on the wire — the wave-2 S1
- *     amendment names this port as the carrier; proven here through an
- *     in-process router, which has no transport cap);
+ *     the transport's 10MB message cap on the wire, so it is proven here
+ *     through an in-process router, which has no transport cap);
  *   - the org-derivation proxy trick reading metadata.org out of a REAL
  *     stored execution row (the suite can only pin the fabricated-id
  *     fallback);
@@ -204,12 +203,12 @@ describe("artifact domain — create & content addressing", () => {
 
   it("rejects content over the 50MB domain cap with ResourceExhausted (unit-level arm)", async () => {
     // Through an in-process router — the wire path hits the transport's
-    // 10MB cap first (the S1 amendment), so the domain arm is provable
+    // 10MB cap first, so the domain arm is provable
     // only here.
     const storeDir = mkdtempSync(path.join(tmpdir(), "artifact-cap-test-"));
     const store = SqliteStore.open(path.join(storeDir, "cap.db"), silentLogger);
     try {
-      // ONLY the position-1 identity source (O2: an identityless
+      // ONLY the position-1 identity source (an identityless
       // transport fails loudly by design) — positions 2-4 stay absent on
       // purpose so the DOMAIN cap is reachable past the transport's
       // protovalidate/size gates, the whole point of this arm.

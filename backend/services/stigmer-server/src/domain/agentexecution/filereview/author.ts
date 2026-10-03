@@ -31,7 +31,7 @@ import {
 export const ACTOR_USER = "user";
 
 /**
- * Stamps events authored by a platform policy (the DD-28 approved-command
+ * Stamps events authored by a platform policy (the approved-command
  * auto-keep) — never attributed to the user, so the audit trail always
  * shows WHO decided.
  */
@@ -295,7 +295,7 @@ export function approveBlockedReason(
   // CHANGE_SET scope: a COMPLETE set is approvable as-is. Otherwise the
   // only one-shot keep allowed is a set whose every incompleteness is
   // binary, and only when the user consciously acknowledged it ("Keep
-  // all", DD-17). Re-derived from the actual changes, never the rollup,
+  // all"). Re-derived from the actual changes, never the rollup,
   // so a stale label cannot let a non-binary file ride along.
   if (cs.diffCompleteness === DiffCompleteness.COMPLETE) {
     return "";

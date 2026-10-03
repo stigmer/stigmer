@@ -1,6 +1,6 @@
 /**
- * Pins the one production spelling of an organization-role spec (specs.ts;
- * 20260913.01 slice 4) against the test support's twin, so the rows the
+ * Pins the one production spelling of an organization-role spec (specs.ts)
+ * against the test support's twin, so the rows the
  * built-in role lifecycle and the membership rules write are the rows
  * every test in this domain reads back by derived id — and the zero role
  * is refused before it can be hashed into a row.

@@ -1,6 +1,6 @@
 /**
- * Pins the C4 authorizeExecutionContextRead capability arm of
- * resolveValuesForCaller (gate ruling Q1): when the composed provider
+ * Pins the authorizeExecutionContextRead capability arm of
+ * resolveValuesForCaller: when the composed provider
  * defines it, the capability IS the entire decrypt trust decision —
  * true decrypts, false redacts, and a THROWING capability falls closed
  * to redaction (redaction-as-success must survive a policy fault). The
@@ -88,7 +88,7 @@ async function executionContext() {
   });
 }
 
-describe("resolveValuesForCaller (capability delegation — C4)", () => {
+describe("resolveValuesForCaller (capability delegation)", () => {
   it("decrypts when the capability answers true, passing token and execution id", async () => {
     const provider = providerWith(async () => true);
     const ec = await executionContext();

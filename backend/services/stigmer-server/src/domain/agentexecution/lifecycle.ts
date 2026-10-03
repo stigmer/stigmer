@@ -109,7 +109,7 @@ export interface LifecycleDeps {
   readonly engineState: ExecutionEngineStateProvider;
   /** The shared EC-builder deps, consumed by recover's recreate step. */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
-  /** The composed slot registrations — recover's pre-side-effect slot (O4). */
+  /** The composed slot registrations — recover's pre-side-effect slot. */
   readonly gateSteps: ResolvedGateSteps;
   /** The composed status-transition observers. */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
@@ -390,7 +390,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         }
         throw internalError(error, "failed to persist execution");
       }
-      // O4 site 2 of 5 (status-observers.ts): observers see the persisted
+      // Notify site 2 of 5 (status-observers.ts): observers see the persisted
       // transition before LifecycleBroadcast runs — broadcast stays last.
       await notifyStatusObservers(deps, updated, oldPhase, targetPhase);
       // Hand the persisted result to the broadcast step and the handler's
@@ -726,10 +726,9 @@ function runRecoverPipeline(
           ),
         failureMessage: "failed to terminate previous workflow during recovery",
       }),
-      // The ratified pre-side-effect gate slot (blueprint 03 §3a; O4):
-      // after workflow termination, before re-launch side effects — the
-      // verified RearmBillingStep ordering (a terminated workflow issues
-      // no new settles). Empty in OSS.
+      // The pre-side-effect gate slot: after workflow termination, before
+      // re-launch side effects, where a billing composition re-arms (a
+      // terminated workflow issues no new settles). Empty in OSS.
       ...stepsForSlot<Desc>(
         deps.gateSteps,
         "agent-execution-recover:pre-side-effect-gate",

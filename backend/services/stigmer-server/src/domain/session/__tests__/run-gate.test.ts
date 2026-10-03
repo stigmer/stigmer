@@ -1,6 +1,6 @@
 /**
- * Pins the run gate's SPLICE in session-create over the real router (P1
- * sp.run-gate): the AuthorizeRunTarget step sits right after Authorize
+ * Pins the run gate's SPLICE in session-create over the real router: the
+ * AuthorizeRunTarget step sits right after Authorize
  * and before Persist, so (1) a denied caller answers PERMISSION_DENIED
  * with the domain's byte-pinned copy and leaves no session row; (2) the
  * built-in-assistant shape (empty spec) makes NO run-gate check and

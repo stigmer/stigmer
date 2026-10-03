@@ -12,7 +12,7 @@
  * interceptor that sets the caller the chassis would have stamped (the
  * verifier chain is the chassis's business, proven in its own tests).
  *
- * What the arms pin (T01_1_review.md Q-OR-7, Q-OR-8; Q-S5-1..3, Q-S5-10):
+ * What the arms pin:
  *   - the three system RPCs admit machine and internal callers and refuse
  *     a wire user PERMISSION_DENIED with the annotation's own copy;
  *   - checkMyPermission's full order, incl. the arms the Authorizer is
@@ -106,7 +106,7 @@ const OPERATOR_EMAIL = "operator@example.com";
 const OPERATOR_ID = accountIdFor(localIdpIdFor(OPERATOR_EMAIL));
 const ALICE_ID = "ida_alice";
 
-/** The trusted-local operator: stamped by EMAIL, resolves to an account (the Q-S4-1 fact). */
+/** The trusted-local operator: stamped by EMAIL, resolves to an account. */
 const operator: CallerIdentity = trustedLocalIdentityFor({
   email: OPERATOR_EMAIL,
   displayName: "The Operator",
@@ -819,7 +819,7 @@ describe("the row reads", () => {
     ]);
   });
 
-  it("listResourceAccessByPrincipal enriches the operator's row through the account port with the Q-S5-4 name", async () => {
+  it("listResourceAccessByPrincipal enriches the operator's row through the account port with its display name", async () => {
     const h = await harness({ caller: machine });
     await h.command.create(orgRole(OPERATOR_ID, "owner", "acme"));
     const access = await h.query.listResourceAccessByPrincipal({
@@ -845,7 +845,7 @@ describe("the write lanes' order", () => {
     expect(error.rawMessage).toBe("unauthorized to revoke access");
   });
 
-  it("create validates the role BEFORE the write: a held row under a non-grantable role is INVALID_ARGUMENT, not the duplicate (the cloud's order, Q-S5-1)", async () => {
+  it("create validates the role BEFORE the write: a held row under a non-grantable role is INVALID_ARGUMENT, not the duplicate", async () => {
     const h = await harness({ caller: alice });
     const legacy = orgRole(ALICE_ID, "editor", "acme");
     await h.policies.save(

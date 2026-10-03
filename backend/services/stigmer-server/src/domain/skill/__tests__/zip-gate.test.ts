@@ -1,6 +1,6 @@
 /**
  * Pins the ZIP gate against Go's zip_extractor_test.go arms plus the
- * DD-001 pre-filter integration: every rejection message byte-for-byte
+ * pre-filter integration: every rejection message byte-for-byte
  * where the text is static, prefix-matched where it embeds sizes.
  */
 import { deflateRawSync } from "node:zlib";

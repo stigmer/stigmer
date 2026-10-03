@@ -55,7 +55,7 @@ export function gateResolved(status: AgentExecutionStatus): boolean {
  * Whether some change set is DECIDED — verdicts recorded, runner
  * reconcile still owed. The workflow's wait loop uses this to tell a
  * LEGITIMATE empty gate from a broken one (a set decided before the gate
- * check — the DD-28 auto-keep or a fast human — leaves phase
+ * check — the approved-command auto-keep or a fast human — leaves phase
  * WAITING_FOR_APPROVAL with a zero gate count; the correct response is an
  * immediate re-invoke to reconcile, never the empty-gate anomaly path).
  */
