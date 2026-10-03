@@ -376,7 +376,7 @@ describe("Environment conformance — ciphertext-shaped input rejection", () => 
   // The enc:v<N>: prefix is a server-reserved encryption sentinel. A
   // client-supplied secret carrying it is either forged ciphertext or an
   // attempt to plant a value the server would later decrypt with its own
-  // key, so every write boundary rejects it (stigmer#395 / stigmer-cloud#229).
+  // key, so every write boundary rejects it (stigmer#395).
   // Clients only ever see redacted secrets, so no legitimate round-trip
   // sends a prefixed value.
   const CIPHERTEXT_SHAPED = "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";

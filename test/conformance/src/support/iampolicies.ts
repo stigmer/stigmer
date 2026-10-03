@@ -1,9 +1,8 @@
-// Constants and fixtures for the IamPolicy domain (20260913.01 — the row
-// half served ONCE by @stigmer/server in every edition).
+// Constants and fixtures for the IamPolicy domain (the row half served ONCE
+// by @stigmer/server in every edition).
 // Domain: conformance support.
 //
-// The byte-pinned copy below is the cloud handlers' wording (iam/policy/
-// handlers.ts as it read at stigmer-cloud cee0058e9), moved into
+// The byte-pinned copy below is the cloud handlers' wording, moved into
 // @stigmer/server as-is, plus the two edition sentences the OSS controller
 // answers where a capability is not composed. The conformance suite
 // deliberately never imports the server's constants — the literal IS the
@@ -25,7 +24,7 @@ export const IAM_POLICY_API_VERSION = "iam.stigmer.ai/v1";
 export const IAM_POLICY_KIND = "IamPolicy";
 
 // The four kind_meta roles of the organization, in the proto's order — the
-// one role set open source grants on (T01_1_review.md Q-OR-4). Declared on
+// one role set open source grants on. Declared on
 // the target contract because the enforcing lane provisions people BY role
 // (targets/target.ts); re-exported here so the suites keep one import.
 export { ORGANIZATION_ROLES, type OrganizationRole } from "../targets/target";
@@ -50,8 +49,8 @@ export function roleNotGrantableMessage(
   return `Role '${relation}' cannot be granted on resource kind '${kindName}'. Grantable roles: [${grantable.join(", ")}]`;
 }
 
-// create whose principal is neither a person nor a team (Q-S9-2, the
-// security read's finding 41): a role is granted to an identity account or
+// create whose principal is neither a person nor a team: a role is granted to
+// an identity account or
 // to a team's members; a row naming any other resource as its principal is
 // a structural link and bootstrapPolicy's. The sentence names both grantee
 // kinds in every edition: the principal check admits a team everywhere, and
@@ -80,7 +79,7 @@ export function unknownPermissionMessage(relation: string): string {
 
 // A kind string that is not exactly an ApiResourceKind member name (the
 // cloud's kindFromSpecString copy; the OSS wire refusals). Refused before
-// position 1 on every lane in every edition (slice 6, Q-S6-1): a kind
+// position 1 on every lane in every edition: a kind
 // that names no kind names no authorization target.
 export function unknownResourceKindMessage(kind: string): string {
   return `Unknown resource kind: '${kind}'`;
@@ -101,7 +100,8 @@ export const PRINCIPAL_NOT_CALLER_MESSAGE =
 
 // An annotated RPC against an organization that does not exist, under an
 // Authorizer with a `not-found` arm (the cloud's OpenFGA existence probe;
-// open source's from entry 3): the pipeline's NOT_FOUND copy for the kind.
+// open source's built-in Authorizer): the pipeline's NOT_FOUND copy for the
+// kind.
 export function organizationNotFoundMessage(id: string): string {
   return `Organization not found: ${id}`;
 }
@@ -142,9 +142,9 @@ export const BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE =
   "unauthorized to revoke organization access - can_bootstrap_iam permission required";
 
 // An identity-account id no account holds: the principal of the shared grant
-// arms. Q-OR-14 rules that neither edition checks a principal's existence
-// (OpenFGA references by string; the public-viewer wildcard has no row), so
-// granting to it is a real, ruled behaviour on every target and needs no
+// arms. Neither edition checks a principal's existence (OpenFGA references
+// by string; the public-viewer wildcard has no row), so granting to it is a
+// real behaviour on every target and needs no
 // second real caller. Unique per call so no run meets another's rows.
 export function syntheticAccountId(): string {
   const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;

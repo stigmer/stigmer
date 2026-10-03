@@ -4,8 +4,7 @@
 //
 // An AgentChannel binds one agent to one external messaging workspace. The
 // resource CRUD surface is fully served by both editions; the RUNTIME lanes
-// split by edition and are pinned by posture (channel-integrations T02 §0-b
-// and the conversation/messaging decisions, all documented in the Go
+// split by edition and are pinned by posture (documented in the
 // controllers):
 //
 //   - COMMANDS that ask to DO a cloud-only thing refuse FailedPrecondition
@@ -22,7 +21,7 @@
 //     first precisely so the InvalidArgument contract matches cloud) —
 //     asserted unconditionally.
 //
-// Deliberate exclusions, disclosed in the wave-2 PR:
+// Deliberate exclusions:
 //   - The app_ref freeze-while-installed rule is structurally unreachable on
 //     OSS (install_state never reaches `installed` — the install lane is the
 //     refusal above). The reachable half of the same rule IS asserted: a
@@ -211,8 +210,7 @@ describe("AgentChannel conformance — create validation", () => {
 
     // NOTE the deliberate as-is pin: the same-org rule here answers
     // FailedPrecondition while ChannelApp's provider rule answers
-    // InvalidArgument — the cross-domain inconsistency recorded in the
-    // wave-2 PR for post-cutover harmonization.
+    // InvalidArgument — a known cross-domain inconsistency, pinned as-is.
     const err = await expectGrpcCode(
       () =>
         clients.agentChannelCommand.create(

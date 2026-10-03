@@ -198,7 +198,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
       ExecutionPhase.EXECUTION_IN_PROGRESS,
     );
 
-    // The gate is also the listPendingApprovals populated arm (CW-7): the
+    // The gate is also the listPendingApprovals populated arm: the
     // read scans per-task status projections, and the entry carries the
     // TASK NAME (deliberately not the composite task id — the value
     // submitWorkflowTaskApproval accepts).
@@ -293,7 +293,7 @@ describe("WorkflowExecution submitWorkflowTaskApproval — gate & resolution", (
 
     // "deny" is a declared outcome, so it is recorded as data and the workflow
     // continues — it does NOT fail the execution (the proto's "deny fails" note
-    // describes only the implicit no-outcomes binary form; see DD-011).
+    // describes only the implicit no-outcomes binary form).
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "a declared deny outcome still COMPLETES the run").toBe(
       ExecutionPhase.EXECUTION_COMPLETED,

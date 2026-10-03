@@ -9,7 +9,7 @@
 // nested graph on the same LLM loop, the child's final text becomes the task
 // tool's result, and the parent takes one more turn to answer. The mock is one
 // FIFO for both — the arrival order IS parent, child, parent — which is the
-// same model the Go offline suite scripted (subagent_offline_test.go; DD-001).
+// same model the Go offline suite scripted (subagent_offline_test.go).
 //
 // Asserted: the parent's ToolCall `task` completes with the child's output as
 // its result; sub_agent_executions carries exactly the named child, COMPLETED,

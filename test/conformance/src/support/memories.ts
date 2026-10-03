@@ -2,8 +2,8 @@
 // for the conformance suite.
 // Domain: conformance support.
 //
-// A Memory is an agent-proposed, user-confirmed fact (DD-004/DD-005/
-// DD-006): the fact text lives in spec.content; the subject and
+// A Memory is an agent-proposed, user-confirmed fact: the fact text lives in
+// spec.content; the subject and
 // provenance are SERVER-OWNED at create (client values overwritten);
 // the consent lifecycle (proposed → confirmed/rejected) lives in status
 // and is written only by create and the confirm/reject commands.
@@ -38,7 +38,7 @@ export const MEMORY_CAP = 100;
 // ─── Contract copy (byte-pinned in both editions' unit tests) ──────────────
 
 // Refusing a create once the subject's ceiling is reached — visible-full,
-// never silent eviction (the ChatGPT Memory-Full pattern, DD-006 D5).
+// never silent eviction (the ChatGPT Memory-Full pattern).
 export const MEMORY_FULL_MESSAGE =
   "memory is full — review and delete existing memories";
 

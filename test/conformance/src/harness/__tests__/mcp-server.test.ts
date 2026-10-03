@@ -1,5 +1,5 @@
-// Unit arms for the MCP tool fixture's path-named tool surfaces (entry
-// 20260910.02): the default `/mcp` stays the one-tool echo server every
+// Unit arms for the MCP tool fixture's path-named tool surfaces: the default
+// `/mcp` stays the one-tool echo server every
 // existing suite pins by exact tool list, an explicit `/mcp/echo,fail` exposes
 // both, `/mcp/lookup_order` serves the fixed order table and refuses an
 // unknown id as a tool error, and an unknown name is refused rather than

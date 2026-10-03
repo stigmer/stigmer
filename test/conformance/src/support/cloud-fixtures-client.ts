@@ -1,5 +1,5 @@
 // Typed client for the run-scoped cloud fixtures' control API.
-// Domain: conformance support (cloud-capability suites, E1).
+// Domain: conformance support (cloud-capability suites).
 //
 // The fakes live in the global-setup process (harness/cloud-fixtures.ts);
 // suites reach them over CLOUD_ENV.fixturesControlUrl. This is the only way a

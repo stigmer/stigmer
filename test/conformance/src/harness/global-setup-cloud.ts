@@ -7,7 +7,7 @@
 // (backend/services/stigmer-server/spike/README.md there), which also starts
 // the cloud-capability fixtures (fake LLM upstream, Stripe, Discord —
 // cloud-fixtures.ts, imported from this workspace) and mints the suite's
-// identities. Until the Java stigmer-service retired (stigmer-cloud DD-013)
+// identities. Until the Java stigmer-service retired
 // this setup could boot that service hermetically through a Go launcher in
 // test/integration; the OSS repository cannot boot the private composition,
 // so the launcher half retired with the service and this setup now REFUSES to

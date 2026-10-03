@@ -27,8 +27,8 @@
 // explicit acknowledgement. Gitignored NON-secret paths are captured through
 // the content-addressed store and reconciled from it.
 //
-// Contract by DD-001 of entry 20260910.02; replaces the Go offline suite's
-// file_review_offline_test.go arm for arm (T01_1 rows 45–59). Reads of the
+// Replaces the Go offline suite's file_review_offline_test.go arm for arm.
+// Reads of the
 // workspace are the suite's own fixture, not a runner internal.
 import { Code } from "@connectrpc/connect";
 import { toJson } from "@bufbuild/protobuf";

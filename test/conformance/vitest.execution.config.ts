@@ -2,9 +2,9 @@
 // the full execution glob against the local TS server with its engine
 // provisioned (Temporal + the unified runner).
 //
-// The glob replaced the explicit local-ts-execution roster at
-// go-server-retirement (D4 #25): roster/glob equality — the Class B half of
-// the cutover gate — was reached at #23. The per-entry roster history lives
+// The glob replaced the explicit local-ts-execution roster when the Go
+// server retired: roster/glob equality — the Class B half of the cutover —
+// was reached before it. The per-entry roster history lives
 // in git (vitest.local-ts-execution.config.ts).
 //
 // Separate from vitest.config.ts so the dependency-light CRUD suites stay

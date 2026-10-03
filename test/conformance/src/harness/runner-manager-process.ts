@@ -10,8 +10,8 @@
 // ipc-protocol.mdx). The Rust host crate (crates/stigmer-runner-host) is the
 // production host; this module is the harness's minimal one, enough to prove
 // end to end that the real runner process advertises the version the hosts
-// negotiate on and honors `shutdown` (entry 20260910.02, ruling 3 — the arm
-// the Go harness's unified_runner.go carried).
+// negotiate on and honors `shutdown` (the arm the Go harness's
+// unified_runner.go carried).
 //
 // The message types are imported from the runner's own ipc-protocol.ts, the
 // canonical definition, so this is NOT a third hand-mirror of the contract:

@@ -5,10 +5,9 @@
 //
 // The contract is SYNCHRONOUS: a zero-credit org's create RPC itself is
 // refused FAILED_PRECONDITION with the engine's denial_reason verbatim, and no
-// execution resource exists afterwards. That shape was ruled at the C5 billing
-// facade's plan gate (20260830.02.sp.billing-facade, Q5: "strictly earlier
-// than the Java refusal" — the retired Java service accepted the create and
-// failed the execution asynchronously; that arm retired with it, stigmer#1023).
+// execution resource exists afterwards — strictly earlier than the retired
+// Java service, which accepted the create and failed the execution
+// asynchronously (that arm retired with it, stigmer#1023).
 // Enforced strictly: a composition regressing to an asynchronous failure, or
 // changing the denial bytes, turns this suite red.
 //
@@ -20,7 +19,7 @@
 // environmental.
 //
 // Skipped entirely on the local OSS targets: no billing engine exists there
-// by DD-001 boundary (see CapabilityFlags.billingGates), so there is no
+// by the edition boundary (see CapabilityFlags.billingGates), so there is no
 // denial contract to pin — the scheduleFiring skip posture.
 import { Code } from "@connectrpc/connect";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

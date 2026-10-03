@@ -79,7 +79,7 @@ export function makeSlackAgentChannel(
   };
 }
 
-// A complete WhatsApp AgentChannel. WhatsApp is BYO-only (DD-WA-2): app_ref
+// A complete WhatsApp AgentChannel. WhatsApp is BYO-only: app_ref
 // is required, which is exactly the arm the suite's negative drops.
 export function makeWhatsAppAgentChannel(
   org: string,

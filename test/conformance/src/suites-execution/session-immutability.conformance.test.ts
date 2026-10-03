@@ -21,7 +21,7 @@
 // stores the Cursor agentId), and the suite has no Cursor backend; the NATIVE
 // deep-agent path's EnsureThread computes a thread id but does NOT persist it to
 // the session (a known gap between the proto's documented intent and the runner
-// implementation, recorded in the Session-13 checkpoint / DD-013). So instead of
+// implementation). So instead of
 // driving an execution, the suite sets harness_state_id directly — it is a plain,
 // client-settable spec field with no output-only annotation, so writing it through
 // create/apply is within the public contract and exercises the validators exactly

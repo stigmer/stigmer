@@ -2,13 +2,13 @@
 // Domain: agentic / agentexecution — the submitApproval RPC and the
 // approval-gate lifecycle a tool-using agent run goes through.
 //
-// This is the first slice that exercises a real *tool*: the engine can only
+// This is the first suite that exercises a real *tool*: the engine can only
 // reach EXECUTION_WAITING_FOR_APPROVAL when an agent references an McpServer that
 // exposes an approval-gated tool. The harness provides that surface via the
 // in-process HTTP MCP fixture (harness/mcp-server.ts, the `echo` tool); the
 // McpServer resource is created only — the runner connects to it live at
 // execution setup and gates `echo` from the agent's tool_approval_overrides (no
-// connect/discovery step is required; see DD-010). Every run is scripted on the
+// connect/discovery step is required). Every run is scripted on the
 // mock LLM: a tool_use(echo) turn drives the agent to the gate, and a terminating
 // text turn lets it finish once the gate resolves.
 //
@@ -21,7 +21,7 @@
 // terminal status of a REJECTED tool: as of issue #197 the runner terminalizes a
 // non-executing decision from the recorded ToolCall.approval_action
 // (reconcileNonExecutingDecisions), which is decision-derived and therefore
-// stable across resume regardless of run_id instability. See DD-010.
+// stable across resume regardless of run_id instability.
 //
 // Asserted contract:
 // - submitApproval is on the Command controller; SubmitApprovalInput is
@@ -47,7 +47,7 @@
 //   FailedPrecondition.
 //
 // Every gate-resolving submit goes through submitApprovalPerContract (the seam
-// in support/agentexecutions.ts) since entry 20260908.01: the synchronous
+// in support/agentexecutions.ts): the synchronous
 // contract above is asserted there once, so a decision the server failed to
 // record is red at the submit that made it, never a timeout later in the arm.
 import { Code } from "@connectrpc/connect";
@@ -266,7 +266,7 @@ describe("AgentExecution submitApproval — gate resolution", () => {
 
     // REJECT denies the tool and continues: the objection is fed back to the LLM,
     // which adapts, and the execution COMPLETES (issue #197 — the proto enum, the
-    // native runner, and this suite now agree; DD-010 updated).
+    // native runner, and this suite agree).
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "rejected execution still COMPLETES").toBe(ExecutionPhase.EXECUTION_COMPLETED);
 
@@ -415,8 +415,8 @@ describe("AgentExecution submitApproval — spec bypass and read model", () => {
   });
 });
 
-// The three arms below came from the Go offline suite (hitl_offline_test.go;
-// entry 20260910.02, DD-001) and assert what the arms above deliberately left
+// The three arms below came from the Go offline suite (hitl_offline_test.go)
+// and assert what the arms above deliberately left
 // out: the lease APPROVE_ALL grants across TURNS, the ledger's shape on a
 // cancel at the gate, and the resumed transcript under the runner's durable
 // checkpointer.
@@ -455,12 +455,12 @@ describe("AgentExecution submitApproval — lease, cancel at the gate, durable r
   // IN_PROGRESS (lifecycle.ts ValidateCancellable, ported from the Go server),
   // while the retired Java service cancelled a WAITING_FOR_APPROVAL run to
   // CANCELLED. Whether a parked gate may be abandoned without a decision is a
-  // cross-edition contract question for the owner, not a test to bend either
-  // way — paused in entry 20260910.02's T01_1 (row 43).
+  // cross-edition contract question for the maintainers, not a test to bend
+  // either way, so the arm stays unported until it is decided.
 
   it("[rpc:AgentExecutionCommandController.submitApproval] the approved ToolCall survives the resume with TOOL_CALL_COMPLETED and a result — a true resume, not a replay", async () => {
-    // Under the runner's durable checkpointer (its OSS default; DD-002 of entry
-    // 20260910.02) the resumed invocation continues the SAME graph state: the
+    // Under the runner's durable checkpointer (its OSS default) the resumed
+    // invocation continues the SAME graph state: the
     // gated call keeps its id, runs, and records its result; the model then
     // gets its second turn. A replay would re-emit the tool call under a fresh
     // id and consume the script out of order.

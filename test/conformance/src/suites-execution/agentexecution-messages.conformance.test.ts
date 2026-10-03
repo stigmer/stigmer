@@ -4,11 +4,10 @@
 // provider actually received.
 // Domain: agentic / agentexecution — the transcript a console or SDK renders.
 //
-// These are runner behaviors read through execution status, contract by
-// DD-001 (entry 20260910.02); they replace the Go offline suite's
-// offline_test.go, plain_chat_offline_test.go and the agent half of
-// model_resolution_offline_test.go (the accounting is the entry's
-// T01_1_arm-disposition.md). The MCP echo round-trip itself is the harness
+// These are runner behaviors read through execution status, and so contract;
+// they replace the Go offline suite's offline_test.go,
+// plain_chat_offline_test.go and the agent half of
+// model_resolution_offline_test.go. The MCP echo round-trip itself is the harness
 // smoke (mcp.harness.test.ts); this file asserts what the transcript
 // says about it and about a tool that fails.
 //

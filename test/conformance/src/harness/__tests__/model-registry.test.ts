@@ -1,4 +1,4 @@
-// Unit arms for the model-registry reader (entry 20260910.02): a document
+// Unit arms for the model-registry reader: a document
 // without a models array is refused by name — the runner degrades silently
 // against one, and the arms must not — and a row lookup names the missing id.
 // Pure. Domain: conformance harness (execution engine).

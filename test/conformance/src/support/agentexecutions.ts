@@ -8,8 +8,8 @@
 // agent, which the OSS single-tenant target does not seed, so suites always pass a
 // reference. Like WorkflowExecution this is a *running thing*, so this module also
 // exposes phase-await helpers, delegating the timing loop to the shared poll core
-// so both execution domains share one definition — and, since entry 20260908.01,
-// the submit-approval seam: the one place the approval read-model contract is
+// so both execution domains share one definition — and the submit-approval
+// seam: the one place the approval read-model contract is
 // asserted (see the seam's own header below).
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
@@ -178,11 +178,11 @@ export function awaitTerminal(
 //   red that names the decision, where a bare submit would surface it later as
 //   an awaitTerminal timeout with a misleading face.
 //
-// History: the seam arrived with entry 20260908.01 to contain a Java-only race
+// History: the seam arrived to contain a Java-only race
 // (the workflow's WAITING heartbeat overwriting a concurrent submit) that the
 // OSS server was structurally immune to — its submit and its status writes are
 // each one read-modify-write under the store write lock. The race path retired
-// with the Java service (stigmer-cloud DD-013, stigmer#1023).
+// with the Java service (stigmer#1023).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SubmitApprovalPerContractOptions {

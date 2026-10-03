@@ -13,7 +13,7 @@
 //     (cloud). People come from the target's own provisioning; the founder
 //     is the target's primary caller.
 //   - newSiblingEnforcingLane: an open-source sibling booted in the OIDC
-//     posture against the harness's local issuer (the 20260911.11 shape the
+//     posture against the harness's local issuer (the shape the
 //     identityaccount and iampolicy suites already use), with a founder the
 //     issuer mints and the server provisions.
 //
@@ -23,8 +23,8 @@
 //     `sub` becomes the account id. Sibling: an issuer-minted access token
 //     for a fresh subject, then `provisionMyAccount` — the console's first
 //     sign-in, over the wire.
-//   - What a newcomer holds. Cloud: nothing. Open source: 20260913.01's
-//     membership rules make every later arrival a MEMBER of every
+//   - What a newcomer holds. Cloud: nothing. Open source: the membership
+//     rules make every later arrival a MEMBER of every
 //     organization that already exists. `provisionIdentity` therefore
 //     revokes the newcomer on every organization the founder can see
 //     (`findMyOrganizations` as the founder, then `revokeOrgAccess`), and

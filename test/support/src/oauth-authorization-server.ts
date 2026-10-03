@@ -25,7 +25,7 @@
 // The fixture is suite-owned, not target-owned: the server under test reaches
 // it only through URLs carried in per-test resource specs (auth.discovery_url,
 // OAuthApp token_url), never through boot-time wiring — so no target class
-// needs to know it exists (sub-project DB-2).
+// needs to know it exists.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 

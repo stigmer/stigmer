@@ -8,8 +8,8 @@
 // REAL runner process, booted the way a host boots it, writes the `ready` line
 // with the version the hosts negotiate on and answers `shutdown` — `ready` is
 // sent only after the manager has connected to Temporal (main.ts), so the arm
-// belongs where Temporal is: the execution class. Entry 20260910.02, ruling 3;
-// the Go harness's TestOffline_RunnerManager_AdvertisesProtocolVersion.
+// belongs where Temporal is: the execution class. It replaces the Go harness's
+// TestOffline_RunnerManager_AdvertisesProtocolVersion.
 //
 // The smoke boots a SECOND runner beside the target's static one: the static
 // runner serves the file's engine, this one is the subject. It needs the

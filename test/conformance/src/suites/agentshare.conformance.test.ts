@@ -27,8 +27,7 @@
 //     existence probe; another organization's agent is shared by installing
 //     the plugin that carries it and sharing the installed copy.
 //
-// OD-1 exclusion (parent blueprint): the agentshare boot migration is
-// asserted separately, never here.
+// The agentshare boot migration is asserted separately, never here.
 import { Code } from "@connectrpc/connect";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

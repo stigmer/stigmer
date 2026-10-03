@@ -15,7 +15,7 @@
 // behaviors it gates (harness_state_id, and the harness / execution_target
 // immutability sentinels that fire only once harness_state_id is set by a real
 // execution) are therefore out of scope here and belong to the execution-lifecycle
-// slice. Likewise, the session-level mcp_server_usages / skill_refs are merged into
+// suites. Likewise, the session-level mcp_server_usages / skill_refs are merged into
 // the agent graph at execution time (graph construction), not validated at create
 // (Session has no ValidateReferencesStep), so their merge semantics are a Class B
 // concern rather than a create-time contract.
@@ -386,9 +386,9 @@ describe("Session conformance — queries", () => {
 
   it("[rpc:SessionQueryController.listByChannel] listByChannel answers an empty list for a channel with no sessions — ordinary sessions never leak into a channel view", async () => {
     // The probe targets a REAL owned channel (the conversation-lane
-    // convention, wave-2): on cloud a fabricated channel id fails closed in
-    // the channel can_view gate (PermissionDenied, no existence leak —
-    // DD-012) before the filter ever runs, so only an owned channel reaches
+    // convention): on cloud a fabricated channel id fails closed in the
+    // channel can_view gate (PermissionDenied, no existence leak) before the
+    // filter ever runs, so only an owned channel reaches
     // the shared truthful-emptiness contract on both editions. Channel
     // sessions are created by the cloud channel runtime, which stamps the
     // stigmer.ai/channel-id label at create time; the OSS runtime has no
@@ -413,8 +413,8 @@ describe("Session conformance — queries", () => {
   it.skipIf(!hasPrivilegedScope)("[rpc:SessionQueryController.listByChannel] listByChannel returns exactly the sessions stamped with the channel's label", async () => {
     // The positive arm: the filter must key on the stigmer.ai/channel-id
     // label, not on emptiness. The channel is a REAL owned resource (the
-    // wave-2 conversation-lane convention — cloud's DD-012 can_view gate
-    // passes only for channels the caller can open), and the label is a
+    // conversation-lane convention — cloud's can_view gate passes only for
+    // channels the caller can open), and the label is a
     // server-stamped reserved key an ordinary caller cannot forge on cloud
     // (GuardReservedLabelsStep), so the channel-originated session is seeded
     // through the privileged scope (stigmer#547) — the activity suite's

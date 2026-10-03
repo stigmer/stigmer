@@ -7,9 +7,9 @@
 // delegated to CloudTarget (CLOUD_ENV contract, real orgs, PlatformClient
 // minting), and this target adds exactly what `local-execution` adds to
 // `local` — the TS-owned engine trio (runner, mock LLM proxy, MCP tool
-// fixture). The fixtures stay TS-pure per DD-002 (no cross-language coupling
-// with the Go integration harness), which is what lets the execution suites
-// program `llmProxy()` per test identically on both editions.
+// fixture). The fixtures stay TS-pure (no cross-language coupling), which is
+// what lets the execution suites program `llmProxy()` per test identically on
+// both editions.
 //
 // The runner boots as a PRODUCTION embedded runner of the primary conformance
 // user: spawnRunner's cloudBootstrap hands it the user's JWT and no Temporal
@@ -55,10 +55,9 @@ export class CloudExecutionTarget implements TargetProfile {
 
   // Same service, same edition differences: capabilities are delegated to the
   // inner CloudTarget verbatim (having an engine is not a CapabilityFlag —
-  // the same reasoning local-execution records). This target was the FIRST
-  // with both the child_approval_required signal and a runner to drive it
-  // (DD-012); since D4 #23 the TS server's HITL loop emits the same signal,
-  // so local-execution runs the identical forwarding round-trip.
+  // the same reasoning local-execution records). The server's HITL loop emits
+  // the child_approval_required signal on both editions, so local-execution
+  // runs the identical forwarding round-trip.
   private readonly cloud = new CloudTarget();
 
   private runner: RunningRunner | undefined;
@@ -88,18 +87,17 @@ export class CloudExecutionTarget implements TargetProfile {
 
     // 3. Runner last: embedded-runner bootstrap as the primary user (see the
     //    module doc). The proxy token is a placeholder — cloudBootstrap's user
-    //    JWT wins for STIGMER_TOKEN, and the mock proxy ignores bearers.
+    //    JWT wins for STIGMER_TOKEN, and the mock proxy ignores bearers. The
+    //    registry origin is the composition's proxy lane, which serves the
+    //    authenticated registry document a production cloud runner fetches
+    //    with the bearer it bootstraps with; LLM traffic still goes to the
+    //    mock, so only the registry fetch rides the real lane.
     const backendEndpoint = requireCloudEnv(CLOUD_ENV.address);
     const primaryToken = requireCloudEnv(CLOUD_ENV.token);
     this.runner = await spawnRunner({
       entryPath: runnerEntry,
       backendEndpoint,
       cloudBootstrap: { token: primaryToken },
-      // The composition serves the authenticated registry document on its
-      // proxy lane (stigmer-cloud `src/proxy/model-registry.ts`, C6 Q6) — the
-      // origin a production cloud runner fetches it from, with the bearer it
-      // bootstraps with. LLM traffic still goes to the mock: only the
-      // registry fetch rides the real lane.
       registryOrigin: requireCloudEnv(CLOUD_ENV.proxyAddress),
       proxy: { endpoint: this.mockLlm.url(), token: "conformance-cloud-bootstrap" },
       // Artifacts presign against the real service's HTTP port (MinIO-backed)
@@ -206,8 +204,8 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.provisionUnfundedTenancy();
   }
 
-  // The seed itself lives on the Class A target (E1 moved it up so ledger arms
-  // can fund without a runner); this target's provisionTenancy is the one
+  // The seed itself lives on the Class A target (so ledger arms can fund
+  // without a runner); this target's provisionTenancy is the one
   // place that applies it by default.
   fundTenancy(org: string): Promise<void> {
     return this.cloud.fundTenancy(org);

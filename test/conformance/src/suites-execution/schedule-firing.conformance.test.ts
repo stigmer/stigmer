@@ -1,15 +1,15 @@
 // Schedule firing conformance — the cross-edition FIRING contract.
 // Domain: conformance suites (execution engine).
 //
-// The trigger is a SYNCHRONOUS direct run since project DD-017 D-5/D-6
-// (amending DD-014): the RPC runs the full execution create pipeline and
+// The trigger is a SYNCHRONOUS direct run: the RPC runs the full execution
+// create pipeline and
 // answers with the run's REAL outcome — the created execution's id, or
 // the refusing gate's copy verbatim. That reshapes what this suite can
 // and cannot assert black-box:
 //
 //   - NEWLY assertable: the outcome contract itself (a dangling target
-//     names itself in the result, synchronously); the DD-017 D-5
-//     reversal that manual fires NEVER feed the failure streak; and the
+//     names itself in the result, synchronously); the rule that manual
+//     fires NEVER feed the failure streak; and the
 //     run-history surface (listRuns) — every fire leaves a row with the
 //     reason verbatim, including fires that created no execution.
 //
@@ -106,7 +106,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     // observable in the result itself, no polling.
     expect(result.schedule?.status?.lastFireAt).toBeDefined();
 
-    // DD-017 D-5, pinned cross-edition: manual fires do NOT feed the
+    // Pinned cross-edition: manual fires do NOT feed the
     // failure streak — a test fire of a broken schedule must not race
     // its owner to the pause threshold. (The streak is the CRON health
     // signal; its auto-pause crossing is covered at the tick level in
@@ -182,7 +182,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     target.llmProxy!().enqueue(anthropicText("Reminders sent."));
 
     // The sync trigger answers with the execution — no polling for
-    // last_execution_id (the DD-014 shape this replaced).
+    // last_execution_id (the asynchronous shape this replaced).
     const result = await clients.scheduleCommand.trigger({ value: id });
     expect(result.outcome).toBe(ScheduleRunOutcome.STARTED);
     const executionId = result.executionId;
@@ -208,7 +208,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
 
     // Manual fires are untracked by design — the caller watches the
     // execution — so run history resolves their outcome at READ time
-    // from the execution's live phase (DD-017 D-7's honesty rule).
+    // from the execution's live phase (the honesty rule).
     const history = await clients.scheduleQuery.listRuns({ scheduleId: id });
     expect(history.totalCount).toBe(1);
     const run = history.items[0]!;

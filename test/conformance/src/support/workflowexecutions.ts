@@ -182,7 +182,7 @@ export function awaitTaskWaitingApproval(
 // first, so a run that finishes without ever surfacing the gate is reported
 // immediately rather than burning the full timeout. This is the parent-level
 // analogue of awaitTaskWaitingApproval, and only fires on editions that emit the
-// signal (capability workflowChildApprovalForwarding; see DD-012).
+// signal (capability workflowChildApprovalForwarding).
 export async function awaitParentPendingApproval(
   clients: ConformanceClients,
   executionId: string,

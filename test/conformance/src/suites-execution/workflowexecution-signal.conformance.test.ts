@@ -28,8 +28,8 @@
 // - idempotency_key dedupe: a duplicate of a DELIVERED key (org-scoped, 24h
 //   window anchored at delivery) is rejected with ALREADY_EXISTS; a distinct
 //   key delivers normally. Both editions enforce this through equivalent
-//   DedupeClaimStep pipelines. This was the DD-013 "documented, not fixed"
-//   gap — the OSS server never called SetSignalDedupeStore, so dedupe degraded
+//   DedupeClaimStep pipelines. This was once a documented, unfixed gap —
+//   the OSS server never called SetSignalDedupeStore, so dedupe degraded
 //   to a no-op; #309 wired the store and this suite asserts the contract
 //   ungated. Deliberately NOT asserted here (oss#442, pinned at store/step
 //   level in both editions instead — inducing a Temporal send failure or an

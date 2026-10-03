@@ -6,7 +6,7 @@
 // branching, immutable identity fields, default-instance provisioning, reference
 // resolution, slug semantics, and spec-first negative paths. The cross-aggregate
 // Agent->McpServer reference invariant lives in
-// agent-mcpserver-references.conformance.test.ts (split out by DD-001).
+// agent-mcpserver-references.conformance.test.ts.
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -258,9 +258,8 @@ describe("Agent conformance — reserved labels", () => {
   // not introduce; nothing resolves it any more.
   const DEFAULT_AGENT_LABEL = "stigmer.ai/default-agent";
 
-  // The write guard is cloud-only (stigmer-cloud#320, platform-wide since
-  // stigmer-cloud#386); the local OSS targets are deliberately unguarded
-  // (single-tenant, the operator owns the store), so this pin is the
+  // The write guard is cloud-only; the local OSS targets are deliberately
+  // unguarded (single-tenant, the operator owns the store), so this pin is the
   // false-branch twin of the capability — where ordinary reserved writes
   // are allowed there is nothing to reject.
   it.skipIf(capabilities.clientReservedLabelWrites)("an ordinary caller introducing a reserved stigmer.ai/* label is rejected where the guard holds", async () => {
@@ -410,7 +409,7 @@ describe("Agent conformance — delete cascades instances (stigmer#611)", () => 
     );
 
     // The agent slug is free again: recreate converges instead of colliding
-    // with the orphaned default instance (the DD-010 poison).
+    // with the orphaned default instance, which once held the slug.
     const recreated = await createAgent(org, name);
     expect(recreated.metadata?.slug).toBe(created.metadata?.slug);
     expect(recreated.metadata?.id).not.toBe(agentId);

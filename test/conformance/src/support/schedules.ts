@@ -19,10 +19,11 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 export const SCHEDULE_API_VERSION = "agentic.stigmer.ai/v1";
 export const SCHEDULE_KIND = "Schedule";
 
-// ─── The trigger refusal copy (contract copy, DD-017 D-5) ──────────────────
+// ─── The trigger refusal copy (contract copy) ───────────────────────────────
 
-// Refusing a disabled schedule — the ONE remaining trigger refusal (DD-017
-// D-5 narrowed DD-014 D-B's matrix: paused schedules now fire, and manual
+// Refusing a disabled schedule — the ONE remaining trigger refusal (the
+// refusal matrix narrowed when triggers went synchronous: paused schedules
+// now fire, and manual
 // fires run synchronously through the create pipeline rather than the
 // artifact). The refusal survives because ScheduleBlueprintAccess requires
 // spec.enabled at the create gate AND the mid-run sandbox read predicate;
@@ -30,9 +31,9 @@ export const SCHEDULE_KIND = "Schedule";
 export const TRIGGER_DISABLED_MESSAGE =
   "schedule is disabled (spec.enabled=false) — enable it before triggering";
 
-// NOTE: the DD-014-era paused-trigger refusal and the auto-pause crossing
+// NOTE: the earlier paused-trigger refusal and the auto-pause crossing
 // are no longer black-box assertable here — the streak accumulates only
-// from CRON fires (DD-017 D-5: manual fires never feed it), and a real
+// from CRON fires (manual fires never feed it), and a real
 // cron arc is infeasible under the cloud conformance environment's
 // production interval floor. The pause machinery keeps tick-level coverage
 // in both editions, and the pause copy stays byte-pinned in their unit
@@ -85,7 +86,7 @@ export function makeSchedule(
   };
 }
 
-// The DD-014-era pollScheduleUntil helper is gone with the asynchronous
+// The old pollScheduleUntil helper is gone with the asynchronous
 // trigger it served: the sync trigger answers with the fire's outcome in
 // the result, so firing assertions read the response (or listRuns) rather
 // than polling status.
