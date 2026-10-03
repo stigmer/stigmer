@@ -144,7 +144,7 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
     ["planning-record path", "see _projects/2026-01/some-record"],
     ["planning-record id", "record 20260101.07 chose it"],
     ["task file id", "per T09_9_plan.md"],
-    ["decision id", "the DD-98 posture"],
+    ["decision id", "the DD-9 posture"],
     ["ruling id", "ruled at Q-ZZ-9"],
     ["finding id", "closes F-98"],
     ["task id", "// @since T19z"],
@@ -152,6 +152,9 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
     ["design document number", "per design doc 98"],
     ["finding number", "as finding 98 showed"],
     ["record stage", "landed in Z9 Stage 7"],
+    ["lettered record code", "ruled in ZQ-9"],
+    ["wave label", "shipped in Wave 9"],
+    ["lettered slice", "carried by Slice Z"],
     ["private repository reference", "tracked as stigmer-cloud#0"],
     ["entry name", "decided in sp.example-entry"],
     ["record section", "the §9z lane"],
@@ -174,6 +177,8 @@ test("every shape the guard uses matches its fixture, and none matches a near-mi
     "RFC 6749 §2.3.1 requires it.",
     "Fixed in #1249 and stigmer#1249.",
     "Stored in an S3 bucket behind HTTP/2.",
+    "Turn N-1 signs with P-256 over UTF-8, dated ISO-8601 or MM-DD-YYYY.",
+    "const head = text.slice(1); // a microwave 3 times",
   ]) {
     assert.deepEqual(planningReferences(nearMiss, patterns), [], nearMiss);
   }

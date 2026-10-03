@@ -276,6 +276,40 @@ test("private-record identifiers fail public guidance; --private-repo relaxes th
   }
 });
 
+test("single-digit decisions, two-letter codes, waves and lettered slices fail public guidance; their near-misses do not", () => {
+  const root = repo({
+    "AGENTS.md": [
+      "Chose DD-9.",
+      "Ruled in ZQ-9.",
+      "Then ZQ-09b.",
+      "Landed in Wave 9.",
+      "Then wave-9z.",
+      "Carried by Slice Z.",
+      // Near-misses: arithmetic, a score, a curve, encodings and date formats, a
+      // method call, a word ending in "wave", and the record-internal ids whose
+      // tail must not be found a second time.
+      "Turn N-1, the F-1 score, P-256, UTF-8, ISO-8601, MM-DD-YYYY, text.slice(1), a microwave 3 times, Q-ZZ-9 and DD-ZZ-9.",
+    ].join("\n"),
+  });
+  try {
+    assert.deepEqual(
+      checkLeakage(root, ["AGENTS.md"], { privateRepo: true }).map((f) => f.split(": ").slice(1).join(": ")),
+      [
+        "decision id in public guidance: DD-9",
+        "lettered record code in public guidance: ZQ-9",
+        "lettered record code in public guidance: ZQ-09b",
+        "wave label in public guidance: Wave 9",
+        "wave label in public guidance: wave-9z",
+        "lettered slice in public guidance: Slice Z",
+        "decision id in public guidance: DD-ZZ-9",
+        "ruling id in public guidance: Q-ZZ-9",
+      ],
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("bare task ids, two-digit decisions, bare rulings and findings, record stages and private repository references fail public guidance; their near-misses do not", () => {
   const root = repo({
     "AGENTS.md": [

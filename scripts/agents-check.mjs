@@ -174,14 +174,20 @@ const NON_PATH_PREFIXES = ["http://", "https://", "mailto:", "#", "@", "~", "$",
  * private repository may cite (`privateOk`), because a record path carries its
  * id and the cited-path check then proves the record exists. The record-internal
  * ids follow (task files `T09_` and bare tasks `T00` or `T19z`, decisions
- * `DD-998`, `DD-98` or `DD-ZZ-9` but never a date format such as `DD-MM`,
- * `DD-MMM` or `DD-YYYY`, rulings `Q-ZZ-9` or `Q-ZZ`, findings `F-ZZ-9` or
- * `F-98` but never `F-1` (the F-1 score), the same ids spelled out
- * (`decision 998`, `Design doc 98`, `finding 98`, in either case, though a public issue's
- * `#778 finding 3` is not one),
- * and a short code's stage `Z9 Stage 7`): only a holder of the records can
+ * `DD-998`, `DD-98`, `DD-9` or `DD-ZZ-9` but never a date format such as
+ * `DD-MM`, `DD-MMM` or `DD-YYYY`, rulings `Q-ZZ-9` or `Q-ZZ`, findings `F-ZZ-9`
+ * or `F-98` but never `F-1` (the F-1 score), any other two-letter code with a
+ * number (`ZQ-9`, `ZQ-09b`), the same ids spelled out (`decision 998`,
+ * `Design doc 98`, `finding 98`, in either case, though a public issue's
+ * `#778 finding 3` is not one), a short code's stage `Z9 Stage 7`, a wave
+ * `Wave 9` and a lettered slice `Slice Z`): only a holder of the records can
  * resolve them, and they stay findings everywhere. A bare `Stage 3` is not one
- * of them, because a build's own steps are named that way. Last, a private
+ * of them, because a build's own steps are named that way. Other shapes stay
+ * with the reviewer, because ordinary text has them too: a one-letter code
+ * (`turn N-1` is arithmetic, `F-1` a score), an entry number ("workspace
+ * entry 1" is a form's own label), a bare short code (thousands of lines here
+ * match `[A-Z]{2}[0-9]`), a phase label (the runner numbers its
+ * turn-setup phases), and prose pointing at "the plan". Last, a private
  * repository's issue or URL (`stigmer-cloud#0`): a public reader cannot open
  * it, and the private repository may cite its own (`privateOk`). The examples
  * are synthetic, chosen to match no id this repository has ever cited.
@@ -192,7 +198,7 @@ export const LEAK_PATTERNS = [
   { name: "planning-record path", re: /_projects\//, privateOk: true },
   { name: "planning-record id", re: /\b20[0-9]{6}\.[0-9]{2}\b/, privateOk: true },
   { name: "task file id", re: /\bT0[0-9]_[0-9]/, privateOk: false },
-  { name: "decision id", re: /\bDD-(?!(?:MM|MMM|MON|YY|YYYY)\b|HH)(?:[0-9]{2,3}|[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?)\b/, privateOk: false },
+  { name: "decision id", re: /\bDD-(?!(?:MM|MMM|MON|YY|YYYY)\b|HH)(?:[0-9]{1,3}|[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?)\b/, privateOk: false },
   { name: "ruling id", re: /\bQ-[A-Z][A-Z0-9]*(?:-[0-9]+[a-z]?)?\b/, privateOk: false },
   { name: "finding id", re: /\bF-(?:[A-Z][A-Z0-9]*-[0-9]+|[0-9]{2,})\b/, privateOk: false },
   { name: "task id", re: /\bT[01][0-9][a-z]?\b(?!:[0-9])/, privateOk: false },
@@ -200,6 +206,9 @@ export const LEAK_PATTERNS = [
   { name: "design document number", re: /\b[Dd]esign docs? [0-9]{1,3}\b/, privateOk: false },
   { name: "finding number", re: /(?<!#[0-9]{1,6} )\b[Ff]indings? [0-9]+\b/, privateOk: false },
   { name: "record stage", re: /\b[A-Z][0-9]{1,2}[ -](?:[Ss]tage|[Ss]lice)[ -]?[0-9]/, privateOk: false },
+  { name: "lettered record code", re: /(?<![-\w])(?!DD-)[A-Z]{2}-[0-9]{1,2}[a-z]?\b/, privateOk: false },
+  { name: "wave label", re: /\b[Ww]ave[- ]?[0-9]+[a-z]?\b/, privateOk: false },
+  { name: "lettered slice", re: /\b[Ss]lice[- ][A-Z]\b/, privateOk: false },
   {
     name: "private repository reference",
     re: /stigmer-cloud#[0-9]+|\bcloud#[0-9]+|github\.com\/stigmer\/stigmer-cloud/,
