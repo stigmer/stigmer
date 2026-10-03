@@ -9,8 +9,9 @@ store, with Temporal workers for the execution engine.
 TypeScript port of the original Go server, built behind the cross-edition
 conformance suite in [`test/conformance/`](../../../test/conformance) and cut
 over once its roster equalled the Go server's whole gate. The Go server
-retired shortly after (its source lives in git history). Ported modules cite the Go packages they came from — those
-citations are the port's provenance record.
+retired shortly after (its source lives in git history). Ported modules
+cite the Go packages they came from — those citations are the port's
+provenance record.
 
 ## Contract promise
 
