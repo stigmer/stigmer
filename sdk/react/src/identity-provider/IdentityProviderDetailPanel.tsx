@@ -289,7 +289,7 @@ export function IdentityProviderDetailPanel({
             value={userinfoEndpoint}
             onChange={setUserinfoEndpoint}
             placeholder="https://example.com/userinfo"
-            hint="Optional — used to fetch user profile data"
+            hint="Optional. Read only when Stigmer creates an account from a token with no email claim"
             disabled={isUpdating}
           />
 

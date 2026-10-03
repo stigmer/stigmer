@@ -99,7 +99,7 @@ This allows tokens from either environment to authenticate via the same Identity
 | Expired or early tokens | `exp` is required and enforced; `nbf` is enforced when present |
 | Issuer substitution | A token is routed only by an issuer in `allowed_issuers` together with this provider's `expected_audience` |
 | Secret exposure | No client secrets are stored in the IdentityProvider spec — only public keys (via JWKS URI) |
-| Profile staleness | Stigmer sets the profile when it creates the account and does not refresh it on later sign-ins; the platform pushes changes through the update RPC |
+| Profile staleness | Stigmer sets the profile when it creates the account and does not refresh it on later sign-ins; the platform pushes changes with `updateFederatedAccount` |
 
 ## Related Documentation
 

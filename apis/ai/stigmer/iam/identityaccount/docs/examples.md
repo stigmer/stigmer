@@ -59,7 +59,7 @@ stigmer identity-account update update-profile.yaml
 
 ## Federated Account — What It Looks Like
 
-A federated account is created by the platform and has additional fields linking it to the IdentityProvider.
+A federated account is created by the platform, or by Stigmer on the first sign-in, and has additional fields linking it to the IdentityProvider.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1

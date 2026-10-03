@@ -557,7 +557,7 @@ function ReviewStep({
         value={userinfoEndpoint}
         onChange={onUserinfoEndpointChange}
         placeholder="https://example.com/userinfo"
-        hint="Optional — used to fetch user profile data during token exchange"
+        hint="Optional. Read only when Stigmer creates an account from a token with no email claim"
         disabled={isCreating}
       />
 

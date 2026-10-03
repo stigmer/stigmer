@@ -64,7 +64,7 @@ status: {}  # System-managed, never set by users
 | List by organization | `IdentityProviderQueryController.listByOrg` | `can_view` on the organization; the answer holds only the providers the caller may view |
 | SSO discovery | `IdentityProviderQueryController.getSsoProvider` | None: the login page calls it before sign-in, and it answers only the SSO projection (display name, OIDC client ID, issuer, expected audience) |
 
-The organization's admins view, edit and delete its identity providers, and so does each provider's creator; other members of the organization see none of them.
+The organization's admins view, edit and delete its identity providers. An admin can grant a person in the organization view of one provider; other members of the organization see none of them. A provider's creator manages it only while they remain an admin of the organization.
 
 ## CLI Commands
 

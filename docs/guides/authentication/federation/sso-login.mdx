@@ -283,18 +283,21 @@ await stigmer.identityAccount.deprovisionFederatedAccount({
 });
 ```
 
-Set `deleteAccount` to `false` to revoke access while keeping the account (the
-user can re-provision via SSO). Set it to `true` for permanent removal.
+Set `deleteAccount` to `false` to revoke access while keeping the account. This
+is the way to keep an SSO user out: Stigmer grants the viewer role only when it
+creates an account, so a kept account stays without access when the user signs
+in again. Set `deleteAccount` to `true` only when the user can no longer sign in
+to your Identity Provider.
 
 See
 [Revoke a federated account](/docs/guides/authentication/federation/provision-federated-accounts#revoke-a-federated-account)
 for the full pattern in all SDK languages.
 
 <Callout type="warn">
-  If you revoke-only (without deleting the account) and SSO remains enabled, the
-  user can sign in again and regain viewer access through automatic
-  provisioning. To permanently block a user, either delete their account or
-  disable the Identity Provider.
+  If you delete the account and SSO remains enabled, the user's next sign-in
+  through your Identity Provider creates a new account and grants it the viewer
+  role again. To keep a user out, revoke access and keep the account, or stop
+  the user at your Identity Provider.
 </Callout>
 
 ## Troubleshooting
@@ -341,8 +344,8 @@ Token validation failed. The most common cause is an audience mismatch.
 - Decode the JWT (use [JWT.io](https://jwt.io)) and compare the `aud` claim with
   the `expectedAudience` on your Identity Provider
 - If your provider doesn't include an `aud` claim by default, configure it to
-  add the correct audience or leave `expectedAudience` empty on the Identity
-  Provider
+  add the audience you registered as `expectedAudience`. The audience is
+  required: an Identity Provider without one matches no token
 - Verify the `iss` claim matches one of the `allowedIssuers`
 
 </Step>

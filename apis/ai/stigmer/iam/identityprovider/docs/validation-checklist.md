@@ -80,7 +80,7 @@ jwks_uri: "https://auth.example.com/.well-known/jwks.json"
 
 ### Registering a Non-Public JWKS Endpoint
 
-The `jwks_uri` must be reachable from Stigmer's servers. Private network URLs (e.g., `https://internal.example.com/jwks`) will cause every sign-in through this provider to fail with a key-fetch error.
+The `jwks_uri` must be reachable from Stigmer's servers. Stigmer fetches the key set when the identity provider is saved and refuses the save with `INVALID_ARGUMENT` when it cannot read it, so a private network URL (e.g., `https://internal.example.com/jwks`) is never stored.
 
 ### Using the Wrong Endpoint for `userinfo_endpoint`
 
@@ -92,7 +92,7 @@ For Auth0, the UserInfo endpoint is always `https://{tenant}.auth0.com/userinfo`
 
 Deleting an IdentityProvider that still has platform-managed organizations referencing it is blocked. Reassign or remove those references before deletion.
 
-If you delete an IdentityProvider while federated accounts exist for it, those accounts remain in the system but can no longer sign in (since the provider configuration is gone).
+Deleting an IdentityProvider also deletes the federated accounts it vouches for, with every role they hold, and its tenant organization mappings. A provider created again under the same slug inherits none of them: nothing the old provider's users held carries over.
 
 ### Expecting `rate_limit_budget` to Throttle
 

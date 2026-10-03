@@ -6,6 +6,8 @@ Comprehensive documentation for the `iam.stigmer.ai/v1` IdentityProvider resourc
 
 An IdentityProvider represents an external platform's trust relationship with Stigmer. It configures how Stigmer validates the signed JWTs that platform issues, so the platform's users call Stigmer with the platform's own tokens.
 
+Identity providers are served by the Enterprise and Cloud editions; the open-source server answers UNIMPLEMENTED.
+
 A typical use case: a platform like Planton wants its users to access Stigmer's AI features. Instead of requiring users to create a separate Stigmer account, Planton registers an IdentityProvider. Planton either creates [federated IdentityAccounts](../../identityaccount/docs/README.md) for its users ahead of time, or lets Stigmer create them on first sign-in (`auto_provision_accounts`). When a user calls Stigmer with a Planton-issued JWT, Stigmer validates the token and resolves the user's federated account.
 
 ## How a Sign-In Is Verified
