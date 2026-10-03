@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { goQuote, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
+import { goQuote, hasExplicitPresence, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
 import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -73,6 +73,16 @@ function resolveJavaFQCN(fullType: string): string {
 
 function javaTypeForField(f: FieldSchema): string {
   return javaTypeForTypeSpec(f.type);
+}
+
+/**
+ * The type an input stores a field in. A proto3 `optional` scalar is boxed
+ * so that null means the caller never set it (hasExplicitPresence); its
+ * builder setter still takes the primitive.
+ */
+function javaStorageTypeForField(f: FieldSchema): string {
+  const t = javaTypeForField(f);
+  return hasExplicitPresence(f) ? javaBoxed(t) : t;
 }
 
 function javaTypeForTypeSpec(ts: TypeSpec): string {
@@ -1130,7 +1140,7 @@ function generateJavaInputClass(
     body.push("    private final String versionMessage;\n");
   }
   for (const f of specFields) {
-    body.push(`    private final ${javaTypeForField(f)} ${javaCamel(f.protoField)};\n`);
+    body.push(`    private final ${javaStorageTypeForField(f)} ${javaCamel(f.protoField)};\n`);
   }
   body.push("\n");
 
@@ -1165,7 +1175,7 @@ function generateJavaInputClass(
     body.push("        private String versionMessage;\n");
   }
   for (const f of specFields) {
-    body.push(`        private ${javaTypeForField(f)} ${javaCamel(f.protoField)};\n`);
+    body.push(`        private ${javaStorageTypeForField(f)} ${javaCamel(f.protoField)};\n`);
   }
   body.push("\n        private Builder() {}\n\n");
   body.push("        /**\n");
@@ -1249,7 +1259,7 @@ function emitJavaNestedTypes(
   buf.push(`    public static final class ${inputName} {\n`);
 
   for (const field of ts.fields) {
-    buf.push(`        private final ${javaTypeForField(field)} ${javaCamel(field.protoField)};\n`);
+    buf.push(`        private final ${javaStorageTypeForField(field)} ${javaCamel(field.protoField)};\n`);
   }
   buf.push("\n");
 
@@ -1271,7 +1281,7 @@ function emitJavaNestedTypes(
   buf.push("        public static Builder builder() { return new Builder(); }\n\n");
   buf.push("        public static final class Builder {\n");
   for (const field of ts.fields) {
-    buf.push(`            private ${javaTypeForField(field)} ${javaCamel(field.protoField)};\n`);
+    buf.push(`            private ${javaStorageTypeForField(field)} ${javaCamel(field.protoField)};\n`);
   }
   buf.push("\n            private Builder() {}\n\n");
   for (const field of ts.fields) {
@@ -1362,6 +1372,10 @@ function emitJavaToProtoField(buf: string[], f: FieldSchema, indent: string): vo
     buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);
   } else if (t.kind === "string") {
+    buf.push(`${indent}if (this.${fieldName} != null) {\n`);
+    buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
+    buf.push(`${indent}}\n`);
+  } else if (hasExplicitPresence(f)) {
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);
@@ -1473,6 +1487,10 @@ function emitJavaNestedToProtoField(buf: string[], f: FieldSchema, indent: strin
   } else if (t.kind === "bytes") {
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    builder.${javaSetterName(f.protoField)}(com.google.protobuf.ByteString.copyFrom(this.${fieldName}));\n`);
+    buf.push(`${indent}}\n`);
+  } else if (hasExplicitPresence(f)) {
+    buf.push(`${indent}if (this.${fieldName} != null) {\n`);
+    buf.push(`${indent}    builder.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);
   } else if (t.kind === "bool" || t.kind === "int32" || t.kind === "uint32" || t.kind === "int64" || t.kind === "float" || t.kind === "double") {
     buf.push(`${indent}builder.${javaSetterName(f.protoField)}(this.${fieldName});\n`);

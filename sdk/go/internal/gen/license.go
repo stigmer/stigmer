@@ -161,7 +161,32 @@ func (i *EntitlementsInput) toProto() (*platformv1.Entitlements, error) {
 }
 
 func (i *EntitlementLimitsInput) toProto() (*platformv1.EntitlementLimits, error) {
-	return &platformv1.EntitlementLimits{}, nil
+	p := &platformv1.EntitlementLimits{}
+	if i.MaxOrgs != 0 {
+		v := i.MaxOrgs
+		p.MaxOrgs = &v
+	}
+	if i.MaxUsers != 0 {
+		v := i.MaxUsers
+		p.MaxUsers = &v
+	}
+	if i.IncludedManagedOrganizations != 0 {
+		v := i.IncludedManagedOrganizations
+		p.IncludedManagedOrganizations = &v
+	}
+	if i.MaxActiveSessionSandboxes != 0 {
+		v := i.MaxActiveSessionSandboxes
+		p.MaxActiveSessionSandboxes = &v
+	}
+	if i.MaxActiveWorkflowSandboxes != 0 {
+		v := i.MaxActiveWorkflowSandboxes
+		p.MaxActiveWorkflowSandboxes = &v
+	}
+	if i.ArchivedWorkspaceRetentionDays != 0 {
+		v := i.ArchivedWorkspaceRetentionDays
+		p.ArchivedWorkspaceRetentionDays = &v
+	}
+	return p, nil
 }
 
 // LicenseInputFromProto creates a LicenseInput from a proto License resource.

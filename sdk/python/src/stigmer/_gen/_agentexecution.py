@@ -325,7 +325,7 @@ class GitRepoSourceInput:
     url: str
     branch: str = ""
     commit: str = ""
-    depth: int = 0
+    depth: int | None = None
     write_back_mode: int = 0
 
     def _to_proto(self) -> session_workspace_pb2.GitRepoSource:
@@ -333,9 +333,10 @@ class GitRepoSourceInput:
             url=self.url,
             branch=self.branch,
             commit=self.commit,
-            depth=self.depth,
             write_back_mode=self.write_back_mode,
         )
+        if self.depth is not None:
+            msg.depth = self.depth
         return msg
 
 

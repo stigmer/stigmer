@@ -249,7 +249,7 @@ public final class SessionInput {
         private final String url;
         private final String branch;
         private final String commit;
-        private final int depth;
+        private final Integer depth;
         private final GitWriteBackMode writeBackMode;
 
         private GitRepoSourceInput(Builder builder) {
@@ -271,7 +271,9 @@ public final class SessionInput {
             if (this.commit != null) {
                 builder.setCommit(this.commit);
             }
-            builder.setDepth(this.depth);
+            if (this.depth != null) {
+                builder.setDepth(this.depth);
+            }
             if (this.writeBackMode != null) {
                 builder.setWriteBackMode(this.writeBackMode);
             }
@@ -284,7 +286,7 @@ public final class SessionInput {
             private String url;
             private String branch;
             private String commit;
-            private int depth;
+            private Integer depth;
             private GitWriteBackMode writeBackMode;
 
             private Builder() {}

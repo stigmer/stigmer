@@ -21,6 +21,7 @@ import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-c
 import {
   goProtoFieldName,
   goQuote,
+  hasExplicitPresence,
   isEmptyType,
   isIDType,
   isSpecialType,
@@ -1044,6 +1045,10 @@ function emitNestedToProto(
 
   let needsImperative = false;
   for (const field of ts.fields) {
+    if (hasExplicitPresence(field)) {
+      needsImperative = true;
+      break;
+    }
     if (field.type.kind === "struct" || field.type.kind === "value" || field.type.kind === "timestamp") {
       needsImperative = true;
       break;
@@ -1063,7 +1068,15 @@ function emitNestedToProto(
     buf.push(`\tp := &${protoAlias}.${msgName}{}\n`);
     for (const field of ts.fields) {
       const pf = goProtoFieldName(field.protoField);
-      if (field.type.kind === "struct") {
+      if (hasExplicitPresence(field)) {
+        // The input's field is a plain value, so its zero reads as unset,
+        // the convention emitOneofMemberToProto follows for the same fields.
+        const zero = goZeroValueForTypeSpec(field.type);
+        buf.push(`\tif i.${field.name} != ${zero} {\n`);
+        buf.push(`\t\tv := i.${field.name}\n`);
+        buf.push(`\t\tp.${pf} = &v\n`);
+        buf.push("\t}\n");
+      } else if (field.type.kind === "struct") {
         buf.push(`\tif i.${field.name} != nil {\n`);
         buf.push(`\t\tv, err := structFromMap(i.${field.name})\n`);
         buf.push(`\t\tif err != nil {\n\t\t\treturn nil, fieldErr(${goQuote(field.name)}, err)\n\t\t}\n`);

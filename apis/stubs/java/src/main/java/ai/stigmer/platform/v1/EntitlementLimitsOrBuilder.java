@@ -90,10 +90,10 @@ public interface EntitlementLimitsOrBuilder extends
   /**
    * <pre>
    * The most session sandboxes an organization may hold provisioning or
-   * running at once. Read by a subscription: the Cloud's sandbox capacity
-   * gate refuses a session launch that would need a new sandbox past it,
-   * and a follow-up turn on a running sandbox is never counted. A license
-   * ignores it until a self-hosted capacity gate reads it.
+   * running at once. A session launch that would need a new sandbox past it
+   * is refused; a follow-up turn on a sandbox already running is not
+   * counted. Read by a subscription. A license ignores it until a
+   * self-hosted capacity gate reads it.
    * </pre>
    *
    * <code>optional int32 max_active_session_sandboxes = 4 [json_name = "maxActiveSessionSandboxes", (.buf.validate.field) = { ... }</code>
@@ -103,10 +103,10 @@ public interface EntitlementLimitsOrBuilder extends
   /**
    * <pre>
    * The most session sandboxes an organization may hold provisioning or
-   * running at once. Read by a subscription: the Cloud's sandbox capacity
-   * gate refuses a session launch that would need a new sandbox past it,
-   * and a follow-up turn on a running sandbox is never counted. A license
-   * ignores it until a self-hosted capacity gate reads it.
+   * running at once. A session launch that would need a new sandbox past it
+   * is refused; a follow-up turn on a sandbox already running is not
+   * counted. Read by a subscription. A license ignores it until a
+   * self-hosted capacity gate reads it.
    * </pre>
    *
    * <code>optional int32 max_active_session_sandboxes = 4 [json_name = "maxActiveSessionSandboxes", (.buf.validate.field) = { ... }</code>
@@ -117,10 +117,9 @@ public interface EntitlementLimitsOrBuilder extends
   /**
    * <pre>
    * The most workflow-execution sandboxes an organization may hold
-   * provisioning or running at once. Read by a subscription: the Cloud's
-   * sandbox capacity gate refuses a workflow launch that would need a new
-   * sandbox past it. A license ignores it until a self-hosted capacity gate
-   * reads it.
+   * provisioning or running at once. A workflow launch that would need a
+   * new sandbox past it is refused. Read by a subscription. A license
+   * ignores it until a self-hosted capacity gate reads it.
    * </pre>
    *
    * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
@@ -130,10 +129,9 @@ public interface EntitlementLimitsOrBuilder extends
   /**
    * <pre>
    * The most workflow-execution sandboxes an organization may hold
-   * provisioning or running at once. Read by a subscription: the Cloud's
-   * sandbox capacity gate refuses a workflow launch that would need a new
-   * sandbox past it. A license ignores it until a self-hosted capacity gate
-   * reads it.
+   * provisioning or running at once. A workflow launch that would need a
+   * new sandbox past it is refused. Read by a subscription. A license
+   * ignores it until a self-hosted capacity gate reads it.
    * </pre>
    *
    * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
@@ -144,11 +142,9 @@ public interface EntitlementLimitsOrBuilder extends
   /**
    * <pre>
    * How many days an archived session workspace is kept before it is
-   * deleted. Absent keeps it for as long as the session exists. Read by a
-   * subscription: the Cloud's sandbox lifecycle deletes an organization's
-   * archived workspaces, files and snapshot included, once they are older
-   * than this. A license ignores it until a self-hosted sandbox lifecycle
-   * reads it.
+   * deleted, its files and snapshot included. Absent keeps it for as long
+   * as the session exists. Read by a subscription. A license ignores it
+   * until a self-hosted sandbox lifecycle reads it.
    * </pre>
    *
    * <code>optional int32 archived_workspace_retention_days = 6 [json_name = "archivedWorkspaceRetentionDays", (.buf.validate.field) = { ... }</code>
@@ -158,11 +154,9 @@ public interface EntitlementLimitsOrBuilder extends
   /**
    * <pre>
    * How many days an archived session workspace is kept before it is
-   * deleted. Absent keeps it for as long as the session exists. Read by a
-   * subscription: the Cloud's sandbox lifecycle deletes an organization's
-   * archived workspaces, files and snapshot included, once they are older
-   * than this. A license ignores it until a self-hosted sandbox lifecycle
-   * reads it.
+   * deleted, its files and snapshot included. Absent keeps it for as long
+   * as the session exists. Read by a subscription. A license ignores it
+   * until a self-hosted sandbox lifecycle reads it.
    * </pre>
    *
    * <code>optional int32 archived_workspace_retention_days = 6 [json_name = "archivedWorkspaceRetentionDays", (.buf.validate.field) = { ... }</code>

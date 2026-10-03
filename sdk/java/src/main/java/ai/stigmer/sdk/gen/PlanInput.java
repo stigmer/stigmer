@@ -148,12 +148,12 @@ public final class PlanInput {
 
     /** SDK input type for EntitlementLimits. */
     public static final class EntitlementLimitsInput {
-        private final int maxOrgs;
-        private final int maxUsers;
-        private final int includedManagedOrganizations;
-        private final int maxActiveSessionSandboxes;
-        private final int maxActiveWorkflowSandboxes;
-        private final int archivedWorkspaceRetentionDays;
+        private final Integer maxOrgs;
+        private final Integer maxUsers;
+        private final Integer includedManagedOrganizations;
+        private final Integer maxActiveSessionSandboxes;
+        private final Integer maxActiveWorkflowSandboxes;
+        private final Integer archivedWorkspaceRetentionDays;
 
         private EntitlementLimitsInput(Builder builder) {
             this.maxOrgs = builder.maxOrgs;
@@ -166,24 +166,36 @@ public final class PlanInput {
 
         EntitlementLimits toProto() {
             EntitlementLimits.Builder builder = EntitlementLimits.newBuilder();
-            builder.setMaxOrgs(this.maxOrgs);
-            builder.setMaxUsers(this.maxUsers);
-            builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
-            builder.setMaxActiveSessionSandboxes(this.maxActiveSessionSandboxes);
-            builder.setMaxActiveWorkflowSandboxes(this.maxActiveWorkflowSandboxes);
-            builder.setArchivedWorkspaceRetentionDays(this.archivedWorkspaceRetentionDays);
+            if (this.maxOrgs != null) {
+                builder.setMaxOrgs(this.maxOrgs);
+            }
+            if (this.maxUsers != null) {
+                builder.setMaxUsers(this.maxUsers);
+            }
+            if (this.includedManagedOrganizations != null) {
+                builder.setIncludedManagedOrganizations(this.includedManagedOrganizations);
+            }
+            if (this.maxActiveSessionSandboxes != null) {
+                builder.setMaxActiveSessionSandboxes(this.maxActiveSessionSandboxes);
+            }
+            if (this.maxActiveWorkflowSandboxes != null) {
+                builder.setMaxActiveWorkflowSandboxes(this.maxActiveWorkflowSandboxes);
+            }
+            if (this.archivedWorkspaceRetentionDays != null) {
+                builder.setArchivedWorkspaceRetentionDays(this.archivedWorkspaceRetentionDays);
+            }
             return builder.build();
         }
 
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private int maxOrgs;
-            private int maxUsers;
-            private int includedManagedOrganizations;
-            private int maxActiveSessionSandboxes;
-            private int maxActiveWorkflowSandboxes;
-            private int archivedWorkspaceRetentionDays;
+            private Integer maxOrgs;
+            private Integer maxUsers;
+            private Integer includedManagedOrganizations;
+            private Integer maxActiveSessionSandboxes;
+            private Integer maxActiveWorkflowSandboxes;
+            private Integer archivedWorkspaceRetentionDays;
 
             private Builder() {}
 
@@ -200,10 +212,10 @@ public final class PlanInput {
 
     /** SDK input type for PlanTerms. */
     public static final class PlanTermsInput {
-        private final long monthlyMinimumMicros;
-        private final int usageShareBasisPoints;
-        private final long perExtraOrgMicros;
-        private final long annualPriceMicros;
+        private final Long monthlyMinimumMicros;
+        private final Integer usageShareBasisPoints;
+        private final Long perExtraOrgMicros;
+        private final Long annualPriceMicros;
 
         private PlanTermsInput(Builder builder) {
             this.monthlyMinimumMicros = builder.monthlyMinimumMicros;
@@ -214,20 +226,28 @@ public final class PlanInput {
 
         PlanTerms toProto() {
             PlanTerms.Builder builder = PlanTerms.newBuilder();
-            builder.setMonthlyMinimumMicros(this.monthlyMinimumMicros);
-            builder.setUsageShareBasisPoints(this.usageShareBasisPoints);
-            builder.setPerExtraOrgMicros(this.perExtraOrgMicros);
-            builder.setAnnualPriceMicros(this.annualPriceMicros);
+            if (this.monthlyMinimumMicros != null) {
+                builder.setMonthlyMinimumMicros(this.monthlyMinimumMicros);
+            }
+            if (this.usageShareBasisPoints != null) {
+                builder.setUsageShareBasisPoints(this.usageShareBasisPoints);
+            }
+            if (this.perExtraOrgMicros != null) {
+                builder.setPerExtraOrgMicros(this.perExtraOrgMicros);
+            }
+            if (this.annualPriceMicros != null) {
+                builder.setAnnualPriceMicros(this.annualPriceMicros);
+            }
             return builder.build();
         }
 
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private long monthlyMinimumMicros;
-            private int usageShareBasisPoints;
-            private long perExtraOrgMicros;
-            private long annualPriceMicros;
+            private Long monthlyMinimumMicros;
+            private Integer usageShareBasisPoints;
+            private Long perExtraOrgMicros;
+            private Long annualPriceMicros;
 
             private Builder() {}
 

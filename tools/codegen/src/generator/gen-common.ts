@@ -383,6 +383,30 @@ export function isSyntheticOneof(group: string): boolean {
   return group.startsWith("_");
 }
 
+/**
+ * Whether a field is a proto3 `optional` scalar, one with explicit presence:
+ * unset and zero differ on the wire (an absent limit is no limit, while a
+ * clone depth of 0 asks for the full history). An SDK input keeps that
+ * difference: a field the caller never set stays unset, and a value the
+ * caller set is sent, zero included.
+ */
+export function hasExplicitPresence(f: FieldSchema): boolean {
+  if (!isSyntheticOneof(f.oneofGroup ?? "")) return false;
+  switch (f.type.kind) {
+    case "string":
+    case "int32":
+    case "uint32":
+    case "int64":
+    case "bool":
+    case "float":
+    case "double":
+    case "bytes":
+      return true;
+    default:
+      return false;
+  }
+}
+
 // ---------------------------------------------------------------------
 // TS import tracking (port of tsImportSet)
 // ---------------------------------------------------------------------

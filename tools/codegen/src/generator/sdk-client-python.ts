@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { goQuote, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod } from "./gen-common.js";
+import { goQuote, hasExplicitPresence, isEmptyType, isIDType, isSpecialType, searchListSupersedesMethod } from "./gen-common.js";
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
@@ -780,11 +780,11 @@ function generatePythonInputAndProto(
 function emitPyFields(buf: string[], fields: FieldSchema[], imports: PyImports): void {
   for (const f of fields) {
     let pyType = pyTypeForTypeSpec(f.type);
-    if (pyIsNullableType(f.type)) {
+    if (pyIsNullableType(f.type) || hasExplicitPresence(f)) {
       pyType += " | None";
     }
     const name = pyFieldName(f.protoField);
-    const dflt = pyDefaultForField(f);
+    const dflt = hasExplicitPresence(f) ? "None" : pyDefaultForField(f);
     if (dflt !== "") {
       buf.push(`    ${name}: ${pyType} = ${dflt}\n`);
       if (pyNeedsFieldImport(f.type)) {
@@ -800,8 +800,11 @@ function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConf
   const safeScalars: FieldSchema[] = [];
   const kwScalars: FieldSchema[] = [];
   const complexFields: FieldSchema[] = [];
+  const presenceScalars: FieldSchema[] = [];
   for (const f of specFields) {
-    if (pyIsScalarKind(f.type.kind)) {
+    if (hasExplicitPresence(f)) {
+      presenceScalars.push(f);
+    } else if (pyIsScalarKind(f.type.kind)) {
       if (isPythonKeyword(f.protoField)) kwScalars.push(f);
       else safeScalars.push(f);
     } else {
@@ -823,6 +826,9 @@ function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConf
 
   for (const f of kwScalars) {
     buf.push(`        setattr(spec, ${goQuote(f.protoField)}, self.${pyFieldName(f.protoField)})\n`);
+  }
+  for (const f of presenceScalars) {
+    emitPyPresenceAssign(buf, f, "spec", "        ");
   }
 
   for (const f of complexFields) {
@@ -905,8 +911,11 @@ function emitPyNestedClassWithProto(
   const safeScalars: FieldSchema[] = [];
   const kwScalars: FieldSchema[] = [];
   const complexFields: FieldSchema[] = [];
+  const presenceScalars: FieldSchema[] = [];
   for (const field of ts.fields) {
-    if (pyIsScalarKind(field.type.kind)) {
+    if (hasExplicitPresence(field)) {
+      presenceScalars.push(field);
+    } else if (pyIsScalarKind(field.type.kind)) {
       if (isPythonKeyword(field.protoField)) kwScalars.push(field);
       else safeScalars.push(field);
     } else {
@@ -944,6 +953,9 @@ function emitPyNestedClassWithProto(
   for (const field of kwScalars) {
     buf.push(`        setattr(msg, ${goQuote(field.protoField)}, self.${pyFieldName(field.protoField)})\n`);
   }
+  for (const field of presenceScalars) {
+    emitPyPresenceAssign(buf, field, "msg", "        ");
+  }
   for (const field of complexFields) {
     emitPyToProtoFieldAssign(buf, field, "msg", "self", "        ", imports);
   }
@@ -959,6 +971,20 @@ function emitPyNestedClassWithProto(
 // =========================================================================
 // _to_proto field assignment helpers
 // =========================================================================
+
+/**
+ * Sets a proto3 `optional` scalar only when the caller set it: None leaves
+ * the field absent, and any value, zero included, is sent (hasExplicitPresence).
+ */
+function emitPyPresenceAssign(buf: string[], f: FieldSchema, msgVar: string, indent: string): void {
+  const selfField = pyFieldName(f.protoField);
+  buf.push(`${indent}if self.${selfField} is not None:\n`);
+  if (isPythonKeyword(f.protoField)) {
+    buf.push(`${indent}    setattr(${msgVar}, ${goQuote(f.protoField)}, self.${selfField})\n`);
+  } else {
+    buf.push(`${indent}    ${msgVar}.${f.protoField} = self.${selfField}\n`);
+  }
+}
 
 function emitPyToProtoFieldAssign(buf: string[], f: FieldSchema, msgVar: string, selfVar: string, indent: string, imports: PyImports): void {
   const protoField = f.protoField;

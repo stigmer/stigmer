@@ -107,7 +107,24 @@ func (i *PlanInput) toProto() (*planv1.Plan, error) {
 }
 
 func (i *PlanTermsInput) toProto() (*planv1.PlanTerms, error) {
-	return &planv1.PlanTerms{}, nil
+	p := &planv1.PlanTerms{}
+	if i.MonthlyMinimumMicros != 0 {
+		v := i.MonthlyMinimumMicros
+		p.MonthlyMinimumMicros = &v
+	}
+	if i.UsageShareBasisPoints != 0 {
+		v := i.UsageShareBasisPoints
+		p.UsageShareBasisPoints = &v
+	}
+	if i.PerExtraOrgMicros != 0 {
+		v := i.PerExtraOrgMicros
+		p.PerExtraOrgMicros = &v
+	}
+	if i.AnnualPriceMicros != 0 {
+		v := i.AnnualPriceMicros
+		p.AnnualPriceMicros = &v
+	}
+	return p, nil
 }
 
 // PlanInputFromProto creates a PlanInput from a proto Plan resource.
