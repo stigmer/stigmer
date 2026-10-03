@@ -1,8 +1,10 @@
 // Pins the dev build's npm version: a clean tree names its commit as
 // `.g<first 12 characters of HEAD>`, whatever git's own abbreviation length;
 // a tree with an uncommitted or untracked file names none; a malformed base,
-// stamp or id is refused rather than published. A scratch repository with
-// `core.abbrev` set to 7 stands in for a checkout git abbreviates short.
+// stamp or id is refused rather than published; and the entry point the
+// lanes call prints the same version and exits 1 on a refusal. A scratch
+// repository with `core.abbrev` set to 7 stands in for a checkout git
+// abbreviates short.
 // Run via `node --test scripts/lib/*.test.mjs` (wired into the root `npm test`).
 
 import assert from "node:assert/strict";
@@ -14,6 +16,8 @@ import process from "node:process";
 import { test } from "node:test";
 
 import { checkoutState, devNpmVersion } from "./dev-version.mjs";
+
+const SCRIPT = new URL("./dev-version.mjs", import.meta.url).pathname;
 
 const SHA = "10c87982a0f1e2d3c4b5a69788796a5b4c3d2e1f";
 
@@ -78,4 +82,19 @@ test("the checkout state reads the full id however short git abbreviates, and se
     writeFileSync(join(dir, "file"), "changed");
     assert.equal(checkoutState(dir).clean, false);
   });
+});
+
+test("run as the lanes run it, it prints this checkout's version, and refuses a bad argument on stderr with exit 1", () => {
+  const { sha, clean } = checkoutState();
+  const printed = execFileSync(process.execPath, [SCRIPT, "--base", "3.41.1", "--stamp", "20261003120000"], { encoding: "utf8" });
+  assert.equal(printed, `${devNpmVersion({ base: "3.41.1", stamp: "20261003120000", sha, clean })}\n`);
+
+  assert.throws(
+    () => execFileSync(process.execPath, [SCRIPT, "--base", "3.41", "--stamp", "20261003120000"], { encoding: "utf8", stdio: "pipe" }),
+    (error) => error.status === 1 && /dev-version: base must be X\.Y\.Z, got '3\.41'/.test(String(error.stderr)),
+  );
+  assert.throws(
+    () => execFileSync(process.execPath, [SCRIPT, "--stamp", "20261003120000"], { encoding: "utf8", stdio: "pipe" }),
+    (error) => error.status === 1 && /base must be X\.Y\.Z, got ''/.test(String(error.stderr)),
+  );
 });

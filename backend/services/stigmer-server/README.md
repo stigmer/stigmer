@@ -73,7 +73,7 @@ const myExtension: ServerExtension = { /* services, workers, verifiers, drivers,
 const server = await composeServer({ config, logger, extensions: [myExtension] });
 ```
 
-Versions are lockstep with the platform (`vX.Y.Z` tags on this repository). Pre-release builds for cross-repository work publish under the `dev` dist-tag as `X.Y.Z-dev.<stamp>` (`.github/workflows/docs/dev-publishing.md`); pin them exactly, never by tag, and never in a production manifest.
+Versions are lockstep with the platform (`vX.Y.Z` tags on this repository). Pre-release builds for cross-repository work publish under the `dev` dist-tag as `X.Y.Z-dev.<stamp>.g<sha12>`, naming the commit they were built from (`.github/workflows/docs/dev-publishing.md`); pin them exactly, never by tag, and never in a production image.
 
 The contract has a compile-time consumer in this repository, [`test/extension-consumer`](../../../test/extension-consumer): a fake extension that typechecks against the barrel alone on every PR, and again against the packed tarball in the consumer-install smoke (`npm run verify:consumer`).
 
