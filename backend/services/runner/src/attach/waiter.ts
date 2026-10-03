@@ -124,6 +124,16 @@ export function onlyTokenRotated(
   return undefined;
 }
 
+/** An error's code (or name), never its message, which may quote a pushed value. */
+export function spawnErrorCode(err: unknown): string {
+  if (typeof err === "object" && err !== null) {
+    const code = (err as { code?: unknown }).code;
+    if (typeof code === "string") return code;
+    if (err instanceof Error) return err.name;
+  }
+  return "unknown error";
+}
+
 function reply(res: ServerResponse, status: number, body: Record<string, unknown>): void {
   res.statusCode = status;
   res.setHeader("content-type", "application/json");
@@ -165,10 +175,34 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
   let nextDelay = firstDelay;
   let stopping = false;
 
-  // Called by the first accepted push and by a restart; close() clears a
-  // pending restart, so neither runs once the waiter is stopping.
-  function startRunner(): void {
-    const started = spawnRunner(options.runnerEntry, runnerEnv);
+  // A spawn can throw synchronously (an environment value Node refuses);
+  // its message may quote the value, so only the error's code is logged.
+  function spawnSafely(env: NodeJS.ProcessEnv): ChildProcess | undefined {
+    try {
+      return spawnRunner(options.runnerEntry, env);
+    } catch (err: unknown) {
+      log(`[attach] the runner could not be started (${spawnErrorCode(err)})`);
+      return undefined;
+    }
+  }
+
+  // close() clears a pending restart, so none runs once the waiter is stopping.
+  function scheduleRestart(how: string): void {
+    log(`[attach] runner ${how}; restarting in ${nextDelay}ms`);
+    restartTimer = setTimeout(restart, nextDelay);
+    nextDelay = Math.min(nextDelay * 2, maxDelay);
+  }
+
+  function restart(): void {
+    const started = spawnSafely(runnerEnv);
+    if (started === undefined) {
+      scheduleRestart("could not be started");
+      return;
+    }
+    supervise(started);
+  }
+
+  function supervise(started: ChildProcess): void {
     child = started;
     const startedAt = Date.now();
     let settled = false;
@@ -180,12 +214,10 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
       // A runner that served for a while restarts promptly; one that dies at
       // once backs off, so a broken boot cannot spin.
       if (Date.now() - startedAt > maxDelay) nextDelay = firstDelay;
-      log(`[attach] runner ${how}; restarting in ${nextDelay}ms`);
-      restartTimer = setTimeout(startRunner, nextDelay);
-      nextDelay = Math.min(nextDelay * 2, maxDelay);
+      scheduleRestart(how);
     };
     started.on("exit", (code, signal) => onGone(`exited (${signal ?? code})`));
-    started.on("error", (err) => onGone(`failed to start (${err.message})`));
+    started.on("error", (err) => onGone(`failed to start (${spawnErrorCode(err)})`));
   }
 
   async function handleAttach(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -223,14 +255,23 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
         reply(res, 409, { error: rotation });
         return;
       }
-    } else {
-      attachedSecrets = push.secrets;
     }
-    attachedQueue = push.taskQueue;
-    runnerEnv = runnerEnvFor(options.baseEnv, push);
+    const env = runnerEnvFor(options.baseEnv, push);
     if (first) {
-      log(`[attach] attached to ${JSON.stringify(push.taskQueue)}; starting the runner`);
-      startRunner();
+      // The attachment is recorded only once a runner has started, so a push
+      // whose runner cannot start leaves the sandbox free for a corrected one.
+      const started = spawnSafely(env);
+      if (started === undefined) {
+        reply(res, 500, { error: "the runner could not be started" });
+        return;
+      }
+      attachedSecrets = push.secrets;
+      log(`[attach] attached to ${JSON.stringify(push.taskQueue)}; the runner started`);
+      attachedQueue = push.taskQueue;
+      runnerEnv = env;
+      supervise(started);
+    } else {
+      runnerEnv = env;
     }
     reply(res, 200, { taskQueue: push.taskQueue, started: first });
   }

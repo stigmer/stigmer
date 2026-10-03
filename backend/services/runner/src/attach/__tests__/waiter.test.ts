@@ -11,7 +11,10 @@
  *   - a push for another sandbox's queue, a malformed push and a wrong method
  *     start nothing;
  *   - a runner that cannot be started at all is retried once per failure,
- *     even when the platform reports both an error and an exit;
+ *     even when the platform reports both an error and an exit; a spawn
+ *     that throws leaves a first push unattached (500) and a restart
+ *     retrying, and logs no value; the back-off resets after a runner that
+ *     served for a while;
  *   - a sandbox serves one queue for life (409), an unreadable sandbox name
  *     answers 500, an unknown path 404;
  *   - closing the waiter stops the runner and waits for it.
@@ -23,7 +26,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { onlyTokenRotated, startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
+import { onlyTokenRotated, spawnErrorCode, startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
 
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
@@ -46,6 +49,19 @@ function jwt(payload: Record<string, unknown>): string {
   const b64 = (value: Record<string, unknown>) =>
     Buffer.from(JSON.stringify(value)).toString("base64url");
   return `${b64({ alg: "HS256" })}.${b64(payload)}.sig`;
+}
+
+/** A stand-in runner that stays until killed, and exits when it is. */
+function stayingRunner(_entry?: string): ChildProcess {
+  const fake = new EventEmitter() as unknown as ChildProcess;
+  return Object.assign(fake, {
+    exitCode: null,
+    signalCode: null,
+    kill: () => {
+      setImmediate(() => fake.emit("exit", null, "SIGTERM"));
+      return true;
+    },
+  });
 }
 
 async function until(check: () => boolean, timeoutMs = 5000): Promise<void> {
@@ -192,6 +208,52 @@ describe("attach waiter", () => {
     [50, 100, 200, 200].forEach((floor, i) => expect(gaps[i]).toBeGreaterThanOrEqual(floor - 5));
   });
 
+  it("leaves the sandbox unattached when a first push's runner cannot start, and logs no value", async () => {
+    const logs: string[] = [];
+    let throwing = true;
+    const spawner: RunnerSpawner = (entryPath, env) => {
+      if (throwing) {
+        throw Object.assign(new TypeError(`The argument 'options.env['STIGMER_TOKEN']' must be a string without null bytes. Received '${env.STIGMER_TOKEN}'`), { code: "ERR_INVALID_ARG_VALUE" });
+      }
+      return stayingRunner(entryPath);
+    };
+    waiter = await startAttachWaiter({ port: 0, readSandboxName: () => SESSION_SANDBOX, runnerEntry: entry, baseEnv: {}, spawnRunner: spawner, log: (m) => logs.push(m) });
+    const failed = await push(waiter, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: jwt({ secret: "s3cr3t" }) } });
+    expect(failed).toEqual({ status: 500, body: { error: "the runner could not be started" } });
+    expect(waiter.attachedQueue()).toBeUndefined();
+    expect(logs.join("\n")).not.toContain("s3cr3t");
+    expect(logs).toContain("[attach] the runner could not be started (ERR_INVALID_ARG_VALUE)");
+    throwing = false;
+    expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).body).toEqual({ taskQueue: SESSION_QUEUE, started: true });
+    expect(waiter.attachedQueue()).toBe(SESSION_QUEUE);
+  });
+
+  it("keeps retrying, without crashing, when a restart's spawn throws; and resets the back-off after a runner that served a while", async () => {
+    const logs: string[] = [];
+    let spawns = 0;
+    // 1: dies at once; 2: throws; 3: lives 300 ms (longer than the 200 ms cap); 4: stays.
+    const spawner: RunnerSpawner = () => {
+      spawns += 1;
+      if (spawns === 2) throw Object.assign(new Error("boom"), { code: "EAGAIN" });
+      const fake = stayingRunner();
+      if (spawns === 1) setImmediate(() => fake.emit("exit", 1, null));
+      if (spawns === 3) setTimeout(() => fake.emit("exit", 1, null), 300);
+      return fake;
+    };
+    waiter = await startAttachWaiter({
+      port: 0, readSandboxName: () => SESSION_SANDBOX, runnerEntry: entry, baseEnv: {},
+      spawnRunner: spawner, restartDelayMs: 50, maxRestartDelayMs: 200, log: (m) => logs.push(m),
+    });
+    await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} });
+    await until(() => spawns >= 4, 5000);
+    expect(logs.filter((m) => m.includes("restarting"))).toEqual([
+      "[attach] runner exited (1); restarting in 50ms",
+      "[attach] runner could not be started; restarting in 100ms",
+      // The third runner served longer than the cap, so the delay starts over.
+      "[attach] runner exited (1); restarting in 50ms",
+    ]);
+  });
+
   it("starts nothing for another sandbox's queue, a malformed push or a wrong method", async () => {
     const w = await start();
     expect((await push(w, { taskQueue: "session:ses_other", secrets: {} })).status).toBe(403);
@@ -232,7 +294,7 @@ describe("attach waiter", () => {
       spawns += 1;
       const fake = new EventEmitter() as unknown as ChildProcess;
       setImmediate(() => {
-        fake.emit("error", new Error("spawn ENOENT"));
+        fake.emit("error", Object.assign(new Error("spawn /no/node ENOENT"), { code: "ENOENT" }));
         fake.emit("exit", null, null);
       });
       return fake;
@@ -250,7 +312,7 @@ describe("attach waiter", () => {
     await until(() => logs.some((m) => m.includes("restarting")));
     await new Promise((r) => setTimeout(r, 50));
     expect(spawns).toBe(1);
-    expect(logs.filter((m) => m.includes("restarting"))).toEqual(["[attach] runner failed to start (spawn ENOENT); restarting in 1000ms"]);
+    expect(logs.filter((m) => m.includes("restarting"))).toEqual(["[attach] runner failed to start (ENOENT); restarting in 1000ms"]);
   });
 
   it("serves one queue for life, answers 500 when its name cannot be read, and 404 elsewhere", async () => {
@@ -293,5 +355,14 @@ describe("onlyTokenRotated", () => {
   it("refuses dropping a token the first push carried", () => {
     expect(onlyTokenRotated({ STIGMER_TOKEN: "a" }, {})).toBe("a later push may not drop STIGMER_TOKEN");
     expect(onlyTokenRotated({ STIGMER_TOKEN: "a" }, { STIGMER_TOKEN: "" })).toBe("a later push may not drop STIGMER_TOKEN");
+  });
+});
+
+describe("spawnErrorCode", () => {
+  it("names an error by its code, else its name, and never by its message", () => {
+    expect(spawnErrorCode(Object.assign(new TypeError("Received 'secret'"), { code: "ERR_INVALID_ARG_VALUE" }))).toBe("ERR_INVALID_ARG_VALUE");
+    expect(spawnErrorCode(new RangeError("Received 'secret'"))).toBe("RangeError");
+    expect(spawnErrorCode("Received 'secret'")).toBe("unknown error");
+    expect(spawnErrorCode({ code: 42 })).toBe("unknown error");
   });
 });

@@ -3,11 +3,13 @@
  * serve one task queue, and the checks a push passes before the waiter starts
  * a runner for it.
  *
- * A push carries exactly what a sandbox pod receives at start: the queue it
- * serves (`STIGMER_TASK_QUEUE`) and the runner's secrets, the values its
- * Secret would hold. Nothing else, because everything per-target and
- * non-secret is already in the sandbox's own environment, and nothing
- * secret may be: a snapshot of a waiting sandbox is cloned into every
+ * A push carries the per-sandbox half of what a sandbox pod receives at
+ * start: the queue it serves (`STIGMER_TASK_QUEUE`) and the runner's secret
+ * values (`RUNNER_SECRET_ENV_KEYS`). Everything per-target and non-secret
+ * belongs in the sandbox's own environment instead, including the Temporal
+ * connection settings a pod's Secret also carries but that are not secrets
+ * (the server's CA, a client certificate, the server name); and nothing
+ * secret may be there: a snapshot of a waiting sandbox is cloned into every
  * sandbox started from it, so it must hold no credential (the waiter's
  * module header, `waiter.ts`).
  *
@@ -32,7 +34,8 @@
  *      server does, `client/token-claims.ts`); whoever can reach the waiter
  *      is the sandbox's driver, which is the deployment's to keep true.
  *
- * Status codes: 400 for a malformed push, 403 for one that fails the binding
+ * Status codes: 400 for a malformed push (a NUL byte in any value included:
+ * no process can receive it), 403 for one that fails the binding
  * or carries an unusable token.
  */
 
@@ -95,6 +98,11 @@ export function verifyAttachPush(
   if (typeof taskQueue !== "string" || taskQueue === "") {
     return refuse(400, "taskQueue must be a non-empty string");
   }
+  // An environment value holding a NUL byte cannot reach a process (Node
+  // refuses it at spawn), so it is refused here rather than at the start.
+  if (taskQueue.includes("\u0000")) {
+    return refuse(400, "taskQueue holds a NUL byte");
+  }
   if (typeof secrets !== "object" || secrets === null || Array.isArray(secrets)) {
     return refuse(400, "secrets must be an object of strings");
   }
@@ -105,6 +113,9 @@ export function verifyAttachPush(
     }
     if (typeof value !== "string") {
       return refuse(400, `secret ${name} must be a string`);
+    }
+    if (value.includes("\u0000")) {
+      return refuse(400, `secret ${name} holds a NUL byte`);
     }
     accepted[name] = value;
   }

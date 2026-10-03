@@ -129,6 +129,11 @@ describe("verifyAttachPush", () => {
     }
   });
 
+  it("refuses a NUL byte in the queue or in any secret, which no process can receive", () => {
+    expect(verifyAttachPush({ taskQueue: `${SESSION_QUEUE}\u0000`, secrets: {} }, SESSION_SANDBOX, NOW)).toMatchObject({ ok: false, status: 400 });
+    expect(verifyAttachPush({ taskQueue: SESSION_QUEUE, secrets: { STIGMER_PAYLOAD_ENCRYPTION_KEY: "k\u0000" } }, SESSION_SANDBOX, NOW)).toMatchObject({ ok: false, status: 400 });
+  });
+
   it("refuses malformed bodies", () => {
     for (const body of [null, [], "push", { secrets: {} }, { taskQueue: "", secrets: {} }, { taskQueue: SESSION_QUEUE }, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: 1 } }]) {
       expect(verifyAttachPush(body, SESSION_SANDBOX, NOW)).toMatchObject({ ok: false, status: 400 });
