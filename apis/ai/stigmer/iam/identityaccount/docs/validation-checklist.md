@@ -29,7 +29,7 @@ Pre-update checklist and known pitfalls when working with IdentityAccounts.
 
 `idp_id` is the identity anchor — it is immutable after creation. Attempting to change it will fail.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong — idp_id cannot be changed
 spec:
   idp_id: "auth0|new-subject-id"
@@ -51,7 +51,7 @@ When the IdentityProvider provisions accounts manually (neither `auto_provision_
 
 The `metadata.id` (e.g., `ia-01HQUSER123`) is Stigmer's internal ID. The `spec.idp_id` (e.g., `auth0|abc123`) is the external provider's identifier. Use `metadata.id` in IamPolicy principal references, not `idp_id`.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong in an IamPolicy — using idp_id as principal ID
 spec:
   principal:

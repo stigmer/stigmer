@@ -81,7 +81,7 @@ Because Stigmer supports key re-fetching on cache miss, key rotation does not re
 
 To support staging and production environments from the same platform, use `allowed_issuers` with multiple values:
 
-```yaml
+```yaml validate-as="IdentityProvider"
 spec:
   allowed_issuers:
     - "https://platform-prod.us.auth0.com/"

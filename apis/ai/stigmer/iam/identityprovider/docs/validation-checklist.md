@@ -34,7 +34,7 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 
 The `iss` claim in the token must **exactly** match one of the values in `allowed_issuers`. A trailing slash mismatch will cause every sign-in through this provider to fail.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong — missing trailing slash; Auth0 always includes one
 allowed_issuers:
   - "https://my-tenant.us.auth0.com"
@@ -50,7 +50,7 @@ To find the exact value, check the token's `iss` claim or the Auth0 tenant's Ope
 
 The `aud` claim must exactly match `expected_audience`. This value is the API identifier configured in Auth0, not the Auth0 tenant URL.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong — using the tenant URL as audience
 expected_audience: "https://my-tenant.us.auth0.com/"
 
@@ -70,7 +70,7 @@ Stigmer reads each issuer's discovery document when the identity provider is sav
 
 All endpoints (`jwks_uri`, `userinfo_endpoint`) must use HTTPS. Stigmer rejects plain HTTP endpoints.
 
-```yaml
+```yaml no-validate="a wrong and a right value side by side"
 # Wrong
 jwks_uri: "http://auth.example.com/.well-known/jwks.json"
 
