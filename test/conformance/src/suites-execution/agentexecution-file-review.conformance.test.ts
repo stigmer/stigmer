@@ -28,8 +28,7 @@
 // the content-addressed store and reconciled from it.
 //
 // Replaces the Go offline suite's file_review_offline_test.go arm for arm.
-// Reads of the
-// workspace are the suite's own fixture, not a runner internal.
+// Reads of the workspace are the suite's own fixture, not a runner internal.
 import { Code } from "@connectrpc/connect";
 import { toJson } from "@bufbuild/protobuf";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";

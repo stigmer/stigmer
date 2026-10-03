@@ -4,17 +4,15 @@
 //
 // Drives MemoryCommandController + MemoryQueryController through the raw
 // proto stubs and asserts the contract: fail-closed enablement at create
-// (org memory_enabled off -> FAILED_PRECONDITION with pinned copy),
-// server ownership of subject/lifecycle (forged values come back
-// server-written), capture-path-supplied provenance (the supplied triple is
-// stored, tool_call_id force-cleared,
-// a direct create stays empty, and the field is immutable after
-// create), the consent lifecycle matrix (proposed -> confirmed/rejected,
-// idempotent re-decisions, cross-decisions refused with pinned copy),
-// update immutability (subject/provenance locked, content editable,
-// lifecycle preserved), any-state delete, the per-subject record
-// ceiling (visible-full, never silent eviction), and org-scoped
-// listing.
+// (org memory_enabled off -> FAILED_PRECONDITION with pinned copy), server
+// ownership of subject/lifecycle (forged values come back server-written),
+// capture-path-supplied provenance (the supplied triple is stored,
+// tool_call_id force-cleared, a direct create stays empty, and the field is
+// immutable after create), the consent lifecycle matrix (proposed ->
+// confirmed/rejected, idempotent re-decisions, cross-decisions refused with
+// pinned copy), update immutability (subject/provenance locked, content
+// editable, lifecycle preserved), any-state delete, the per-subject record
+// ceiling (visible-full, never silent eviction), and org-scoped listing.
 //
 // The create RPC's strict first-party-human-operator gate is capability
 // split (firstPartyMemoryCapture, see targets/target.ts): local OSS runs
@@ -147,12 +145,11 @@ describe("Memory conformance", () => {
 
   it.skipIf(!capabilities.firstPartyMemoryCapture)("[rpc:MemoryCommandController.create] create stores capture-path provenance, force-clearing tool_call_id", async () => {
     // The provenance contract: the capture path — the remember tool via the
-    // runner-synthesized
-    // attachment — threads agent/session/execution, and the eligible
-    // capture caller's supplied triple is stored (OSS local trust: every
-    // caller is the operator; cloud: sandbox credential required, pinned
-    // in the hosted edition's own tests). tool_call_id is unreachable via MCP in
-    // v1, so a supplied value could only be an invention: force-cleared.
+    // runner-synthesized attachment — threads agent/session/execution, and the
+    // eligible capture caller's supplied triple is stored (OSS local trust:
+    // every caller is the operator; cloud: sandbox credential required, pinned
+    // in the hosted edition's own tests). tool_call_id is unreachable via MCP
+    // in v1, so a supplied value could only be an invention: force-cleared.
     const org = await createOrg(true);
     const created = await clients.memoryCommand.create({
       ...makeMemory(org, { content: "Works primarily in Go." }),

@@ -83,9 +83,9 @@ export interface ConversationListPaneProps {
 }
 
 /**
- * The conversation inbox pane: every
- * conversation across the org's channels, newest activity first, with
- * control, attention, and awaiting-reply indicators.
+ * The conversation inbox pane: every conversation across the org's
+ * channels, newest activity first, with control, attention, and
+ * awaiting-reply indicators.
  *
  * Presentational — pair with `useConversationList` and
  * `useOrgAgentChannelList`, or compose via `ConversationsWorkbench`.

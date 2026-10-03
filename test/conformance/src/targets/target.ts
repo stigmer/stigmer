@@ -97,8 +97,7 @@ export interface CapabilityFlags {
   // Temporal-backed scheduling clock behind the server.
   //
   // True for cloud and local-execution, whose server runs its schedule clock
-  // on a live Temporal. False for the plain
-  // local target, which runs without Temporal at all — the Schedule
+  // on a live Temporal. False for the plain local target, which runs without Temporal at all — the Schedule
   // contract, CLI, and trigger/resume refusal matrix all exist there, but
   // nothing fires.
   //
@@ -167,8 +166,7 @@ export interface CapabilityFlags {
   // messaging (sendMessage/listTemplates).
   //
   // False for the local OSS targets — BY DOCUMENTED DESIGN, not a gap: this
-  // edition has no
-  // webhook receiver, no delivery runtime, and no participation state
+  // edition has no webhook receiver, no delivery runtime, and no participation state
   // machine, so every runtime command refuses with FAILED_PRECONDITION and
   // per-surface copy ("channel installs require Stigmer Cloud" /
   // "conversation participation requires Stigmer Cloud" / "proactive
@@ -745,9 +743,9 @@ export interface TargetProfile {
 
   // The cloud-capability HTTP lanes, one accessor per lane because the
   // composition serves its extension-owned lanes on separate listeners.
-  // Present on the cloud
-  // targets, read from CLOUD_ENV; absent on the local targets, where the
-  // corresponding flag is false and the suites skip at collection time.
+  // Present on the cloud targets, read from CLOUD_ENV; absent on the local
+  // targets, where the corresponding flag is false and the suites skip at
+  // collection time.
   //
   // The contract between flag and accessor is deliberate: the FLAG states the
   // edition's promise; the ACCESSOR states where the environment serves it. A

@@ -140,9 +140,9 @@ describe("ConversationComposer", () => {
     // A forecast, not a block: the input stays usable.
     expect(input.disabled).toBe(false);
 
-    // The advisory is the input's
-    // aria-describedby target — read at the moment of action — never a
-    // live region (it is state a reader meets on open, not an event).
+    // The advisory is the input's aria-describedby target — read at
+    // the moment of action — never a live region (it is state a reader
+    // meets on open, not an event).
     const describedBy = input.getAttribute("aria-describedby");
     expect(describedBy).toBeTruthy();
     const advisoryEl = document.getElementById(describedBy as string);

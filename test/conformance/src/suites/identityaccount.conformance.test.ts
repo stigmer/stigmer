@@ -26,22 +26,20 @@
 //     (position 3, before any handler) so the refusal under test is the
 //     handler's.
 //
-// Posture arms, gated on capability flags:
-//   - trusted-local (requiresAuthentication false): whoAmI answers the
-//     operator's account (ensured at boot, create-if-absent);
-//     provisionMyAccount is the idempotent early return.
-//   - the OIDC lane: on a target that can spawn a
-//     sibling server (spawnSibling), one server boots in the OIDC posture
-//     against the harness's local issuer (test/support/src/local-oidc-issuer.ts):
-//     an unprovisioned subject is idp-shaped (whoAmI NOT_FOUND with the
-//     cloud's copy), provisionMyAccount creates the account from the
-//     issuer's /userinfo, the next request resolves to it, an API key
-//     minted over that session answers as the owner, two concurrent
-//     first logins end in one account, delete frees the subject, and a
-//     userinfo outage is UNAVAILABLE and creates nothing. The cloud's own
-//     lane is the direct-login suite (directLogin); where no sibling can be
-//     spawned the arms skip VISIBLY
-//     with the target's reason.
+// Posture arms, gated on capability flags: - trusted-local
+// (requiresAuthentication false): whoAmI answers the operator's account
+// (ensured at boot, create-if-absent); provisionMyAccount is the idempotent
+// early return. - the OIDC lane: on a target that can spawn a sibling
+// server (spawnSibling), one server boots in the OIDC posture against the
+// harness's local issuer (test/support/src/local-oidc-issuer.ts): an
+// unprovisioned subject is idp-shaped (whoAmI NOT_FOUND with the cloud's
+// copy), provisionMyAccount creates the account from the issuer's
+// /userinfo, the next request resolves to it, an API key minted over that
+// session answers as the owner, two concurrent first logins end in one
+// account, delete frees the subject, and a userinfo outage is UNAVAILABLE
+// and creates nothing. The cloud's own lane is the direct-login suite
+// (directLogin); where no sibling can be spawned the arms skip VISIBLY with
+// the target's reason.
 //
 // Deliberately OUT of this suite: how the id is derived (server-internal;
 // the server's unit suites pin it), the personal organization (a cloud

@@ -42,9 +42,8 @@ export function Sidebar() {
   const recentActivity = useRecentActivity();
   const { refetch, prependOptimistic } = recentActivity;
   const org = useActiveOrgSlug();
-  // The Conversations badge: conversations wanting a human right now.
-  // Data as props — the SDK sidebar
-  // never fetches for itself. Mirrors web.
+  // The Conversations badge: conversations wanting a human right now. Data as
+  // props — the SDK sidebar never fetches for itself. Mirrors web.
   const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
 
   // Sessions whose runner worker is still alive but which are NOT the one being

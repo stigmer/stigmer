@@ -54,17 +54,17 @@ export const CLOUD_ENV = {
   // (its STIGMER_IDP_URL / Java idp-url), as the environment's mock tenant
   // declares it — so the direct-login suite can MINT the tokens a console,
   // desktop, CLI or MCP client presents and drive the server's direct-login
-  // lane. The signing key is the private
-  // half of the key the tenant's JWKS publishes (base64 of a PKCS#8 PEM, the
-  // composition's `*_BASE64` custody pattern); the kid names it in that
-  // document. Set by whoever owns the tenant: the hermetic launcher hands
-  // its in-process tenant's material over on the ready line (the same
-  // material minted the bootstrap operator's first token); the composition
-  // readout's spike tenant writes an env file. Deliberately UNSET on any
-  // deployed endpoint — a real tenant's key is never handed to conformance —
-  // so CloudTarget exposes no directLoginTenant and the suite skips VISIBLY.
-  // The API audience is required with the issuer; the MCP audience is
-  // optional (blank = the tenant mints for the API alone).
+  // lane. The signing key is the private half of the key the tenant's JWKS
+  // publishes (base64 of a PKCS#8 PEM, the composition's `*_BASE64` custody
+  // pattern); the kid names it in that document. Set by whoever owns the
+  // tenant: the hermetic launcher hands its in-process tenant's material
+  // over on the ready line (the same material minted the bootstrap
+  // operator's first token); the composition readout's spike tenant writes
+  // an env file. Deliberately UNSET on any deployed endpoint — a real
+  // tenant's key is never handed to conformance — so CloudTarget exposes no
+  // directLoginTenant and the suite skips VISIBLY. The API audience is
+  // required with the issuer; the MCP audience is optional (blank = the
+  // tenant mints for the API alone).
   directLoginIssuer: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_ISSUER",
   directLoginSigningKeyBase64: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_SIGNING_KEY_BASE64",
   directLoginKid: "STIGMER_CONFORMANCE_CLOUD_DIRECT_LOGIN_KID",

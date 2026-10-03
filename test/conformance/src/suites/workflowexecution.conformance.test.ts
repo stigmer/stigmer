@@ -102,9 +102,8 @@ describe("WorkflowExecution conformance — zero-record read surfaces (Class A)"
     expect(summary.activeCount).toBe(0);
     expect(summary.phaseCounts).toEqual({});
     expect(summary.totalCount).toBe(0);
-    // The zero-record success rate is a VERIFIED cross-edition
-    // inconsistency, pinned as-is per edition: OSS answers the -1 "no terminal
-    // runs yet"
+    // The zero-record success rate is a VERIFIED cross-edition inconsistency,
+    // pinned as-is per edition: OSS answers the -1 "no terminal runs yet"
     // sentinel — deliberately distinguishable from a real 0% — while the
     // multi-tenant edition answers a plain 0.
     expect(summary.successRate).toBe(target.capabilities.multiTenant ? 0 : -1);

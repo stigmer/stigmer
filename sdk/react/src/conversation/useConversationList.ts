@@ -20,9 +20,9 @@ export interface UseConversationListOptions {
   readonly agentChannelId?: string;
   /**
    * Optional server-evaluated predicate filter. The generated enum is
-   * the vocabulary on purpose — the
-   * predicate lives in ONE place, the server, and the hook never
-   * re-expresses it. Defaults to unspecified (no filter).
+   * the vocabulary on purpose — the predicate lives in ONE place, the
+   * server, and the hook never re-expresses it. Defaults to
+   * unspecified (no filter).
    */
   readonly filter?: ChannelConversationListFilter;
   /** Page size for the head page and each loadMore page. Default 50. */
@@ -110,9 +110,9 @@ function activityMillisOf(conversation: ChannelConversation): number {
 
 /**
  * Data hook for the org-wide conversation list: newest activity first
- * across every channel the caller can
- * view, optionally narrowed to one channel and/or a server-evaluated
- * predicate ({@link ChannelConversationListFilter}).
+ * across every channel the caller can view, optionally narrowed to one
+ * channel and/or a server-evaluated predicate ({@link
+ * ChannelConversationListFilter}).
  *
  * The head page rides `useFetch` and polls; older pages accumulate via
  * {@link UseConversationListReturn.loadMore} and are merged with head

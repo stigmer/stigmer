@@ -22,12 +22,11 @@ export const SCHEDULE_KIND = "Schedule";
 // ─── The trigger refusal copy (contract copy) ───────────────────────────────
 
 // Refusing a disabled schedule — the ONE remaining trigger refusal (the
-// refusal matrix narrowed when triggers went synchronous: paused schedules
-// now fire, and manual
-// fires run synchronously through the create pipeline rather than the
-// artifact). The refusal survives because ScheduleBlueprintAccess requires
-// spec.enabled at the create gate AND the mid-run sandbox read predicate;
-// consoles offer "Enable & run now" as the remedy.
+// refusal matrix narrowed when triggers went synchronous: paused schedules now
+// fire, and manual fires run synchronously through the create pipeline rather
+// than the artifact). The refusal survives because ScheduleBlueprintAccess
+// requires spec.enabled at the create gate AND the mid-run sandbox read
+// predicate; consoles offer "Enable & run now" as the remedy.
 export const TRIGGER_DISABLED_MESSAGE =
   "schedule is disabled (spec.enabled=false) — enable it before triggering";
 

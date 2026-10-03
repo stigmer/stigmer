@@ -50,13 +50,12 @@ export function roleNotGrantableMessage(
 }
 
 // create whose principal is neither a person nor a team: a role is granted to
-// an identity account or
-// to a team's members; a row naming any other resource as its principal is
-// a structural link and bootstrapPolicy's. The sentence names both grantee
-// kinds in every edition: the principal check admits a team everywhere, and
-// an edition that serves no teams refuses the team's role afterwards.
-// Every edition, after position 1 — the caller's right on the resource is
-// real, the grantee is what is refused.
+// an identity account or to a team's members; a row naming any other resource
+// as its principal is a structural link and bootstrapPolicy's. The sentence
+// names both grantee kinds in every edition: the principal check admits a
+// team everywhere, and an edition that serves no teams refuses the team's
+// role afterwards. Every edition, after position 1 — the caller's right on
+// the resource is real, the grantee is what is refused.
 export function principalNotGrantableMessage(kindName: string): string {
   return `Principal kind '${kindName}' cannot be granted a role. Grantable principal kinds: [identity_account, team]`;
 }
@@ -144,8 +143,8 @@ export const BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE =
 // An identity-account id no account holds: the principal of the shared grant
 // arms. Neither edition checks a principal's existence (OpenFGA references
 // by string; the public-viewer wildcard has no row), so granting to it is a
-// real behaviour on every target and needs no
-// second real caller. Unique per call so no run meets another's rows.
+// real behaviour on every target and needs no second real caller. Unique per
+// call so no run meets another's rows.
 export function syntheticAccountId(): string {
   const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
   return `ida_${stamp.padEnd(26, "0").slice(0, 26)}`;

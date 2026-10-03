@@ -29,12 +29,11 @@
 // - without a schema the field is never populated and tier 2 is never asked;
 // - the schema itself round-trips on spec.execution_config as submitted.
 //
-// Deliberately NOT asserted: whether the
-// fallback validates the value against the schema (extra fields, a missing
-// required field, a wrong type). The fallback does no validation today, and
-// pinning that would bless the absence of validation as contract; the question
-// is filed as a runner issue. Replaces the Go offline suite's
-// structured_output_offline_test.go hard arms.
+// Deliberately NOT asserted: whether the fallback validates the value against
+// the schema (extra fields, a missing required field, a wrong type). The
+// fallback does no validation today, and pinning that would bless the absence
+// of validation as contract; the question is filed as a runner issue. Replaces
+// the Go offline suite's structured_output_offline_test.go hard arms.
 import type { JsonObject } from "@bufbuild/protobuf";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";

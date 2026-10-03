@@ -1,12 +1,11 @@
 /**
  * Liveness for the conversation surface is HONEST POLLING — no streaming
- * or watch RPC exists on the
- * conversation query controller, and none ships until a revisit trigger
- * fires (a real push consumer, or sub-second liveness becoming a product
- * property). These constants are the deliberate transport seam: hooks
- * default to them, consumers may override per instance, and when
- * push-shaped liveness lands the defaults change here without touching a
- * consumer.
+ * or watch RPC exists on the conversation query controller, and none
+ * ships until a revisit trigger fires (a real push consumer, or
+ * sub-second liveness becoming a product property). These constants are
+ * the deliberate transport seam: hooks default to them, consumers may
+ * override per instance, and when push-shaped liveness lands the
+ * defaults change here without touching a consumer.
  *
  * The latency budget is a stated contract, not an accident
  * of three numbers:

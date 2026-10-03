@@ -188,10 +188,9 @@ export interface MessageThreadProps {
    * moves a scrolled-up reader.
    *
    * Default `true` on all three SDK thread surfaces at once — a deliberate
-   * exception to opt-in defaults: cross-surface consistency is the
-   * point, and a per-surface opt-in would
-   * re-create the inconsistency it fixes. Set `false` to keep today's
-   * leave-the-reader-alone behavior.
+   * exception to opt-in defaults: cross-surface consistency is the point,
+   * and a per-surface opt-in would re-create the inconsistency it fixes.
+   * Set `false` to keep today's leave-the-reader-alone behavior.
    *
    * @default true
    */

@@ -259,7 +259,7 @@ describe("compareTimelineItemsNewestFirst", () => {
     expect([older, newer].sort(compareTimelineItemsNewestFirst)).toEqual([newer, older]);
   });
 
-  it("orders sub-second instants by nanos — the 007/D7 string-inversion trap is structurally absent", () => {
+  it("orders sub-second instants by nanos — the RFC-3339 text-order inversion is structurally absent", () => {
     const wholeSecond = item({ itemId: "wa:1", at: at("2026-08-07T09:00:00.000Z") });
     const midSecond = item({ itemId: "wa:2", at: at("2026-08-07T09:00:00.123Z") });
     // As RFC-3339 TEXT, "..:00.123Z" sorts BEFORE "..:00Z" — the

@@ -55,9 +55,8 @@ export interface UseConversationMediaUrlOptions {
  * Addressed by `(channel, conversation, item_id)` — never a storage key:
  * the server resolves the blob from its own row, so the read path stays
  * conversation-viewer-scoped by construction and blob capabilities never
- * ride the wire. The URL expires (about an
- * hour); minting at view time keeps it always valid, the
- * `useArtifactDownloadUrl` rationale.
+ * ride the wire. The URL expires (about an hour); minting at view time
+ * keeps it always valid, the `useArtifactDownloadUrl` rationale.
  *
  * The URL is cached cross-mount by the item's full address, so
  * the 5s timeline poll's re-renders and a lightbox opened from a

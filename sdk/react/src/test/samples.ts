@@ -260,8 +260,8 @@ export interface SearchResultOverrides {
  *
  * Every timestamp is frozen at {@link SAMPLE_INSTANT} — these factories never
  * read the live clock, so a fixture renders identical pixels on every browser
- * replay and every video-export frame. Do not
- * reintroduce `Date.now()` or `new Date()` here.
+ * replay and every video-export frame. Do not reintroduce `Date.now()` or
+ * `new Date()` here.
  *
  * For a value the overrides do not cover — a different timestamp, a distinct
  * tool-call id — modify the returned object directly rather than growing the

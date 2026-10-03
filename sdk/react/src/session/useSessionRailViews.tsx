@@ -74,9 +74,8 @@ export interface UseSessionRailViewsOptions {
  * This is the session-domain half of the unified panel: the surface stays a
  * domain-pure workspace organism and these views are injected into its rail
  * (composition by injection). Contextual visibility mirrors the retired
- * inspector's
- * tab rules — Changes/Artifacts surface only when data exists (with count
- * badges).
+ * inspector's tab rules — Changes/Artifacts surface only when data exists
+ * (with count badges).
  */
 export function useSessionRailViews({
   allExecutions,

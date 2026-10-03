@@ -87,9 +87,8 @@ export function sendAttemptOf(item: ConversationTimelineItem): SendAttemptKind |
  * provider reports (and always on items with no receipt axis).
  *
  * A SECOND axis beside {@link sendAttemptOf}, never collapsed into it:
- * "we handed it to WhatsApp" and
- * "it reached the phone" are different facts — an item can be
- * `delivered` + `receipt_failed`.
+ * "we handed it to WhatsApp" and "it reached the phone" are different
+ * facts — an item can be `delivered` + `receipt_failed`.
  */
 export type ReceiptKind = "sent" | "delivered" | "read" | "failed";
 
@@ -258,10 +257,9 @@ export type ServiceWindowState = "open" | "closed";
 
 /**
  * Estimate whether the provider's free-form reply window is open.
- * Provider-aware like
- * {@link conversationLabelOf}: WhatsApp is the only windowed provider, so
- * every other provider answers `null` — no window, no claim — as does a
- * conversation whose customer has never written
+ * Provider-aware like {@link conversationLabelOf}: WhatsApp is the only
+ * windowed provider, so every other provider answers `null` — no window,
+ * no claim — as does a conversation whose customer has never written
  * (`last_customer_message_at` unset; that conversation takes the
  * composer's disabled branch instead).
  *
@@ -300,11 +298,10 @@ export type AwaitingIndicator = "strong" | "muted";
 /**
  * The awaiting-reply indicator for a conversation: `"strong"` when a
  * human holds it — the agent will not answer, so a person must — and
- * `"muted"` when the
- * agent holds it: the agent is about to answer, and if its turn dies the
- * conversation stays visibly waiting, which is the built-in recovery
- * path. `null` when the customer's last message has been
- * answered (or the customer has not written).
+ * `"muted"` when the agent holds it: the agent is about to answer, and
+ * if its turn dies the conversation stays visibly waiting, which is the
+ * built-in recovery path. `null` when the customer's last message has
+ * been answered (or the customer has not written).
  *
  * The fact itself is server-derived (`awaiting_reply` rides the wire as
  * a boolean precisely so no client re-implements the NULL-and-compare

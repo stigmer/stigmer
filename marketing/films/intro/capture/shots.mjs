@@ -1,7 +1,7 @@
 /**
  * The shot registry — the film's shot list as executable capture
- * drives. One entry per
- * shot id; `node capture.mjs <id...>` records them.
+ * drives. One entry per shot id; `node capture.mjs <id...>` records
+ * them.
  *
  * Notes against the shot list:
  * - s4-chat is ONE continuous take covering S4a (chat + tool calls),

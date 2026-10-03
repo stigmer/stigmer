@@ -137,19 +137,19 @@ describe("authentication posture: a request with a credential nothing claims", (
   });
 });
 
-// The API-key credential (stigmer#984): an
-// `stk_` key the server itself minted must authenticate AS its owning
-// account wherever an authentication posture is on — the SDKs, the CLI and
-// the hosted MCP server present exactly this credential. The proof is
-// edition-agnostic: a write made THROUGH the key carries the key owner's
-// id on its audit, the same principal the primary credential carries.
-// Where authentication is required, a garbage or deleted key is refused
-// with the byte-pinned copy both editions share (`invalid token` — the
-// Java classifyAuthError fallback and the TS apikey verifier's
-// INVALID_TOKEN_MESSAGE are the same bytes by contract). On verifier-less
-// local targets the key is one more unclaimed credential and falls through
-// to the operator (the trusted-local fall-through) — pinned as that
-// contract, not as key verification.
+// The API-key credential (stigmer#984): an `stk_` key the server itself
+// minted must authenticate AS its owning account wherever an
+// authentication posture is on — the SDKs, the CLI and the hosted MCP
+// server present exactly this credential. The proof is edition-agnostic: a
+// write made THROUGH the key carries the key owner's id on its audit, the
+// same principal the primary credential carries. Where authentication is
+// required, a garbage or deleted key is refused with the byte-pinned copy
+// both editions share (`invalid token` — the Java classifyAuthError
+// fallback and the TS apikey verifier's INVALID_TOKEN_MESSAGE are the same
+// bytes by contract). On verifier-less local targets the key is one more
+// unclaimed credential and falls through to the operator (the
+// trusted-local fall-through) — pinned as that contract, not as key
+// verification.
 describe("authentication posture: a request with an API-key credential", () => {
   const fixtures = new FixtureTracker();
   const INVALID_TOKEN_MESSAGE = "invalid token";

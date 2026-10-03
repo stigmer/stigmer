@@ -1,13 +1,13 @@
 // CLI configuration model and persistence (~/.stigmer/config.yaml).
 //
 // Named backends ("a named backend without a credential story is half a
-// feature"): the
-// `backends` map + `current_backend` are the kubectl-context model — each
-// entry carries its own endpoint AND its own credentials, so switching
-// between Stigmer Cloud and a self-hosted server never clobbers either
-// side's login state. Two names are reserved: "local" (the managed daemon,
-// never stored in the map — its endpoint and no-auth posture are fixed)
-// and "cloud" (where `stigmer auth login` lands by default).
+// feature"): the `backends` map + `current_backend` are the
+// kubectl-context model — each entry carries its own endpoint AND its own
+// credentials, so switching between Stigmer Cloud and a self-hosted server
+// never clobbers either side's login state. Two names are reserved:
+// "local" (the managed daemon, never stored in the map — its endpoint and
+// no-auth posture are fixed) and "cloud" (where `stigmer auth login` lands
+// by default).
 //
 // Legacy shape + migration: older files carried one `backend.cloud` slot
 // selected by `backend.type`. Loading migrates that shape in memory

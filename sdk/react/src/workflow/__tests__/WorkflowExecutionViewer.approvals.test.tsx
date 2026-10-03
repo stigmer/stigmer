@@ -315,7 +315,7 @@ describe("WorkflowExecutionViewer in-thread HITL", () => {
     );
   });
 
-  it("hands each transcript the viewer's SINGLE actions instance — decisions route through the workflow-level RPCs (S5 guardrail)", () => {
+  it("hands each transcript the viewer's SINGLE actions instance — decisions route through the workflow-level RPCs (the routing guardrail)", () => {
     const actions = arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 

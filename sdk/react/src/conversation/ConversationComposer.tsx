@@ -41,13 +41,13 @@ export interface ConversationComposerProps {
   readonly disabledReason: string | null;
   /**
    * A pre-send forecast that ANNOTATES the enabled input — the
-   * `disabledReason` pattern's sibling with the opposite contract:
-   * a closed service window is a
-   * forecast, not a structural block, so the input stays usable and the
-   * send engines remain the authority. Rendered above the input and
-   * associated via `aria-describedby` (never a live region: the
-   * advisory is state a reader meets on open, not an event). Compute it
-   * with `serviceWindowOf`; `null` or omitted renders nothing.
+   * `disabledReason` pattern's sibling with the opposite contract: a
+   * closed service window is a forecast, not a structural block, so the
+   * input stays usable and the send engines remain the authority.
+   * Rendered above the input and associated via `aria-describedby`
+   * (never a live region: the advisory is state a reader meets on open,
+   * not an event). Compute it with `serviceWindowOf`; `null` or omitted
+   * renders nothing.
    */
   readonly advisory?: string | null;
   /** Additional classes for the composer container. */

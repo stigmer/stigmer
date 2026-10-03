@@ -3,10 +3,10 @@
 // Domain: conformance support.
 //
 // A Memory is an agent-proposed, user-confirmed fact: the fact text lives in
-// spec.content; the subject and
-// provenance are SERVER-OWNED at create (client values overwritten);
-// the consent lifecycle (proposed → confirmed/rejected) lives in status
-// and is written only by create and the confirm/reject commands.
+// spec.content; the subject and provenance are SERVER-OWNED at create
+// (client values overwritten); the consent lifecycle (proposed →
+// confirmed/rejected) lives in status and is written only by create and the
+// confirm/reject commands.
 //
 // The exported copy constants are CROSS-EDITION CONTRACT STRINGS: the Go
 // controller (stigmer) and the Java handlers (stigmer-cloud) each pin

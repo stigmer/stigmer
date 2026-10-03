@@ -794,7 +794,7 @@ rows:
     caller: none
     needs: [unfunded-org]
     note: >-
-      Conformance cannot mint guest, channel or schedule callers (the R6 posture; schedule fires ride the scheduleFireCaller driver). The composition's VisitorBillingPreflight unit arms pin the copy; the live smoke covers the schedule lane.
+      Conformance cannot mint guest, channel or schedule callers (schedule fires ride the scheduleFireCaller driver). The composition's VisitorBillingPreflight unit arms pin the copy; the live smoke covers the schedule lane.
   - id: billing.gate.reserve.billing-unavailable-fails-closed
     surface: billing
     lane: >-
@@ -975,7 +975,7 @@ rows:
     lane: >-
       stripe.webhook
     behavior: >-
-      An otherwise valid checkout.session.completed whose api_version is not stripe-java 32.1.0's pin answers 200 and grants nothing — getObject() deserializes nothing (finding F12).
+      An otherwise valid checkout.session.completed whose api_version is not stripe-java 32.1.0's pin answers 200 and grants nothing — getObject() deserializes nothing (the api_version trap the fake Stripe documents).
     class: behavior
     disposition: debris
     observability: launcher

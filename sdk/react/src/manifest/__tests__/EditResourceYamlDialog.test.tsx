@@ -1,8 +1,7 @@
 // Tests for the shared Edit-YAML dialog's apply-error affordance: the
-// server's refusal renders verbatim with
-// Try-again/Dismiss — shared by every kind (McpServer, Agent, Skill),
-// so any apply-time guard gets the same acknowledge-and-retry
-// treatment.
+// server's refusal renders verbatim with Try-again/Dismiss — shared
+// by every kind (McpServer, Agent, Skill), so any apply-time guard
+// gets the same acknowledge-and-retry treatment.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";

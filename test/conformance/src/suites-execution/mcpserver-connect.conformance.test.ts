@@ -543,8 +543,7 @@ describe("McpServer connect conformance — blocking connect", () => {
     // economy tier for the primary model's provider — resolved through the
     // control plane's registry to the provider's api id (the Go offline
     // suite's classify arm pinned the same wire id). Asserted against the row
-    // the runner itself picks from the same
-    // document, not a pinned string.
+    // the runner itself picks from the same document, not a pinned string.
     if (target.modelRegistryDocument === undefined) {
       throw new Error(`target ${target.name} exposes no model registry document; execution targets must`);
     }

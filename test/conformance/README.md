@@ -599,11 +599,12 @@ an execution **domain** enters the suite whole, on this same harness.
 two hermetic fixtures: `set_vars` (sub-second, for create/complete/query/terminal
 cases) and `wait` (a durable Temporal timer, for acting on a genuinely *running*
 execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
-**engine-present** contract; the engine-unavailable create-boundary (issue #195,
-formerly the F7/F8 asymmetry) is now one symmetric contract across both execution
+**engine-present** contract; the engine-unavailable create-boundary (issue
+#195) is now one symmetric contract across both execution
 domains — a create while the engine is down fails fast with Unavailable and
 persists nothing — and is only reachable with Temporal down, so it is covered by
-the server's controller unit tests rather than asserted here. Class B files run serially (`fileParallelism: false`) so multiple suites don't boot
+the server's controller unit tests rather than asserted here. Class B files run
+serially (`fileParallelism: false`) so multiple suites don't boot
 multiple Temporal+runner stacks at once.
 
 `agentexecution.conformance.test.ts` is the second whole execution domain. An
@@ -794,7 +795,7 @@ For a surface only the cloud edition serves:
    accessor beside `proxyBaseUrl()`, fed from a new `CLOUD_ENV` entry the
    composition readout publishes.
 2. Enumerate its behaviors as rows in `inventory/cloud-capabilities.yaml`
-   (stable dotted ids; one disposition each; cite the Java source and test).
+   (stable dotted ids; one disposition each).
 3. Write the suite gated at collection time (`describe.skipIf(!flag)`), every
    `it` tagged with its row ids; script any upstream the server dials through
    `harness/cloud-fixtures.ts` and its control client, never by importing a

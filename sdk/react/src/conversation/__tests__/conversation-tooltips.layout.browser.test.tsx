@@ -31,9 +31,9 @@ const NOW = new Date("2026-08-07T12:00:00Z");
 
 /**
  * A themed, sized box so hover geometry is real — narrow enough to fit
- * the headless viewport, because a
- * right-aligned business bubble in a pane wider than the viewport puts
- * its receipt tick off-screen where a pointer cannot rest on it.
+ * the headless viewport, because a right-aligned business bubble in a
+ * pane wider than the viewport puts its receipt tick off-screen where
+ * a pointer cannot rest on it.
  */
 function renderInPane(ui: ReactElement) {
   const pane = document.createElement("div");

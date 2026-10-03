@@ -21,12 +21,11 @@ export interface ConversationControlBannerProps {
    * `true` when the customer's last message has not been answered —
    * the conversation row's server-derived `awaiting_reply` fact, which
    * is bounce-aware: a staff reply the provider later failed does not
-   * count as an answer. Arms the
-   * handback confirm guard: handing back runs NO turn, so
-   * the agent stays quiet until the customer next speaks, and the
-   * unanswered state must be unmissable. Never derive this from
-   * timeline authorship — the send attempt's presence on the timeline
-   * says nothing about whether the customer received it.
+   * count as an answer. Arms the handback confirm guard: handing back
+   * runs NO turn, so the agent stays quiet until the customer next
+   * speaks, and the unanswered state must be unmissable. Never derive
+   * this from timeline authorship — the send attempt's presence on the
+   * timeline says nothing about whether the customer received it.
    */
   readonly unansweredCustomer: boolean;
   /**

@@ -238,18 +238,17 @@ const TimelineItemRow = memo(function TimelineItemRow({
       : null;
   const body = item.text || (mediaAddress !== null ? "" : inboundPlaceholderOf(item));
 
-  // The provider's
-  // failure explanation is decision-bearing — window closed vs bad
-  // number changes what the operator does next — so it renders as
-  // VISIBLE text, not hover-only (the footer glyphs are deliberately
-  // non-focusable, which makes a tooltip mouse-only). Verbatim
-  // relay, never pattern-matched; the numeric twin (receipt_error_code)
-  // stays off the surface as machine vocabulary. Gated exactly like
-  // ReceiptTicks' failed arm — attempt delivered AND receipt failed —
-  // so the attempt-axis explanation (attemptExplanationOf) can
-  // structurally never leak in here: its gate requires
-  // attempt FAILED, this one attempt delivered, so at most one of the
-  // two explanations ever renders.
+  // The provider's failure explanation is decision-bearing — window
+  // closed vs bad number changes what the operator does next — so it
+  // renders as VISIBLE text, not hover-only (the footer glyphs are
+  // deliberately non-focusable, which makes a tooltip mouse-only).
+  // Verbatim relay, never pattern-matched; the numeric twin
+  // (receipt_error_code) stays off the surface as machine vocabulary.
+  // Gated exactly like ReceiptTicks' failed arm — attempt delivered AND
+  // receipt failed — so the attempt-axis explanation
+  // (attemptExplanationOf) can structurally never leak in here: its
+  // gate requires attempt FAILED, this one attempt delivered, so at
+  // most one of the two explanations ever renders.
   const receiptExplanation =
     sendAttemptOf(item) === "delivered" &&
     receiptOf(item) === "failed" &&

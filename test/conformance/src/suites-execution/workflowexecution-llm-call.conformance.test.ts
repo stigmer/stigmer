@@ -8,9 +8,8 @@
 // The task runs in the shared runner's workflow engine (call:function llm);
 // each task makes exactly one provider call, scripted on the mock LLM. What is
 // pinned is the status contract a console or SDK renders (the Go offline
-// suite's llm_call_offline_test.go and
-// workflow_task_io_test.go, plus the llm_call half of
-// model_resolution_offline_test.go):
+// suite's llm_call_offline_test.go and workflow_task_io_test.go, plus the
+// llm_call half of model_resolution_offline_test.go):
 // - a plain llm_call and a schema-bound llm_call both COMPLETE;
 // - per-task status carries task_type (TRANSFORM for set_vars, API_CALL for
 //   llm_call), an output, and for the LLM task the input/output token counts

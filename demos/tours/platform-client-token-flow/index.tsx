@@ -20,8 +20,8 @@ const EMERALD = "#10b981";
 // ---------------------------------------------------------------------------
 // Inline page content — the embedded-Stigmer dashboard. Rebuilt with
 // --scenar-* tokens (no Tailwind utilities, which no-op under `scenar pack`).
-// The neutral "primary"
-// maps to --scenar-primary (the docs --primary is itself near-black/white).
+// The neutral "primary" maps to --scenar-primary (the docs --primary is
+// itself near-black/white).
 // ---------------------------------------------------------------------------
 
 const featureRow: CSSProperties = {

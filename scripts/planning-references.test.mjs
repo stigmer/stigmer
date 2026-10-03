@@ -29,8 +29,7 @@
 // plugins/vendor.json declares: their bytes are a vendor's, pinned by digest
 // and never edited here (plugins/README.md), so a vendor's own "Finding 1" is
 // not this repository's planning. A file that must name the shapes, such as
-// the gate that defines
-// them, goes in ALLOWED with its reason. An allowance that no longer names a
+// the gate that defines them, goes in ALLOWED with its reason. An allowance that no longer names a
 // tracked file carrying a reference fails, so the list cannot outlive its
 // reasons.
 

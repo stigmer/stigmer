@@ -20,12 +20,12 @@ const EMPTY_EXECUTIONS: readonly AgentExecution[] = [];
  * touched it, so a changed file can default to its authoritative
  * `baseline→candidate` diff.
  *
- * The net-change fold is skipped while no file is open (via `EMPTY_EXECUTIONS`),
- * and the join reuses the same `resolveWorkspaceFileSelection` + entries +
- * sandbox root that
- * opened the file — so "the diff shown" can never disagree with "the file
- * opened". Both the inspector's Viewer tab and the workspace surface consume
- * this single hook rather than re-deriving the correlation.
+ * The net-change fold is skipped while no file is open (via
+ * `EMPTY_EXECUTIONS`), and the join reuses the same
+ * `resolveWorkspaceFileSelection` + entries + sandbox root that opened the file
+ * — so "the diff shown" can never disagree with "the file opened". Both the
+ * inspector's Viewer tab and the workspace surface consume this single hook
+ * rather than re-deriving the correlation.
  *
  * @returns the matching change, or `null` when the open file was not changed
  *   this session (or no file is open).

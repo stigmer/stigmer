@@ -44,11 +44,10 @@ vi.mock("../useWorkflowExecutionActions", () => ({
 
 // The graph is React Flow — replaced with a memoized stub whose render
 // counter is the referential-stability probe: if the viewer hands the
-// graph a fresh prop
-// identity on panel interactions (e.g. an inline handler), the memo stops
-// bailing and the counter catches it. The graph is a passive
-// visualization — the stub records its props so the suite can assert no
-// selection callback is ever wired.
+// graph a fresh prop identity on panel interactions (e.g. an inline
+// handler), the memo stops bailing and the counter catches it. The graph
+// is a passive visualization — the stub records its props so the suite
+// can assert no selection callback is ever wired.
 const graphRenders = { count: 0 };
 const graphProps = { last: {} as Record<string, unknown> };
 vi.mock("../WorkflowExecutionGraph", async () => {
@@ -249,7 +248,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     ).toBeNull();
   });
 
-  it("carries no bottom drawer — Waterfall, Events, and Approvals tabs are retired (S9)", () => {
+  it("carries no bottom drawer — Waterfall, Events, and Approvals tabs are retired", () => {
     renderViewer();
     expect(screen.queryByRole("button", { name: "Waterfall" })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Events/ })).toBeNull();
@@ -345,7 +344,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
 // Center-column Thread | Graph toggle (thread is primary)
 // ---------------------------------------------------------------------------
 
-describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () => {
+describe("WorkflowExecutionViewer (center-column Thread|Graph toggle)", () => {
   beforeEach(() => {
     localStorage.clear();
     arrange();
@@ -374,7 +373,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     ).toBe("true");
   });
 
-  it("a stored S8 (unversioned) preference is abandoned — the pivot's one-time reset", () => {
+  it("a stored unversioned preference is abandoned — the pivot's one-time reset", () => {
     localStorage.setItem("stgm-wf-exec-center-view", "graph");
     const { container } = renderViewer();
 
@@ -525,7 +524,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
 // Approval-boundary wiring (snapshot refresh + gate attention)
 // ---------------------------------------------------------------------------
 
-describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
+describe("WorkflowExecutionViewer (approval boundary)", () => {
   beforeEach(() => {
     localStorage.clear();
   });

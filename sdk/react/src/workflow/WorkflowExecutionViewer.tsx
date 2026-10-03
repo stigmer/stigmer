@@ -407,8 +407,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   }, []);
 
   // One-time cleanup of the abandoned unversioned key (an effect, not
-  // the read path —
-  // reads must stay side-effect-free).
+  // the read path — reads must stay side-effect-free).
   useEffect(() => {
     try {
       localStorage.removeItem(LEGACY_CENTER_VIEW_STORAGE_KEY);
@@ -460,14 +459,14 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   }, [streamState.stage, refetchExecution]);
 
   // Snapshot freshness across HITL boundaries. A `waiting_approval`
-  // boundary crossing — in EITHER
-  // direction — means the mount snapshot's gate lists are stale → refetch
-  // (stale-while-revalidate; no skeleton): the thread's in-card gates read
-  // those lists. No auto-select accompanies it (selection is gone):
-  // the gating card is amber, carries its decision surface, and the aria
-  // announcer + auto-follow + jump-to-latest cover attention. Gated on
-  // `isRunning` so terminal-execution history replay (which crosses the
-  // boundary for long-decided gates) never refetches.
+  // boundary crossing — in EITHER direction — means the mount snapshot's
+  // gate lists are stale → refetch (stale-while-revalidate; no skeleton):
+  // the thread's in-card gates read those lists. No auto-select
+  // accompanies it (selection is gone): the gating card is amber, carries
+  // its decision surface, and the aria announcer + auto-follow +
+  // jump-to-latest cover attention. Gated on `isRunning` so
+  // terminal-execution history replay (which crosses the boundary for
+  // long-decided gates) never refetches.
   const handleApprovalBoundary = useCallback(
     (_crossing: ApprovalBoundaryCrossing) => {
       refetchExecution();

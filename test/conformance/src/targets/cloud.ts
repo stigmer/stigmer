@@ -80,9 +80,9 @@ export class CloudTarget implements TargetProfile {
     externalOrgLookup: true,
     organizationEnumeration: false,
     versionTagging: true,
-    // Cloud carries the transfer lane over pre-signed R2 URLs
-    // — the full mint → PUT → push-by-ref →
-    // download-URL pin block runs against this target.
+    // Cloud carries the transfer lane over pre-signed R2 URLs — the full
+    // mint → PUT → push-by-ref → download-URL pin block runs against this
+    // target.
     skillArtifactTransferLane: true,
     workflowChildApprovalForwarding: true,
     // The hermetic cloud env boots Temporal and the Java service runs the

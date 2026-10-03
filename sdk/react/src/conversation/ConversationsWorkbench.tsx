@@ -84,14 +84,13 @@ export interface ConversationsWorkbenchProps {
   readonly now?: Date;
   /**
    * Scroll to the reader's own reply when they send one from a scrolled-up
-   * position: an accepted send pins the timeline to the
-   * latest content and re-engages follow mode, so the reply stays in view
-   * when the refetch delivers its real ledger item. Refused sends never pin
-   * — the composer restores the draft and there is nothing to show. Default
-   * `true` on all three SDK thread surfaces at once (a deliberate
-   * exception to opt-in defaults — cross-surface consistency is the point);
-   * set `false` to
-   * keep today's leave-the-reader-alone behavior.
+   * position: an accepted send pins the timeline to the latest content and
+   * re-engages follow mode, so the reply stays in view when the refetch
+   * delivers its real ledger item. Refused sends never pin — the composer
+   * restores the draft and there is nothing to show. Default `true` on all
+   * three SDK thread surfaces at once (a deliberate exception to opt-in
+   * defaults — cross-surface consistency is the point); set `false` to keep
+   * today's leave-the-reader-alone behavior.
    *
    * @default true
    */

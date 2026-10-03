@@ -205,9 +205,9 @@ describe("envmerge conformance — Workflow precedence", () => {
     expect(secretEntry?.isSecret, "is_secret is preserved through the merge in both editions").toBe(true);
     expect(data.PLAIN_KEY?.value, "plaintext values are never redacted").toBe("plain-value");
     // The harness is a user-shaped caller, so the merged secret is redacted
-    // (stigmer#535, on both editions). That
-    // the RUNNER receives the decrypted value is proven separately by the
-    // set_vars proof test below.
+    // (stigmer#535, on both editions). That the RUNNER receives the
+    // decrypted value is proven separately by the set_vars proof test
+    // below.
     expect(secretEntry?.value, "no user-shaped read returns the plaintext secret").not.toBe(secretValue);
   });
 

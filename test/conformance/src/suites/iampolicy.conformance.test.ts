@@ -94,23 +94,21 @@
 // organization's last owner is never revoked or removed. Where a target lends no lane the arms skip
 // VISIBLY with its reason.
 //
-// The OIDC sibling lane (spawnSibling): a
-// second open-source server in the OIDC posture against the harness's
-// local issuer, booted WITH STIGMER_OPERATOR_EMAIL so the operator-email
-// rule has a subject. It proves the membership rules — roles that exist
-// without an administrator: a provisioned caller who creates an
-// organization owns it (the lifecycle path); one who creates it
-// idp-shaped and provisions after owns it too (the heal path); a later
-// arrival is a member; a creator of a blueprint before provisioning is an
-// admin after; the operator's email is an admin; a revoked member who
-// provisions again holds nothing; a stranger who provisions while the
-// founder is still idp-shaped is a member, never the admin of a row-less
-// organization (the founder's stamp is a person); a later arrival
-// is a member of EVERY organization; and a real person's Members row
-// carries the name the issuer's userinfo gave (first + last, the cloud's
-// precedence, observed on open source). Each arm on its own organization.
-// Where no sibling can be spawned the arms skip VISIBLY with the target's
-// reason.
+// The OIDC sibling lane (spawnSibling): a second open-source server in the OIDC
+// posture against the harness's local issuer, booted WITH
+// STIGMER_OPERATOR_EMAIL so the operator-email rule has a subject. It proves
+// the membership rules — roles that exist without an administrator: a
+// provisioned caller who creates an organization owns it (the lifecycle path);
+// one who creates it idp-shaped and provisions after owns it too (the heal
+// path); a later arrival is a member; a creator of a blueprint before
+// provisioning is an admin after; the operator's email is an admin; a revoked
+// member who provisions again holds nothing; a stranger who provisions while
+// the founder is still idp-shaped is a member, never the admin of a row-less
+// organization (the founder's stamp is a person); a later arrival is a member
+// of EVERY organization; and a real person's Members row carries the name the
+// issuer's userinfo gave (first + last, the cloud's precedence, observed on
+// open source). Each arm on its own organization. Where no sibling can be
+// spawned the arms skip VISIBLY with the target's reason.
 //
 // No separate trusted-local block: on `local` the creator IS the
 // operator, so the shared arms are the trusted-local proof.
@@ -271,8 +269,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     const spec = organizationRole(member, "member", org);
 
     // A held triple answers the existing row (the cloud's app-level check; open
-    // source's primary
-    // key by derived id).
+    // source's primary key by derived id).
     const first = await clients.iamPolicyCommand.create(spec);
     const second = await clients.iamPolicyCommand.create(spec);
 
@@ -488,8 +485,8 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user", (
     async (name, call, copy) => {
       // The annotation's static target is platform:stigmer#can_bootstrap_iam
       // (command.proto); on cloud FGA denies it for a non-operator, in open
-      // source the
-      // admission guard refuses every wire user — same code, same copy.
+      // source the admission guard refuses every wire user — same code, same
+      // copy.
       const org = await createOwnedOrganization();
       const error = await expectGrpcCode(
         () => call(org),
@@ -541,10 +538,9 @@ describe("IamPolicy conformance — checkMyPermission has one definition", () =>
 describe("IamPolicy conformance — the principal-trust rule runs before any engine", () => {
   // Both skip-authorization lanes ask about a PRINCIPAL; the rule is that a
   // user may ask only about their own account. It runs before the query engine
-  // is even
-  // looked for, so `local` — which has no engine — answers it ahead of
-  // the UNIMPLEMENTED the block below pins, and every edition gives one
-  // answer here.
+  // is even looked for, so `local` — which has no engine — answers it ahead of
+  // the UNIMPLEMENTED the block below pins, and every edition gives one answer
+  // here.
   it.each([
     [
       "[rpc:IamPolicyQueryController.checkAuthorization] checkAuthorization",

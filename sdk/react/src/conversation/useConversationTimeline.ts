@@ -66,8 +66,8 @@ const EMPTY_HEAD: HeadPage = { items: [], nextPageToken: "" };
 
 /**
  * Data hook for one conversation's customer-visible timeline:
- * newest-first cursor pages from the
- * server, accumulated into one chronological list for a chat view.
+ * newest-first cursor pages from the server, accumulated into one
+ * chronological list for a chat view.
  *
  * The accumulation is an UPSERT by `item_id`, not head/tail
  * concatenation, for two verified server behaviors:

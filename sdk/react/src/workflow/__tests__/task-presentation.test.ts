@@ -287,7 +287,7 @@ describe("per-kind preview lines", () => {
       expected: "blog-writer · 12 msgs · 5 tools",
     },
     {
-      label: "switch_case settled on a target branch (R6-5)",
+      label: "switch_case settled on a target branch",
       kind: WorkflowTaskKind.switch_case,
       overrides: { outputSummary: { __flow_directive__: "approved-path" } },
       expected: "→ approved-path",
@@ -299,7 +299,7 @@ describe("per-kind preview lines", () => {
       expected: "→ exit",
     },
     {
-      label: "try_catch recovered via catch retry (R6-5)",
+      label: "try_catch recovered via catch retry",
       kind: WorkflowTaskKind.try_catch,
       overrides: { attemptNumber: 3, outputSummary: { result: "ok" } },
       expected: "recovered after 3 attempts",

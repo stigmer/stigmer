@@ -9,30 +9,26 @@
 // checks the execution exists, which is what makes the domain standalone-
 // testable on a bare server. The distinct surfaces asserted here:
 //
-//   - CONTENT ADDRESSING: status.content_hash is the content's SHA-256,
-//     size_bytes the byte count, storage_state stored.
-//   - TTL: expires_at defaults to ~30 days out; retention.ttl_days = -1
-//     means permanent (expires_at empty).
-//   - SOFT DELETE: delete is a storage_state transition, never a row
-//     removal — get still resolves the metadata (the audit trail), while
-//     getDownloadUrl/getContent refuse FailedPrecondition on the deleted
-//     blob.
-//   - The OVERSIZE boundary: NEITHER cap is cleanly black-box-assertable. The
-//     domain's 50MB check sits behind the
-//     transport's 10MB message cap, and an over-cap send from the reference
-//     TS client does not surface a graceful ResourceExhausted — the server
-//     answers with a connection-level HTTP/2 ENHANCE_YOUR_CALM that poisons
-//     the shared channel for unrelated RPCs. That is an HTTP/2 artifact,
-//     not a wire contract, so the suite deliberately asserts NO oversize
-//     arm; both caps stay unit-level in each edition.
-//   - getDownloadUrl reports ttl_seconds 604800 unconditionally: local URLs
-//     never actually expire — pinned as the wire contract, with the semantic
-//     mismatch disclosed.
-//   - The FILE-SERVER lane (local artifact storage only): the download URL
-//     serves the bytes inline; appending ?download=<name> adds the
-//     attachment Content-Disposition. Runs only where the target exposes
-//     the lane (artifactHttpBaseUrl — absent on cloud, whose artifact bytes
-//     travel authenticated presigned routes instead).
+// - CONTENT ADDRESSING: status.content_hash is the content's SHA-256,
+// size_bytes the byte count, storage_state stored. - TTL: expires_at defaults
+// to ~30 days out; retention.ttl_days = -1 means permanent (expires_at
+// empty). - SOFT DELETE: delete is a storage_state transition, never a row
+// removal — get still resolves the metadata (the audit trail), while
+// getDownloadUrl/getContent refuse FailedPrecondition on the deleted blob. -
+// The OVERSIZE boundary: NEITHER cap is cleanly black-box-assertable. The
+// domain's 50MB check sits behind the transport's 10MB message cap, and an
+// over-cap send from the reference TS client does not surface a graceful
+// ResourceExhausted — the server answers with a connection-level HTTP/2
+// ENHANCE_YOUR_CALM that poisons the shared channel for unrelated RPCs. That
+// is an HTTP/2 artifact, not a wire contract, so the suite deliberately
+// asserts NO oversize arm; both caps stay unit-level in each edition. -
+// getDownloadUrl reports ttl_seconds 604800 unconditionally: local URLs never
+// actually expire — pinned as the wire contract, with the semantic mismatch
+// disclosed. - The FILE-SERVER lane (local artifact storage only): the
+// download URL serves the bytes inline; appending ?download=<name> adds the
+// attachment Content-Disposition. Runs only where the target exposes the lane
+// (artifactHttpBaseUrl — absent on cloud, whose artifact bytes travel
+// authenticated presigned routes instead).
 import { createHash } from "node:crypto";
 import { Code } from "@connectrpc/connect";
 import { ArtifactStorageState } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/enum_pb";
@@ -61,15 +57,14 @@ afterAll(async () => {
 // in the per-file server's throwaway state dir and vanish at teardown.
 
 // Most of this suite runs on the single-user targets only (a verified
-// edition split): OSS derives the artifact's
-// org from its source execution BEST-EFFORT — fabricated ids are accepted
-// and fall back to an empty org, which is what makes the domain
-// standalone-testable — while the multi-tenant edition REQUIRES the source
-// execution to exist and carry an org (FailedPrecondition otherwise: an
-// org-less artifact would be unownable where orgs are real). Cloud-side
-// artifact behavior is covered by its integration tests against real runs.
-// Read at collection time, so the multi-tenant edition reports these cases
-// SKIPPED by name.
+// edition split): OSS derives the artifact's org from its source execution
+// BEST-EFFORT — fabricated ids are accepted and fall back to an empty org,
+// which is what makes the domain standalone-testable — while the
+// multi-tenant edition REQUIRES the source execution to exist and carry an
+// org (FailedPrecondition otherwise: an org-less artifact would be
+// unownable where orgs are real). Cloud-side artifact behavior is covered
+// by its integration tests against real runs. Read at collection time, so
+// the multi-tenant edition reports these cases SKIPPED by name.
 const multiTenant = createTarget().capabilities.multiTenant;
 
 describe("[rpc:ArtifactCommandController.create] Artifact conformance — create & content addressing", () => {

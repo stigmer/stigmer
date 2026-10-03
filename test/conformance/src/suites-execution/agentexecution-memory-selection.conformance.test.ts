@@ -8,13 +8,12 @@
 // posture (the mock fences the OpenAI path, the retriever degrades to wholesale
 // with an honest report). This file flips the mock's embeddings posture on
 // (MockLlmProxy.serveEmbeddings, computed vectors — header of mock-llm.ts) and
-// pins the other half of the retriever's contract: at the activation
-// threshold the retriever injects wholesale and never calls the embedder; above
-// it, it makes exactly
-// ONE batched embeddings call (the query first, then every candidate in
-// snapshot order), ranks by cosine, and injects the top k — which under the
-// mock's deterministic vectors is exactly the first k facts of the snapshot,
-// in order. Both editions run the same runner, so the property is
+// pins the other half of the retriever's contract: at the activation threshold
+// the retriever injects wholesale and never calls the embedder; above it, it
+// makes exactly ONE batched embeddings call (the query first, then every
+// candidate in snapshot order), ranks by cosine, and injects the top k — which
+// under the mock's deterministic vectors is exactly the first k facts of the
+// snapshot, in order. Both editions run the same runner, so the property is
 // edition-neutral; the capability gate is on SEEDING memories, which only the
 // first-party capture lane can do (targets/target.ts firstPartyMemoryCapture).
 //

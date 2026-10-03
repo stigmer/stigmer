@@ -31,9 +31,9 @@ export interface ConversationAttentionBannerProps {
 }
 
 /**
- * The needs-attention banner: the
- * escalating agent's reason, verbatim, with the escalation's ANSWER
- * beside its false-alarm dismissal.
+ * The needs-attention banner: the escalating agent's reason,
+ * verbatim, with the escalation's ANSWER beside its false-alarm
+ * dismissal.
  *
  * Take over is the primary action because the human arriving IS the
  * answer to an escalation — taking over clears attention structurally

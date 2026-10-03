@@ -6,8 +6,8 @@
  * executions through `ComposerView`'s `execution` prop, and the widget rail
  * renders purely from those executions. The router registers no fixture
  * (the fixture-determinism rule, demos/README.md: fixtures only for
- * tour-constant data, props for
- * anything that changes per step — and nothing here is fetched at all).
+ * tour-constant data, props for anything that changes per step — and
+ * nothing here is fetched at all).
  *
  * The detail view's remaining lookups (personal environment list, org OAuth
  * app, permission check) fall through to the router's built-in

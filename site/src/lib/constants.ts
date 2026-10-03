@@ -57,8 +57,7 @@ export interface DesktopPlatform {
  * macOS is Apple Silicon only: the embedded runner is built for the release
  * lane's arm64 host, so the former "universal" DMG could not run its runner
  * on an Intel Mac (release.desktop.yaml, matrix). An Intel build would
- * arrive as a second macOS entry and its own
- * asset matcher.
+ * arrive as a second macOS entry and its own asset matcher.
  */
 export const DESKTOP_PLATFORMS: DesktopPlatform[] = [
   { os: "macos", arch: "aarch64", label: "macOS", archLabel: "Apple Silicon", fileExt: ".dmg" },

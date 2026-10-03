@@ -2,10 +2,9 @@
 // Domain: conformance suites (execution engine).
 //
 // The trigger is a SYNCHRONOUS direct run: the RPC runs the full execution
-// create pipeline and
-// answers with the run's REAL outcome — the created execution's id, or
-// the refusing gate's copy verbatim. That reshapes what this suite can
-// and cannot assert black-box:
+// create pipeline and answers with the run's REAL outcome — the created
+// execution's id, or the refusing gate's copy verbatim. That reshapes what
+// this suite can and cannot assert black-box:
 //
 //   - NEWLY assertable: the outcome contract itself (a dangling target
 //     names itself in the result, synchronously); the rule that manual

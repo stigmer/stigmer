@@ -906,10 +906,10 @@ describe("AgentExecution conformance — attachments (#285)", () => {
       `expected COMPLETED; error: ${final.status?.error || "(none)"}`,
     ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
 
-    // And the materialized bytes match end to end. The runner writes attachments
-    // to the session platform dir under ITS home — the harness-owned directory
-    // the target spawned it with, never this
-    // process's — and it never deletes the session tree, so we read it there.
+    // And the materialized bytes match end to end. The runner writes
+    // attachments to the session platform dir under ITS home — the
+    // harness-owned directory the target spawned it with, never this process's
+    // — and it never deletes the session tree, so we read it there.
     const sessionId = final.spec?.sessionId;
     expect(sessionId, "execution should carry a session id").toBeTruthy();
     if (target.runnerHomeDir === undefined) {

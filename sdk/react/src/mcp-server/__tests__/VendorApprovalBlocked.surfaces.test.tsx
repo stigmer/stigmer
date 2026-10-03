@@ -58,8 +58,8 @@ const DOCS_URL = "https://vendor.example.com/oauth-docs";
  * `withAppRef` controls the BYOA arm: with a ref and no org override,
  * `canBringOwnApp` is true. The org-override state itself comes from the
  * `getOrgOAuthApp` transport handler (a client-side derivation) —
- * status.oauth_status carries only the
- * vendor-approval fields, matching what backends actually populate.
+ * status.oauth_status carries only the vendor-approval fields, matching
+ * what backends actually populate.
  */
 function buildBlockedOAuthOnlyServer(options: {
   status: VendorApprovalStatus;

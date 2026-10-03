@@ -37,8 +37,7 @@ export function Sidebar() {
   const { refetch, prependOptimistic } = recentActivity;
   const org = useActiveOrgSlug();
   // The Conversations badge: conversations wanting a human right now.
-  // Data as props — the SDK sidebar
-  // never fetches for itself.
+  // Data as props — the SDK sidebar never fetches for itself.
   const { count: wantsHumanCount } = useConversationsWantsHumanCount(org || null);
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();

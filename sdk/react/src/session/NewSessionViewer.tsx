@@ -125,9 +125,8 @@ export interface NewSessionViewerProps {
   /**
    * Whether the launcher offers the session panel at all — `"none"` removes
    * the panel and its toggle chip while keeping every composer capability
-   * the audience allows. Same contract as
-   * {@link SessionViewerProps.panel}; see
-   * {@link SessionPanelMode}.
+   * the audience allows. Same contract as {@link SessionViewerProps.panel};
+   * see {@link SessionPanelMode}.
    *
    * @default "auto"
    */
