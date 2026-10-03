@@ -11,6 +11,10 @@
  *   - a store that holds several fills nothing and warns with the count;
  *   - a store whose ledger retired the slug, holding none, warns and fills
  *     nothing, and boots;
+ *   - a create that loses the race to another replica, refused at the
+ *     duplicate check (AlreadyExists) or at the limit
+ *     (ORGANIZATION_LIMIT_REACHED), finds the winner's organization, fills
+ *     it, and leaves the record to the winner;
  *   - any other failure of the create is a boot throw naming the cause.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -24,6 +28,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 
 import { loadConfig } from "../config.js";
@@ -31,7 +36,10 @@ import { composeServer } from "../compose.js";
 import type { ComposedServer } from "../compose.js";
 import { createLogger } from "../logger.js";
 import { ensureSingleOrganization } from "../single-organization.js";
-import { SINGLE_ORG_KEY } from "../../domain/organization/limit.js";
+import {
+  ORGANIZATION_LIMIT_REACHED,
+  SINGLE_ORG_KEY,
+} from "../../domain/organization/limit.js";
 import type { GateSlotName } from "../../extensions/gate-slots.js";
 import { baseConfig } from "../../extensions/__tests__/composed-support.js";
 import type { ServerExtension } from "../../extensions/registry.js";
@@ -190,6 +198,53 @@ describe("ensureSingleOrganization", () => {
       expect.objectContaining({ level: "warn", slug: "stigmer" }),
     );
   });
+
+  it.each([
+    [
+      "refused at the duplicate check (AlreadyExists, no reason)",
+      () => new ConnectError("Organization already exists", Code.AlreadyExists),
+    ],
+    [
+      "refused at the limit (ORGANIZATION_LIMIT_REACHED)",
+      () =>
+        new ConnectError(
+          "this server holds 1 organization, its limit",
+          Code.FailedPrecondition,
+          undefined,
+          [
+            {
+              desc: ErrorInfoSchema,
+              value: create(ErrorInfoSchema, {
+                reason: ORGANIZATION_LIMIT_REACHED,
+                domain: "stigmer.ai",
+              }),
+            },
+          ],
+        ),
+    ],
+  ])(
+    "a create that loses the race to another replica, %s, finds the winner's organization and fills it",
+    async (_name, refusal) => {
+      await composeWith();
+      const holder = newSingleOrganizationHolder();
+      // The winner's row lands while this create is in flight.
+      await ensureSingleOrganization({
+        store: server.store,
+        creator: {
+          createAsCaller: async () => {
+            await seedOrganization("stigmer");
+            throw refusal();
+          },
+        },
+        caller: serverActingFor(SYSTEM_OPERATOR_IDENTITY_ID),
+        holder,
+        logger,
+      });
+
+      expect(holder.current()).toBe("stigmer");
+      expect(await server.store.bootstrapState.get(SINGLE_ORG_KEY)).toBe("");
+    },
+  );
 
   it("any other failure of the create is a boot throw naming the cause", async () => {
     const refuseEverything: PipelineStep<DescMessage> = {

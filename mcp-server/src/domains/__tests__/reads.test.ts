@@ -63,6 +63,7 @@ const knownEnvironment = create(EnvironmentSchema, {
 let backend: Http2Server;
 let client: Client;
 let lastSkillVersion: string | undefined;
+let lastSkillOrg: string | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
 interface ToolResult {
@@ -80,6 +81,7 @@ beforeAll(async () => {
     router.service(SkillQueryController, {
       getByReference: (req) => {
         lastSkillVersion = req.version;
+        lastSkillOrg = req.org;
         return knownSkill;
       },
     });
@@ -150,6 +152,12 @@ describe("read tools integration", () => {
   it("get_skill forwards an explicit version to the backend", async () => {
     await callTool("get_skill", { org: "acme", slug: "code-review", version: "stable" });
     expect(lastSkillVersion).toBe("stable");
+  });
+
+  it("get_skill with no org sends an empty org for the server to fill", async () => {
+    const result = await callTool("get_skill", { slug: "code-review" });
+    expect(result.isError).toBeFalsy();
+    expect(lastSkillOrg).toBe("");
   });
 
   it("get_environment passes the server's secret redaction through verbatim", async () => {

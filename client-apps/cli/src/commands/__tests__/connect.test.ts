@@ -36,6 +36,7 @@ vi.mock("../../client/single-org.js", async (importOriginal) => {
   return {
     ...actual,
     holdsOneOrganization: () => actual.holdsOneOrganization(answering()),
+    omitsOrganization: () => actual.omitsOrganization(answering()),
     requireOrganization: (_stigmer: Stigmer, org: string, setItWith: readonly string[]) =>
       actual.requireOrganization(answering(), org, setItWith),
   };

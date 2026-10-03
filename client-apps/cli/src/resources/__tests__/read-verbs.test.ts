@@ -23,6 +23,7 @@ import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environmen
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
@@ -296,6 +297,10 @@ beforeAll(async () => {
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
         return { totalCount: 2, items: [pausedSchedule, disabledSchedule] };
       },
+    });
+    // A server that holds several organizations, so an empty org is refused.
+    router.service(PlatformQueryController, {
+      getServerInfo: () => ({ singleOrg: false }),
     });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));

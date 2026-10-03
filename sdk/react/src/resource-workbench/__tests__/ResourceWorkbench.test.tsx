@@ -96,6 +96,13 @@ describe("ResourceWorkbench on a server that holds one organization", () => {
     expect(screen.queryByRole("cell", { name: "stigmer" })).toBeNull();
   });
 
+  it("leaves it out while the answer loads", async () => {
+    singleOrg = undefined;
+    renderTable();
+    await waitFor(() => expect(screen.getByText("Helper")).toBeTruthy());
+    expect(screen.queryByRole("columnheader", { name: "Organization" })).toBeNull();
+  });
+
   it("keeps it on a server that holds several", async () => {
     renderTable();
     await waitFor(() => expect(screen.getByText("Helper")).toBeTruthy());

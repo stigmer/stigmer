@@ -18,9 +18,19 @@ import {
 const PLATFORM_RESOURCE = { kind: "platform", id: "stigmer" } as const;
 
 /**
+ * The groups both shapes share, shown while the server has not yet said
+ * whether it holds one organization: the first group's label and items
+ * depend on that answer, so it waits rather than flashing the
+ * organization's settings a single-organization server never shows.
+ */
+const AWAITING_ANSWER_NAV_GROUPS: readonly SettingsNavGroup[] =
+  SETTINGS_NAV_GROUPS.slice(1);
+
+/**
  * Permission-aware settings navigation: {@link SETTINGS_NAV_GROUPS}
  * for everyone ({@link SINGLE_ORG_SETTINGS_NAV_GROUPS} on a server that
- * holds one organization, which never names it), plus the
+ * holds one organization, which never names it; the groups after the
+ * first while the server has not answered), plus the
  * {@link PLATFORM_SETTINGS_NAV_GROUP} items the
  * caller's platform permissions unlock (per-item `requiredPermission`,
  * checked against `platform:stigmer`). The group appears when at least
@@ -77,8 +87,13 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const providerStandingAllowed = providerStanding.allowed;
   const licensesAllowed = licenses.allowed;
   const plansAllowed = plans.allowed;
+  const singleOrg = useSingleOrg();
   const baseGroups =
-    useSingleOrg() === true ? SINGLE_ORG_SETTINGS_NAV_GROUPS : SETTINGS_NAV_GROUPS;
+    singleOrg === undefined
+      ? AWAITING_ANSWER_NAV_GROUPS
+      : singleOrg
+        ? SINGLE_ORG_SETTINGS_NAV_GROUPS
+        : SETTINGS_NAV_GROUPS;
 
   return useMemo(() => {
     const verdicts: Record<string, boolean> = {

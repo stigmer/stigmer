@@ -263,11 +263,12 @@ export function ResourceWorkbench<TData = SearchResult>({
 
   // --- Columns -----------------------------------------------------------
   // A server that holds one organization never names it: its organization
-  // column goes (ORG_COLUMN_ID).
+  // column goes (ORG_COLUMN_ID), and stays out until the server has said
+  // which it is rather than flashing in and out.
   const singleOrg = useSingleOrg();
   const shownColumns = useMemo(
     () =>
-      singleOrg === true
+      singleOrg !== false
         ? columns.filter((column) => column.id !== ORG_COLUMN_ID)
         : columns,
     [columns, singleOrg],

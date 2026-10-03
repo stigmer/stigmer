@@ -14,6 +14,10 @@
  *     write, so its slug is not retired;
  *   - a second start on the same store makes nothing and fills the same one.
  *
+ * On a store from before the server held one organization, holding several:
+ * nothing is filled, `single_org` is false, no organization can be added,
+ * and the organizations can be deleted down to one, which is then refused.
+ *
  * And, on a composition that declares a limit above one, the count alone:
  * creates up to the limit pass, the next is refused, and nothing is made at
  * boot or filled.
@@ -22,6 +26,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -30,6 +35,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
@@ -249,6 +255,71 @@ describe("the open-source edition's one organization (composed as main.ts compos
       "stigmer",
     );
     expect((await platform.getServerInfo({})).singleOrg).toBe(true);
+  });
+});
+
+describe("a store from before the server held one organization, holding several", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let organizations: Client<typeof OrganizationCommandController>;
+  let agents: Client<typeof AgentCommandController>;
+  let platform: Client<typeof PlatformQueryController>;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(
+      path.join(tmpdir(), "single-organization-upgraded-test-"),
+    );
+    setOperatorIdentity(OPERATOR_EMAIL, "The Operator");
+    server = await compose(dir, [openSourceEdition]);
+    for (const slug of ["acme", "globex"]) {
+      await server.store.saveResource(
+        ApiResourceKind.organization,
+        slug,
+        OrganizationSchema,
+        create(OrganizationSchema, {
+          apiVersion: "tenancy.stigmer.ai/v1",
+          kind: "Organization",
+          metadata: { id: slug, slug, name: slug },
+        }),
+      );
+    }
+    ({ organizations, agents, platform } = clientsAt(await server.start()));
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    resetOperatorIdentityForTests();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fills nothing, says so, makes nothing and admits no new organization", async () => {
+    expect((await platform.getServerInfo({})).singleOrg).toBe(false);
+    expect(
+      await server.store.listResources(ApiResourceKind.organization),
+    ).toHaveLength(2);
+    expect((await agents.create(agentInput("Unfilled"))).metadata?.org).toBe(
+      "",
+    );
+    const refusal = await grpcError(() =>
+      organizations.create(organizationInput("third")),
+    );
+    expect(refusal.findDetails(ErrorInfoSchema)).toMatchObject([
+      { reason: ORGANIZATION_LIMIT_REACHED },
+    ]);
+  });
+
+  it("deletes down to one organization, then refuses to delete it", async () => {
+    await organizations.delete({ value: "globex" });
+    const refusal = await grpcError(() =>
+      organizations.delete({ value: "acme" }),
+    );
+    expect(refusal.code).toBe(Code.FailedPrecondition);
+    expect(refusal.findDetails(ErrorInfoSchema)).toMatchObject([
+      { reason: ORGANIZATION_IS_SINGLE, metadata: { org: "acme" } },
+    ]);
+    expect(
+      await server.store.listResources(ApiResourceKind.organization),
+    ).toHaveLength(1);
   });
 });
 

@@ -19,7 +19,11 @@ let singleOrg = false;
 
 vi.mock("../../client/single-org.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../client/single-org.js")>();
-  return { ...actual, holdsOneOrganization: async () => singleOrg };
+  return {
+    ...actual,
+    holdsOneOrganization: async () => singleOrg,
+    omitsOrganization: async () => singleOrg,
+  };
 });
 
 const CONFIG: Config = {

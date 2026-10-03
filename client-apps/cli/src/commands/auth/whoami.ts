@@ -16,7 +16,7 @@ import {
   resolveContextOrganization,
 } from "../../config/index.js";
 import { CommandResult } from "../../output/index.js";
-import { holdsOneOrganization } from "../../client/single-org.js";
+import { omitsOrganization } from "../../client/single-org.js";
 
 /** What the call learned beyond the account itself. */
 export interface WhoamiContext {
@@ -89,6 +89,6 @@ export async function runWhoami(): Promise<CommandResult> {
   return whoamiResult(account, {
     created,
     org: resolveContextOrganization(client.config),
-    singleOrg: await holdsOneOrganization(client.stigmer),
+    singleOrg: await omitsOrganization(client.stigmer),
   });
 }

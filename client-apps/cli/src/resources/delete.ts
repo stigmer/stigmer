@@ -20,7 +20,7 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { holdsOneOrganization } from "../client/single-org.js";
+import { omitsOrganization } from "../client/single-org.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { defaultRegistry, type TypeInfo, Verb } from "../registry/index.js";
@@ -177,7 +177,7 @@ async function planStandardDelete(
   const id = metaOf(resource).id;
 
   return {
-    warning: buildDeleteWarning(info, resource, await holdsOneOrganization(client)),
+    warning: buildDeleteWarning(info, resource, await omitsOrganization(client)),
     confirmPrompt: "Proceed with deletion? [y/N]",
     perform: async () =>
       buildDeleteSuccess(info, await deleteFn(client, id, force)),

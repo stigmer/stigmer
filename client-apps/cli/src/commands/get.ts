@@ -6,7 +6,7 @@
 // are dynamically imported inside the action so `--help` stays fast (DD-001).
 
 import type { Command } from "commander";
-import { holdsOneOrganization } from "../client/single-org.js";
+import { omitsOrganization } from "../client/single-org.js";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import type { OutputFlags } from "../output/index.js";
@@ -73,7 +73,7 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   const parsed = parseReference(reference, org, info.idPrefix);
   const [{ schema, message }, hideOrg] = await Promise.all([
     fetchResource(client.stigmer, info.kind, parsed),
-    holdsOneOrganization(client.stigmer),
+    omitsOrganization(client.stigmer),
   ]);
   process.stdout.write(renderResource(schema, message, readFormat(options), { hideOrg }));
 }
@@ -93,7 +93,7 @@ async function runGetExecution(reference: string, options: GetFlags, command: Co
 
   const [{ schema, message }, hideOrg] = await Promise.all([
     getExecution(client.stigmer, reference),
-    holdsOneOrganization(client.stigmer),
+    omitsOrganization(client.stigmer),
   ]);
   process.stdout.write(renderResource(schema, message, readFormat(options), { hideOrg }));
 }

@@ -112,6 +112,7 @@ let lastWorkflowApproval: SubmitWorkflowTaskApprovalInput | undefined;
 let lastPendingApprovalsRequest: ListPendingApprovalsRequest | undefined;
 let agentCancelCalls = 0;
 let workflowCancelCalls = 0;
+let lastWorkflowReferenceOrg: string | undefined;
 
 interface ToolResult {
   content: Array<{ type: string; text?: string }>;
@@ -146,7 +147,12 @@ beforeAll(async () => {
         return agentExecutionFixture(ExecutionPhase.EXECUTION_CANCELLED);
       },
     });
-    router.service(WorkflowQueryController, { getByReference: () => knownWorkflow });
+    router.service(WorkflowQueryController, {
+      getByReference: (req) => {
+        lastWorkflowReferenceOrg = req.org;
+        return knownWorkflow;
+      },
+    });
     router.service(WorkflowExecutionQueryController, {
       get: () => workflowExecutionState,
       listPendingApprovals: (req) => {
@@ -193,6 +199,7 @@ beforeEach(() => {
   lastPendingApprovalsRequest = undefined;
   agentCancelCalls = 0;
   workflowCancelCalls = 0;
+  lastWorkflowReferenceOrg = undefined;
 });
 
 afterAll(async () => {
@@ -271,6 +278,16 @@ describe("execution tools integration", () => {
     });
     expect(createdWorkflowExecution?.spec?.triggerMessage).toBe("ship it");
     expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG?.value).toBe("other-org");
+  });
+
+  it("run_workflow with no org names none and injects no STIGMER_ORG", async () => {
+    // A server that holds one organization fills it into the reference;
+    // the run's env names no organization rather than an empty one.
+    const result = await callTool("run_workflow", { workflow: "release" });
+    expect(result.isError).toBeFalsy();
+    expect(lastWorkflowReferenceOrg).toBe("");
+    expect(createdWorkflowExecution?.spec?.workflowId).toBe("wkf_1");
+    expect(createdWorkflowExecution?.spec?.runtimeEnv?.STIGMER_ORG).toBeUndefined();
   });
 
   it("get_agent_execution defaults to the compact view", async () => {

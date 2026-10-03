@@ -26,11 +26,12 @@
  *     recorded SINGLE_ORG_KEY (iampolicy/membership.ts).
  *
  * After the create the store is read again, and that read settles the
- * holder and the SINGLE_ORG_KEY record, not the create's answer: two replicas racing on an empty store
- * end with one organization (the slug claim admits one; the other's
- * AlreadyExists is the lost race), and a store from before this step may
- * hold several. Exactly one turns the fill on; any other count leaves it
- * off for the process, with one warning naming the count.
+ * holder and the SINGLE_ORG_KEY record, not the create's answer: two replicas
+ * racing on an empty store end with one organization (the duplicate check,
+ * the limit or the slug claim refuses the loser, and its refusal is the lost
+ * race), and a store from before this step may hold several. Exactly one
+ * turns the fill on; any other count leaves it off for the process, with one
+ * warning naming the count.
  *
  * One failure is not fatal. A store whose ledger retired the slug and that
  * holds no organization (a laptop that deleted it before the server made
@@ -53,6 +54,7 @@ import type { Logger } from "./logger.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { SingleOrganizationHolder } from "../pipeline/interceptors/single-organization.js";
 import {
+  ORGANIZATION_LIMIT_REACHED,
   SINGLE_ORGANIZATION_SLUG,
   SINGLE_ORG_KEY,
 } from "../domain/organization/limit.js";
@@ -124,23 +126,35 @@ async function createSingleOrganization(
     );
     return true;
   } catch (error) {
-    if (!(error instanceof ConnectError) || error.code !== Code.AlreadyExists) {
-      throw new Error(
-        `cannot make this server's organization: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
-      );
+    if (error instanceof ConnectError) {
+      const reasons = error
+        .findDetails(ErrorInfoSchema)
+        .map((info) => info.reason);
+      if (
+        error.code === Code.AlreadyExists &&
+        reasons.includes(ORGANIZATION_SLUG_RESERVED)
+      ) {
+        deps.logger.warn(
+          `this server cannot make its organization: the slug '${SINGLE_ORGANIZATION_SLUG}' belonged to a deleted organization, and a slug is never reused; create an organization to start`,
+          { slug: SINGLE_ORGANIZATION_SLUG },
+        );
+        return false;
+      }
+      // Another replica made it first. Its row reached this create either at
+      // the duplicate check (AlreadyExists) or, persisted a moment later, at
+      // the limit (ORGANIZATION_LIMIT_REACHED); the store read that follows
+      // finds it either way.
+      if (
+        error.code === Code.AlreadyExists ||
+        (error.code === Code.FailedPrecondition &&
+          reasons.includes(ORGANIZATION_LIMIT_REACHED))
+      ) {
+        return false;
+      }
     }
-    const reserved = error
-      .findDetails(ErrorInfoSchema)
-      .some((info) => info.reason === ORGANIZATION_SLUG_RESERVED);
-    if (reserved) {
-      deps.logger.warn(
-        `this server cannot make its organization: the slug '${SINGLE_ORGANIZATION_SLUG}' belonged to a deleted organization, and a slug is never reused; create an organization to start`,
-        { slug: SINGLE_ORGANIZATION_SLUG },
-      );
-    }
-    // Otherwise another replica made it first: the store read that follows
-    // finds it.
-    return false;
+    throw new Error(
+      `cannot make this server's organization: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
   }
 }

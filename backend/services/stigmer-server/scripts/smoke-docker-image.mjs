@@ -20,11 +20,13 @@
  *   3. the console is served: /config.json is the trusted-local document
  *      (the shared probe in test/install/lib/stigmer-smoke.mjs; #1087) and /
  *      answers HTML — the bundled console must survive packaging;
- *   4. a CRUD round-trip (Organization create → get) through the Connect
- *      JSON lane;
+ *   4. the server made its one organization at its first start, and a CRUD
+ *      round-trip (an Agent create naming no organization → get) through the
+ *      Connect JSON lane lands in it;
  *   5. state survives `docker restart` — the /data volume story is
  *      proven, not claimed (under DATABASE_URL the same probe proves the
- *      Postgres path instead);
+ *      Postgres path instead) — and the restarted server holds the same one
+ *      organization, making none of its own;
  *   6. `docker stop` (SIGTERM) exits 0 — the clean-shutdown lifecycle.
  *
  * Usage:
@@ -48,6 +50,7 @@ import { fileURLToPath } from "node:url";
 import {
   assertConsoleServed,
   connectJson,
+  readSingleOrganization,
 } from "../../../../test/install/lib/stigmer-smoke.mjs";
 
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -197,26 +200,37 @@ async function main() {
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");
 
-    // 4. CRUD through the same lane a curl user gets.
-    const orgName = `smoke-org-${suffix}`;
+    // 4. The organization the server made, then CRUD through the same lane a
+    // curl user gets, naming no organization: the server fills its one.
+    const orgId = await readSingleOrganization(baseUrl);
+    log(`organization '${orgId}' made by the server at its first start`);
+    const agentName = `smoke-agent-${suffix}`;
     const created = await connectJson(
       baseUrl,
-      "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create",
-      { apiVersion: "tenancy.stigmer.ai/v1", kind: "Organization", metadata: { name: orgName } },
+      "ai.stigmer.agentic.agent.v1.AgentCommandController/create",
+      {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { name: agentName },
+        spec: { description: "docker image smoke fixture", instructions: "Never run.", mcpServerUsages: [] },
+      },
     );
-    const orgId = created.metadata?.id;
-    if (orgId === undefined || orgId === "") {
-      throw new Error(`organization create returned no id: ${JSON.stringify(created)}`);
+    const agentId = created.metadata?.id;
+    if (agentId === undefined || agentId === "") {
+      throw new Error(`agent create returned no id: ${JSON.stringify(created)}`);
+    }
+    if (created.metadata?.org !== orgId) {
+      throw new Error(`agent landed in '${created.metadata?.org}' — want the server's '${orgId}'`);
     }
     const fetched = await connectJson(
       baseUrl,
-      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get",
-      { value: orgId },
+      "ai.stigmer.agentic.agent.v1.AgentQueryController/get",
+      { value: agentId },
     );
-    if (fetched.metadata?.name !== orgName) {
-      throw new Error(`organization get returned ${fetched.metadata?.name} — want ${orgName}`);
+    if (fetched.metadata?.name !== agentName) {
+      throw new Error(`agent get returned ${fetched.metadata?.name} — want ${agentName}`);
     }
-    log(`CRUD round-trip: organization '${orgId}' created and fetched`);
+    log(`CRUD round-trip: agent '${agentId}' created in '${orgId}' with no organization named, and fetched`);
 
     // 5. Persistence across a restart: the volume (or Postgres) must carry
     // the row into the next container lifecycle.
@@ -233,13 +247,17 @@ async function main() {
     });
     const survived = await connectJson(
       restartedBase,
-      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get",
-      { value: orgId },
+      "ai.stigmer.agentic.agent.v1.AgentQueryController/get",
+      { value: agentId },
     );
-    if (survived.metadata?.name !== orgName) {
-      throw new Error(`organization did not survive the restart: ${JSON.stringify(survived)}`);
+    if (survived.metadata?.name !== agentName) {
+      throw new Error(`agent did not survive the restart: ${JSON.stringify(survived)}`);
     }
-    log("persistence: the organization survived a container restart");
+    const restartedOrgId = await readSingleOrganization(restartedBase);
+    if (restartedOrgId !== orgId) {
+      throw new Error(`the restarted server holds '${restartedOrgId}' — want the same '${orgId}'`);
+    }
+    log("persistence: the agent and the one organization survived a container restart");
 
     // 6. Clean shutdown: SIGTERM in, exit code 0 out.
     log("stopping (SIGTERM)...");

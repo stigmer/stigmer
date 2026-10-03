@@ -379,7 +379,7 @@ async function apply(
  * intact, so nothing it granted outlives it. After the load:
  *
  *   0. under a declared limit of 1, RefuseDeletingSingleOrganization: the
- *      server's only organization is never deleted, refused before any
+ *      store's only organization is never deleted, refused before any
  *      write (limit.ts);
  *   1. RetireOrganizationSlug, the slug marked retired in the ledger, so it
  *      is retired before the row can go;
@@ -417,9 +417,11 @@ async function deleteOrganization(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema));
   // A server that holds one organization never deletes it, refused before
-  // the first write (limit.ts).
+  // the first write; a store holding several deletes down to one (limit.ts).
   if (deps.orgLimit === 1) {
-    builder.addStep(newRefuseDeletingSingleOrganizationStep<DeleteInput>());
+    builder.addStep(
+      newRefuseDeletingSingleOrganizationStep<DeleteInput>(deps.store),
+    );
   }
   builder.addStep(newRetireOrganizationSlugStep<DeleteInput>(deps.store));
   // The pre-delete gate slot (see the doc comment above). No unit fills it

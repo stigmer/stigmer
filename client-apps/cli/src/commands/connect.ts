@@ -16,7 +16,7 @@ import {
 import { UsageError } from "../errors/index.js";
 import { shouldColorize } from "../output/style.js";
 import { globalOrg } from "./shared.js";
-import { holdsOneOrganization, requireOrganization } from "../client/single-org.js";
+import { omitsOrganization, requireOrganization } from "../client/single-org.js";
 
 interface ConnectFlags {
   timeout?: string;
@@ -107,7 +107,7 @@ async function runConnect(
     result,
     (line) => process.stdout.write(`${line}\n`),
     colorize,
-    await holdsOneOrganization(client.stigmer),
+    await omitsOrganization(client.stigmer),
   );
 }
 

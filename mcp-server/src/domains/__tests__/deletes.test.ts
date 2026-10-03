@@ -50,6 +50,7 @@ const resolvedEnvironment = create(EnvironmentSchema, {
 let backend: Http2Server;
 let client: Client;
 let deletedAgentId: string | undefined;
+let lastAgentReferenceOrg: string | undefined;
 let deletedMcpResourceId: string | undefined;
 let deletedEnvironmentResourceId: string | undefined;
 const openSessions = new Set<ServerHttp2Session>();
@@ -65,7 +66,12 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(AgentQueryController, { getByReference: () => resolvedAgent });
+    router.service(AgentQueryController, {
+      getByReference: (req) => {
+        lastAgentReferenceOrg = req.org;
+        return resolvedAgent;
+      },
+    });
     router.service(AgentCommandController, {
       delete: (req) => {
         deletedAgentId = req.value;
@@ -128,6 +134,15 @@ describe("delete tools integration", () => {
     expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
       toJson(AgentSchema, resolvedAgent, { useProtoFieldName: true }),
     );
+  });
+
+  it("delete_agent with no org resolves the reference with an empty org", async () => {
+    // A server that holds one organization fills it; one that holds several
+    // refuses the empty org with its own message.
+    const result = await callTool("delete_agent", { slug: "code-reviewer" });
+    expect(result.isError).toBeFalsy();
+    expect(lastAgentReferenceOrg).toBe("");
+    expect(deletedAgentId).toBe("agt-123");
   });
 
   it("delete_mcp_server resolves the id then deletes via ApiResourceDeleteInput", async () => {

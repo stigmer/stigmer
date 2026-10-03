@@ -64,6 +64,12 @@ function fakeClient(
   let rotations = 0;
   let currentShare = share;
   const client = {
+    // A server that holds several organizations, so a bare slug needs one.
+    platform: {
+      async getServerInfo() {
+        return { singleOrg: false };
+      },
+    },
     agent: {
       async get() {
         return agent;

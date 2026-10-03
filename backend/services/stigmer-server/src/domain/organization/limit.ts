@@ -19,10 +19,12 @@
  *
  * RefuseDeletingSingleOrganization runs in the delete chain under a
  * declared limit of 1, after the organization is loaded and before the
- * first write (RetireOrganizationSlug): deleting a server's only
- * organization would leave a server with no organization and a slug that
- * is never taken again, so the next boot would make another under a new
- * slug. Refused, it writes nothing.
+ * first write (RetireOrganizationSlug), and refuses when the store holds
+ * that organization alone: deleting a server's only organization would leave
+ * a server with no organization and a slug that is never taken again, so the
+ * next boot would make another under a new slug. Refused, it writes nothing.
+ * A store that holds several (one from before the server held one) may
+ * delete down to one, which is the way back to a server that fills it.
  *
  * Both reasons are wire contract, documented on OrganizationCommandController
  * create and delete.
@@ -93,10 +95,10 @@ export function newOrganizationLimitStep<Desc extends DescMessage>(
 
 export function newRefuseDeletingSingleOrganizationStep<
   Desc extends DescMessage,
->(): PipelineStep<Desc> {
+>(store: Store): PipelineStep<Desc> {
   return {
     name: "RefuseDeletingSingleOrganization",
-    execute(ctx: RequestContext<Desc>): void {
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
       const organization = ctx.get(EXISTING_RESOURCE_KEY) as
         | Organization
         | undefined;
@@ -108,6 +110,15 @@ export function newRefuseDeletingSingleOrganizationStep<
           ),
           "failed to delete organization",
         );
+      }
+      let held: number;
+      try {
+        held = (await store.listResources(ApiResourceKind.organization)).length;
+      } catch (error) {
+        throw internalError(error, "failed to count organizations");
+      }
+      if (held > 1) {
+        return;
       }
       throw failedPreconditionError(
         "this server's only organization cannot be deleted",

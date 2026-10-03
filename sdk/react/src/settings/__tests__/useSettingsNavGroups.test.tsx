@@ -74,8 +74,18 @@ describe("useSettingsNavGroups on a server that holds one organization", () => {
     expect(SINGLE_ORG_SETTINGS_NAV_GROUPS.slice(1)).toEqual(SETTINGS_NAV_GROUPS.slice(1));
   });
 
-  it("shows the organization groups while the answer loads and when the server holds several", () => {
+  it("leaves the first group out while the answer loads", () => {
     singleOrg = undefined;
+    render(<GroupsProbe />);
+    expect(screen.getByTestId("groups").getAttribute("data-labels")).toBe(
+      SETTINGS_NAV_GROUPS.slice(1)
+        .map((g) => g.label)
+        .join(","),
+    );
+  });
+
+  it("shows the organization groups when the server holds several", () => {
+    singleOrg = false;
     render(<GroupsProbe />);
     expect(screen.getByTestId("groups").getAttribute("data-labels")).toBe(BASE_LABELS);
   });
