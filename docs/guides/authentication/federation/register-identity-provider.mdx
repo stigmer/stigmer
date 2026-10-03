@@ -322,8 +322,8 @@ With these two fields enabled, the first time a user authenticates with a valid
 JWT, Stigmer:
 
 1. Creates a federated Identity Account using the JWT's `sub` claim and its
-   `email`, `name` and `picture` claims, reading the `userinfo_endpoint` only
-   when the token carries no email
+   `email`, `given_name` and `family_name` (or `name`) and `picture` claims,
+   reading the `userinfo_endpoint` only when the token carries no email
 2. Grants the **viewer** role on the Identity Provider's owning Organization
 
 On subsequent authentications, Stigmer finds the existing account and proceeds:

@@ -91,10 +91,10 @@ on the Identity Provider's provisioning mode:
 
 - **JIT-enabled Identity Provider** (`autoProvisionAccounts: true`) — Stigmer
   creates a federated account automatically using the JWT's `sub` claim and its
-  `email`, `name` and `picture` claims, reading the `userinfo_endpoint` only
-  when the token carries no email. If `autoGrantOnOrg` is also enabled, Stigmer
-  grants the configured role (default: viewer) on the appropriate Organization.
-  The request proceeds.
+  `email`, `given_name` and `family_name` (or `name`) and `picture` claims,
+  reading the `userinfo_endpoint` only when the token carries no email. If
+  `autoGrantOnOrg` is also enabled, Stigmer grants the configured role (default:
+  viewer) on the appropriate Organization. The request proceeds.
 - **SSO-enabled Identity Provider** (`isSsoProvider: true`) — Stigmer creates a
   federated account and grants the **viewer** role on the Organization. See
   [Set up SSO](/docs/guides/authentication/federation/sso-login) for details.
@@ -139,13 +139,12 @@ so you can diagnose issues:
 
 A `401` can mean different things. Here's how to narrow it down:
 
-| Scenario                                     | What happened                                              | Fix                                                                                                                                                                  |
-| -------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No Identity Provider matches `iss` and `aud` | Stigmer doesn't trust this issuer for this audience        | Check `allowed_issuers` on your Identity Provider                                                                                                                    |
-| `aud` doesn't match `expected_audience`      | Token was issued for a different API                       | Configure your auth provider to include Stigmer's audience in the token                                                                                              |
-| Signature verification failed                | JWKS keys don't match the signing key                      | Verify `jwks_uri` points to the correct endpoint                                                                                                                     |
-| Token expired                                | The `exp` claim is in the past                             | Issue a fresh token                                                                                                                                                  |
-| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only) | Enable JIT provisioning on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
+| Scenario                                     | What happened                                                                                    | Fix                                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No Identity Provider matches `iss` and `aud` | Stigmer routes a token by its issuer and audience together, and no provider registered this pair | Check that `iss` is one of your Identity Provider's `allowed_issuers`, and configure your auth provider to put its `expected_audience` in `aud`                      |
+| Signature verification failed                | JWKS keys don't match the signing key                                                            | Verify `jwks_uri` points to the correct endpoint                                                                                                                     |
+| Token expired                                | The `exp` claim is in the past                                                                   | Issue a fresh token                                                                                                                                                  |
+| No federated account for this `sub`          | Account wasn't provisioned (manual provisioning IdPs only)                                       | Enable JIT provisioning on the Identity Provider, or call `createFederatedAccount` before the user authenticates. JIT and SSO IdPs provision accounts automatically. |
 
 ## Calling the API from your app
 

@@ -42,8 +42,10 @@ Step 5: Stigmer resolves the federated account
           resolves to
         - Manual mode: refuse with Unauthenticated (the platform must
           create the account first)
-      A new account's profile comes from the token's email, name and
-      picture claims; only when the token carries no email does Stigmer
+      A new account's profile comes from the token: the email from
+      email; the first and last name from given_name and family_name,
+      else split from name, else the email's local part; the picture
+      from picture. Only when the token carries no email does Stigmer
       read userinfo_endpoint. If a grant fails, the new account is
       removed, so an account never exists without the access it was
       created for.

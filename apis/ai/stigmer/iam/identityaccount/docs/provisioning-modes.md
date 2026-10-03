@@ -40,7 +40,7 @@ A direct account is created when a user signs up through Stigmer's own Auth0 ten
 A federated account belongs to one IdentityProvider. Who creates it depends on how that provider provisions accounts:
 
 - **Manual** (neither `auto_provision_accounts` nor `is_sso_provider`): the platform creates each account with the `createFederatedAccount` RPC, giving the user's external subject, email, and name, before the user calls Stigmer.
-- **Just-in-time** (`auto_provision_accounts`) or **SSO** (`is_sso_provider`): Stigmer creates the account on the user's first sign-in, from the token's `email`, `name` and `picture` claims, or from the provider's `userinfo_endpoint` when the token carries no email. An SSO provider then grants viewer on its organization; a just-in-time provider grants `auto_grant_role` when `auto_grant_on_org` is set. The profile is not refreshed on later sign-ins; the platform updates it with `updateFederatedAccount`.
+- **Just-in-time** (`auto_provision_accounts`) or **SSO** (`is_sso_provider`): Stigmer creates the account on the user's first sign-in, from the token's `email`, `given_name` and `family_name` (or `name`) and `picture` claims, or from the provider's `userinfo_endpoint` when the token carries no email. An SSO provider then grants viewer on its organization; a just-in-time provider grants `auto_grant_role` when `auto_grant_on_org` is set. The profile is not refreshed on later sign-ins; the platform updates it with `updateFederatedAccount`.
 
 The [sign-in flow](../../identityprovider/docs/sign-in-flow.md) shows how each request is verified and its account resolved.
 

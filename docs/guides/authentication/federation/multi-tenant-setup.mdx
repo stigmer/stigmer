@@ -55,21 +55,23 @@ flowchart TD
     IdP["Auth provider<br/>(Auth0, Okta, etc.)"]
   end
   subgraph stigmer ["Stigmer"]
-    SIdP["IdentityProvider<br/>(acme-cloud-auth)"]
+    subgraph acmeOrg ["Organization: acme"]
+      SIdP["IdentityProvider<br/>(acme-cloud-auth)"]
+      Accts["Federated accounts<br/>(one per user)"]
+    end
     subgraph tenantA ["Organization: tenant-alpha"]
-      AcctA["Federated accounts"]
       ResA["Agents, Skills, Sessions"]
     end
     subgraph tenantB ["Organization: tenant-beta"]
-      AcctB["Federated accounts"]
       ResB["Agents, Skills, Sessions"]
     end
   end
   Backend -->|"Register once"| SIdP
   Backend -->|"Create per tenant"| tenantA
   Backend -->|"Create per tenant"| tenantB
-  SIdP -.->|"Authenticates"| AcctA
-  SIdP -.->|"Authenticates"| AcctB
+  SIdP -.->|"Authenticates"| Accts
+  Accts -->|"Role per tenant"| tenantA
+  Accts -->|"Role per tenant"| tenantB
 `}
 />
 
@@ -77,9 +79,10 @@ flowchart TD
 
 The Identity Provider is registered once in your platform's Organization. For
 each new customer, your backend creates a platform-managed Organization linked
-to that Identity Provider. Users in different tenant Organizations share the
-same authentication system but have completely separate resources and access
-controls.
+to that Identity Provider. Each user has one federated account, which belongs to
+the Identity Provider; a role on a tenant Organization is what lets that user
+into the tenant. Tenants share the same authentication system but have
+completely separate resources and access controls.
 
 ## Create a platform-managed Organization
 
@@ -265,7 +268,7 @@ looking up their Stigmer Organization. Your platform knows its own tenant ID;
 `getByExternalOrgId` maps it to the Stigmer Organization without requiring you
 to store Stigmer IDs in a separate mapping.
 
-## Provision users per tenant
+## Provision users and place them in tenants
 
 When a user signs up on your platform, provision their federated Identity
 Account once, under the Organization that owns your Identity Provider: the `org`

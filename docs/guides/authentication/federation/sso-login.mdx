@@ -229,7 +229,7 @@ When a team member signs in through SSO for the first time, Stigmer:
    expiration)
 2. Checks for an existing federated account matching the token's `sub` claim
 3. Finds no account, so creates one automatically using profile data from the
-   token (`email`, `name`, `picture`)
+   token (`email`, `given_name` and `family_name` or `name`, `picture`)
 4. Grants the **viewer** role on the Organization
 
 On subsequent logins, Stigmer skips steps 3 and 4 --- it finds the existing
