@@ -31,8 +31,8 @@
 //     `provisionMember(t)` spares `t` — so "no grant" and "exactly member"
 //     are literally true on both lanes, and the arms that create an
 //     organization outside `provisionTenancy` (they exist) still meet a
-//     real outsider. A revoked member is a state 2b proved ("holds
-//     nothing"), not a contrivance.
+//     real outsider. A revoked member is a real state (revoking leaves
+//     the person holding nothing), not a contrivance.
 //   - How "exactly this role" is reached. Roles are additive in the model
 //     (an admin who is also a member is an admin), so the lane grants the
 //     role and REMOVES `member` when the two differ — the pure
@@ -259,8 +259,8 @@ export async function newSiblingEnforcingLane(
   }
 
   // A fresh person: minted by the issuer, provisioned by the server — the
-  // console's first sign-in over the wire. Under 2b's rules they arrive as
-  // a member of every organization that exists at this moment.
+  // console's first sign-in over the wire. Under the membership rules they
+  // arrive as a member of every organization that exists at this moment.
   async function newPerson(
     prefix: string,
   ): Promise<{ clients: ConformanceClients; id: string }> {

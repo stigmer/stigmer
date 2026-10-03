@@ -996,7 +996,7 @@ rows:
     needs: [unfunded-org, fake-stripe]
     note: >-
       Carried with auto-recharge, which it serves. The fake's card carries exp_month and exp_year (FAKE_CARD).
-      The webhook claims the event id before this handler runs; a handler failure marks the claim failed and answers 500, so Stripe's redelivery is admitted again rather than skipped as a duplicate, and every money handler is idempotent underneath the claim. The arm's assertions hold under either design.
+      The webhook claims the event id before this handler runs; a handler failure marks the claim failed and answers 500, so Stripe's redelivery is admitted again rather than skipped as a duplicate, and every money handler is idempotent underneath the claim.
   - id: billing.stripe.payment-method-attached.sets-default-when-none
     surface: billing
     lane: >-
@@ -1010,7 +1010,7 @@ rows:
     needs: [unfunded-org, fake-stripe]
     note: >-
       Carried with auto-recharge, which it serves. It is also how every auto-recharge arm gives its org a saved card.
-      The same claim-then-process admission as customer.updated: a handler failure re-admits the redelivery. The arm's assertions hold under either design.
+      The same claim-then-process admission as customer.updated: a handler failure re-admits the redelivery.
   - id: billing.stripe.payment-intent-succeeded.recharge-provisions-credits
     surface: billing
     lane: >-
@@ -1023,8 +1023,7 @@ rows:
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      Auto-recharge is a live product surface. The arm drives the whole journey as the platform operator — the trigger runs after every usage debit inside recordLlmCallUsage, so the operator's engine RPCs are the only black-box way to reach it; the arm polls the fake for the PaymentIntent.
-      The trigger runs after every usage debit and compares the available balance with the account's own threshold_micros, as the proto's contract says ("when available balance drops below this amount"). This arm uses T = $5.
+      Auto-recharge is a live product surface. The trigger runs after every usage debit inside recordLlmCallUsage and compares the available balance with the account's own threshold_micros, as the proto's contract says ("when available balance drops below this amount"), so the operator's engine RPCs are the only black-box way to reach it. The arm drives the whole journey as the platform operator and polls the fake for the PaymentIntent.
   - id: billing.stripe.payment-intent-failed.recharge-compensated
     surface: billing
     lane: >-

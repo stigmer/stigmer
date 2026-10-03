@@ -808,7 +808,7 @@ MintGuestTokenResponse contains the guest JWT and the visitor cookie id.
     accessToken: { type: "string", description: "Stigmer-signed JWT for authenticating shared-agent chat API calls." },
     tokenType: { type: "string", description: "Token type." },
     expiresIn: { type: "number", description: "Token lifetime in seconds from the time of issuance." },
-    guestCookieId: { type: "string", description: "Visitor cookie id to persist client-side (httpOnly cookie in item 3)." },
+    guestCookieId: { type: "string", description: "Visitor cookie id to persist client-side, as an httpOnly cookie." },
   }}
 />
 

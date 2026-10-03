@@ -259,11 +259,12 @@ test("matches the organization by slug, never by name", async () => {
  * count, so a test scripts what each poll reads. Unrouted calls answer 404.
  */
 async function serveConnectLane(routes) {
+  const table = new Map(Object.entries(routes));
   const calls = new Map();
   const server = createServer((request, response) => {
     const procedure = (request.url ?? "").replace(/^\//, "");
-    const route = routes[procedure];
-    if (route === undefined) {
+    const route = table.get(procedure);
+    if (typeof route !== "function") {
       response.writeHead(404, { "content-type": "application/json" });
       response.end(JSON.stringify({ code: "not_found", message: procedure }));
       return;

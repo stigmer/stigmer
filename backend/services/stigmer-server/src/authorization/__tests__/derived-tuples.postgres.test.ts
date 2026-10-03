@@ -5,7 +5,7 @@
  * iam/tuple-lifecycle.ts: `organization:<org>#viewer` for the org level,
  * the owner by the kind's attribution, the parent links by `kind_meta`). Two facts are the
  * OSS edition's own and are pinned here by name: the organization's owner
- * is a ROW (2b's role lifecycle), never derived from its creator stamp,
+ * is a ROW (the role lifecycle's), never derived from its creator stamp,
  * or a revoked founder would stay owner; and a stamp that names no person
  * (`""`, `"system"`) becomes no tuple at all.
  *
@@ -113,7 +113,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
-  it("the organization derives NOTHING: no scope (OWNER_ONLY) and its owner is 2b's row, never its creator stamp", () => {
+  it("the organization derives NOTHING: no scope (OWNER_ONLY) and its owner is the role lifecycle's row, never its creator stamp", () => {
     expect(derivedFor("organization", { org: "" })).toEqual([]);
   });
 
