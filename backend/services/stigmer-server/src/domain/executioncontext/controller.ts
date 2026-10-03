@@ -203,7 +203,7 @@ async function createExecutionContext(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newPersistStep(deps.store))
     .addStep(

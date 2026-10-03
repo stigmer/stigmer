@@ -62,6 +62,7 @@ import {
   referenceTargetKind,
 } from "../references.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
+import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
@@ -188,8 +189,23 @@ function targetsOf(
           row.kind === ref.kind && row.org === ref.org && row.slug === ref.slug,
       )?.visibility;
     },
+    idOf(ref) {
+      return rows.find(
+        (row) =>
+          row.kind === ref.kind && row.org === ref.org && row.slug === ref.slug,
+      )
+        ? `id_${ref.slug}`
+        : undefined;
+    },
   };
 }
+
+/** The writer the existence and floor cases are judged for: admitted everywhere. */
+const ANY_WRITER = {
+  authorizer: newPermissiveSingleTeamAuthorizer(),
+  caller: testCallerIdentity(),
+  stored: [],
+} as const;
 
 const ACME_ORG: ReferenceParent = { org: "acme", visibility: V.visibility_org };
 const ACME_PRIVATE: ReferenceParent = {
@@ -515,10 +531,12 @@ describe("the step over a store", () => {
         return Reflect.get(target, property, receiver) as unknown;
       },
     });
-    const refusal = await checkReferences(counting, ACME_ORG, [
-      ref(K.skill, "acme", "one"),
-      ref(K.skill, "acme", "two"),
-    ]);
+    const refusal = await checkReferences(
+      counting,
+      ACME_ORG,
+      [ref(K.skill, "acme", "one"), ref(K.skill, "acme", "two")],
+      ANY_WRITER,
+    );
     expect(refusal).toBeUndefined();
     expect(scans).toBe(1);
   });
@@ -531,7 +549,10 @@ describe("the step over a store", () => {
       K.agent,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(missing),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(missing),
     );
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
@@ -543,7 +564,10 @@ describe("the step over a store", () => {
 
     await seedSkill("skl_1", "acme", "ghost", V.visibility_org);
     await expect(
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(missing),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(missing),
     ).resolves.toBeUndefined();
   });
 
@@ -560,7 +584,10 @@ describe("the step over a store", () => {
       K.agent,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(ctx),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toBe(
@@ -586,7 +613,10 @@ describe("the step over a store", () => {
       K.agent,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(ctx),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
     expect((error as ConnectError).rawMessage).toBe(

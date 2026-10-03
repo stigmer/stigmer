@@ -40,13 +40,25 @@
  * neither ever meets one. The three cannot share code; the conformance
  * suites are where their agreement is proven.
  *
+ * A task's `environment_refs` sit in the same config, so the collector
+ * yields them too, as ordinary references to environments: an org-less
+ * one in the workflow's own organization, where the run resolves it
+ * (agentexecution/create-execution-context-step.ts). The rule then asks
+ * them what it asks every environment reference: that the target exists,
+ * and that a reference the write introduces names one the writer can view
+ * (references.ts, the writer clause).
+ *
  * Runs after NormalizeReferences and ValidateReferences on the workflow
- * create and update chains, and feeds the workflow's escalation door
- * (controller.ts). Proven by __tests__/agent-call-references.test.ts, the
+ * create and update chains, judged for the request's caller against the
+ * stored workflow's own task references, and feeds the workflow's
+ * escalation door (controller.ts). Proven by __tests__/agent-call-references.test.ts, the
  * workflow conformance suite's agent_call reference arm, and the
  * runner-as-subject execution arm for a reference fixed only at run.
  */
-import type { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import type {
+  Workflow,
+  WorkflowSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { AgentCallTaskConfig } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
 import type {
   WorkflowSpec,
@@ -55,6 +67,7 @@ import type {
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import type { Authorizer } from "../../extensions/authorizer.js";
 import type { Store } from "../../store/interface.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
@@ -64,6 +77,7 @@ import type {
   SpecReference,
 } from "../../pipeline/steps/references.js";
 import { checkReferences } from "../../pipeline/steps/references.js";
+import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import { unmarshalTaskConfig } from "./converter/unmarshal.js";
 import { nestedTasks } from "./validation/task-config-constraints.js";
@@ -104,7 +118,8 @@ export function classifyAgentReference(agent: string): AgentReferenceForm {
  * Every `agent_call` task's agent the write can judge, as a reference,
  * nested tasks included in declaration order: a literal as written, a
  * relative slug in `parentOrg` and marked relative, a value fixed only at
- * run not at all. Throws INVALID_ARGUMENT on the first malformed string. A
+ * run not at all; then the task's environment references, an org-less one
+ * in `parentOrg`. Throws INVALID_ARGUMENT on the first malformed string. A
  * config that does not decode is skipped: the spec validation step has
  * already refused the workflow for it, and this collector never
  * double-reports.
@@ -158,6 +173,15 @@ export function collectAgentCallReferences(
               );
             }
           }
+          for (const env of (config as AgentCallTaskConfig).environmentRefs) {
+            if (env.slug !== "") {
+              refs.push({
+                kind: ApiResourceKind.environment,
+                org: env.org === "" ? parentOrg : env.org,
+                slug: env.slug,
+              });
+            }
+          }
         }
         for (const nested of nestedTasks(config)) {
           visit(nested);
@@ -176,6 +200,7 @@ export function collectAgentCallReferences(
 
 export function newValidateAgentCallReferencesStep(
   store: Store,
+  authorizer: Authorizer,
 ): PipelineStep<typeof WorkflowSchema> {
   return {
     name: "ValidateAgentCallReferences",
@@ -195,7 +220,18 @@ export function newValidateAgentCallReferencesStep(
         org: metadata.org,
         visibility: metadata.visibility,
       };
-      const refusal = await checkReferences(store, parent, refs);
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Workflow | undefined;
+      const refusal = await checkReferences(store, parent, refs, {
+        authorizer,
+        caller: ctx.callerIdentity,
+        stored:
+          existing === undefined
+            ? []
+            : collectAgentCallReferences(
+                existing.spec,
+                existing.metadata?.org ?? "",
+              ),
+      });
       if (refusal !== undefined) {
         throw refusal;
       }

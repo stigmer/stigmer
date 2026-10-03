@@ -251,7 +251,7 @@ async function update(
     .addStep(newPreserveRedactedSecretsStep())
     .addStep(newEncryptSecretValuesStep(deps.secretService, deps.logger))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newDestroyDroppedEnvironmentSecretsStep(deps.secretService, deps.logger),

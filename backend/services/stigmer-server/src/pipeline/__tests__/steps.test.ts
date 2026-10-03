@@ -71,6 +71,7 @@ import {
 import { generateSlug, newResolveSlugStep } from "../steps/slug.js";
 import { newValidateProtoStep } from "../steps/validation.js";
 import { newValidateVisibilityStep } from "../steps/validate-visibility.js";
+import { newPermissiveSingleTeamAuthorizer } from "../steps/authorize.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -661,7 +662,10 @@ describe("references (agent spec as the vehicle)", () => {
       ApiResourceKind.agent,
     );
     const error = await captureError(() =>
-      newValidateReferencesStep<typeof AgentSchema>(store).execute(ctx),
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toContain(

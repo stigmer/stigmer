@@ -311,7 +311,7 @@ async function createExecution(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store));
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer));
   // The ratified sandbox-acquisition gate slot (blueprint 03 §3a; C4):
   // the Java-verified capacity-gate position — after Authorize and every
   // resolution step (the default instance, like Java's, side-effects
@@ -401,7 +401,7 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
-    .addStep(newValidateReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newIndexSearchStep(
