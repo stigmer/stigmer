@@ -79,8 +79,8 @@ export const RuntimeTab = memo(function RuntimeTab({
  * Edits the agent_call `run_config` block (the shared agentexecution
  * RunConfig, stigmer/stigmer#358): model override + per-run USD budget,
  * both enforced by the runner. `max_tool_rounds` stays off the form
- * (DD-018 D-5). Empty means omit — a blank field never becomes a zero
- * override.
+ * (an implementation knob, not a user concept). Empty means omit — a
+ * blank field never becomes a zero override.
  */
 function AgentCallRuntimeSection({
   config,

@@ -42,11 +42,11 @@ import type {
  * of the single `useWorkflowExecutionActions` instance's return (cannot
  * drift; same convention as `WorkflowAgentExecutionHitl`). Covers all three
  * gate kinds: child tool approvals, child file reviews, and task-level
- * (human_input) approvals — since T06 the gating card is the ONLY decision
+ * (human_input) approvals — the gating card is the ONLY decision
  * surface, so the thread carries the full set. Decisions route through the
  * WORKFLOW-level RPCs only — never the child's own `agentExecution.*` path,
  * whose authorization checks the runner-spawned child rather than the
- * workflow execution the operator owns (S5 rationale).
+ * workflow execution the operator owns.
  */
 export type WorkflowThreadHitl = Pick<
   UseWorkflowExecutionActionsReturn,
@@ -80,13 +80,13 @@ export interface WorkflowTaskThreadProps {
    * provided, a gating task's card renders its decision surface directly in
    * the thread — always visible while the gate is pending, never behind the
    * expand chevron (the run is blocked). Omitted → the thread is read-only
-   * and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).
+   * and behaves exactly as before (backward compatible).
    */
   readonly hitl?: WorkflowThreadHitl;
   /**
    * Per-task status snapshots (`status.tasks[]`) keyed by task name — the
    * FULL I/O source for card bodies, never an event-log scan
-   * (DD-T04-5). The map's identity changes only on a snapshot refetch
+   * The map's identity changes only on a snapshot refetch
    * (rare), never on stream event appends, so memoized cards keep bailing
    * during streaming. Omitted → bodies degrade to the truncated event
    * summaries already on the items.
@@ -99,7 +99,7 @@ export interface WorkflowTaskThreadProps {
    * task-level human_input gate re-engages follow mode, so the run's
    * continuation lands in view. Incoming task activity is unaffected — it
    * still never moves a scrolled-up reader. Default `true` on all three SDK
-   * thread surfaces at once (the ratified DD-011 divergence — cross-surface
+   * thread surfaces at once (a deliberate change of default — cross-surface
    * consistency is the point); set `false` to keep today's behavior.
    *
    * @default true
@@ -111,18 +111,18 @@ export interface WorkflowTaskThreadProps {
 
 /**
  * Session-style task thread for a workflow execution: one card per task in
- * execution order (first-started first — D-T02-1), streaming live as the
+ * execution order (first-started first), streaming live as the
  * run progresses, with a collapsed preview and an expandable detail body
  * per card — the workflow analog of the session viewer's tool-call cards.
  *
- * Pending tasks render no cards (D-T02-5); the progress header keeps
+ * Pending tasks render no cards; the progress header keeps
  * overall status visible. Retries collapse into one card with an attempt
- * indicator (D-T02-6). AGENT_CALL cards render the child's FULL transcript
+ * indicator. AGENT_CALL cards render the child's FULL transcript
  * inline as the card body — live-streaming while the child runs,
  * complete history once settled — the session experience in place, with an
- * "Open standalone" pop-out for a deep dive. Since T04 the card is the
+ * "Open standalone" pop-out for a deep dive. The card is the
  * PRIMARY surface for a task's data (kind-aware preview line + bounded I/O
- * body); since T06 it is the ONLY one — the Inspect drill-down is gone, and
+ * body), and the ONLY one — the Inspect drill-down is gone, and
  * cards compose the session card language exactly (expand-or-none headers,
  * no selection).
  *
@@ -282,15 +282,15 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
  * Expansion is local row state — expanding one card never re-renders its
  * siblings.
  *
- * Disclosure (T04, the session `ToolCallItem` rule — "does the body carry
+ * Disclosure (the session `ToolCallItem` rule — "does the body carry
  * content the one-line row cannot?"):
  * - `"preview"` kinds render an ALWAYS-VISIBLE bounded output body (no
  *   card chevron — `BoundedContent` owns its own in-place reveal, so the
  *   old "expand, then Show more" double control never comes back).
  * - `"summary"` kinds expand from the header — the session card's own
  *   gesture, the chevron appended by the shell — but ONLY when the
- *   detail body would carry content (stigmer#886): since R6-6 moved
- *   Status/Duration onto the header, a settled wait card often has
+ *   detail body would carry content (stigmer#886): with Status/Duration
+ *   on the header, a settled wait card often has
  *   nothing left to reveal, and a chevron that opens an empty body is
  *   worse than no chevron. The gate is the summary twin of
  *   `showPreviewBody` below.
@@ -512,11 +512,11 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
 });
 
 // ---------------------------------------------------------------------------
-// In-thread HITL section (S10)
+// In-thread HITL section
 // ---------------------------------------------------------------------------
 
 /**
- * The decision surface on a gating card — since T07 this is the task-level
+ * The decision surface on a gating card — the task-level
  * (human_input) gate only. Child gates (tool approvals, file reviews) are
  * the inline transcript's job: an AGENT_CALL card's body renders the
  * child's own `ApprovalCard`s and `FileReviewDock`, so this section never
@@ -647,7 +647,7 @@ function ThreadTaskPreviewBody({
 }
 
 /**
- * The detail body's label/value rows. No Status/Duration rows (R6-6): the
+ * The detail body's label/value rows. No Status/Duration rows: the
  * card header is the single source for both — the status glyph and the
  * duration meta chip. The detail carries only what the header cannot:
  * attempt count, usage, the agent slug. Shared with the card's
@@ -715,8 +715,8 @@ function ThreadTaskDetail({
 /**
  * Maps a task's derived status onto the shared glyph vocabulary the session
  * tool card uses (`internal/thread-card/glyphs`), colored strictly through
- * status token classes — the old dot set's hardcoded hex fallbacks were a
- * Dont-Do #3 violation and died with it.
+ * status token classes — the old dot set's hardcoded hex fallbacks broke
+ * the theme-token rule and died with it.
  */
 const STATUS_GLYPH: Record<
   WorkflowThreadItem["status"],

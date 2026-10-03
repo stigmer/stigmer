@@ -49,7 +49,7 @@ export interface UseWorkflowExecutionRailViewsOptions {
  *
  * The panel carries the execution-level facets only (Artifacts / Changes /
  * Usage): per-task detail lives on the thread cards, the single home for a
- * task's data (T06 — the Inspect drill-down is gone). The facets are ALWAYS
+ * task's data (the Inspect drill-down is gone). The facets are ALWAYS
  * offered while the panel renders (the session gates its execution facets
  * behind `includeExecutionFacets` only for the pre-session launcher — the
  * workflow viewer has no such pre-execution state). Empty data is handled by
@@ -128,7 +128,7 @@ export function useWorkflowExecutionRailViews({
 }
 
 // ---------------------------------------------------------------------------
-// Inline SVG icons — monochrome, `currentColor`-tinted (DD-005; SDK
+// Inline SVG icons — monochrome, `currentColor`-tinted (SDK
 // independence — no lucide dependency). Same glyph as the session rail's
 // Artifacts view, so the two panels read identically.
 // ---------------------------------------------------------------------------

@@ -1,10 +1,10 @@
 // Behavior tests for the WorkflowTaskThread organism: progress header,
-// per-variant card previews, the expand gesture (T06: headers expand or are
+// per-variant card previews, the expand gesture (headers expand or are
 // plain rows — selection died with the Inspect drill-down), the inline
 // AGENT_CALL transcript body, empty states, and the
-// in-thread HITL section (S10/T06 — the in-card human_input review gate).
+// in-thread HITL section (the in-card human_input review gate).
 //
-// GUARDRAIL (S5 rationale): the entire file renders WITHOUT a StigmerProvider.
+// GUARDRAIL: the entire file renders WITHOUT a StigmerProvider.
 // Any component reaching for a client hook (the child's agentExecution.*
 // submit path) would throw — so a passing render plus the hitl spies
 // receiving decisions proves in-card gates route through the WORKFLOW-level
@@ -117,7 +117,7 @@ function statesOf(...states: DerivedTaskState[]): ReadonlyMap<string, DerivedTas
 }
 
 /**
- * All card root elements, in thread order. Since T06 a preview-kind card's
+ * All card root elements, in thread order. A preview-kind card's
  * header is a plain layout row (no role) — the shell's `data-cursor-target`
  * is the stable, gesture-independent handle on a card.
  */
@@ -406,7 +406,7 @@ describe("WorkflowTaskThread", () => {
 
   it("shows the task input in a summary-kind card's chevron detail", () => {
     // `wait` is one of the few kinds still in summary disclosure after the
-    // T05 coverage expansion — the chevron-detail input path lives there.
+    // preview-kind expansion — the chevron-detail input path lives there.
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -423,7 +423,7 @@ describe("WorkflowTaskThread", () => {
     );
 
     // Summary-kind cards expand from the header itself (the session card's
-    // own gesture — T06); the detail carries the input.
+    // own gesture); the detail carries the input.
     const header = screen.getByRole("button", { name: /^brief_pause/ });
     expect(header.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(header);
@@ -432,7 +432,7 @@ describe("WorkflowTaskThread", () => {
   });
 
   it("shows the full error in the always-visible body of a failed preview-kind card", () => {
-    // http_call is a preview kind since T05 — a failure needs no expand
+    // http_call is a preview kind — a failure needs no expand
     // gesture: the header carries the first line, the body the full error.
     render(
       <WorkflowTaskThread
@@ -453,7 +453,7 @@ describe("WorkflowTaskThread", () => {
 
   it("a summary-kind card with a body-less detail renders no expand gesture (stigmer#886)", () => {
     // A settled wait card with nothing the header cannot carry — no retry,
-    // no usage, no error, no I/O. Since R6-6 moved Status/Duration onto
+    // no usage, no error, no I/O. With Status/Duration on
     // the header, its detail body would be empty, so the header is a plain
     // row: offering a chevron that reveals nothing is worse than none.
     render(
@@ -561,7 +561,7 @@ describe("WorkflowTaskThread", () => {
     ).toBe("true");
   });
 
-  it("a streaming append re-renders only the changed card — snapshot-map bodies never invalidate siblings (T04 perf probe)", () => {
+  it("a streaming append re-renders only the changed card — snapshot-map bodies never invalidate siblings (perf probe)", () => {
     // Both cards are I/O-bearing preview kinds with always-visible bodies
     // fed from the SAME snapshot map. The formatMetaChips spy fires once
     // per card render, so its call log is the per-card render probe.
@@ -623,7 +623,7 @@ describe("WorkflowTaskThread", () => {
     expect(renderedDurations).not.toContain(7_777);
   });
 
-  it("renders a fan-out as overlapping running cards in first-started order (D-T02-1)", () => {
+  it("renders a fan-out as overlapping running cards in first-started order", () => {
     // The concurrency shape of the fan-out fixture (four branches live at
     // once after prepare settled): the flat model shows parallelism as
     // multiple simultaneously-running cards under an honest progress line.
@@ -675,7 +675,7 @@ describe("WorkflowTaskThread", () => {
 });
 
 // ---------------------------------------------------------------------------
-// In-thread HITL (S10)
+// In-thread HITL
 // ---------------------------------------------------------------------------
 
 function makeHitl(overrides: Partial<WorkflowThreadHitl> = {}): WorkflowThreadHitl {

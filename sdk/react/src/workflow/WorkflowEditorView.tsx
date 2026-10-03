@@ -100,7 +100,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   }, []);
 
   // -------------------------------------------------------------------------
-  // Mode switching (AD-T15-B3-003)
+  // Mode switching
   // -------------------------------------------------------------------------
 
   const handleSwitchToVisual = useCallback(() => {
@@ -139,7 +139,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
     setShowDirtyPrompt(false);
   }, []);
 
-  // Canvas save handler (AD-T15-B3-002: save via YAML)
+  // Canvas save handler (save via YAML)
   const handleCanvasSave = useCallback(
     async (yamlStr: string) => {
       setCanvasIsSaving(true);

@@ -13,7 +13,7 @@ import { useWorkflowGraphMode } from "./WorkflowGraphModeContext.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 // ---------------------------------------------------------------------------
-// Execution-state visual mapping (DD-T06-005)
+// Execution-state visual mapping
 // ---------------------------------------------------------------------------
 
 interface EdgeVisualStyle {

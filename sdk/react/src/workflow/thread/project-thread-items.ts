@@ -2,12 +2,12 @@
  * Pure projection from the event store's derived task-state map to the
  * ordered card list the workflow task thread renders.
  *
- * Deliberately NOT a second event-log derivation (D-T02-4): the event log
+ * Deliberately NOT a second event-log derivation: the event log
  * already has its canonical walk (`deriveTaskStates` in the store). This
  * module only re-shapes the store's cached map. Thread order is the map's
  * insertion order, which
  * `deriveTaskStates` builds in first-event order (`Map.set` on an existing
- * key preserves position) — the flat start-order model of D-T02-1 with no
+ * key preserves position) — the flat start-order model, with no
  * second ordering source to drift.
  *
  * No React dependency — independently importable and testable.
@@ -94,8 +94,8 @@ export interface WorkflowThreadItem {
 }
 
 /**
- * Progress line for the thread header. Pending tasks render no cards
- * (D-T02-5); this is where "what's coming" stays visible (Nielsen #1).
+ * Progress line for the thread header. Pending tasks render no cards;
+ * this is where "what's coming" stays visible (Nielsen #1).
  */
 export interface WorkflowThreadProgress {
   /** Tasks in a terminal state (completed, failed, or skipped). */
@@ -136,7 +136,7 @@ const SETTLED_STATUSES: ReadonlySet<DerivedTaskState["status"]> = new Set([
  * fields are unchanged keeps its previous object identity. The store
  * rebuilds every `DerivedTaskState` on each event append, so without this,
  * every card would get a fresh item per event and `React.memo` rows could
- * never bail (DD-009/DD-010 — only the actively-changing card re-renders).
+ * never bail (only the actively-changing card re-renders).
  */
 export function projectThreadItems(
   taskStates: ReadonlyMap<string, DerivedTaskState>,

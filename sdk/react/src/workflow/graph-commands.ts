@@ -423,7 +423,7 @@ export class UpdateNodeMetaCommand implements GraphCommand {
 /**
  * Updates the `sourceHandle` of all edges from a node's old handle ID
  * to a new handle ID. Used when a switch_case case or human_input outcome
- * is renamed (AD-T15-B4: name-based handle IDs).
+ * is renamed (name-based handle IDs).
  */
 export class MigrateBranchHandleCommand implements GraphCommand {
   readonly type = "migrate_branch_handle";
@@ -554,7 +554,7 @@ function deleteNestedValue(obj: Record<string, unknown>, path: string): Record<s
 }
 
 // ---------------------------------------------------------------------------
-// T08: Branch-specific insertion commands
+// Branch-specific insertion commands
 // ---------------------------------------------------------------------------
 
 export class AddSwitchCaseCommand implements GraphCommand {
@@ -738,7 +738,7 @@ export class AddCatchHandlerCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: Switch Case management commands
+// Switch Case management commands
 // ---------------------------------------------------------------------------
 
 /**
@@ -878,7 +878,7 @@ export class ReorderSwitchCasesCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: Fork branch management commands
+// Fork branch management commands
 // ---------------------------------------------------------------------------
 
 /**
@@ -1108,7 +1108,7 @@ export class SetForkCompeteCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: TryCatch management commands
+// TryCatch management commands
 // ---------------------------------------------------------------------------
 
 /**
@@ -1222,7 +1222,7 @@ export class RemoveCatchBlockCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: ForEach configuration command
+// ForEach configuration command
 // ---------------------------------------------------------------------------
 
 /**
@@ -1295,7 +1295,7 @@ export class UpdateForEachConfigCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
-// T09: Nested task editing commands
+// Nested task editing commands
 // ---------------------------------------------------------------------------
 
 /**

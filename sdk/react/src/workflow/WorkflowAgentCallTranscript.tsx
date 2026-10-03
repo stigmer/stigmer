@@ -2,7 +2,7 @@
 
 // The inline child-transcript body of an AGENT_CALL task card: the
 // card IS the session experience — live while running, full history when
-// settled — replacing the S4 "Open transcript" document tab.
+// settled — replacing the earlier "Open transcript" document tab.
 
 import { memo, useCallback, useMemo } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -56,13 +56,12 @@ export interface WorkflowAgentCallTranscriptProps {
    * interactive: tool-approval gates render their decision cards inline on
    * the gated rows, and pending file reviews dock at the bottom. When
    * omitted, the transcript is read-only — gates show status only
-   * (backward compatible, DD-011).
+   * (backward compatible).
    */
   readonly hitl?: WorkflowAgentExecutionHitl;
   /**
    * Open the child execution as a standalone page — the deep-dive escape
-   * hatch now that the card is the transcript's single home. Host-routed
-   * (DD-004).
+   * hatch now that the card is the transcript's single home. Host-routed.
    */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
   /** Additional CSS classes for the root element. */
@@ -83,14 +82,14 @@ export interface WorkflowAgentCallTranscriptProps {
  * OUTER thread's auto-follow stops chasing it — the bound fixes both the
  * inner and the outer scroll ergonomics at once.
  *
- * VIEWPORT-GATED STREAMING. Every mounted card fetches its (DD-014-cached)
+ * VIEWPORT-GATED STREAMING. Every mounted card fetches its (cached)
  * snapshot so the body renders immediately, but the live subscription opens
  * only while the card is on-screen (`useInViewport` → the hook's `live`
  * gate). Off-screen running children pause their stream and keep the
  * last-streamed snapshot visible (never a rewind); scrolling back — or
  * toggling back from the CSS-hidden Graph view — re-attaches in place. This
- * preserves the bounded-concurrency intent of the S4 single-active-tab
- * design (DD-LIVE-006) for fan-out workflows: N concurrent children cost at
+ * preserves the bounded-concurrency intent of the earlier single-active-tab
+ * design for fan-out workflows: N concurrent children cost at
  * most the streams the user can actually see.
  *
  * MINIMAL CHROME. The card header already owns the task's identity and
@@ -107,7 +106,7 @@ export interface WorkflowAgentCallTranscriptProps {
  * differ in authorization: the workflow RPC checks `can_edit` on the
  * workflow execution — the resource the operator owns — while the child
  * path checks the runner-spawned AgentExecution, which the operator may
- * not (the S5 rationale).
+ * not own.
  *
  * FILE-REVIEW DOCK. Pending (AWAITING_REVIEW) sets derive from the CHILD's
  * own live stream — the freshest source this component already holds — not

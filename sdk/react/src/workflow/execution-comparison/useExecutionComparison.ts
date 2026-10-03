@@ -33,8 +33,7 @@ export interface UseExecutionComparisonReturn {
  * user is selecting a comparison target). The comparison result
  * is only produced when both executions are loaded.
  *
- * Returns referentially stable objects when inputs haven't changed
- * (DD-010 compliance).
+ * Returns referentially stable objects when inputs haven't changed.
  *
  * @example
  * ```tsx

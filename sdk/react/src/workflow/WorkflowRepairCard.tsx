@@ -35,7 +35,7 @@ const COMPOSER_ENABLED_PHASES: ReadonlySet<DiagnosePhase> = new Set([
 
 /**
  * Panel component that displays agent-powered diagnosis of a failed workflow
- * execution. Designed for the execution viewer's right panel (AD-B5-001).
+ * execution. Designed for the execution viewer's right panel.
  *
  * Layout:
  * 1. Header — "AI Diagnosis" title with sparkles icon + close button
@@ -43,8 +43,8 @@ const COMPOSER_ENABLED_PHASES: ReadonlySet<DiagnosePhase> = new Set([
  * 3. Result strip (conditional) — fix explanation, diff preview, Apply Fix / Discard
  * 4. Follow-up composer (pinned to bottom) — text input for additional questions
  *
- * Auto-starts diagnosis on mount (AD-B5-002). Supports multi-turn
- * follow-up questions within the same session (AD-B5-003).
+ * Auto-starts diagnosis on mount. Supports multi-turn
+ * follow-up questions within the same session.
  *
  * Styled via `--stgm-*` design tokens. Zero console dependencies.
  */

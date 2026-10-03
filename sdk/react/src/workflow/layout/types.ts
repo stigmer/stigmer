@@ -33,7 +33,7 @@ export interface LayoutInput {
   /**
    * Node IDs whose positions should not change.
    * The engine computes layout for the full graph but the postprocessor
-   * excludes pinned nodes from the result (AD-T03-005).
+   * excludes pinned nodes from the result.
    */
   readonly pinnedNodeIds?: ReadonlySet<string>;
   /**

@@ -249,7 +249,7 @@ export function useWorkflowExecutionGraph(
           }
         : { status: "not_reached" };
 
-      // T06: Derive fork progress for fork nodes.
+      // Derive fork progress for fork nodes.
       const forkProgress =
         nodeData.kind === WorkflowTaskKind.fork && nodeData.config
           ? deriveForkProgress(nodeData.config, taskStates)

@@ -1,8 +1,8 @@
-// Unit tests for the thread projection (S8): ordering, variant mapping,
+// Unit tests for the thread projection: ordering, variant mapping,
 // progress accounting, and the structural sharing that lets memoized card
-// rows bail during streaming. The fan-out suite (S9) runs
+// rows bail during streaming. The fan-out suite runs
 // real events through the store derivation to validate the flat
-// start-order model against parallel branches (D-T02-1's revisit hook).
+// start-order model against parallel branches.
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -66,7 +66,7 @@ describe("threadCardVariant", () => {
 });
 
 describe("projectThreadItems", () => {
-  it("preserves the map's insertion order (first-started order, D-T02-1)", () => {
+  it("preserves the map's insertion order (first-started order)", () => {
     const { items } = projectThreadItems(
       statesOf(
         taskState({ taskName: "fetch", status: "completed" }),
@@ -251,7 +251,7 @@ describe("projectThreadItems", () => {
       expect(third.items[0]).not.toBe(second.items[0]);
     });
 
-    it("produces a fresh item when the output summary arrives (preview change, T04)", () => {
+    it("produces a fresh item when the output summary arrives (preview change)", () => {
       const first = projectThreadItems(
         statesOf(
           taskState({
@@ -316,7 +316,7 @@ describe("projectThreadItems", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Fan-out validation (S9 — D-T02-1's revisit hook)
+// Fan-out validation
 //
 // A realistic parallel workflow driven through the REAL event-store
 // derivation, not hand-built maps: prepare → four concurrent fetches
@@ -363,7 +363,7 @@ function completedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
   });
 }
 
-describe("fan-out ordering through the store derivation (D-T02-1)", () => {
+describe("fan-out ordering through the store derivation", () => {
   it("keeps first-started order while parallel branches complete out of order", () => {
     const store = new WorkflowExecutionEventStore();
 

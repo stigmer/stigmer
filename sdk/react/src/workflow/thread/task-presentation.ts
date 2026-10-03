@@ -121,19 +121,19 @@ export function getTaskPresenter(
  * always-visible bounded body (the session's "preview" categories). The
  * body renders only when output actually exists (the `showBody` gate), so
  * a kind whose runner writes no output — today's invocation kinds, until
- * the output-envelope follow-up standardizes them (DD-T04-3) — stays a
+ * the output-envelope follow-up standardizes them — stays a
  * clean one-line row with zero cost. `set_vars` earns its place from live
- * data: the runner writes the seeded variables to task output (T05, R2-5).
+ * data: the runner writes the seeded variables to task output.
  * `try_catch` earns it the same way: its output is the try (or catch.do)
  * block's settled result — the `transform` class. `raise_error` earns it
  * from the OTHER `showBody` arm: it always fails, and the preview body
- * renders the full failure detail without a click (R6-5).
+ * renders the full failure detail without a click.
  *
  * Only genuinely body-less kinds stay compact summary rows: `wait`/
  * `listen`, the snapshot fallback's `unspecified`, and the remaining
- * control flow — including `switch_case`, DELIBERATELY (an R6-5
- * refinement): its entire settled content is the one-word flow directive,
- * carried by its always-visible preview line below; a body would only
+ * control flow — including `switch_case`, DELIBERATELY: its entire
+ * settled content is the one-word flow directive, carried by its
+ * always-visible preview line below; a body would only
  * re-render the raw `{__flow_directive__}` marker, failing the "does the
  * body carry content the one-line row cannot?" rule.
  */
@@ -246,7 +246,7 @@ function defaultPreviewLine(state: DerivedTaskState): string | null {
 
 /**
  * The flagship agent-call line: `slug · running <tool> · N msgs · M tools`.
- * Field-for-field the pre-T04 card line — kept here so the thread has one
+ * Field-for-field the earlier card line — kept here so the thread has one
  * source of preview semantics.
  */
 function agentCallLine(state: DerivedTaskState): string | null {
@@ -372,7 +372,7 @@ function listenLine(state: DerivedTaskState): string | null {
 
 /**
  * `→ approved-path` / `→ exit` — the flow directive the switch settled on
- * (R6-5). The switch executor's only output is the `__flow_directive__`
+ * The switch executor's only output is the `__flow_directive__`
  * marker carrying the matched case's `then` (a target task name, or the
  * `continue`/`end`/`exit` terminals), and `do-executor` writes raw task
  * output to the event summary — so the branch taken is already on the
@@ -385,7 +385,7 @@ function switchCaseLine(output: JsonObject | null): string | null {
 
 /**
  * `recovered after 2 attempts` / snippet of the settled block result
- * (R6-5). The try task's own `task_retrying` events drive
+ * The try task's own `task_retrying` events drive
  * `attemptNumber`, so a completion above attempt 1 IS a catch-retry
  * recovery. A catch.do-path recovery (no retry configured) is NOT
  * distinguishable from plain success in the emitted data — deliberately

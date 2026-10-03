@@ -24,8 +24,8 @@ const inputClass =
  * agentexecution RunConfig vocabulary, stigmer/stigmer#358): model
  * override plus a per-run USD budget that the runner actually
  * enforces. `max_tool_rounds` is API-reachable but deliberately absent
- * from the form (DD-018 D-5: an implementation knob, not a user
- * concept). Assembly follows the schedule form's empty-means-omit rule:
+ * from the form (an implementation knob, not a user concept).
+ * Assembly follows the schedule form's empty-means-omit rule:
  * a blank field must not become a zero override.
  *
  * Workspace and environments edit the shared vocabulary's

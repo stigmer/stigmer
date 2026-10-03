@@ -234,7 +234,8 @@ function WorkflowExecutionGraphInner({
     return () => observer.disconnect();
   }, [nodes.length, performInitialFit]);
 
-  // Derive active task name stably from taskStates (not from nodes array — DD-010)
+  // Derive active task name stably from taskStates (not from the nodes
+  // array, whose identity changes on every event)
   const activeTaskInfo = useActiveTaskName(taskStates);
   const isTerminal = executionPhase != null && TERMINAL_EXECUTION_PHASES.has(executionPhase);
 

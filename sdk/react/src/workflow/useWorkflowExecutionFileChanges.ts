@@ -26,7 +26,7 @@ import { toError } from "../internal/toError.js";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 
 // ---------------------------------------------------------------------------
-// Enumeration (pure — exported for tests, DD-003)
+// Enumeration (pure — exported for tests)
 // ---------------------------------------------------------------------------
 
 /** One AGENT_CALL task's child execution, as enumerated for the rollup. */
@@ -142,7 +142,7 @@ export function enumerateAgentCallChildren(
  * need identical fetches AND produce identically-ordered rollups — so it is
  * both the effect dependency and the memo key that shields downstream
  * consumers from the event store's per-event `taskStates` identity churn
- * (DD-009/DD-010: never key an effect on the map reference itself).
+ * (never key an effect on the map reference itself).
  */
 export function agentCallChildrenSignature(
   children: readonly AgentCallChild[],

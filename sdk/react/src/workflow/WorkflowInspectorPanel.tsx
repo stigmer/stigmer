@@ -47,23 +47,23 @@ export interface WorkflowInspectorPanelProps {
   ) => void;
   /** Called to remove all edges from a specific branch handle. */
   readonly onRemoveBranchEdges?: (nodeId: string, handleId: string) => void;
-  /** Called to remove a switch case. @since T09 */
+  /** Called to remove a switch case. */
   readonly onRemoveSwitchCase?: (switchNodeId: string, caseName: string) => void;
-  /** Called to reorder switch cases. @since T09 */
+  /** Called to reorder switch cases. */
   readonly onReorderSwitchCases?: (switchNodeId: string, newOrder: readonly string[]) => void;
-  /** Called to remove a fork branch. @since T09 */
+  /** Called to remove a fork branch. */
   readonly onRemoveForkBranch?: (forkNodeId: string, branchName: string) => void;
-  /** Called to reorder fork branches. @since T09 */
+  /** Called to reorder fork branches. */
   readonly onReorderForkBranches?: (forkNodeId: string, newOrder: readonly string[]) => void;
-  /** Called to rename a fork branch. @since T09 */
+  /** Called to rename a fork branch. */
   readonly onRenameForkBranch?: (forkNodeId: string, oldName: string, newName: string) => void;
-  /** Called to toggle fork compete (race) mode. @since T09 */
+  /** Called to toggle fork compete (race) mode. */
   readonly onSetForkCompete?: (forkNodeId: string, compete: boolean) => void;
-  /** Called to update catch configuration. @since T09 */
+  /** Called to update catch configuration. */
   readonly onUpdateCatchConfig?: (tryCatchNodeId: string, updates: { as?: string; compensate?: boolean }) => void;
-  /** Called to remove catch block. @since T09 */
+  /** Called to remove catch block. */
   readonly onRemoveCatchBlock?: (tryCatchNodeId: string) => void;
-  /** Called to update for_each configuration. @since T09 */
+  /** Called to update for_each configuration. */
   readonly onUpdateForEachConfig?: (forEachNodeId: string, updates: Partial<{ each: string; in: string; max_parallelism: number; batch_size: number; on_error: string }>) => void;
   /** Validation errors keyed by node ID. */
   readonly validationErrors?: ReadonlyMap<string, readonly string[]>;

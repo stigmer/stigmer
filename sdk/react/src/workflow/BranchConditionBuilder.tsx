@@ -29,7 +29,7 @@ export interface BranchConditionBuilderProps {
  *
  * Renders an ordered list of conditional branches with name, condition
  * expression (`when`), and target task routing. Handles are name-based
- * (`case_{name}`) per AD-T15-B4, making reorder operations safe without
+ * (`case_{name}`), making reorder operations safe without
  * edge remapping.
  *
  * Edges are the source of truth for routing — the builder reads target

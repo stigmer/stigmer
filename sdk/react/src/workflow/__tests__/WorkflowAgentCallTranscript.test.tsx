@@ -29,7 +29,7 @@ vi.mock("../../execution/useLiveAgentExecution", () => ({
 }));
 // The thread is the execution domain's heaviest organism; the transcript's
 // contract with it is props-shaped, so a probe recording them suffices.
-// The FileReviewDock renders REAL — its decision routing is the S5 subject.
+// The FileReviewDock renders REAL — its decision routing is under test.
 // useInViewport runs REAL over the stubbed IntersectionObserver below, so
 // the viewport gate is exercised end-to-end (ref attachment included).
 vi.mock("../../execution/MessageThread", () => ({
@@ -358,7 +358,7 @@ describe("WorkflowAgentCallTranscript — viewport gate", () => {
 });
 
 // ---------------------------------------------------------------------------
-// In-place HITL (migrated from the S4 document, whose tab this replaces)
+// In-place HITL (migrated from the document tab this replaces)
 // ---------------------------------------------------------------------------
 
 describe("WorkflowAgentCallTranscript — HITL wiring", () => {
@@ -531,7 +531,7 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Routing guardrail: decisions go through the WORKFLOW RPCs (S5, preserved)
+// Routing guardrail: decisions go through the WORKFLOW RPCs
 // ---------------------------------------------------------------------------
 
 /**

@@ -135,7 +135,7 @@ export const WorkflowTaskReviewGate = memo(function WorkflowTaskReviewGate({
 });
 
 // ---------------------------------------------------------------------------
-// Payload resolution states (DD-006: never a blank screen)
+// Payload resolution states (never a blank screen)
 // ---------------------------------------------------------------------------
 
 function PayloadLoadingState({

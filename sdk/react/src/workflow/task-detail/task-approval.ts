@@ -9,7 +9,7 @@
  * resolution payloads are captured by the event store's single canonical
  * walk (`DerivedTaskState.approvalRequest` / `.approvalResolution`), and
  * these projections work off that capture plus the card's O(1) snapshot
- * lookup — never the event log (DD-T04-5, D-T02-4).
+ * lookup — never the event log.
  *
  * No React dependencies — independently testable.
  */

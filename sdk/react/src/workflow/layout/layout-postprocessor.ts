@@ -18,7 +18,7 @@ import type {
  * ELK produces center coordinates for nodes. This function converts them
  * to top-left coordinates (React Flow convention: position = top-left corner).
  *
- * Scope filtering (AD-T03-005):
+ * Scope filtering:
  * - `whole-graph`: all computed positions are included
  * - `selected`: only positions for nodes in the selection set are included
  * - `downstream`: only positions for the target node and all reachable

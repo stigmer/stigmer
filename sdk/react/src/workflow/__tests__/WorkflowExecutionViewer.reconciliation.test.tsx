@@ -1,4 +1,4 @@
-// Composition test for the reconciled single-panel layout (T06 shape): the
+// Composition test for the reconciled single-panel layout: the
 // thread-primary center with the passive graph behind the toggle, the
 // workspace-only side panel (Artifacts/Changes/Usage — no Inspect facet
 // anywhere), the header's Diagnose button to the diagnosis editor document,
@@ -43,9 +43,9 @@ vi.mock("../useWorkflowExecutionActions", () => ({
 }));
 
 // The graph is React Flow — replaced with a memoized stub whose render
-// counter is the DD-009 probe: if the viewer hands the graph a fresh prop
+// counter is the referential-stability probe: if the viewer hands the graph a fresh prop
 // identity on panel interactions (e.g. an inline handler), the memo stops
-// bailing and the counter catches it. Since T06 the graph is a passive
+// bailing and the counter catches it. The graph is a passive
 // visualization — the stub records its props so the suite can assert no
 // selection callback is ever wired.
 const graphRenders = { count: 0 };
@@ -341,7 +341,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// S9: center-column Thread | Graph toggle (thread is primary)
+// Center-column Thread | Graph toggle (thread is primary)
 // ---------------------------------------------------------------------------
 
 describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () => {
@@ -521,7 +521,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
 });
 
 // ---------------------------------------------------------------------------
-// S9: approval-boundary wiring (snapshot refresh + gate attention)
+// Approval-boundary wiring (snapshot refresh + gate attention)
 // ---------------------------------------------------------------------------
 
 describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
@@ -566,7 +566,7 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
     // decision surfaces…
     expect(refetch).toHaveBeenCalledTimes(1);
     // …with no auto-select and no panel yank: the gating card is amber and
-    // carries its own decision surface (selection died with Inspect, T06).
+    // carries its own decision surface (selection died with Inspect).
     expect(document.querySelector("[aria-pressed]")).toBeNull();
     expect(screen.queryByRole("radio", { name: "Inspect" })).toBeNull();
   });
@@ -597,10 +597,10 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// T04: terminal-phase snapshot refetch (DD-T04-4)
+// Terminal-phase snapshot refetch
 // ---------------------------------------------------------------------------
 
-describe("WorkflowExecutionViewer (terminal-phase refetch, T04)", () => {
+describe("WorkflowExecutionViewer (terminal-phase refetch)", () => {
   beforeEach(() => {
     localStorage.clear();
   });
