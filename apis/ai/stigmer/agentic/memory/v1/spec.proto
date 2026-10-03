@@ -8,8 +8,7 @@ import "buf/validate/validate.proto";
 // came from.
 //
 // @internal
-// Field ownership (DD-004; provenance revised by the Stage 3 decision,
-// owner-ratified 2026-08-22): content is the subject's after capture
+// Field ownership (provenance revised 2026-08-22): content is the subject's after capture
 // (editable via the update RPC); subject_identity_account_id is
 // server-derived at create; provenance is capture-path-supplied at
 // create (see its field doc). Both are immutable forever after — the
@@ -24,7 +23,7 @@ message MemorySpec {
   // max_len 500: readable-at-a-glance is both a UX and a
   // security property — the confirmation UI shows this exact text, byte
   // for byte, and what the user confirms is what future prompts inject
-  // (DD-005 D6). Enforced by protovalidate at every write; recall never
+  // Enforced by protovalidate at every write; recall never
   // truncates a fact's content (write-time caps, never compose-time —
   // the audit property outweighs pathological-case tokens). The semantic
   // retriever may inject a SELECTED SUBSET of whole facts, recorded on
@@ -40,7 +39,7 @@ message MemorySpec {
   // @internal
   // Server-derived from the calling credential at create — never
   // client-supplied, so a forged subject is structurally impossible
-  // (DD-005 D2). The single-operator posture (trusted-local) stores the
+  // The single-operator posture (trusted-local) stores the
   // empty string (the single-user sentinel, matching the OAuth grant
   // store); where callers are persons it is always an identity account
   // id (stigmer#1387). Named
@@ -52,8 +51,7 @@ message MemorySpec {
   // appears.
   //
   // @internal
-  // Capture-path-supplied at create (the Stage 3 provenance decision,
-  // owner-ratified 2026-08-22): the remember tool threads the
+  // Capture-path-supplied at create (since 2026-08-22): the remember tool threads the
   // agent/session/execution triple from the runner-synthesized
   // attachment's capture context; a direct API create supplies none and
   // the field stays empty. tool_call_id is force-cleared in v1 — MCP

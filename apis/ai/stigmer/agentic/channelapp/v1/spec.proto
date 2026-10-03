@@ -17,7 +17,7 @@ import "buf/validate/validate.proto";
 // response (the OAuthAppSpec.client_secret pipeline, both editions) —
 // NOT managed-environment refs: app credentials are user-authored
 // configuration entered in one motion with the resource, unlike
-// install-produced tokens (decision 004's split, amended for BYO).
+// install-produced tokens.
 // The resource is always visibility_private; there is no updateVisibility
 // RPC.
 message ChannelAppSpec {
@@ -25,7 +25,7 @@ message ChannelAppSpec {
   //
   // @internal
   // Adding a provider extends this oneof; it touches zero kinds (the
-  // pattern WhatsApp proved in T05).
+  // pattern WhatsApp proved).
   oneof provider_config {
     option (buf.validate.oneof).required = true;
 
@@ -73,7 +73,7 @@ message SlackChannelAppConfig {
 // and verify token — the console shows both after the app is registered.
 //
 // @internal
-// DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud
+// Every WhatsApp credential is per-app authored (Meta's Cloud
 // API has no per-install OAuth), so they all live here — no managed
 // Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
 // stays empty for WhatsApp channels. Webhook attribution is by the per-app

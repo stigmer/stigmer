@@ -13,8 +13,8 @@ package ai.stigmer.agentic.memory.v1;
 // Confirmed and rejected are terminal relative to each other: a
 // rejected memory is never confirmable (delete it and let the agent
 // re-propose), and a confirmed memory is never rejectable (deleting it
-// IS the revocation — user deletion is the retention mechanism,
-// DD-006). Re-confirming a confirmed memory and re-rejecting a rejected
+// IS the revocation — user deletion is the retention mechanism).
+// Re-confirming a confirmed memory and re-rejecting a rejected
 // one are idempotent no-ops. The confirm and reject RPCs are the ONLY
 // writers of this state — consent is enforced at the control plane,
 // never delegated to client-side approval mechanisms.

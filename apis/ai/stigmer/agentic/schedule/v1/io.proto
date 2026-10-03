@@ -70,7 +70,7 @@ enum ScheduleRunOrigin {
 // What one schedule fire produced.
 //
 // @internal
-// One vocabulary for two surfaces (project DD-017 D-6/D-7): the trigger
+// One vocabulary for two surfaces: the trigger
 // result reports the START outcomes (STARTED / REFUSED /
 // TARGET_MISSING), and the run-history rows additionally reach the
 // terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron
@@ -129,7 +129,7 @@ message ScheduleTriggerResult {
 // One recorded schedule fire — a run-history row.
 //
 // @internal
-// Backed by the fire ledger (project DD-017 D-7): every fire leaves a
+// Backed by the fire ledger: every fire leaves a
 // row, INCLUDING fires that created no execution — the ledger is the
 // one place a refused fire's reason survives below the pause threshold.
 // Rows carrying an execution id but no terminal outcome are enriched

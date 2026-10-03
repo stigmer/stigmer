@@ -19,7 +19,7 @@ enum ForEachErrorPolicy {
 
   // Stop on first error, cancel in-flight iterations.
   // This is the default and preserves backward compatibility with the
-  // pre-T17 sequential behavior.
+  // original sequential behavior.
   FOR_EACH_FAIL_FAST = 1;
 
   // Continue remaining iterations after a failure.
@@ -45,9 +45,9 @@ enum ForEachErrorPolicy {
 // workflow goroutines with bounded concurrency.
 //
 // Backward compatibility: all new fields default to values that preserve
-// the pre-T17 sequential behavior. Existing workflows require no changes.
+// the original sequential behavior. Existing workflows require no changes.
 //
-// YAML Example (sequential, unchanged from pre-T17):
+// YAML Example (sequential, the default):
 //   - taskName:
 //       for:
 //         each: item
@@ -104,7 +104,7 @@ message ForTaskConfig {
   // Maximum number of iterations to execute concurrently.
   //
   // 0 (default): sequential execution — iterations run one at a time
-  // in input order. This preserves pre-T17 behavior.
+  // in input order. This preserves the original behavior.
   //
   // 1: effectively sequential (one at a time, but uses the parallel
   // execution path — useful for testing).
@@ -131,6 +131,6 @@ message ForTaskConfig {
   //
   // Default: FOR_EACH_FAIL_FAST (stop on first error).
   // Only meaningful when max_parallelism > 0; in sequential mode, any
-  // failure stops the loop regardless of this setting (pre-T17 behavior).
+  // failure stops the loop regardless of this setting.
   ForEachErrorPolicy on_error = 6;
 }

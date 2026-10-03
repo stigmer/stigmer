@@ -66,7 +66,7 @@ service ScheduleQueryController {
   // status.consecutive_failures.
   //
   // @internal
-  // Backed by the fire ledger (project DD-017 D-7). Authorization:
+  // Backed by the fire ledger. Authorization:
   // can_view on the schedule — run history is the schedule's own
   // operational record; the linked executions keep their own bars. Rows
   // carrying an execution id but no terminal outcome are enriched with

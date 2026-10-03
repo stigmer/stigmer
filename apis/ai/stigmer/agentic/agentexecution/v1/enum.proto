@@ -81,7 +81,7 @@ enum ExecutionPhase {
   // - Failed: Something broke unexpectedly (exception, crash)
   EXECUTION_TERMINATED = 8;
 
-  // Blocked on tool approval (HITL Phase 1).
+  // Blocked on tool approval.
   //
   // The agent has encountered a tool that requires user approval before execution.
   // When in this phase:
@@ -192,7 +192,7 @@ enum ToolCallStatus {
   // Tool execution failed with an error.
   TOOL_CALL_FAILED = 4;
 
-  // Blocked on user approval (HITL Phase 1).
+  // Blocked on user approval.
   //
   // The tool requires user consent before execution. This status is set when:
   // - Tool has requires_approval=true (from approval policy chain)
@@ -213,7 +213,7 @@ enum ToolCallStatus {
   //   fail the execution.
   TOOL_CALL_WAITING_APPROVAL = 5;
 
-  // User skipped this tool (HITL Phase 1).
+  // User skipped this tool.
   //
   // Terminal state indicating the user chose not to execute this tool.
   // When a tool is skipped:
@@ -327,7 +327,7 @@ enum ToolKind {
 
   // Propose a durable fact about the user for the platform to remember
   // (the first-party remember tool, injected via the synthesized memory
-  // attachment when the execution's recall snapshot is enabled — DD-005).
+  // attachment when the execution's recall snapshot is enabled).
   // Both harnesses: remember. Rendered as a memory-proposal consent chip
   // (verbatim fact + Confirm/Reject), not the generic tool result view —
   // the record it creates stays "proposed" until the user decides.
@@ -662,10 +662,9 @@ enum ApprovalPolicySource {
 // ApprovalEventType is the kind of event in the append-only approval-event
 // stream (see ApprovalEvent in approval.proto).
 //
-// The event stream is the future single source of truth for HITL approvals. In
-// Phase 1 of the approval re-architecture it is computed in *shadow* beside the
-// existing message-scan projection (PendingApproval) and compared for parity in
-// CI — it never feeds the UI yet, so introducing it changes no behavior.
+// The event stream is the single source of truth for HITL approvals:
+// PendingApproval is projected from it, with the message scan kept as a
+// cross-check that must agree.
 //
 // The set covers every way an approval request resolves: the three user
 // decisions (APPROVED / REJECTED / SKIPPED) plus RETRACTED — the platform
@@ -850,8 +849,7 @@ enum ServiceTier {
   // ThinkingMode attribute (stigmer/stigmer#772), and price-neutral
   // parameters (e.g. effort) follow the catalog default variant. Confirmed
   // against the billing ledger 2026-08-06: explicit base params bill base
-  // wire ids on create AND resume (see stigmer-cloud
-  // _projects/2026-08/20260806.04.model-service-tier).
+  // wire ids on create AND resume.
   SERVICE_TIER_STANDARD = 1;
 
   // Fast tier: the model's fast variant, billed at the registry's fast
@@ -1027,10 +1025,10 @@ enum FileCaptureClass {
   // A git-untracked (but not ignored) file captured into the snapshot.
   FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED = 2;
 
-  // A gitignored file captured via CAS (Phase 3).
+  // A gitignored file captured via CAS.
   FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED = 3;
 
-  // A file in a non-git workspace captured via CAS (Phase 3).
+  // A file in a non-git workspace captured via CAS.
   FILE_CAPTURE_CLASS_NON_GIT_CAS = 4;
 }
 
@@ -1073,7 +1071,7 @@ enum SnapshotKind {
   // A git no-commit tree ref (git-tracked/untracked paths only).
   SNAPSHOT_KIND_GIT_TREE_REF = 1;
 
-  // A content-addressed manifest (ignored/non-git paths; Phase 3).
+  // A content-addressed manifest (ignored/non-git paths).
   SNAPSHOT_KIND_CAS_MANIFEST = 2;
 
   // Both a git tree ref and a CAS manifest (mixed workspace).
@@ -1114,7 +1112,7 @@ enum FileDecisionAction {
 // never folded into any digest. UNSPECIFIED (decisions authored before this
 // field existed) reads as a human decision, the only author that existed then.
 enum FileDecisionOrigin {
-  // Default value: a pre-DD-28 decision with no recorded origin. Treated as
+  // Default value: a decision recorded before origins existed. Treated as
   // USER by every consumer (the only author that existed before origins).
   FILE_DECISION_ORIGIN_UNSPECIFIED = 0;
 
@@ -1185,7 +1183,7 @@ enum FileReviewBlockReason {
   // wire already conveys elsewhere (a binary side via FileContent.is_binary).
   FILE_REVIEW_BLOCK_REASON_UNSPECIFIED = 0;
 
-  // A secret-like path (doc 12, DD-E): the bytes were deliberately never
+  // A secret-like path: the bytes were deliberately never
   // captured, so there is nothing to review. Authored content-less by the runner.
   FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD = 1;
 

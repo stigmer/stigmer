@@ -60,6 +60,6 @@ message CatchBlock {
   // Compensation failures do not prevent the catch block from running.
   // They are logged and included in the task output for diagnostics.
   //
-  // Default: false (no compensation — preserves pre-T17 behavior).
+  // Default: false (no compensation).
   bool compensate = 3;
 }

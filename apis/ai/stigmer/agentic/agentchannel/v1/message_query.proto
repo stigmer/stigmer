@@ -10,7 +10,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // business-initiated messaging on agent channels.
 //
 // @internal
-// proactive-messaging DD-003 D6: the query sibling of
+// The query sibling of
 // ChannelMessageCommandController — runtime messaging traffic (the send
 // and its supporting reads) stays off the resource CRUD surface.
 service ChannelMessageQueryController {
@@ -23,15 +23,13 @@ service ChannelMessageQueryController {
   // truth; entries carry its vocabulary verbatim.
   //
   // @internal
-  // DD-003 D6. Same in-handler token-class reach as sendMessage (DD-002
-  // D2/D4): sandbox tokens resolve through the serving channel, direct
+  // Same in-handler token-class reach as sendMessage: sandbox tokens resolve through the serving channel, direct
   // principals through channel visibility; fail closed. The WABA id is
   // derived from the channel's phone_number_id on demand and cached —
   // never stored. A token missing the management scope
-  // degrades this read only, never sends (DD-003 D7, Meta error 200 →
+  // degrades this read only, never sends (Meta error 200 →
   // FAILED_PRECONDITION pointing at token regeneration). Cloud-first
-  // runtime: the OSS edition returns FAILED_PRECONDITION (decision 001
-  // D-g posture).
+  // runtime: the OSS edition returns FAILED_PRECONDITION.
   rpc listTemplates(ListChannelTemplatesInput) returns (ChannelTemplates) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -43,9 +41,9 @@ service ChannelMessageQueryController {
   // agent with no proactive-messaging channel receives an empty list.
   //
   // @internal
-  // proactive-messaging DD-006 D2: the runner's tool-attachment
-  // decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
-  // sandbox token structurally receives an empty list there). Cloud
+  // The runner's tool-attachment decision, instead of AgentChannel's
+  // getByAgent (FGA-scoped — a sandbox token structurally receives an
+  // empty list there). Cloud
   // answers from the SAME candidate computation ChannelMessagingReach
   // uses (chain → serving proactive channels → sender-registry filter),
   // so the attachment decision and the send authorization can never

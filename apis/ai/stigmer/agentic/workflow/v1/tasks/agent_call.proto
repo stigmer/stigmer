@@ -16,8 +16,7 @@ import "google/protobuf/struct.proto";
 // @internal
 // This message is the workflow DSL's adoption of the shared
 // AgentInvocation vocabulary (agentexecution/v1/invocation.proto) at
-// the TYPE level — issue stigmer/stigmer#358, per DD-018
-// (whatsapp-proactive-messaging, stigmer-cloud). Because
+// the TYPE level (stigmer/stigmer#358). Because
 // WorkflowTask.task_config is a "kind + Struct" envelope, this message
 // IS the authoring schema: its field names are the YAML keys workflow
 // authors write. Embedding AgentInvocation as a nested message would
@@ -40,8 +39,7 @@ import "google/protobuf/struct.proto";
 //                server-side at execution create, never carried in the
 //                create request (the schedule/channel/share posture).
 //
-// Surface-specific fields with their reasons (the DD-017/018 bucket
-// discipline):
+// Surface-specific fields with their reasons:
 // - env: the workflow's context-forwarding channel. Values are JQ
 //   expressions resolved from workflow state/secrets at run time, not
 //   plaintext literals in a manifest — which is why AgentInvocation's
@@ -207,8 +205,7 @@ message AgentCallTaskConfig {
   // Maps onto SessionSpec.workspace_entries of the session each call
   // creates. Surface constraint, enforced in workflow validation (both
   // editions): sources must be git_repo — no client is connected to
-  // serve a local_path when a workflow task fires. Credentials follow
-  // DD-018 D-4: the provisioner resolves GITHUB_TOKEN from the merged
+  // serve a local_path when a workflow task fires. Credentials: the provisioner resolves GITHUB_TOKEN from the merged
   // environment; for private repos the supported contract is an
   // org-visibility Environment holding GITHUB_TOKEN bound via
   // environment_refs. Public repos need no token.

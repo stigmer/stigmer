@@ -68,7 +68,7 @@ message ToolCall {
   string error = 9;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Approval Fields (HITL Phase 1)
+  // Approval Fields
   //
   // These fields track the approval state for tools that require user consent
   // before execution. Populated only for tools where approval is configured.
@@ -225,10 +225,10 @@ message ToolCall {
   // Field 21: appended after tool_kind (20), the prior maximum.
   ToolCallOutputRef output_ref = 21;
 
-  // Field 22 (file_changes) was removed in Phase 5 Slice 4: file review moved to
+  // Field 22 (file_changes) was removed: file review moved to
   // the apply-then-review FileChangeSet ledger (AgentExecutionStatus.
   // file_change_sets + file_review_event_stream), so the tool-call-coupled
-  // FileChange copy is obsolete. See design-decisions 21 & 22.
+  // FileChange copy is obsolete.
   reserved 22;
 
   // ─────────────────────────────────────────────────────────────────────────────

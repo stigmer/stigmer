@@ -179,7 +179,7 @@ message AgentExecutionSpec {
   bytes callback_token = 6;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Approval Configuration (HITL Phase 1)
+  // Approval Configuration
   //
   // Runtime control over approval behavior for this specific execution.
   // ─────────────────────────────────────────────────────────────────────────────
@@ -225,7 +225,8 @@ message AgentExecutionSpec {
   // 2. The agent-execution workflow's HITL loop signals
   //    "child_approval_required" to this workflow ID on EVERY approval
   //    cycle, carrying only the child execution id as a bare string
-  //    (identity-only, cloud#509).
+  //    (identity-only: proto-encoded payloads poisoned the receiving
+  //    workflow task).
   // 3. The receiver derives the pending approvals by reading the child
   //    execution record — the signal is never a payload copy that can drift.
   //
@@ -353,13 +354,13 @@ message AgentExecutionSpec {
   //
   // @internal
   // Composed per turn by the cloud channel runtime — ChannelSessionBroker
-  // over the DD-004 timeline stitch, windowed by the conversation's
-  // agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
+  // over the conversation timeline stitch, windowed by the conversation's
+  // agent_witnessed_through watermark.
   // The OSS server never sets it. The runner prepends the framed digest to
-  // the turn's user message on both harnesses (A27) and must never read
+  // the turn's user message on both harnesses and must never read
   // window_end. Top-level rather than inside ExecutionConfig by design:
   // conversation content must not vanish with the execution-profile
-  // kill-switch (DD-006 D-a).
+  // kill-switch.
   ConversationCatchup conversation_catchup = 14;
 
   // Standing preferences declared by the organization and the calling user,
@@ -375,8 +376,8 @@ message AgentExecutionSpec {
   // the edition classifies as a visitor, admitted to the organization's
   // agents without belonging to it (the hosted edition's shared-agent
   // guests and channel senders), never does (stigmer#1401). user_context is
-  // composed only for first-party human operators (DD-002 D4 as amended
-  // 2026-08-15: never for machine, impersonated, guest, channel, schedule,
+  // composed only for first-party human operators (since 2026-08-15:
+  // never for machine, impersonated, guest, channel, schedule,
   // runner, or platform-client-user callers), and only where callers are
   // persons (the require-authentication posture, every edition;
   // stigmer#1397); the single-operator posture (trusted-local) composes
@@ -392,7 +393,7 @@ message AgentExecutionSpec {
   // create time (optional).
   //
   // @internal
-  // Every DD-002 D2 invariant carries over from declared_preferences
+  // Every declared_preferences invariant carries over
   // verbatim: SERVER-OWNED (the create pipeline stamps this
   // field unconditionally — enabled=false with no facts for excluded
   // callers — overwriting any caller-supplied value, so injection via
@@ -408,14 +409,13 @@ message AgentExecutionSpec {
   // the audit links back to the addressable record; what the model
   // actually saw is this snapshot joined to
   // status.recalled_memories_report, whose absence means wholesale —
-  // the full set — by construction, DD-008 D5); best-effort (a memory
+  // the full set — by construction); best-effort (a memory
   // load failure degrades to disabled, never fails the create);
   // top-level rather than inside ExecutionConfig (must not vanish with
   // the execution-profile kill-switch). The enabled bit doubles as the
   // runner's signal to offer the remember tool — one
-  // server-owned field, one writer, no parallel flag. Composed by
-  // Stage 2's compose steps; the field is reserved here by Stage 1 so
-  // all Phase 2 contract changes land in one codegen pass.
+  // server-owned field, one writer, no parallel flag. Composed by the
+  // create pipeline's compose steps.
   RecalledMemories recalled_memories = 16;
 }
 
@@ -610,7 +610,7 @@ message ExecutionConfig {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Context Management Configuration (Phase 3)
+// Context Management Configuration
 //
 // Controls automatic context summarization for long-running conversations.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -781,10 +781,9 @@ message Attachment {
 // @internal
 // Present on EVERY channel turn — even with an empty digest — so window_end
 // can advance the conversation's agent_witnessed_through watermark when the
-// turn settles (channel-conversations DD-006 as amended by T03 Sitting 3,
-// A21). Content is composed in the cloud; presentation (preamble, framing,
+// turn settles. Content is composed in the cloud; presentation (preamble, framing,
 // prompt placement) is owned by the OSS runner's shared/conversation-catchup
-// module — the DD-013 content/presentation split.
+// module — content and presentation are split.
 message ConversationCatchup {
   // Plain-text digest of what the agent missed, oldest first; empty when
   // nothing was missed.
@@ -801,10 +800,10 @@ message ConversationCatchup {
   // @internal
   // Cloud bookkeeping, NEVER read by the runner. The delivery settle path
   // advances the conversation's agent_witnessed_through watermark to this
-  // instant when the execution COMPLETED and the settle won (DD-007 D-b as
-  // sharpened by A26). Set on every channel turn, digest or not (A21); its
+  // instant when the execution COMPLETED and the settle won. Set on every
+  // channel turn, digest or not; its
   // value is the broker's compose instant, which is strictly later than the
-  // turn's own inbound message (A24).
+  // turn's own inbound message.
   google.protobuf.Timestamp window_end = 2;
 }
 
@@ -856,7 +855,7 @@ message RecalledMemories {
   //
   // @internal
   // The compose steps stamp EVERY confirmed fact, never a compose-time
-  // truncation (DD-006 D5 as revised by DD-008): this is the auditable
+  // truncation: this is the auditable
   // CANDIDATE set, not necessarily the injected set. Above the
   // retriever's activation threshold the runner selects the most
   // relevant subset at prompt build and records it in

@@ -10,11 +10,11 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // MemoryQueryController handles read operations for memories.
 //
 // @internal
-// Content visibility is subject-only (DD-004 as ratified): org admins
+// Content visibility is subject-only: org admins
 // govern the memory_enabled switch but never read members' memories.
 // The one deliberate exception is the recalled_memories snapshot on an
 // execution spec, readable by anyone who can read that execution
-// (DD-006 D6 — snapshot transparency); these RPCs are not that
+// (snapshot transparency); these RPCs are not that
 // exception. Not search-indexed: memory content stays out of the
 // global search index by design.
 service MemoryQueryController {

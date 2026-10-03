@@ -17,7 +17,7 @@ import "buf/validate/validate.proto";
 // referenced by many AgentChannel connections via spec.app_ref.
 //
 // @internal
-// T04 item 2 (channel strategy tasks/T03_4). Structural sibling of
+// Structural sibling of
 // OAuthApp (kind 22) — an org-owned credential holder with encrypted
 // inline secrets — but a different trust surface: OAuthApp models
 // user-authorization OAuth (authorize/token/userinfo URLs); a ChannelApp

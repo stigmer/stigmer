@@ -16,7 +16,7 @@ import "buf/validate/validate.proto";
 // deletable — the record is the trust surface over the recall seam.
 //
 // @internal
-// DD-004: system-generated kind (no apply RPC — nobody authors a memory
+// System-generated kind (no apply RPC — nobody authors a memory
 // manifest), org-scoped with a subject identity-account tuple, so
 // cross-org recall is structurally impossible and content visibility is
 // subject-only. The lifecycle (proposed → confirmed/rejected) lives in
