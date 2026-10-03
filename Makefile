@@ -94,7 +94,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -243,6 +243,16 @@ gen-authorization-model-check: ## Verify the authorization model JSON is up to d
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@node_modules/.bin/tsx tools/codegen/src/authorization-model/main.ts \
 		--model-dir $(AUTHZ_MODEL_DIR) --out $(AUTHZ_MODEL_JSON) --check
+
+gen-substrate-stubs: ## Generate the substrate sandbox driver's Agent Substrate API stubs (server-private, from the tag in its buf.gen.substrate.yaml)
+	cd $(SERVER_DIR) && buf generate --template buf.gen.substrate.yaml -o src/sandbox/substrate
+
+gen-substrate-stubs-check: ## Verify the committed Agent Substrate stubs match their generator config (CI)
+	@tmp=$$(mktemp -d) && \
+	(cd $(SERVER_DIR) && buf generate --template buf.gen.substrate.yaml -o $$tmp) && \
+	if ! diff -r $$tmp/gen $(SERVER_DIR)/src/sandbox/substrate/gen > /dev/null; then \
+		rm -rf $$tmp; echo "error: the Agent Substrate stubs are stale — run 'make gen-substrate-stubs'"; exit 1; \
+	fi; rm -rf $$tmp
 
 stubs-internal-check: ## Verify committed stubs carry no @internal comment sections (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }

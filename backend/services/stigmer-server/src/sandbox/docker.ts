@@ -34,6 +34,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import type {
+  SandboxDriverConfig,
   SandboxEnvironment,
   SandboxProbeState,
   SandboxProvisioner,
@@ -59,6 +60,62 @@ const RUNNER_CONTAINER_COMMAND = ["node", "/runner/dist/main.js"];
 
 /** The in-container workspace mount point (the cloud manifest's value). */
 const CONTAINER_WORKSPACE_DIR = "/workspace";
+
+/**
+ * One sandbox's `docker run`: its arguments, and the secret values the CLI
+ * must hold in its own environment for the value-less `--env NAME`
+ * arguments to pick up (module header: no credential in argv). The token,
+ * the Temporal connection settings and the operator's runner secrets ride
+ * that channel, since they carry credentials and PEM text does not belong
+ * on a command line; every other value, the operator's plain runner
+ * settings included, rides argv like the endpoints.
+ */
+export function buildDockerRun(
+  scope: SandboxScope,
+  id: string,
+  env: SandboxEnvironment,
+  config: SandboxDriverConfig,
+): { readonly args: string[]; readonly secretEnv: Record<string, string> } {
+  const args = [
+    "run",
+    "--detach",
+    "--name",
+    sandboxBaseName(scope, id),
+    "--label",
+    `${SANDBOX_MANAGED_BY_LABEL}=${SANDBOX_MANAGED_BY_VALUE}`,
+    "--label",
+    `${SANDBOX_SCOPE_LABEL}=${scope}`,
+    "--label",
+    `${SANDBOX_ID_LABEL}=${id}`,
+    "--env",
+    "MODE=local",
+    "--env",
+    `STIGMER_TASK_QUEUE=${env.taskQueue}`,
+    "--env",
+    `STIGMER_BACKEND_ENDPOINT=${config.backendEndpoint}`,
+    "--env",
+    `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
+    "--env",
+    `TEMPORAL_NAMESPACE=${config.temporalNamespace}`,
+    "--env",
+    `WORKSPACE_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}`,
+    ...(config.mcpPublicEndpoint !== ""
+      ? ["--env", `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`]
+      : []),
+    ...Object.entries(config.runnerEnv).flatMap(([name, value]) => [
+      "--env",
+      `${name}=${value}`,
+    ]),
+  ];
+  const secretEnv: Record<string, string> = {
+    ...config.runnerSecretEnv,
+    ...config.temporalConnectionEnv,
+  };
+  if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
+  for (const name of Object.keys(secretEnv)) args.push("--env", name);
+  args.push(config.runnerImage, ...RUNNER_CONTAINER_COMMAND);
+  return { args, secretEnv };
+}
 
 export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   config,
@@ -121,46 +178,13 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       logger.info("Docker sandbox restarted", { scope, id, container: name });
       return;
     }
-    const runArgs = [
-      "run",
-      "--detach",
-      "--name",
-      name,
-      "--label",
-      `${SANDBOX_MANAGED_BY_LABEL}=${SANDBOX_MANAGED_BY_VALUE}`,
-      "--label",
-      `${SANDBOX_SCOPE_LABEL}=${scope}`,
-      "--label",
-      `${SANDBOX_ID_LABEL}=${id}`,
-      "--env",
-      "MODE=local",
-      "--env",
-      `STIGMER_TASK_QUEUE=${env.taskQueue}`,
-      "--env",
-      `STIGMER_BACKEND_ENDPOINT=${config.backendEndpoint}`,
-      "--env",
-      `TEMPORAL_SERVICE_ADDRESS=${config.temporalAddress}`,
-      "--env",
-      `TEMPORAL_NAMESPACE=${config.temporalNamespace}`,
-      "--env",
-      `WORKSPACE_ROOT_DIR=${CONTAINER_WORKSPACE_DIR}`,
-      ...(config.mcpPublicEndpoint !== ""
-        ? ["--env", `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`]
-        : []),
-    ];
-    // Value-less --env inherits from the CLI's environment (module header:
-    // the token must never appear in argv). The Temporal connection
-    // settings ride the same channel: they carry credentials, and PEM text
-    // does not belong on a command line.
-    const secretEnv: Record<string, string> = { ...config.temporalConnectionEnv };
-    if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
-    let runEnv: NodeJS.ProcessEnv | undefined;
-    if (Object.keys(secretEnv).length > 0) {
-      for (const name of Object.keys(secretEnv)) runArgs.push("--env", name);
-      runEnv = { ...process.env, ...secretEnv };
-    }
-    runArgs.push(config.runnerImage, ...RUNNER_CONTAINER_COMMAND);
-    await docker(runArgs, runEnv);
+    const run = buildDockerRun(scope, id, env, config);
+    await docker(
+      run.args,
+      Object.keys(run.secretEnv).length > 0
+        ? { ...process.env, ...run.secretEnv }
+        : undefined,
+    );
     logger.info("Docker sandbox provisioned", {
       scope,
       id,

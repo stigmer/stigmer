@@ -1,7 +1,8 @@
 /**
  * Smoke test for the Docker driver: the real docker
  * CLI, the full provision → probe → stop/start → deprovision cycle, and
- * the label/env contract on the live container.
+ * the label/env contract on the live container, the operator's runner
+ * lists included.
  *
  * Gated HONESTLY, never silently: it runs only when Docker answers AND
  * the operator opts in with STIGMER_SANDBOX_DOCKER_SMOKE=1 — the smoke
@@ -55,6 +56,8 @@ describe.skipIf(!optedIn || !dockerAnswers())(
         "ghcr.io/stigmer/runner:latest",
       runnerCommand: "unused-by-this-driver",
       kubernetesNamespace: "unused-by-this-driver",
+      runnerEnv: { ANTHROPIC_BASE_URL: "http://host.docker.internal:18555" },
+      runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-docker-smoke" },
     };
     const driver = newDockerSandboxProvisioner({
       config,
@@ -92,6 +95,14 @@ describe.skipIf(!optedIn || !dockerAnswers())(
       expect(container?.Config.Env).toContain("MODE=local");
       expect(container?.Config.Env).toContain(
         `STIGMER_MCP_PUBLIC_ENDPOINT=${config.mcpPublicEndpoint}`,
+      );
+      // The operator's runner lists: the setting by value, the secret
+      // through the CLI's environment (never argv).
+      expect(container?.Config.Env).toContain(
+        "ANTHROPIC_BASE_URL=http://host.docker.internal:18555",
+      );
+      expect(container?.Config.Env).toContain(
+        "ANTHROPIC_API_KEY=sk-docker-smoke",
       );
 
       // Idempotent fast path.

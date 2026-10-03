@@ -574,14 +574,38 @@ export type { SecretCodec } from "./encryption/codec.js";
 // SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
 // registrations may never shadow.
 export type {
+  SandboxBackgroundContext,
+  SandboxBackgroundHandle,
   SandboxDriverConfig,
   SandboxEnvironment,
   SandboxProbeState,
   SandboxProvisioner,
   SandboxProvisionerFactory,
   SandboxScope,
+  SessionActivity,
+  SessionActivityReader,
 } from "./sandbox/provisioner.js";
 export { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "./sandbox/provisioner.js";
+
+// The substrate driver (Agent Substrate actors that sleep and wake with
+// their files) for a composition that builds it itself: its provisioner,
+// its lifecycle operations for a composition's own idle sweep, and the
+// settings it reads from STIGMER_SANDBOX_SUBSTRATE_*.
+export type {
+  SubstrateDriverSettings,
+  SubstrateHttpDestination,
+  SubstrateHttpsEgress,
+} from "./sandbox/substrate/config.js";
+export { newSubstrateSettingsFromEnv } from "./sandbox/substrate/config.js";
+export type {
+  SubstrateActorSummary,
+  SubstrateSandboxLifecycle,
+  SubstrateSandboxState,
+  SubstrateReattachResult,
+} from "./sandbox/substrate/driver.js";
+export type { PushResult as SubstrateAttachPushResult } from "./sandbox/substrate/push.js";
+export type { SubstrateSandboxDriverHandle } from "./sandbox/substrate/builtin.js";
+export { newSubstrateSandboxDriver } from "./sandbox/substrate/builtin.js";
 
 // The capacity-gate seams: the dispatch-policy configs a capacity gate
 // reads — the UNSPECIFIED-resolution rules and routing modes are single

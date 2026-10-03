@@ -157,19 +157,39 @@ Two consequences for a team:
 ## A runner per Session
 
 The shared runner is one posture. The server can also start a runner per
-Session, the way Stigmer Cloud does, through a sandbox provisioner. Three
+Session, the way Stigmer Cloud does, through a sandbox provisioner. Four
 built-in drivers exist, selected with `SANDBOX_PROVISIONER_TYPE` on the server:
 `local-process` (a child process per Session), `docker` (a container per
-Session) and `kubernetes` (a Deployment per Session in the namespace
-`STIGMER_SANDBOX_K8S_NAMESPACE` names). The container drivers need the addresses
-a sandbox reaches the server and Temporal on, `STIGMER_SANDBOX_BACKEND_ENDPOINT`
-and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and take the image and command from
-`STIGMER_SANDBOX_RUNNER_IMAGE` and `STIGMER_SANDBOX_RUNNER_COMMAND`. Every
-driver hands its runners the server's public address when
-`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT` names it; without it, remote tool servers
-that declare `STIGMER_SERVER_ADDRESS` get no address. Each sandboxed runner gets
-the server's Temporal namespace and its `STIGMER_TEMPORAL_*` connection
-settings, the credentials through the same channel as the runner's token.
+Session), `kubernetes` (a Deployment per Session in the namespace
+`STIGMER_SANDBOX_K8S_NAMESPACE` names) and `substrate` (an Agent Substrate actor
+per Session that sleeps while the Session is idle, below). The container drivers
+need the addresses a sandbox reaches the server and Temporal on,
+`STIGMER_SANDBOX_BACKEND_ENDPOINT` and `STIGMER_SANDBOX_TEMPORAL_ADDRESS`, and
+take the image and command from `STIGMER_SANDBOX_RUNNER_IMAGE` and
+`STIGMER_SANDBOX_RUNNER_COMMAND`. Every driver hands its runners the server's
+public address when `STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT` names it; without it,
+remote tool servers that declare `STIGMER_SERVER_ADDRESS` get no address. Each
+sandboxed runner gets the server's Temporal namespace and its
+`STIGMER_TEMPORAL_*` connection settings, the credentials through the same
+channel as the runner's token.
+
+A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
+runner needs the keys the shared runner would have. Name them in two lists on
+the server, each a comma-separated list of variables whose values the server
+reads from its own process at boot: `STIGMER_SANDBOX_RUNNER_SECRETS` for secrets
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CURSOR_API_KEY`), which every driver
+delivers the way it delivers the runner's token, and
+`STIGMER_SANDBOX_RUNNER_ENV` for plain settings (`ANTHROPIC_BASE_URL`). The
+server refuses to boot when a listed variable is unset, when one name is on both
+lists, when the plain list names one of the runner's own secrets, or when a list
+names a variable the driver sets itself, such as `STIGMER_TOKEN`.
+
+The runner keeps its own secrets (the model and Cursor keys, and its Temporal
+and payload-encryption keys) out of every process an Agent starts. Any other
+name on the secrets list, `GITHUB_TOKEN` say, is delivered as a secret but
+reaches the runner as an ordinary variable, without that protection. On the
+`substrate` driver the server refuses such a name at boot, because a Substrate
+sandbox's runner takes only its own secrets.
 
 A provisioner changes how runs are routed. Each Session gets its own queue,
 `session:<id>`, which is `STIGMER_ACTIVITY_ROUTING=session`; and a Session is
@@ -185,12 +205,90 @@ SANDBOX_PROVISIONER_TYPE='docker' requires a per-queue routing mode — set STIG
 <Callout type="warn">
   **The shipped stack can't exercise this yet.** The published server image
   carries no `docker` CLI and the compose file mounts no Docker socket, so the
-  `docker` driver fails at its first Session. And the two container drivers hand
-  the per-Session runner no artifact path, so attachments a run needs don't
-  resolve ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)). The
-  chart offers no sandbox values until that lands. This section describes the
+  `docker` driver fails at its first Session. And the container drivers hand the
+  per-Session runner no artifact path, so attachments a run needs don't resolve
+  ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)). The chart
+  offers no sandbox values until that lands. This section describes the
   mechanism so the settings you meet in the server's configuration make sense;
   it isn't a procedure.
+</Callout>
+
+### Sessions that sleep, with the `substrate` driver
+
+On [Agent Substrate](https://github.com/agent-substrate/substrate), each
+Session's runner lives in a gVisor actor. After
+`STIGMER_SANDBOX_SUBSTRATE_PAUSE_AFTER_SECONDS` idle (300 by default) the server
+pauses it in place, keeping its memory, and after
+`STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS` (1800) it suspends it,
+committing the Session's files to storage and releasing its memory. The next
+message wakes it with its files intact and a fresh runner. A Session with a run
+in progress, waiting for approval or paused is never put to sleep. These two
+windows are a first estimate, not a measurement yet; a paused runner may sleep
+at most 30 minutes, so the server refuses windows that would keep it paused
+longer. Workflow and connect sandboxes don't sleep; they end with their run.
+
+A new value for one of the runner's secrets, a model key for one, takes effect
+when the server restarts with it, and reaches each sandbox at its next fresh
+start: at once for a Session that is asleep, but only after its next idle
+suspend for one whose runner is awake, and never while it stays busy. To cut off
+a leaked key at once, delete or suspend the sandboxes that hold it.
+
+Every Session's actor comes from one template the server creates and names by
+its content, so a new runner image or setting makes a new template. Sleeping
+Sessions move to it when they next wake, at the cost of one fresh start, and the
+server deletes old templates nothing uses any more.
+
+What the driver needs:
+
+- **Agent Substrate v0.3.0, exactly.** Substrate refuses fields it doesn't know,
+  so the server speaks the one release its stubs were generated from.
+- **Its Control API**: `STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT` (an `https://`
+  URL; in the cluster, `https://api.ate-system.svc:443`), the CA that signs it
+  (`STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE`) and, when you reach it under another
+  name, the name its certificate carries
+  (`STIGMER_SANDBOX_SUBSTRATE_API_SERVER_NAME`, `api.ate-system.svc`). The
+  server authenticates with a bearer token read from
+  `STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE`, and reads the file again when it
+  changes, so a projected ServiceAccount token can rotate.
+- **Its router**: `STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL`, the address the server
+  pushes each Session's queue and credentials through.
+- **Where actors live**: an atespace the server owns
+  (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it), the labels of
+  the WorkerPool they run on (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as
+  `key=value,…`), and the bucket prefix their files are committed under
+  (`STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION`).
+- **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
+  (`…@sha256:…`), and fully qualified DNS names, not addresses, short names or
+  patterns, in the backend and Temporal endpoints and the extra destinations:
+  egress rules name hosts, and Substrate's gateway resolves a short name among
+  its own services.
+- **Cleartext lanes inside the cluster.** The runner reaches the server and
+  Temporal in cleartext: an `http://` backend endpoint (and MCP endpoint, when
+  you set one), and none of the server's `STIGMER_TEMPORAL_*` connection
+  settings (TLS, an API key, certificates). Substrate's gateway can carry TLS
+  only by decrypting it, which breaks a Temporal client certificate or a pinned
+  CA, and Substrate v0.3.0 doesn't yet serve its rule for passing TLS through
+  untouched. The server refuses to boot otherwise; these lanes can use TLS once
+  Substrate serves that rule.
+
+What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
+you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name
+through Substrate's intercepting gateway, unless you set
+`STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS=none`. The HTTPS access needs
+Substrate's egress gateway installed with its CA pool; every tool in the sandbox
+is pointed at that CA. SSH, database protocols, HTTP/3 and TLS that isn't HTTP
+don't pass.
+
+<Callout type="warn">
+  **Two things Substrate leaves to you.** Its router reaches every actor by a
+  header, and a sandbox accepts the first push it receives, so the router must
+  be reachable by the server and by no sandbox. The driver refuses to let an
+  actor's egress name it, and the HTTPS gateway refuses Substrate's own services
+  because their certificates come from the cluster's private CA; that holds only
+  while you never serve the router or the Control API under a publicly trusted
+  certificate at an address the gateway can reach. And Substrate's Control API
+  has no permissions yet: the server's token controls every actor, template and
+  worker of that Substrate, so give the server one of its own.
 </Callout>
 
 ## Next step

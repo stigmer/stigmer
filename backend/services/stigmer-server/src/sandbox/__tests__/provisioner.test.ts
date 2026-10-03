@@ -8,12 +8,18 @@
  *     can never shadow a built-in name;
  *   - sandboxBaseName is the Java SandboxObjectNaming derivation
  *     (sbx-<code>-<12-hex-sha256>), deterministic and DNS-1123-safe for
- *     resource-id alphabets.
+ *     resource-id alphabets;
+ *   - the queue each scope's sandbox serves, as minted by its own domain,
+ *     is SANDBOX_QUEUE_PREFIXES' prefix plus the id (the table the
+ *     runner's attach waiter checks its own against).
  */
 import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";
-import { sandboxBaseName } from "../naming.js";
+import { connectTaskQueueFor } from "../../temporal/mcpserver/names.js";
+import { formatSessionTaskQueue } from "../../temporal/agentexecution/dispatch.js";
+import { formatWfExecTaskQueue } from "../../temporal/workflowexecution/names.js";
+import { SANDBOX_QUEUE_PREFIXES, sandboxBaseName } from "../naming.js";
 import type {
   SandboxDriverConfig,
   SandboxProvisioner,
@@ -39,6 +45,8 @@ const driverConfig: SandboxDriverConfig = {
   runnerImage: "ghcr.io/stigmer/runner:latest",
   runnerCommand: "stigmer-runner",
   kubernetesNamespace: "stigmer-sandboxes",
+  runnerEnv: {},
+  runnerSecretEnv: {},
 };
 
 function fakeFactory(marker: {
@@ -122,6 +130,7 @@ describe("newSandboxProvisioner selection", () => {
       "local-process",
       "docker",
       "kubernetes",
+      "substrate",
     ]);
   });
 });
@@ -143,5 +152,19 @@ describe("sandboxBaseName (the Java SandboxObjectNaming derivation)", () => {
       const name = sandboxBaseName(scope, "wfx_01J_UNDERSCORED.id");
       expect(name).toMatch(new RegExp(`^sbx-${code}-[0-9a-f]{12}$`));
     }
+  });
+});
+
+describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () => {
+  it("is what each domain's own queue formatter mints", () => {
+    expect(formatSessionTaskQueue("ses_1")).toBe(
+      `${SANDBOX_QUEUE_PREFIXES.session}ses_1`,
+    );
+    expect(formatWfExecTaskQueue("wex_1")).toBe(
+      `${SANDBOX_QUEUE_PREFIXES.workflow}wex_1`,
+    );
+    expect(connectTaskQueueFor("mcx_1")).toBe(
+      `${SANDBOX_QUEUE_PREFIXES.connect}mcx_1`,
+    );
   });
 });

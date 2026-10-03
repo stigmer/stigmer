@@ -7,7 +7,10 @@
  *     the sandbox's own minus the waiter's variables, plus the queue and the
  *     pushed secrets;
  *   - a later push for the same queue starts nothing and may only rotate the
- *     token, and a runner that exits restarts with the latest token;
+ *     token, for one of the same kind and session, and a runner that exits
+ *     restarts with the latest token; a push during a restart's delay
+ *     starts the runner at once;
+ *   - every refusal carries its stable code;
  *   - a push for another sandbox's queue, a malformed push and a wrong method
  *     start nothing;
  *   - a runner that cannot be started at all is retried once per failure,
@@ -26,7 +29,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { onlyTokenRotated, spawnErrorCode, startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
+import { laterPushRefusal, spawnErrorCode, startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
 
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
@@ -171,9 +174,9 @@ describe("attach waiter", () => {
     await push(w, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: token, STIGMER_RUNNER_HITL_SECRET: "first" } });
     await until(() => started().length === 1);
     const swapped = await push(w, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: token, STIGMER_RUNNER_HITL_SECRET: "attacker" } });
-    expect(swapped.status).toBe(409);
+    expect(swapped).toMatchObject({ status: 409, body: { code: "secrets_changed" } });
     const dropped = await push(w, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_RUNNER_HITL_SECRET: "first" } });
-    expect(dropped).toEqual({ status: 409, body: { error: "a later push may not drop STIGMER_TOKEN" } });
+    expect(dropped).toEqual({ status: 409, body: { error: "a later push may not drop STIGMER_TOKEN", code: "token_mismatch" } });
 
     // The refused pushes changed nothing: a restart still carries the first push's secrets.
     process.kill(Number(started()[0]!.replace(".json", "")), "SIGKILL");
@@ -208,6 +211,34 @@ describe("attach waiter", () => {
     [50, 100, 200, 200].forEach((floor, i) => expect(gaps[i]).toBeGreaterThanOrEqual(floor - 5));
   });
 
+  it("starts a runner waiting out its restart delay at once when a push arrives", async () => {
+    const logs: string[] = [];
+    let spawns = 0;
+    // 1: dies at once, so a 10-second delay starts; 2: stays.
+    const spawner: RunnerSpawner = () => {
+      spawns += 1;
+      const fake = stayingRunner();
+      if (spawns === 1) setImmediate(() => fake.emit("exit", 1, null));
+      return fake;
+    };
+    waiter = await startAttachWaiter({
+      port: 0,
+      readSandboxName: () => SESSION_SANDBOX,
+      runnerEntry: entry,
+      baseEnv: {},
+      spawnRunner: spawner,
+      restartDelayMs: 10_000,
+      log: (m) => logs.push(m),
+    });
+    await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} });
+    await until(() => logs.some((m) => m.includes("restarting in 10000ms")));
+    const begun = Date.now();
+    expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).body).toEqual({ taskQueue: SESSION_QUEUE, started: false });
+    expect(spawns).toBe(2);
+    expect(Date.now() - begun).toBeLessThan(10_000);
+    expect(logs).toContain("[attach] a push arrived during the restart delay; restarting now");
+  });
+
   it("leaves the sandbox unattached when a first push's runner cannot start, and logs no value", async () => {
     const logs: string[] = [];
     let throwing = true;
@@ -219,7 +250,7 @@ describe("attach waiter", () => {
     };
     waiter = await startAttachWaiter({ port: 0, readSandboxName: () => SESSION_SANDBOX, runnerEntry: entry, baseEnv: {}, spawnRunner: spawner, log: (m) => logs.push(m) });
     const failed = await push(waiter, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: jwt({ secret: "s3cr3t" }) } });
-    expect(failed).toEqual({ status: 500, body: { error: "the runner could not be started" } });
+    expect(failed).toEqual({ status: 500, body: { error: "the runner could not be started", code: "runner_start_failed" } });
     expect(waiter.attachedQueue()).toBeUndefined();
     expect(logs.join("\n")).not.toContain("s3cr3t");
     expect(logs).toContain("[attach] the runner could not be started (ERR_INVALID_ARG_VALUE)");
@@ -256,11 +287,11 @@ describe("attach waiter", () => {
 
   it("starts nothing for another sandbox's queue, a malformed push or a wrong method", async () => {
     const w = await start();
-    expect((await push(w, { taskQueue: "session:ses_other", secrets: {} })).status).toBe(403);
-    expect((await push(w, "{not json")).status).toBe(400);
-    expect((await push(w, { taskQueue: SESSION_QUEUE, secrets: { NODE_OPTIONS: "x" } })).status).toBe(400);
-    expect((await push(w, undefined, "GET")).status).toBe(405);
-    expect((await push(w, "x".repeat(70 * 1024))).status).toBe(413);
+    expect(await push(w, { taskQueue: "session:ses_other", secrets: {} })).toMatchObject({ status: 403, body: { code: "binding" } });
+    expect(await push(w, "{not json")).toMatchObject({ status: 400, body: { code: "malformed" } });
+    expect(await push(w, { taskQueue: SESSION_QUEUE, secrets: { NODE_OPTIONS: "x" } })).toMatchObject({ status: 400, body: { code: "malformed" } });
+    expect(await push(w, undefined, "GET")).toMatchObject({ status: 405, body: { code: "method_not_allowed" } });
+    expect(await push(w, "x".repeat(70 * 1024))).toMatchObject({ status: 413, body: { code: "too_large" } });
     await new Promise((r) => setTimeout(r, 100));
     expect(started()).toEqual([]);
     expect(w.attachedQueue()).toBeUndefined();
@@ -332,29 +363,46 @@ describe("attach waiter", () => {
     expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).status).toBe(200);
     // A second queue whose name this sandbox now carries still finds it taken.
     const second = await push(waiter, { taskQueue: "session:ses_second", secrets: {} });
-    expect(second).toEqual({ status: 409, body: { error: `this sandbox serves ${SESSION_QUEUE}` } });
+    expect(second).toEqual({ status: 409, body: { error: `this sandbox serves ${SESSION_QUEUE}`, code: "other_queue" } });
     unreadable = true;
     expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).status).toBe(500);
     expect((await fetch(`http://127.0.0.1:${waiter.port}/nope`)).status).toBe(404);
   });
 });
 
-describe("onlyTokenRotated", () => {
+describe("laterPushRefusal", () => {
   it("accepts a later push that rotates or keeps the token and nothing else", () => {
-    expect(onlyTokenRotated({ STIGMER_TOKEN: "a", STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" }, { STIGMER_TOKEN: "b", STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" })).toBeUndefined();
-    expect(onlyTokenRotated({}, {})).toBeUndefined();
-    expect(onlyTokenRotated({}, { STIGMER_TOKEN: "late" })).toBeUndefined();
+    expect(laterPushRefusal({ STIGMER_TOKEN: "a", STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" }, { STIGMER_TOKEN: "b", STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" })).toBeUndefined();
+    expect(laterPushRefusal({}, {})).toBeUndefined();
+    expect(laterPushRefusal({}, { STIGMER_TOKEN: "late" })).toBeUndefined();
   });
 
-  it("refuses a changed, added or removed secret other than the token", () => {
-    expect(onlyTokenRotated({ STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" }, { STIGMER_PAYLOAD_ENCRYPTION_KEY: "x" })).toMatch(/STIGMER_PAYLOAD_ENCRYPTION_KEY differs/);
-    expect(onlyTokenRotated({}, { CURSOR_API_KEY: "k" })).toMatch(/CURSOR_API_KEY differs/);
-    expect(onlyTokenRotated({ CURSOR_API_KEY: "k" }, {})).toMatch(/CURSOR_API_KEY differs/);
+  it("refuses a changed, added or removed secret other than the token, as secrets_changed", () => {
+    expect(laterPushRefusal({ STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" }, { STIGMER_PAYLOAD_ENCRYPTION_KEY: "x" })).toEqual({
+      code: "secrets_changed",
+      reason: expect.stringMatching(/STIGMER_PAYLOAD_ENCRYPTION_KEY differs/),
+    });
+    expect(laterPushRefusal({}, { CURSOR_API_KEY: "k" })?.code).toBe("secrets_changed");
+    expect(laterPushRefusal({ CURSOR_API_KEY: "k" }, {})?.code).toBe("secrets_changed");
   });
 
-  it("refuses dropping a token the first push carried", () => {
-    expect(onlyTokenRotated({ STIGMER_TOKEN: "a" }, {})).toBe("a later push may not drop STIGMER_TOKEN");
-    expect(onlyTokenRotated({ STIGMER_TOKEN: "a" }, { STIGMER_TOKEN: "" })).toBe("a later push may not drop STIGMER_TOKEN");
+  it("refuses dropping a token the first push carried, as token_mismatch", () => {
+    expect(laterPushRefusal({ STIGMER_TOKEN: "a" }, {})).toEqual({ code: "token_mismatch", reason: "a later push may not drop STIGMER_TOKEN" });
+    expect(laterPushRefusal({ STIGMER_TOKEN: "a" }, { STIGMER_TOKEN: "" })?.code).toBe("token_mismatch");
+  });
+
+  it("refuses a token of another kind, or for another session, as token_mismatch", () => {
+    const session = (type: string, sessionId?: string) =>
+      jwt({ token_type: type, ...(sessionId ? { session_id: sessionId } : {}) });
+    expect(laterPushRefusal({ STIGMER_TOKEN: session("sandbox", "ses_a") }, { STIGMER_TOKEN: session("sandbox", "ses_a") })).toBeUndefined();
+    expect(laterPushRefusal({ STIGMER_TOKEN: session("sandbox", "ses_a") }, { STIGMER_TOKEN: session("sandbox", "ses_b") })).toEqual({
+      code: "token_mismatch",
+      reason: "a later push's token names another session than the first push's",
+    });
+    expect(laterPushRefusal({ STIGMER_TOKEN: session("sandbox", "ses_a") }, { STIGMER_TOKEN: session("workflow_sandbox", "ses_a") })?.code).toBe("token_mismatch");
+    // Tokens that name an execution carry no session: a rotation between two
+    // of them is accepted.
+    expect(laterPushRefusal({ STIGMER_TOKEN: session("execution_scoped") }, { STIGMER_TOKEN: session("execution_scoped") })).toBeUndefined();
   });
 });
 

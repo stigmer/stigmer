@@ -36,7 +36,9 @@
  *
  * Status codes: 400 for a malformed push (a NUL byte in any value included:
  * no process can receive it), 403 for one that fails the binding
- * or carries an unusable token.
+ * or carries an unusable token. Every refusal also carries a stable `code`
+ * (`malformed`, `binding`, `token_unusable`; the waiter adds its own), which
+ * a driver acts on; the reason's wording is for people and may change.
  */
 
 import { createHash } from "node:crypto";
@@ -58,9 +60,30 @@ export interface AttachPush {
   readonly secrets: Readonly<Record<string, string>>;
 }
 
+/**
+ * The stable code of every way a push can be refused, by this module or by
+ * the waiter (`waiter.ts`).
+ */
+export type PushRefusalCode =
+  | "malformed"
+  | "binding"
+  | "token_unusable"
+  | "too_large"
+  | "method_not_allowed"
+  | "other_queue"
+  | "secrets_changed"
+  | "token_mismatch"
+  | "runner_start_failed"
+  | "unreadable";
+
 export type PushVerdict =
   | { readonly ok: true; readonly push: AttachPush }
-  | { readonly ok: false; readonly status: 400 | 403; readonly reason: string };
+  | {
+      readonly ok: false;
+      readonly status: 400 | 403;
+      readonly code: PushRefusalCode;
+      readonly reason: string;
+    };
 
 /**
  * The name of the only sandbox allowed to serve a queue, or undefined when the
@@ -78,8 +101,8 @@ export function sandboxNameForQueue(taskQueue: string): string | undefined {
   return undefined;
 }
 
-function refuse(status: 400 | 403, reason: string): PushVerdict {
-  return { ok: false, status, reason };
+function refuse(status: 400 | 403, code: PushRefusalCode, reason: string): PushVerdict {
+  return { ok: false, status, code, reason };
 }
 
 /**
@@ -92,50 +115,50 @@ export function verifyAttachPush(
   nowSeconds: number,
 ): PushVerdict {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return refuse(400, "the push must be a JSON object");
+    return refuse(400, "malformed", "the push must be a JSON object");
   }
   const { taskQueue, secrets } = body as Record<string, unknown>;
   if (typeof taskQueue !== "string" || taskQueue === "") {
-    return refuse(400, "taskQueue must be a non-empty string");
+    return refuse(400, "malformed", "taskQueue must be a non-empty string");
   }
   // An environment value holding a NUL byte cannot reach a process (Node
   // refuses it at spawn), so it is refused here rather than at the start.
   if (taskQueue.includes("\u0000")) {
-    return refuse(400, "taskQueue holds a NUL byte");
+    return refuse(400, "malformed", "taskQueue holds a NUL byte");
   }
   if (typeof secrets !== "object" || secrets === null || Array.isArray(secrets)) {
-    return refuse(400, "secrets must be an object of strings");
+    return refuse(400, "malformed", "secrets must be an object of strings");
   }
   const accepted: Record<string, string> = {};
   for (const [name, value] of Object.entries(secrets as Record<string, unknown>)) {
     if (!SECRET_NAMES.has(name)) {
-      return refuse(400, `secrets may only name the runner's secret variables; got ${name}`);
+      return refuse(400, "malformed", `secrets may only name the runner's secret variables; got ${name}`);
     }
     if (typeof value !== "string") {
-      return refuse(400, `secret ${name} must be a string`);
+      return refuse(400, "malformed", `secret ${name} must be a string`);
     }
     if (value.includes("\u0000")) {
-      return refuse(400, `secret ${name} holds a NUL byte`);
+      return refuse(400, "malformed", `secret ${name} holds a NUL byte`);
     }
     accepted[name] = value;
   }
 
   const expected = sandboxNameForQueue(taskQueue);
   if (expected === undefined) {
-    return refuse(403, `${taskQueue} is not a queue a sandbox serves`);
+    return refuse(403, "binding", `${taskQueue} is not a queue a sandbox serves`);
   }
   if (expected !== sandboxName) {
-    return refuse(403, `this sandbox does not serve ${taskQueue}`);
+    return refuse(403, "binding", `this sandbox does not serve ${taskQueue}`);
   }
 
   const token = accepted.STIGMER_TOKEN ?? "";
   if (token !== "") {
     if (!isJwtShaped(token)) {
-      return refuse(403, "STIGMER_TOKEN is not a JWT");
+      return refuse(403, "token_unusable", "STIGMER_TOKEN is not a JWT");
     }
     const expiry = expiryClaimOf(token);
     if (expiry !== undefined && expiry <= nowSeconds) {
-      return refuse(403, "STIGMER_TOKEN has expired");
+      return refuse(403, "token_unusable", "STIGMER_TOKEN has expired");
     }
   }
 

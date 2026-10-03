@@ -37,6 +37,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Logger } from "../../boot/logger.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
+import { isActiveExecutionPhase } from "../agentexecution/phases.js";
 import type { AgentExecutionTemporalConfig } from "../agentexecution/temporal/config.js";
 import {
   failedPreconditionError,
@@ -255,26 +256,6 @@ export function newRecordHarnessStateHistoryStep(): PipelineStep<SessionDesc> {
 // The cross-kind access to agent_execution rows (another domain's kind) is
 // deliberate — the session owns its executions' lifecycle.
 // ---------------------------------------------------------------------------
-
-/**
- * Whether an execution phase counts as active for the session-delete
- * guard: pending, in progress, waiting for approval, or paused.
- * WAITING_FOR_APPROVAL and PAUSED are deliberately included — the
- * execution is logically alive and expected to resume. Mirrors the Cloud
- * AgentExecutionRepo.countActiveBySessionId phase set (Go
- * isActiveExecutionPhase, default-false switch).
- */
-function isActiveExecutionPhase(phase: ExecutionPhase): boolean {
-  switch (phase) {
-    case ExecutionPhase.EXECUTION_PENDING:
-    case ExecutionPhase.EXECUTION_IN_PROGRESS:
-    case ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
-    case ExecutionPhase.EXECUTION_PAUSED:
-      return true;
-    default:
-      return false;
-  }
-}
 
 /**
  * Every agent execution of the given session, through the list index's

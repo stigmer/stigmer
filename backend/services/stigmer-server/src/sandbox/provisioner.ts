@@ -121,6 +121,50 @@ export interface SandboxProvisioner {
   deprovisionConnectSandbox(sandboxId: string): Promise<void>;
   /** Live-state inspection — consumed by ensure arms and diagnostics. */
   probe(scope: SandboxScope, id: string): Promise<SandboxProbeState>;
+  /**
+   * Optional: work a driver runs in the background for as long as the
+   * server serves, such as putting idle sandboxes to sleep. The
+   * composition root starts it once the server has started its own
+   * loops and stops it, awaited, before Temporal and the store close.
+   * A driver without background work leaves it out; a composition that
+   * wraps a driver and owns that work itself (a sweep over its own
+   * records) simply does not expose it.
+   */
+  startBackground?(context: SandboxBackgroundContext): SandboxBackgroundHandle;
+}
+
+/**
+ * What one session's executions say about it, for a driver deciding
+ * whether its sandbox is idle: busy while any execution is pending, in
+ * progress, waiting for approval or paused (isActiveExecutionPhase), and
+ * the last moment the server itself stamped on one of them (an
+ * execution's creation or completion), undefined when it has none.
+ */
+export interface SessionActivity {
+  readonly busy: boolean;
+  readonly lastActiveAt: Date | undefined;
+}
+
+/**
+ * The server's read of its sessions for background work, over the store
+ * alone (sandbox/session-activity.ts). `sessionIds` pages every session
+ * id; a driver whose sandboxes carry no record of their session uses it
+ * to map its sandbox names back.
+ */
+export interface SessionActivityReader {
+  activity(sessionId: string): Promise<SessionActivity>;
+  sessionIds(): AsyncIterable<string>;
+}
+
+/** What the composition root hands a driver's background work. */
+export interface SandboxBackgroundContext {
+  readonly sessions: SessionActivityReader;
+  readonly logger: Logger;
+}
+
+/** A started driver's background work; `stop` resolves once it is idle. */
+export interface SandboxBackgroundHandle {
+  stop(): Promise<void>;
 }
 
 /**
@@ -165,7 +209,43 @@ export interface SandboxDriverConfig {
   readonly runnerCommand: string;
   /** The namespace the kubernetes driver provisions into. */
   readonly kubernetesNamespace: string;
+  /**
+   * The operator's runner settings for every sandbox (ServerConfig
+   * sandboxRunnerEnv): plain values, delivered the way a driver delivers
+   * its endpoints. Required, like `callerClass`, so a construction site
+   * that forgets them fails to compile.
+   */
+  readonly runnerEnv: Readonly<Record<string, string>>;
+  /**
+   * The operator's runner secrets for every sandbox (ServerConfig
+   * sandboxRunnerSecretEnv), such as an open-source runner's model and
+   * Cursor keys: delivered through the channel the driver uses for the
+   * token, never argv or a plain manifest value.
+   */
+  readonly runnerSecretEnv: Readonly<Record<string, string>>;
 }
+
+/**
+ * The runner variables a driver sets itself, per sandbox or from its own
+ * configuration: never taken from the operator's runner lists
+ * (SandboxDriverConfig.runnerEnv / runnerSecretEnv), so a listed name can
+ * never replace a sandbox's queue, token or endpoints. The Temporal
+ * connection names (`TEMPORAL_CONNECTION_ENV_NAMES`) are refused beside
+ * these, and the attach waiter's own two settings, which configure the
+ * sandbox's entry rather than its runner.
+ */
+export const SANDBOX_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
+  "MODE",
+  "STIGMER_TASK_QUEUE",
+  "STIGMER_TOKEN",
+  "STIGMER_BACKEND_ENDPOINT",
+  "STIGMER_MCP_PUBLIC_ENDPOINT",
+  "TEMPORAL_SERVICE_ADDRESS",
+  "TEMPORAL_NAMESPACE",
+  "WORKSPACE_ROOT_DIR",
+  "STIGMER_ATTACH_PORT",
+  "STIGMER_SANDBOX_NAME_FILE",
+];
 
 /** Constructs a driver. Factories, not instances — an unselected driver constructs nothing. */
 export type SandboxProvisionerFactory = (options: {
@@ -176,12 +256,15 @@ export type SandboxProvisionerFactory = (options: {
 /**
  * The built-in driver names — reserved: an extension registering one of
  * these is a boot throw (the registry's shadow rule, extensions/
- * registry.ts). The isolation ladder: process → Docker → Kubernetes.
+ * registry.ts). The isolation ladder: process → Docker → Kubernetes,
+ * then Agent Substrate (gVisor actors that sleep and wake with their
+ * files, sandbox/substrate/).
  */
 export const BUILT_IN_SANDBOX_PROVISIONER_TYPES = [
   "local-process",
   "docker",
   "kubernetes",
+  "substrate",
 ] as const;
 
 /**

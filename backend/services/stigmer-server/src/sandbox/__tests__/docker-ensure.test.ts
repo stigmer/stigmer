@@ -3,8 +3,9 @@
  * Docker daemon: a fake `docker` on PATH answers `inspect` with the state
  * the case sets and records every call. A running container is the fast
  * path (nothing started), a stopped one is restarted as-is with its
- * original env, and an absent one is created. The real CLI and image are
- * the opt-in smoke's (docker.test.ts).
+ * original env, and an absent one is created, with the operator's runner
+ * secrets beside the token, never on the command line. The real CLI and
+ * image are the opt-in smoke's (docker.test.ts).
  */
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -26,6 +27,8 @@ const CONFIG: SandboxDriverConfig = {
   runnerImage: "ghcr.io/stigmer/runner:test",
   runnerCommand: "unused-by-this-driver",
   kubernetesNamespace: "unused-by-this-driver",
+  runnerEnv: { ANTHROPIC_BASE_URL: "http://model.example:18555" },
+  runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-ensure" },
 };
 
 const ENV: SandboxEnvironment = {
@@ -128,6 +131,10 @@ describe("docker driver ensure", () => {
     // The token travels by a value-less --env, so it is never on the command line.
     expect(made[1]).toMatch(/ --env STIGMER_TOKEN( |$)/);
     expect(made.join("\n")).not.toContain(ENV.stigmerToken);
+    // So do the operator's runner secrets; a plain runner setting is a value.
+    expect(made[1]).toMatch(/ --env ANTHROPIC_API_KEY( |$)/);
+    expect(made.join("\n")).not.toContain("sk-ensure");
+    expect(made[1]).toContain("--env ANTHROPIC_BASE_URL=http://model.example:18555");
     expect(made.some((c) => c.startsWith("start "))).toBe(false);
   });
 });

@@ -2,15 +2,20 @@
  * Pins the attach push's checks (push.ts):
  *
  *   - the sandbox name derived from a queue is the server's own
- *     `sandboxBaseName` for that scope and id: the test loads the server's
- *     module (`stigmer-server/src/sandbox/naming.ts`, the one home of the
- *     derivation) and compares the two over generated ids, so a change on
- *     either side turns it red;
+ *     `sandboxBaseName` for that scope and id, under the server's own queue
+ *     prefix for the scope: the test loads the server's module
+ *     (`stigmer-server/src/sandbox/naming.ts`, the one home of the
+ *     derivation and of SANDBOX_QUEUE_PREFIXES) and compares the two over
+ *     generated ids, so a change on either side turns it red;
  *   - a queue pushed to a sandbox whose name is not the one derived from it is
  *     refused, on all three queue kinds, without reading the token;
  *   - the push can set only the runner's secret variables;
  *   - a token must be JWT-shaped and unexpired, and an empty token (the
- *     tokenless lane) passes.
+ *     tokenless lane) passes;
+ *   - every refusal carries its stable code;
+ *   - the secret names a push may carry are the server's copy of them
+ *     (`stigmer-server/src/sandbox/runner-secret-names.ts`), which the
+ *     server checks an operator's runner lists against at boot.
  */
 import { describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -18,6 +23,7 @@ import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 
 import { sandboxNameForQueue, verifyAttachPush } from "../push.js";
+import { RUNNER_SECRET_ENV_KEYS } from "../../shared/runner-credential-keys.js";
 
 const NOW = 1_800_000_000;
 
@@ -33,6 +39,7 @@ const SESSION_SANDBOX = "sbx-ses-4e918096d317";
 type ServerScope = "session" | "workflow" | "connect";
 interface ServerNaming {
   sandboxBaseName(scope: ServerScope, id: string): string;
+  SANDBOX_QUEUE_PREFIXES: Readonly<Record<ServerScope, string>>;
 }
 
 /**
@@ -46,12 +53,11 @@ async function serverNaming(): Promise<ServerNaming> {
 
 describe("sandboxNameForQueue", () => {
   it("is the server's sandboxBaseName for every queue kind", async () => {
-    const { sandboxBaseName } = await serverNaming();
-    const kinds: ReadonlyArray<[string, ServerScope]> = [
-      ["session:", "session"],
-      ["wfexec:", "workflow"],
-      ["mcpconnect:", "connect"],
-    ];
+    const { sandboxBaseName, SANDBOX_QUEUE_PREFIXES } = await serverNaming();
+    const kinds = Object.entries(SANDBOX_QUEUE_PREFIXES).map(
+      ([scope, prefix]) => [prefix, scope as ServerScope] as const,
+    );
+    expect(kinds.map(([prefix]) => prefix).sort()).toEqual(["mcpconnect:", "session:", "wfexec:"]);
     const ids = ["ses_01m3zkdb7wxbe2gx0ezmf8fmaq", "wfx_01J_UNDERSCORED.id", ...Array.from({ length: 50 }, () => randomUUID())];
     for (const [prefix, scope] of kinds) {
       for (const id of ids) {
@@ -65,6 +71,19 @@ describe("sandboxNameForQueue", () => {
     expect(sandboxNameForQueue("sandbox:pm_1")).toBeUndefined();
     expect(sandboxNameForQueue("stigmer_runner")).toBeUndefined();
     expect(sandboxNameForQueue("session:")).toBeUndefined();
+  });
+});
+
+describe("the secret names a push may carry", () => {
+  it("are the runner's secret names as the server knows them", async () => {
+    const path = resolve(
+      import.meta.dirname,
+      "../../../../stigmer-server/src/sandbox/runner-secret-names.ts",
+    );
+    const { RUNNER_SECRET_NAMES } = (await import(pathToFileURL(path).href)) as {
+      RUNNER_SECRET_NAMES: readonly string[];
+    };
+    expect([...RUNNER_SECRET_NAMES].sort()).toEqual([...RUNNER_SECRET_ENV_KEYS].sort());
   });
 });
 
@@ -86,7 +105,7 @@ describe("verifyAttachPush", () => {
       "mcpconnect:aex_01m3zkdb6zbg983x4yvttsysyy",
     ]) {
       const verdict = verifyAttachPush({ taskQueue, secrets: { STIGMER_TOKEN: token } }, SESSION_SANDBOX, NOW);
-      expect(verdict).toMatchObject({ ok: false, status: 403 });
+      expect(verdict).toMatchObject({ ok: false, status: 403, code: "binding" });
     }
   });
 
@@ -107,7 +126,7 @@ describe("verifyAttachPush", () => {
   it("refuses a token that is not a JWT, or has expired", () => {
     for (const bad of ["not-a-jwt", "a.b.c", jwt({ exp: NOW }), jwt({ exp: NOW - 1 })]) {
       const verdict = verifyAttachPush({ taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: bad } }, SESSION_SANDBOX, NOW);
-      expect(verdict).toMatchObject({ ok: false, status: 403 });
+      expect(verdict).toMatchObject({ ok: false, status: 403, code: "token_unusable" });
     }
   });
 
@@ -136,7 +155,7 @@ describe("verifyAttachPush", () => {
 
   it("refuses malformed bodies", () => {
     for (const body of [null, [], "push", { secrets: {} }, { taskQueue: "", secrets: {} }, { taskQueue: SESSION_QUEUE }, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: 1 } }]) {
-      expect(verifyAttachPush(body, SESSION_SANDBOX, NOW)).toMatchObject({ ok: false, status: 400 });
+      expect(verifyAttachPush(body, SESSION_SANDBOX, NOW)).toMatchObject({ ok: false, status: 400, code: "malformed" });
     }
   });
 });

@@ -1,14 +1,16 @@
 /**
  * The built-in sandbox driver assembly — the name → factory table the
  * composition root hands to newSandboxProvisioner, one entry per tier of
- * the isolation ladder. Kept separate from provisioner.ts so the
- * contract module never imports driver implementations (extensions
- * compile against the contract alone through the exports map).
+ * the isolation ladder, then Agent Substrate. Kept separate from
+ * provisioner.ts so the contract module never imports driver
+ * implementations (extensions compile against the contract alone through
+ * the exports map).
  */
 import { newDockerSandboxProvisioner } from "./docker.js";
 import { newKubernetesSandboxProvisioner } from "./kubernetes.js";
 import { newLocalProcessSandboxProvisioner } from "./local-process.js";
 import type { SandboxProvisionerFactory } from "./provisioner.js";
+import { newSubstrateSandboxProvisioner } from "./substrate/builtin.js";
 
 export function builtInSandboxProvisionerFactories(): ReadonlyMap<
   string,
@@ -18,5 +20,6 @@ export function builtInSandboxProvisionerFactories(): ReadonlyMap<
     ["local-process", newLocalProcessSandboxProvisioner],
     ["docker", newDockerSandboxProvisioner],
     ["kubernetes", newKubernetesSandboxProvisioner],
+    ["substrate", newSubstrateSandboxProvisioner],
   ]);
 }

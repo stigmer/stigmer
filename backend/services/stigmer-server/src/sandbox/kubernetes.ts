@@ -5,7 +5,8 @@
  * @kubernetes/client-node, the official client).
  *
  * Each sandbox = a per-sandbox Secret (STIGMER_TOKEN, plus the Temporal
- * connection settings when the server's Temporal is authenticated) + a single-replica
+ * connection settings when the server's Temporal is authenticated, plus
+ * the operator's runner secrets) + a single-replica
  * Deployment (strategy Recreate) + a PVC-backed /workspace for the
  * persistent scopes (session, workflow — the Java persistent-scope
  * split; connect rides emptyDir). One shared namespace, never
@@ -255,6 +256,7 @@ export function buildSandboxSecret(
   id: string,
   stigmerToken: string,
   temporalConnectionEnv: Readonly<Record<string, string>> = {},
+  runnerSecretEnv: Readonly<Record<string, string>> = {},
 ): V1Secret {
   return {
     metadata: {
@@ -265,6 +267,7 @@ export function buildSandboxSecret(
     // A token-less sandbox still gets its (empty) Secret — the object
     // must exist for uniform cleanup (the Java posture).
     stringData: {
+      ...runnerSecretEnv,
       ...temporalConnectionEnv,
       ...(stigmerToken !== "" ? { STIGMER_TOKEN: stigmerToken } : {}),
     },
@@ -316,6 +319,17 @@ export function buildSandboxDeployment(
   ];
   if (config.mcpPublicEndpoint !== "") {
     containerEnv.push({ name: "STIGMER_MCP_PUBLIC_ENDPOINT", value: config.mcpPublicEndpoint });
+  }
+  // The operator's plain runner settings ride as values, like the
+  // endpoints above; the runner's secrets ride the Secret, like the token.
+  for (const [name, value] of Object.entries(config.runnerEnv)) {
+    containerEnv.push({ name, value });
+  }
+  for (const name of Object.keys(config.runnerSecretEnv)) {
+    containerEnv.push({
+      name,
+      valueFrom: { secretKeyRef: { name: `${baseName}-env`, key: name } },
+    });
   }
   if (env.stigmerToken !== "") {
     containerEnv.push({
@@ -433,7 +447,13 @@ export function newKubernetesSandboxProvisionerOverGateway(
       // references it), claim (reused when it survived a repair), then
       // the Deployment. No readiness wait (module header).
       await gateway.applySecret(
-        buildSandboxSecret(scope, id, env.stigmerToken, config.temporalConnectionEnv),
+        buildSandboxSecret(
+          scope,
+          id,
+          env.stigmerToken,
+          config.temporalConnectionEnv,
+          config.runnerSecretEnv,
+        ),
       );
       if (PERSISTENT_SCOPES.has(scope)) {
         await gateway.applyPvc(buildWorkspacePvc(scope, id));
