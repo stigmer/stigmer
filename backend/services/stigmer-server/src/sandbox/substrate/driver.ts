@@ -661,6 +661,11 @@ export function newSubstrateSandboxDriverOverGateway(
   /** Deletes the actor `name` and forgets what this process knew of it. */
   async function deleteNamed(name: string): Promise<void> {
     await serialize(name, () => gateway.deleteActor(name));
+    forget(name);
+  }
+
+  /** Forgets what this process knew of a deleted actor. */
+  function forget(name: string): void {
     ensuredAt.delete(name);
     sessionByActor.delete(name);
     egressReconciled.delete(name);
@@ -766,11 +771,19 @@ export function newSubstrateSandboxDriverOverGateway(
           switch (actor.state) {
             case "deleting":
               // A delete that failed part-way leaves the actor DELETING;
-              // deleting again resumes it (Substrate's API guide).
-              await serialize(actor.name, () =>
-                gateway.deleteActor(actor.name),
-              );
-              redeleted += 1;
+              // deleting again resumes it (Substrate's API guide). Re-read
+              // in the queue: the listing may be older than the actor.
+              if (
+                await serialize(actor.name, async () => {
+                  const fresh = await gateway.getActor(actor.name);
+                  if (fresh?.state !== ActorState.DELETING) return false;
+                  await gateway.deleteActor(actor.name);
+                  return true;
+                })
+              ) {
+                forget(actor.name);
+                redeleted += 1;
+              }
               break;
             case "suspended":
               if (actor.template !== keeper.name) {

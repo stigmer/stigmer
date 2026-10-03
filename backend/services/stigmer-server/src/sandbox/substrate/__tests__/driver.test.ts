@@ -97,7 +97,10 @@ const env: SandboxEnvironment = {
   callerClass: "user",
 };
 
-function harness(answer?: Parameters<typeof fakeRouter>[0]) {
+function harness(
+  answer?: Parameters<typeof fakeRouter>[0],
+  runnerMode?: "local" | "cloud",
+) {
   let t = Date.parse("2026-10-03T12:00:00Z");
   const now = () => t;
   const sleep = async (ms: number) => {
@@ -110,6 +113,7 @@ function harness(answer?: Parameters<typeof fakeRouter>[0]) {
     settings,
     logger: silentLogger,
     gateway: substrate,
+    ...(runnerMode === undefined ? {} : { runnerMode }),
     fetch: router.fetch,
     now,
     sleep,
@@ -763,6 +767,27 @@ describe("a pause close to this process's start", () => {
   });
 });
 
+describe("the runner's mode", () => {
+  /** MODE in the template the driver created for its first sandbox. */
+  async function modeOfCreatedTemplate(
+    runnerMode?: "local" | "cloud",
+  ): Promise<string | undefined> {
+    const h = harness(undefined, runnerMode);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    const [template] = [...h.substrate.templates.values()];
+    return template?.spec.containers[0]?.env.find((e) => e.name === "MODE")
+      ?.value;
+  }
+
+  it("reaches the template a composition's driver creates", async () => {
+    expect(await modeOfCreatedTemplate("cloud")).toBe("cloud");
+  });
+
+  it("is open source's own, local, when not given", async () => {
+    expect(await modeOfCreatedTemplate()).toBe("local");
+  });
+});
+
 describe("the lifecycle a composition's own sweep calls", () => {
   const idle = { proceed: async () => true, stillIdle: async () => true };
 
@@ -946,6 +971,19 @@ describe("the lifecycle a composition's own sweep calls", () => {
       0,
     );
     expect(h.substrate.calls).not.toContain(`ensureEgressPolicy ${ACTOR}`);
+  });
+
+  it("repeats a delete only for a sandbox still deleting when its turn in the queue comes", async () => {
+    const h = harness();
+    const stuck = h.substrate.put({
+      name: ACTOR,
+      state: ActorState.DELETING,
+      template: "t",
+    });
+    const listed = await h.driver.lifecycle.list();
+    stuck.state = ActorState.SUSPENDED;
+    expect((await h.driver.lifecycle.maintain(listed)).redeleted).toBe(0);
+    expect(h.substrate.calls).not.toContain(`deleteActor ${ACTOR}`);
   });
 
   it("deletes a sandbox known only by its name, and refuses a name it never gives", async () => {
