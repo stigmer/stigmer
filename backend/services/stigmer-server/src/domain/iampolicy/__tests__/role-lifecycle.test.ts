@@ -22,7 +22,7 @@
  *     exactly as the cloud's tuple driver does);
  *   - every other kind writes nothing, DIRECT attribution or not: a
  *     per-resource owner row would be the per-resource grant the scope
- *     keeps Enterprise (Q-OR-3).
+ *     keeps Enterprise.
  *
  *   onResourceDeleted
  *   - `organization` and `identity_account`: every row naming the deleted

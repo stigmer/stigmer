@@ -173,7 +173,7 @@ message PendingApproval {
 //
 // @internal
 //
-// The identity-only shape replaced this message in both editions (cloud#509);
+// The identity-only shape replaced this message in both editions;
 // both the OSS TypeScript server's and the cloud Java service's
 // agent-execution workflows send the bare-string signal on every HITL cycle.
 //

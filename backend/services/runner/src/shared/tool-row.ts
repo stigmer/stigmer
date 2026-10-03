@@ -66,7 +66,7 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
  * The turn-boundary pass over a transcript: stamp every file-edit row
  * (category write/delete) that FLOWED this turn with the change set id, so
  * the row stays visible in place as an observational record while
- * `file_change_sets` remains the single decision surface (DD-24). Skips:
+ * `file_change_sets` remains the single decision surface. Skips:
  *
  *  - already-stamped rows — the idempotency AND cross-turn guard: a resume
  *    seeds prior turns' rows into this transcript, and re-stamping them with
@@ -272,7 +272,7 @@ const TERMINAL_TOOL_CALL_STATUSES: ReadonlySet<ToolCallStatus> = new Set([
  * Collect the ids of tool-call rows that have already SETTLED (reached a terminal
  * state: completed, failed, or skipped) in a transcript.
  *
- * The deep-agent turn-boundary provenance derivation (DD-28) snapshots this
+ * The deep-agent turn-boundary provenance derivation snapshots this
  * BEFORE a turn's stream to scope "this turn's tool calls" by identity: a call
  * whose id is absent from the snapshot is this-turn's — either freshly streamed,
  * or a prior gate that was WAITING_APPROVAL before the stream and executes now on

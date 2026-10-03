@@ -29,7 +29,7 @@
  *     arm, stigmer#1647).
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
- * before its file steps — the real ~/.stigmer is never touched (DD-002).
+ * before its file steps — the real ~/.stigmer is never touched.
  * Adversarial tokens (expired, forged) are HAND-CRAFTED HS256 JWTs, not
  * sleeps or timer games — determinism is non-negotiable.
  */

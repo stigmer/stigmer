@@ -319,8 +319,6 @@ service WorkflowExecutionCommandController {
   // Users can also submit approvals directly via AgentExecution.submitApproval
   // using the child_agent_execution_id. Both paths are equivalent and result
   // in the same state transitions.
-  //
-  // @since Phase 5.3 (Approval Forwarding)
   rpc submitApproval(SubmitWorkflowApprovalInput) returns (WorkflowExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -366,8 +364,6 @@ service WorkflowExecutionCommandController {
   //
   // Users can also submit the decision directly via AgentExecution.submitFileDecision
   // using the child_agent_execution_id. Both paths are equivalent.
-  //
-  // @since Workflow-Parent File Review
   rpc submitFileDecision(SubmitWorkflowFileDecisionInput) returns (WorkflowExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -410,8 +406,6 @@ service WorkflowExecutionCommandController {
   // - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
   //   doesn't match configured outcomes
   // - FAILED_PRECONDITION: Execution is not in a signalable phase
-  //
-  // @since T13b (Java/Cloud Backend Parity)
   rpc submitWorkflowTaskApproval(SubmitWorkflowTaskApprovalInput) returns (WorkflowExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -499,8 +493,6 @@ service WorkflowExecutionCommandController {
   //
   // Returns the current WorkflowExecution state (phase may still be IN_PROGRESS
   // as the workflow continues after receiving the signal).
-  //
-  // @since Gap B1 (Signal-With-Start for race-proof event delivery)
   rpc sendSignal(SendSignalInput) returns (WorkflowExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -836,8 +828,6 @@ service WorkflowExecutionCommandController {
   //     // Note: completed_at is NOT set (execution can be resumed)
   //   }
   // }
-  //
-  // @since Gap A3 (Pause/Resume Propagation)
   rpc pause(PauseWorkflowExecutionInput) returns (WorkflowExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -912,8 +902,6 @@ service WorkflowExecutionCommandController {
   //     "started_at": "2026-02-07T10:00:00Z"
   //   }
   // }
-  //
-  // @since Gap A3 (Pause/Resume Propagation)
   rpc resume(ResumeWorkflowExecutionInput) returns (WorkflowExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;

@@ -505,7 +505,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expectExecutionContextDeleted();
   }, 30_000);
 
-  it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile (DD-28)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
       async () => slimResult(ExecutionPhase.EXECUTION_COMPLETED),

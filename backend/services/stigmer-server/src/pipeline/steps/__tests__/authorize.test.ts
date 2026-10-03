@@ -1,5 +1,5 @@
 /**
- * Pins the Authorize step's wire contract (O2, DD-007 §3): the three
+ * Pins the Authorize step's wire contract: the three
  * decision arms (allow proceeds; deny → PERMISSION_DENIED carrying the
  * annotation's byte-pinned error_msg; unavailable → INTERNAL, never a
  * softened denial), the skip arms (internal caller class, is_public,
@@ -292,7 +292,7 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
     ]);
   });
 
-  // 20260913.01 (Q-OR-2): the IamPolicy RPCs name their target inside the
+  // 20260913.01: the IamPolicy RPCs name their target inside the
   // request as a STRING kind (`ApiResourceRef.kind`, "organization"), so
   // `resource_kind_path` resolves a string through the kind enum's names.
   // The option had no user before this entry; a numeric field still works.
@@ -418,7 +418,7 @@ describe("authorizeDirect (the direct-handler arm, C2 Stage 4)", () => {
     ]);
   });
 
-  // 20260913.01 (Q-OR-2): the IamPolicy `get(IamPolicyId)` lane. Its
+  // 20260913.01: the IamPolicy `get(IamPolicyId)` lane. Its
   // annotation names a permission and NO kind, because the target is the
   // loaded row's resource — kind AND id are server-side state. The
   // override carries both; the annotation still owns the permission and

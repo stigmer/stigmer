@@ -90,7 +90,7 @@ export function registerChannelTools(server: McpServer, target: BackendTarget): 
     (args, extra) => {
       // Exactly-one, checked here with corrective copy the model can act
       // on immediately; the server's required-oneof validation is the
-      // backstop (DD-006 D5).
+      // backstop.
       const hasText = args.text !== undefined && args.text !== "";
       const hasTemplate = args.template !== undefined;
       if (hasText === hasTemplate) {

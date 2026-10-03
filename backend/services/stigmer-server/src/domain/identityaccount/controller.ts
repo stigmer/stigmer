@@ -1,5 +1,5 @@
 /**
- * IdentityAccount controller (20260911.11) — the identity-account domain
+ * IdentityAccount controller — the identity-account domain
  * served ONCE by @stigmer/server in every edition (the editions program's
  * tier truth: `identity_account` is open-source tier). The behavioural
  * reference is the cloud's iam/account/handlers.ts, whose twelve direct
@@ -139,7 +139,7 @@ import type { IdentityAccountStore } from "./store.js";
 export interface CreateAccountPathDeps {
   readonly accounts: IdentityAccountStore;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
@@ -149,7 +149,7 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
   readonly provisioner: DirectAccountProvisioner;
   /** The composed federation capability — undefined = the four RPCs refuse UNIMPLEMENTED. */
   readonly federation: IdentityFederation | undefined;
-  /** The composed slot registrations — this domain's provision slot (Q-IA-9, A10). */
+  /** The composed slot registrations — this domain's provision slot. */
   readonly gateSteps: ResolvedGateSteps;
   /**
    * The core first-provisioning rule — open source's membership rules

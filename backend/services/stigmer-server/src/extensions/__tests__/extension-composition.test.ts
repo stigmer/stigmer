@@ -1694,7 +1694,7 @@ describe("extension composition (C2 tuple lifecycle + organization directory)", 
 
   // The run audience of a workflow instance (`spec.execution_visibility`):
   // open source derives `execution_viewer` from the row when a check asks;
-  // an edition that stores tuples hears it here (stigmer-cloud#720). The
+  // an edition that stores tuples hears it here. The
   // event carries the audience the level now names — the whole target
   // state, so a retry or a repeat converges — and fires from the two doors
   // that may set the level: create, and the dedicated RPC. Update and Apply

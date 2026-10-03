@@ -262,7 +262,7 @@ describe("runPass — the four phases", () => {
     expect(counts).toMatchObject({ rowsExamined: 0, failures: 0 });
   });
 
-  it("phase 4 prunes ledger rows past retention and keeps fresh ones (DD-017 D-7)", async () => {
+  it("phase 4 prunes ledger rows past retention and keeps fresh ones", async () => {
     const base = {
       scheduleId: "sch_prune",
       org: "acme",

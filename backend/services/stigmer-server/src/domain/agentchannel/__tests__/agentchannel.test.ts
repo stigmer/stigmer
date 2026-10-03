@@ -1077,7 +1077,7 @@ describe("channel messaging posture (cloud-only runtime)", () => {
     expect(err.rawMessage).toBe(PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE);
   });
 
-  it("listMessagingChannels answers with an empty list, never a refusal (DD-006 D3)", async () => {
+  it("listMessagingChannels answers with an empty list, never a refusal", async () => {
     const res = await messageQuery.listMessagingChannels({});
     expect(res.entries).toHaveLength(0);
   });

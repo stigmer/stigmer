@@ -10,7 +10,7 @@
 // NOT on the full roster: a human operator manages memories through the
 // console and SDK, which carry the addressing this path derives.
 //
-// The tool creates a PROPOSAL and nothing more (DD-005 D2/D3): the record
+// The tool creates a PROPOSAL and nothing more: the record
 // lands lifecycle_state=proposed, and only the user's confirm — a
 // control-plane command the model cannot reach — makes it recallable. The
 // answer's `outcome` line states this so the model relays honestly.

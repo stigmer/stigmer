@@ -3,7 +3,7 @@
  * and the goldens that pin each profile's full render.
  *
  * What these pin, and why each is a rule rather than a snapshot:
- *   - one pod carries the server and the runner (Q-HC-2); `Recreate`, one
+ *   - one pod carries the server and the runner; `Recreate`, one
  *     replica, `fsGroup` 1000, a numeric `runAsUser` on the server (F13);
  *   - no mount path is a prefix of another in the same container (F11: a
  *     nested mount inside a claim is root-owned, and the server cannot write);

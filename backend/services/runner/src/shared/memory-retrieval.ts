@@ -13,7 +13,7 @@
  * titling-convergence doctrine: control-plane-adjacent LLM work runs once,
  * in the shared runner, for both editions).
  *
- * Mechanism (DD-008 D2/D3): embed-on-read, no stored vectors anywhere.
+ * Mechanism: embed-on-read, no stored vectors anywhere.
  * Selection activates ONLY above RETRIEVAL_K candidates; below that,
  * top-k degenerates to wholesale, so no embeddings call is made and the
  * shipped Phase 2 path runs untouched. When active: ONE batched
@@ -22,7 +22,7 @@
  * carry no information the model needs and would churn the prompt prefix).
  * The query is the execution's `spec.message` — the current turn.
  *
- * The audit contract (DD-008 D5): the selection outcome is recorded in a
+ * The audit contract: the selection outcome is recorded in a
  * runner-owned `RecalledMemoriesReport` on the execution status (the
  * streaming_usage posture — one writer, written at prompt build). A report
  * is returned whenever facts are injected, wholesale or selected; when
@@ -41,7 +41,7 @@
  * Failure posture: selection is an optimization. ANY failure — no
  * embedder, HTTP error, timeout, malformed response — degrades to
  * wholesale injection with a selection_active=false report, never a
- * failed or degraded execution (DD-008 D3). Deployments with no
+ * failed or degraded execution. Deployments with no
  * embeddings-capable credential (Anthropic-only, Cursor-only OSS) run
  * Phase 2 behavior unchanged, forever.
  */
@@ -64,12 +64,12 @@ import { getRunnerSecret } from "./runner-credential-store.js";
  * (activation is rare) and comfortably below the 100-record cap (activation
  * is meaningful): at 500-char facts, 20 facts ≈ 10KB of prompt. One
  * constant, one place, deliberately not adaptive or per-org configurable
- * in v1 (DD-008 D3).
+ * in v1.
  */
 export const RETRIEVAL_K = 20;
 
 /**
- * The v1 embedder (DD-008 D4). OpenAI-only: resolved through the Stigmer
+ * The v1 embedder. OpenAI-only: resolved through the Stigmer
  * proxy when one is configured (cloud — platform key, metered), else the
  * operator's direct OpenAI key (OSS). NOTE: llm-proxy's `inferProvider`
  * does not know the `text-*` prefix — this module never infers; the
@@ -102,7 +102,7 @@ const DIRECT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 /**
  * One batched embeddings call: one vector per input, in input order.
  * The seam unit tests inject through, and the boundary a stored-vector
- * optimization would slot behind if caps ever grow (DD-008 D2).
+ * optimization would slot behind if caps ever grow.
  */
 export type EmbedFn = (inputs: readonly string[]) => Promise<number[][]>;
 
@@ -186,7 +186,7 @@ export async function selectRecalledFacts(
   const embed = options.embed ?? resolveEmbedder(options);
   if (embed === undefined) {
     // No embeddings-capable credential: the recorded no-embedder posture
-    // (DD-008 D4) — Phase 2 behavior, honestly reported.
+    // — Phase 2 behavior, honestly reported.
     return wholesale(candidates);
   }
 

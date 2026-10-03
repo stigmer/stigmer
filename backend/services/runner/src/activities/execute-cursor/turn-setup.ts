@@ -224,7 +224,7 @@ export async function installGate(input: TurnInput, sink: TurnSink, rows: Adjudi
   // absent a git tree keeps gating gitignored writes and a non-git workspace
   // falls back to the deny-gate entirely (no regression).
   const captureIgnored = captureMode && !!artifactStorage;
-  // Unattended approval mode (DD-014): approver-less surfaces (channels,
+  // Unattended approval mode: approver-less surfaces (channels,
   // guest shares) stamp APPROVAL_MODE_UNATTENDED; the hook then records
   // approval denials with the non-pausing "unattended" kind, so the
   // first-denial stop never fires and the turn boundary settles the denied

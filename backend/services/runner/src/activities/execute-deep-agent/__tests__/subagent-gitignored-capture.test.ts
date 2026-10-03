@@ -36,7 +36,7 @@ import { ScriptedModel, readPendingInterrupts, type ScriptSelector } from "../__
 /** Only `src/**` is git-tracked (capturable); everything else is gitignored. */
 const isTracked = (relPath: string): boolean => relPath.startsWith("src/");
 
-describe("sub-agent gitignored capture (DD-19)", () => {
+describe("sub-agent gitignored capture", () => {
   let root: string;
 
   beforeEach(async () => {

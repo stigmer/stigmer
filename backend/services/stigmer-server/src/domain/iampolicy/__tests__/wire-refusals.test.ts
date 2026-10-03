@@ -1,12 +1,12 @@
 /**
- * Pins wire-refusals.ts (20260913.01 slice 5, Q-S5-2): the one place a
+ * Pins wire-refusals.ts: the one place a
  * kind string that came off the wire, or a whole triple, is turned into
  * INVALID_ARGUMENT with the domain's byte-pinned copy. Three callers share
  * it — the grant path, the ValidateGrantableRole step and the fourteen
  * RPCs' controller — so the table is proven once here; grant-path.test.ts
  * keeps its own arms and passes through the moved functions unchanged.
  *
- * Exactness is contract (Q-OR-9): the derived policy id hashes the spec's
+ * Exactness is contract: the derived policy id hashes the spec's
  * text, so a lenient match would let two spellings of one kind mint two
  * rows for one grant.
  */
@@ -78,7 +78,7 @@ describe("requireWellFormedTriple", () => {
     expect(admitted.principal.id).toBe("ida_a");
   });
 
-  it("refuses a delimiter in any field BEFORE either kind is resolved (Q-S2-1)", () => {
+  it("refuses a delimiter in any field BEFORE either kind is resolved", () => {
     const error = refusal(() =>
       requireWellFormedTriple(
         triple({ kind: "garbage", id: "a#b" }, "viewer", {

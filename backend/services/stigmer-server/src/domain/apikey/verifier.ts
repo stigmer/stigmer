@@ -1,5 +1,5 @@
 /**
- * The API-token identity verifier (O3, 20260827.06) — the first OSS entry
+ * The API-token identity verifier — the first OSS entry
  * on the chassis's verifier chain, the TS rendering of the cloud's
  * OpaqueTokenAuthenticationProvider + RedisApiKeyIntrospector pair minus
  * the cache (lookup.ts carries the no-cache rationale: instant

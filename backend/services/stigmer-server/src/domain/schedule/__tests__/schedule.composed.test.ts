@@ -325,7 +325,7 @@ describe("resume — the one clearing path (DD-013 D-D)", () => {
   });
 });
 
-describe("trigger — the two-level contract (DD-017 D-5)", () => {
+describe("trigger — the two-level contract", () => {
   it("refuses a missing schedule with NOT_FOUND (level one)", async () => {
     const err = await refusal(() => command.trigger({ value: "sch_missing" }));
     expect(err.code).toBe(Code.NotFound);

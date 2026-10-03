@@ -16,8 +16,6 @@
  * `edit`/`write`, and the Cursor preToolUse hook names it `Write`/`StrReplace`/
  * `EditNotebook`. The four extractors below span every arg-field name these
  * surfaces use, so a single capture path is correct for all of them.
- *
- * @since First-Class Diff Review (#186); cross-harness gate unification (HITL diff)
  */
 
 import { createHash } from "node:crypto";

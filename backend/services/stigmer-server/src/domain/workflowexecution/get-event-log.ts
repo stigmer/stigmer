@@ -35,7 +35,7 @@ import { DEFAULT_EVENT_PAGE_SIZE, MAX_EVENT_PAGE_SIZE } from "./constants.js";
 export interface EventLogDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the annotation check below (C2 Stage 4). */
+  /** The composed authorization seam — the annotation check below. */
   readonly authorizer: Authorizer;
 }
 

@@ -1,6 +1,6 @@
 /**
  * Pins the Kubernetes driver's ensure state machine and manifest shapes
- * against the Java provisioner it generalizes (§6d, O6) — over a fake
+ * against the Java provisioner it generalizes — over a fake
  * gateway, no cluster:
  *
  *   - absent → Secret first, PVC for persistent scopes, then Deployment;

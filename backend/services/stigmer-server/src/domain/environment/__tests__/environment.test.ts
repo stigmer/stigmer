@@ -14,7 +14,7 @@
  *     ciphertext row fails LOUD (Internal), never returns junk.
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
- * before its file steps — the real ~/.stigmer is never touched (DD-002).
+ * before its file steps — the real ~/.stigmer is never touched.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

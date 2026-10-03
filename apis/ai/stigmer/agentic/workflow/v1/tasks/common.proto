@@ -18,8 +18,6 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 // When ON_INVALID_RETRY is used and all retries are exhausted:
 // - If fallback_task is set: branch to that task
 // - If fallback_task is empty: task fails
-//
-// @since T02 (Structured Agent Output Model)
 enum OnInvalidOutputPolicy {
   // Unspecified: defaults to ON_INVALID_FAIL behavior.
   ON_INVALID_POLICY_UNSPECIFIED = 0;

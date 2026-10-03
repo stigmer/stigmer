@@ -159,7 +159,7 @@ describe("buildEnhancedSystemPrompt", () => {
     expect(prompt).not.toContain("## Workspace");
   });
 
-  describe("rollover context bridge (DD-013)", () => {
+  describe("rollover context bridge", () => {
     const base = {
       instructions: "Test",
       provisionResults: [],
@@ -286,7 +286,7 @@ describe("buildEnhancedSystemPrompt", () => {
       expect(prompt).not.toContain("## Declared preferences");
     });
 
-    it("places platform-declared preferences after the sender, before the embedder's session context (DD-002 D3)", () => {
+    it("places platform-declared preferences after the sender, before the embedder's session context", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
@@ -335,7 +335,7 @@ describe("buildEnhancedSystemPrompt", () => {
       expect(prompt).not.toContain("## Remembered facts");
     });
 
-    it("places remembered facts after declared preferences, before the embedder's session context (DD-006 D4)", () => {
+    it("places remembered facts after declared preferences, before the embedder's session context", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         declaredPreferences: { orgContext: "We deploy to us-east-1." },

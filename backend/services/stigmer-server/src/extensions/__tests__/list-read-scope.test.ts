@@ -331,7 +331,7 @@ describe("restrictListByReadScope", () => {
     ]);
   });
 
-  describe("authorizationParent — the parent a kind's authorization is (20260913.04 T04)", () => {
+  describe("authorizationParent — the parent a kind's authorization is", () => {
     function recordingScope(keep: ReadonlyArray<string>) {
       const seen: ReadonlyArray<ListEntryMeta>[] = [];
       const scope: ListReadScope = {

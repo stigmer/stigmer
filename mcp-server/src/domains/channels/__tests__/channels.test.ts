@@ -91,7 +91,7 @@ afterAll(async () => {
   await new Promise<void>((resolve) => backend.close(() => resolve()));
 });
 
-describe("channels roster (DD-006 D8)", () => {
+describe("channels roster", () => {
   it("exposes exactly send_channel_message with no org argument", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(["send_channel_message"]);
@@ -193,7 +193,7 @@ describe("argument → request mapping (the ChannelOutboundPayload oneof)", () =
   });
 });
 
-describe("typed outcomes are answers, not errors (DD-002 D4)", () => {
+describe("typed outcomes are answers, not errors", () => {
   it("a refused outcome returns as a SUCCESS result carrying the detail", async () => {
     sendResponse = () =>
       create(SendChannelMessageOutputSchema, {
@@ -231,7 +231,7 @@ describe("channels error mapper", () => {
     });
   });
 
-  it("carries the ErrorInfo reason on operator-actionable preconditions (DD-005 D8)", async () => {
+  it("carries the ErrorInfo reason on operator-actionable preconditions", async () => {
     sendResponse = () => {
       throw new ConnectError(
         "proactive channel messaging requires Stigmer Cloud",

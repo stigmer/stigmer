@@ -2,7 +2,7 @@
  * Pins the key ladder (env var → key file → auto-generate), the strict
  * env-key validation (explicit misconfiguration errors, never degrades),
  * the 0600 permission gate on key files, and persistence of auto-generated
- * keys. All tests run against an injected temp home (DD-002) — the real
+ * keys. All tests run against an injected temp home — the real
  * ~/.stigmer is never touched.
  */
 import { mkdtempSync, chmodSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";

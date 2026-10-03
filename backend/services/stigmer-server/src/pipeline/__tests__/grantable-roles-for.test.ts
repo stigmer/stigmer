@@ -36,7 +36,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { grantableRolesFor } from "../apiresource-meta.js";
 
 describe("grantableRolesFor — the proto's grantable roles per kind", () => {
-  it("the organization grants exactly owner, admin, member, viewer, in proto order (Q-OR-4)", () => {
+  it("the organization grants exactly owner, admin, member, viewer, in proto order", () => {
     expect(grantableRolesFor(ApiResourceKind.organization)).toEqual([
       IamRole.owner,
       IamRole.admin,

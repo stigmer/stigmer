@@ -84,7 +84,7 @@ message OrganizationPreferences {
   // offered and nothing is recalled, regardless of member opt-in.
   //
   // @internal
-  // The org half of memory's double opt-in (DD-006 D1): effective
+  // The org half of memory's double opt-in: effective
   // enablement = org memory_enabled AND the member's own memory_enabled
   // AND first-party human operator. An enablement gate, not a bound —
   // it does not parameterize member behavior, so it lives in
@@ -92,7 +92,7 @@ message OrganizationPreferences {
   // (retention ceilings) would go to a sibling policies message.
   // Deliberately a bool, not an enum: a genuine on/off switch — finer
   // policy becomes new fields when evidence demands them. Enforced
-  // fail-closed at memory create (DD-005 D2) and read at recall compose
+  // fail-closed at memory create and read at recall compose
   // (DD-006 D3). OSS local mode: this flag alone governs (single user,
   // no account scope).
   bool memory_enabled = 2;

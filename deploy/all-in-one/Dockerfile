@@ -29,7 +29,7 @@
 #     -e ANTHROPIC_API_KEY=sk-ant-... ghcr.io/stigmer/stigmer:latest
 #
 # node:22-slim, not alpine/distroless: the Temporal core-bridge prebuilds are
-# gnu-triple (glibc) binaries and 22 is the engines floor (DD-014). Built
+# gnu-triple (glibc) binaries and 22 is the engines floor. Built
 # natively per arch (the packages carry a per-arch native bridge), merged
 # into one manifest by the release lane.
 FROM node:22-slim

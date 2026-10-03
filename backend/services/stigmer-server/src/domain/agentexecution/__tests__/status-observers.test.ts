@@ -1,5 +1,5 @@
 /**
- * Pins the status-hook consumption contract (O4, 20260827.07; DD-006 §3):
+ * Pins the status-hook consumption contract:
  * the Q4 firing rule (phase change only), observer ordering and isolation
  * (a throwing/rejecting observer is logged and never fails the caller),
  * and the decorator clone-commit posture (a throwing decorator degrades

@@ -37,7 +37,7 @@ export interface WorkflowExecutionWorkerDeps {
   readonly logger: Logger;
   readonly broker: StreamBroker;
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
-  /** The activity persist site's sandbox teardown observer (§6d, O6). */
+  /** The activity persist site's sandbox teardown observer. */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
   /**
    * The server's own delete of a run's ExecutionContext (the run-end

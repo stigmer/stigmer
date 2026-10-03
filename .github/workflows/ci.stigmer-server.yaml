@@ -106,7 +106,7 @@ jobs:
         working-directory: backend/services/stigmer-server
         run: npm ci
 
-      # The slim artifact ships the console's static export (DD-012);
+      # The slim artifact ships the console's static export;
       # bundle-slim loud-fails without a built client-apps/web/out.
       - name: Build the web console static export
         run: make build-web

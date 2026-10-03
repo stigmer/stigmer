@@ -1,5 +1,5 @@
 /**
- * Pins permissions.ts (20260913.01 slice 5, Q-S5-3): the relation string a
+ * Pins permissions.ts: the relation string a
  * checkMyPermission caller sends is admitted only when it is an
  * IamPermission member name — the Authorizer's AuthzCheck carries the
  * enum, and the wire carries its name. The zero value is not a

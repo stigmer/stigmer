@@ -55,7 +55,7 @@ type InstanceDesc = typeof WorkflowInstanceSchema;
 export const PARENT_WORKFLOW_KEY = "parent_workflow";
 
 // ---------------------------------------------------------------------------
-// The workflow in-process edge (DD-002): instance create verifies its
+// The workflow in-process edge: instance create verifies its
 // parent through the workflow query service so the full interceptor chain
 // runs — the other direction of the workflow↔workflowinstance mutual edge.
 // ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ export interface ParentWorkflowLoader {
   get(workflowId: string): Promise<Workflow>;
 }
 
-/** Lazy provider — the cycle-break closure (DD-002). */
+/** Lazy provider — the cycle-break closure. */
 export type ParentWorkflowLoaderProvider = () => ParentWorkflowLoader;
 
 /**

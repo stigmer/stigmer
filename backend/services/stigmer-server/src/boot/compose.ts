@@ -329,7 +329,7 @@ export interface ComposeOptions {
   config: ServerConfig;
   logger: Logger;
   /**
-   * Named extension units composed into this server (DD-006). Omitted or
+   * Named extension units composed into this server. Omitted or
    * empty means plain OSS — byte-identical wire behavior, pinned by the
    * conformance rosters.
    */
@@ -368,7 +368,7 @@ export async function composeServer(
       units: extensions.unitNames.join(", "),
     });
   }
-  // Stage: storage — the driver selection seam (DD-010): DATABASE_URL
+  // Stage: storage — the driver selection seam: DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
   // sqlite on DB_PATH (its whole chain, incl. adopting a Go-created
   // database — D2 §3 schema continuity). Postgres wins when both are set:
@@ -408,7 +408,7 @@ export async function composeServer(
   // posture — open source composes its Authorizer, organization directory
   // and schedule fire caller below, and the roles 2b records are
   // enforced); or trusted-local (the permissive default: one caller,
-  // nothing to separate). `builtInAuthorization` (20260913.01, Q-OR-6) is
+  // nothing to separate). `builtInAuthorization` is
   // the first two together — the roles exist to feed the built-in
   // authorizer, so the identity stage installs the built-in role
   // lifecycle and the membership rules under both; a composition with its
@@ -449,7 +449,7 @@ export async function composeServer(
     }
   }
 
-  // Stage: identity accounts (20260911.11) — the first domain whose
+  // Stage: identity accounts — the first domain whose
   // persistence is a PORT rather than the generic Store. The composed
   // driver (`drivers.identityAccountStore`, Q-IA-9) serves when a unit
   // registers one; otherwise open source's adapter over `store` installs
@@ -462,7 +462,7 @@ export async function composeServer(
   const identityAccounts =
     extensions.drivers.identityAccountStore ??
     newResourceIdentityAccountStore(store);
-  // The IamPolicy row half (20260913.01): the store PORT bound the same way
+  // The IamPolicy row half: the store PORT bound the same way
   // (`drivers.iamPolicyStore`, Q-OR-10; open source's adapter over `store`
   // when absent) and the domain's ONE grant and revoke path built over it.
   // The grant path's lifecycle is the composed DRIVER — the cloud's tuple
@@ -527,7 +527,7 @@ export async function composeServer(
         operatorEmail: operatorIdentity.email,
       })
     : undefined;
-  // Stage: runner credentials (§6c, O5). The concrete service is
+  // Stage: runner credentials. The concrete service is
   // constructed and exposed UNCONDITIONALLY — its boot-fatal key posture
   // is the ratified cross-domain invariant, and the boot/EC-decrypt tests
   // mint against the server's own key through it. The provider over it is
@@ -553,7 +553,7 @@ export async function composeServer(
           accounts: identityAccounts,
         })
       : newExecutionScopedRunnerCredentialProvider(runnerAuthService));
-  // The ONE composed Authorizer (DD-007 §3), bound here — after the store,
+  // The ONE composed Authorizer, bound here — after the store,
   // the account port and the IamPolicy port it reads — and handed to every
   // controller as an explicit dependency; the Authorize step at position 1
   // of every chain calls it (O2). By posture: an extension's registration;
@@ -686,7 +686,7 @@ export async function composeServer(
     logger.info("trusted-local operator account ensured", {
       accountId: operator.metadata?.id ?? "",
     });
-    // The laptop's one principal owns what the laptop has (Q-OR-6c):
+    // The laptop's one principal owns what the laptop has:
     // `owner` on every organization with no owner row, create-if-absent,
     // so the Members page tells the truth from the first boot after roles
     // exist. Under the built-in posture only — a unit with its own
@@ -805,7 +805,7 @@ export async function composeServer(
   // The workflow-execution twin (#21) — its config has no policy
   // consumer, so it lives here with the temporal stage.
   const workflowExecutionTemporalConfig = newWorkflowExecutionConfigFromEnv();
-  // The sandbox lane (§6d, O6): the configured driver — built-in tier or
+  // The sandbox lane: the configured driver — built-in tier or
   // composition-registered — or the default external-runner posture
   // (SANDBOX_PROVISIONER_TYPE unset: no driver constructed, the ensure
   // steps short-circuit, an operator-managed runner polls the queues).
@@ -855,9 +855,9 @@ export async function composeServer(
     logger,
   );
   const healthState = new HealthState();
-  // The model catalog (DD-008, O5): ONE provider instance feeds workflow
+  // The model catalog: ONE provider instance feeds workflow
   // validation, the pin checks, and the transport's registry lane, so the
-  // pickers and validation can never drift (DD-004) — on either arm. With
+  // pickers and validation can never drift — on either arm. With
   // no extension provider composed, the OSS domain-owned ModelRegistryStore
   // (workflow-family DD-A, restoring Go's ownership) is constructed and
   // this root owns its refresh lifecycle; with one composed, the OSS store
@@ -883,7 +883,7 @@ export async function composeServer(
   });
   // The Layer-2 workflow validator reads the composed catalog provider
   // per validation call, keeping validation and the served pickers in
-  // lockstep (DD-004).
+  // lockstep.
   const workflowValidator = new InProcessValidator(modelCatalog, logger);
   // ONE broker spans both routers AND the Temporal worker's activities:
   // the worker's status persists broadcast through the same fabric, so
@@ -952,7 +952,7 @@ export async function composeServer(
     connection: config.temporalConnection,
     logger,
     // The composed provider's optional resolvePayloadKey capability rides
-    // the decode codec (C4 Stage 2): database-resident rpk_ keys for
+    // the decode codec: database-resident rpk_ keys for
     // desktop-runner histories. Absent → env keys only, today's behavior.
     payloadCodecs: loadServerPayloadCodecs(
       runnerCredentials.resolvePayloadKey?.bind(runnerCredentials),
@@ -1019,7 +1019,7 @@ export async function composeServer(
   // attachments, the artifact domain (#13), and skill push (#8)). The r2
   // arm landed with #13; the health probe runs in start(), matching Go's
   // boot check. Since O5 the factory consults the composition's registered
-  // drivers for non-built-in types (§6b).
+  // drivers for non-built-in types.
   //
   // The download lane's placement (boot/artifact-lane.ts): the configured
   // port, or the port beside the one the unified listener binds, ephemeral
@@ -1197,7 +1197,7 @@ export async function composeServer(
   } else {
     logger.debug("no web console export bundled; console lane disabled");
   }
-  // The console is told how to sign in (20260913.02 sp.console-login): the
+  // The console is told how to sign in: the
   // OSS issuer arm of the posture, in the console's vocabulary. A composed
   // unit's own `requireAuthentication` is NOT expressed here — a
   // composition whose verifiers resolve its users serves its console its
@@ -1340,7 +1340,7 @@ export async function composeServer(
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
   // as one server — Go's single-server bufconn shape. Chain traversal on
-  // internal calls is the point (DD-002): an in-process apply/get is
+  // internal calls is the point: an in-process apply/get is
   // validated, logged, and kind-tagged exactly like an external one — the
   // one deliberate difference is position 1 (O2): internal calls carry the
   // internal caller class, wire calls the verifier chassis's identity.
@@ -1387,12 +1387,12 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
     });
-    // IdentityAccount (20260911.11): served once by open source in every
+    // IdentityAccount: served once by open source in every
     // edition over the store PORT bound in the identity-accounts stage; a
     // composition adds what differs per edition through the registry —
     // the federation capability (the four federated RPC arms) and the
     // provision slot's gate steps (the cloud's personal organization).
-    // The membership rules are core, selected by posture (20260913.01).
+    // The membership rules are core, selected by posture.
     registerIdentityAccountServices(router, {
       ...identityAccountPath,
       provisioner: identityAccountProvisioner,
@@ -1400,7 +1400,7 @@ export async function composeServer(
       gateSteps: extensions.gateSteps,
       membership,
     });
-    // IamPolicy (20260913.01): the ROW half served once by open source in
+    // IamPolicy: the ROW half served once by open source in
     // every edition over the store port and the grant path bound in the
     // identity stage. A composition adds what differs per edition through
     // the registry — a wider grant scope (`drivers.policyGrantScope`; the
@@ -1781,7 +1781,7 @@ export async function composeServer(
   //     claims the tokens of the issuers it names. A unit lane must refuse
   //     to route the operator's issuer (it is claimed here first).
   //   - both OSS verifiers resolve their subject through the identity-
-  //     account domain (20260911.11 Q-IA-2, A6): a provisioned user is
+  //     account domain: a provisioned user is
   //     stamped with the account id whichever credential they present,
   //     an unprovisioned one is admitted idp-shaped. They read the SAME
   //     port the domain writes through (`identityAccounts`, the
@@ -1855,7 +1855,7 @@ export async function composeServer(
   // the first caller — minting a key requires an authenticated caller, so
   // an apikey-only chain locks everyone out forever (O3 ruling Q1's
   // first-key bootstrap problem, which is why apikey-only mode was
-  // deferred). The same class as a misconfigured registry (DD-006 §2b),
+  // deferred). The same class as a misconfigured registry,
   // caught before any side effect.
   if (
     extensions.requireAuthentication !== undefined &&
@@ -1900,7 +1900,7 @@ export async function composeServer(
     // position-1 source — the internal caller class only it can mint
     // (ruling Q4), and NO guards: the in-process exemption is structural
     // (caller-guards.ts). The serving-only pair: position 0 is the error
-    // boundary (20260830.03) — the raw-error conversion net plus the
+    // boundary — the raw-error conversion net plus the
     // composed visitor sanitizer — and the request-metrics emitter sits
     // just inside the identity source (20260909.02, Java's position). Both
     // are SERVING chain only, so in-process hops keep full diagnostics

@@ -154,7 +154,7 @@ export interface EnhancedPromptOptions {
    * and user's standing context, server-snapshotted onto the execution
    * spec's `declared_preferences` at create. Like the bridge, it lands in
    * the first message and persists in the cursor agent's own conversation
-   * store — deliberately frozen per Cursor session (DD-002 D3): repeating
+   * store — deliberately frozen per Cursor session: repeating
    * it every resumed turn would bloat the store with identical content.
    */
   declaredPreferences?: DeclaredPreferencesContent;
@@ -213,7 +213,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   if (options.channelMessaging !== undefined && options.channelMessaging.length > 0) {
     // "" when nothing is sendable — the tool alone still serves text
-    // sends inside a 24-hour window (DD-006 D6).
+    // sends inside a 24-hour window.
     const channelSection = formatChannelTemplatesSection(options.channelMessaging);
     if (channelSection !== "") {
       sections.push(channelSection);
@@ -782,7 +782,7 @@ export interface BuildPromptInput {
   /** This turn's resolved input files for the `<input_files>` section, as the runtime's attachment phase returns them. */
   attachments: readonly ResolvedAttachment[];
   /**
-   * Vision facts for the input-files section (T04): which attachments the
+   * Vision facts for the input-files section: which attachments the
    * model sees inline and which degraded to path-only. PER-TURN like the
    * catchup — it rides both the enhanced prompt and a resumed turn's prefix.
    */
@@ -829,7 +829,7 @@ export interface BuildPromptInput {
    * Platform-declared standing preferences from the execution spec's
    * `declared_preferences` (stigmer/stigmer#293). Like the bridge, only
    * the enhanced-prompt path consumes it — deliberately frozen per Cursor
-   * session (DD-002 D3): the first turn delivers it into the agent's own
+   * session: the first turn delivers it into the agent's own
    * conversation store, and repeating it on resumed turns would bloat the
    * store with identical content.
    */

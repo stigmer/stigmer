@@ -106,7 +106,7 @@ describe("selectRecalledFacts — no injection, no report", () => {
   });
 });
 
-describe("selectRecalledFacts — activation threshold (DD-008 D3)", () => {
+describe("selectRecalledFacts — activation threshold", () => {
   it("injects wholesale with NO embeddings call at exactly k candidates", async () => {
     const embed = angularEmbedder();
     const result = await selectRecalledFacts(

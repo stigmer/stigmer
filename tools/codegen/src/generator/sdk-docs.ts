@@ -91,7 +91,7 @@ export function runSDKDocsGeneration(schemaDir: string, outputDir: string, apisD
 }
 
 // Deletes .mdx files this run did not produce: the output directory is
-// generator-owned in its entirety (DD-01 §7), and stale pages are invisible
+// generator-owned in its entirety, and stale pages are invisible
 // to the freshness check yet ship as live URLs.
 function docRemoveStalePages(outputDir: string, slugs: string[]): void {
   const generated = new Set(slugs.map((slug) => slug + ".mdx"));

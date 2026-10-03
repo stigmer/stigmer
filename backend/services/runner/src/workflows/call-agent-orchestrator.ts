@@ -38,7 +38,7 @@ import { AgentCallError } from "../workflow-engine/types.js";
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Identity-only "go look" trigger (DD-012, stigmer-cloud#509): the child's
+ * Identity-only "go look" trigger: the child's
  * server signals just the gated child's execution id, and this workflow
  * derives the gate from the child's persisted record. The payload MUST stay a
  * bare string: it crosses the polyglot boundary from the Java server, whose

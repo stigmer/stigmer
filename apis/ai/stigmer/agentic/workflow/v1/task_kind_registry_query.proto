@@ -15,8 +15,6 @@ import "ai/stigmer/agentic/workflow/v1/task_kind_descriptor.proto";
 // The registry is a static catalog derived from proto definitions at build time.
 // It does not require authentication — task metadata is public knowledge about
 // the platform's capabilities, not user-specific data.
-//
-// @since T04 (Task Schema Registry)
 service TaskKindRegistryQueryController {
   // Retrieve the complete task kind registry.
   //

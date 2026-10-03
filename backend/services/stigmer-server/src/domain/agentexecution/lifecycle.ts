@@ -97,7 +97,7 @@ export const TEMPORAL_UNAVAILABLE_MESSAGE = "Temporal is not available";
 export interface LifecycleDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /**
    * Recover's per-execution turn (pipeline/keyed-serializer.ts). One
@@ -111,9 +111,9 @@ export interface LifecycleDeps {
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
   /** The composed slot registrations — recover's pre-side-effect slot (O4). */
   readonly gateSteps: ResolvedGateSteps;
-  /** The composed status-transition observers (O4, DD-006 §3). */
+  /** The composed status-transition observers. */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
-  /** The sandbox lane (§6d, O6) — recover re-ensures the session sandbox. */
+  /** The sandbox lane — recover re-ensures the session sandbox. */
   readonly sandboxLane: SandboxLane;
   /** Dispatch config for the sandbox ensure's target/queue resolution. */
   readonly temporalConfig: AgentExecutionTemporalConfig;
@@ -736,7 +736,7 @@ function runRecoverPipeline(
       ),
       newRecreateExecutionContextStep(deps),
       newStartFreshWorkflowStep(deps),
-      // The session-lane sandbox ensure (§6d, O6) — same position and
+      // The session-lane sandbox ensure — same position and
       // non-critical posture as the create chain's step: after the
       // workflow start, never failing the recover (the shared body
       // pre-stamps failures onto status.error instead).

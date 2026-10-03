@@ -177,7 +177,7 @@ message MintGuestTokenRequest {
   // guest create-time gate.
   //
   // The hosted server cross-checks this field against the request's
-  // browser-enforced Origin header (stigmer-cloud#341). When the header
+  // browser-enforced Origin header. When the header
   // is a third-party origin (a direct SDK embed), the header is
   // authoritative: a non-empty field that disagrees with it is refused
   // PERMISSION_DENIED naming both origins, and an empty field resolves

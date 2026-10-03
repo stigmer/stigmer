@@ -9,7 +9,7 @@
  * failures are plain errors for the chassis's INTERNAL arm — never
  * credential rejections).
  *
- * Since 20260911.11 (Q-IA-2, A1) the verifier also resolves the subject to
+ * Since 20260911.11 the verifier also resolves the subject to
  * an identity ACCOUNT id when one exists — the cloud's direct-login
  * posture — through the store port it is composed with: a hit stamps the
  * account id, a miss admits the caller idp-shaped (identityId = sub) so
@@ -265,7 +265,7 @@ describe("the byte-pinned classifyAuthError arms", () => {
   });
 });
 
-describe("subject → account resolution (20260911.11 Q-IA-2, A1)", () => {
+describe("subject → account resolution", () => {
   function seeded(
     sub: string,
     email: string,

@@ -225,7 +225,7 @@ export interface ServerConfig {
    * self-host that set the issuer before this knob existed, and uses the
    * CLI and SDKs with API keys, must keep booting on upgrade. Empty means
    * the console cannot sign in; the composition root WARNs and the served
-   * console says so itself (Q-CL-2). Named for the console on purpose — a
+   * console says so itself. Named for the console on purpose — a
    * future CLI or desktop sign-in against a self-host is a different
    * client type (loopback/native) and should not be tempted to reuse it.
    */

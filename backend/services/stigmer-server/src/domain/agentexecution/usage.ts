@@ -86,9 +86,9 @@ import { EXECUTION_LIST_KEY, loadAllAgentExecutions } from "./steps.js";
 export interface UsageReportDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 

@@ -1,14 +1,14 @@
 /**
  * The drivers extension point — infrastructure substitution seams of the
  * convergence blueprint (20260826.02 blueprint/03 §6, DD-006 §2a). The
- * point exists from O1 (20260826.09); the registrable KINDS join with
+ * point exists from O1; the registrable KINDS join with
  * their extraction entries, each adding a field here as an owner-visible
  * surface change:
  *
- *   - model-catalog provider (§6a) and artifact-storage driver
- *     registration + runner-credential provider (§6b/§6c) — landed, O5
+ *   - model-catalog provider and artifact-storage driver
+ *     registration + runner-credential provider — landed, O5
  *     (20260827.02)
- *   - sandbox provisioners (§6d) — landed, O6 (20260827.05)
+ *   - sandbox provisioners — landed, O6
  *   - resource-authorization lifecycle + organization directory —
  *     landed with C2 (20260827.10, rulings Q2/Q7)
  *   - channel runtime (DD-004's serving seam) — landed with C3
@@ -105,7 +105,7 @@ export interface ExtensionDrivers {
    */
   readonly runnerCredentialProvider?: RunnerCredentialProvider;
   /**
-   * Blob-storage backends registrable by name (§6b), selectable through
+   * Blob-storage backends registrable by name, selectable through
    * the ARTIFACT_STORAGE_TYPE / SKILL_ARTIFACT_STORAGE_TYPE config knobs.
    * Factories, not instances — an unselected driver constructs nothing.
    */
@@ -114,7 +114,7 @@ export interface ExtensionDrivers {
     ArtifactStorageDriverFactory
   >;
   /**
-   * Sandbox provisioners registrable by name (§6d), selectable through
+   * Sandbox provisioners registrable by name, selectable through
    * the SANDBOX_PROVISIONER_TYPE config knob. Factories, not instances —
    * an unselected driver constructs nothing. The built-in names
    * (local-process, docker, kubernetes — src/sandbox/provisioner.ts) are
@@ -130,7 +130,7 @@ export interface ExtensionDrivers {
    * (CreateAuthorizationTuples / CleanupIamPolicies /
    * UpdateVisibilityTuples) deliver resolved events to it, and the
    * IamPolicy grant path delivers the two policy hooks. Corrected
-   * 2026-09-13 (20260913.01 Q-OR-6): when absent, the steps no-op, but
+   * 2026-09-13: when absent, the steps no-op, but
    * open source is no longer record-less — the composition root installs
    * the built-in role lifecycle (domain/iampolicy/role-lifecycle.ts, the
    * entry's slice 4), which writes IamPolicy rows, whenever no extension

@@ -203,13 +203,13 @@ export async function captureCandidateToLedger(opts: {
   /**
    * True (default) for a git work tree — git-tracked edits are diffed from the
    * pinned baseline/after trees and composed with any CAS captures. False for a
-   * CAS-only non-git workspace (DD-21 D2): there is no git tree to diff, so the
+   * CAS-only non-git workspace: there is no git tree to diff, so the
    * change set is sourced ENTIRELY from `casCaptures` (+ `unreviewablePaths`) and
    * the snapshot is `CAS_MANIFEST`, not `GIT_TREE_REF`/`HYBRID`.
    */
   readonly gitWorkspace?: boolean;
   /**
-   * The harness's approved-command turn facts (DD-28): present only when the
+   * The harness's approved-command turn facts: present only when the
    * turn's sole mutation source was consented shell commands. Carried verbatim
    * on the CANDIDATE event for the backend to verify and — on success — author
    * the policy auto-keep decision. Omitted → the set reviews manually.
@@ -248,7 +248,7 @@ export async function captureCandidateToLedger(opts: {
   // Secret handling is three-way across the substrates, and this is the last of
   // the three (the other two happen upstream at the harness gate):
   //   1. A gitignored secret WRITE never flows — hard-blocked at the gate /
-  //      deny-gate (DD-12/DD-30). It arrives here only as a path in
+  //      deny-gate. It arrives here only as a path in
   //      `unreviewablePaths` (recorded by the gate), authored content-less below.
   //   2. A gitignored secret that flowed under the global bypass is withheld from
   //      CAS by `partitionIgnoredPathsBySecret` (secret-paths.ts), so its bytes
@@ -612,7 +612,7 @@ function hybridSnapshotRef(treeOid: string, ref: string, cas: CasSnapshotRef): S
 /**
  * Build a CAS-only {@link SnapshotRef} — the shape for a non-git workspace, whose
  * every captured path lives in the content-addressed manifest and no git tree
- * exists (DD-21 D2). `cas` is absent for the BASELINE placeholder (the manifest is
+ * exists. `cas` is absent for the BASELINE placeholder (the manifest is
  * authored at candidate time); present for CANDIDATE/RECONCILED once it exists.
  */
 function casManifestSnapshotRef(cas?: CasSnapshotRef): SnapshotRef {
@@ -774,7 +774,7 @@ function trackedSecretChangeInput(
  * exported for direct unit testing. Keyed on the same {@link isSecretLikePath}
  * classifier the CAS/gitignored path uses ({@link partitionIgnoredPathsBySecret}
  * in secret-paths.ts), so a path is classified identically everywhere. NOTE: the
- * classifier is path-based (DD-12 D2), so a rename to an innocuous name defeats
+ * classifier is path-based, so a rename to an innocuous name defeats
  * it — an intentional, cross-substrate limitation, not introduced here.
  */
 export function partitionGitChangesBySecret(changes: readonly GitCapturedChange[]): {

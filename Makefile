@@ -457,7 +457,7 @@ test-authorization-model: build-ts-stubs $(SERVER_DIR)/node_modules ## Regenerat
 	@cd $(SERVER_DIR) && npx vitest run $(AUTHZ_MODEL_EVALUATOR_SUITES)
 
 # The consumer compiles a fake extension against the @stigmer/server
-# exports map ALONE (DD-005): a missing export is a tsc failure here, not
+# exports map ALONE: a missing export is a tsc failure here, not
 # a review miss. Standalone package with a file: link for the fast PR-time
 # proof; `npm run verify:consumer` in the server re-runs the same typecheck
 # against the PACKED tarball, the shape the published consumer (the cloud
@@ -474,7 +474,7 @@ test-extension-consumer: build-server ## Compile-proof the @stigmer/server libra
 # shared contract that turns OSS<->cloud behavioral drift into a failing
 # test, and (since stigmer#1022) the home of the runner-behavior arms the Go
 # test/integration* suites used to hold before they retired with the Java
-# service. The two slices are deliberately separate (DD-002): the
+# service. The two slices are deliberately separate: the
 # dependency-light CRUD signal stays fast, while execution additionally needs
 # the `temporal` and `stigmer` CLIs, git, and a runner build. See
 # test/conformance/README.md.
@@ -561,7 +561,7 @@ test-conformance-postgres-execution: build-runner ## Run gRPC conformance execut
 	CONFORMANCE_TARGET=local-postgres-execution npm run test:execution -w @stigmer/conformance
 
 # build-web rides the dependency list because bundle-slim stages the web
-# console's static export into the artifact (DD-012) and loud-fails
+# console's static export into the artifact and loud-fails
 # without a built client-apps/web/out.
 .PHONY: smoke-cli-cutover
 smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke: `stigmer up` against the packaged slim server artifact (needs `temporal` on PATH for speed)
@@ -1113,7 +1113,7 @@ check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (t
 	node scripts/turbo-set.mjs workspace typecheck
 	node scripts/turbo-set.mjs workspace lint
 	node scripts/turbo-set.mjs workspace tsdoc:check
-	# The cloud-capability behavior inventory (DD-012 §5): every conformance
+	# The cloud-capability behavior inventory: every conformance
 	# row has a test, every test tag names a row. Static — no target boots.
 	$(MAKE) check-conformance-inventory
 	node scripts/verify-scenar-tours.mjs

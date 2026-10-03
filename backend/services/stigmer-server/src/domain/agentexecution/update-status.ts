@@ -11,7 +11,7 @@
  * could drop an approval event a concurrent SubmitApproval appended in
  * the window between the load and the save.
  *
- * O4 (20260827.07) consumes the status-transition hooks here — one of
+ * O4 consumes the status-transition hooks here — one of
  * the five notifying sites (the exhaustive list: status-observers.ts):
  * observers fire post-persist and before broadcast; the response
  * decorators run on the reply (the §7 querySignal seam — the cloud
@@ -103,10 +103,10 @@ import type { StreamBroker } from "./stream-broker.js";
 export interface UpdateStatusDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   readonly broker: StreamBroker;
-  /** The composed status-transition observers (O4, DD-006 §3). */
+  /** The composed status-transition observers. */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
   /** The composed reply decorators — the §7 querySignal seam (O4). */
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
@@ -549,7 +549,7 @@ export function applyUpdateStatusMerge(
   // SubmitFileDecision).
   appendRunnerEvents(status, input.executionId, requestStatus);
 
-  // Approved-command auto-keep (DD-28): a candidate whose provenance
+  // Approved-command auto-keep: a candidate whose provenance
   // verifies against the server-authored approval record is decided by
   // policy IN THE SAME WRITE that folded it, so the gate never arms for a
   // set the user already consented to via the command approval.
@@ -568,7 +568,7 @@ export function applyUpdateStatusMerge(
     status.fileReviewEventStream,
   );
 
-  // Mid-run live capture (DD-32): merge the runner-owned transient
+  // Mid-run live capture: merge the runner-owned transient
   // progress snapshot (presence-guarded replace, like streaming_usage
   // below), then clear it unless its change set is still CAPTURING — run
   // here so it sees the freshly-projected file_change_sets.
@@ -587,7 +587,7 @@ export function applyUpdateStatusMerge(
   }
 
   // Merge recalled_memories_report: runner-owned, written at most once
-  // per execution at prompt build (DD-008 D5). Later persists omit it, so
+  // per execution at prompt build. Later persists omit it, so
   // this presence guard is what preserves the stored report across the
   // execution's remaining status writes.
   if (requestStatus.recalledMemoriesReport !== undefined) {

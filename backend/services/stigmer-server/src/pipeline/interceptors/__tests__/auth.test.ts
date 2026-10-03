@@ -1,5 +1,5 @@
 /**
- * Pins the identity chassis (O2, DD-007 §1): the claim-or-pass verifier
+ * Pins the identity chassis: the claim-or-pass verifier
  * walk, the Q6 conditional-strictness contract (zero verifiers = silent
  * fall-through for unclaimed tokens; any verifier configured = unclaimed
  * is UNAUTHENTICATED), the O3 require-authentication posture (rulings

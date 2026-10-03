@@ -53,7 +53,7 @@ LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer" \
 # keys — under one mount, with the exact on-disk layout of a bare-metal
 # ~/.stigmer: /data/.stigmer is byte-portable to and from `stigmer up`.
 #
-# ARTIFACT_HTTP_HOST=0.0.0.0 (DD-013): the artifact file server defaults
+# ARTIFACT_HTTP_HOST=0.0.0.0: the artifact file server defaults
 # to loopback, which is unreachable through the container boundary even
 # with -p; the container network namespace is the isolation here.
 ENV HOME=/data \
@@ -63,7 +63,7 @@ ENV HOME=/data \
 # named volumes initialize from the image and inherit this ownership.
 # (Bind mounts keep host ownership — the docker run docs cover chown.)
 #
-# The artifact path is pre-created for the compose stack (DD-013): compose
+# The artifact path is pre-created for the compose stack: compose
 # mounts a SHARED named volume at this exact path (the runner reads what
 # the server writes). A nested mountpoint that does not pre-exist would be
 # created root-owned by the docker daemon INSIDE the outer /data volume —

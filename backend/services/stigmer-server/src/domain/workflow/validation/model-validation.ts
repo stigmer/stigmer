@@ -2,11 +2,11 @@
  * Harness-aware model-reference validation — ports
  * pkg/domain/workflow/validation/model_validation.go.
  *
- * Model validity comes from the composed ModelCatalogProvider (DD-008) —
+ * Model validity comes from the composed ModelCatalogProvider —
  * the same document the /v1/proxy/model-registry HTTP lane serves. Reading
  * the provider per validation call instead of a boot-time snapshot is what
  * keeps validation and the served pickers in lockstep: a model that appears
- * in every picker after a refresh must also validate (DD-004).
+ * in every picker after a refresh must also validate.
  *
  * Harness names, suggestion machinery, and the write-time pin-existence
  * rule all live in the registry module (the shared validation authority) —

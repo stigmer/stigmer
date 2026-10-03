@@ -31,7 +31,7 @@
  * Proven by the shared store contract suite (../__tests__/store-contract.ts)
  * under TEST_DATABASE_URL, __tests__/ (migrations, tsquery, driver
  * physicals), and end-to-end by the conformance suites on local-postgres /
- * local-postgres-execution (DD-011).
+ * local-postgres-execution.
  */
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
@@ -831,7 +831,7 @@ export class PostgresStore implements Store {
     versionHash: string,
   ): Promise<AuditRecord> {
     const kindName = apiResourceKindName(kind);
-    // Duplicates for one hash are legal — newest wins (stigmer-cloud#191).
+    // Duplicates for one hash are legal — newest wins.
     const result = await this.open().query(
       `SELECT data, tag FROM resource_audit
        WHERE kind = $1 AND resource_id = $2 AND version_hash = $3

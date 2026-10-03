@@ -177,7 +177,7 @@ describe("synthesizeChannelAttachment", () => {
 
   it("is approval-free by construction: zero entries in the merged approval map", () => {
     const attachment = synthesizeChannelAttachment([info("isc-whatsapp", [])], options)!;
-    // Forced, not convenient (DD-002 D6): both calling surfaces run
+    // Forced, not convenient: both calling surfaces run
     // UNATTENDED mode, where a gated tool resolves as skip-and-adapt —
     // a gated send tool means reminders never send.
     const merged = mergeApprovalPolicies(
@@ -193,7 +193,7 @@ describe("synthesizeChannelAttachment", () => {
   });
 });
 
-describe("formatChannelTemplatesSection (DD-006 D6)", () => {
+describe("formatChannelTemplatesSection", () => {
   it("renders sendable templates with body text, parameters, and the image-header requirement", () => {
     const section = formatChannelTemplatesSection([
       info("isc-whatsapp", [

@@ -209,8 +209,6 @@ message AgentExecutionStatus {
   // - **Debugging**: Understand why an execution hit context limits
   // - **Cost optimization**: Identify executions with excessive summarization
   // - **UX**: Show users their context window health
-  //
-  // @since Phase 3 (Context Summarization Architecture)
   ContextInfo context_info = 14;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -229,8 +227,6 @@ message AgentExecutionStatus {
   // Use the execution download endpoint to refresh expired URLs.
   //
   // Ordered by creation time (oldest first).
-  //
-  // @since Artifact Lifecycle (Attachments & Artifacts)
   repeated ExecutionArtifact artifacts = 15;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -250,8 +246,6 @@ message AgentExecutionStatus {
   // Populated during post-execution processing. Each entry tracks the
   // write-back lifecycle (committed -> pushed -> PR created) and carries
   // the PR URL for UI display.
-  //
-  // @since Platform-Owned Git Write-Back
   repeated WorkspaceWriteBack workspace_write_backs = 17;
 
   // ─────────────────────────────────────────────────────────────────────────────

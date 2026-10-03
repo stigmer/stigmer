@@ -40,8 +40,6 @@
  *  - `secret`    — a secret-like gitignored path the hook hard-blocked (denied,
  *    nothing written): `{path, kind}` only. The boundary authors it as a
  *    content-less `DIFF_UNREVIEWABLE` change; its bytes never reach storage.
- *
- * @since File-Change HITL Redesign (Cursor CAS parity — DD-18)
  */
 
 import { readFile, readdir, rm, mkdir } from "node:fs/promises";

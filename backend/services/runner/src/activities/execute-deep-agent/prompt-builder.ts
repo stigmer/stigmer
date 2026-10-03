@@ -300,7 +300,7 @@ export interface TurnMessageInput {
   /** This turn's resolved input files, as the runtime's attachment phase returns them. */
   readonly inputFiles: readonly ResolvedAttachment[];
   /**
-   * Vision facts about this turn's attachments (T04): which images the model
+   * Vision facts about this turn's attachments: which images the model
    * sees inline in this same message and which degraded to path-only.
    * Rendered inside the Input Files section.
    */

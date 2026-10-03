@@ -44,8 +44,6 @@
  * stay on the deny-gate or block as DIFF_UNREVIEWABLE), and the secret-safety
  * gate (design doc 12), are the harness adapter's concern, applied BEFORE bytes
  * reach this module. This module never persists a path it is not given.
- *
- * @since File-Change HITL Redesign (Phase 3 — CAS)
  */
 
 import { mkdir, rm, writeFile } from "node:fs/promises";

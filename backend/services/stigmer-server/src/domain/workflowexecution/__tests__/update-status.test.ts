@@ -401,7 +401,7 @@ describe("presence-guarded field merges (BuildNewStateWithStatus)", () => {
   });
 });
 
-describe("updateStatus persistence mechanism (DD-001)", () => {
+describe("updateStatus persistence mechanism", () => {
   let dir: string;
   let store: SqliteStore;
   let broker: StreamBroker;

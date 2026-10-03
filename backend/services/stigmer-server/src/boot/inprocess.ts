@@ -11,7 +11,7 @@
  * the verifier chassis over the wire's credentials. Chain traversal proven
  * by spike SP-B (src/pipeline/__tests__/router-transport.test.ts): every
  * interceptor runs, in registration order, and a chain rejection
- * short-circuits with a ConnectError the in-process caller sees (DD-002).
+ * short-circuits with a ConnectError the in-process caller sees.
  *
  * The agent↔agentinstance true cycle is broken at the CONSUMERS with lazy
  * providers (`() => client`) resolved at call time; this module only
@@ -87,7 +87,7 @@ import type { CallerIdentity } from "../extensions/identity.js";
 import type { Logger } from "./logger.js";
 import type { CallOptions } from "@connectrpc/connect";
 
-/** The narrow in-process surfaces the domains consume (DD-002). */
+/** The narrow in-process surfaces the domains consume. */
 export interface InProcessClients {
   readonly agentInstanceApplier: AgentInstanceApplier;
   readonly parentAgentLoader: ParentAgentLoader;

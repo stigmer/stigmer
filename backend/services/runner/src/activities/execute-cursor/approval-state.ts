@@ -161,7 +161,7 @@ export interface ApprovalGrant {
   /**
    * Id of the adjudicated tool call this grant was minted from — the transcript
    * row carrying the SERVER-authored approval_action. The approved-command
-   * auto-keep provenance (DD-28) cites this row as the consent the backend can
+   * auto-keep provenance cites this row as the consent the backend can
    * verify; the hook itself never reads it.
    */
   sourceToolCallId: string;
@@ -631,7 +631,7 @@ export function approvalDenials(entries: readonly DeniedLedgerEntry[]): DeniedLe
 }
 
 /**
- * The entries the UNATTENDED approval mode resolved (DD-014) — never pausing,
+ * The entries the UNATTENDED approval mode resolved — never pausing,
  * consumed by the turn boundary's `stampUnattendedSkippedToolCalls` to
  * terminalize the corresponding streamed tool calls as TOOL_CALL_SKIPPED with
  * UNATTENDED_SKIP provenance, so both harnesses persist the same honest shape.

@@ -123,7 +123,7 @@ import {
 export interface OrganizationControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed slot registrations — this domain's create and delete slots (O4). */
   readonly gateSteps: ResolvedGateSteps;

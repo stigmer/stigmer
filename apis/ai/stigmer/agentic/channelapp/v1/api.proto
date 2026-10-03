@@ -24,7 +24,7 @@ import "buf/validate/validate.proto";
 // carries webhook signing secrets and install credentials, so it is a
 // separate kind in the agentic group, never a reuse. Provider variance
 // is a oneof (the AgentChannelSpec.provider_config idiom); WhatsApp
-// (T05) extends the oneof, touching zero kinds.
+// extends the oneof, touching zero kinds.
 message ChannelApp {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];

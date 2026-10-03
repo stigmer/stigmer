@@ -1,6 +1,6 @@
 /**
  * The Docker sandbox driver — DD-002's second isolation tier, built by
- * O6 (20260827.05). Each sandbox is one container running the published
+ * O6. Each sandbox is one container running the published
  * runner image, polling exactly one task queue. Mechanism per the
  * mid-session owner ruling: the docker CLI via child_process — zero new
  * dependencies, present wherever this tier's audience (dev and small

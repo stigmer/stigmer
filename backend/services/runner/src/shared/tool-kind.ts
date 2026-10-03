@@ -83,7 +83,7 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
  * back to a name lookup, so this is never worse than no classification).
  */
 export function classifyTool(name: string, mcpServerSlug?: string): ToolKind {
-  // The first-party remember tool (DD-005), slug-scoped on purpose: it is
+  // The first-party remember tool, slug-scoped on purpose: it is
   // served by the synthesized memory attachment, so only that reserved
   // slug earns the MEMORY kind (and its consent-chip rendering) — a
   // third-party MCP server's coincidental `remember` stays a plain MCP

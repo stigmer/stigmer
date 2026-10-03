@@ -332,7 +332,7 @@ export async function callAgentAction(
 // buildWorkspaceEntries maps the task's git-only workspace entries onto the
 // shared session WorkspaceEntry proto. Provisioning credentials are NOT the
 // runner's concern here: the provisioner resolves GITHUB_TOKEN from the
-// merged environment (DD-018 D-4), which the task's environment_refs feed
+// merged environment, which the task's environment_refs feed
 // via server-side resolution.
 function buildWorkspaceEntries(
   entries: AgentCallConfig["workspace_entries"],

@@ -111,7 +111,7 @@ export type {
 } from "./extensions/status-hooks.js";
 export type { ExtensionDrivers } from "./extensions/drivers.js";
 export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
-// The C2 seams (20260827.10): the tuple-lifecycle driver point and the
+// The C2 seams: the tuple-lifecycle driver point and the
 // organization query directory, plus the shape-policy helpers a driver's
 // tests pin against.
 export type {
@@ -152,7 +152,7 @@ export {
   relaxedEgressPolicy,
   strictEgressPolicy,
 } from "./extensions/outbound-egress.js";
-// The 20260911.11 identity-account seams (Q-IA-9): the store PORT a
+// The 20260911.11 identity-account seams: the store PORT a
 // composition drives the domain through (drivers.identityAccountStore;
 // a driver throws DuplicateAccountError for a held id), the federation
 // capability (drivers.identityFederation), and the ONE subject →
@@ -178,7 +178,7 @@ export type {
   PortContractFixture,
 } from "./store/port-contract.js";
 export { portContractCases } from "./store/port-contract.js";
-// The 20260913.01 IamPolicy seams (Q-OR-1, Q-OR-10): the store PORT a
+// The 20260913.01 IamPolicy seams: the store PORT a
 // composition drives the domain's grant path through (drivers.iamPolicyStore;
 // a driver throws DuplicatePolicyError for a held id) and its vitest-free
 // contract kit; the grant scope (drivers.policyGrantScope — which kinds an
@@ -356,7 +356,7 @@ export {
   unavailableError,
 } from "./pipeline/errors.js";
 export type { RefusalReason } from "./pipeline/errors.js";
-// The shared slug derivation (C2 Stage 3): extension-registered resource
+// The shared slug derivation: extension-registered resource
 // kinds derive slugs with the SAME generator both editions pin
 // (ApiRequestResourceSlugGenerator parity) — the semantics live exactly
 // once.
@@ -375,7 +375,7 @@ export {
   serverActingFor,
 } from "./pipeline/interceptors/auth.js";
 
-// The request idiom for extension-REGISTERED services (C4 Stage 4): a
+// The request idiom for extension-REGISTERED services: a
 // service contributed through ServerExtension.services runs the same
 // chain shape every OSS controller runs — identity read once
 // (callerIdentityOf), then Authorize (descriptor-driven from the
@@ -502,7 +502,7 @@ export type { RawResourceDocument } from "./store/interface.js";
 // internal — a consumer gets the driver, never the DDL — so the chain's
 // shape is not a contract and nothing outside this package can replay it
 // piecemeal. Not for production wiring: compose.ts selects the driver from
-// config (DD-010), and a composition never opens a second store.
+// config, and a composition never opens a second store.
 export { PostgresStore } from "./store/postgres/store.js";
 export type {
   ArtifactStorage,
@@ -517,7 +517,7 @@ export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage
 export { newR2ArtifactStorage } from "./artifactstorage/r2-storage.js";
 export type { R2StorageConfig } from "./artifactstorage/r2-storage.js";
 
-// The O5 driver seams (§6a/§6c): the model-catalog read surface with the
+// The O5 driver seams: the model-catalog read surface with the
 // DD-008 disciplines in its contract, and the per-lane runner-credential
 // seam with its OSS lane constant (an extension's verify callers name the
 // lane they accept).
@@ -572,7 +572,7 @@ export {
 } from "./encryption/encryption.js";
 export type { SecretCodec } from "./encryption/codec.js";
 
-// The O6 driver seam (§6d): the sandbox-provisioner contract an extension
+// The O6 driver seam: the sandbox-provisioner contract an extension
 // implements to register its own isolation driver (selected through the
 // SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
 // registrations may never shadow.

@@ -46,7 +46,7 @@ import type { Store } from "../../store/interface.js";
  * The narrow in-process surface the agentinstance domain needs from agent —
  * consumer-defined so the dependency reads at the domain boundary (the Go
  * twin is pkg/downstream/agent.Client). Calls ride the in-process router
- * transport, traversing the full interceptor chain (DD-002).
+ * transport, traversing the full interceptor chain.
  */
 export interface ParentAgentLoader {
   get(agentId: string): Promise<Agent>;

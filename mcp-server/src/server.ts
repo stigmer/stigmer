@@ -216,7 +216,7 @@ export type RouteServerFactory = (path: string) => McpServer | undefined;
 /** HTTP route serving the full roster: the bare origin every published config uses. */
 export const FULL_ROUTE = "/";
 
-/** HTTP route serving the channels-only roster (DD-006 D8). */
+/** HTTP route serving the channels-only roster. */
 export const CHANNELS_ROUTE = "/channels";
 
 /** HTTP route serving the conversation-only roster (channel-conversations A14). */

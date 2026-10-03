@@ -12,7 +12,7 @@
  *
  * Why the match is exact (the `kindByEnumName` doctrine,
  * pipeline/apiresource-meta.ts): an `ApiResourceRef.kind` is the enum
- * MEMBER name and the derived policy id hashes the spec's text (Q-OR-9), so
+ * MEMBER name and the derived policy id hashes the spec's text, so
  * a lenient match would let "Organization" and "organization" mint two
  * rows for one grant. Where the refusal runs (Q-S6-1, 2026-09-14): the
  * controller calls it BEFORE position 1 on every lane, so no Authorizer in

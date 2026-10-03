@@ -34,7 +34,7 @@ import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
 
 /**
  * The engine operations the controller consumes once Temporal is wired.
- * Populated by #18 (sp.agentexecution-orchestration); empty by design
+ * Populated by #18; empty by design
  * until then — see the module header.
  */
 export interface ConnectedExecutionEngine {

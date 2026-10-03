@@ -876,7 +876,7 @@ describe("partitionGitChangesBySecret (pure)", () => {
   });
 });
 
-// Slice 2a (DD-21 D2): the shared orchestration must capture and reconcile a
+// Slice 2a: the shared orchestration must capture and reconcile a
 // NON-GIT workspace entirely from the CAS manifest — no git refs, no whole-tree
 // snapshot, bounded to the paths the observer actually touched. These exercise
 // capture.ts directly against a plain (non-git) temp dir; the harness wirings

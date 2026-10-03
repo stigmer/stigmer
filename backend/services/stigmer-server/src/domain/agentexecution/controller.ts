@@ -157,11 +157,11 @@ import {
 export interface AgentExecutionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
   /**
    * The directory of the persons callers stand for (stigmer#1387) — the
@@ -227,13 +227,13 @@ export interface AgentExecutionControllerDeps {
    */
   readonly gateSteps: ResolvedGateSteps;
   /**
-   * The composed status-transition hooks (O4, DD-006 §3) — consumed at
+   * The composed status-transition hooks — consumed at
    * the five phase-transition persist sites (status-observers.ts).
    */
   readonly statusObservers: ReadonlyArray<AgentExecutionStatusObserver>;
   readonly responseDecorators: ReadonlyArray<AgentExecutionResponseDecorator>;
   /**
-   * The sandbox lane (§6d, O6): disabled on the OSS default; the create
+   * The sandbox lane: disabled on the OSS default; the create
    * and recover chains ensure the session sandbox through it after their
    * workflow starts.
    */
@@ -438,7 +438,7 @@ async function createExecution(
         statusObservers: deps.statusObservers,
       }),
     )
-    // The session-lane sandbox ensure (§6d, O6): after StartWorkflow,
+    // The session-lane sandbox ensure: after StartWorkflow,
     // NON-critical — a provisioning failure pre-stamps status.error and
     // never fails the create (sandbox/steps.ts carries the posture's
     // full rationale). Skips instantly when no provisioner is composed.

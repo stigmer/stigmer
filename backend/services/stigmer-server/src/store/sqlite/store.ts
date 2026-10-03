@@ -871,7 +871,7 @@ export class SqliteStore implements Store {
   ): Promise<AuditRecord> {
     const db = this.open();
     const kindName = apiResourceKindName(kind);
-    // Duplicates for one hash are legal — newest wins (stigmer-cloud#191).
+    // Duplicates for one hash are legal — newest wins.
     const row = db
       .prepare(
         `SELECT data, tag FROM resource_audit
@@ -1278,7 +1278,7 @@ export class SqliteStore implements Store {
         query.offset,
       ) as Array<{ kind: string; resource_id: string; rank: number }>;
 
-    // The interface promises wire-ready scores (DD-001): normalize bm25
+    // The interface promises wire-ready scores: normalize bm25
     // here; list mode's pinned 1.0 maps to exactly 1.0 through the same
     // function.
     const hits: SearchIndexHit[] = pageRows.map((row) => ({

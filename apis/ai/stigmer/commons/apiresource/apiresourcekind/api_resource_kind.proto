@@ -119,7 +119,7 @@ enum ApiResourceKind {
     not_search_indexed: true
     // The ROW half of the IamPolicy contract — the recorded grants, all
     // fourteen RPCs — is served by every edition since the organization
-    // roles moved into open source (20260913.01): who holds which role on
+    // roles moved into open source: who holds which role on
     // an organization is a fact every edition records and shows. What
     // differs per edition is not the kind but the GRANT SCOPE a
     // composition registers: open source grants roles on organizations
@@ -834,7 +834,7 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       // No owner tuple: the subject relation below is the ONLY principal
       // on a memory. An agent authored the record and the subject decides
-      // on it — owner/creator vocabulary would misname both (DD-004).
+      // on it — owner/creator vocabulary would misname both.
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE
       // The permanent subject tuple: memory#subject@identity_account:<id>,
       // extracted from spec.subject_identity_account_id (itself

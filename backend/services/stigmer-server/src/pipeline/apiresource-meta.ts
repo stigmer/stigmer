@@ -18,8 +18,8 @@
  *   - An `ApiResourceRef.kind` — the IamPolicy spec's principal and
  *     resource, the FGA object type — is the enum MEMBER name
  *     ("mcp_server"). `kindByEnumName` reads it by the descriptor's exact
- *     proto name and never throws (20260913.01, Q-OR-2). Exact, because the
- *     IamPolicy id is derived from the spec's text (Q-OR-9): a lenient
+ *     proto name and never throws. Exact, because the
+ *     IamPolicy id is derived from the spec's text: a lenient
  *     match would let "Organization" and "organization" mint two rows for
  *     one grant. Reading the descriptor's name is not deriving a spelling;
  *     the #545 rule is about recovering kind_meta.name from an enum, which

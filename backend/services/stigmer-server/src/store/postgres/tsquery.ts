@@ -65,7 +65,7 @@ export function renderTsQueryExpression(terms: readonly string[]): string {
  * normalization is already higher-is-better and effectively small-positive
  * (typically well under 1; unbounded above only in pathological
  * documents), so the mapping is a clamp — absolute values and cross-driver
- * ordering are explicitly NOT contract (DD-009), only deterministic
+ * ordering are explicitly NOT contract, only deterministic
  * ordering within this driver is. List mode never reaches this function
  * (its score is pinned exactly 1.0 by the driver).
  */

@@ -70,7 +70,7 @@ message ChannelOutboundMessage {
   // @internal
   // Uniquely indexed where present — the provider-side identity of this
   // send, kept for forensics and as the payments-era correlation anchor.
-  // Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+  // Receipt correlation deliberately does NOT ride it: the
   // wamid lands here only AFTER the provider accepts, while receipts are
   // correlated by the send-time callback token, which can never miss.
   string provider_message_id = 12;
@@ -91,7 +91,7 @@ message ChannelOutboundMessage {
   // the recipient's device".
   //
   // @internal
-  // DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+  // DD-016 D5/D6. Stamped by the delivery receipt
   // handler, its single writer, advancing monotonically (sent <
   // delivered < read; failed is sticky-terminal) because Meta delivers
   // receipts out of order and may skip `delivered` entirely. The stamp
@@ -169,7 +169,7 @@ message ChannelOutboundMessage {
 //
 // @internal
 // DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth
-// value `played` (voice playback) maps to receipt_read (DD-016 D8), and
+// value `played` (voice playback) maps to receipt_read, and
 // the raw webhook payload retains the verbatim value. Values carry the
 // receipt_ prefix because proto3 enum values are package-scoped —
 // `delivered` and `failed` are taken by ChannelDeliveryStatus — which is

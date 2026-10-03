@@ -97,7 +97,7 @@ export interface ArtifactStorage {
   ): Promise<string>;
   /**
    * A time-limited upload URL for a blob of exactly declaredSizeBytes at
-   * the key the CALLER names (§6b). The key is the domain's: it chooses
+   * the key the CALLER names. The key is the domain's: it chooses
    * the staging prefix its sweep targets and the mapping from its wire
    * reference, and reads the bytes back through download(key) — the
    * driver never invents a key of its own. Per-driver semantics differ
@@ -180,7 +180,7 @@ export const BUILT_IN_STORAGE_TYPES = ["local", "r2"] as const;
 
 /**
  * Factory mirroring Go NewArtifactStorage, opened to registered drivers
- * with O5 (§6b): built-ins first, then the composition's registered driver
+ * with O5: built-ins first, then the composition's registered driver
  * map — the cloud substitutes its per-domain R2 drivers without this
  * switch ever growing a case.
  */

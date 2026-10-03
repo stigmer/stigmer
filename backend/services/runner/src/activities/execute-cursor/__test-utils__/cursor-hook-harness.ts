@@ -105,7 +105,7 @@ export interface CursorHookHarnessOptions {
    */
   gitWorkspace?: boolean;
   /**
-   * Unattended approval mode (DD-014): approval denies are recorded with the
+   * Unattended approval mode: approval denies are recorded with the
    * non-pausing "unattended" kind and the adapt-and-explain agent message.
    */
   unattendedSkip?: boolean;

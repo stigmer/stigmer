@@ -23,12 +23,12 @@
  * onto the live row and never touch the lifecycle — consent must not be
  * rewritable through a spec edit.
  *
- * Consent posture (DD-005 D3): confirm/reject enforced at the control
+ * Consent posture: confirm/reject enforced at the control
  * plane is the ENTIRE consent mechanism. Client-side approval flows are
  * never trusted with retention — three shipped HITL bypasses are the
  * recorded evidence (see DD-005).
  *
- * Caps (DD-006 D5): content length via protovalidate (500 chars); a
+ * Caps: content length via protovalidate (500 chars); a
  * 100-records-per-subject-per-org ceiling across ALL lifecycle states
  * (proposed clutter counts, which pressures honest rejection), enforced
  * at create with a visible FAILED_PRECONDITION — never silent eviction.
@@ -129,11 +129,11 @@ import {
 export interface MemoryControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — list narrows through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
   /**
    * The directory of the persons callers stand for (stigmer#1387) — the
@@ -176,7 +176,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 
 /**
  * Create — chain per Go buildCreatePipeline: a new memory in the proposed
- * state (DD-005 D2). ResolveMemoryDefaults mints the id BEFORE
+ * state. ResolveMemoryDefaults mints the id BEFORE
  * BuildNewState so an unnamed record can default its name from its own
  * identity; InitializeMemoryLifecycle runs AFTER BuildNewState so the
  * status wipe cannot undo it.
@@ -282,7 +282,7 @@ async function update(
 
 /**
  * Confirm — Go confirm.go: moves a proposed memory to confirmed — the
- * consent act (DD-005 D3). From the next eligible execution on, the fact
+ * consent act. From the next eligible execution on, the fact
  * is recalled as background context.
  *
  * Confirming an already-confirmed memory is an idempotent no-op.
@@ -320,11 +320,11 @@ async function confirm(
  *
  * Rejecting an already-rejected memory is an idempotent no-op. Rejecting
  * a confirmed memory is refused with FAILED_PRECONDITION: deleting a
- * confirmed memory IS its revocation (DD-006) — a reject that pretended
+ * confirmed memory IS its revocation — a reject that pretended
  * to revoke would leave a misleading audit record.
  *
  * Rejection is deliberately one click on every surface — expensive review
- * teaches users to ignore the proposal queue (DD-005 D4).
+ * teaches users to ignore the proposal queue.
  */
 async function reject(
   deps: MemoryControllerDeps,
@@ -344,7 +344,7 @@ async function reject(
 
 /**
  * The shared confirm/reject pipeline — Go buildTransitionPipeline +
- * runTransition: one contract with opposite verdicts (DD-005 D3),
+ * runTransition: one contract with opposite verdicts,
  * answering with the post-image row.
  *
  * Authorize evaluates can_edit on the memory (subject-only in the model)
@@ -389,9 +389,9 @@ async function runTransition(
 /**
  * Delete — Go delete.go: deletes a memory permanently, in ANY lifecycle
  * state — the any-state guarantee is load-bearing for the trust story:
- * "delete this one" must never be refused on lifecycle grounds (DD-004).
+ * "delete this one" must never be refused on lifecycle grounds.
  * Deleting a confirmed memory is how consent is revoked; past executions
- * keep their immutable recalled_memories snapshots (DD-006 D6).
+ * keep their immutable recalled_memories snapshots.
  *
  * No search-index cleanup: memory is not_search_indexed.
  *
@@ -475,7 +475,7 @@ async function get(
 /**
  * List — Go list.go: memories in an organization, newest first. Ordering
  * is chronological only; grouping pending proposals first is the
- * console's presentation concern (DD-005 D4), deliberately not an RPC
+ * console's presentation concern, deliberately not an RPC
  * parameter at the kind's dozens-of-records scale.
  *
  * Narrowed to the caller's authorized rows (can_view, which resolves to

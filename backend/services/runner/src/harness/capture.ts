@@ -38,7 +38,7 @@
  *    "Executed" is a COMPLETED row. "Consented" is the row's own
  *    server-authored `approval_action` — the seeded row keeps its id and its
  *    verdict when it executes on resume, so the executed command IS its
- *    consent row. Any sub-agent activity fails closed (DD-28 D1).
+ *    consent row. Any sub-agent activity fails closed.
  *  - THE STAMP (`shared/tool-row.ts` `stampFlowedFileEditRows`). A write or
  *    delete row created this turn that reached COMPLETED flowed onto the
  *    tree and is badged with the change set; a WAITING (denied, gated) or
@@ -181,7 +181,7 @@ export async function pinCaptureBaseline(args: {
 }
 
 /**
- * The progress substrate for this workspace shape (DD-32 / DD-33): a git
+ * The progress substrate for this workspace shape: a git
  * tree diffs its tracked paths by `--numstat` against the baseline; the CAS
  * slice reads the engine's observations for the gitignored (git tree) or
  * every (non-git) path; a git tree with storage composes both. The truth
@@ -222,7 +222,7 @@ export async function captureCandidate(args: {
   readonly fileReview: FileReviewIdentity;
   readonly artifactStorage: ArtifactStorage | undefined;
   readonly capture: TurnCapture;
-  /** `spec.auto_approve_all`, the one whole-run bypass: qualifies every executed command as consented (DD-28). */
+  /** `spec.auto_approve_all`, the one whole-run bypass: qualifies every executed command as consented. */
   readonly globalBypass: boolean;
 }): Promise<boolean> {
   const { status, executionId, workspace, fileReview, artifactStorage, capture, globalBypass } = args;

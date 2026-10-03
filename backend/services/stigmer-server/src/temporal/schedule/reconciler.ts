@@ -210,7 +210,7 @@ export class ScheduleReconciler {
       });
     }
 
-    // Phase 4: fire-ledger retention (DD-017 D-7) — the clock's one
+    // Phase 4: fire-ledger retention — the clock's one
     // periodic hook, so the ledger's bound needs no machinery of its own.
     await pruneRunLedger(
       this.store,

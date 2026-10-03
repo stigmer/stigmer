@@ -31,8 +31,8 @@
  *     provisions again → nothing new;
  *   - trusted-local: an organization created over the wire is owned by the
  *     operator's account; a second boot on the same database writes
- *     nothing (Q-S4-3); an owner row deleted underneath is written back at
- *     the next boot (Q-OR-6c).
+ *     nothing; an owner row deleted underneath is written back at
+ *     the next boot.
  * The positive proof of the RPCs over these rows is
  * domain/iampolicy/__tests__/iampolicy.test.ts (slice 5).
  */

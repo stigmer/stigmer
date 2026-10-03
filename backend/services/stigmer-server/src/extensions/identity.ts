@@ -1,7 +1,7 @@
 /**
  * Identity extension-point types — the verifier-chain contract of the
  * convergence blueprint (20260826.02 blueprint/03 §4, DD-007), carried by
- * the extension registry from O1 (20260826.09) and consumed by the
+ * the extension registry from O1 and consumed by the
  * verifier-chain chassis (O2, 20260827.01 — pipeline/interceptors/auth.ts).
  *
  * The shapes are transcribed from the ratified design, not invented here:

@@ -203,7 +203,7 @@ describe("tier truthfulness against the empty composition", () => {
     expect(served.has("apiresourceversion")).toBe(false);
   });
 
-  it("identity_account is open_source and served — the flip and the serving PR are one change (Q-EC-2b)", () => {
+  it("identity_account is open_source and served — the flip and the serving PR are one change", () => {
     const served = servedKindSegments(server.routes);
     expect(getKindMeta(ApiResourceKind.identity_account).tier).toBe(
       ResourceTier.open_source,

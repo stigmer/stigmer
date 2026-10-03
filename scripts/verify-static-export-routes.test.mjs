@@ -134,7 +134,7 @@ test("the ambiguous three-segment pair disambiguates by filesystem probe", () =>
   );
 });
 
-test("conversation deep links resolve to the conversations placeholder (F-12)", () => {
+test("conversation deep links resolve to the conversations placeholder", () => {
   assert.equal(
     resolveProbe("/conversations/ach_01kz/919912850490"),
     "/conversations/__placeholder__/__placeholder__.html",
@@ -356,7 +356,7 @@ test("verifyRoutes passes the probe config and fails the historical one, naming 
     assert.deepEqual(verifyRoutes(routes, probeModel), []);
 
     // The historical config carried all three defects this gate now
-    // asserts against: the guessed-shape blank page (F-12), unknown
+    // asserts against: the guessed-shape blank page, unknown
     // URLs serving the shell, and trailing-slash URLs falling through.
     const historical = buildServerModel(parseNginxConfig(HISTORICAL_CONFIG));
     const failures = verifyRoutes(routes, historical);

@@ -1,5 +1,5 @@
 /**
- * ApiKey controller (O3, 20260827.06) — the shared apikey contract served
+ * ApiKey controller — the shared apikey contract served
  * by OSS for the first time (DD-003 owner ruling: issuance + verification
  * wholly OSS; the cloud Java domain retires against this module). Unlike
  * the ported Class-A domains there is no Go provenance: the behavioral
@@ -86,11 +86,11 @@ import {
 export interface ApiKeyControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed list read scope — findAll narrows through it; undefined = every stored key (20260830.01). */
+  /** The composed list read scope — findAll narrows through it; undefined = every stored key. */
   readonly listReadScope: ListReadScope | undefined;
 }
 

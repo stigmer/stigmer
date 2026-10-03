@@ -31,7 +31,7 @@ import "google/protobuf/timestamp.proto";
 //     exactly those organizations. Their sessions are served only by this
 //     account's keys; when it has no usable keys, sessions fail with an
 //     explicit operator-actionable error rather than silently spending
-//     another team's quota (DD-008).
+//     another team's quota.
 //   - SHARED POOL (org_ids empty + enabled): the account is part of the
 //     platform-operated pool serving every org with no dedicated account.
 //     Pool sessions may move across pool accounts when their current
@@ -78,7 +78,7 @@ message CursorAccount {
   // key in the Cursor dashboard).
   bool enabled = 4;
 
-  // Deprecated: superseded by the derived shared pool (DD-008). Every
+  // Deprecated: superseded by the derived shared pool. Every
   // enabled account with empty org_ids now serves unassigned orgs; a
   // single "default" marker is meaningless under that rule, so selection
   // and the console ignore this field. Kept on the wire for old clients;

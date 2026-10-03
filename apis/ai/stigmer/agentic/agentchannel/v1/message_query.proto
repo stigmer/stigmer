@@ -27,7 +27,7 @@ service ChannelMessageQueryController {
   // D2/D4): sandbox tokens resolve through the serving channel, direct
   // principals through channel visibility; fail closed. The WABA id is
   // derived from the channel's phone_number_id on demand and cached —
-  // never stored (DD-003 D3). A token missing the management scope
+  // never stored. A token missing the management scope
   // degrades this read only, never sends (DD-003 D7, Meta error 200 →
   // FAILED_PRECONDITION pointing at token regeneration). Cloud-first
   // runtime: the OSS edition returns FAILED_PRECONDITION (decision 001
@@ -51,7 +51,7 @@ service ChannelMessageQueryController {
   // so the attachment decision and the send authorization can never
   // disagree. Session-bound callers only in this slice: direct
   // principals get INVALID_ARGUMENT pointing at the channel resource
-  // surface. OSS returns an empty list (DD-006 D3) — a discovery read
+  // surface. OSS returns an empty list — a discovery read
   // answering "none", unlike its action siblings' FAILED_PRECONDITION.
   rpc listMessagingChannels(ListMessagingChannelsInput) returns (MessagingChannels) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;

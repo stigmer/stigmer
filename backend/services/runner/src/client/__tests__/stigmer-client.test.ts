@@ -162,7 +162,7 @@ describe("StigmerClient", () => {
 
   describe("runnerTokenRef (ExecutionContext credential selection)", () => {
     // Cloud gates ExecutionContext secret decryption on a runner-class
-    // token_type claim (stigmer-cloud#152). These tests pin the selection
+    // token_type claim. These tests pin the selection
     // policy: the runner credential is used for the ExecutionContext query
     // service only, and only when present.
 
@@ -465,7 +465,7 @@ describe("StigmerClient", () => {
       expect(client.getRunnerScopedToken).toHaveBeenCalled();
     });
 
-    it("throws when the server mints no token — the bootstrap credential no longer decrypts (stigmer-cloud#218)", async () => {
+    it("throws when the server mints no token — the bootstrap credential no longer decrypts", async () => {
       const client = clientWithRunnerCredential(fakeTokenOfType("embedded_runner"));
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 

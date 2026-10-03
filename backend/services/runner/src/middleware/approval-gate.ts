@@ -264,7 +264,7 @@ export function createApprovalGateMiddleware(
         }
       }
 
-      // Deny-gate secret hard-block (DD-26 #2): a built-in file WRITE to a
+      // Deny-gate secret hard-block: a built-in file WRITE to a
       // secret-like path that reaches here has no capture substrate for it — the
       // classic no-storage deny-gate, or a git workspace with no artifact storage
       // whose gitignored write skipped the captureIgnored arm above. It must NOT

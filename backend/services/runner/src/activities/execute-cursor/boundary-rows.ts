@@ -660,7 +660,7 @@ function collapseDenialTwin(tc: ToolCall): void {
  * no separate captured `file_changes` mirror; `args` is the single source for
  * both the preview and the applied bytes.
  *
- * Defense-in-depth (DD-26 #2): a secret-like write's content never reaches the
+ * Defense-in-depth: a secret-like write's content never reaches the
  * persisted approval preview. Normally unreachable — the hook hard-blocks a
  * secret write and records no ledger input — but if a hook classify failure
  * fell one through, its content must still never reach args/args_preview; the
@@ -1032,7 +1032,7 @@ export function settleUnresolvedToolCalls(
 
 /**
  * Stamp the tool calls the hook denied under UNATTENDED approval mode
- * (DD-014) as terminal TOOL_CALL_SKIPPED rows with UNATTENDED_SKIP
+ * as terminal TOOL_CALL_SKIPPED rows with UNATTENDED_SKIP
  * provenance — the Cursor twin of the native harness's
  * `reconcileUnattendedSkips`, so both harnesses persist the same honest
  * shape for a platform-resolved skip.

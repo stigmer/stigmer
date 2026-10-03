@@ -351,7 +351,7 @@ describe("membership rules", () => {
       expect(rolesOf(mallory.metadata!.id)).toEqual(["member@acme"]);
     });
 
-    it("the founder's own stamp counts as another person — a revoked founder's empty organization is NOT handed to the next stranger (Q-S4-7)", async () => {
+    it("the founder's own stamp counts as another person — a revoked founder's empty organization is NOT handed to the next stranger", async () => {
       await seedOrg("acme", "auth0|alice");
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));

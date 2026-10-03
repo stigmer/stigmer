@@ -41,7 +41,5 @@ message WorkflowStatus {
   // - Execution create pipeline reads this to pin executions to a specific version
   // - getByReference resolves ApiResourceReference.version against this and audit entries
   // - UI displays this as the current version identifier
-  //
-  // @since Workflow Versioning
   string version_hash = 3;
 }

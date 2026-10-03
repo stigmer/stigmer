@@ -86,21 +86,15 @@ message ListWorkflowExecutionsRequest {
   //
   // When set, applies AND-conjunction with the existing `phase` and `tags` fields.
   // If both `phase` and `filter.phases` are set, `filter.phases` takes precedence.
-  //
-  // @since T13 (Execution History)
   ExecutionFilterCriteria filter = 5;
 
   // Sort field: unspecified is newest created first and pages by
   // page_token, any other sorts the whole matching set and returns its
   // first page_size entries with no token.
-  //
-  // @since T13 (Execution History)
   ExecutionSortField sort_field = 6;
 
   // When true, sorts in ascending order. Default (false) is descending.
   // Read only with a sort field other than the default.
-  //
-  // @since T13 (Execution History)
   bool sort_ascending = 7;
 
   // Organization slug to scope the results to.
@@ -137,21 +131,15 @@ message ListWorkflowExecutionsByWorkflowRequest {
   string page_token = 3;
 
   // Structured filter criteria for advanced filtering.
-  //
-  // @since T13 (Execution History)
   ExecutionFilterCriteria filter = 4;
 
   // Sort field: unspecified is newest created first and pages by
   // page_token, any other sorts the whole matching set and returns its
   // first page_size entries with no token.
-  //
-  // @since T13 (Execution History)
   ExecutionSortField sort_field = 5;
 
   // When true, sorts in ascending order. Default (false) is descending.
   // Read only with a sort field other than the default.
-  //
-  // @since T13 (Execution History)
   bool sort_ascending = 6;
 }
 
@@ -187,8 +175,6 @@ message WorkflowExecutionUpdateStatusInput {
   //
   // Empty list means no new events (backward compatible — existing runners
   // that do not yet emit events continue to work without changes).
-  //
-  // @since T06 (Execution Event Stream Model)
   repeated WorkflowExecutionEvent events = 10;
 
   // When true, status.pending_approvals is merged for the single child named by
@@ -206,8 +192,6 @@ message WorkflowExecutionUpdateStatusInput {
   // Only call-agent-status.ts sets this to true — both when populating approvals
   // from a child_approval_required signal and when clearing them after the child
   // agent completes.
-  //
-  // @since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
   bool update_pending_approvals = 11;
 
   // When true, status.pending_file_reviews is merged for the single child named
@@ -218,8 +202,6 @@ message WorkflowExecutionUpdateStatusInput {
   // @internal
   // Only call-agent-status.ts sets this to true — when surfacing a child's
   // AWAITING_REVIEW change sets and when clearing them.
-  //
-  // @since Workflow-Parent File Review
   bool update_pending_file_reviews = 12;
 
   // The child agent execution a per-child merge targets. Names the single child
@@ -231,8 +213,6 @@ message WorkflowExecutionUpdateStatusInput {
   //
   // @internal
   // Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
-  //
-  // @since Workflow-Parent File Review
   string pending_update_child_agent_execution_id = 13;
 }
 
@@ -359,8 +339,6 @@ message SubmitWorkflowFileDecisionInput {
 //
 // The reviewer's decision (outcome + form_data) becomes the task output after
 // the runner receives and processes the signal.
-//
-// @since T13b (Java/Cloud Backend Parity)
 message SubmitWorkflowTaskApprovalInput {
   // ID of the workflow execution containing the human_input task.
   //
@@ -505,8 +483,6 @@ message RecoverWorkflowExecutionInput {
 // @internal
 // Pauses the workflow at its current checkpoint. The execution is NOT terminal
 // and can be resumed later via the resume RPC.
-//
-// @since Gap A3 (Pause/Resume Propagation)
 message PauseWorkflowExecutionInput {
   // Workflow execution ID to pause (must be in PENDING or IN_PROGRESS phase).
   //
@@ -523,8 +499,6 @@ message PauseWorkflowExecutionInput {
 // @internal
 // Continues execution from the checkpoint where it was paused.
 // Execution must be in EXECUTION_PAUSED phase.
-//
-// @since Gap A3 (Pause/Resume Propagation)
 message ResumeWorkflowExecutionInput {
   // Workflow execution ID to resume (must be in PAUSED phase).
   //
@@ -542,8 +516,6 @@ message ResumeWorkflowExecutionInput {
 // Preconditions:
 // - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
 // - User must have can_edit permission
-//
-// @since Gap B1 (Signal-With-Start)
 message SendSignalInput {
   // Workflow execution ID to send the signal to.
   //
@@ -573,8 +545,6 @@ message SendSignalInput {
   // scenario idempotency keys exist for. Both editions enforce this
   // identically. Keys are scoped to the organization to prevent cross-org
   // collisions.
-  //
-  // @since Gap B2 (Event Dedupe)
   string idempotency_key = 4;
 }
 
@@ -586,7 +556,7 @@ message SendSignalInput {
 //
 // Use Cases:
 //
-// 1. Execution Viewer Timeline (T09):
+// 1. Execution Viewer Timeline:
 //    - UI loads execution state via get(), then fetches event log for timeline
 //    - Initial load: after_sequence = 0, page_size = 100
 //    - Subsequent pages: after_sequence = latest_sequence from previous response
@@ -597,8 +567,6 @@ message SendSignalInput {
 //
 // 3. Cost Analysis:
 //    - Filter by budget_checkpoint events to chart cost over time
-//
-// @since T06 (Execution Event Stream Model)
 message GetEventLogRequest {
   // Execution ID to fetch events for.
   //
@@ -641,7 +609,6 @@ message GetEventLogRequest {
 // GetEventLogResponse contains a page of execution events.
 //
 // @internal
-// @since T06 (Execution Event Stream Model)
 message GetEventLogResponse {
   // Events in this page, ordered by sequence_number ascending.
   repeated WorkflowExecutionEvent events = 1;
@@ -676,8 +643,6 @@ message GetEventLogResponse {
 // 4. Server streams new events in real-time as they occur
 // 5. Server closes stream when execution reaches a terminal phase
 // 6. Client can close stream early (e.g., user navigates away)
-//
-// @since T06 (Execution Event Stream Model)
 message SubscribeEventsRequest {
   // Execution ID to subscribe to.
   //
@@ -709,8 +674,6 @@ message SubscribeEventsRequest {
 
 // ExecutionFilterCriteria defines structured filter conditions for listing
 // workflow executions. All specified conditions are combined with AND logic.
-//
-// @since T13 (Execution History)
 message ExecutionFilterCriteria {
   // Filter by execution phases. Empty means all phases.
   //
@@ -752,8 +715,6 @@ message ExecutionFilterCriteria {
 }
 
 // ExecutionSortField defines the column to sort execution lists by.
-//
-// @since T13 (Execution History)
 enum ExecutionSortField {
   // Default: newest created first, the one order that pages.
   EXECUTION_SORT_FIELD_UNSPECIFIED = 0;
@@ -778,8 +739,6 @@ enum ExecutionSortField {
 // ---------------------------------------------------------------------------
 
 // SummaryTimeWindow controls the time range for aggregated dashboard queries.
-//
-// @since T14 (Dashboard Integration)
 enum SummaryTimeWindow {
   SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
   SUMMARY_TIME_WINDOW_LAST_24H = 1;
@@ -790,8 +749,6 @@ enum SummaryTimeWindow {
 
 // GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
 // optionally scoped to a single workflow.
-//
-// @since T14 (Dashboard Integration)
 message GetExecutionSummaryRequest {
   // Organization slug to scope the summary.
   string org = 1 [(buf.validate.field).string.min_len = 1];
@@ -803,16 +760,12 @@ message GetExecutionSummaryRequest {
 
   // When set, scopes the summary to executions of this workflow only.
   // When empty, aggregates across all workflows in the organization.
-  //
-  // @since T12 (Overview Page Redesign)
   string workflow_id = 3;
 }
 
 // ExecutionSummary contains aggregated statistics for workflow executions.
 //
 // All counts, costs, and durations are scoped to the requested time window.
-//
-// @since T14 (Dashboard Integration)
 message ExecutionSummary {
   // Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
   int32 active_count = 1;
@@ -842,21 +795,15 @@ message ExecutionSummary {
   repeated WorkflowCostBreakdown cost_by_workflow = 6;
 
   // Total number of executions in the time window (sum of all phase_counts values).
-  //
-  // @since T12 (Overview Page Redesign)
   int32 total_count = 7;
 
   // Success rate as a ratio (0.0 to 1.0).
   // Computed as completed / (completed + failed). Returns -1.0 when no
   // completed or failed executions exist in the time window.
-  //
-  // @since T12 (Overview Page Redesign)
   double success_rate = 8;
 }
 
 // WorkflowCostSummary aggregates token and dollar costs.
-//
-// @since T14 (Dashboard Integration)
 message WorkflowCostSummary {
   double total_cost_usd = 1;
   int64 total_input_tokens = 2;
@@ -864,8 +811,6 @@ message WorkflowCostSummary {
 }
 
 // WorkflowFailureRank represents a workflow and its failure count within a time window.
-//
-// @since T14 (Dashboard Integration)
 message WorkflowFailureRank {
   string workflow_slug = 1;
   string workflow_name = 2;
@@ -873,8 +818,6 @@ message WorkflowFailureRank {
 }
 
 // WorkflowCostBreakdown represents per-workflow cost aggregation.
-//
-// @since T14 (Dashboard Integration)
 message WorkflowCostBreakdown {
   string workflow_slug = 1;
   string workflow_name = 2;
@@ -884,8 +827,6 @@ message WorkflowCostBreakdown {
 
 // ListPendingApprovalsRequest fetches workflow executions that have active
 // human_input tasks awaiting reviewer decisions.
-//
-// @since T14 (Dashboard Integration)
 message ListPendingApprovalsRequest {
   // Organization slug to scope the query.
   string org = 1 [(buf.validate.field).string.min_len = 1];
@@ -901,8 +842,6 @@ message ListPendingApprovalsRequest {
 }
 
 // PendingApproval represents a single human_input task awaiting a reviewer decision.
-//
-// @since T14 (Dashboard Integration)
 message PendingApproval {
   // Workflow execution containing the pending task.
   string execution_id = 1;
@@ -938,14 +877,10 @@ message PendingApproval {
   // (approval_requested event), read when the reviewer opens the gate.
   // Empty when the task declares no hint or the execution predates the
   // field — consumers treat empty as a generic review.
-  //
-  // @since Review Payloads (stigmer/stigmer#234)
   string ui_hint = 8;
 }
 
 // PendingApprovalsList contains one page of pending approvals.
-//
-// @since T14 (Dashboard Integration)
 message PendingApprovalsList {
   // Pending approvals in this page: the newest execution's first, and an
   // execution's waiting tasks in their order.

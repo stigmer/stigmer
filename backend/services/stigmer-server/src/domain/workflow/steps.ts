@@ -54,7 +54,7 @@ export const VERSION_CHANGED_KEY = "version_changed";
 export const DEFAULT_INSTANCE_ID_KEY = "default_instance_id";
 
 // ---------------------------------------------------------------------------
-// The workflowinstance in-process edge (DD-002): workflow create provisions
+// The workflowinstance in-process edge: workflow create provisions
 // the default instance through the full interceptor chain. Go's
 // CreateAsSystem is the Create RPC under the process-global operator
 // identity, so a plain create IS the system-actor create in this edition.
@@ -610,7 +610,7 @@ export function newUpdateWorkflowStatusWithDefaultInstanceStep(
         );
       }
 
-      // The default_of invariant rides the pointer persist (C2 Stage 3).
+      // The default_of invariant rides the pointer persist.
       await notifyDefaultInstanceLinked(authorizationLifecycle, {
         instanceKind: ApiResourceKind.workflow_instance,
         instanceId: defaultInstanceId,

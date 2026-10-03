@@ -25,7 +25,7 @@
  *     to an account: one `owner` row for that account. Only `organization`,
  *     because that row is what the Members page and entry 3's admin rule
  *     read; an owner row on an agent would be the per-resource grant the
- *     grant scope keeps Enterprise (Q-OR-3).
+ *     grant scope keeps Enterprise.
  *   - `organization` and `identity_account` deleted: every row naming the
  *     resource on either side goes, through the grant path's bidirectional
  *     cleanup — the delete chains' CleanupIamPolicies step calls this, so
@@ -37,7 +37,7 @@
  * EMAIL (or "system"), and a composition verifier may stamp a raw
  * subject. `accountForCaller` (domain/identityaccount/resolve.ts) is the
  * domain's one statement of "the caller's account" — the two reads
- * whoAmI makes — so this object and whoAmI cannot disagree (Q-S4-1). The
+ * whoAmI makes — so this object and whoAmI cannot disagree. The
  * row is then granted AS the account (`identityId` re-stamped, the
  * `provisionMyAccount` idiom), so every policy row's `created_by.id` is
  * an account id — never an email, never an idp subject. A caller that
@@ -46,7 +46,7 @@
  * first provisioning through the organization's creator stamp
  * (membership.ts, Q-OR-6b), so the guard loses nobody. Non-`user` classes
  * (`internal`, `runner`, a composition's own) write nothing by rule — the
- * roles are people's (Q-OR-6b), and under trusted-local a daemon-origin
+ * roles are people's, and under trusted-local a daemon-origin
  * caller carries the operator's fields and would otherwise resolve.
  *
  * Acyclic by construction: this object sits ON TOP of the grant path and

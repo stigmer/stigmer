@@ -125,16 +125,16 @@ import type { ParentWorkflowLoaderProvider } from "./steps.js";
 export interface WorkflowInstanceControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
    * The workflow in-process edge — a lazy provider because
-   * workflow↔workflowinstance is a true dependency cycle (DD-002).
+   * workflow↔workflowinstance is a true dependency cycle.
    */
   readonly parentWorkflowLoader: ParentWorkflowLoaderProvider;
-  /** The composed list read scope — getByWorkflow narrows through it; undefined = the OSS full scan (20260830.01). */
+  /** The composed list read scope — getByWorkflow narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 

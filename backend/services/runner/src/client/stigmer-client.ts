@@ -435,7 +435,7 @@ export class StigmerClient {
    *
    * 1. An unscoped embedded_runner bootstrap token MUST be exchanged, and a
    *    failed exchange is a hard error, not a fallback: since the #156
-   *    item-3 flip (stigmer-cloud#218) the bootstrap credential no longer
+   *    item-3 flip the bootstrap credential no longer
    *    decrypts, so a read that "fell back" would silently receive redacted
    *    placeholders and the execution would run against junk secret values —
    *    strictly worse than failing here with the real reason. The

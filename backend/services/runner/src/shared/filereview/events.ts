@@ -346,7 +346,7 @@ export function buildBaselineCapturedEvent(
  * - else (≥1 non-binary incomplete: secret-withheld / size-elided /
  *   uncapturable — no keepable bytes) → `PARTIAL_BLOCKED`
  *
- * Binary is proven by `FileContent.is_binary` on either side (DD-15 D2), never
+ * Binary is proven by `FileContent.is_binary` on either side, never
  * by the block reason. This mirrors the backend gate's `isBinaryChange`, so the
  * runner's rollup and the gate's per-file re-derivation agree by construction.
  */

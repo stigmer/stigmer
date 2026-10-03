@@ -656,14 +656,14 @@ export async function reconcileReinvocation(
  * attachments, deliberately AFTER resolve + backfill so the backfill's
  * destructiveHint tightener can never force-gate an attachment's tools:
  *
- *  - channel messaging (DD-006 D7/D8): the discovery read IS the attachment
+ *  - channel messaging: the discovery read IS the attachment
  *    decision, and every failure mode degrades to honest absence;
  *  - conversation participation (channel-conversations DD-008 D-c): the
  *    channel-id session label IS the decision, a free local read;
- *  - memory capture (DD-005 D1): the recall snapshot's enabled bit IS the
+ *  - memory capture: the recall snapshot's enabled bit IS the
  *    decision, server-stamped at execution create.
  *
- * Their credential story (DD-006 D4): the exchanged scoped runner token
+ * Their credential story: the exchanged scoped runner token
  * authenticates the discovery reads per call; the exchange is opportunistic
  * (every consumer degrades to an empty answer by contract, and the server
  * refuses the ambient fallback safely), so a failed exchange must not kill

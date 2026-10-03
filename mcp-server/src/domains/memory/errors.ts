@@ -3,7 +3,7 @@
 // over it; each domain documents its own contract).
 //
 // Memory create errors carry agent-relayable messages that are contract
-// bytes (DD-005 D2 / DD-006 D5): the visible-full refusal ("memory is
+// bytes: the visible-full refusal ("memory is
 // full — review and delete existing memories"), the fail-closed
 // enablement refusals (org or member has memory off), the strict caller
 // gate's PERMISSION_DENIED, and the 1..500-char content contract. The

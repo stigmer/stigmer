@@ -66,7 +66,7 @@ async function expectDenied(run: () => Promise<unknown>, copy: string) {
   expect((error as ConnectError).rawMessage).toBe(copy);
 }
 
-describe("read-surface authorization (C2 Stage 4)", () => {
+describe("read-surface authorization", () => {
   it("subscribe denies with its annotation copy before touching store or broker", async () => {
     await expectDenied(
       () =>

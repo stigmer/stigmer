@@ -59,7 +59,7 @@ type AgentDesc = typeof AgentSchema;
  * The narrow in-process surface the agent domain needs from agentinstance —
  * consumer-defined so the dependency reads at the domain boundary (the Go
  * twin is pkg/downstream/agentinstance.Client). Calls ride the in-process
- * router transport, traversing the full interceptor chain (DD-002).
+ * router transport, traversing the full interceptor chain.
  */
 export interface AgentInstanceApplier {
   /**

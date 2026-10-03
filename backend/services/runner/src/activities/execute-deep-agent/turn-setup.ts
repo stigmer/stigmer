@@ -130,7 +130,7 @@ export interface DeepAgentGateState {
   readonly leasedCategories: ReadonlySet<ToolApprovalCategory>;
   /** Pre-armed spec.auto_approve_all — the one unscoped, whole-run bypass; the gate is not installed under it. */
   readonly globalBypass: boolean;
-  /** Unattended approval mode (DD-014): the gate auto-skips instead of interrupting. */
+  /** Unattended approval mode: the gate auto-skips instead of interrupting. */
   readonly unattended: boolean;
   /** Tool-call ids the gate auto-skipped this turn; written by the gate, read by `reconcileUnattendedSkips`. */
   readonly unattendedSkips: Set<string>;
@@ -286,7 +286,7 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     containerRoot: primaryDir,
     skillsPromptSection: renderSkillsSection(input.skills.root),
     // "" (nothing sendable) threads as undefined: the tool alone still serves
-    // text sends inside a 24-hour window (DD-006 D6).
+    // text sends inside a 24-hour window.
     channelTemplatesPromptSection: input.mcp.channelMessaging.length > 0
       ? formatChannelTemplatesSection(input.mcp.channelMessaging) || undefined
       : undefined,

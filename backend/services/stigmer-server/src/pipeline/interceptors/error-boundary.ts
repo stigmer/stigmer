@@ -63,7 +63,7 @@ import { callerIdentityKey } from "./auth.js";
 
 /**
  * The codes whose descriptions may carry internals — the deny-leaky
- * matrix ratified by cloud DD-005 (20260810.02) and byte-pinned across
+ * matrix ratified by cloud DD-005 and byte-pinned across
  * editions. Deliberate-refusal codes (PermissionDenied,
  * FailedPrecondition, ResourceExhausted, …) pass through untouched:
  * their descriptions are authored copy, including owner-customized

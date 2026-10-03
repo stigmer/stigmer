@@ -214,7 +214,7 @@ describe("cas-observations sidecar", () => {
   // The deny-gate (no-capture-substrate) classify-only script. It shares the
   // classifier fragment with the staging script, so its verdict must equal
   // isSecretLikePath byte-for-byte — a secret must never fall through the hook's
-  // deny-gate secret hard-block (DD-26 #2).
+  // deny-gate secret hard-block.
   describe("buildSecretClassifyScript (deny-gate classify-only)", () => {
     function runClassify(salient: string): string {
       return execFileSync(process.execPath, ["-e", buildSecretClassifyScript()], {

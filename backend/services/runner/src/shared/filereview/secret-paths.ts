@@ -16,8 +16,6 @@
  * blocking: a path only needs to LOOK secret-like to be withheld, because the
  * cost of withholding a non-secret (it stays on the deny-gate, as today) is far
  * lower than the cost of persisting a real secret.
- *
- * @since File-Change HITL Redesign (Phase 3 — CAS / DD-E)
  */
 
 /**

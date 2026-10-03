@@ -34,7 +34,7 @@ import type { CallerIdentity } from "../extensions/identity.js";
  * verbatim). On lifecycle pipelines the request `Desc` is the INPUT
  * message, so `ctx.newState` is the input — the loaded resource rides the
  * metadata map under this key, stamped by each chain's LoadExecutionById
- * step. Hoisted here (C4 Stage 3) so the two lifecycle modules and
+ * step. Hoisted here so the two lifecycle modules and
  * extension gate steps registered into recover-chain slots share ONE
  * definition of the string instead of three copies of a silent contract.
  */

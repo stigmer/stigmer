@@ -1,5 +1,5 @@
 /**
- * The access-list display resolver (20260913.01 slice 5; Q-S5-4, Q-S5-8):
+ * The access-list display resolver:
  * the account half of the Java PrincipalEnricher — batch-loads identity
  * accounts through the identity-account domain's PORT (`findByIds`, one
  * row per distinct id, the port's own line) and renders the

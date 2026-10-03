@@ -1,6 +1,6 @@
 /**
  * Pins the run gate's SPLICE in workflow-execution-create over the real
- * router (P1 sp.run-gate): AuthorizeRunTarget sits after
+ * router: AuthorizeRunTarget sits after
  * ValidateWorkflowOrInstance and BEFORE EnsureEngineAvailable and
  * CreateDefaultInstanceIfNeeded (the chain's first side effect and its
  * first store read). Pinned here: (1) each shape is checked against its

@@ -789,7 +789,7 @@ describe("ApprovalGateMiddleware", () => {
       expect(mockedInterrupt).toHaveBeenCalledTimes(1);
     });
 
-    it("HARD-BLOCKS a secret-like write when capture mode is off (DD-26 #2): never gated, never applied", async () => {
+    it("HARD-BLOCKS a secret-like write when capture mode is off: never gated, never applied", async () => {
       // DD-26 follow-up #2 supersedes the earlier "gated, not hard-blocked" parity:
       // a secret-like write must NEVER surface its content for approval, in ANY
       // mode. On the deny-gate it is hard-blocked exactly like the capture-mode
@@ -914,7 +914,7 @@ describe("ApprovalGateMiddleware", () => {
     expect((result as ToolMessage).content).toContain("unknown action");
   });
 
-  describe("unattended approval mode (DD-014)", () => {
+  describe("unattended approval mode", () => {
     const gatedMcpPolicies = new Map<string, MergedToolPolicy>([
       ["srv/gated_tool", {
         toolName: "gated_tool",

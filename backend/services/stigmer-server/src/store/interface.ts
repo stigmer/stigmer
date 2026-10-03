@@ -1,6 +1,6 @@
 /**
  * Storage contract — ports backend/libs/go/store/interface.go
- * surface-for-surface (D2 §3, DD-003).
+ * surface-for-surface.
  *
  * The interface is async even though the phase-1 node:sqlite driver is
  * synchronous: the phase-2 Postgres driver is async by nature, and the
@@ -175,7 +175,7 @@ export interface SearchIndexQuery {
   readonly orgFilter: string;
   /**
    * Optional per-kind authorized-id allowlist (kind NAME → ids) — the
-   * multi-tenant list-read scoping arm (20260830.01): a listed kind
+   * multi-tenant list-read scoping arm: a listed kind
    * matches only rows whose resource_id is in its set, and an EMPTY set
    * matches nothing for that kind (each driver renders it without ever
    * emitting an `IN ()` accident); kinds absent from the map are

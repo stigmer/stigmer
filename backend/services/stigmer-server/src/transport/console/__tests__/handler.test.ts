@@ -5,11 +5,11 @@
  *   - documents, flight payloads, redirects, and the 404 posture arrive
  *     with the right status, Content-Type, and Cache-Control;
  *   - /config.json is synthesized per request: apiUrl is the empty string
- *     the console reads as "my own origin" (20260913.02 Q-CL-3), and the
+ *     the console reads as "my own origin", and the
  *     sign-in block tells the truth about the server's posture — trusted
  *     local says `disabled`; the OIDC posture says `oidc` with the issuer,
  *     the audience and the console's client id, the client id empty when
- *     the operator has not registered one (Q-CL-1, Q-CL-2);
+ *     the operator has not registered one;
  *   - the OIDC return leg: /auth/callback with the provider's query
  *     resolves to the callback document;
  *   - the guard: RPC (POST and service-shaped GET), /v1/* paths, and

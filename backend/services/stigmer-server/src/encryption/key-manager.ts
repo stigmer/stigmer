@@ -26,7 +26,7 @@
  *
  * `env` and `homeDir` are injectable with process defaults — the
  * loadConfig(env = process.env) idiom (boot/config.ts) — so unit tests
- * stay hermetic and never touch the real ~/.stigmer (DD-002). The key env
+ * stay hermetic and never touch the real ~/.stigmer. The key env
  * vars deliberately do NOT ride ServerConfig: Go's pkg/config never sees
  * them either, and config.ts's contract is that no entry exists before
  * the code that reads it.

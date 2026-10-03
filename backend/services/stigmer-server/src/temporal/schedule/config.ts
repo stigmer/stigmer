@@ -34,7 +34,7 @@ export class ScheduleTemporalConfig {
      * (the tracking budget is the policy). Default: 24.
      */
     readonly tickRunTimeoutHours: number,
-    /** The auto-pause threshold (DD-008 D7). Default: 5. */
+    /** The auto-pause threshold. Default: 5. */
     readonly maxConsecutiveFailures: number,
     /**
      * One fire's tracking budget — under overlap SKIP, literally the
@@ -63,7 +63,7 @@ export class ScheduleTemporalConfig {
      */
     readonly executionProfileMaxCostUsd: number,
     /**
-     * Bounds the fire ledger (DD-017 D-7): rows recorded earlier than this
+     * Bounds the fire ledger: rows recorded earlier than this
      * are pruned by the reconciliation pass. Default: 90 (a quarter of
      * monthly reminder cycles — run history is a product surface, not
      * delivery plumbing).

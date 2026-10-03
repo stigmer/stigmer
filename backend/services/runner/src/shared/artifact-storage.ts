@@ -466,7 +466,7 @@ async function isLocalPathWritable(basePath: string): Promise<boolean> {
  * would add a round-trip to every cloud setup and risk falsely degrading on a
  * transient blip; construction already validates its config.
  *
- * An absent store is a first-class, already-supported state (DD-26): capture
+ * An absent store is a first-class, already-supported state: capture
  * degrades to the deny-gate (via {@link deriveCaptureMode}'s `hasArtifactStorage`
  * argument), tool-output offload is disabled (the aggregate size guard still
  * applies), and attachment / plan-artifact publishing surface a clear error.

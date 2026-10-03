@@ -93,7 +93,7 @@ describe("buildPrompt", () => {
     expect(prompt).toContain(USER_MESSAGE);
   });
 
-  it("carries the rollover context bridge on the first execution (DD-013)", () => {
+  it("carries the rollover context bridge on the first execution", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
@@ -226,7 +226,7 @@ describe("buildPrompt", () => {
       .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
   });
 
-  it("orders platform-declared preferences before the embedder's session context (DD-002 D3)", () => {
+  it("orders platform-declared preferences before the embedder's session context", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
@@ -240,7 +240,7 @@ describe("buildPrompt", () => {
     expect(context).toBeGreaterThan(preferences);
   });
 
-  it("never re-sends the preferences to a successfully resumed agent — frozen per session by design (DD-002 D3)", () => {
+  it("never re-sends the preferences to a successfully resumed agent — frozen per session by design", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "resumed_successfully"),
@@ -275,7 +275,7 @@ describe("buildPrompt", () => {
       .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
   });
 
-  it("orders remembered facts after declared preferences, before the embedder's session context (DD-006 D4)", () => {
+  it("orders remembered facts after declared preferences, before the embedder's session context", () => {
     const prompt = buildPrompt(
       input({
         resolution: resolution("local", "created_first_execution"),
@@ -336,7 +336,7 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("APPROVED");
   });
 
-  it("agrees with promptCarriesStandingContext on every resolution shape — the memory-selection gate can never drift from the routing (DD-008)", () => {
+  it("agrees with promptCarriesStandingContext on every resolution shape — the memory-selection gate can never drift from the routing", () => {
     // The activity gates the (potentially embedding-backed) memory
     // selection on this predicate; buildPrompt routes on the same one.
     // Pin their agreement across the full reason × HITL matrix: memories

@@ -1,6 +1,6 @@
 /**
  * Temporal PayloadCodec that encrypts payloads at rest in workflow
- * history (stigmer-cloud#227).
+ * history.
  *
  * Why: the workflow engine runs inside the Temporal deterministic
  * sandbox, so decrypted execution-context values cross the history

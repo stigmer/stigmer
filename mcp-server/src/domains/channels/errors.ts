@@ -79,7 +79,7 @@ export function domainError(ce: ConnectError): ChannelToolError {
     code: grpcStatusName(ce.code),
   };
   // The messaging RPCs attach google.rpc.ErrorInfo to operator-actionable
-  // preconditions (DD-005 D8); absence means the message alone carries
+  // preconditions; absence means the message alone carries
   // the contract.
   const info = ce.findDetails(ErrorInfoSchema)[0];
   if (info && info.reason !== "") {

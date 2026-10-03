@@ -51,7 +51,7 @@ export async function proposeMemory(
     spec: create(MemorySpecSchema, {
       content: fact,
       // subject_identity_account_id is deliberately absent: the server
-      // derives it from the calling credential (DD-005 D2) and ignores
+      // derives it from the calling credential and ignores
       // any supplied value.
       provenance: create(MemoryProvenanceSchema, {
         agentId: context.agentId,

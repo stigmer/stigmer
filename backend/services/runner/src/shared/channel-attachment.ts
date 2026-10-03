@@ -9,7 +9,7 @@
  * runner synthesizes ONE MCP attachment serving `send_channel_message`,
  * and injects the `<available_channel_templates>` prompt section so the
  * model composes template sends in context without spending a tool
- * round (DD-003 D5).
+ * round.
  *
  * Two connection shapes, one roster (the records pattern), one
  * credential — the run's own — presented on both:
@@ -20,7 +20,7 @@
  *     stdio child with STIGMER_MCP_ROSTER=channels and the run's
  *     credential as its startup credential (synthesized-attachment.ts
  *     `stdioCredentialEnv`, the memory attachment's twin). In practice
- *     OSS answers the discovery read with an empty list (DD-006 D3), so
+ *     OSS answers the discovery read with an empty list, so
  *     this shape only serves local deployments that grow a messaging
  *     runtime later — it exists for symmetry with the deployment
  *     topology, not for a live OSS path today.
@@ -32,7 +32,7 @@
  * the connect backfill structurally unable to gate it (see
  * synthesized-attachment.ts). Callers inject AFTER resolve + backfill.
  *
- * Failure posture (DD-006 D4): every discovery failure — OSS's empty
+ * Failure posture: every discovery failure — OSS's empty
  * answer, a registry outage, a control plane predating the RPC
  * (UNIMPLEMENTED), a reach refusal — degrades to honest absence: no
  * tool, no section, execution unharmed.
@@ -65,7 +65,7 @@ export const CHANNEL_ATTACHMENT_SLUG = "stigmer-channels";
 export const CHANNELS_ROUTE = "/channels";
 
 /**
- * The most templates the prompt section carries (DD-006 D6): Meta
+ * The most templates the prompt section carries: Meta
  * allows hundreds per WABA, and an unbounded section would tax every
  * run's context. Deterministic (name, language) order plus a withheld
  * count keep the agent's behavior independent of registry ordering.
@@ -165,7 +165,7 @@ export function synthesizeChannelAttachment(
 }
 
 /**
- * The `<available_channel_templates>` prompt section (DD-003 D5):
+ * The `<available_channel_templates>` prompt section:
  * approved AND sendable templates with their full body text, so the
  * model fills positional placeholders beside the values it composes.
  * Unsendable entries are filtered, not annotated (DD-006 D6 — the
@@ -180,7 +180,7 @@ export function formatChannelTemplatesSection(channels: readonly ChannelMessagin
   const channelBlocks: string[] = [];
   for (const { channel, templates } of channels) {
     // Sendable-only (unsupportedReason empty), deterministic order —
-    // agent behavior must never depend on registry ordering (DD-006 D6).
+    // agent behavior must never depend on registry ordering.
     const sendable = templates
       .filter((t) => t.unsupportedReason === "")
       .sort((a, b) => a.name.localeCompare(b.name) || a.language.localeCompare(b.language));

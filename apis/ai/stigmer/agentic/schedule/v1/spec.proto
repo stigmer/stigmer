@@ -15,7 +15,7 @@ import "buf/validate/validate.proto";
 // @internal
 // DD-008 D8 as amended by DD-009 and DD-018: the target oneof is inline
 // (the AgentChannelSpec.provider_config shape, C-3) and the agent arm is
-// the shared AgentInvocation (DD-018 D-3) — the owner-settable subset of
+// the shared AgentInvocation — the owner-settable subset of
 // an agent run, so the schedule speaks the composer's vocabulary instead
 // of a schedule-only one. Apply-time cron validation is purely lexical
 // (C-4) so no cron parser exists in either edition; the Temporal server
@@ -45,11 +45,11 @@ message ScheduleSpec {
   // IANA time zone the cron is evaluated in, e.g. "Asia/Kolkata".
   //
   // @internal
-  // The single timezone authority (DD-009 C-4): validation refuses cron
+  // The single timezone authority: validation refuses cron
   // strings carrying their own CRON_TZ=/TZ= prefix. Zone-name validity is
   // checked against the platform tz database in both editions
   // (time.LoadLocation / ZoneId.of); DST evaluation semantics are the
-  // Temporal server's concern (DD-008 D2), identical for both editions.
+  // Temporal server's concern, identical for both editions.
   string time_zone = 2 [(buf.validate.field).string.min_len = 1];
 
   // Whether the schedule fires. Off disables firing without deleting
@@ -82,7 +82,7 @@ message ScheduleSpec {
     // Run an agent with a configured prompt at each fire.
     //
     // @internal
-    // The shared owner-settable run shape (DD-018 D-3), replacing the
+    // The shared owner-settable run shape, replacing the
     // deleted schedule-only AgentTarget/ScheduleRunConfig pair.
     // Schedule-specific invariants enforced in create/update/apply
     // handlers of both editions, never on the shared message:

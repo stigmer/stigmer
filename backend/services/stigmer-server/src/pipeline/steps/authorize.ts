@@ -100,7 +100,7 @@ export const AUTHORIZATION_UNAVAILABLE_MESSAGE =
 export const AUTHORIZATION_DENIED_FALLBACK_MESSAGE = "permission denied";
 
 /**
- * The permissive single-team Authorizer (DD-007 §3): one trust domain,
+ * The permissive single-team Authorizer: one trust domain,
  * every check allowed, exactly the pre-O2 behavior. Kept for the suites
  * that need an Authorizer with no opinion at all; no posture composes it.
  * A server without sign-in composes the trusted-local driver

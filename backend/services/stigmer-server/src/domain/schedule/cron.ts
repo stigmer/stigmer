@@ -1,9 +1,9 @@
 /**
  * Lexical cron and time-zone validation — ports
- * pkg/domain/schedule/controller/cron.go (DD-009 C-4).
+ * pkg/domain/schedule/controller/cron.go.
  *
  * The platform owns NO cron parsing in either edition — calendar and DST
- * semantics live in the Temporal server (DD-008 D2). This module restricts
+ * semantics live in the Temporal server. This module restricts
  * the accepted GRAMMAR to the subset that is safe to store: the classic
  * 5-field form plus the @daily-family shorthands. Everything rejected here
  * is something Temporal's wider grammar would accept but that must not

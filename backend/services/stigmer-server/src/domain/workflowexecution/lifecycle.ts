@@ -98,7 +98,7 @@ const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
 export interface LifecycleDeps {
   readonly store: WorkflowExecutionContextBuilderDeps["store"];
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /**
    * Recover's per-execution turn (pipeline/keyed-serializer.ts). One
@@ -110,14 +110,14 @@ export interface LifecycleDeps {
   readonly engineState: WorkflowExecutionEngineStateProvider;
   /** Recover's RecreateExecutionContext consumes the same builder deps. */
   readonly executionContextBuilder: WorkflowExecutionContextBuilderDeps;
-  /** The sandbox lane (§6d, O6) — recover re-ensures the workflow sandbox. */
+  /** The sandbox lane — recover re-ensures the workflow sandbox. */
   readonly sandboxLane: SandboxLane;
   /** Dispatch config for the sandbox ensure's target/queue resolution. */
   readonly temporalConfig: WorkflowExecutionTemporalConfig;
-  /** Fires the workflow-sandbox teardown on terminal transitions (§6d, O6). */
+  /** Fires the workflow-sandbox teardown on terminal transitions. */
   readonly sandboxTerminalObserver: WorkflowSandboxTerminalObserver;
   /**
-   * The merged slot registrations (O1/O4; DD-006 §2) — recover carries
+   * The merged slot registrations — recover carries
    * `sandbox-acquisition:gate` at the Java-verified position (C4):
    * recover re-provisions a deprovisioned sandbox, which is capacity
    * growth (cloud#355's recover-parity shape). Empty in OSS.
@@ -313,7 +313,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
 
       let updated: WorkflowExecution;
       // The phase BEFORE this transition, read under the write lock —
-      // the sandbox observer below keys on the transition (§6d, O6).
+      // the sandbox observer below keys on the transition.
       let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
       try {
         updated = await deps.store.updateResource(
@@ -915,7 +915,7 @@ function runRecoverPipeline(
       ...stepsForSlot<Desc>(deps.gateSteps, "sandbox-acquisition:gate"),
       newTerminateExistingWorkflowStep(deps),
       newRecreateExecutionContextStep(deps),
-      // The workflow-lane sandbox re-ensure (§6d, O6): the terminal
+      // The workflow-lane sandbox re-ensure: the terminal
       // FAILED deprovisioned the previous sandbox, so a recovered
       // execution needs a fresh one BEFORE its fresh workflow starts —
       // the same critical posture as the create chain (a provisioning

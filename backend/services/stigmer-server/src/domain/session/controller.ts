@@ -124,7 +124,7 @@ import {
 export interface SessionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
@@ -137,7 +137,7 @@ export interface SessionControllerDeps {
   /** The composed slot registrations — this domain's create slot (O4). */
   readonly gateSteps: ResolvedGateSteps;
   /**
-   * The sandbox lane (§6d, O6): session delete tears the session's
+   * The sandbox lane: session delete tears the session's
    * sandbox down best-effort (the Java SessionDeleteHandler posture).
    */
   readonly sandboxLane: SandboxLane;
@@ -367,7 +367,7 @@ async function deleteSession(
       "deleted session not found in context",
     );
   }
-  // The session's sandbox tears down AFTER the row is gone (§6d, O6) —
+  // The session's sandbox tears down AFTER the row is gone —
   // best-effort, never failing the delete (the Java SessionDeleteHandler
   // posture; the helper carries the leak-logging rationale).
   await deprovisionSessionSandboxBestEffort(

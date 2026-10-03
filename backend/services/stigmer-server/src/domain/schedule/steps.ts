@@ -46,7 +46,7 @@ export interface ScheduleValidationDeps {
  * byte-identically (Go resolveScheduleDefaultsStep):
  *
  *  1. Requires metadata.org — the schedule-owning org is the billing org
- *     for every fire (DD-008 D4), so it can never be inferred.
+ *     for every fire, so it can never be inferred.
  *  2. Validates the cron grammar and the time zone (cron.ts — the DD-009
  *     C-4 lexical rules; no cron parsing in either edition).
  *  3. Requires spec.agent.agent_ref.slug and normalizes its org (empty
@@ -176,7 +176,7 @@ export function resolveScheduleCreateTargets(
 
 /**
  * Enforces the schedule-specific workspace constraint on the shared
- * AgentInvocation (DD-018 D-3): every workspace entry must be a git_repo
+ * AgentInvocation: every workspace entry must be a git_repo
  * source. A local_path needs a connected client to serve the directory,
  * and a schedule fire has none — refusing at write time beats a
  * deterministic provisioning failure at 3 AM. Copy is cross-edition

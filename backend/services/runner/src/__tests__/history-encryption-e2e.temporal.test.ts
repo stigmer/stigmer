@@ -1,5 +1,5 @@
 /**
- * History-encryption tripwire (stigmer-cloud#227).
+ * History-encryption tripwire.
  *
  * Runs a secret-bearing workflow through a real Temporal server with the
  * encryption codec installed, then scans the RAW workflow history and

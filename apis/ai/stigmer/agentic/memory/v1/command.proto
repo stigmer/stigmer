@@ -10,7 +10,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // MemoryCommandController handles write operations for memories.
 //
 // @internal
-// No apply RPC by design (DD-004): a memory is system-generated — an
+// No apply RPC by design: a memory is system-generated — an
 // agent proposes it, a person decides on it — so there is no manifest
 // lane, no SDK apply registry entry, and no CLI apply verb. The kind
 // belongs to the Session/AgentExecution/Artifact family: records the
@@ -96,7 +96,7 @@ service MemoryCommandController {
   // @internal
   // Authorization: requires can_delete on the memory (subject-only).
   // Any-state delete is load-bearing for the trust story: "delete this
-  // one" must never be refused on lifecycle grounds (DD-004).
+  // one" must never be refused on lifecycle grounds.
   rpc delete(MemoryId) returns (Memory) {
     option (ai.stigmer.commons.rpc.config).resource_kind = memory;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

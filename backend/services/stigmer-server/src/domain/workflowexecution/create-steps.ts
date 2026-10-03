@@ -240,7 +240,7 @@ async function backfillDefaultInstanceId(
   } catch (error) {
     throw internalError(error, failureMessage);
   }
-  // The default_of invariant rides the pointer persist (C2 Stage 3).
+  // The default_of invariant rides the pointer persist.
   await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
     instanceKind: ApiResourceKind.workflow_instance,
     instanceId,

@@ -55,7 +55,7 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("Continue from the customer's newest message.");
   });
 
-  it("defines the send-status annotations — undelivered words are not settled history (cloud#347)", () => {
+  it("defines the send-status annotations — undelivered words are not settled history", () => {
     // The cloud composer marks lines the customer never got or may not
     // have gotten yet; the preamble must define both annotations and
     // carve them out of the don't-re-answer contract, or the agent would
@@ -67,7 +67,7 @@ describe("formatConversationCatchupText", () => {
     expect(framed).toContain("weigh that when deciding what still needs saying");
   });
 
-  it("defines the send-outcome lines and the no-verbatim-resend contract (cloud#352, DD-009 Q-4)", () => {
+  it("defines the send-outcome lines and the no-verbatim-resend contract", () => {
     // The agent's own failed sends reach it as `You (not delivered):`
     // lines and `System:` delivery-failure notices. The owner-ruled
     // behavior: unfinished business, re-said naturally — never a

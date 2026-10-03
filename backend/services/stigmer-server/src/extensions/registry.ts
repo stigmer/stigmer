@@ -16,7 +16,7 @@
  * uniform merge rule (at most one declaring unit; a second throws naming
  * both); list points concatenate in unit order.
  *
- * Loud-fail discipline (DD-006 §2b): resolution runs FIRST in
+ * Loud-fail discipline: resolution runs FIRST in
  * composeServer, before any stage has side effects. Registering into a
  * gate slot that does not exist, duplicating a unit name, or doubling a
  * single-instance point is a boot throw. Nothing degrades silently.
@@ -29,12 +29,12 @@
  * (catalog provider, artifact-storage registration, runner-credential
  * provider) and O6's sandbox provisioners are consumed at their
  * compose.ts construction sites; the require-authentication posture
- * (20260904.02) is consumed where compose.ts builds the serving chain's
+ * is consumed where compose.ts builds the serving chain's
  * identity source, OR'd with the OIDC-issuer arm; the identity-account
- * points (20260911.11) at the identity-accounts stage (the store driver,
+ * points at the identity-accounts stage (the store driver,
  * ahead of the boot-time operator ensure) and the routes stage (the
  * federation capability and the provision slot's steps, into the
- * identity-account controller); the IamPolicy points (20260913.01) at
+ * identity-account controller); the IamPolicy points at
  * the same two stages — the store driver where the grant path is built,
  * beside the identity-account store, and the grant scope and the query
  * engine into the IamPolicy controller at the routes stage.
@@ -262,7 +262,7 @@ export interface ResolvedExtensionDrivers {
     string,
     ArtifactStorageDriverFactory
   >;
-  /** Registered name → factory, validated against the built-in names (§6d). */
+  /** Registered name → factory, validated against the built-in names. */
   readonly sandboxProvisionerDrivers: ReadonlyMap<
     string,
     SandboxProvisionerFactory
@@ -288,7 +288,7 @@ export interface ResolvedExtensionDrivers {
    */
   readonly scheduleFireCaller: ScheduleFireCallerMint | undefined;
   /**
-   * Registered version token → codec (20260830.04 Stage 1), validated
+   * Registered version token → codec, validated
    * against the built-in v1. Empty = the facade is v1-only, OSS behavior
    * byte-identical. The compose.ts keys stage merges the built-in v1
    * codec in and resolves the write version fail-fast.

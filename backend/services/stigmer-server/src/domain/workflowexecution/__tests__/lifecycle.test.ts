@@ -169,7 +169,7 @@ function deps(
     broker,
     engineState: () => engineStub?.state ?? ENGINE_DISCONNECTED,
     executionContextBuilder: builderDeps(),
-    // The OSS default sandbox posture (§6d, O6): lane disabled — the
+    // The OSS default sandbox posture: lane disabled — the
     // recover ensure short-circuits and the terminal observer no-ops.
     sandboxLane: { enabled: false },
     temporalConfig: newWorkflowExecutionConfigFromEnv(),

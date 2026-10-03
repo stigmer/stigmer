@@ -119,7 +119,7 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
     name: "GuardReservedLabels",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       if (isServerComposedRequest(ctx.callerIdentity)) {
-        // The Java isInProcessCall arm (cloud#386): the trust decision was
+        // The Java isInProcessCall arm: the trust decision was
         // made by the service code that built the request — default-instance
         // factories stamp reserved labels by design, even when the call
         // propagates the user's identity for attribution (ruling R5).

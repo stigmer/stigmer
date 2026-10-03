@@ -75,7 +75,7 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
   sink.recordActivity();
 
   // Terminalize every tool call the gate auto-skipped under UNATTENDED
-  // approval mode (DD-014): the skip has no human decision behind it, so the
+  // approval mode: the skip has no human decision behind it, so the
   // runtime's terminalizer cannot see it; the gate's registry is this
   // harness's evidence.
   reconcileUnattendedSkips(status, engine.gate.unattendedSkips);

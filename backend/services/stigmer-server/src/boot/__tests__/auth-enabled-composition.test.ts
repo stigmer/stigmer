@@ -15,7 +15,7 @@
  *      presents exactly such a key via STIGMER_TOKEN);
  *   4. deleting the key revokes it on the very next request;
  *   5. garbage credentials keep the Q6 unclaimed-token rejection;
- *   6. (20260911.11) the identity-account arms: an unprovisioned subject is
+ *   6. the identity-account arms: an unprovisioned subject is
  *      idp-shaped (whoAmI NOT_FOUND, writes stamped with the raw sub);
  *      provisionMyAccount creates the account under the derived id with
  *      the issuer's userinfo profile; from then on the verifier resolves
@@ -155,7 +155,7 @@ beforeAll(async () => {
       return;
     }
     if (req.url === "/userinfo") {
-      // The provisioning lane's profile source (20260911.11 A1/Q-IA-2):
+      // The provisioning lane's profile source:
       // answers the bearer's own claims as an IdP would, given_name and
       // family_name included — the signature was already proven upstream.
       const header = req.headers.authorization ?? "";
@@ -277,7 +277,7 @@ describe("the require-authentication posture on the wire", () => {
   });
 });
 
-describe("the console the server serves is told the posture (20260913.02, sp.console-login)", () => {
+describe("the console the server serves is told the posture", () => {
   it("/config.json carries the issuer and audience this composition verifies against, with the unregistered console client id empty", async () => {
     const response = await fetch(`http://127.0.0.1:${port}/config.json`);
     expect(response.status).toBe(200);
@@ -291,7 +291,7 @@ describe("the console the server serves is told the posture (20260913.02, sp.con
     });
   });
 
-  it("the composition root WARNs at wiring time that the served console cannot sign in without STIGMER_OIDC_CONSOLE_CLIENT_ID (Q-CL-2)", () => {
+  it("the composition root WARNs at wiring time that the served console cannot sign in without STIGMER_OIDC_CONSOLE_CLIENT_ID", () => {
     expect(warnings).toContainEqual(
       expect.stringContaining("STIGMER_OIDC_CONSOLE_CLIENT_ID"),
     );
@@ -375,7 +375,7 @@ describe("the full credential loop (OIDC login → API key → revocation)", () 
   });
 });
 
-describe("identity accounts under the OIDC posture (20260911.11; Q-IA-2, A1, A2)", () => {
+describe("identity accounts under the OIDC posture", () => {
   const SUB = "auth0|loop-user";
   const accountId = accountIdFor(SUB);
 

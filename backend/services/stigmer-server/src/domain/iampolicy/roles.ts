@@ -1,5 +1,5 @@
 /**
- * IAM role metadata (20260913.01 slice 5): display metadata for the five
+ * IAM role metadata: display metadata for the five
  * assignable roles and the assignable-relation allowlist that keeps
  * structural relations (parent links, runtime grants, observability
  * usersets) out of every access listing BY CONSTRUCTION — reads filter to
@@ -12,7 +12,7 @@
  * it as the `policyGrantScope` driver.
  *
  * The four words this table renders for an organization are the four
- * roles every edition grants there (Q-OR-4) and the ladder entry 3's
+ * roles every edition grants there and the ladder entry 3's
  * authorizer enforces; the copy is shown verbatim by the console's role
  * badges and selector, so it is contract.
  */

@@ -30,7 +30,7 @@ import "buf/validate/validate.proto";
 // appear here, so embedding surfaces never need a blocklist validator
 // — the rejected alternative was embedding AgentExecutionSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
-// each with its reason (DD-018 D-1): runtime_env (plaintext secrets
+// each with its reason: runtime_env (plaintext secrets
 // in manifests leak; environments are the vehicle), attachments
 // (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
 // agent blueprint owns its tool set), interaction_mode (Plan mode's
@@ -90,7 +90,7 @@ message AgentInvocation {
   // Maps onto SessionSpec.workspace_entries of the session each run
   // creates. Unattended surfaces constrain sources in their handlers:
   // schedules accept git_repo only (no client is connected at fire
-  // time to serve a local_path). Credentials (DD-018 D-4): the
+  // time to serve a local_path). Credentials: the
   // provisioner resolves GITHUB_TOKEN from the merged environment;
   // for surfaces with no interactive caller the one supported
   // contract is an org-visibility Environment holding GITHUB_TOKEN
@@ -163,7 +163,7 @@ message RunConfig {
   //
   // @internal
   // An implementation knob, not a user concept: API-reachable for
-  // operators, deliberately absent from creation forms (DD-018 D-5).
+  // operators, deliberately absent from creation forms.
   int32 max_tool_rounds = 3 [(buf.validate.field).int32.gte = 0];
 
   // Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.

@@ -103,7 +103,7 @@ export function createWorkflowExecutionActivities(
 
       let updated: WorkflowExecution;
       // The phase BEFORE this merge, read under the write lock — the
-      // sandbox observer below keys on the transition (§6d, O6).
+      // sandbox observer below keys on the transition.
       let previousPhase = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
       try {
         updated = await store.updateResource(

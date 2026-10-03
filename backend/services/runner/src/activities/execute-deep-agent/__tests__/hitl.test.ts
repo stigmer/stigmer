@@ -167,7 +167,7 @@ describe("detectPendingInterrupts", () => {
   });
 });
 
-describe("reconcileUnattendedSkips (DD-014)", () => {
+describe("reconcileUnattendedSkips", () => {
   function statusWithCalls(
     toolCalls: Array<{ id: string; status: ToolCallStatus; result?: string }>,
   ) {

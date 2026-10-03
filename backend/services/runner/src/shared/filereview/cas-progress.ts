@@ -26,8 +26,6 @@
  * again in `buildFileChangeProgress` as a backstop); no file bodies are ever
  * carried on the wire. Only tool-mediated writes are observed, exactly the scope
  * of the non-git / HYBRID turn-boundary capture — no new divergence.
- *
- * @since File-Change HITL Redesign (non-git + hybrid mid-run progress / DD-33)
  */
 
 import { readFile, stat } from "node:fs/promises";

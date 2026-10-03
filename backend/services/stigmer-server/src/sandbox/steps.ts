@@ -12,7 +12,7 @@
  *     at its ScheduleToStartTimeout minutes later the user sees the root
  *     cause instead of a generic timeout. The 2026-07 cloud quota outage
  *     hid for two days behind this step's former WARN-and-swallow — the
- *     pre-stamp posture is contract (DD-002).
+ *     pre-stamp posture is contract.
  *   - EnsureWorkflowSandbox (workflow executions): BEFORE Persist,
  *     CRITICAL and synchronous — a refusal orphans nothing (no row, no
  *     Temporal workflow), the verified Java ordering.

@@ -56,7 +56,7 @@ function camelCaseFieldName(specField: string): string {
  *
  * ONE reader for both: the id the authorization tuple was written with is
  * the id the list scope later asks the authorization backend about, so
- * the two cannot drift (20260913.04 T04). Takes `object` rather than
+ * the two cannot drift. Takes `object` rather than
  * `Message` because the list lanes hand the scope structurally-typed rows
  * and their unit suite hands it plain objects — the same posture
  * `metadataOf` takes behind its cast.

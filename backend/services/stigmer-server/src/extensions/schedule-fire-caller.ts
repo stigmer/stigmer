@@ -1,5 +1,5 @@
 /**
- * The schedule-fire caller seam (stigmer-cloud#572) — WHO a schedule fire
+ * The schedule-fire caller seam — WHO a schedule fire
  * acts as when the RunStarter re-enters the execution create pipeline.
  *
  * With no driver composed a fire enters as the in-process `internal`

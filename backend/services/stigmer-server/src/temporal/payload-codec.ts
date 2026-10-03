@@ -66,7 +66,7 @@ export class ServerDecryptionPayloadCodec implements PayloadCodec {
  * policy, the same source Go's LoadConfigFromEnv reads.
  *
  * The optional resolver is the composed credential provider's
- * resolvePayloadKey capability (C4 Stage 2): decrypt-only fallback for
+ * resolvePayloadKey capability: decrypt-only fallback for
  * key ids outside the env pair — the server-managed per-identity `rpk_`
  * keys desktop runners encrypt under. Deliberate coupling, named: the
  * resolver rides the env-keyed codec, so it is consulted only when

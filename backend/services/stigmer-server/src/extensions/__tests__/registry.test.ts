@@ -276,7 +276,7 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.drivers.channelRuntime).toBe(runtime);
   });
 
-  it("keeps the declared ListReadScope as the resolved singleton (20260830.01)", () => {
+  it("keeps the declared ListReadScope as the resolved singleton", () => {
     const scope = {
       authorizedResourceIds: () => Promise.resolve(new Set<string>()),
       restrictListEntries: () => Promise.resolve(new Set<string>()),
@@ -289,7 +289,7 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolveExtensions([]).drivers.listReadScope).toBeUndefined();
   });
 
-  it("keeps the declared ScheduleFireCallerMint as the resolved singleton (stigmer-cloud#572)", () => {
+  it("keeps the declared ScheduleFireCallerMint as the resolved singleton", () => {
     const mint = {
       mintFireCaller: () =>
         Promise.resolve({
@@ -327,7 +327,7 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
-  it("merges secret codecs as a version-keyed map across units (20260830.04)", () => {
+  it("merges secret codecs as a version-keyed map across units", () => {
     const v2 = fakeCodec("v2");
     const v3 = fakeCodec("v3");
     const resolved = resolveExtensions([
@@ -346,7 +346,7 @@ describe("resolveExtensions — merge semantics", () => {
   });
 });
 
-describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
+describe("resolveExtensions — loud-fail throws", () => {
   it("throws on an empty unit name", () => {
     expect(() => resolveExtensions([{ name: "" }])).toThrowError(/empty name/);
   });
@@ -394,7 +394,7 @@ describe("resolveExtensions — loud-fail throws (DD-006 §2b)", () => {
     );
   });
 
-  it("throws on a second require-authentication declaration, naming both units (20260904.02)", () => {
+  it("throws on a second require-authentication declaration, naming both units", () => {
     expect(() =>
       resolveExtensions([
         { name: "first-posture", requireAuthentication: true },

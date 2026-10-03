@@ -110,7 +110,7 @@ describe("validateScheduleCron — rejection matrix (byte-pinned copy)", () => {
   it("accepts bare letters like 'L' lexically (Go's charset allows name letters; Temporal refuses downstream at artifact create)", () => {
     // Deliberate Go-parity: the character class exists for month/day NAMES
     // (Jan, MON) and incidentally passes single letters — the lexical
-    // validator is a grammar restriction, not a cron parser (DD-009 C-4).
+    // validator is a grammar restriction, not a cron parser.
     expect(() => validateScheduleCron("L 9 * * *")).not.toThrow();
     expect(() => validateScheduleCron("W 9 * * *")).not.toThrow();
   });

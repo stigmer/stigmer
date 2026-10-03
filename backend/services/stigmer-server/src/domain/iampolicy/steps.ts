@@ -1,5 +1,5 @@
 /**
- * IamPolicy pipeline steps (20260913.01 slice 5; Q-S5-1): the domain-local
+ * IamPolicy pipeline steps: the domain-local
  * steps the six command chains splice after the shared `Authorize` and
  * `ValidateProto`. The write itself is never here — every step that writes
  * calls the ONE grant and revoke path (grant-path.ts, which owns the
@@ -19,7 +19,7 @@
  * Q-S3-3):
  *   1. the wire refusals: an unknown resource kind is `Unknown resource
  *      kind`, never a role sentence — the second line behind the
- *      controller's pre-position-1 refusal (Q-S6-1), kept so the step's
+ *      controller's pre-position-1 refusal, kept so the step's
  *      own contract holds for whoever splices it;
  *   2. the PROTO (`grantableRolesFor`): a kind that lists no role is
  *      system-managed in every edition — the cloud's byte-pinned copy,

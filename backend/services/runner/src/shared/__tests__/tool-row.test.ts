@@ -59,7 +59,7 @@ describe("stampFileEditRow", () => {
     expect(tc.fileChangeSetId).toBe("exec-1:0");
   });
 
-  it("withholds content for a secret-like TRACKED path but keeps the path visible (DD-12 D4)", () => {
+  it("withholds content for a secret-like TRACKED path but keeps the path visible", () => {
     // The hook denies secret-like gitignored writes before they flow, but a
     // committed credentials file is outside its scope — the stamp is the last
     // line of defense against persisting its bytes in the transcript.

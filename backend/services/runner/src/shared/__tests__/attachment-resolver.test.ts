@@ -459,7 +459,7 @@ describe("resolveAttachments", () => {
     });
   });
 
-  // ── Vision selection (T04) ────────────────────────────────────────────────
+  // ── Vision selection ────────────────────────────────────────────────
   // Vision is strictly additive: every case below also asserts the file
   // materialized exactly as it would without a budget.
 

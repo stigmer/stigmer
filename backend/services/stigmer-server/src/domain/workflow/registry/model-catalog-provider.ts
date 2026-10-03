@@ -1,6 +1,6 @@
 /**
  * The model-catalog provider seam — DD-008 (convergence program
- * 20260826.02, blueprint/03 §6a), extracted with O5 (20260827.02).
+ * 20260826.02, blueprint/03 §6a), extracted with O5.
  *
  * ONE interface covers catalog data AND pin-policy source: the registry
  * document, model/harness validity, pricing-variant and capability

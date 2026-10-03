@@ -661,7 +661,7 @@ const META_PACKAGE_FILES = [
   ...WORKFLOW_BUNDLES.map(({ sibling }) => sibling),
   "workflow-worker-thread.cjs",
   "mappings.wasm",
-  // The console export rides the meta package (DD-012): it is platform-
+  // The console export rides the meta package: it is platform-
   // independent, so it ships once here, never in the platform packages.
   "console",
 ];

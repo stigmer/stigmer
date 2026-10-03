@@ -293,7 +293,7 @@ export interface ResourceAuthorizationLifecycle {
    */
   onDefaultInstanceLinked?(event: DefaultInstanceLinkedEvent): Promise<void>;
   /**
-   * OPTIONAL (stigmer-cloud#720): synchronous, post-persist; a throw fails
+   * OPTIONAL: synchronous, post-persist; a throw fails
    * the request (the level survives — retry converges, the event is the
    * target state). Absent method = no run-audience tuple is written (the
    * OSS posture: the relation is derived from the row at check time).

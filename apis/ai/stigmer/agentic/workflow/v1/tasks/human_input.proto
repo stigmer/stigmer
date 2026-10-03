@@ -13,8 +13,6 @@ import "google/protobuf/struct.proto";
 // Timeout behavior is a workflow design decision: should the workflow fail
 // (safest), auto-approve (for non-critical gates), auto-deny (for opt-in
 // flows), or escalate to a different handler?
-//
-// @since T03 (P0 New Task Types)
 enum HumanInputTimeoutPolicy {
   // Unspecified: defaults to HUMAN_INPUT_TIMEOUT_FAIL behavior.
   HUMAN_INPUT_TIMEOUT_POLICY_UNSPECIFIED = 0;
@@ -59,8 +57,6 @@ enum HumanInputTimeoutPolicy {
 //
 // When no outcomes are defined, the task defaults to binary approve/deny
 // behavior: approve continues to the next task, deny fails the task.
-//
-// @since T03 (P0 New Task Types)
 message HumanInputOutcome {
   // Outcome identifier used in task output and routing.
   // Examples: "approve", "deny", "needs_revision", "escalate", "defer"
@@ -97,7 +93,7 @@ message HumanInputOutcome {
 // in the execution viewer as explicit tasks with input/output/timing, and
 // they can route to different branches based on the reviewer's decision.
 //
-// Runtime implementation (T13) will use Temporal signals for workflow
+// Runtime implementation will use Temporal signals for workflow
 // resumption. The proto definition is intentionally runtime-agnostic.
 //
 // The reviewer's response (selected outcome + form data) becomes the task
@@ -213,7 +209,7 @@ message HumanInputTaskConfig {
   //   - "role:content-admin" — any user with the role
   //
   // When empty, any authenticated user can respond.
-  // Resolution of these identifiers is a runtime concern (T13).
+  // Resolution of these identifiers is a runtime concern.
   repeated string approvers = 4;
 
   // Timeout in seconds before the on_timeout policy applies.
@@ -241,7 +237,7 @@ message HumanInputTaskConfig {
   //   - "email:ops@acme.com" — email address
   //   - "teams:#incident-response" — Microsoft Teams channel
   //
-  // The format and routing of notifications is a runtime concern (T13).
+  // The format and routing of notifications is a runtime concern.
   // The proto carries the identifiers; the runtime resolves them to
   // actual notification providers configured in the workflow instance's
   // environment.
@@ -269,8 +265,6 @@ message HumanInputTaskConfig {
   // Expression support is documented here rather than via the
   // is_expression option, which annotates string fields only — matching
   // how other Struct/Value-typed expression-bearing configs are handled.
-  //
-  // @since Review Payloads (stigmer/stigmer#234)
   google.protobuf.Value payload = 8;
 
   // Hint identifying which UI should present the payload.
@@ -286,7 +280,5 @@ message HumanInputTaskConfig {
   // Deliberately a hint, not a contract: an unrecognized value must never
   // block the gate. Not expression-valued — the hint is workflow design,
   // not runtime data.
-  //
-  // @since Review Payloads (stigmer/stigmer#234)
   string ui_hint = 9 [(buf.validate.field).string.max_len = 63];
 }

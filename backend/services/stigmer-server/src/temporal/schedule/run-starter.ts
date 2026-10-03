@@ -6,7 +6,7 @@
  * schedule token and re-enters the pipeline behind FGA gates, OSS has no
  * caller identity by design (DD-015 D-G): the org is stamped from the
  * schedule's own metadata. A composition restores the Java posture through
- * the scheduleFireCaller driver point (stigmer-cloud#572): when composed,
+ * the scheduleFireCaller driver point: when composed,
  * every fire mints its caller and the create propagates it via the R5
  * in-process header; a mint failure propagates like any infrastructure
  * fault (the tick activity retries, the trigger surfaces it).
@@ -295,7 +295,7 @@ export class RunStarter {
       return { kind: "started", executionId, alreadyExisted: true };
     }
 
-    // The composed fire-caller mint (stigmer-cloud#572): minted per fire,
+    // The composed fire-caller mint: minted per fire,
     // after the idempotency lookup (a found winner needs no credential)
     // and before the create it authenticates. Failure is an
     // infrastructure fault — thrown, so the tick activity retries under
@@ -457,7 +457,7 @@ export class RunStarter {
     const executionConfig = create(ExecutionConfigSchema, {
       approvalMode: ApprovalMode.UNATTENDED,
       // The platform profile, then the schedule's own run_config CLAMPED
-      // by it (DD-017 D-3): per field, min(owner, platform) when the
+      // by it: per field, min(owner, platform) when the
       // platform cap is set; the owner value stands when the platform cap
       // is unset. The owner can lower spend, never raise it past the
       // platform.
@@ -499,7 +499,7 @@ export class RunStarter {
     // unspecified harness stays unset — the platform default applies (OSS:
     // native). Workspace entries are git-only by write-time validation;
     // credentials, when a repo is private, ride an org-shared environment
-    // holding GITHUB_TOKEN (DD-018 D-4).
+    // holding GITHUB_TOKEN.
     const sessionSpec = create(SessionSpecSchema, {
       subject: SESSION_SUBJECT_PREFIX + (schedule.metadata?.slug ?? ""),
       workspaceEntries: invocation?.workspaceEntries ?? [],
@@ -521,7 +521,7 @@ export class RunStarter {
         // own org is stamped directly — it is load-bearing for the session
         // and execution context.
         org: schedule.metadata?.org ?? "",
-        // The audit link (DD-008 D4) AND this edition's
+        // The audit link AND this edition's
         // environment-resolution key — see SCHEDULE_ID_LABEL_KEY.
         labels: { [SCHEDULE_ID_LABEL_KEY]: schedule.metadata?.id ?? "" },
       }),

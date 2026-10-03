@@ -45,7 +45,7 @@ describe("extractSkillMd — happy path", () => {
     expect(extractSkillMd(zip).name).toBe("test-skill");
   });
 
-  it("accepts a traversal-named SKILL.md — safearchive sanitizes it to root (DD-001)", () => {
+  it("accepts a traversal-named SKILL.md — safearchive sanitizes it to root", () => {
     const zip = buildZip([{ name: "../SKILL.md", content: VALID_SKILL_MD }]);
     expect(extractSkillMd(zip).name).toBe("test-skill");
   });

@@ -1,5 +1,5 @@
 /**
- * The approved-command auto-keep policy (DD-28) — ports
+ * The approved-command auto-keep policy — ports
  * filereview/autokeep.go.
  *
  * A turn whose ONLY mutation source was shell commands the human

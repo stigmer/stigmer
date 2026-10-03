@@ -1829,7 +1829,7 @@ describe("reconcileDeniedToolCalls — non-approval kinds never gate", () => {
   });
 });
 
-describe("stampUnattendedSkippedToolCalls (DD-014)", () => {
+describe("stampUnattendedSkippedToolCalls", () => {
   it("settles a hook-blocked FAILED row to SKIPPED with UNATTENDED_SKIP provenance", () => {
     const denied = toolCall({
       id: "u1", name: "shell", status: ToolCallStatus.TOOL_CALL_FAILED,

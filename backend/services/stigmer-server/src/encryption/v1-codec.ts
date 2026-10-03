@@ -1,6 +1,6 @@
 /**
  * The built-in enc:v1 static-key codec — the crypto that lived directly
- * on SecretService before the versioned-codec seam (20260830.04 Stage 1),
+ * on SecretService before the versioned-codec seam,
  * extracted byte-for-byte. Provenance: ports pkg/encryption/encryption.go
  * (the retired Go server), the Go twin of the cloud edition's RETIRED v1
  * codec (deleted 2026-08, PR-3 of the vault migration). Cross-edition

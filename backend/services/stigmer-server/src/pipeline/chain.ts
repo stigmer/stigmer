@@ -6,7 +6,7 @@
  *   0. error boundary   — SERVING chain only
  *                         (interceptors/error-boundary.ts: the raw-error
  *                         conversion net + the visitor sanitizer seam)
- *   1. identity source  — REQUIRED parameter (DD-004; O2)
+ *   1. identity source  — REQUIRED parameter
  *      request metrics  — SERVING chain only, immediately inside the
  *                         identity source (interceptors/request-metrics.ts:
  *                         Java's RED emitter at Java's position — an

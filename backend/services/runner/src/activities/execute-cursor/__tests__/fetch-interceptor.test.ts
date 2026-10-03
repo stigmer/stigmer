@@ -273,7 +273,7 @@ describe("fetch-interceptor", () => {
       expect(segments.map((s) => s.name)).toEqual(["models_fetch"]);
     });
 
-    it("emits one cursor_token_exchange line for the SDK's token exchange, carrying execution_id (cloud#484)", async () => {
+    it("emits one cursor_token_exchange line for the SDK's token exchange, carrying execution_id", async () => {
       const spy = vi.spyOn(console, "log").mockImplementation(() => {});
       const executionContext = getExecutionContext();
 

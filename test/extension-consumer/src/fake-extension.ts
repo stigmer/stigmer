@@ -256,7 +256,7 @@ const consumerIdentityAccountStore: IdentityAccountStore = {
 };
 
 /**
- * The port-contract kit over the consumer's driver (20260911.11 A11): a
+ * The port-contract kit over the consumer's driver: a
  * composition's driver test iterates these cases with its own framework
  * — `for (const c of cases) it(c.name, c.run)` — so the same contract the
  * OSS adapter passes is what the driver is held to. Compile-only here:
@@ -825,7 +825,7 @@ const credentialProvider: RunnerCredentialProvider = {
   mintSandboxCredential: (request: SandboxCredentialRequest): string =>
     `fake-${request.scope}-token`,
   authorizeExecutionContextRead: async (): Promise<boolean> => false,
-  // The fifth capability (C4 Stage 2): decrypt-key resolution for the
+  // The fifth capability: decrypt-key resolution for the
   // server-managed rpk_ payload keys the bootstrap arm above hands out.
   resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
     keyId === "rpk_fake" ? Buffer.from("a2V5", "base64") : undefined,
@@ -1311,7 +1311,7 @@ export const fakeExtension: ServerExtension = {
     // The sixth ratified slot (C4): the workflow-execution chains'
     // capacity-gate position.
     ["sandbox-acquisition:gate", [consumerCapacityGateStep()]],
-    // The seventh (20260911.11, Q-IA-9): after the caller's account is
+    // The seventh: after the caller's account is
     // persisted or found inside provisionMyAccount — the cloud's
     // personal-organization ensure and backfill ride it.
     ["identity-account-provision:post-persist", [consumerGateStep()]],

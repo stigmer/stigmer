@@ -1,5 +1,5 @@
 /**
- * ApiKey domain steps (O3, 20260827.06) — the three steps the canonical
+ * ApiKey domain steps — the three steps the canonical
  * chains do not provide, mirroring the cloud Java handlers' domain steps:
  *
  *   - GenerateApiKey (Java ApiKeyCreateHandler.GenerateApiKey): mints the

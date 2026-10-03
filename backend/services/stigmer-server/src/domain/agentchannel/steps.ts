@@ -91,7 +91,7 @@ function validateChannelModelPin(
  *      path.
  *   4. Validates the model pin and the WhatsApp BYO app_ref rules.
  *   5. Loads the referenced agent — a nonexistent agent is refused with
- *      the same NOT_FOUND a direct agent lookup would produce (T09).
+ *      the same NOT_FOUND a direct agent lookup would produce.
  *
  * Deliberately NO slug default from the agent (unlike the share's
  * canonical-slug rule): channels are N-per-agent across providers, so no
@@ -159,7 +159,7 @@ export function newResolveChannelDefaultsStep(
         throw internalError(error, "failed to list agent resources");
       }
       if (agent === undefined) {
-        // Byte-identical with the direct agent lookup's refusal (T09).
+        // Byte-identical with the direct agent lookup's refusal.
         throw notFoundError("Agent", agentRef!.slug);
       }
 

@@ -104,7 +104,7 @@ export function createScheduleTickActivities(
 /**
  * Re-reads the schedule row and either records the fire or explains why
  * this tick is a no-op — the revalidation that makes every orphaned
- * artifact harmless by construction (DD-008 D2): deleted, owner-disabled,
+ * artifact harmless by construction: deleted, owner-disabled,
  * and platform-paused rows all decline the fire (Go RecordTick).
  */
 async function recordTick(
@@ -305,7 +305,7 @@ async function startScheduledRun(
       throw new Error(`unknown run outcome ${String(exhaustive)}`);
     }
   }
-  // The fire ledger (DD-017 D-7): start failures are terminal at insert —
+  // The fire ledger: start failures are terminal at insert —
   // the refusal reason must survive NOW, not at the pause threshold.
   await recordRunLedgerStart(
     deps.store,

@@ -55,7 +55,7 @@ export interface SubscribeDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly broker: StreamBroker;
-  /** The composed authorization seam — the pre-stream check below (C2 Stage 4). */
+  /** The composed authorization seam — the pre-stream check below. */
   readonly authorizer: Authorizer;
 }
 

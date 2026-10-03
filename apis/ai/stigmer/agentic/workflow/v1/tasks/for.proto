@@ -13,8 +13,6 @@ import "buf/validate/validate.proto";
 // When max_parallelism > 0 (parallel mode), error handling becomes critical
 // because multiple iterations are in-flight simultaneously. This policy
 // governs whether the entire loop fails fast or continues processing.
-//
-// @since T17 (Advanced Agentic Orchestration)
 enum ForEachErrorPolicy {
   // Unspecified: defaults to FOR_EACH_FAIL_FAST behavior (current behavior).
   FOR_EACH_ERROR_POLICY_UNSPECIFIED = 0;
@@ -81,8 +79,6 @@ enum ForEachErrorPolicy {
 //                 item: ${ $data.item }
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
-//
-// @since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
 message ForTaskConfig {
   option (ai.stigmer.commons.apiresource.discriminator_value) = "for_each";
 
@@ -117,8 +113,6 @@ message ForTaskConfig {
   // goroutines with a semaphore-based concurrency limiter. Results are
   // always reassembled in original input order regardless of completion
   // order.
-  //
-  // @since T17 (Advanced Agentic Orchestration)
   int32 max_parallelism = 4 [(buf.validate.field).int32.gte = 0];
 
   // Number of items to process in each batch before moving to the next.
@@ -131,8 +125,6 @@ message ForTaskConfig {
   // max_parallelism iterations run concurrently.
   //
   // Only meaningful when max_parallelism > 0; ignored in sequential mode.
-  //
-  // @since T17 (Advanced Agentic Orchestration)
   int32 batch_size = 5 [(buf.validate.field).int32.gte = 0];
 
   // Policy for handling individual iteration failures.
@@ -140,7 +132,5 @@ message ForTaskConfig {
   // Default: FOR_EACH_FAIL_FAST (stop on first error).
   // Only meaningful when max_parallelism > 0; in sequential mode, any
   // failure stops the loop regardless of this setting (pre-T17 behavior).
-  //
-  // @since T17 (Advanced Agentic Orchestration)
   ForEachErrorPolicy on_error = 6;
 }

@@ -27,7 +27,7 @@ export function ciphertextShapedMessage(key: string): string {
  * Internal copy for an encrypt failure at write. Replaced the ported
  * per-key `failed to encrypt secret value for '<key>'` (Go
  * encrypt_secret_values.go) when EC sealing became one batch through the
- * v2-capped verb (20260830.04 Stage 1) — a batch failure has no single
+ * v2-capped verb — a batch failure has no single
  * failing key. Unreachable for the local v1 codec; a vault-backed write
  * codec reaches it on KEK-provider failure, with the real error logged.
  */

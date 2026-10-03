@@ -30,13 +30,13 @@
  *                   "system". "Zero rows", never "no admin now" — revoking
  *                   every admin of a bootstrapped organization must not
  *                   hand it to the next stranger (plan finding 2); and the
- *                   founder's own stamp counts as a person (Q-S4-7), so a
+ *                   founder's own stamp counts as a person, so a
  *                   revoked founder's empty organization is not handed
  *                   over either;
  *     5. `member` — everyone else.
  *   Arms 3 and 4 both answer `admin`; 3 is checked first because it is a
  *   string compare and 4 reads the organization's rows. `user`-class
- *   callers only (Q-OR-6b): a runner, a machine or the in-process class
+ *   callers only: a runner, a machine or the in-process class
  *   never earns a role. Nothing on an organization the account already
  *   holds a row on, so a run that faulted midway converges on the next.
  *
@@ -72,7 +72,7 @@
  *   one-shot: a database whose every role was revoked after the marker is
  *   never handed back to anyone by a reboot (plan finding 2's reason,
  *   applied to the whole store). Accounts are read through the generic
- *   Store as the organizations and blueprints are (Q-S4-5) — the account
+ *   Store as the organizations and blueprints are — the account
  *   port carries no enumeration, by its own rule that a port does not
  *   carry a method only one edition calls, and this act is open source's.
  *
@@ -86,7 +86,7 @@
  * the operator is covered by arm 3 and by ensureOperatorOwnership), and a
  * stamp is a PERSON when it is non-empty and not the "system" placeholder
  * (SYSTEM_OPERATOR_IDENTITY_ID, the one home of that word — Q-S4-6). The
- * rules classify stamps by shape and consult no account store (Q-S4-5).
+ * rules classify stamps by shape and consult no account store.
  *
  * Reads. Policy rows through the IamPolicyStore PORT (`policies`, the
  * same instance the grant path writes through) — never around it
@@ -97,7 +97,7 @@
  * entry's execution record: one scan of each of seven kinds and one row
  * read per organization, once per account creation.
  *
- * The window this design accepts (Q-S4-4). A store fault after the
+ * The window this design accepts. A store fault after the
  * account row persisted fails the request INTERNAL (the controller's
  * mapping) with the account in place; later calls answer `created:
  * false`, so the rules never run again for that person. The writes ride

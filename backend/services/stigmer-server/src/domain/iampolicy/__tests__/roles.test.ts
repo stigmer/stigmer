@@ -1,5 +1,5 @@
 /**
- * Pins roles.ts (20260913.01 slice 5): the six assignable roles' display
+ * Pins roles.ts: the six assignable roles' display
  * metadata and the allowlist that keeps structural relations out of every
  * access listing — moved from the cloud's iam/policy/roles.ts (the Java
  * IamRoleMetadata port). The allowlist is proven by construction here:

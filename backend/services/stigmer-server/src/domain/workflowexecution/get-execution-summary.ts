@@ -62,7 +62,7 @@ const RANK_LIMIT = 10;
 export interface SummaryDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 

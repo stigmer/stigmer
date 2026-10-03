@@ -1,6 +1,6 @@
 /**
  * Versioned schema migrations for the Postgres driver — an INDEPENDENT
- * chain starting at its own v1 (DD-010 §3). It deliberately does NOT
+ * chain starting at its own v1. It deliberately does NOT
  * mirror sqlite's chain: that chain's value is Go-DDL fidelity for adopted
  * laptop databases, a concern Postgres cannot have (no Postgres database
  * predates this driver). Same runner discipline as sqlite/migrations.ts —

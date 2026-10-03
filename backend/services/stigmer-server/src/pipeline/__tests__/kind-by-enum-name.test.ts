@@ -5,12 +5,12 @@
  * lesson). An `ApiResourceRef.kind` — the IamPolicy spec's principal and
  * resource, the FGA object type — is the enum MEMBER name ("mcp_server"),
  * which is what every SDK call site sends and what the cloud's
- * `kindFromSpecString` resolved before this entry (20260913.01, Q-OR-2).
+ * `kindFromSpecString` resolved before this entry.
  *
  * Two properties are load-bearing and pinned here rather than assumed:
  *
  *   - EXACT match, never canonicalised. The IamPolicy id is derived from
- *     the spec's text (Q-OR-9), so a lenient matcher that admitted
+ *     the spec's text, so a lenient matcher that admitted
  *     "Organization" beside "organization" would mint two rows for one
  *     grant, or force the domain to rewrite caller input before storing
  *     it. The two spellings `getKindEnum` accepts are refused here on

@@ -1,6 +1,6 @@
 /**
  * The runner-credential provider seam — convergence program 20260826.02,
- * blueprint/03 §6c, extracted with O5 (20260827.02). Lives in
+ * blueprint/03 §6c, extracted with O5. Lives in
  * src/runnerauth beside the OSS implementation it fronts.
  *
  * Mint and verify PER CREDENTIAL LANE, where a lane is an implementation's

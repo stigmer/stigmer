@@ -91,10 +91,10 @@ describe("loadConfig", () => {
     ).toBe("https://artifacts.stigmer.test");
   });
 
-  // 20260913.02 (sp.console-login, Q-CL-1): the console's public PKCE client
+  // 20260913.02: the console's public PKCE client
   // id is lenient on purpose — a CLI-only self-host that set the issuer
   // before this knob existed must keep booting on upgrade, and the served
-  // console reports the gap itself (Q-CL-2).
+  // console reports the gap itself.
   describe("temporalConnection (the STIGMER_TEMPORAL_* settings)", () => {
     it("is a plaintext connection when nothing is set", () => {
       expect(loadConfig({}).temporalConnection).toEqual({});

@@ -4,7 +4,7 @@
  * policy id and the one spelling of a triple it hashes, the kinds the
  * legacy-creator rule scans, and the byte-pinned wire copy.
  *
- * The derived id (Q-OR-9). A policy's id is a pure function of its triple:
+ * The derived id. A policy's id is a pure function of its triple:
  * `iamp_` + `derivedId` (pipeline/steps/defaults.ts, the encoder shared
  * with the identity account) over the triple's canonical text. The text
  * IS the tuple notation the contract's own comment documents
@@ -16,7 +16,7 @@
  * vectors in __tests__/constants.test.ts are wire-adjacent contract: a
  * change here re-addresses every policy open source ever wrote.
  *
- * The text's one weakness (Q-S2-1): `ApiResourceRef` fields carry no
+ * The text's one weakness: `ApiResourceRef` fields carry no
  * character pattern, so an id or relation holding one of the three
  * delimiters could spell another triple's text (`a#b` with an empty
  * qualifier and `a` with qualifier `b#` read alike). `malformedTripleField`
@@ -27,7 +27,7 @@
  * relation an FGA relation name — and OpenFGA itself rejects `:` and `#`
  * in ids, so the cloud loses nothing it could ever have written.
  *
- * `BLUEPRINT_KINDS` (Q-OR-6b) is the legacy-creator rule's whole scan: the
+ * `BLUEPRINT_KINDS` is the legacy-creator rule's whole scan: the
  * kinds an admin authors. Sessions, executions, keys and memories are
  * personal and stay with their creator by DD-002 rule 2; they never appear
  * here.
@@ -55,7 +55,7 @@ export const POLICY_ID_PREFIX = "iamp";
 
 /**
  * The proto's `api_version` const (api.proto). The cloud's Java-era rows
- * carry `iam.stigmer.com/v1` and are read as they are (Q-OR-9); every row
+ * carry `iam.stigmer.com/v1` and are read as they are; every row
  * this domain writes carries the contract's value.
  */
 export const IAM_POLICY_API_VERSION = "iam.stigmer.ai/v1";
@@ -119,7 +119,7 @@ export function malformedTripleField(spec: IamPolicySpec): string | undefined {
 /**
  * The derived policy id of a triple. Pure; refuses a spec missing either
  * reference (a triple is the whole key) and a spec whose text would be
- * ambiguous (Q-S2-1) — both are the assert behind the grant path's gate,
+ * ambiguous — both are the assert behind the grant path's gate,
  * which is where a caller hears INVALID_ARGUMENT.
  */
 export function policyIdFor(spec: IamPolicySpec): string {
@@ -132,7 +132,7 @@ export function policyIdFor(spec: IamPolicySpec): string {
 }
 
 /**
- * The kinds an admin authors — the legacy-creator rule's scan (Q-OR-6b),
+ * The kinds an admin authors — the legacy-creator rule's scan,
  * in registry order. A caller who created one of these idp-shaped, before
  * an account existed, becomes admin on first sign-in.
  */

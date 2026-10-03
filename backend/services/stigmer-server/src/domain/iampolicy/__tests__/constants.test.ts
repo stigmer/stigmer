@@ -11,7 +11,7 @@
  *     triple". The golden vectors are wire-adjacent constants: a change
  *     re-addresses every policy open source ever wrote;
  *   - `BLUEPRINT_KINDS` — the kinds an admin authors, the legacy-creator
- *     rule's whole scan (Q-OR-6b); sessions and executions are personal
+ *     rule's whole scan; sessions and executions are personal
  *     and never appear here;
  *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
  *     new sentences (the two edition refusals, the unknown permission, the
@@ -193,7 +193,7 @@ describe("policyIdFor — the derived policy id", () => {
     ).toBe(`team:tm_1#member@agent:${AGENT}#viewer`);
   });
 
-  it("refuses a triple whose text would be ambiguous — a delimiter inside any field (Q-S2-1)", () => {
+  it("refuses a triple whose text would be ambiguous — a delimiter inside any field", () => {
     // `a#b` with an empty qualifier and `a` with qualifier `b#` would spell
     // one text; the refusal is what keeps one text one triple.
     expect(() =>
@@ -285,13 +285,13 @@ describe("malformedTripleField — the delimiter check the id and the writer sha
 });
 
 describe("the contract's identity strings", () => {
-  it("stamps the proto's apiVersion const, not the Java-era value (Q-OR-9)", () => {
+  it("stamps the proto's apiVersion const, not the Java-era value", () => {
     expect(IAM_POLICY_API_VERSION).toBe("iam.stigmer.ai/v1");
     expect(IAM_POLICY_KIND).toBe("IamPolicy");
   });
 });
 
-describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
+describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
   it("is exactly the six kinds an admin authors, in registry order", () => {
     expect([...BLUEPRINT_KINDS]).toEqual([
       ApiResourceKind.agent,
@@ -316,7 +316,7 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan (Q-OR-6b)", () => {
   });
 });
 
-describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to (Q-S9-2)", () => {
+describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to", () => {
   it("is exactly a person and a team of people — the one vocabulary the writer admits and the reader treats as no structural parent", () => {
     expect([...USER_GRANT_PRINCIPAL_KINDS]).toEqual([
       ApiResourceKind.identity_account,

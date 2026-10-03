@@ -194,7 +194,7 @@ describe("HttpCheckpointSaver", () => {
     });
   });
 
-  // The bounded-backoff loop (cloud#188). Classification policy itself is
+  // The bounded-backoff loop. Classification policy itself is
   // covered by shared/__tests__/http-retry.test.ts; these cases pin the
   // loop's behavior at the saver's call sites: transient failures recover,
   // deterministic failures never retry, budget exhaustion still fails

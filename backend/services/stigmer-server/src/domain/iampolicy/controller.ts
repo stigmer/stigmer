@@ -10,9 +10,9 @@
  * grant scope (`drivers.policyGrantScope`), its OpenFGA query engine
  * (`drivers.authorizationQueries`) and the tuple mirror in the lifecycle
  * driver's two policy hooks — and reaches the write lanes here as
- * in-process RPCs (Q-OR-1), never through an exported constructor.
+ * in-process RPCs, never through an exported constructor.
  *
- * Shape (Q-S5-1). The six command RPCs are pipeline chains, each
+ * Shape. The six command RPCs are pipeline chains, each
  * `Authorize → ValidateProto → <one domain step>` (steps.ts), with the two
  * owner steps before the write on `create`, `delete` and `revokeOrgAccess`
  * (owner is assigned by owners, steps.ts's last section): the write is
@@ -59,10 +59,10 @@
  *     (`isPlatformPipelineCaller`) and refuse a wire user
  *     PERMISSION_DENIED with the annotation's own `error_msg`, BEFORE the
  *     chain — under the permissive Authorizer the annotation alone would
- *     admit anyone (Q-OR-7). Position 1 still runs the static platform
+ *     admit anyone. Position 1 still runs the static platform
  *     check, so the cloud's `can_bootstrap_iam` FGA check is unchanged.
  *   - every kind string that came off the wire passes the domain's wire
- *     refusals (Q-S5-2) BEFORE position 1 (Q-S6-1, 2026-09-14):
+ *     refusals BEFORE position 1 (Q-S6-1, 2026-09-14):
  *     INVALID_ARGUMENT with the pinned copy, on every lane, in every
  *     edition. This is not input validation moved ahead of authorization
  *     — it is naming the authorization target. A kind string that names
@@ -78,7 +78,7 @@
  *     the backstop for a stored row on `get`, the one kind string that is
  *     not wire input.
  *
- * `checkMyPermission` has one definition (Q-OR-8; Q-S5-3), in this order:
+ * `checkMyPermission` has one definition, in this order:
  * UNAUTHENTICATED for an empty identity; the relation must be an
  * IamPermission name; the resource kind must be known; contextual
  * policies ride the query engine or refuse UNIMPLEMENTED; then (1) a kind
@@ -86,7 +86,7 @@
  * kind that does not exist here, which is what keeps the operator-only
  * settings navigation hidden on open source; (2) `can_grant_access` on a
  * kind outside the grant scope is `false` — the console's PermissionGate
- * hides grant controls with no new SDK surface (Q-OR-5); (3) the composed
+ * hides grant controls with no new SDK surface; (3) the composed
  * Authorizer: allow → true, deny and not-found → false, unavailable →
  * INTERNAL, never softened into a denial.
  *
@@ -293,7 +293,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * The admission rule of the three system RPCs (Q-OR-7): the platform's own
+ * The admission rule of the three system RPCs: the platform's own
  * pipelines only, refused with the RPC's own annotation copy — the proto
  * owns that sentence, so no second pinned copy exists here.
  */

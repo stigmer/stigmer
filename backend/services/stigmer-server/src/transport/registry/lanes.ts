@@ -34,7 +34,7 @@ export interface RegistryLanes {
 export interface RegistryLanesOptions {
   /** The task-kind registry document (static per release). */
   taskKindRegistryDocument: string;
-  /** The composed model-catalog provider the lane serves from (DD-008). */
+  /** The composed model-catalog provider the lane serves from. */
   modelRegistryStore: ModelCatalogProvider;
 }
 

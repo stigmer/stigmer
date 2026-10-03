@@ -91,7 +91,7 @@ message TemplatePayload {
   // @internal
   // Omitted-language resolution echoes SendChannelMessageInput.channel:
   // unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
-  // candidate languages in the detail (DD-003 D4).
+  // candidate languages in the detail.
   string language = 2 [(buf.validate.field).string.max_len = 16];
 
   // Variable values. Named templates key by parameter name
@@ -162,7 +162,7 @@ message ListChannelTemplatesInput {
   // The two callers split on this flag: the runner's discovery fetch
   // sets it (an agent must never compose against a paused or pending
   // template, DD-003 D5); the console leaves it unset to render every
-  // status with its badge (DD-003 D10).
+  // status with its badge.
   bool approved_only = 3;
 }
 

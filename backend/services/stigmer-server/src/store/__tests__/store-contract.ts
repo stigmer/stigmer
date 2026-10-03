@@ -13,7 +13,7 @@
  * per-row), findAllByField's filter (the rows whose field equals the
  * value, as stored bytes), audit ordering + the #341 single-holder tag move,
  * first-writer-wins events (oss#308), the terminal-immutable schedule-run
- * ledger (DD-017 D-7), the engine-neutral search read semantics (DD-009:
+ * ledger, the engine-neutral search read semantics (DD-009:
  * token match / single-term prefix / AND; wire-ready 0–1 scores;
  * list-mode newest-first at exactly 1.0 — search-mode ranking ORDER is
  * deliberately NOT asserted here, it is driver-relative), the two-phase
@@ -735,7 +735,7 @@ export function describeStoreContract(
       );
     });
 
-    it("duplicate rows for one hash are legal — newest wins (stigmer-cloud#191)", async () => {
+    it("duplicate rows for one hash are legal — newest wins", async () => {
       await fx.store.saveAudit(
         KIND,
         "acme",
@@ -1060,7 +1060,7 @@ export function describeStoreContract(
       // "NEAR" (an FTS5 operator, not an English stopword) keeps this arm
       // engine-safe: Postgres's 'english' config DROPS stopwords like
       // "not"/"and" from queries where FTS5 keeps them — a declared
-      // tokenization divergence (DD-009), so no stopword may carry a
+      // tokenization divergence, so no stopword may carry a
       // cross-driver membership assertion.
       const result = await fx.store.querySearchIndex({
         kinds: ["agent"],
@@ -1073,7 +1073,7 @@ export function describeStoreContract(
       expect(result.totalCount).toBe(0);
     });
 
-    it("authorizedIdsByKind narrows per kind; an empty set matches nothing; absent kinds stay unrestricted (20260830.01)", async () => {
+    it("authorizedIdsByKind narrows per kind; an empty set matches nothing; absent kinds stay unrestricted", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
         "agt-mine",

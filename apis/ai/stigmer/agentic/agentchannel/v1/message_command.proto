@@ -26,9 +26,9 @@ service ChannelMessageCommandController {
   // truth of the inline attempt.
   //
   // @internal
-  // Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,
+  // Authorization in-handler: token-class dispatch,
   // fail closed; agent-anchored chain (never session-sender-anchored —
-  // the recipient is an argument). Error contract (DD-002 D4): unknown
+  // the recipient is an argument). Error contract: unknown
   // or foreign token class, no serving channel, proactive messaging not
   // enabled, or channel/org mismatch → PERMISSION_DENIED with no policy
   // detail leaked; malformed input or ambiguous channel/language →

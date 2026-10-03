@@ -6,7 +6,7 @@
 # TypeScript unified runner, all built from source.
 #
 # This is intentionally a SEPARATE job from ci.conformance.yaml so the
-# dependency-light CRUD signal stays fast (DD-002). It needs the `temporal`
+# dependency-light CRUD signal stays fast. It needs the `temporal`
 # CLI and a runner build that the CRUD job does not.
 #
 # Each target runs as three shards (`--shard=<index>/3`). The suite's files

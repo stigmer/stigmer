@@ -126,7 +126,7 @@ afterAll(async () => {
   await new Promise<void>((resolve) => backend.close(() => resolve()));
 });
 
-describe("memory roster (DD-005 D1)", () => {
+describe("memory roster", () => {
   it("exposes exactly remember with only a fact argument", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(["remember"]);
@@ -156,7 +156,7 @@ describe("memory roster (DD-005 D1)", () => {
   });
 });
 
-describe("argument + capture context → request mapping (DD-005 D2)", () => {
+describe("argument + capture context → request mapping", () => {
   it("maps the fact and the startup context; subject never travels", async () => {
     createResponse = () => proposedRecord("Prefers concise answers.");
     capturedCreates.length = 0;
@@ -188,7 +188,7 @@ describe("argument + capture context → request mapping (DD-005 D2)", () => {
       outcome?: string;
       memory?: Record<string, unknown>;
     };
-    // The honest relay (DD-005 D2): proposed, the user decides.
+    // The honest relay: proposed, the user decides.
     expect(body.outcome).toBe(PROPOSED_OUTCOME);
     // The record rides verbatim with proto (snake_case) field names —
     // what the SDK's normalizeToolResult parses to render the chip.

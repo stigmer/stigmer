@@ -1,5 +1,5 @@
 /**
- * Smoke test for the Docker driver (§6d, O6): the real docker
+ * Smoke test for the Docker driver: the real docker
  * CLI, the full provision → probe → stop/start → deprovision cycle, and
  * the label/env contract on the live container.
  *

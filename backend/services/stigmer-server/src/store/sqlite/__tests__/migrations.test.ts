@@ -384,7 +384,7 @@ describe("legacy pre-v2 database", () => {
   });
 });
 
-describe("rollback safety (DD-006)", () => {
+describe("rollback safety", () => {
   it("a v7 database passes Go-shaped 'currentVersion < 6' checks untouched", () => {
     const dbPath = tempDbPath();
     const migrating = new DatabaseSync(dbPath);

@@ -6,12 +6,12 @@
  * composition. Slot names are PROTECTED VOCABULARY (never renamed,
  * byte-stable), scoped `<chain-name>:<position>`.
  *
- * O1 (20260826.09) shipped the mechanism; O4 (20260827.07) declared the
+ * O1 shipped the mechanism; O4 declared the
  * first five ratified slots at their Java-verified semantic positions,
  * deferring `sandbox-acquisition:gate` to the entry that builds its
  * splice sites (ruling Q1: a declared slot whose steps can never run
  * would be a silent no-op, the exact failure §2b exists to prevent). C4
- * (20260827.09) declares it: the workflow-execution chains have no
+ * declares it: the workflow-execution chains have no
  * generic pre-side-effect slot, and their Java-verified capacity-gate
  * position (post-authorize, before any side effect, pre-provision —
  * cloud#355's 7c/3b) is where the cloud's sandbox-capacity gate rides on
@@ -19,7 +19,7 @@
  * splice — its capacity gates ride the two declared agent-execution
  * slots, whose positions coincide exactly with the Java session gate.
  *
- * 20260911.11 (Q-IA-9) declares the seventh,
+ * 20260911.11 declares the seventh,
  * `identity-account-provision:post-persist`: inside provisionMyAccount,
  * after the provisioner has answered the caller's row — created on this
  * call or found by the idempotent early return — and before the reply,

@@ -11,8 +11,6 @@ package ai.stigmer.agentic.artifact.v1;
 // Pending: metadata record created, blob upload not yet confirmed.
 // Stored: blob successfully written to object storage and verified.
 // Deleted: blob has been garbage-collected (metadata may be retained for audit).
-//
-// @since T07 (Artifact Store)
 enum ArtifactStorageState {
   storage_state_unspecified = 0;
 

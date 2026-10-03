@@ -70,7 +70,7 @@ describe("page contract (the nginx chain)", () => {
     expect(servedFile("/auth/github/callback")).toBe(
       "/auth/github/callback.html",
     );
-    // The OIDC return leg (20260913.02): the provider redirects here with
+    // The OIDC return leg: the provider redirects here with
     // `?code&state`; the handler strips the query, so the resolver sees
     // exactly this path and must answer the callback document, never
     // the 404 page — a 404 here is a login that can never complete.

@@ -37,7 +37,7 @@ import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/age
  * no human handoff at all (a failed turn's re-composed window), so the
  * preamble asserts only what is always true (the A15/A20 honesty bar).
  *
- * The send-status annotations (cloud#347) get an explicit exception from the
+ * The send-status annotations get an explicit exception from the
  * don't-re-answer contract: a `(not delivered)` teammate reply is words the
  * customer never got, so treating it as settled history would silently
  * abandon whatever it was meant to convey. The preamble defines the
@@ -47,7 +47,7 @@ import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/age
  * The send-outcome lines (cloud#352, cloud triage DD-009) extend the same
  * exception to the agent's OWN sends: `You (not delivered):` lines and
  * `System:` delivery-failure notices mean the customer never got those
- * words. The behavioral contract is owner-ruled (DD-009 Q-4): treat the
+ * words. The behavioral contract is owner-ruled: treat the
  * failure as unfinished conversation business — weigh what still needs
  * saying and re-say it naturally in the next turn — but never resend the
  * failed text verbatim: a multi-chunk send can partially land, and a

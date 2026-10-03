@@ -101,7 +101,7 @@ jobs:
           # Canonical Language::Node formula: Homebrew downloads the npm tarball,
           # installs it (and its @stigmer/* deps) into libexec, and symlinks the
           # `stigmer` launcher into bin. The backend server is downloaded on first
-          # use, so nothing else is bundled (DD-003).
+          # use, so nothing else is bundled.
           cat > Formula/stigmer.rb <<EOF
           require "language/node"
 

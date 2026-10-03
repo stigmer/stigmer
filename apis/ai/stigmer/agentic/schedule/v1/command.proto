@@ -33,7 +33,7 @@ service ScheduleCommandController {
   // @internal
   // Authorization: requires can_edit on the REFERENCED AGENT
   // (spec.agent.agent_ref), checked in-handler — the AgentChannel /
-  // same-org AgentShare Phase A bar (DD-009 C-6): whoever may edit the
+  // same-org AgentShare Phase A bar: whoever may edit the
   // agent may schedule it; there is deliberately no org-level
   // can_create_schedule permission. Standard org-scoped create tuples
   // (owner = creator); no visibility tuples (the kind has no visibility
@@ -102,7 +102,7 @@ service ScheduleCommandController {
   // @internal
   // Authorization: requires can_edit permission on the schedule — the
   // update bar; resuming does not change which agent runs, so it does
-  // not re-open create's consent bar (DD-009 C-6). This command is
+  // not re-open create's consent bar. This command is
   // deliberately the ONLY path that clears a platform auto-pause
   // (DD-013 D-D): apply and update preserve status byte-for-byte, so a
   // routine manifest apply can never silently un-pause a failing

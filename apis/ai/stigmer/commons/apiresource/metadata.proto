@@ -100,7 +100,5 @@ message ApiResourceMetadataVersion {
   // Optional tag to assign to this version at creation time.
   // Only applicable to versioned resources (Skills, Workflows).
   // Examples: "stable", "v1.0", "production"
-  //
-  // @since Workflow Versioning
   string tag = 4;
 }

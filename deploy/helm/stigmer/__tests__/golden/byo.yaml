@@ -162,7 +162,7 @@ spec:
                 secretKeyRef:
                   name: stigmer-secrets
                   key: POSTGRES_PASSWORD
-            # Non-empty DATABASE_URL selects the Postgres driver (DD-010).
+            # Non-empty DATABASE_URL selects the Postgres driver.
             - name: DATABASE_URL
               value: "postgres://postgres:$(POSTGRES_PASSWORD)@byo-postgres.byo-infra.svc.cluster.local:5432/stigmer"
             - name: TEMPORAL_HOST_PORT
@@ -182,7 +182,7 @@ spec:
               value: "http://localhost:7235"
             - name: SKILL_TRANSFER_BASE_URL
               value: "http://localhost:7234"
-            # Explicit keys, loud fail (DD-013): from the operator's Secret.
+            # Explicit keys, loud fail: from the operator's Secret.
             - name: STIGMER_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:

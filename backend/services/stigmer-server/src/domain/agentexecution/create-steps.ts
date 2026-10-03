@@ -260,7 +260,7 @@ export function newCreateDefaultInstanceIfNeededStep(deps: {
         );
       }
 
-      // The default_of invariant rides the pointer persist (C2 Stage 3).
+      // The default_of invariant rides the pointer persist.
       await notifyDefaultInstanceLinked(deps.authorizationLifecycle, {
         instanceKind: ApiResourceKind.agent_instance,
         instanceId: createdId,

@@ -279,7 +279,7 @@ jobs:
   # regressions (e.g. the provider container's sizing contract, #260) — both need a
   # real Chromium for layout/paint that happy-dom cannot evaluate. The task
   # waits on react's own build: the suites render against dist/styles.css,
-  # the SHIPPED stylesheet (DD-21).
+  # the SHIPPED stylesheet.
   a11y-audit:
     name: Browser Suite (A11y Audit + Layout Contracts)
     runs-on: ubuntu-latest

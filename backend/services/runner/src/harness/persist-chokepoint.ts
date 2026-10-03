@@ -6,7 +6,7 @@
  * that forgot them.
  *
  * What one write does, in order:
- *  1. The never-persist-secret backstop (DD-26 #2): content is withheld from
+ *  1. The never-persist-secret backstop: content is withheld from
  *     any built-in write row targeting a secret-like path, top-level and
  *     sub-agent. The single airtight choke point for a deny-gate harness and
  *     the only guarantee under `auto_approve_all`. Idempotent.

@@ -431,7 +431,7 @@ export interface TaskExecutionContext {
   readonly callAgent: CallAgentFn;
 
   /**
-   * Promote a large task output to the Artifact store (T07). When the
+   * Promote a large task output to the Artifact store. When the
    * serialized output exceeds 256KB, the activity calls
    * ArtifactCommandController.create() and returns an artifact reference.
    * Returns the original output unchanged if below threshold.

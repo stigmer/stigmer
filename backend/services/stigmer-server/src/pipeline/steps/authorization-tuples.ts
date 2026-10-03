@@ -214,7 +214,7 @@ export function executionAudienceShapes(
 // ---------------------------------------------------------------------------
 // Parent-id resolution — the ParentIdExtractorRegistry port. The spec-field
 // read itself is shapes.ts's `parentIdOf`, shared with the list read scope
-// (20260913.04 T04) so the id a tuple is written with and the id the scope
+// so the id a tuple is written with and the id the scope
 // asks about are one read. This module adds the create-time rule: a
 // missing parent fails the request.
 // ---------------------------------------------------------------------------

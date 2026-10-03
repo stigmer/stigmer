@@ -29,7 +29,7 @@
  *
  * The OIDC arms (resolve on hit, idp-shaped on miss, provision, then
  * resolve) need a token-bearing caller and live in the conformance suite's
- * OIDC-posture file (Q-IA-10).
+ * OIDC-posture file.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

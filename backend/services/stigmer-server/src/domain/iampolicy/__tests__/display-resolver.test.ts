@@ -1,5 +1,5 @@
 /**
- * Pins display-resolver.ts (20260913.01 slice 5, Q-S5-4): how an access
+ * Pins display-resolver.ts: how an access
  * listing renders a principal that is an identity account — the batch
  * read through the identity-account PORT's `findByIds`, and the display
  * name precedence `first+last > first > last > metadata.name > email`.
@@ -78,7 +78,7 @@ describe("the display name precedence", () => {
     ).toBe("Lovelace");
   });
 
-  it("metadata.name beats the email — the trusted-local operator's row (Q-S5-4)", async () => {
+  it("metadata.name beats the email — the trusted-local operator's row", async () => {
     const view = await resolveOne(
       account("ida_4", { name: "The Operator", email: "operator@example.com" }),
     );

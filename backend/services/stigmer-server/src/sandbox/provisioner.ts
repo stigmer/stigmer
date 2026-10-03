@@ -32,7 +32,7 @@
  * activity's ScheduleToStartTimeout, with the ensure step's error
  * pre-stamp naming the root cause.
  *
- * Selection follows the artifact-storage precedent (§6b): built-in
+ * Selection follows the artifact-storage precedent: built-in
  * drivers by name behind the SANDBOX_PROVISIONER_TYPE config knob,
  * extension-registered names beyond them (extensions/drivers.ts), an
  * unknown name a loud boot throw. The DEFAULT ("") is the external-runner
@@ -168,7 +168,7 @@ export interface SandboxDriverConfig {
   readonly kubernetesNamespace: string;
 }
 
-/** Constructs a driver. Factories, not instances — an unselected driver constructs nothing (§6b). */
+/** Constructs a driver. Factories, not instances — an unselected driver constructs nothing. */
 export type SandboxProvisionerFactory = (options: {
   readonly config: SandboxDriverConfig;
   readonly logger: Logger;

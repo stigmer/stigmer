@@ -472,7 +472,7 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     executionContextBuilder: stubBuilderDeps(),
     gateSteps: new Map(),
     statusObservers: [],
-    // The OSS default sandbox posture (§6d, O6): lane disabled — the
+    // The OSS default sandbox posture: lane disabled — the
     // recover chain's EnsureSessionSandbox step short-circuits.
     sandboxLane: { enabled: false },
     temporalConfig: newConfigFromEnv(),

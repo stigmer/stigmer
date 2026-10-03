@@ -38,7 +38,7 @@
  * or whose fields hold a canonical-text delimiter, is INVALID_ARGUMENT
  * with the pinned copy; slice 5 made that module the one home of the rule
  * the controller and the ValidateGrantableRole step share). The
- * controller refuses the same kinds BEFORE position 1 (Q-S6-1), so a wire
+ * controller refuses the same kinds BEFORE position 1, so a wire
  * caller never reaches this check; it stands for the callers that enter
  * here without the controller — the built-in lifecycle and the membership
  * rules — and is what keeps a garbage row out of the store and a garbage
@@ -483,7 +483,7 @@ export function newIamPolicyGrantPath(
           fieldsOf(policy.metadata?.id ?? "", spec, change, undefined),
         );
       }
-      // Deliberately unconditional (cloud#425): a duplicate re-grant is the
+      // Deliberately unconditional: a duplicate re-grant is the
       // inline heal for a row whose tuple never landed.
       await lifecycle?.onPolicyGranted?.({ policy, duplicate });
       // The same unconditional heal for the affiliation the row stands for.

@@ -38,7 +38,7 @@ service MemoryQueryController {
   // over can_view, which resolves to the subject relation) or
   // unrestricted store queries (OSS single-user). The console memory
   // page lists through this RPC and groups pending proposals first
-  // (DD-005 D4) — ordering is a presentation concern, deliberately not
+  // — ordering is a presentation concern, deliberately not
   // an RPC parameter at dozens-of-records scale.
   rpc list(ListMemoriesRequest) returns (MemoryList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;

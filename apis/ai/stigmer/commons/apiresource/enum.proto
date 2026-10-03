@@ -83,7 +83,7 @@ enum ApiResourceVisibility {
   // @internal
   // Named visibility_private to avoid Java reserved keyword conflict.
   // Admin inheritance is the FGA-model composition
-  // `owner: [identity_account] or admin from organization` (T08).
+  // `owner: [identity_account] or admin from organization`.
   visibility_private = 1;
 
   // Retired. This level made a resource readable to every account on the

@@ -1,7 +1,7 @@
 /**
  * The Authorizer extension point — the one authorization decision seam of
  * the convergence blueprint (20260826.02 blueprint/03 §5, DD-007), carried
- * by the extension registry from O1 (20260826.09) and CONSUMED by O2,
+ * by the extension registry from O1 and CONSUMED by O2,
  * which splices the shared Authorize step at position 1 of every chain and
  * installs the OSS permissive single-team default.
  *

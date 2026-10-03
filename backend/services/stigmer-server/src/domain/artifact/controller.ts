@@ -1,6 +1,6 @@
 /**
  * Artifact controller — ports pkg/domain/artifact (command + query sides).
- * Artifact is the execution-output store (T07): a metadata resource in the
+ * Artifact is the execution-output store: a metadata resource in the
  * generic resources table plus a blob in ArtifactStorage, keyed by the
  * content's SHA-256 (content-addressable).
  *
@@ -99,7 +99,7 @@ export interface ArtifactControllerDeps {
   readonly store: Store;
   readonly artifactStorage: ArtifactStorage;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
 }
 

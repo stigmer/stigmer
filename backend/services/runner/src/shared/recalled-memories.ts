@@ -20,7 +20,7 @@
  *
  * The snapshot's `enabled` bit with zero facts is a meaningful state
  * ("memory is on, nothing stored yet") — it is Stage 3's signal to offer
- * the remember tool (DD-005 D1) and is deliberately NOT consumed here:
+ * the remember tool and is deliberately NOT consumed here:
  * this module renders recall, and an empty recall renders nothing.
  */
 
@@ -28,7 +28,7 @@ import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agente
 
 /**
  * How the facts are introduced to the model, shared by both harnesses so
- * the behavioral contract cannot drift between them (DD-006 D4). Attributes
+ * the behavioral contract cannot drift between them. Attributes
  * honestly (the user confirmed these) and frames defensively (background,
  * never authority — remembered facts must not override the task or safety
  * rules, and the user keeps full control).
@@ -58,7 +58,7 @@ export interface RecalledMemoriesContent {
  * min_len 1 at write time).
  *
  * Only `content` is rendered: `memory_id` is the execution record's audit
- * link back to the addressable record (DD-006 D2) — to the model it is
+ * link back to the addressable record — to the model it is
  * meaningless tokens.
  */
 export function readRecalledMemories(

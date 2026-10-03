@@ -119,7 +119,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
         metadata: { id: "ach_01authztarget", name: "target", org: "acme" },
       }),
     );
-    // The Q8 mid-chain-check targets (20260830.01): the two listVersions
+    // The Q8 mid-chain-check targets: the two listVersions
     // lanes resolve by org+slug before their can_view checks.
     await server.store.saveResource(
       ApiResourceKind.workflow,
@@ -251,7 +251,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
   });
 
 
-  it("session listByChannel denies at the channel gate with the Java handler's copy (Q8, 20260830.01)", async () => {
+  it("session listByChannel denies at the channel gate with the Java handler's copy", async () => {
     const query = createClient(SessionQueryController, transport);
     await expectDenied(
       () => query.listByChannel({ channelId: "ach_01authztarget" }),

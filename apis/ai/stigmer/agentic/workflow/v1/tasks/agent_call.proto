@@ -156,7 +156,7 @@ message AgentCallTaskConfig {
   // platform defaults.
   //
   // @internal
-  // The shared RunConfig (DD-018 D-2) — the same message schedules
+  // The shared RunConfig — the same message schedules
   // embed, so the run-bound vocabulary cannot drift between
   // triggering surfaces. Semantics at the workflow surface:
   // model_name replaces the agent's default outright; max_cost_usd
@@ -176,8 +176,6 @@ message AgentCallTaskConfig {
   // reliable downstream routing via switch_case expressions.
   //
   // When not set, the task output contains the agent's raw text response.
-  //
-  // @since T02 (Structured Agent Output Model)
   AgentCallOutputContract output = 5;
 
   // Execution harness for the agent invocation.
@@ -287,8 +285,6 @@ message AgentCallTaskConfig {
 //     on_invalid: ON_INVALID_RETRY
 //     max_retries: 2
 //     fallback_task: human_review
-//
-// @since T02 (Structured Agent Output Model)
 message AgentCallOutputContract {
   // JSON Schema that the agent's structured output must conform to.
   //

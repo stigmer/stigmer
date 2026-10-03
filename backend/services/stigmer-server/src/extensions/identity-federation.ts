@@ -1,5 +1,5 @@
 /**
- * The identity-federation capability (20260911.11, Q-IA-9): the four
+ * The identity-federation capability: the four
  * federated-account RPC arms the identity-account controller dispatches
  * to when a composed unit provides them, plus the identity-provider
  * existence check their shared precondition rides. Single instance,

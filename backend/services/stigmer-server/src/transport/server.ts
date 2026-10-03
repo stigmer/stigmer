@@ -69,7 +69,7 @@ export interface UnifiedPortServerOptions {
    */
   skillTransferLane?: LaneHandler;
   /**
-   * Lane 4: console statics + /config.json (DD-012). Present only when a
+   * Lane 4: console statics + /config.json. Present only when a
    * console export is bundled/configured — absent, every request flows
    * exactly as before the lane existed. The eligibility guard lives with
    * the handler (console/handler.ts): GET/HEAD only, never /v1/* or

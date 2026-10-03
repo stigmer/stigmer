@@ -1,5 +1,5 @@
 /**
- * The runner-synthesized memory capture attachment (DD-005 D1).
+ * The runner-synthesized memory capture attachment.
  *
  * When the execution's recall snapshot says memory is on
  * (`spec.recalled_memories.enabled` — the ONE server-owned field that

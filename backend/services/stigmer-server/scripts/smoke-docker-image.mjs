@@ -192,7 +192,7 @@ async function main() {
     }
     log("health service: SERVING");
 
-    // 3. The console lane (DD-012): the one trusted-local /config.json
+    // 3. The console lane: the one trusted-local /config.json
     // document and a real page (test/install/lib/stigmer-smoke.mjs).
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");

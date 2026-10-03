@@ -6,7 +6,7 @@
  * whose absence is open source's own behaviour). Absent, the composition
  * root installs `newOrganizationOnlyGrantScope()`
  * (domain/iampolicy/grant-scope.ts): the organization grants the roles its
- * `kind_meta` lists — owner, admin, member, viewer (Q-OR-4) — and no other
+ * `kind_meta` lists — owner, admin, member, viewer — and no other
  * kind grants anything. Per-resource grants (a viewer on one agent) are
  * what the Enterprise and Cloud editions add by registering a wider scope;
  * the cloud registers every kind's `kind_meta` roles.

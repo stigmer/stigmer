@@ -135,16 +135,16 @@ import { updateStatus } from "./update-status.js";
 export interface WorkflowExecutionControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it (O2, DD-007 §3). */
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op (C2). */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The composed summary read scope — undefined = the OSS full scan (C2 Stage 4). */
+  /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
   /**
-   * The merged slot registrations (O1/O4; DD-006 §2). This domain
+   * The merged slot registrations. This domain
    * carries `sandbox-acquisition:gate` on the create and recover chains
-   * at the Java-verified capacity-gate position (C4, 20260827.09) —
+   * at the Java-verified capacity-gate position —
    * empty in OSS.
    */
   readonly gateSteps: ResolvedGateSteps;
@@ -180,7 +180,7 @@ export interface WorkflowExecutionControllerDeps {
   /** The shared EC-builder deps (create's step 12 + recover's recreate). */
   readonly executionContextBuilder: WorkflowExecutionContextBuilderDeps;
   /**
-   * The sandbox lane (§6d, O6): disabled on the OSS default. Create and
+   * The sandbox lane: disabled on the OSS default. Create and
    * recover ensure the per-execution sandbox CRITICALLY (pre-persist /
    * pre-start — a refusal orphans nothing); the terminal observer below
    * tears it down.
@@ -328,7 +328,7 @@ async function createExecution(
     .addStep(newNormalizeWorkflowRefStep(deps.store, deps.logger))
     .addStep(newPinWorkflowVersionStep(deps.store, deps.logger))
     .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
-    // The workflow-lane sandbox ensure (§6d, O6): CRITICAL and
+    // The workflow-lane sandbox ensure: CRITICAL and
     // pre-persist — a provisioning refusal answers Unavailable with zero
     // orphaned state (no row, no Temporal workflow), the verified Java
     // ordering. Skips instantly when no provisioner is composed.
@@ -494,7 +494,7 @@ async function get(
 /**
  * List — list.go: the request's org through the index (every org when
  * blank), the legacy top-level phase filter (only when filter.phases is
- * absent), structured filter criteria (T13), the read scope last (census
+ * absent), structured filter criteria, the read scope last (census
  * lane 6; no scope = every matching execution). Newest created first and
  * paged; another sort field sorts the whole set (queries.ts).
  */

@@ -83,14 +83,14 @@ function isServiceShapedPath(pathname: string): boolean {
 
 /**
  * How the console this lane serves signs in — the server's authentication
- * posture as the console needs to hear it (20260913.02 sp.console-login).
+ * posture as the console needs to hear it.
  * A modeled state, never a nullable: "no issuer configured" and "forgot to
  * wire the posture" must stay distinguishable at the call site.
  *
  * Under `oidc`, `consoleClientId` is the PUBLIC client the operator
  * registered for the browser's PKCE flow, or "" when they have not
  * (Q-CL-1): the lane publishes that truth as-is and the console refuses
- * with copy that names the knob (Q-CL-2), while the composition root has
+ * with copy that names the knob, while the composition root has
  * already WARNed at wiring time. Emitting `disabled` instead would send
  * the console into every RPC tokenless, to fail with a worse message.
  */
@@ -167,7 +167,7 @@ export function createConsoleLane(options: ConsoleLaneOptions): LaneHandler {
  * console's loader's (client-apps/web/src/config/runtime-config.ts).
  *
  * `apiUrl` is the empty string, which the console reads as "my own
- * origin" — the rule its `appUrl` already follows (20260913.02 Q-CL-3).
+ * origin" — the rule its `appUrl` already follows.
  * This lane and the RPC lane share one port, so the console can never
  * need a different origin, and it makes the answer right behind a
  * TLS-terminating proxy without trusting x-forwarded-proto: the earlier

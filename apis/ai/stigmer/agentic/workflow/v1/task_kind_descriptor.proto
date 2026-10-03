@@ -8,8 +8,6 @@ import "ai/stigmer/agentic/workflow/v1/enum.proto";
 //
 // Used by the UI to render task palettes with grouped categories, and by
 // documentation generators to organize task reference pages.
-//
-// @since T04 (Task Schema Registry)
 enum TaskKindCategory {
   TASK_KIND_CATEGORY_UNSPECIFIED = 0;
 
@@ -40,8 +38,6 @@ enum TaskKindCategory {
 
 // TaskFieldType represents the data type of a task configuration field
 // as understood by UI form renderers and schema validators.
-//
-// @since T04 (Task Schema Registry)
 enum TaskFieldType {
   TASK_FIELD_TYPE_UNSPECIFIED = 0;
 
@@ -78,8 +74,6 @@ enum TaskFieldType {
 //
 // Fields within the same group are rendered together in a collapsible section.
 // Groups are ordered by their position in the TaskKindDescriptor.field_groups list.
-//
-// @since T04 (Task Schema Registry)
 message TaskFieldGroup {
   // Group identifier matching TaskFieldDescriptor.group_id.
   string id = 1;
@@ -96,8 +90,6 @@ message TaskFieldGroup {
 // Provides enough metadata for UI form renderers to generate appropriate
 // input controls, validation messages, and documentation without needing
 // access to the raw proto descriptor.
-//
-// @since T04 (Task Schema Registry)
 message TaskFieldDescriptor {
   // Proto field name (snake_case, matching the proto definition).
   string name = 1;
@@ -156,8 +148,6 @@ message TaskFieldDescriptor {
 // - Validate task configs client-side (config_json_schema)
 // - Display task output shapes in the execution viewer (output_json_schema)
 // - Generate documentation (description, yaml_examples, documentation_url)
-//
-// @since T04 (Task Schema Registry)
 message TaskKindDescriptor {
   // The task kind this descriptor describes.
   WorkflowTaskKind kind = 1;

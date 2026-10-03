@@ -28,7 +28,7 @@ message ScheduleStatus {
   //
   // @internal
   // The reverse pointer of the stigmer.ai/schedule-id label stamped on
-  // every schedule-created execution (DD-008 D4) — the audit link is
+  // every schedule-created execution — the audit link is
   // queryable from either end.
   string last_execution_id = 3;
 
@@ -44,7 +44,7 @@ message ScheduleStatus {
   // @internal
   // "Paused" is the platform's latch, distinct from the owner's switch
   // (spec.enabled = false is "disabled" — project DD-013 D-E). Written
-  // ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+  // ONLY by the platform auto-pause — never an echo of
   // spec.enabled (DD-009 pinned behaviors: one writer per field;
   // consoles derive owner-disabled state from spec on read). Updates
   // and applies preserve it verbatim; resume is deliberately the ONE

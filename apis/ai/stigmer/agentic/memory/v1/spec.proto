@@ -21,7 +21,7 @@ message MemorySpec {
   // subject after confirmation.
   //
   // @internal
-  // max_len 500 (DD-006 D5): readable-at-a-glance is both a UX and a
+  // max_len 500: readable-at-a-glance is both a UX and a
   // security property — the confirmation UI shows this exact text, byte
   // for byte, and what the user confirms is what future prompts inject
   // (DD-005 D6). Enforced by protovalidate at every write; recall never
@@ -29,7 +29,7 @@ message MemorySpec {
   // the audit property outweighs pathological-case tokens). The semantic
   // retriever may inject a SELECTED SUBSET of whole facts, recorded on
   // the execution's status.recalled_memories_report — never silent,
-  // never a content truncation (DD-008 D3/D5).
+  // never a content truncation.
   string content = 1 [(buf.validate.field).string = {
     min_len: 1
     max_len: 500
@@ -45,7 +45,7 @@ message MemorySpec {
   // store); where callers are persons it is always an identity account
   // id (stigmer#1387). Named
   // "subject" because the memory is ABOUT them — an agent authored it,
-  // so creator/owner vocabulary would misname the relationship (DD-004).
+  // so creator/owner vocabulary would misname the relationship.
   string subject_identity_account_id = 2;
 
   // Where this fact came from — displayed beside the fact everywhere it
@@ -64,8 +64,8 @@ message MemorySpec {
   // supplied (every caller is the trusted local operator). Immutable
   // after create: provenance is attribution, and attribution that can
   // be edited is not attribution. Trust requires "where did this come
-  // from" beside every fact (DD-004); out-of-character proposals carry
-  // their origin (DD-005 D6).
+  // from" beside every fact; out-of-character proposals carry
+  // their origin.
   MemoryProvenance provenance = 3;
 }
 
@@ -74,7 +74,7 @@ message MemorySpec {
 //
 // @internal
 // The tool_call_id joins back to the ToolCall on the session's message
-// thread — the capture act itself stays auditable (DD-004). All fields
+// thread — the capture act itself stays auditable. All fields
 // are optional-empty: a memory created directly via the API (rather
 // than by the remember tool) has no session context to record.
 message MemoryProvenance {

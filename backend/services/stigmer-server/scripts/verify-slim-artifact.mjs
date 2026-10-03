@@ -68,7 +68,7 @@ if (!existsSync(join(slimDir, "main.js"))) {
 const isolated = mkdtempSync(join(tmpdir(), "verify-slim-artifact-"));
 cpSync(slimDir, isolated, { recursive: true });
 
-// Console assets must ride the artifact (DD-012): assert the lane's two
+// Console assets must ride the artifact: assert the lane's two
 // load-bearing documents before boot so a staging regression names itself.
 for (const consoleFile of ["console/index.html", "console/404.html"]) {
   if (!existsSync(join(isolated, consoleFile))) {

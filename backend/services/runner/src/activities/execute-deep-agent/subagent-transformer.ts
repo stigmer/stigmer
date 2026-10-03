@@ -468,7 +468,7 @@ export function resolveSubagentSkillPrompt(
  *
  * - CAS observation (capture mode): when a shared observer is supplied, the
  *   backend records pre-turn bytes of CAS-owned paths so the sub-agent's
- *   gitignored writes fold into the parent turn's change set (DD-19). Without
+ *   gitignored writes fold into the parent turn's change set. Without
  *   one, writes stay on the classic gitignored deny-gate.
  * - Shell capability (issue #248): when `shellEnv` is present the backend
  *   implements deepagents' sandbox protocol so the `execute` tool exists
@@ -576,7 +576,7 @@ export async function compileSubagents(
       // running total is the execution's) and the gate config are the spec's,
       // shared by every invocation as before.
       //
-      // Structural coupling (DD-19): a sub-agent gate flows gitignored writes into
+      // Structural coupling: a sub-agent gate flows gitignored writes into
       // CAS iff a CAS observer backs that sub-agent's filesystem backend. Deriving
       // both from the same `casObserver` makes "unobserved unreviewable bytes"
       // impossible by construction. Path normalization is unconditional

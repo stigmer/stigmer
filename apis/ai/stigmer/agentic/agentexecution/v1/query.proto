@@ -96,8 +96,6 @@ service AgentExecutionQueryController {
   // 2. Find artifact in status.artifacts[] (or attachment in spec.attachments[])
   // 3. Call getArtifactDownloadUrl with execution_id and storage_key
   // 4. Use returned download_url for HTTP GET
-  //
-  // @since Artifact Lifecycle (Attachments & Artifacts)
   rpc getArtifactDownloadUrl(GetArtifactDownloadUrlRequest) returns (GetArtifactDownloadUrlResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
@@ -140,8 +138,6 @@ service AgentExecutionQueryController {
   // 3. Call getArtifactContent with execution_id and storage_key
   // 4. Decode content bytes as UTF-8 for text artifacts
   // 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
-  //
-  // @since Artifact Lifecycle (Attachments & Artifacts)
   rpc getArtifactContent(GetArtifactContentRequest) returns (GetArtifactContentResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
@@ -236,8 +232,6 @@ service AgentExecutionQueryController {
   // 2. Reliability Monitoring:
   //    - Surface top failing agents for investigation
   //    - Track failure rates across the organization
-  //
-  // @since Unified Platform Dashboard
   rpc getExecutionSummary(GetAgentExecutionSummaryRequest) returns (AgentExecutionSummary) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

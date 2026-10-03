@@ -35,7 +35,7 @@
  *   - "disabled"      — enabled_tools manifest exclusion (issue #350): the
  *                       agent continues, no pause, permanent for the run.
  * Only approval-kind records carry the captured tool_input: a secret write's
- * content must never be persisted (DD-26), a capture-error's content is
+ * content must never be persisted, a capture-error's content is
  * UNCLASSIFIED (the staging error means secret classification may never have
  * run), and fail-closed has no state to classify against.
  *
@@ -135,7 +135,7 @@ const APPROVAL_REQUIRED_AGENT_MESSAGE =
   "automatically after the user responds — continue with the rest of the task.";
 
 // Shown to the model when the gate denies a tool call under UNATTENDED
-// approval mode (DD-014): the creating surface (a messaging channel, a guest
+// approval mode: the creating surface (a messaging channel, a guest
 // share) has no approver, so — unlike APPROVAL_REQUIRED_AGENT_MESSAGE — this
 // must NOT promise a resume: the deny is final for this turn and the model
 // must adapt. It also enforces the anti-leak posture: the end user hears a

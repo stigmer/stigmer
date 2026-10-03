@@ -109,7 +109,7 @@ export function newRejectCiphertextShapedStep(): PipelineStep<
  * Under the v1-only OSS default the batch is behaviorally identical to
  * the per-value loop it replaced, except that an encrypt failure (never
  * observed for local AES-GCM) reports without the failing key name —
- * disclosed with the codec seam (20260830.04 Stage 1).
+ * disclosed with the codec seam.
  */
 export function newEncryptSecretValuesStep(
   secretService: SecretService,

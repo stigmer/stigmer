@@ -131,7 +131,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       };
     });
 
-    describe("driver-relative search ranking (DD-009)", () => {
+    describe("driver-relative search ranking", () => {
       it("a name hit outranks a description hit (name carries setweight A)", async () => {
         await hooks.query(
           `TRUNCATE ${ALL_TABLES.join(", ")} RESTART IDENTITY CASCADE`,

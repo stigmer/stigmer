@@ -1,7 +1,7 @@
 /**
  * Status-transition hook types — the execution-lifecycle seam of the
  * convergence blueprint (20260826.02 blueprint/03 §7, DD-006 §3), carried
- * by the extension registry from O1 (20260826.09) and CONSUMED by O4 at
+ * by the extension registry from O1 and CONSUMED by O4 at
  * the updateStatus chokepoint (src/domain/agentexecution/update-status.ts,
  * the single merge point every status transition funnels through).
  *

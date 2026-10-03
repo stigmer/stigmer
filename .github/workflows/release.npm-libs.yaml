@@ -722,7 +722,7 @@ jobs:
             "ghcr.io/${{ github.repository_owner }}/stigmer-runner:v${VERSION}-arm64"
       # (Package visibility: see the note on publish-server-image.)
 
-  # The published-tag re-verification the P5 gate ruled (Q-A): the SAME
+  # The published-tag re-verification the P5 gate ruled: the SAME
   # test/install/smoke-compose.mjs that gates PRs (there: build-from-source)
   # runs the full stack — Postgres, Temporal, server, runner — from the
   # images just pushed, up to one end-to-end workflow run, natively per

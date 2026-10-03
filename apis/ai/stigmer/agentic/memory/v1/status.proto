@@ -11,7 +11,7 @@ import "google/protobuf/timestamp.proto";
 // @internal
 // Server-owned; written only by the create pipeline (initial proposed
 // state) and the confirm/reject command RPCs — the sole lifecycle
-// writers (DD-005 D3). The update RPC never touches status: consent
+// writers. The update RPC never touches status: consent
 // must not be rewritable through a spec edit. Both editions preserve
 // status verbatim across updates (the Schedule/AgentChannel posture).
 message MemoryStatus {

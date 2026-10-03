@@ -36,8 +36,6 @@ import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 // - Message counts before and after (to understand conversation reduction)
 // - Duration in milliseconds (to track performance)
 // - Model used (to understand cost implications)
-//
-// @since Phase 3 (Context Summarization Architecture)
 message SummarizationEvent {
   // ISO 8601 timestamp when summarization occurred.
   // Example: "2026-01-31T14:30:00.123Z"
@@ -139,8 +137,6 @@ message SummarizationEvent {
 // - **Alerts**: Notify when utilization consistently exceeds thresholds
 // - **Analytics**: Track summarization frequency across agent fleet
 // - **Debugging**: Understand context-related failures
-//
-// @since Phase 3 (Context Summarization Architecture)
 message ContextInfo {
   // Current token count in the context window.
   //

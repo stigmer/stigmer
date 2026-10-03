@@ -13,8 +13,6 @@
  * resume; see shared/exact-apply.ts). The row's `args_preview` is the
  * builder's to write from these args (since #1097; until then this module
  * rendered it too, a second call of the one sanitizer).
- *
- * @since First-Class Diff Review (#186), approval-gate phase
  */
 
 /** What the gate capture contributes to a `WAITING_APPROVAL` `ToolCall`. */

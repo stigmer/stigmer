@@ -60,7 +60,7 @@ import { isWorkflowTerminalPhase } from "./subscribe.js";
 export interface SubscribeEventsDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The composed authorization seam — the pre-stream check below (C2 Stage 4). */
+  /** The composed authorization seam — the pre-stream check below. */
   readonly authorizer: Authorizer;
 }
 

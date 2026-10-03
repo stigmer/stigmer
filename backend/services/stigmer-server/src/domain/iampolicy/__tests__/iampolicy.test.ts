@@ -262,7 +262,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
       expect(roles.roles.map((role) => role.code)).toEqual(["admin"]);
     });
 
-    it("every kind_meta role of the organization is grantable (Q-OR-4); a role it does not list is INVALID_ARGUMENT with the cloud's copy", async () => {
+    it("every kind_meta role of the organization is grantable; a role it does not list is INVALID_ARGUMENT with the cloud's copy", async () => {
       const org = await newOrganization();
       const bob = await newAccount();
       for (const role of ["owner", "admin", "member", "viewer"]) {
@@ -343,7 +343,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
     });
   });
 
-  describe("the grant scope: open source grants on organizations only (Q-OR-3)", () => {
+  describe("the grant scope: open source grants on organizations only", () => {
     it("a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT with the cloud's system-managed copy — no edition grants on it, so no edition is named", async () => {
       // The proto is read BEFORE the scope (Q-OR-3 refinement, 2026-09-13):
       // an identity account is system-managed in the cloud too, and
@@ -378,7 +378,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
     });
   });
 
-  describe("the three system RPCs (Q-OR-7)", () => {
+  describe("the three system RPCs", () => {
     it("are PERMISSION_DENIED for a wire user, with the annotation's copy", async () => {
       const org = await newOrganization();
       const structural = triple(
@@ -444,7 +444,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
     });
   });
 
-  describe("checkMyPermission has one definition (Q-OR-8)", () => {
+  describe("checkMyPermission has one definition", () => {
     it("an enterprise-tiered kind answers false — the operator-only settings navigation stays hidden on open source", async () => {
       const result = await query.checkMyPermission({
         resource: create(ApiResourceRefSchema, {
