@@ -59,7 +59,7 @@ server {
 `;
 
 /**
- * The config as it stood before channel-conversations F-12 was fixed: a
+ * The config as it stood before the blank-page failure was fixed: a
  * hand-written /chat special case plus a two-level block requiring two
  * static prefix segments. Kept as a fixture so the model provably
  * reproduces the historical blank-page failure — a model that cannot fail
@@ -192,7 +192,7 @@ test("^~ prefix locations win over regex blocks (asset serving)", () => {
 // The historical failure, reproduced by the model
 // ---------------------------------------------------------------------------
 
-test("the pre-fix config produces the F-12 blank page for conversations and workflows", () => {
+test("the pre-fix config produces the blank page for conversations and workflows", () => {
   const historical = buildServerModel(parseNginxConfig(HISTORICAL_CONFIG));
   // Both fall into the one-level block, whose candidate embeds the real
   // channel id / org where a literal __placeholder__ must be, and miss.

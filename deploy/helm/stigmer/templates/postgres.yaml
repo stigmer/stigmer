@@ -2,7 +2,7 @@
 Bundled Postgres: compose's `postgres` service. One instance, one claim,
 `postgres:16`, the app database created by POSTGRES_DB; Temporal's
 auto-setup creates its two on the same instance at first boot (one Postgres,
-three databases, one backup story — DD-013 as amended). A StatefulSet so the
+three databases, one backup story). A StatefulSet so the
 claim follows the pod; its volumeClaimTemplate is retained on uninstall by
 Kubernetes' default policy. Right for one team; production brings its own
 through externalDatabase.
