@@ -10,7 +10,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildInterceptorConfig } from "../runner-manager.js";
-import { OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "../workflow-source.js";
+import {
+  OTEL_WORKFLOW_INTERCEPTOR_MODULE,
+  resolveWorkflowSource,
+} from "../workflow-source.js";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -37,6 +40,15 @@ describe("the manager's workflow interceptor modules", () => {
     expect(otel).toHaveLength(1);
     expect(otel[0]).toContain(
       OTEL_WORKFLOW_INTERCEPTOR_MODULE.split("/").pop(),
+    );
+  });
+
+  it("defaults to the workflow source the manager will use", async () => {
+    vi.stubEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4317");
+    const expected = await buildInterceptorConfig(resolveWorkflowSource().kind);
+    const config = await buildInterceptorConfig();
+    expect(config.workflowInterceptorModules).toEqual(
+      expected.workflowInterceptorModules,
     );
   });
 

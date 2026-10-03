@@ -384,10 +384,11 @@ export async function createStigmerRunnerManager(
   });
   markBoot("connection_opened");
 
+  const interceptorConfig = await buildInterceptorConfig();
+
   // Prefer the build-time workflow bundle (slim/packaged artifacts ship it and
   // cannot bundle at runtime); fall back to bundle-on-boot for dev and tests.
   const workflowSource = resolveWorkflowSource();
-  const interceptorConfig = await buildInterceptorConfig(workflowSource.kind);
   let workflowBundle: WorkflowBundleOption;
   if (workflowSource.kind === "prebuilt") {
     console.log(`[runner-manager] Using pre-built workflow bundle: ${workflowSource.codePath}`);
@@ -847,10 +848,12 @@ export interface InterceptorConfig {
  * baked in (scripts/bundle-slim.mjs), and the slim artifact cannot resolve
  * the module at all, since it is compiled into the bundle rather than staged
  * beside it; only the runtime (bundle-on-boot) path resolves it, as worker.ts
- * does. Exported for its test.
+ * does. The kind defaults to the source the manager will use
+ * (resolveWorkflowSource, read again where the bundle is chosen). Exported
+ * for its test.
  */
 export async function buildInterceptorConfig(
-  workflowSourceKind: WorkflowSource["kind"],
+  workflowSourceKind: WorkflowSource["kind"] = resolveWorkflowSource().kind,
 ): Promise<InterceptorConfig> {
   const { createWorkflowMetricsSinks } = await import(
     "./interceptors/workflow-metrics-sink.js"
