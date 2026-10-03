@@ -84,7 +84,8 @@ public interface DeprovisionFederatedAccountInputOrBuilder extends
   /**
    * <pre>
    * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
-   * When true: revoke access AND permanently delete the identity account.
+   * When true: revoke access AND delete the identity account; a just-in-time or
+   * SSO provider creates a new one at the user's next sign-in.
    * </pre>
    *
    * <code>bool delete_account = 4 [json_name = "deleteAccount"];</code>

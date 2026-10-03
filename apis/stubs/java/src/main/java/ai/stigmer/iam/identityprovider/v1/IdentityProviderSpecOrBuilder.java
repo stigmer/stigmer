@@ -454,17 +454,20 @@ public interface IdentityProviderSpecOrBuilder extends
    * 3. If auto_grant_on_org is true, grant auto_grant_role on the resolved
    * organization instead of the IdP's owning organization.
    *
-   * This enables fully automated multi-tenant provisioning: a platform JWT
-   * with a tenant claim works end-to-end without any backend provisioning
-   * steps. The platform only needs to pre-create the tenant organizations
-   * with their external_org_id mappings.
+   * This automates a new user's placement in a tenant: a platform JWT with a
+   * tenant claim needs no backend provisioning step for the user's first
+   * sign-in. The platform only needs to pre-create the tenant organizations
+   * with their external_org_id mappings. The claim is read only when Stigmer
+   * creates the account; a returning user is not placed again, so a role in
+   * another tenant is granted through an IAM policy.
    *
    * Requires auto_provision_accounts to be true. The claim name is
    * case-sensitive and must match the JWT payload key exactly.
    *
-   * If the JWT does not contain this claim, or the claim value does not
-   * resolve to a known platform-managed organization, the authentication
-   * request is rejected with a descriptive error.
+   * If the JWT at that first sign-in does not contain this claim, or the
+   * claim value does not resolve to a known platform-managed organization,
+   * the authentication request is rejected with a descriptive error and no
+   * account remains (the one being created is rolled back).
    * </pre>
    *
    * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>
@@ -487,17 +490,20 @@ public interface IdentityProviderSpecOrBuilder extends
    * 3. If auto_grant_on_org is true, grant auto_grant_role on the resolved
    * organization instead of the IdP's owning organization.
    *
-   * This enables fully automated multi-tenant provisioning: a platform JWT
-   * with a tenant claim works end-to-end without any backend provisioning
-   * steps. The platform only needs to pre-create the tenant organizations
-   * with their external_org_id mappings.
+   * This automates a new user's placement in a tenant: a platform JWT with a
+   * tenant claim needs no backend provisioning step for the user's first
+   * sign-in. The platform only needs to pre-create the tenant organizations
+   * with their external_org_id mappings. The claim is read only when Stigmer
+   * creates the account; a returning user is not placed again, so a role in
+   * another tenant is granted through an IAM policy.
    *
    * Requires auto_provision_accounts to be true. The claim name is
    * case-sensitive and must match the JWT payload key exactly.
    *
-   * If the JWT does not contain this claim, or the claim value does not
-   * resolve to a known platform-managed organization, the authentication
-   * request is rejected with a descriptive error.
+   * If the JWT at that first sign-in does not contain this claim, or the
+   * claim value does not resolve to a known platform-managed organization,
+   * the authentication request is rejected with a descriptive error and no
+   * account remains (the one being created is rolled back).
    * </pre>
    *
    * <code>string tenant_org_claim = 12 [json_name = "tenantOrgClaim", (.buf.validate.field) = { ... }</code>

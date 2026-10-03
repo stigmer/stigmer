@@ -12,7 +12,8 @@ package ai.stigmer.iam.identityaccount.v1;
  *
  * Called by platform backends (via API key) when a new user signs up on their platform.
  * The platform provides the user's OIDC subject identifier and profile data.
- * The account must be created before the user can authenticate via the IdP.
+ * Under a provider in manual mode the account must exist before the user can
+ * authenticate; a just-in-time or SSO provider creates it on first sign-in.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput}
@@ -628,7 +629,8 @@ private static final long serialVersionUID = 0L;
    *
    * Called by platform backends (via API key) when a new user signs up on their platform.
    * The platform provides the user's OIDC subject identifier and profile data.
-   * The account must be created before the user can authenticate via the IdP.
+   * Under a provider in manual mode the account must exist before the user can
+   * authenticate; a just-in-time or SSO provider creates it on first sign-in.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput}
