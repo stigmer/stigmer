@@ -1,7 +1,6 @@
 /**
  * The single owner of one turn's CAS (content-addressed) capture state for the
- * deep-agent activity — the `.gitignored` half of apply-then-review (design docs
- * 08/11/12).
+ * deep-agent activity — the `.gitignored` half of apply-then-review.
  *
  * WHY ONE SHARED OBSERVER (NOT PER-BACKEND STATE)
  * -----------------------------------------------

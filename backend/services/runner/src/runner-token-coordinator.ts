@@ -17,12 +17,12 @@
  * whole life — the claim of a pool member rotates both with one write.
  *
  * This coordinator exists because the proxy token's freshness was the subject of
- * two production fixes (stigmer-cloud _changelog 2026-05-26 and 2026-06-01):
- * before them, the proxy token froze at startup and silently 401'd after the
- * host's token refreshed. The lockstep those fixes established — "every token
- * refresh updates the proxy sink too" — is preserved here for hosts that do not
- * mint (see {@link RunnerTokenCoordinator.onControlPlaneTokenChanged}). Once a
- * token is minted, freshness is instead guaranteed by {@link reMint} on a timer,
+ * two production fixes: before them, the proxy token froze at startup and
+ * silently 401'd after the host's token refreshed. The lockstep those fixes
+ * established — "every token refresh updates the proxy sink too" — is
+ * preserved here for hosts that do not mint (see
+ * {@link RunnerTokenCoordinator.onControlPlaneTokenChanged}). Once a token is
+ * minted, freshness is instead guaranteed by {@link reMint} on a timer,
  * and a control-plane refresh must NOT overwrite the minted token. Keeping that
  * gate in one tested place is the whole point of this module.
  */

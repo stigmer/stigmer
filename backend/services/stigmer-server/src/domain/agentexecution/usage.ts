@@ -5,8 +5,9 @@
  * get_org_usage_report.go) and the dashboard summary
  * (get_execution_summary.go, a direct handler in Go too).
  *
- * The OSS zero-shapes contract (CW-7-pinned): runners record no
- * per-message llm_metrics and there is no llm_call_usage_record
+ * The OSS zero-shapes contract, which the conformance suite's zero-record
+ * read surfaces pin (agentexecution.conformance.test.ts): runners record
+ * no per-message llm_metrics and there is no llm_call_usage_record
  * collection (a cloud billing concern), so every aggregate is
  * structurally valid and zero-valued, and the session/agent/org reports
  * never error for "nothing to aggregate". The execution-scoped report is

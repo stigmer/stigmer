@@ -9,7 +9,8 @@
 // is_expression, oss history). Reading through the registry is
 // output-identical and strictly less fragile.
 //
-// Byte-parity quirks preserved deliberately (see the project plan):
+// Quirks preserved deliberately, so the schemas stay byte-identical to the
+// retired extractor's output:
 //   - numeric rules use `!= 0` value guards, so a genuine `gte: 0` is
 //     dropped, while string/bytes rules use presence checks, so a
 //     `min_len: 0` is kept;
