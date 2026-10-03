@@ -27,9 +27,13 @@
  *     `STIGMER_TASK_QUEUE` and the pushed secrets: exactly the environment a
  *     sandbox pod gives the runner at start, so the runner boots in its
  *     ordinary static mode, unchanged. A later push for the same queue (a
- *     driver pushes on every wakeup, with a fresh token) replaces the
- *     environment the runner restarts with; the live runner keeps renewing
- *     its own token as it does in a pod. A push for another queue is refused.
+ *     driver pushes on every wakeup, with a fresh token) may only rotate
+ *     `STIGMER_TOKEN`: the token it carries is the one the runner restarts
+ *     with, and every other secret must be the first push's, so a caller
+ *     inside the sandbox (its agent can reach the listener over loopback)
+ *     cannot swap the runner's other secrets or drop its token. The live
+ *     runner keeps renewing its own token as it does in a pod. A push for
+ *     another queue is refused.
  *   - It supervises the runner the way a pod's restart policy does: a runner
  *     that exits is started again, after a delay that grows to a cap, with
  *     the latest pushed environment. Stopping the waiter stops the runner
@@ -91,6 +95,28 @@ export function runnerEnvFor(baseEnv: NodeJS.ProcessEnv, push: AttachPush): Node
   return { ...env, STIGMER_TASK_QUEUE: push.taskQueue, ...push.secrets };
 }
 
+/**
+ * Why a later push may not be accepted, or undefined when it only rotates the
+ * token: every secret but `STIGMER_TOKEN` must equal the first push's, and a
+ * token the first push carried may be replaced but not dropped.
+ */
+export function onlyTokenRotated(
+  first: Readonly<Record<string, string>>,
+  later: Readonly<Record<string, string>>,
+): string | undefined {
+  const names = new Set([...Object.keys(first), ...Object.keys(later)]);
+  names.delete("STIGMER_TOKEN");
+  for (const name of names) {
+    if (first[name] !== later[name]) {
+      return `a later push may only rotate STIGMER_TOKEN; ${name} differs from the first push`;
+    }
+  }
+  if ((first.STIGMER_TOKEN ?? "") !== "" && (later.STIGMER_TOKEN ?? "") === "") {
+    return "a later push may not drop STIGMER_TOKEN";
+  }
+  return undefined;
+}
+
 function reply(res: ServerResponse, status: number, body: Record<string, unknown>): void {
   res.statusCode = status;
   res.setHeader("content-type", "application/json");
@@ -121,9 +147,11 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
   const firstDelay = options.restartDelayMs ?? 1000;
   const maxDelay = options.maxRestartDelayMs ?? 30_000;
 
-  // The queue this sandbox serves, once attached, and the environment the
-  // runner (re)starts with: the latest accepted push's.
+  // The queue this sandbox serves, once attached, the first push's secrets
+  // (fixed for the sandbox's life but for the token), and the environment
+  // the runner (re)starts with.
   let attachedQueue: string | undefined;
+  let attachedSecrets: Readonly<Record<string, string>> = {};
   let runnerEnv: NodeJS.ProcessEnv = {};
   let child: ChildProcess | undefined;
   let restartTimer: NodeJS.Timeout | undefined;
@@ -168,7 +196,8 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
     }
     const verdict = verifyAttachPush(body, options.readSandboxName(), now());
     if (!verdict.ok) {
-      log(`[attach] push refused (${verdict.status}): ${verdict.reason}`);
+      // JSON-encoded: the reason may quote the pushed queue, untrusted text.
+      log(`[attach] push refused (${verdict.status}): ${JSON.stringify(verdict.reason)}`);
       reply(res, verdict.status, { error: verdict.reason });
       return;
     }
@@ -180,10 +209,20 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
       return;
     }
     const first = attachedQueue === undefined;
+    if (!first) {
+      const rotation = onlyTokenRotated(attachedSecrets, push.secrets);
+      if (rotation !== undefined) {
+        log(`[attach] push refused (409): ${JSON.stringify(rotation)}`);
+        reply(res, 409, { error: rotation });
+        return;
+      }
+    } else {
+      attachedSecrets = push.secrets;
+    }
     attachedQueue = push.taskQueue;
     runnerEnv = runnerEnvFor(options.baseEnv, push);
     if (first) {
-      log(`[attach] attached to ${push.taskQueue}; starting the runner`);
+      log(`[attach] attached to ${JSON.stringify(push.taskQueue)}; starting the runner`);
       startRunner();
     }
     reply(res, 200, { taskQueue: push.taskQueue, started: first });

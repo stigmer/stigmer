@@ -6,8 +6,8 @@
  *   - the first accepted push starts exactly one runner, whose environment is
  *     the sandbox's own minus the waiter's variables, plus the queue and the
  *     pushed secrets;
- *   - a later push for the same queue starts nothing, and a runner that exits
- *     restarts with the latest pushed environment;
+ *   - a later push for the same queue starts nothing and may only rotate the
+ *     token, and a runner that exits restarts with the latest token;
  *   - a push for another sandbox's queue, a malformed push and a wrong method
  *     start nothing;
  *   - a runner that cannot be started at all is retried once per failure,
@@ -23,7 +23,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
+import { onlyTokenRotated, startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
 
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
@@ -150,6 +150,22 @@ describe("attach waiter", () => {
     expect(tokens).toContain(second);
   });
 
+  it("refuses a later push that changes another secret or drops the token", async () => {
+    const w = await start();
+    const token = jwt({ n: 1 });
+    await push(w, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: token, STIGMER_RUNNER_HITL_SECRET: "first" } });
+    await until(() => started().length === 1);
+    const swapped = await push(w, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: token, STIGMER_RUNNER_HITL_SECRET: "attacker" } });
+    expect(swapped.status).toBe(409);
+    const dropped = await push(w, { taskQueue: SESSION_QUEUE, secrets: { STIGMER_RUNNER_HITL_SECRET: "first" } });
+    expect(dropped).toEqual({ status: 409, body: { error: "a later push may not drop STIGMER_TOKEN" } });
+
+    // The refused pushes changed nothing: a restart still carries the first push's secrets.
+    process.kill(Number(started()[0]!.replace(".json", "")), "SIGKILL");
+    await until(() => started().length === 2);
+    expect(started().map((f) => record(f).token)).toEqual([token, token]);
+  });
+
   it("backs off a runner that dies at once instead of spinning", async () => {
     const w = await start({ EXIT_AT_ONCE: "1" });
     await push(w, { taskQueue: SESSION_QUEUE, secrets: {} });
@@ -241,5 +257,24 @@ describe("attach waiter", () => {
     unreadable = true;
     expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).status).toBe(500);
     expect((await fetch(`http://127.0.0.1:${waiter.port}/nope`)).status).toBe(404);
+  });
+});
+
+describe("onlyTokenRotated", () => {
+  it("accepts a later push that rotates or keeps the token and nothing else", () => {
+    expect(onlyTokenRotated({ STIGMER_TOKEN: "a", STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" }, { STIGMER_TOKEN: "b", STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" })).toBeUndefined();
+    expect(onlyTokenRotated({}, {})).toBeUndefined();
+    expect(onlyTokenRotated({}, { STIGMER_TOKEN: "late" })).toBeUndefined();
+  });
+
+  it("refuses a changed, added or removed secret other than the token", () => {
+    expect(onlyTokenRotated({ STIGMER_PAYLOAD_ENCRYPTION_KEY: "k" }, { STIGMER_PAYLOAD_ENCRYPTION_KEY: "x" })).toMatch(/STIGMER_PAYLOAD_ENCRYPTION_KEY differs/);
+    expect(onlyTokenRotated({}, { CURSOR_API_KEY: "k" })).toMatch(/CURSOR_API_KEY differs/);
+    expect(onlyTokenRotated({ CURSOR_API_KEY: "k" }, {})).toMatch(/CURSOR_API_KEY differs/);
+  });
+
+  it("refuses dropping a token the first push carried", () => {
+    expect(onlyTokenRotated({ STIGMER_TOKEN: "a" }, {})).toBe("a later push may not drop STIGMER_TOKEN");
+    expect(onlyTokenRotated({ STIGMER_TOKEN: "a" }, { STIGMER_TOKEN: "" })).toBe("a later push may not drop STIGMER_TOKEN");
   });
 });
