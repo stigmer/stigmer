@@ -15,12 +15,14 @@
  *   - a pause from before this server process, or within the clock-skew
  *     allowance after its start, is started fresh, never thawed; a running
  *     runner refusing rotated secrets keeps running;
- *   - a waiter woken from storage that refuses the driver's first push as
- *     already attached is suspended, and the ensure fails;
+ *   - a runner this process started that refuses a push as already
+ *     attached elsewhere is suspended, and the ensure fails: at the wake
+ *     itself, and at a later ensure when the waking one was cut short;
  *   - a waiter refusal throws with its code; a mismatched queue throws
  *     before any call;
  *   - one actor's operations never interleave;
- *   - deprovision, probe, reattach, and template retirement.
+ *   - deprovision, probe, reattach (a running sandbox only), and template
+ *     retirement.
  */
 import { describe, expect, it } from "vitest";
 
@@ -595,14 +597,42 @@ describe("deprovision, probe, lifecycle", () => {
     expect(h.router.pushes).toHaveLength(1);
   });
 
-  it("reattach pushes and touches no lifecycle", async () => {
+  it("reattach pushes to a running sandbox and touches no lifecycle", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
     expect(await h.driver.lifecycle.reattach("session", SESSION, env)).toEqual({
-      ok: true,
-      started: true,
+      pushed: true,
+      result: { ok: true, started: true },
     });
-    expect(h.substrate.calls).toEqual([]);
+    expect(h.substrate.calls).toEqual([`getActor ${ACTOR}`]);
+  });
+
+  it("reattach leaves a sandbox that is not running alone, so the router never wakes it", async () => {
+    const h = harness();
+    expect(await h.driver.lifecycle.reattach("session", SESSION, env)).toEqual({
+      pushed: false,
+      state: "absent",
+    });
+    h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
+    expect(await h.driver.lifecycle.reattach("session", SESSION, env)).toEqual({
+      pushed: false,
+      state: "paused",
+    });
+    expect(h.router.pushes).toEqual([]);
+  });
+
+  it("reattach suspends a runner this process started that another push attached", async () => {
+    let reply: { status: number; body: Record<string, unknown> } = {
+      status: 200,
+      body: { started: true },
+    };
+    const h = harness(() => reply);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    reply = { status: 409, body: { code: "other_queue", error: "taken" } };
+    await expect(
+      h.driver.lifecycle.reattach("session", SESSION, env),
+    ).rejects.toThrow(/attached by another push before this one/);
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
   });
 
   it("pause, suspend, list and delete act on the named actor", async () => {
@@ -672,6 +702,40 @@ describe("a waiter another push reached first", () => {
       ).rejects.toThrow(
         new RegExp(`attached by another push before this one \\(${code}\\)`),
       );
+      expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
+    }
+  });
+});
+
+describe("a runner this process started, attached elsewhere after a cut-short wake", () => {
+  it("is suspended when a later ensure finds it running or paused, and the ensure fails", async () => {
+    for (const later of [ActorState.RUNNING, ActorState.PAUSED]) {
+      let reply: { status: number; body: Record<string, unknown> } = {
+        status: 400,
+        body: { code: "malformed", error: "bad body" },
+      };
+      const h = harness(() => reply);
+      h.substrate.put({
+        name: ACTOR,
+        state: ActorState.SUSPENDED,
+        template: "stigmer-runner-old",
+      });
+      // The waking ensure is cut short after its resume: its push fails.
+      await expect(
+        h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      ).rejects.toThrow(/refused its attach push \(400 malformed\)/);
+      if (later === ActorState.PAUSED) {
+        h.advance(CLOCK_SKEW_ALLOWANCE_MS + 1);
+        await h.driver.lifecycle.pause("session", SESSION);
+      }
+      // A push from elsewhere then won the waiter.
+      reply = {
+        status: 409,
+        body: { code: "secrets_changed", error: "differs" },
+      };
+      await expect(
+        h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      ).rejects.toThrow(/attached by another push before this one/);
       expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
     }
   });

@@ -601,6 +601,7 @@ export type {
   SubstrateActorSummary,
   SubstrateSandboxLifecycle,
   SubstrateSandboxState,
+  SubstrateReattachResult,
 } from "./sandbox/substrate/driver.js";
 export type { PushResult as SubstrateAttachPushResult } from "./sandbox/substrate/push.js";
 export type { SubstrateSandboxDriverHandle } from "./sandbox/substrate/builtin.js";

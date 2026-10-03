@@ -60,12 +60,19 @@
  * egress switched off reaches existing sandboxes after a restart rather
  * than only new ones.
  *
- * A waiter woken from storage has accepted no push but the driver's, so
- * a refusal there saying it already serves other secrets, another token or
- * another queue means a push from elsewhere won its first, unauthenticated
- * push: the driver suspends the sandbox, which stops that runner, and
- * fails the ensure. The router being reachable by this server alone is
- * what keeps that from happening (egress.ts); this catches it if it does.
+ * A runner this process started (it woke the actor from storage or
+ * created it) has accepted no push but this process's, all with this
+ * process's secrets, queue and kind of token. So a refusal from such a
+ * runner saying it already serves other secrets, another token or another
+ * queue means a push from elsewhere won its waiter's first,
+ * unauthenticated push: the driver suspends the sandbox, which stops that
+ * runner, and fails the ensure. It remembers those runners in memory, not
+ * only for the ensure that woke them, so the check holds when that ensure
+ * was cut short (a failed push, a suspend Substrate turned away) and a
+ * later one finds the actor running or paused. Only a runner older than
+ * this process may answer `secrets_changed` honestly. The router being
+ * reachable by this server alone is what keeps a foreign push from
+ * happening (egress.ts); this catches it if it does.
  *
  * One limit stays: a RUNNING runner that refuses rotated secrets also
  * refuses the push's fresh token, so it restarts, if it crashes, with the
@@ -153,17 +160,27 @@ export interface SubstrateSandboxLifecycle {
   delete(scope: SandboxScope, id: string): Promise<void>;
   /**
    * A push with no lifecycle call: hands a running sandbox a fresh token
-   * for its next restart, for a composition that renews tokens.
+   * for its next restart, for a composition that renews tokens. A sandbox
+   * that is not running is left alone, because the router would wake it
+   * outside the ensure's rules; it takes a fresh token when it next wakes.
    */
   reattach(
     scope: SandboxScope,
     id: string,
     env: SandboxEnvironment,
-  ): Promise<PushResult>;
+  ): Promise<SubstrateReattachResult>;
   list(): Promise<SubstrateActorSummary[]>;
   /** Deletes this server's templates no actor uses any more; returns how many. */
   retireTemplates(): Promise<number>;
 }
+
+/** What a reattach did: pushed, with the waiter's answer, or nothing, because the sandbox was not running. */
+export type SubstrateReattachResult =
+  | { readonly pushed: true; readonly result: PushResult }
+  | {
+      readonly pushed: false;
+      readonly state: SubstrateSandboxState | "absent";
+    };
 
 /** The driver's parts a background sweep in this package works through. */
 export interface SubstrateDriverInternals {
@@ -214,7 +231,7 @@ const TEMPORAL_SECRET_NAMES: readonly string[] = [
   TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
 ];
 
-/** The refusals that say a waiter already took another push (attach, fresh). */
+/** The refusals that say a waiter already took another push (module header). */
 const ATTACHED_ELSEWHERE: ReadonlySet<string> = new Set([
   "secrets_changed",
   "token_mismatch",
@@ -300,6 +317,13 @@ export function newSubstrateSandboxDriverOverGateway(
   const refusedMoves = new Set<string>();
   /** Actors whose egress policy this process has made its own (module header). */
   const egressReconciled = new Set<string>();
+  /**
+   * Actors whose runner this process started: woken from storage by it.
+   * An entry is dropped only when the actor is deleted; a stale one (the
+   * actor since suspended and woken elsewhere) only makes a refusal from
+   * it count as foreign, the safe reading (module header).
+   */
+  const startedHere = new Set<string>();
 
   async function reconcileEgress(name: string, always = false): Promise<void> {
     if (!always && egressReconciled.has(name)) return;
@@ -428,8 +452,9 @@ export function newSubstrateSandboxDriverOverGateway(
               // its first: a refusal means another push won it (attach).
               await moveToCurrent(actor);
               await reconcileEgress(name, true);
+              startedHere.add(name);
               await gateway.resumeActor(name);
-              await attach(scope, name, env, { fresh: true });
+              await attach(scope, name, env);
               logger.info("Substrate sandbox ensured", {
                 scope,
                 id,
@@ -506,25 +531,15 @@ export function newSubstrateSandboxDriverOverGateway(
     });
   }
 
-  /** Pushes the attachment; a rotated secret on a running runner is logged (module header). */
+  /** Pushes the attachment; a rotated secret on a runner older than this process is logged (module header). */
   async function attach(
     scope: SandboxScope,
     name: string,
     env: SandboxEnvironment,
-    options: { readonly fresh?: boolean } = {},
   ): Promise<void> {
     const result = await push(name, env);
     if (result.ok) return;
-    if (options.fresh === true && ATTACHED_ELSEWHERE.has(result.code)) {
-      // A waiter woken from storage has accepted no push but this one, so a
-      // refusal that says it already serves other secrets, another token or
-      // another queue means a push from somewhere else won the waiter's
-      // first, unauthenticated push. Its runner is stopped, never served.
-      await gateway.suspendActor(name);
-      throw new Error(
-        `sandbox ${name} was attached by another push before this one (${result.code}); it has been suspended, and its next wake starts it fresh`,
-      );
-    }
+    await stopForeignRunner(name, result);
     if (result.code === "secrets_changed") {
       logger.warn(
         "Runner secrets rotated; the sandbox keeps its running runner and takes them at its next fresh start",
@@ -537,12 +552,38 @@ export function newSubstrateSandboxDriverOverGateway(
     );
   }
 
+  /**
+   * Suspends a runner this process started that another push attached,
+   * which stops it before it can serve a turn, and throws (module header).
+   */
+  async function stopForeignRunner(
+    name: string,
+    result: PushResult,
+  ): Promise<void> {
+    if (
+      result.ok ||
+      !startedHere.has(name) ||
+      !ATTACHED_ELSEWHERE.has(result.code)
+    ) {
+      return;
+    }
+    logger.error(
+      "A Substrate sandbox this server started was attached by another push; suspending it",
+      { actor: name, code: result.code },
+    );
+    await gateway.suspendActor(name);
+    throw new Error(
+      `sandbox ${name} was attached by another push before this one (${result.code}); it has been suspended, and its next wake starts it fresh`,
+    );
+  }
+
   async function deprovision(scope: SandboxScope, id: string): Promise<void> {
     const name = sandboxBaseName(scope, id);
     await serialize(name, () => gateway.deleteActor(name));
     ensuredAt.delete(name);
     sessionByActor.delete(name);
     egressReconciled.delete(name);
+    startedHere.delete(name);
     logger.info("Substrate sandbox deleted", { scope, id, actor: name });
   }
 
@@ -582,7 +623,21 @@ export function newSubstrateSandboxDriverOverGateway(
     reattach: (scope, id, env) => {
       assertQueue(scope, id, env.taskQueue);
       const name = sandboxBaseName(scope, id);
-      return serialize(name, () => push(name, env));
+      return serialize(name, async (): Promise<SubstrateReattachResult> => {
+        const actor = await gateway.getActor(name);
+        if (actor?.state !== ActorState.RUNNING) {
+          return {
+            pushed: false,
+            state:
+              actor === undefined
+                ? "absent"
+                : (STATE_WORDS[actor.state] ?? "unknown"),
+          };
+        }
+        const result = await push(name, env);
+        await stopForeignRunner(name, result);
+        return { pushed: true, result };
+      });
     },
     async list() {
       return (await gateway.listActors()).map(summaryOf);

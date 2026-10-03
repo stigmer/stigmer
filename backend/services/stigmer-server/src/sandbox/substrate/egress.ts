@@ -27,8 +27,15 @@
  * served under a publicly trusted certificate at an address the gateway
  * can reach; the operator guide states it as a requirement.
  *
- * Substrate's rules name hosts, never addresses, so an endpoint given as
- * an IP address is a boot throw too.
+ * A named destination is one host, so it may not be a pattern: Substrate
+ * reads `*` as every name and `*.suffix` as every name under it (`*.svc`
+ * would hold the router), and a pattern in a cleartext rule would open
+ * Substrate's services over plain HTTP, where no certificate check stands
+ * in the way. Nor may it be a single label: the gateway resolves a name in
+ * its own namespace, Substrate's, so a short name (`atenet-router`, `api`,
+ * `localhost`) reaches Substrate's own services or the gateway itself, and
+ * never this server. Substrate's rules name hosts, never addresses, so an
+ * endpoint given as an IP address is a boot throw too.
  */
 import { create } from "@bufbuild/protobuf";
 import { TEMPORAL_TLS_ENV } from "@stigmer/temporal-codecs/connection";
@@ -93,9 +100,20 @@ export function buildEgressRules(
         `${destination.source} names the address ${destination.host}; Substrate's egress rules name hosts, so give it a DNS name`,
       );
     }
+    if (destination.host.includes("*")) {
+      throw new Error(
+        `${destination.source} names the pattern ${destination.host}; a named destination is one host, because a pattern would admit Substrate's own services`,
+      );
+    }
+    const labels = destination.host.split(".");
+    if (labels.length < 2) {
+      throw new Error(
+        `${destination.source} names ${destination.host}, a single-label name, which Substrate's egress gateway resolves in its own namespace; give the host's fully qualified name`,
+      );
+    }
     if (
       forbidden.has(destination.host) ||
-      destination.host.split(".").includes(SUBSTRATE_NAMESPACE_LABEL)
+      labels.includes(SUBSTRATE_NAMESPACE_LABEL)
     ) {
       throw new Error(
         `${destination.source} names ${destination.host}, one of Substrate's own services; no sandbox may reach them, because whoever reaches the router can push to any sandbox`,

@@ -6,7 +6,8 @@
  *     when HTTPS egress is on;
  *   - no rule ever names Substrate's own services: a configured destination
  *     that is the router, the Control API, or anything under `ate-system`
- *     is a boot throw, and so is one given as an address.
+ *     is a boot throw, and so is a pattern, a single-label name (resolved in
+ *     Substrate's own namespace), or an address.
  */
 import { describe, expect, it } from "vitest";
 
@@ -115,6 +116,42 @@ describe("what no rule may name", () => {
         }),
       ).toThrow(/Substrate's own services/);
     }
+  });
+
+  it("a pattern, which would admit Substrate's services, wherever it is given", () => {
+    for (const host of ["*", "*.svc", "*.ate-system.svc.cluster.local"]) {
+      expect(() =>
+        buildEgressRules(config, {
+          ...settings,
+          extraHttpEgress: [{ host, port: 80 }],
+        }),
+      ).toThrow(/names the pattern/);
+    }
+    expect(() =>
+      buildEgressRules(
+        { ...config, mcpPublicEndpoint: "https://*.example.com" },
+        settings,
+      ),
+    ).toThrow(/STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT names the pattern/);
+  });
+
+  it("a single-label name, which the gateway resolves among Substrate's own services", () => {
+    for (const host of ["atenet-router", "api", "localhost", "localhost."]) {
+      expect(() =>
+        buildEgressRules(config, {
+          ...settings,
+          extraHttpEgress: [{ host, port: 80 }],
+        }),
+      ).toThrow(/single-label name/);
+    }
+    expect(() =>
+      buildEgressRules(
+        { ...config, temporalAddress: "temporal:7233" },
+        settings,
+      ),
+    ).toThrow(
+      /STIGMER_SANDBOX_TEMPORAL_ADDRESS names temporal, a single-label/,
+    );
   });
 
   it("an address instead of a host", () => {

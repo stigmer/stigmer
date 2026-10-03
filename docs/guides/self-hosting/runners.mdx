@@ -251,8 +251,10 @@ What the driver needs:
   `key=value,…`), and the bucket prefix their files are committed under
   (`STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION`).
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
-  (`…@sha256:…`), and DNS names, not addresses, in the backend and Temporal
-  endpoints, because egress rules name hosts.
+  (`…@sha256:…`), and fully qualified DNS names, not addresses, short names or
+  patterns, in the backend and Temporal endpoints and the extra destinations:
+  egress rules name hosts, and Substrate's gateway resolves a short name among
+  its own services.
 
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name

@@ -14,8 +14,12 @@
  * (`status.audit.spec_audit.created_at`, stamped by the server) and, once it
  * ends, its completion (`status.completed_at`, which the server stamps on
  * its own transitions and copies from the runner's status report
- * otherwise). A stamp later than now is read as now, so a runner whose
- * clock runs ahead cannot keep its sandbox awake. An execution that has not
+ * otherwise). A stamp more than a minute ahead of this server's clock is
+ * not trusted and is skipped, so the execution's creation stands for it: a
+ * runner whose clock runs far ahead cannot keep its sandbox awake, since
+ * reading such a stamp as now would only read it again as now on every
+ * pass. A stamp less than a minute ahead counts as it is, which keeps a
+ * sandbox awake at most that minute longer. An execution that has not
  * ended is in an active phase, which makes the session busy, so its
  * progress never needs a clock.
  */
@@ -34,6 +38,9 @@ import type { SessionActivity, SessionActivityReader } from "./provisioner.js";
 
 /** Sessions read per keyset page while mapping sandboxes back to sessions. */
 const SESSION_PAGE_SIZE = 500;
+
+/** How far ahead of this server's clock an activity stamp may be and still count (module header). */
+export const FUTURE_STAMP_ALLOWANCE_MS = 60_000;
 
 export function newStoreSessionActivityReader(
   store: Store,
@@ -79,7 +86,7 @@ export function newStoreSessionActivityReader(
   };
 }
 
-/** Busy and the latest stamp over one session's executions, none later than `nowMs`. */
+/** Busy and the latest trusted stamp over one session's executions (module header). */
 export function sessionActivityOf(
   executions: readonly AgentExecution[],
   nowMs: number,
@@ -87,10 +94,11 @@ export function sessionActivityOf(
   let busy = false;
   let last: number | undefined;
   const seen = (stamp: number | undefined): void => {
-    if (stamp === undefined) return;
-    const ms = Math.min(stamp, nowMs);
-    if (last === undefined || ms > last) {
-      last = ms;
+    if (stamp === undefined || stamp > nowMs + FUTURE_STAMP_ALLOWANCE_MS) {
+      return;
+    }
+    if (last === undefined || stamp > last) {
+      last = stamp;
     }
   };
   for (const execution of executions) {

@@ -6,8 +6,10 @@
  *     waiting for approval or paused; idle once every one has ended;
  *   - the activity clock is the latest creation or completion stamp the
  *     server wrote, never another session's;
- *   - a stamp later than now counts as now, so a clock running ahead
- *     cannot keep a sandbox awake;
+ *   - a stamp more than a minute ahead of the server's clock is skipped,
+ *     so the idle ladder still pauses the sandbox once the session has
+ *     been idle long enough by the stamps the server trusts; one less than
+ *     a minute ahead counts as it is;
  *   - a session with no executions has no clock;
  *   - every session id is paged out, past one page.
  */
@@ -29,9 +31,12 @@ import { LIST_INDEXES } from "../../boot/list-indexes.js";
 import type { Store } from "../../store/interface.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import {
+  FUTURE_STAMP_ALLOWANCE_MS,
   newStoreSessionActivityReader,
   sessionActivityOf,
 } from "../session-activity.js";
+import { ActorState } from "../substrate/gen/ateapipb/ateapi_pb.js";
+import { decideIdle, type IdleAction } from "../substrate/idle-decision.js";
 
 /** The reader's clock: after every stamp the tests write, unless one is meant to be later. */
 const NOW = () => Date.parse("2026-10-03T13:00:00Z");
@@ -205,22 +210,62 @@ describe("sessionActivityOf", () => {
   });
 });
 
-describe("a stamp later than now", () => {
-  it("counts as now, so a clock running ahead cannot keep a sandbox awake", () => {
-    expect(
-      sessionActivityOf(
-        [
-          execution(
-            "aex_1",
-            "s",
-            ExecutionPhase.EXECUTION_COMPLETED,
-            new Date("2026-10-03T08:00:00Z"),
-            new Date("2026-10-04T08:00:00Z"),
-          ),
-        ],
-        NOW(),
+describe("a stamp ahead of the server's clock", () => {
+  const PAUSE_AFTER_MS = 5 * 60_000;
+  const created = new Date("2026-10-03T12:00:00Z");
+
+  /** The idle ladder's answer for a running sandbox, from the reader at `nowMs`. */
+  async function ladderAt(nowMs: number): Promise<IdleAction> {
+    const reader = newStoreSessionActivityReader(
+      store,
+      silentLogger,
+      () => nowMs,
+    );
+    const activity = await reader.activity("ses_a");
+    return decideIdle({
+      state: ActorState.RUNNING,
+      busy: activity.busy,
+      lastActiveAt: activity.lastActiveAt ?? new Date(0),
+      now: new Date(nowMs),
+      pauseAfterMs: PAUSE_AFTER_MS,
+      suspendAfterMs: 30 * 60_000,
+    });
+  }
+
+  it("is skipped when it is more than the allowance ahead, so the sandbox still pauses on time", async () => {
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        created,
+        new Date("2026-10-04T12:00:00Z"),
       ),
-    ).toEqual({ busy: false, lastActiveAt: new Date(NOW()) });
+    );
+    const t = created.getTime();
+    expect(await ladderAt(t + PAUSE_AFTER_MS - 1)).toBe("none");
+    expect(await ladderAt(t + PAUSE_AFTER_MS)).toBe("pause");
+  });
+
+  it("counts as it is when it is within the allowance, keeping the sandbox awake at most that much longer", async () => {
+    const ahead = FUTURE_STAMP_ALLOWANCE_MS - 1_000;
+    const t = created.getTime();
+    // A long turn: created ten minutes ago, its completion stamped by a
+    // runner whose clock runs a little ahead.
+    await save(
+      execution(
+        "aex_1",
+        "ses_a",
+        ExecutionPhase.EXECUTION_COMPLETED,
+        new Date(t - 10 * 60_000),
+        new Date(t + ahead),
+      ),
+    );
+    // Read while the completion is still ahead: it counts (skipping it
+    // would leave the ten-minute-old creation and pause the sandbox).
+    expect(await ladderAt(t)).toBe("none");
+    expect(await ladderAt(t + ahead + PAUSE_AFTER_MS - 1)).toBe("none");
+    expect(await ladderAt(t + ahead + PAUSE_AFTER_MS)).toBe("pause");
   });
 });
 
