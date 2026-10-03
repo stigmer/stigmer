@@ -37,8 +37,10 @@
  * message wakes the sandbox again. Every suspend comes from PAUSED, so
  * the window is that narrow.
  *
- * Each pass also moves suspended sandboxes on an older template to the
- * current one and retires templates no sandbox uses.
+ * Each pass also makes the egress policy of every running or paused
+ * sandbox this configuration's, once per process (driver.ts), moves
+ * suspended sandboxes on an older template to the current one, and retires
+ * templates no sandbox uses.
  */
 import type { Logger } from "../../boot/logger.js";
 import { sandboxBaseName } from "../naming.js";
@@ -172,6 +174,16 @@ export async function runSweepPass(
           });
         }
         continue;
+      }
+      if (
+        actor.state === ActorState.RUNNING ||
+        actor.state === ActorState.PAUSED
+      ) {
+        // Any scope: a sandbox awake since before this process started gets
+        // this configuration's egress rules now, not at its next wake.
+        await driver.serialize(actor.name, () =>
+          driver.reconcileEgress(actor.name),
+        );
       }
       if (!awake.includes(actor)) continue;
 

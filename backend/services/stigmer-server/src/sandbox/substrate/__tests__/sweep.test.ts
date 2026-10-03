@@ -212,6 +212,7 @@ describe("the ladder", () => {
     };
     await h.pass();
     expect(h.substrate.calls.filter((c) => c.endsWith(name))).toEqual([
+      `ensureEgressPolicy ${name}`,
       `getActor ${name}`,
       `pauseActor ${name}`,
       `resumeActor ${name}`,
@@ -327,6 +328,32 @@ describe("sandboxes this process never ensured", () => {
 });
 
 describe("housekeeping", () => {
+  it("makes every awake sandbox's egress policy this configuration's, once per process", async () => {
+    const h = harness();
+    const wfx = sandboxBaseName("workflow", "wex_1");
+    h.substrate.put({
+      name: wfx,
+      state: ActorState.RUNNING,
+      template: "t",
+      policy: [],
+    });
+    const asleep = sandboxBaseName("session", "ses_s");
+    h.substrate.put({
+      name: asleep,
+      state: ActorState.SUSPENDED,
+      template: "t",
+      policy: [],
+    });
+    await h.pass();
+    await h.pass();
+    expect(
+      h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${wfx}`),
+    ).toHaveLength(1);
+    expect(h.substrate.actors.get(wfx)?.policy?.length).toBeGreaterThan(0);
+    // A suspended sandbox reaches nothing until it wakes, which reconciles it.
+    expect(h.substrate.calls).not.toContain(`ensureEgressPolicy ${asleep}`);
+  });
+
   it("deletes a sandbox left DELETING again", async () => {
     const h = harness();
     const name = sandboxBaseName("workflow", "wex_1");
@@ -413,6 +440,10 @@ describe("failures and races", () => {
     const pass = h.pass();
     await new Promise((r) => setImmediate(r));
     h.driver.internals.sessionByActor.set(name, "ses_late");
+    h.sessions.activities.set("ses_late", {
+      busy: true,
+      lastActiveAt: new Date(h.t()),
+    });
     release();
     await Promise.all([held, pass]);
     expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);

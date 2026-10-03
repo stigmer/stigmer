@@ -550,13 +550,6 @@ function defaultArtifactPath(): string {
 }
 
 /**
- * Go loadOperatorIdentity (#400): boot-FATAL on the two certain
- * misconfigurations, deliberately unlike the lenient loaders above — an
- * email without '@' can never be deliverable (certainly a typo), and a
- * name without an email is incoherent (the email IS the identity). The
- * error copy matches Go's character-for-character.
- */
-/**
  * The two sandbox runner lists — boot-FATAL on the misconfigurations a
  * lenient read would turn into a runner that boots without its key and
  * fails every turn at its first model call: a listed name with no value
@@ -617,6 +610,13 @@ function sandboxRunnerList(
   return values;
 }
 
+/**
+ * Go loadOperatorIdentity (#400): boot-FATAL on the two certain
+ * misconfigurations, deliberately unlike the lenient loaders above — an
+ * email without '@' can never be deliverable (certainly a typo), and a
+ * name without an email is incoherent (the email IS the identity). The
+ * error copy matches Go's character-for-character.
+ */
 function loadOperatorIdentity(env: NodeJS.ProcessEnv): {
   operatorEmail: string;
   operatorName: string;

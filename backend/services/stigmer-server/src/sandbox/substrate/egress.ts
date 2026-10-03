@@ -45,11 +45,12 @@ interface Destination {
   readonly source: string;
 }
 
-/** Names under these suffixes are Substrate's own services. */
-const SUBSTRATE_SERVICE_SUFFIXES = [
-  ".ate-system.svc",
-  ".ate-system.svc.cluster.local",
-];
+/**
+ * The namespace Substrate's own services run in: a name with this label,
+ * however it is qualified (`atenet-router.ate-system`, `….svc`,
+ * `….svc.cluster.local`), is one of them.
+ */
+const SUBSTRATE_NAMESPACE_LABEL = "ate-system";
 
 /** The rules of every actor's policy; throws on a forbidden or unusable destination. */
 export function buildEgressRules(
@@ -84,7 +85,9 @@ export function buildEgressRules(
   ]);
   const rules: EgressRule[] = [];
   const seen = new Set<string>();
-  for (const destination of destinations) {
+  for (const given of destinations) {
+    // A trailing dot names the same host (an absolute DNS name).
+    const destination = { ...given, host: given.host.replace(/\.$/, "") };
     if (isIpAddress(destination.host)) {
       throw new Error(
         `${destination.source} names the address ${destination.host}; Substrate's egress rules name hosts, so give it a DNS name`,
@@ -92,9 +95,7 @@ export function buildEgressRules(
     }
     if (
       forbidden.has(destination.host) ||
-      SUBSTRATE_SERVICE_SUFFIXES.some((suffix) =>
-        destination.host.endsWith(suffix),
-      )
+      destination.host.split(".").includes(SUBSTRATE_NAMESPACE_LABEL)
     ) {
       throw new Error(
         `${destination.source} names ${destination.host}, one of Substrate's own services; no sandbox may reach them, because whoever reaches the router can push to any sandbox`,
@@ -146,7 +147,7 @@ function hostPortDestination(
 }
 
 function hostOf(url: string): string {
-  return new URL(url).hostname.toLowerCase();
+  return new URL(url).hostname.toLowerCase().replace(/\.$/, "");
 }
 
 function isIpAddress(host: string): boolean {

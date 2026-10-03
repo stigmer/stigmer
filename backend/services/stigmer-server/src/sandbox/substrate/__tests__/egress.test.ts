@@ -103,8 +103,10 @@ describe("what no rule may name", () => {
 
   it("anything under ate-system, however it is spelled", () => {
     for (const host of [
+      "atenet-router.ate-system",
       "atenet-router.ate-system.svc",
       "atenet-router.ate-system.svc.cluster.local",
+      "atenet-router.ate-system.svc.cluster.local.",
     ]) {
       expect(() =>
         buildEgressRules(config, {

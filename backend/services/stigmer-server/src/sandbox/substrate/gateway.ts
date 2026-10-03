@@ -28,7 +28,7 @@
  */
 import { readFileSync, statSync } from "node:fs";
 
-import { create } from "@bufbuild/protobuf";
+import { create, equals } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import {
   Code,
@@ -46,6 +46,7 @@ import {
   AtespaceSchema,
   Control,
   EgressPolicySchema,
+  EgressRuleSchema,
   ObjectRefSchema,
   type Actor,
   type ActorTemplate,
@@ -109,8 +110,14 @@ export interface SubstrateGateway {
   revertActor(name: string): Promise<void>;
   /** In any state; an absent actor is success. */
   deleteActor(name: string): Promise<void>;
-  /** Creates the actor's egress policy; one that exists is success. */
-  ensureEgressPolicy(name: string, rules: readonly EgressRule[]): Promise<void>;
+  /**
+   * Makes the actor's egress policy exactly `rules`: creates it, or, when one
+   * exists with other rules, replaces it at the version read.
+   */
+  ensureEgressPolicy(
+    name: string,
+    rules: readonly EgressRule[],
+  ): Promise<"created" | "unchanged" | "replaced">;
   getTemplate(name: string): Promise<SubstrateTemplateView | undefined>;
   listTemplates(): Promise<SubstrateTemplateView[]>;
   createTemplate(template: ActorTemplate): Promise<"created" | "exists">;
@@ -307,9 +314,33 @@ export function newSubstrateGatewayOverTransport(
             },
             call,
           );
+          return "created";
         } catch (error) {
           if (!hasCode(error, Code.AlreadyExists)) throw error;
         }
+        // One exists: replace it only when its rules differ, at the version
+        // read (a concurrent writer answers ABORTED, and the caller re-reads).
+        const stored = await client.getActorEgressPolicy(
+          { actor: ref(name) },
+          call,
+        );
+        if (
+          stored.rules.length === rules.length &&
+          rules.every((rule, i) => {
+            const current = stored.rules[i];
+            return (
+              current !== undefined && equals(EgressRuleSchema, current, rule)
+            );
+          })
+        ) {
+          return "unchanged";
+        }
+        stored.rules = [...rules];
+        await client.updateActorEgressPolicy(
+          { actor: ref(name), egressPolicy: stored },
+          call,
+        );
+        return "replaced";
       }),
 
     getTemplate: (name) =>

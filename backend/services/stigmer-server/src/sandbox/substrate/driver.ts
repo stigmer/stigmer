@@ -21,9 +21,8 @@
  *     one and the current one is ready (a running or paused actor is never
  *     disturbed; Substrate allows the move only here, and its first resume
  *     afterwards starts the new template's waiter fresh over the actor's
- *     files); write its egress policy, which is idempotent and repairs an
- *     actor whose creator died before writing it (an actor without one
- *     reaches nothing); resume; push.
+ *     files); make its egress policy this configuration's (below); resume;
+ *     push.
  *   - PAUSED by this server process within MAX_IN_PLACE_PAUSE_SECONDS: resume
  *     in place and push. Paused for longer (limits.ts says why), or before
  *     this process started: suspend first and start fresh (below).
@@ -52,6 +51,21 @@
  * logs the refusal, and takes the new secrets at its next fresh start,
  * after its next idle suspend.
  *
+ * The egress policy is this configuration's on every actor the server
+ * touches: created when missing (which also repairs an actor whose creator
+ * died before writing it; an actor without one reaches nothing) and
+ * replaced when its rules differ. It is reconciled on every wake from
+ * storage and once per server process for an actor that is running or
+ * paused, at its first ensure or sweep, so a changed endpoint or HTTPS
+ * egress switched off reaches existing sandboxes after a restart rather
+ * than only new ones.
+ *
+ * One limit stays: a RUNNING runner that refuses rotated secrets also
+ * refuses the push's fresh token, so it restarts, if it crashes, with the
+ * last token it accepted. A runner crash-looping on an expired token
+ * fails its runs, which ends its Session's busy state, and the sweep then
+ * suspends it; its next wake starts fresh with both.
+ *
  * Every ensure, delete and lifecycle operation on one actor runs through
  * one in-process queue, so a turn and the idle sweep (sweep.ts) never
  * interleave on an actor within one server.
@@ -71,6 +85,7 @@ import type {
   SandboxScope,
 } from "../provisioner.js";
 import type { SubstrateDriverSettings } from "./config.js";
+import { ATTACH_SECRET_NAMES } from "./attach-secrets.js";
 import { delay } from "./delay.js";
 import { buildEgressRules } from "./egress.js";
 import { ActorState, type EgressRule } from "./gen/ateapipb/ateapi_pb.js";
@@ -151,6 +166,11 @@ export interface SubstrateDriverInternals {
   lastEnsuredAt(name: string): Date | undefined;
   /** The session a session actor serves, as this process's ensures learned it. */
   readonly sessionByActor: Map<string, string>;
+  /**
+   * Makes the actor's egress policy this configuration's, once per process
+   * for an actor this process has not reconciled yet (module header).
+   */
+  reconcileEgress(name: string): Promise<void>;
   /** Moves a SUSPENDED actor to the current template when it is ready; logs a refusal once. */
   moveToCurrent(actor: SubstrateActorView): Promise<void>;
 }
@@ -205,6 +225,14 @@ export function validateSubstrateDriverConfig(
       "sandbox provisioner 'substrate' requires STIGMER_SANDBOX_TEMPORAL_ADDRESS (or TEMPORAL_HOST_PORT) reachable from inside a sandbox",
     );
   }
+  const unknown = Object.keys(config.runnerSecretEnv).filter(
+    (name) => !ATTACH_SECRET_NAMES.includes(name),
+  );
+  if (unknown.length > 0) {
+    throw new Error(
+      `sandbox provisioner 'substrate' cannot push ${unknown.join(", ")} from STIGMER_SANDBOX_RUNNER_SECRETS: a sandbox's runner accepts only its own secret variables (${ATTACH_SECRET_NAMES.join(", ")}); give anything else to the runner as a plain setting (STIGMER_SANDBOX_RUNNER_ENV) or through the run's environment`,
+    );
+  }
   if (!config.runnerImage.includes("@sha256:")) {
     throw new Error(
       `sandbox provisioner 'substrate' requires STIGMER_SANDBOX_RUNNER_IMAGE pinned by digest (image@sha256:…), because Substrate snapshots a template once; got ${config.runnerImage}`,
@@ -253,6 +281,22 @@ export function newSubstrateSandboxDriverOverGateway(
   const ensuredAt = new Map<string, number>();
   const sessionByActor = new Map<string, string>();
   const refusedMoves = new Set<string>();
+  /** Actors whose egress policy this process has made its own (module header). */
+  const egressReconciled = new Set<string>();
+
+  async function reconcileEgress(name: string, always = false): Promise<void> {
+    if (!always && egressReconciled.has(name)) return;
+    const outcome = await gateway.ensureEgressPolicy(name, egressRules);
+    egressReconciled.add(name);
+    if (outcome === "replaced") {
+      logger.info(
+        "Substrate sandbox egress policy replaced by this configuration's",
+        {
+          actor: name,
+        },
+      );
+    }
+  }
 
   function assertQueue(
     scope: SandboxScope,
@@ -366,7 +410,7 @@ export function newSubstrateSandboxDriverOverGateway(
               // A wake from storage starts a fresh waiter, so its first
               // push starts the runner and cannot meet rotated secrets.
               await moveToCurrent(actor);
-              await gateway.ensureEgressPolicy(name, egressRules);
+              await reconcileEgress(name, true);
               await gateway.resumeActor(name);
               await attach(scope, name, env);
               logger.info("Substrate sandbox ensured", {
@@ -388,6 +432,7 @@ export function newSubstrateSandboxDriverOverGateway(
                 await gateway.suspendActor(name);
                 continue;
               }
+              await reconcileEgress(name);
               await gateway.resumeActor(name);
               await attach(scope, name, env);
               logger.info("Substrate sandbox ensured", {
@@ -400,6 +445,7 @@ export function newSubstrateSandboxDriverOverGateway(
               return;
             }
             case ActorState.RUNNING: {
+              await reconcileEgress(name);
               await attach(scope, name, env);
               logger.info("Substrate sandbox ensured", {
                 scope,
@@ -468,6 +514,7 @@ export function newSubstrateSandboxDriverOverGateway(
     await serialize(name, () => gateway.deleteActor(name));
     ensuredAt.delete(name);
     sessionByActor.delete(name);
+    egressReconciled.delete(name);
     logger.info("Substrate sandbox deleted", { scope, id, actor: name });
   }
 
@@ -553,6 +600,7 @@ export function newSubstrateSandboxDriverOverGateway(
         return at === undefined ? undefined : new Date(at);
       },
       sessionByActor,
+      reconcileEgress: (name) => reconcileEgress(name),
       moveToCurrent,
     },
   };

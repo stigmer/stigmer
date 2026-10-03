@@ -11,7 +11,7 @@ import { newSubstrateSettingsFromEnv, validateWindows } from "../config.js";
 const base: NodeJS.ProcessEnv = {
   STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT: "https://api.ate-system.svc:443",
   STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE: "/var/run/secrets/ate/token",
-  STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "http://atenet-router.ate-system.svc/",
+  STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL: "http://atenet-router.ate-system.svc//",
   STIGMER_SANDBOX_SUBSTRATE_ATESPACE: "stigmer",
   STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION: "gs://ate-snapshots/stigmer",
   STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR: "workload=stigmer",

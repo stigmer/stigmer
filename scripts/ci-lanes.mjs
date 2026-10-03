@@ -450,6 +450,9 @@ export const LANES = {
       // this file and compares the two, so a server-only change to it must
       // run this lane too.
       "backend/services/stigmer-server/src/sandbox/naming.ts",
+      // The server's copy of the secret names a push may carry, which the
+      // same test compares with the runner's list.
+      "backend/services/stigmer-server/src/sandbox/substrate/attach-secrets.ts",
       "Makefile",
       // The Node version the lane sets up (ci.all-in-one says why).
       ".nvmrc",

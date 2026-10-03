@@ -165,7 +165,11 @@ describe("ensure, from each state", () => {
       template: "stigmer-runner-old",
     });
     await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
-    expect(h.substrate.calls).toEqual([`getActor ${ACTOR}`]);
+    // Its egress policy is reconciled once in this process, then only pushes.
+    expect(h.substrate.calls).toEqual([
+      `getActor ${ACTOR}`,
+      `ensureEgressPolicy ${ACTOR}`,
+    ]);
     expect(h.router.pushes).toHaveLength(1);
   });
 
@@ -244,6 +248,7 @@ describe("ensure, from each state", () => {
     await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
+      `ensureEgressPolicy ${ACTOR}`,
       `resumeActor ${ACTOR}`,
     ]);
   });
@@ -468,7 +473,10 @@ describe("a pause from before this server process", () => {
     });
     await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
     expect(h.router.pushes).toHaveLength(1);
-    expect(h.substrate.calls).toEqual([`getActor ${ACTOR}`]);
+    expect(h.substrate.calls).toEqual([
+      `getActor ${ACTOR}`,
+      `ensureEgressPolicy ${ACTOR}`,
+    ]);
   });
 });
 
@@ -639,6 +647,39 @@ describe("deprovision, probe, lifecycle", () => {
   });
 });
 
+describe("the egress policy of an existing sandbox", () => {
+  it("is replaced by a changed configuration's rules, once per process for a running one", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.RUNNING,
+      template: "stigmer-runner-old",
+      policy: [],
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(h.substrate.actors.get(ACTOR)?.policy?.length).toBeGreaterThan(0);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(
+      h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${ACTOR}`),
+    ).toHaveLength(1);
+  });
+
+  it("is reconciled on every wake from storage", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDED,
+      template: "stigmer-runner-old",
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.lifecycle.suspend("session", SESSION);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    expect(
+      h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${ACTOR}`),
+    ).toHaveLength(2);
+  });
+});
+
 describe("configuration the driver refuses", () => {
   it("no backend endpoint, no Temporal address, an image not pinned by digest", () => {
     expect(() =>
@@ -653,5 +694,11 @@ describe("configuration the driver refuses", () => {
         runnerImage: "ghcr.io/stigmer/runner:latest",
       }),
     ).toThrow(/pinned by digest/);
+    expect(() =>
+      validateSubstrateDriverConfig({
+        ...config,
+        runnerSecretEnv: { GITHUB_TOKEN: "ghp" },
+      }),
+    ).toThrow(/cannot push GITHUB_TOKEN/);
   });
 });

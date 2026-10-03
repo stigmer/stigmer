@@ -12,7 +12,10 @@
  *   - the push can set only the runner's secret variables;
  *   - a token must be JWT-shaped and unexpired, and an empty token (the
  *     tokenless lane) passes;
- *   - every refusal carries its stable code.
+ *   - every refusal carries its stable code;
+ *   - the secret names a push may carry are the server's copy of them
+ *     (`stigmer-server/src/sandbox/substrate/attach-secrets.ts`), which
+ *     the server checks an operator's runner secrets against at boot.
  */
 import { describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -20,6 +23,7 @@ import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 
 import { sandboxNameForQueue, verifyAttachPush } from "../push.js";
+import { RUNNER_SECRET_ENV_KEYS } from "../../shared/runner-credential-keys.js";
 
 const NOW = 1_800_000_000;
 
@@ -67,6 +71,19 @@ describe("sandboxNameForQueue", () => {
     expect(sandboxNameForQueue("sandbox:pm_1")).toBeUndefined();
     expect(sandboxNameForQueue("stigmer_runner")).toBeUndefined();
     expect(sandboxNameForQueue("session:")).toBeUndefined();
+  });
+});
+
+describe("the secret names a push may carry", () => {
+  it("are exactly the names the server's substrate driver lets an operator push", async () => {
+    const path = resolve(
+      import.meta.dirname,
+      "../../../../stigmer-server/src/sandbox/substrate/attach-secrets.ts",
+    );
+    const { ATTACH_SECRET_NAMES } = (await import(pathToFileURL(path).href)) as {
+      ATTACH_SECRET_NAMES: readonly string[];
+    };
+    expect([...ATTACH_SECRET_NAMES].sort()).toEqual([...RUNNER_SECRET_ENV_KEYS].sort());
   });
 });
 

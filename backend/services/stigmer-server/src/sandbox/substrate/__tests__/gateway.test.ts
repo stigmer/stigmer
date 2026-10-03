@@ -30,6 +30,8 @@ import {
   ActorState,
   ActorTemplateSchema,
   Control,
+  EgressPolicySchema,
+  EgressRuleSchema,
 } from "../gen/ateapipb/ateapi_pb.js";
 import {
   bearerFromFile,
@@ -128,6 +130,11 @@ describe("error translation", () => {
       createActor: exists,
       createActorTemplate: exists,
       createActorEgressPolicy: exists,
+      getActorEgressPolicy: () =>
+        create(EgressPolicySchema, {
+          metadata: { name: "default" },
+          rules: [],
+        }),
       createAtespace: exists,
     });
     expect(await gateway.createActor("a", "t")).toBe("exists");
@@ -136,7 +143,7 @@ describe("error translation", () => {
         create(ActorTemplateSchema, { metadata: { name: "t" } }),
       ),
     ).toBe("exists");
-    await expect(gateway.ensureEgressPolicy("a", [])).resolves.toBeUndefined();
+    expect(await gateway.ensureEgressPolicy("a", [])).toBe("unchanged");
     await expect(gateway.ensureAtespace()).resolves.toBeUndefined();
   });
 
@@ -164,6 +171,42 @@ describe("error translation", () => {
     await expect(gateway.suspendActor("a")).rejects.toMatchObject({
       code: Code.Internal,
     });
+  });
+});
+
+describe("an existing egress policy", () => {
+  it("is replaced at the version read when its rules differ, and left when they match", async () => {
+    let updated: unknown;
+    const rule = create(EgressRuleSchema, {
+      http: { hostnames: ["stigmer.example"], ports: { numbers: [7234] } },
+    });
+    let storedRules = [rule];
+    const gateway = gatewayOver({
+      createActorEgressPolicy() {
+        throw new ConnectError("dup", Code.AlreadyExists);
+      },
+      getActorEgressPolicy: () =>
+        create(EgressPolicySchema, {
+          metadata: { name: "default", uid: "pol-1", version: 7n },
+          rules: storedRules,
+        }),
+      updateActorEgressPolicy(request) {
+        updated = request.egressPolicy;
+        return request.egressPolicy ?? create(EgressPolicySchema, {});
+      },
+    });
+    expect(await gateway.ensureEgressPolicy("a", [rule])).toBe("unchanged");
+    expect(updated).toBeUndefined();
+    const wildcard = create(EgressRuleSchema, { https: { hostnames: ["*"] } });
+    expect(await gateway.ensureEgressPolicy("a", [rule, wildcard])).toBe(
+      "replaced",
+    );
+    expect(updated).toMatchObject({
+      metadata: { name: "default", uid: "pol-1", version: 7n },
+    });
+    expect((updated as { rules: unknown[] }).rules).toHaveLength(2);
+    storedRules = [wildcard];
+    expect(await gateway.ensureEgressPolicy("a", [rule])).toBe("replaced");
   });
 });
 

@@ -5,10 +5,14 @@
  * needs RUNNING; suspend takes RUNNING or PAUSED; a move needs SUSPENDED;
  * revert takes CRASHED), every call recorded in order, and a queue of
  * scripted failures per method so a test can make one call answer
- * ABORTED, crash, or run out of workers.
+ * ABORTED, crash, or run out of workers. An egress policy is created when
+ * missing and replaced when its rules differ, as the real gateway does.
  */
+import { equals } from "@bufbuild/protobuf";
+
 import {
   ActorState,
+  EgressRuleSchema,
   type ActorTemplate,
   type EgressRule,
 } from "../gen/ateapipb/ateapi_pb.js";
@@ -227,10 +231,22 @@ export class FakeSubstrate implements SubstrateGateway {
   async ensureEgressPolicy(
     name: string,
     rules: readonly EgressRule[],
-  ): Promise<void> {
+  ): Promise<"created" | "unchanged" | "replaced"> {
     this.enter("ensureEgressPolicy", name);
     const actor = this.need(name);
-    actor.policy ??= rules;
+    if (actor.policy === undefined) {
+      actor.policy = rules;
+      return "created";
+    }
+    const same =
+      actor.policy.length === rules.length &&
+      rules.every((rule, i) => {
+        const current = actor.policy?.[i];
+        return current !== undefined && equals(EgressRuleSchema, current, rule);
+      });
+    if (same) return "unchanged";
+    actor.policy = rules;
+    return "replaced";
   }
 
   async getTemplate(name: string): Promise<SubstrateTemplateView | undefined> {

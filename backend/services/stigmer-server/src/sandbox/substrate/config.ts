@@ -109,7 +109,7 @@ export function newSubstrateSettingsFromEnv(
     apiServerName: optional("API_SERVER_NAME", ""),
     apiCaFile: optional("API_CA_FILE", ""),
     apiTokenFile: required("API_TOKEN_FILE"),
-    routerUrl: routerUrl.replace(/\/+$/, ""),
+    routerUrl: withoutTrailingSlashes(routerUrl),
     atespace: required("ATESPACE"),
     storageLocation: required("STORAGE_LOCATION"),
     workerSelector: parseSelector(required("WORKER_SELECTOR")),
@@ -189,4 +189,11 @@ export function parseDestinations(
     destinations.push({ host: host.toLowerCase(), port });
   }
   return destinations;
+}
+
+/** `url` without the slashes it ends with (a loop: no regular expression to backtrack). */
+function withoutTrailingSlashes(url: string): string {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") end -= 1;
+  return url.slice(0, end);
 }
