@@ -21,6 +21,7 @@ import { connectTaskQueueFor } from "../../temporal/mcpserver/names.js";
 import { formatSessionTaskQueue } from "../../temporal/agentexecution/dispatch.js";
 import { formatWfExecTaskQueue } from "../../temporal/workflowexecution/names.js";
 import {
+  isSandboxBaseName,
   SANDBOX_QUEUE_PREFIXES,
   sandboxBaseName,
   sandboxTaskQueue,
@@ -171,6 +172,20 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
     expect(connectTaskQueueFor("mcx_1")).toBe(
       `${SANDBOX_QUEUE_PREFIXES.connect}mcx_1`,
     );
+  });
+
+  it("knows a name of sandboxBaseName's shape from any other", () => {
+    for (const scope of ["session", "workflow", "connect"] as const) {
+      expect(isSandboxBaseName(sandboxBaseName(scope, "x_1"))).toBe(true);
+    }
+    for (const other of [
+      "sbx-anything",
+      "sbx-pool-0123456789ab",
+      "golden",
+      "sbx-ses-0123456789AB",
+    ]) {
+      expect(isSandboxBaseName(other)).toBe(false);
+    }
   });
 
   it("is what sandboxTaskQueue names for each scope", () => {

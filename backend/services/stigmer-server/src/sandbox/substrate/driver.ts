@@ -98,7 +98,11 @@
  * `prepare` readies the template before the first turn needs it.
  */
 import type { Logger } from "../../boot/logger.js";
-import { sandboxBaseName, sandboxTaskQueue } from "../naming.js";
+import {
+  isSandboxBaseName,
+  sandboxBaseName,
+  sandboxTaskQueue,
+} from "../naming.js";
 import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
 import type {
   SandboxDriverConfig,
@@ -290,9 +294,6 @@ export interface SubstrateDriverOptions {
   readonly now?: () => number;
   readonly sleep?: (ms: number) => Promise<void>;
 }
-
-/** Every sandbox this driver names starts so (naming.ts's sandboxBaseName). */
-const SANDBOX_NAME_PREFIX = "sbx-";
 
 /** The most state transitions one ensure walks before it gives up. */
 const MAX_TRANSITIONS = 8;
@@ -728,9 +729,9 @@ export function newSubstrateSandboxDriverOverGateway(
     resume: (scope, id, env) => ensure(scope, id, env),
     delete: (scope, id) => deprovision(scope, id),
     async deleteByName(name) {
-      if (!name.startsWith(SANDBOX_NAME_PREFIX)) {
+      if (!isSandboxBaseName(name)) {
         throw new Error(
-          `${name} is not a sandbox this driver names (${SANDBOX_NAME_PREFIX}*); refusing to delete it`,
+          `${name} is not a sandbox this driver names (sbx-<scope>-<12 hex>); refusing to delete it`,
         );
       }
       await deleteNamed(name);

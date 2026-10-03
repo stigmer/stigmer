@@ -992,15 +992,21 @@ describe("the lifecycle a composition's own sweep calls", () => {
     await h.driver.lifecycle.deleteByName(ACTOR);
     expect(h.substrate.actors.has(ACTOR)).toBe(false);
     await h.driver.lifecycle.deleteByName(ACTOR);
-    h.substrate.put({
-      name: "golden-t",
-      state: ActorState.RUNNING,
-      template: "t",
-    });
-    await expect(h.driver.lifecycle.deleteByName("golden-t")).rejects.toThrow(
-      /not a sandbox this driver names/,
-    );
-    expect(h.substrate.actors.has("golden-t")).toBe(true);
+    for (const foreign of [
+      "golden-t",
+      "sbx-anything",
+      "sbx-ses-ABCDEF123456",
+    ]) {
+      h.substrate.put({
+        name: foreign,
+        state: ActorState.RUNNING,
+        template: "t",
+      });
+      await expect(h.driver.lifecycle.deleteByName(foreign)).rejects.toThrow(
+        /not a sandbox this driver names/,
+      );
+      expect(h.substrate.actors.has(foreign)).toBe(true);
+    }
   });
 
   it("skips a sandbox whose upkeep fails, and stops before retiring when asked", async () => {

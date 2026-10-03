@@ -971,8 +971,13 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
       await lifecycle.list(),
     );
     void upkeep.retired;
-    for (const orphan of await lifecycle.list()) {
-      await lifecycle.deleteByName(orphan.name);
+    // An orphan is a sandbox the composition's own records do not name.
+    const recorded = (name: string): Promise<boolean> =>
+      Promise.resolve(name !== "");
+    for (const actor of await lifecycle.list()) {
+      if (!(await recorded(actor.name))) {
+        await lifecycle.deleteByName(actor.name);
+      }
     }
   };
   void sweep;

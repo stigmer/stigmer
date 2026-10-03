@@ -61,3 +61,12 @@ export function sandboxBaseName(scope: SandboxScope, id: string): string {
   const digest = createHash("sha256").update(id).digest("hex").slice(0, 12);
   return `sbx-${SCOPE_CODES[scope]}-${digest}`;
 }
+
+const BASE_NAME_SHAPE = new RegExp(
+  `^sbx-(${Object.values(SCOPE_CODES).join("|")})-[0-9a-f]{12}$`,
+);
+
+/** Whether `name` has the shape sandboxBaseName gives, whatever its id. */
+export function isSandboxBaseName(name: string): boolean {
+  return BASE_NAME_SHAPE.test(name);
+}
