@@ -96,7 +96,7 @@ describe("isResourceAvailable — a tier is a minimum edition", () => {
       true,
     );
     // identity_account: open_source since the open-source server serves the
-    // domain (20260911.11 slice 5); the tier moved in the same change as
+    // domain; the tier moved in the same change as
     // the serving code, never ahead of it.
     expect(isResourceAvailable(ApiResourceKind.identity_account, "local")).toBe(
       true,

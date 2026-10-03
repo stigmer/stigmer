@@ -99,7 +99,7 @@ const MIN_FOLLOWUP_LENGTH = 5;
  * `get_workflow_execution` and `get_workflow_execution_events` MCP tools
  * to inspect the failure autonomously.
  *
- * Framework-agnostic (DD-004), referentially stable returns (DD-010).
+ * Framework-agnostic, referentially stable returns.
  *
  * @example
  * ```tsx
@@ -372,7 +372,7 @@ export function useDiagnoseExecutionFlow(
   }, [autoStart, phase, diagnose]);
 
   // ---------------------------------------------------------------------------
-  // Referentially stable return (DD-010)
+  // Referentially stable return
   // ---------------------------------------------------------------------------
   return useMemo(
     () => ({

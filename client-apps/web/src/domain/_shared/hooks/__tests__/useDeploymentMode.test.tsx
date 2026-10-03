@@ -4,7 +4,7 @@
 // The hook starts from a hostname guess ("local" for localhost, "cloud" for
 // anything else — so "cloud" for every self-host) and corrects itself when
 // getServerInfo answers. Anything rendered on the first frame is rendered
-// on the guess. Since 20260913.02 (sp.console-login) the hook says which
+// on the guess. Since 20260913.02 the hook says which
 // it is returning, so a surface that must not show the wrong shape (the
 // login page, Q-CL-4) can wait for `resolved` instead of branching on the
 // guess. A server that cannot answer (an older server without the RPC, or

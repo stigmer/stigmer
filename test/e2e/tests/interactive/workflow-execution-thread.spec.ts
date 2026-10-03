@@ -100,7 +100,7 @@ test.describe("Workflow execution thread", () => {
       await assertNoErrorBoundary(page);
       await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
-      // Preview-kind cards (T04): the output body renders without any
+      // Preview-kind cards: the output body renders without any
       // expand gesture — a user scans results straight down the thread.
       const card = getThreadTaskCard(page, "step_one");
       const previewBody = card.locator('[data-cursor-target="task-preview"]');

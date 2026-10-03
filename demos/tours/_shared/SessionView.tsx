@@ -111,7 +111,7 @@ interface SessionViewProps {
  * `useSessionRailViews`.
  *
  * Two deliberate departures from the shipped viewers, both determinism
- * seams the layout exposes for exactly this host class (DD-006):
+ * seams the layout exposes for exactly this host class:
  * `responsive={false}` (the tour canvas is a narrow fixed box, where the
  * default container-width collapse would hide the conversation on exactly
  * the open-panel beats the tour is narrating) and no `splitStorageKey` (a
@@ -184,7 +184,7 @@ function ThreadState({
   // agent when none is named), no attached MCP servers/skills/variables,
   // and the default harness — a fresh session's honest configuration.
   // Read-only by construction: no `mutations`, so SetupTab renders without
-  // remove affordances (DD-011) — a paused frame depicts a session being
+  // remove affordances — a paused frame depicts a session being
   // inspected, not reconfigured. Model/Target pills are omitted exactly as
   // the console omits them before an explicit selection.
   const sessionConfig = useMemo<SetupTabProps>(

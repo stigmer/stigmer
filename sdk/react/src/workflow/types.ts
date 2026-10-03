@@ -4,8 +4,6 @@
  * Each descriptor provides complete metadata for a single workflow task kind,
  * enabling UI form generation, YAML editor autocomplete, task palette
  * rendering, and client-side pre-validation.
- *
- * @since T04 (Task Schema Registry)
  */
 export interface TaskKindDescriptor {
   /** Workflow task kind identifier (e.g., "llm_call", "human_input"). */

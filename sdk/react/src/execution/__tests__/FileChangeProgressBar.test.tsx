@@ -1,6 +1,6 @@
 /**
  * FileChangeProgressBar — the live "N files changed so far" strip for a running
- * turn (DD-32). These tests cover its own responsibilities: emptiness, the
+ * turn. These tests cover its own responsibilities: emptiness, the
  * summary count + aggregate stat, the expandable per-file list with its cap
  * overflow, zero-count hiding, and that only the count is an aria-live region.
  */

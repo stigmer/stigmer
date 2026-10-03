@@ -54,9 +54,7 @@ export interface TaskPickerPopoverProps {
  *
  * Uses `@base-ui/react/popover` for positioning and focus management,
  * `useTaskKindRegistry()` for the available task kinds, and `--stgm-*`
- * tokens for all styling (DD-005).
- *
- * @since T02 (Workflow Canvas Interaction UX)
+ * tokens for all styling.
  */
 export const TaskPickerPopover = memo(function TaskPickerPopover({
   open,

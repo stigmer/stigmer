@@ -147,13 +147,13 @@ export interface WorkflowExecutionViewerProps {
   /**
    * Callback when the user clicks a link to a child agent execution.
    * Receives the AgentExecution ID. The host application is responsible
-   * for navigation — this keeps the component routing-agnostic (DD-004).
+   * for navigation — this keeps the component routing-agnostic.
    */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
   /**
    * Callback when the user clicks "Apply Fix" in the repair card.
    * Receives the suggested YAML and the workflow slug. The host
-   * application handles navigation to the workflow editor (DD-004).
+   * application handles navigation to the workflow editor.
    */
   readonly onNavigateToWorkflowEditor?: (yaml: string, workflowSlug: string) => void;
   /**
@@ -182,7 +182,7 @@ export interface WorkflowExecutionViewerProps {
  * (Artifacts/Changes/Usage on the rail) and the rich documents (transcripts,
  * diffs, artifacts, AI diagnosis in the editor area). A task's detail —
  * preview, I/O, errors, and every HITL decision surface — lives on its
- * thread card, the single home for task data (T06).
+ * thread card, the single home for task data.
  *
  * This component is designed to work identically whether rendered
  * in the Stigmer Console or embedded in a third-party dashboard.
@@ -300,7 +300,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const effectiveTaskStates = fallbackTaskStates ?? taskStates;
   const effectiveTotalTasks = fallbackTaskStates ? fallbackTaskStates.size : totalTasks;
 
-  // Per-task snapshot lookup for the thread cards' I/O bodies (T04): an
+  // Per-task snapshot lookup for the thread cards' I/O bodies: an
   // O(1) map, rebuilt only when the snapshot refetches — never on stream
   // event appends — so memoized cards keep bailing during streaming.
   const taskSnapshotsByName = useMemo(():
@@ -330,11 +330,11 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     onSuccess: refetchExecution,
   });
 
-  // The thread's HITL bundle (T06/T07) — ONE bundle from the single actions
+  // The thread's HITL bundle — ONE bundle from the single actions
   // instance, covering all three gate kinds: the child-gate fields (which
   // the thread hands to gating agent-call cards' inline transcripts, as the
   // `WorkflowAgentExecutionHitl` subset) plus the task-level (human_input)
-  // approval wiring. Deps are the individual fields (DD-010): the bundle's
+  // approval wiring. Deps are the individual fields: the bundle's
   // ref must survive unrelated churn on `actions` (a lifecycle action's
   // isSubmitting flip), and the thread scopes it to gating cards, so a
   // decision's in-flight flip re-renders the gating card only.
@@ -380,7 +380,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   // The execution-level workspace panel (facets + virtual document
   // tabs). The controller lives at the owner level — the editors-store
   // SUBSCRIPTION stays inside ExecutionWorkspacePanel so tab churn re-renders
-  // only the panel subtree, never the streaming graph (DD-009/DD-010).
+  // only the panel subtree, never the streaming graph.
   const panel = useWorkflowExecutionPanel({
     // With the panel disabled the controller is pinned controlled-closed
     // and unobserved — airtight inertness, not just hidden UI: no intent
@@ -395,7 +395,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   // Center-column view (S8/S9). Both views stay mounted with the inactive
   // one CSS-hidden — the `collapsedPane` discipline — so toggling never
-  // remounts React Flow or drops the event stream (DD-009).
+  // remounts React Flow or drops the event stream.
   const [centerView, setCenterView] = useState<CenterView>(readStoredCenterView);
   const handleCenterViewChange = useCallback((view: CenterView) => {
     setCenterView(view);
@@ -627,7 +627,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           panel. Toggling goes through `collapsedPane` (CSS, not conditional
           structure) so both children keep stable tree positions and an
           open/close never remounts the React Flow graph or reconnects the
-          event stream (DD-009) — the same invariant the session viewer's
+          event stream — the same invariant the session viewer's
           panel split holds for its conversation. */}
       <ResizableSplit
         resizablePane="secondary"
@@ -653,7 +653,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         {/* Primary area: thread and graph, both mounted, inactive one
             CSS-hidden (stable tree positions — no React Flow remount, no
             stream reconnect, expanded cards survive a toggle). The thread
-            card is the single home for a task's detail (T06); the graph is
+            card is the single home for a task's detail; the graph is
             a passive topology visualization. */}
         <div
           data-center-view="thread"
@@ -664,12 +664,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             totalTasks={effectiveTotalTasks}
             isRunning={isRunning}
             onNavigateToAgentExecution={onNavigateToAgentExecution}
-            // In-card HITL (S10/T06/T07): all three gate kinds decide on
+            // In-card HITL: all three gate kinds decide on
             // the gating card — human_input on the card itself, child tool
             // approvals and file reviews inside the card's inline child
             // transcript (which streams them from the child directly).
             hitl={threadHitl}
-            // Full per-task I/O for the card bodies (T04) — an O(1)
+            // Full per-task I/O for the card bodies — an O(1)
             // per-card snapshot lookup.
             taskSnapshotsByName={taskSnapshotsByName}
             className="stg:h-full"
@@ -751,7 +751,7 @@ function ExecutionWorkspacePanel({
   readonly fileChangesState: UseWorkflowExecutionFileChangesReturn;
   readonly costSummary: DerivedCostSummary;
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
-  /** "Apply Fix" from the diagnosis document — host-routed (DD-004). */
+  /** "Apply Fix" from the diagnosis document — host-routed. */
   readonly onApplyFix?: (yaml: string) => void;
 }) {
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);

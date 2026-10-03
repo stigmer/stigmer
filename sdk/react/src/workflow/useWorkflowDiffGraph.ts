@@ -46,8 +46,6 @@ const EMPTY_EDGES: Edge[] = [];
  * 5. Apply dagre layout to merged graph
  * 6. Convert to React Flow elements
  * 7. Merge diff status into node/edge data
- *
- * @since T14 (AI-Assisted Workflow Creation)
  */
 export function useWorkflowDiffGraph(
   options: UseWorkflowDiffGraphOptions,

@@ -110,7 +110,7 @@ function makeClient(schedule: Schedule): MockClient {
       getByReference: vi.fn().mockResolvedValue(schedule),
       resume: vi.fn().mockResolvedValue(schedule),
       // The synchronous trigger answers with the run's real outcome
-      // (DD-017 D-6) — a started run by default.
+      // — a started run by default.
       trigger: vi.fn().mockResolvedValue(
         create(ScheduleTriggerResultSchema, {
           outcome: ScheduleRunOutcome.STARTED,
@@ -249,7 +249,7 @@ describe("ScheduleDetailView", () => {
     );
   });
 
-  it("offers 'Enable & run now' on a disabled schedule (DD-017 D-5)", async () => {
+  it("offers 'Enable & run now' on a disabled schedule", async () => {
     const client = makeClient(makeSchedule({ enabled: false }));
     renderView(client);
 
@@ -313,7 +313,7 @@ describe("ScheduleDetailView", () => {
     expect(screen.getByText("Refused")).toBeTruthy();
   });
 
-  it("navigates through the callback seams (DD-004)", async () => {
+  it("navigates through the callback seams", async () => {
     const onNavigateToAgent = vi.fn();
     const onNavigateToExecution = vi.fn();
     renderView(makeClient(makeSchedule()), {
@@ -676,7 +676,7 @@ describe("ScheduleDetailView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     // The server's message lands next to the field; the editor stays
-    // open so the draft is not lost (DD-006).
+    // open so the draft is not lost.
     await screen.findByText(/must have exactly 5 fields/);
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });

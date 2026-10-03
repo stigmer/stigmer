@@ -52,8 +52,6 @@ export interface UseWorkflowEditorReturn {
  *
  * @param initialYaml - The YAML string to initialize the editor with.
  * @param options - Editor configuration (organization slug).
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 export function useWorkflowEditor(
   initialYaml: string,

@@ -107,7 +107,7 @@ describe("ChannelConversationsDialog", () => {
     expect(screen.queryByText("Untitled conversation")).toBeNull();
   });
 
-  it("formats activity in the shared compact style, matching the inbox (F-04)", async () => {
+  it("formats activity in the shared compact style, matching the inbox", async () => {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60_000);
     const listByChannel = vi.fn().mockResolvedValue({
       entries: [

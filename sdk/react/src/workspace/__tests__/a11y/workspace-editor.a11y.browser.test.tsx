@@ -1,4 +1,4 @@
-// Accessibility audit (DD-22) — WorkspaceEditor (the Config-facet workspace
+// Accessibility audit — WorkspaceEditor (the Config-facet workspace
 // entry manager).
 //
 // Covers the Session 18 hardening here: aria-labeled git inputs and focus rings

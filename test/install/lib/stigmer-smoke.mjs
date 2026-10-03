@@ -250,7 +250,7 @@ export const TRUSTED_LOCAL_CONSOLE_CONFIG = Object.freeze({
 });
 
 /**
- * The console lane (DD-012): /config.json IS the trusted-local document,
+ * The console lane: /config.json IS the trusted-local document,
  * asserted whole (a missing or unexpected field refuses, not just a wrong
  * value), and / answers HTML. The status and content-type are checked before
  * the body is read so a 404 or an app-shell page is diagnosed as such, never as

@@ -15,7 +15,7 @@
 //    embedding: percentage chains pass through, and the container shrinks
 //    inside flex layouts so content scrolls internally.
 //
-// Like the a11y harness (DD-21), this renders against the SHIPPED
+// Like the a11y harness, this renders against the SHIPPED
 // stylesheet (`dist/styles.css`, built by `npm run build:libs`), so the
 // contract is verified on the artifact consumers actually load.
 

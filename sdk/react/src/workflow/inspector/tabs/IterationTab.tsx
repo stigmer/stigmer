@@ -26,8 +26,6 @@ const ERROR_POLICY_OPTIONS = [
  * - Batch size (when parallel)
  * - Error policy (on_error)
  * - Nested tasks (do block, read-only listing)
- *
- * @since T09 (Branch Management UX)
  */
 export const IterationTab = memo(function IterationTab({
   node,

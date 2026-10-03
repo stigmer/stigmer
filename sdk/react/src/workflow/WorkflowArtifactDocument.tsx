@@ -52,9 +52,9 @@ function isTextContentType(contentType: string): boolean {
  * bytes, CORS-safe for embedded hosts) only for text content types; binary
  * artifacts show an honest "not available for preview" body with Download as
  * the escape hatch. A `cacheKey` keeps reopening a recently-viewed tab
- * instant (DD-014).
+ * instant.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function WorkflowArtifactDocument({
   artifact,

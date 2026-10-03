@@ -226,7 +226,7 @@ describe("useConversation", () => {
     await waitFor(() => expect(result.current.isRefetching).toBe(false));
   });
 
-  it("keeps the row reference stable across polls that change nothing (DD-010)", async () => {
+  it("keeps the row reference stable across polls that change nothing", async () => {
     const getConversation = vi.fn().mockImplementation(() => Promise.resolve(row()));
     const { result } = renderHook(
       () => useConversation("ach_1", "15550001111", NO_POLL),

@@ -1,7 +1,5 @@
 /**
  * Inspector module — tabbed, mode-aware configuration surface.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 
 // Shell

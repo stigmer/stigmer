@@ -173,7 +173,7 @@ describe("ExplorerTree", () => {
     );
   });
 
-  it("shows a substrate-agnostic truncation banner from a notice entry (DD-11)", async () => {
+  it("shows a substrate-agnostic truncation banner from a notice entry", async () => {
     // A lister that signals an incomplete listing via a `notice` entry (as the
     // desktop and GitHub listers do). The advisory is stripped from the tree and
     // surfaced as a banner instead.

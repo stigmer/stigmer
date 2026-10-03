@@ -33,8 +33,6 @@ export interface NestedTaskListProps {
  *
  * Used by Fork branches, TryCatch try/catch blocks, and ForEach do blocks.
  * Supports reorder, removal, and click-to-drill-down.
- *
- * @since T09 (Branch Management UX)
  */
 export const NestedTaskList = memo(function NestedTaskList({
   tasks,

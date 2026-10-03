@@ -39,7 +39,7 @@ import { createContext, useContext } from "react";
  *
  * The default MUST stay `undefined`, never `null`: an explicit `null`
  * makes Base UI portals render NOWHERE, which breaks every popup for
- * consumers embedding components outside a provider (stigmer-cloud#271).
+ * consumers embedding components outside a provider.
  *
  * @internal Consumed by SDK components; not part of the public API.
  */

@@ -55,7 +55,7 @@ export interface ConversationMediaAttachmentProps {
  * not a reuse of it: that row renders storage-key-addressed artifacts of
  * an execution the viewer owns, while this one renders
  * conversation-viewer-scoped media addressed by timeline position — the
- * two read paths have different trust models (DD-001 D4) and different
+ * two read paths have different trust models and different
  * bubble treatments (chat thumbnail vs. attachment chip row).
  */
 export function ConversationMediaAttachment({

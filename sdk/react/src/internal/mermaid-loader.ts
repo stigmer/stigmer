@@ -5,7 +5,7 @@
  * tests can mock the load outcome (resolve, reject) without touching module
  * registries.
  *
- * `mermaid` is an optional peer dependency (DD-013): it is large, so it must
+ * `mermaid` is an optional peer dependency: it is large, so it must
  * never sit on the synchronous bundle path, and a host that has not installed
  * it must degrade gracefully (the caller falls back to a code block).
  */

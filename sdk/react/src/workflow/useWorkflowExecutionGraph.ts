@@ -226,7 +226,7 @@ export function useWorkflowExecutionGraph(
     ? options.taskStates
     : ownStream.taskStates;
 
-  // ── Merge execution state into nodes (T04) + fork progress (T06) + agent activity ──
+  // ── Merge execution state into nodes + fork progress + agent activity ──
 
   const pendingApprovals = execution?.status?.pendingApprovals;
 
@@ -295,7 +295,7 @@ export function useWorkflowExecutionGraph(
     });
   }, [baseElements, taskStates, pendingApprovals, nodesDraggable]);
 
-  // ── Merge execution state into edges (T06) ──────────────────────
+  // ── Merge execution state into edges ──────────────────────
 
   const edgesWithExecution = useMemo<Edge[]>(() => {
     if (!baseElements || !graphModel) return [];

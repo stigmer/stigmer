@@ -1,4 +1,4 @@
-// Scroll-on-send wiring pins for MessageThread (stigmer-cloud#267): the
+// Scroll-on-send wiring pins for MessageThread: the
 // send moment is the optimistic message's empty→present transition, and it
 // must pin the thread exactly once — default-ON, opt-out via
 // `scrollOnSend={false}` (the ratified DD-011 divergence). The REAL scroll
@@ -55,7 +55,7 @@ function makeExecution(id: string, message: string): AgentExecution {
   return exec;
 }
 
-describe("MessageThread — scroll-on-send (stigmer-cloud#267)", () => {
+describe("MessageThread — scroll-on-send", () => {
   it("pins the thread exactly once when the optimistic message appears (default-on)", () => {
     const executions = [makeExecution("aex_1", "earlier turn")];
     const { rerender } = render(

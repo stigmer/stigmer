@@ -23,7 +23,7 @@ import { OIDC_ISSUER, OIDC_STACK } from "../../fixtures/oidc";
 const API_PORT = process.env.STIGMER_E2E_API_PORT ?? "7234";
 
 // The old org gate polled for a personal organization for 10 s before it
-// showed the form (Q-CL-5). The form must appear well inside that.
+// showed the form. The form must appear well inside that.
 const NO_DEAD_WAIT_MS = 8_000;
 
 test.describe("console login against an authenticated self-hosted server", () => {

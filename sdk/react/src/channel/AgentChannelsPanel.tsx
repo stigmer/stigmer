@@ -98,7 +98,7 @@ export interface AgentChannelsPanelProps {
  * refetch-after-mutation — hosts render it with just the agent (plus the
  * external-connect delegate where popups are unavailable).
  *
- * This is an SDK component (DD-001) — embeddable by platform builders.
+ * This is an SDK component — embeddable by platform builders.
  */
 export function AgentChannelsPanel({
   agent,
@@ -567,7 +567,7 @@ function ChannelCard({
             )}
           {/* The menu always renders: everyone who can see the card holds
               can_view on the channel (the FGA-filtered list), which is
-              exactly the bar for viewing its conversations (DD-012). */}
+              exactly the bar for viewing its conversations. */}
           <ActionMenu>
             <ActionMenu.Trigger
               aria-label={`Actions for ${meta?.name || meta?.slug}`}

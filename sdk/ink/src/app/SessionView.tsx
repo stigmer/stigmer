@@ -181,7 +181,7 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
 
       <UsageWidget executions={allExecutions} />
 
-      {/* Mid-run live capture (DD-32): the transient "N files changing…" strip
+      {/* Mid-run live capture: the transient "N files changing…" strip
           for a still-running turn, covering shell-made changes with no tool row.
           Mutually exclusive with the FileReviewPrompt below — progress shows
           while CAPTURING, the prompt once AWAITING_REVIEW — so it hands off

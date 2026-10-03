@@ -32,7 +32,7 @@
 //   - trusted-local (requiresAuthentication false): whoAmI answers the
 //     operator's account (A2: ensured at boot, create-if-absent);
 //     provisionMyAccount is the idempotent early return.
-//   - the OIDC lane (Q-IA-2, Q-IA-10): on a target that can spawn a
+//   - the OIDC lane: on a target that can spawn a
 //     sibling server (spawnSibling), one server boots in the OIDC posture
 //     against the harness's local issuer (test/support/src/local-oidc-issuer.ts):
 //     an unprovisioned subject is idp-shaped (whoAmI NOT_FOUND with the
@@ -335,7 +335,7 @@ describe.skipIf(capabilities.requiresAuthentication)(
   },
 );
 
-describe("IdentityAccount conformance — the OIDC lane on a sibling server (Q-IA-2, Q-IA-10)", () => {
+describe("IdentityAccount conformance — the OIDC lane on a sibling server", () => {
   let issuer: LocalOidcIssuer | undefined;
   let sibling: SiblingServer | undefined;
 

@@ -1,5 +1,5 @@
 // Content-fetch capability — the byte-reading sibling of WorkspaceFileLister.
-// Domain: workspace. Injected by the host (DD-004) so the SDK never learns how
+// Domain: workspace. Injected by the host so the SDK never learns how
 // bytes are fetched: GitHub Contents/blob on web, Tauri fs on desktop.
 
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";

@@ -27,7 +27,7 @@ export interface MemoryProposalCardBodyProps {
 }
 
 /**
- * The in-session consent surface for a memory proposal (DD-005 D4): the
+ * The in-session consent surface for a memory proposal: the
  * body of a `remember` tool call's row in the message thread, rendering
  * the proposed fact verbatim with one-click Confirm / Reject actions.
  *

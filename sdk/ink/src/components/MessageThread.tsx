@@ -139,7 +139,7 @@ function buildExecutionSegment(
     // execution and folds the durable ledger for a terminal one, so a settled
     // record renders for both. Appended at the segment tail (the terminal
     // analogue of the web's last-stamped-row anchor); this is the only trace a
-    // shell-made set — which stamps no rows — leaves behind (DD-27 D2).
+    // shell-made set — which stamps no rows — leaves behind.
     for (const set of displayFileChangeSets(exec.status)) {
       if (!isSettledSet(set.status) || set.changes.length === 0) continue;
       seg.push({ kind: "file-review-record", set, key: `e${ei}-frr-${set.id}` });

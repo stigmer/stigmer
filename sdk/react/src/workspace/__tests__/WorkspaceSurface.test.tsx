@@ -350,7 +350,7 @@ describe("WorkspaceSurface extraViews", () => {
 });
 
 // ---------------------------------------------------------------------------
-// builtInViews opt-in (DD-011) — hosts without a workspace file source scope
+// builtInViews opt-in — hosts without a workspace file source scope
 // the rail to their injected facets (the workflow execution panel today).
 // ---------------------------------------------------------------------------
 

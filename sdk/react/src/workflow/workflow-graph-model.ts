@@ -10,8 +10,6 @@ import type { TopologyNodeCategory } from "./useWorkflowTopology.js";
  * - Render as React Flow elements (`toReactFlowElements`)
  * - Serialize back to YAML (`graphToYaml`)
  * - Save via the SDK (`graphToWorkflowInput`)
- *
- * @since T15 (Visual Canvas Editor)
  */
 export interface WorkflowGraphModel {
   readonly document: WorkflowGraphDocument;

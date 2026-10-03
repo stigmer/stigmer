@@ -38,8 +38,6 @@ export interface UseAgentExecutionSummaryReturn {
  * Cost is intentionally excluded from this response — the dashboard
  * sources cost from `useOrgUsageReport` (billing source of truth) to
  * prevent double-counting. See AD-DASH-005.
- *
- * @since Unified Platform Dashboard
  */
 export function useAgentExecutionSummary(
   options: UseAgentExecutionSummaryOptions,

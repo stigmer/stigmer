@@ -48,7 +48,7 @@
 //     row (handlers.ts L111-127 checks the resource kind and the role,
 //     never the principal);
 //   - the three system RPCs are PERMISSION_DENIED for a wire user with the
-//     annotation's copy (Q-OR-7);
+//     annotation's copy;
 //   - checkMyPermission: can_view_access on the organization is true for
 //     its owner; a platform permission is false for an ordinary caller in
 //     every edition (open source: an enterprise-tiered kind is never held,
@@ -436,7 +436,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     expect(error.rawMessage).toBe(noGrantableRolesMessage("identity_account"));
   });
 
-  it("[rpc:IamPolicyCommandController.create] a grant whose principal is another organization is INVALID_ARGUMENT with the principal copy, and links nothing (Q-S9-2)", async () => {
+  it("[rpc:IamPolicyCommandController.create] a grant whose principal is another organization is INVALID_ARGUMENT with the principal copy, and links nothing", async () => {
     // The caller owns `org`, so position 1 passes in every edition; what
     // is refused is the grantee. Were the row written, findScopeTuple
     // would read `other` as org's structural parent and the Members page's
@@ -473,7 +473,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
   });
 });
 
-describe("IamPolicy conformance — the three system RPCs refuse a wire user (Q-OR-7)", () => {
+describe("IamPolicy conformance — the three system RPCs refuse a wire user", () => {
   it.each([
     [
       "[rpc:IamPolicyCommandController.bootstrapPolicy] bootstrapPolicy",
@@ -521,7 +521,7 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user (Q-
   );
 });
 
-describe("IamPolicy conformance — checkMyPermission has one definition (Q-OR-8)", () => {
+describe("IamPolicy conformance — checkMyPermission has one definition", () => {
   it("[rpc:IamPolicyQueryController.checkMyPermission] can_view_access on an organization the caller owns is true", async () => {
     const org = await createOwnedOrganization();
     const result = await clients.iamPolicyQuery.checkMyPermission({
@@ -625,13 +625,13 @@ describe("IamPolicy conformance — the principal-trust rule runs before any eng
   );
 });
 
-describe("IamPolicy conformance — a kind string that names no kind is refused before anything else (Q-S5-2, Q-S6-1)", () => {
+describe("IamPolicy conformance — a kind string that names no kind is refused before anything else", () => {
   // `Organization` is the kind_meta spelling and the realistic typo; the
   // match is exact by doctrine (kindByEnumName), because a lenient match
   // would let two spellings mint two rows for one grant. Every arm targets
   // an organization the caller OWNS, so the refusal measured is the kind's
   // and never an authorization answer. On the annotated lanes the refusal
-  // precedes position 1 (Q-S6-1); on the skip lanes it precedes the engine.
+  // precedes position 1; on the skip lanes it precedes the engine.
   const GARBAGE_KIND = "Organization";
   const GARBAGE_PRINCIPAL_KIND = "People";
   const me = () =>
@@ -801,7 +801,7 @@ describe.skipIf(capabilities.perResourceGrants)(
       expect(error.rawMessage).toBe(PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE);
     });
 
-    it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_grant_access) on an agent is false — the console hides the grant controls (Q-OR-5)", async () => {
+    it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_grant_access) on an agent is false — the console hides the grant controls", async () => {
       const result = await clients.iamPolicyQuery.checkMyPermission({
         resource: ref("agent", ABSENT_AGENT),
         relation: "can_grant_access",
@@ -1044,7 +1044,7 @@ describe.skipIf(!capabilities.authorizationQueries)(
   },
 );
 
-describe("IamPolicy conformance — what only an enforcing Authorizer can show (Q-S6-2)", () => {
+describe("IamPolicy conformance — what only an enforcing Authorizer can show", () => {
   // On the target's ENFORCING LANE (targets/target.ts): the cloud's primary,
   // and on the managed local targets an open-source sibling in the OIDC
   // posture, whose built-in Authorizer answers these arms — so the outsider
@@ -1401,7 +1401,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show (
   });
 });
 
-describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-OR-6)", () => {
+describe("IamPolicy conformance — the membership rules on an OIDC sibling", () => {
   const OPERATOR_EMAIL = "operator@conformance.example.com";
   let issuer: LocalOidcIssuer | undefined;
   let sibling: SiblingServer | undefined;
@@ -1415,7 +1415,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
         STIGMER_OIDC_ISSUER: issuer.issuer,
         STIGMER_OIDC_AUDIENCE: issuer.audience,
         // The operator-email rule needs a subject; under the OIDC posture
-        // no operator account is ensured (20260911.11 A2), so this only
+        // no operator account is ensured, so this only
         // names who becomes admin on arrival.
         STIGMER_OPERATOR_EMAIL: OPERATOR_EMAIL,
       },
@@ -1483,7 +1483,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
 
     // Not yet provisioned: the verifier admits the subject idp-shaped, the
     // permissive Authorizer lets it create, and the lifecycle's guard
-    // writes nothing because no account exists (Q-OR-6a).
+    // writes nothing because no account exists.
     const org = await createOwnedOrganization(
       founder.asPerson,
       siblingFixtures,
@@ -1562,10 +1562,10 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
     expect(await rolesOf(founderId, org, founder.asPerson)).toEqual(["owner"]);
   });
 
-  it("[rpc:IdentityAccountCommandController.provisionMyAccount] a stranger who provisions while the founder is still idp-shaped is a member, never the admin of a row-less organization (Q-S4-7)", async (ctx) => {
+  it("[rpc:IdentityAccountCommandController.provisionMyAccount] a stranger who provisions while the founder is still idp-shaped is a member, never the admin of a row-less organization", async (ctx) => {
     const lane = siblingOrSkip(ctx);
     // The organization exists with ZERO role rows: its founder created it
-    // before provisioning, so the lifecycle wrote nothing (Q-OR-6a). The
+    // before provisioning, so the lifecycle wrote nothing. The
     // first-caller arm must not hand it to whoever provisions next — the
     // founder's creator stamp is a PERSON's, and a person other than the
     // caller having created the organization is what keeps arm 4 closed.
@@ -1613,7 +1613,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling (Q-O
   it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] a real person's Members row carries the name the issuer's userinfo gave — first and last, the cloud's precedence", async (ctx) => {
     const lane = siblingOrSkip(ctx);
     // The shared arm above sees the trusted-local operator, whose name
-    // lives in metadata.name (Q-S5-4). This is the OIDC person: their
+    // lives in metadata.name. This is the OIDC person: their
     // first and last names come from /userinfo at provisioning
     // (20260911.11), and the display resolver renders `first last` ahead
     // of everything else — the row the cloud's Members page shows.

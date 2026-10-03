@@ -160,7 +160,7 @@ describe("NewSessionViewer — auto-approve placement (#816 rework)", () => {
 describe("NewSessionViewer — composer stays centered", () => {
   // The composer's wrapper is the probe's parent (wrapper > h1 + composer +
   // footer). `my-auto` is unconditional safe-centering; the old `my-6`
-  // top-anchor that appeared once context was attached is gone (DD-16).
+  // top-anchor that appeared once context was attached is gone.
   const composerWrapper = () => screen.getByTestId("composer-probe").parentElement;
 
   it("centers the composer with zero attached context", () => {

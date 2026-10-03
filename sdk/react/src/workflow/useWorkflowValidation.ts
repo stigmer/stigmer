@@ -36,8 +36,6 @@ const VALID_TASK_KINDS = new Set([
  *
  * @param yaml - The current YAML content string.
  * @param registry - The task kind registry for schema validation.
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 export function useWorkflowValidation(
   yaml: string,

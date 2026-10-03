@@ -190,7 +190,7 @@ export function useAutoScroll(): UseAutoScrollReturn {
 
 /**
  * Pins the thread to its latest content whenever `signal` changes — the
- * scroll-on-send idiom (stigmer-cloud#267): each surface increments a
+ * scroll-on-send idiom: each surface increments a
  * monotonic counter at its own "the reader sent something" moment (an
  * optimistic message appearing, a conversation reply dispatched, a HITL
  * decision submitted), and the pin re-engages follow mode so the resulting

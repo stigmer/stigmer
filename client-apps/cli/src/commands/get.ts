@@ -3,7 +3,7 @@
 // Thin handler: route the two non-registry special cases (executions, addressed
 // by `aex_`/`wex_` ID; workflow version history/retrieval) first, then the
 // registry-driven standard path. Heavy modules (backend client, SDK schemas)
-// are dynamically imported inside the action so `--help` stays fast (DD-001).
+// are dynamically imported inside the action so `--help` stays fast.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";

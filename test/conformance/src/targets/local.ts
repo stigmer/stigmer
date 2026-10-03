@@ -92,11 +92,11 @@ export class LocalTarget implements TargetProfile {
     // OIDC lane is driven through a sibling server (spawnSibling below).
     directLogin: false,
     // No unit composes the federation capability in the empty composition —
-    // the suite pins the four UNIMPLEMENTED refusals here (20260911.11).
+    // the suite pins the four UNIMPLEMENTED refusals here.
     federatedIdentityAccounts: false,
     // The empty composition grants on organizations only and composes no
     // authorization query engine — the suite pins both edition refusals
-    // here (20260913.01).
+    // here.
     perResourceGrants: false,
     authorizationQueries: false,
   };

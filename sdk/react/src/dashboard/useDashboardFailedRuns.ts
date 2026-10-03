@@ -31,8 +31,6 @@ export interface UseDashboardFailedRunsReturn {
  * entries, and interleaves them by timestamp (newest first).
  *
  * Returns at most 5 total entries to keep the widget compact.
- *
- * @since Unified Platform Dashboard
  */
 export function useDashboardFailedRuns(
   org: string | null | undefined,

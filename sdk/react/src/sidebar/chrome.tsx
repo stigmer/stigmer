@@ -38,7 +38,7 @@ export interface SidebarChromeProps {
   /**
    * Footer content — typically the host app's `UserMenu` wrapper, which
    * bridges auth, theming, and routing. A slot rather than a built-in
-   * because every host wires those systems differently (DD-004).
+   * because every host wires those systems differently.
    */
   readonly footer: ReactNode;
   readonly children: ReactNode;

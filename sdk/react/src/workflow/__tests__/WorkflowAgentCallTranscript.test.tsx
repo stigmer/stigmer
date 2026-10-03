@@ -203,7 +203,7 @@ describe("WorkflowAgentCallTranscript", () => {
     expect(root.className).not.toContain("stg:h-full");
   });
 
-  it("is read-only without hitl: no thread handlers, no records, no dock (DD-011)", () => {
+  it("is read-only without hitl: no thread handlers, no records, no dock", () => {
     mockUseLiveAgentExecution.mockReturnValue(
       hookState({
         execution: executionFixture(
@@ -314,7 +314,7 @@ describe("WorkflowAgentCallTranscript", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Viewport-gated streaming (T07)
+// Viewport-gated streaming
 // ---------------------------------------------------------------------------
 
 describe("WorkflowAgentCallTranscript — viewport gate", () => {
@@ -488,7 +488,7 @@ describe("WorkflowAgentCallTranscript — HITL wiring", () => {
 
     // Same refs (the viewer's memoized bundle) → memo bails, no thread
     // render. This is what keeps unrelated viewer churn out of every
-    // mounted transcript (DD-010).
+    // mounted transcript.
     rerender(<WorkflowAgentCallTranscript {...props} />);
     expect(mockMessageThread.mock.calls.length).toBe(rendersAfterMount);
 

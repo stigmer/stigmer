@@ -24,7 +24,7 @@ import type {
  * from {@link WorkspaceListing.files} and never enter {@link WorkspaceListing.tree};
  * their presence is collapsed into {@link WorkspaceListing.truncated} so both the
  * accordion and search render one honest "results may be incomplete" banner
- * instead of a fake, clickable row (DD-11).
+ * instead of a fake, clickable row.
  */
 export interface WorkspaceListing {
   /** Openable entries (files and directories); advisory notices removed. */

@@ -2,7 +2,7 @@
 // registry-supported resource kind, built on the @stigmer/sdk manifest
 // engine (parseManifest / serializeManifest / stigmer.manifest).
 //
-// Headless-first (DD-003): the hooks are independently importable; the
+// Headless-first: the hooks are independently importable; the
 // dialogs compose them with the shared YamlEditor.
 
 export { YamlEditor } from "./YamlEditor.js";

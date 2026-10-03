@@ -179,7 +179,7 @@ describe("CursorAccountsConsole", () => {
         accountId: "acc-2",
         displayName: "empty team",
         memberKeys: [],
-        // No org assignment = shared-pool account (DD-008): the class is
+        // No org assignment = shared-pool account: the class is
         // derived from orgs, never from the deprecated default flag.
         orgs: [],
       }),

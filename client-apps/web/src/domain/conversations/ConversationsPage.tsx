@@ -70,7 +70,7 @@ export function ConversationsPage() {
                     id: selected.agentChannelId,
                     org,
                     // The dialog's subtitle names the channel — the
-                    // scope every grant covers (F-11).
+                    // scope every grant covers.
                     name: channel?.metadata?.name || channel?.metadata?.slug,
                   }}
                   label="Channel access"

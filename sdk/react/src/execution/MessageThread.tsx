@@ -87,7 +87,7 @@ const EMPTY_APPROVAL_ERRORS: ReadonlyMap<string, Error> = new Map();
  *
  * Define slot components at module level (or memoize them). The thread's
  * rows rely on `React.memo` + structural sharing to skip re-renders during
- * streaming (DD-009/DD-010); a slot component recreated on every host
+ * streaming; a slot component recreated on every host
  * render defeats that for its rows.
  */
 export interface MessageThreadSlots {
@@ -117,7 +117,7 @@ export interface MessageThreadSlots {
   readonly SetupProgress?: ComponentType<SetupProgressProps>;
   /**
    * The retriever transparency card at a selection-active execution's
-   * segment start — "Recalled N of M memories" (DD-008 D5).
+   * segment start — "Recalled N of M memories".
    */
   readonly RecalledMemoriesCard?: ComponentType<RecalledMemoriesCardProps>;
   /**
@@ -257,7 +257,7 @@ export interface MessageThreadProps {
    * surface is the composer-docked {@link FileReviewDock}, which cannot scroll
    * out of view. The stamped rows' badges carry the pending state in-thread.
    *
-   * Opt-in with a backward-compatible default (DD-011); `SessionViewer`
+   * Opt-in with a backward-compatible default; `SessionViewer`
    * enables it.
    *
    * @default false
@@ -366,7 +366,7 @@ export interface MessageThreadProps {
   /**
    * Component overrides for the thread's chrome — see
    * {@link MessageThreadSlots}. Omitted slots render the built-ins;
-   * omitting the prop entirely changes nothing (DD-011).
+   * omitting the prop entirely changes nothing.
    */
   readonly slots?: MessageThreadSlots;
 }
@@ -894,7 +894,7 @@ export function buildThreadItems(
       // satisfy the backend's append-only guard. Filtering them here keeps a
       // message whose tool calls are ALL collapsed from emitting an empty group.
       // Preserve the original array reference when nothing is collapsed (the
-      // common case) so structural sharing / memoization (T04) is not defeated by
+      // common case) so structural sharing / memoization is not defeated by
       // a fresh array on every build.
       const renderableToolCalls =
         msg.type === MessageType.MESSAGE_AI && msg.toolCalls.some(isCollapsedToolCall)
@@ -1236,7 +1236,7 @@ export function MessageThread({
   const editableActiveTurn = onEditMessage != null;
   // A streaming plan is collapsed behind its live card only when the host can
   // open the plan document surface — a panel-less host (no onOpenPlan) keeps
-  // the plan streaming inline, where it remains readable (DD-011).
+  // the plan streaming inline, where it remains readable.
   const collapseStreamingPlan = onOpenPlan != null;
   const items = useMemo(
     () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments),
@@ -1245,7 +1245,7 @@ export function MessageThread({
 
   useKeyStability(items);
 
-  // Scroll-on-send (stigmer-cloud#267): the send moment is the optimistic
+  // Scroll-on-send: the send moment is the optimistic
   // message's empty→present transition — the one signal both render paths
   // share. A monotonic counter (not the message text) carries it down, so
   // repeated sends of identical text still pin and a retry of a FAILED send

@@ -164,7 +164,7 @@ describe("useConversationTimeline", () => {
     expect(result.current.items).toHaveLength(1);
   });
 
-  it("keeps item and list references stable across polls that change nothing (DD-010)", async () => {
+  it("keeps item and list references stable across polls that change nothing", async () => {
     const getTimeline = vi.fn().mockImplementation(() =>
       Promise.resolve({
         // Fresh-but-equal proto objects every call, like a real poll.

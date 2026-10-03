@@ -26,7 +26,7 @@ export interface FileReferenceChipListProps {
  * attachments zone. Usable standalone by platform builders who compose
  * their own file-reference UI (headless-first, DD-003).
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  *
  * @example
  * ```tsx

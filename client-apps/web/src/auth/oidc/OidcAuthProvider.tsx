@@ -17,7 +17,7 @@ import {
 } from "./sso-session";
 
 const CALLBACK_PATH = "/auth/callback";
-/** The signed-out landing — the console's own sign-in page (Q-CL-9). */
+/** The signed-out landing — the console's own sign-in page. */
 const LOGIN_PATH = "/login";
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 
@@ -183,7 +183,7 @@ export default function OidcAuthProvider({
     managerRef.current!.signinRedirect();
   }, []);
 
-  // Sign-out speaks only the OIDC standard (20260913.02 Q-CL-4, Q-CL-9).
+  // Sign-out speaks only the OIDC standard.
   // An issuer that publishes `end_session_endpoint` (Auth0, Keycloak,
   // Okta) gets RP-initiated logout and sends the browser back to
   // `post_logout_redirect_uri` — /login, the signed-out landing. An issuer

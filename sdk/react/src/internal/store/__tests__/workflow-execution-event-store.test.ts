@@ -337,7 +337,7 @@ describe("WorkflowExecutionEventStore", () => {
   // state — the thread card's in-place review surface reads them, so the
   // capture must be reference-stable (structural sharing) and survive the
   // task's settlement, while a restart resets it (a new attempt re-emits).
-  describe("deriveTaskStates — human_input gate capture (T06)", () => {
+  describe("deriveTaskStates — human_input gate capture", () => {
     it("captures the approval_requested payload, reference-stable across unrelated appends", () => {
       const store = new WorkflowExecutionEventStore();
       store.appendEvents([
@@ -574,7 +574,7 @@ describe("WorkflowExecutionEventStore", () => {
   // thread cards — the store must capture them, reset them correctly on
   // retries, and keep them REFERENCE-STABLE across re-derivations (the
   // projection's structural sharing compares them by identity).
-  describe("I/O summary capture (T04)", () => {
+  describe("I/O summary capture", () => {
     it("captures input_summary from task_started and output_summary from task_completed", () => {
       const store = new WorkflowExecutionEventStore();
       store.appendEvents([

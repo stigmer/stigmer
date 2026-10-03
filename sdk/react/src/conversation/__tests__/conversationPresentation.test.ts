@@ -181,7 +181,7 @@ describe("conversationLabelOf", () => {
 });
 
 describe("conversationContactOf", () => {
-  it("surfaces the WhatsApp number a display name would otherwise hide (F-17)", () => {
+  it("surfaces the WhatsApp number a display name would otherwise hide", () => {
     const conversation = create(ChannelConversationSchema, {
       conversationKey: "15550001111",
       displayName: "Pat",

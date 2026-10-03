@@ -7,7 +7,7 @@ import { useSidebarOpen } from "./use-layout-state";
 
 /**
  * Settings-zone sidebar — a thin wrapper over the SDK's
- * {@link SettingsSidebar} (DD-002): this file only bridges React Router
+ * {@link SettingsSidebar}: this file only bridges React Router
  * and the app's user menu into the shared chrome.
  */
 export function ManagementSidebar({

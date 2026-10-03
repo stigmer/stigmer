@@ -94,7 +94,7 @@ const defaultEdgeOptions = {
 
 /**
  * Read-only execution graph canvas for workflow executions — a PASSIVE
- * topology visualization (T06): status colors, live overlays, pan/zoom,
+ * topology visualization: status colors, live overlays, pan/zoom,
  * and follow-the-run camera, with no node selection or click actions. A
  * task's detail lives on its thread card, the single home for task data.
  *
@@ -103,7 +103,7 @@ const defaultEdgeOptions = {
  * overlays instead of editing affordances.
  *
  * Designed for embedding in both the Stigmer Console and third-party
- * dashboards — no routing, auth, or app-shell dependencies (DD-004).
+ * dashboards — no routing, auth, or app-shell dependencies.
  *
  * @example
  * ```tsx

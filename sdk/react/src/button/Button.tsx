@@ -62,10 +62,10 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
  * `type` defaults to `"button"` so a button inside a form never submits
  * it accidentally.
  *
- * All visual properties flow through `--stgm-*` design tokens (DD-005);
+ * All visual properties flow through `--stgm-*` design tokens;
  * hover states use dedicated hover tokens, never opacity modifiers.
  *
- * This is an SDK component (DD-001) — embeddable by platform builders.
+ * This is an SDK component — embeddable by platform builders.
  *
  * @example
  * ```tsx

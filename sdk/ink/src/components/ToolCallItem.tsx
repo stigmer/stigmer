@@ -182,7 +182,7 @@ function describeResultView(view: ToolResultView): string | null {
       return `${preview}[full output offloaded${size}] ${view.storageKey}`;
     }
     case "memoryProposal":
-      // The CLI is not a consent surface (DD-005 D4): state the proposal
+      // The CLI is not a consent surface: state the proposal
       // honestly and point at where the decision happens.
       return `proposed: "${truncate(view.fact)}" — awaiting your decision (confirm or reject in the console's Memory page)`;
     case "error":

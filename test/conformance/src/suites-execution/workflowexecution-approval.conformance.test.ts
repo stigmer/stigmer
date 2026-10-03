@@ -3,7 +3,7 @@
 // the approval gate a workflow `human_input` task goes through.
 //
 // This is the workflow analogue of the AgentExecution tool-approval suite, but a
-// genuinely different machine, so it is a separate file (DD-011):
+// genuinely different machine, so it is a separate file:
 //   - AgentExecution gates at the *execution* level (EXECUTION_WAITING_FOR_APPROVAL)
 //     and resolves a DB-backed pending_approvals projection via submitApproval.
 //   - WorkflowExecution has no execution-level waiting phase. A `human_input` task
@@ -52,7 +52,7 @@
 //   on a non-signalable (terminal) execution -> FailedPrecondition. (This tightens
 //   beyond the Go integration tests, which only assert that an error is returned.)
 //
-// Deliberately NOT asserted (DD-011): idempotency of a re-submit. Unlike the
+// Deliberately NOT asserted: idempotency of a re-submit. Unlike the
 // agent DB-projection gate, this gate resolves via a fire-and-forget Temporal
 // signal the handler does not dedupe, so a re-submit is timing-dependent (it
 // either races into FailedPrecondition once terminal, or sends a duplicate signal

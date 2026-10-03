@@ -34,12 +34,12 @@ interface ApiKeysPageProps {
  * area. Consumed by `quickstart-tour` (beat 0, reveal) and `api-key-setup`
  * (the whole creation flow).
  *
- * Depicts `ApiKeysSection` faithfully per phase (DD-004):
+ * Depicts `ApiKeysSection` faithfully per phase:
  *
  * - **idle**: heading + "+ New API key" + description + key list. The
  *   create control is chrome, not the real button — the real one is a
  *   `useState` flip inside `ApiKeysSection`, unreachable without
- *   live-driving (DD-006) — but it copies the shipped rendering: plain
+ *   live-driving — but it copies the shipped rendering: plain
  *   text, `text-primary`, shown only in this phase.
  * - **creating**: the button hides (as shipped), the real
  *   `CreateApiKeyForm` renders in its bordered card above the list.
@@ -57,8 +57,8 @@ interface ApiKeysPageProps {
  *
  * Real components sit under `inert`: the form has a live submit path, the
  * alert a Copy button with a clipboard side effect, the list panel a fetch
- * — none reachable by a viewer mid-playback (DD-006). Chrome is plain CSS
- * on `--stgm-*` tokens (DD-003); the real components keep their own
+ * — none reachable by a viewer mid-playback. Chrome is plain CSS
+ * on `--stgm-*` tokens; the real components keep their own
  * compiled styles.
  */
 export function ApiKeysPage({ state }: ApiKeysPageProps) {

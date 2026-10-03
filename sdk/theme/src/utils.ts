@@ -23,7 +23,7 @@ export const UTILITY_PREFIX = "stg:";
  * CSS property, so they must resolve as the same conflict group even though
  * their class names differ. Without this hook, both classes would survive the
  * merge and the SDK's higher cascade layer would silently win, breaking the
- * documented override channel (DD-019).
+ * documented override channel.
  */
 const twMergeWithPrefix = extendTailwindMerge({
   experimentalParseClassName: ({ className, parseClassName }) =>

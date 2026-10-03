@@ -59,7 +59,7 @@ export interface UseConversationMediaUrlOptions {
  * hour); minting at view time keeps it always valid, the
  * `useArtifactDownloadUrl` rationale.
  *
- * The URL is cached cross-mount by the item's full address (DD-014), so
+ * The URL is cached cross-mount by the item's full address, so
  * the 5s timeline poll's re-renders and a lightbox opened from a
  * thumbnail reuse the minted URL instead of re-hitting the API.
  *

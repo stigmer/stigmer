@@ -1,4 +1,4 @@
-// Direct-handler authorization conformance (C2 Stage 4, 20260827.10).
+// Direct-handler authorization conformance.
 //
 // The config-annotated methods served by DIRECT handlers evaluate their
 // annotations since Stage 4 (docs/authorization-coverage.md carries the

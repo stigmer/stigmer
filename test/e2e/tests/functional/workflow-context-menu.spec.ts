@@ -7,7 +7,7 @@ import {
   getEditorCanvas,
 } from "../../helpers/workflow-canvas";
 
-test.describe("Workflow context menus and keyboard shortcuts (T11)", () => {
+test.describe("Workflow context menus and keyboard shortcuts", () => {
   // -------------------------------------------------------------------------
   // Node context menu
   // -------------------------------------------------------------------------

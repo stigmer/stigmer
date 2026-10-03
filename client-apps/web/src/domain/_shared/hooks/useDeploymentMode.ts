@@ -9,7 +9,7 @@ export type { DeploymentMode };
 /**
  * The deployment mode as the console knows it right now.
  *
- * `resolved` tells the guess from the answer (20260913.02): until
+ * `resolved` tells the guess from the answer: until
  * `getServerInfo` has replied, `mode` is a hostname guess — "local" for
  * localhost, "cloud" for any other host, so "cloud" for every self-host.
  * A surface that must not render the wrong shape (the sign-in page, whose

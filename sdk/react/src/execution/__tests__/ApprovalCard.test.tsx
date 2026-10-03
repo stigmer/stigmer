@@ -82,7 +82,7 @@ describe("ApprovalCard chrome", () => {
     expect(occurrences).toBe(1);
   });
 
-  it("states on a shell gate that the command's files are covered by the approval (DD-28)", () => {
+  it("states on a shell gate that the command's files are covered by the approval", () => {
     // Consent at grant time: approving the command covers its file effects
     // (the approved-command auto-keep), so the card says so up front — the user
     // never discovers a second gate they weren't told about, nor gets one.

@@ -51,8 +51,6 @@ export interface InspectorShellProps {
  *
  * In design mode, renders tabbed configuration forms. Sentinel and edge
  * selections render dedicated lightweight inspectors.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const InspectorShell = memo(function InspectorShell({
   selection,

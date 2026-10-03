@@ -2,7 +2,7 @@
 // workflow execution) and stream it. Thin handler: parse flags, resolve the
 // reference (smart 0/1/2-arg dispatch mirroring Go's run.go + run_picker.go),
 // then delegate to the shared run stack. Heavy modules (backend client, Ink,
-// the differ) load lazily inside the action so `--help` stays fast (DD-001).
+// the differ) load lazily inside the action so `--help` stays fast.
 //
 // No reference at all is the built-in assistant: `stigmer run -m "..."` runs
 // it at once (the person said what to say, so there is nothing to pick), and

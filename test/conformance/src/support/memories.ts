@@ -32,7 +32,7 @@ export const MEMORY_API_VERSION = "agentic.stigmer.ai/v1";
 export const MEMORY_KIND = "Memory";
 
 // The server-enforced per-subject-per-org record ceiling, all lifecycle
-// states counted (DD-006 D5).
+// states counted.
 export const MEMORY_CAP = 100;
 
 // ─── Contract copy (byte-pinned in both editions' unit tests) ──────────────
@@ -43,7 +43,7 @@ export const MEMORY_FULL_MESSAGE =
   "memory is full — review and delete existing memories";
 
 // Refusing a create while the organization has not enabled memory —
-// memory writes fail closed (DD-005 D2).
+// memory writes fail closed.
 export function memoryDisabledMessage(org: string): string {
   return `memory is not enabled for organization ${org} — an organization admin can enable it in organization preferences`;
 }

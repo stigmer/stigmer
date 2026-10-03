@@ -84,7 +84,7 @@ export function ConversationAttentionBanner({
         </p>
         {/* One shrink-proof group, right-aligned even after a wrap
             (ml-auto): under a long reason the actions used to wrap to
-            the bottom-LEFT and read as part of the message (F-20). */}
+            the bottom-LEFT and read as part of the message. */}
         <div className="stg:ml-auto stg:flex stg:shrink-0 stg:items-center stg:gap-2">
           <Button
             variant="outline"

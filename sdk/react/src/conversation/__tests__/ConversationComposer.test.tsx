@@ -40,7 +40,7 @@ describe("ConversationComposer", () => {
     const input = screen.getByLabelText("Reply to the customer");
     await user.type(input, "on my way{Enter}");
 
-    // One reply command, two lanes (cloud#260): the textarea always
+    // One reply command, two lanes: the textarea always
     // submits the text lane of the payload union.
     expect(onSend).toHaveBeenCalledWith({ kind: "text", body: "on my way" });
     await waitFor(() => expect((input as HTMLTextAreaElement).value).toBe(""));
@@ -112,7 +112,7 @@ describe("ConversationComposer", () => {
     expect((input as HTMLTextAreaElement).value).toBe("");
   });
 
-  it("shows the spinner and blocks input while a reply is in flight (F-05)", () => {
+  it("shows the spinner and blocks input while a reply is in flight", () => {
     render(<ConversationComposer onSend={vi.fn()} isSending={true} disabledReason={null} />);
 
     const button = screen.getByRole("button", { name: "Send reply" });
@@ -153,7 +153,7 @@ describe("ConversationComposer", () => {
     expect(advisoryEl?.querySelector("button, a, [tabindex]")).toBeNull();
   });
 
-  it("keeps the advisory interaction-free even with a template picker wired (F-18)", () => {
+  it("keeps the advisory interaction-free even with a template picker wired", () => {
     render(
       <ConversationComposer
         onSend={vi.fn()}

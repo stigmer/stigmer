@@ -5,7 +5,7 @@ import { cn } from "@stigmer/theme";
 import type { NodeExecutionStatus } from "../workflow-graph-conversions.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 
-/** Fork branch completion progress (T06). */
+/** Fork branch completion progress. */
 export interface ForkProgressInfo {
   readonly completed: number;
   readonly total: number;
@@ -37,7 +37,7 @@ export interface ExecutionBadgeProps {
  * (WCAG 1.4.1 compliance).
  *
  * For fork nodes, displays branch completion progress (e.g. "1/3") when
- * the fork is running and `forkProgress` is provided (T06).
+ * the fork is running and `forkProgress` is provided.
  *
  * Uses the same positioning pattern as the validation error badge in
  * `WorkflowNode.tsx`.

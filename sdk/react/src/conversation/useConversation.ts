@@ -145,7 +145,7 @@ export function useConversation(
           if (epochRef.current === epoch) {
             // Preserve the reference across polls that change nothing —
             // a fresh-but-equal proto every 5s would defeat React.memo
-            // on everything rendering the row (DD-010).
+            // on everything rendering the row.
             setConversation((current) =>
               current && equals(ChannelConversationSchema, current, row)
                 ? current

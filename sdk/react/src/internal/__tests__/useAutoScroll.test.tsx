@@ -219,7 +219,7 @@ describe("useAutoScroll", () => {
     expect(latestResult.isFollowing).toBe(true);
   });
 
-  it("holds follow when a not-visible delivery measures growth under the hook's own pin — only the READER may disengage (stigmer-cloud#267)", () => {
+  it("holds follow when a not-visible delivery measures growth under the hook's own pin — only the READER may disengage", () => {
     render(<Harness />);
     const scroller = screen.getByTestId("scroller");
     Object.defineProperty(scroller, "clientHeight", { value: 200, configurable: true });

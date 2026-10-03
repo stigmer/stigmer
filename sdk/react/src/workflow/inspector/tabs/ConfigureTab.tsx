@@ -26,8 +26,6 @@ export interface ConfigureTabProps {
  *
  * Dispatches to specialized editors for `switch_case` and `human_input`,
  * or falls through to the generic schema-driven `TaskConfigForm`.
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const ConfigureTab = memo(function ConfigureTab({
   node,

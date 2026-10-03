@@ -50,7 +50,7 @@ export type Diataxis = (typeof DIATAXIS_TYPES)[number];
 
 export const MEDIUMS = [
   // Prose and code are the substrate of every page, not a medium. `medium`
-  // names the page's demonstration centerpiece, if it has one (DD-01).
+  // names the page's demonstration centerpiece, if it has one.
   "none",
   "diagram",
   "still",

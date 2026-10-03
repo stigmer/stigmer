@@ -1,4 +1,4 @@
-// Constants and fixtures for the IdentityAccount domain (20260911.11).
+// Constants and fixtures for the IdentityAccount domain.
 // Domain: conformance support.
 //
 // The byte-pinned copy below is the cloud handlers' Java-era wording, moved

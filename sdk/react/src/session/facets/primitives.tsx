@@ -6,7 +6,7 @@
 // facet's `ArtifactRowView` set the idiom — compact rows, quiet metadata,
 // hover/focus-revealed actions — and these primitives carry it to the
 // non-file-list facets. All visual properties flow through `--stgm-*`
-// tokens (DD-005).
+// tokens.
 
 import { cn } from "@stigmer/theme";
 

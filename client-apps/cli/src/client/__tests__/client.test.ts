@@ -85,7 +85,7 @@ function serverAnswering(...answers: Array<ServerEdition | ConnectError>): {
   return { transport, asked: () => asked };
 }
 
-describe("BackendClient — the server's edition and what it serves (20260911.11 A3)", () => {
+describe("BackendClient — the server's edition and what it serves", () => {
   it("answers the tier question against the server's REPORTED edition, not the config's backend type", async () => {
     // The config says "cloud"; the server says it is the open-source edition.
     // The server wins: a cloud-only kind is not served, a core kind is.

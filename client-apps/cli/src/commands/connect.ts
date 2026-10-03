@@ -4,7 +4,7 @@
 //
 // Thin handler: resolve the client/org, delegate to resources/connect, render.
 // Heavy modules (backend client, MCP SDK) are lazy-imported so `--help` stays
-// fast (DD-001).
+// fast.
 
 import type { Command } from "commander";
 import {

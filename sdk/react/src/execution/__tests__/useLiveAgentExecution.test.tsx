@@ -202,7 +202,7 @@ describe("useLiveAgentExecution", () => {
 });
 
 // ---------------------------------------------------------------------------
-// The { live } visibility gate (T07)
+// The { live } visibility gate
 // ---------------------------------------------------------------------------
 
 describe("useLiveAgentExecution { live }", () => {

@@ -129,7 +129,7 @@ export function ConversationComposer({
           <TriangleAlert aria-hidden="true" className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
           {/* Interactive content is deliberately NOT allowed in here:
               this element is the input's aria-describedby target with
-              zero tab stops (F-18). The way forward the advisory names
+              zero tab stops. The way forward the advisory names
               (the template lane) lives on the persistent template
               button beside Send — hosts point at it in the advisory
               COPY, never with an embedded control. */}

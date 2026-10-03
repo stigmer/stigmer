@@ -5,7 +5,7 @@
 // hook budget, and fails fast with an actionable message if the `temporal`
 // CLI is missing — far clearer than a mid-suite connection timeout. The
 // CRUD slice's global-setup.ts is deliberately server-only (no Temporal),
-// so the dependency-light Class A signal stays fast (DD-002).
+// so the dependency-light Class A signal stays fast.
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { buildRunner } from "@stigmer/test-support/runner-build";

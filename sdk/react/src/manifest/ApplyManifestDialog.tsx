@@ -11,7 +11,7 @@ import {
   type ManifestPreviewEntry,
 } from "./useApplyManifest.js";
 
-// CodeMirror loads only when the dialog actually opens (DD-013).
+// CodeMirror loads only when the dialog actually opens.
 const LazyYamlEditor = lazy(() =>
   import("./YamlEditor.js").then((m) => ({ default: m.YamlEditor })),
 );

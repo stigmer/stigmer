@@ -110,7 +110,7 @@ export interface WorkspaceSurfaceProps {
   /**
    * Platform-injected content (text) searcher. When provided, the Search pane
    * gains a `Name | Text` toggle offering full-text search; `undefined` (web/git
-   * today) keeps the Search pane filename-only (DD-09). Mirrors the lister's
+   * today) keeps the Search pane filename-only. Mirrors the lister's
    * null contract — the honest "unavailable here" state.
    */
   readonly searcher?: WorkspaceContentSearcher;
@@ -181,7 +181,7 @@ export interface WorkspaceSurfaceProps {
   /**
    * The session {@link FileChange} that touched the open file, when it was
    * changed this session. When present the editor defaults to the authoritative
-   * `baseline→candidate` diff (DD-06), matching the inspector's Viewer tab.
+   * `baseline→candidate` diff, matching the inspector's Viewer tab.
    */
   readonly change?: FileChange;
   /**
@@ -203,9 +203,9 @@ export interface WorkspaceSurfaceProps {
  * the screen while chat becomes a narrow column (see `SessionViewer`). It is a
  * self-contained organism: given `entries`, a `lister`, a `reader`, and the
  * open-file selection, it renders identically inside the Console or embedded in
- * a third-party host (DD-004). Explicitly read-only — no editing, no commit UI.
+ * a third-party host. Explicitly read-only — no editing, no commit UI.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function WorkspaceSurface({
   entries,

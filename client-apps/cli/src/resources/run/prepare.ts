@@ -99,7 +99,7 @@ export interface PrepareAgentExecOptions {
    * `whoAmI()`. The caller answers this from the connected server's edition
    * and the kind's tier —
    * `client.isResourceAvailable(ApiResourceKind.identity_account)` — never
-   * from the config's backend type (20260911.11 A3): a server that does not
+   * from the config's backend type: a server that does not
    * serve identity accounts is not even asked, and the omitted values keep
    * resolving to the platform defaults.
    */

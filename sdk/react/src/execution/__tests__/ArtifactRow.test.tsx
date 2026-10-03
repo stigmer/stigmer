@@ -86,7 +86,7 @@ describe("ArtifactRow — presentation", () => {
   });
 });
 
-describe("ArtifactRow — nested-interactive avoidance (DD-22)", () => {
+describe("ArtifactRow — nested-interactive avoidance", () => {
   it("renders the Download control as a SIBLING of the open button, never nested", () => {
     renderRow({ artifact: fileArtifact("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;

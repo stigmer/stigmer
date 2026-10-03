@@ -3,7 +3,7 @@ import { jsx, jsxs } from "react/jsx-runtime";
 import { createLowlight } from "lowlight";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 
-// Dependency licensing (DD-012): `lowlight` and `hast-util-to-jsx-runtime` are
+// Dependency licensing: `lowlight` and `hast-util-to-jsx-runtime` are
 // MIT; `highlight.js` is BSD-3-Clause. BSD-3-Clause is a permissive, OSI-approved
 // license, compatible with MIT/Apache-2.0, that imposes no obligations on SDK
 // consumers beyond attribution — so it satisfies DD-012's "MIT or Apache-2.0

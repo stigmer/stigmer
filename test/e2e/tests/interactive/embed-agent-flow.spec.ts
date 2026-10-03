@@ -12,7 +12,7 @@ import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
  *
  * Scope note: the guest experience inside the frame is cloud-only —
  * `mintGuestToken` has no OSS implementation, and the guest token provider
- * deliberately fails fast (T01), so on the OSS stack the framed page renders
+ * deliberately fails fast, so on the OSS stack the framed page renders
  * its error state rather than the chat. These tests therefore prove the
  * loader mechanics (element upgrade, app-origin derivation, cross-origin
  * frame boot, attribute passing, stays-visible-unless-refused); the

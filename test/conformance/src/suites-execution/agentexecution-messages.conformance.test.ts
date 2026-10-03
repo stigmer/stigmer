@@ -17,7 +17,7 @@
 //   recorded, the agent gets its next turn, the run completes.
 // - The model id on the wire is the registry's apiModelId, not the registry id
 //   the execution named. The runner resolves it through the control plane's
-//   /v1/proxy/model-registry (DD-002); this arm reads the same document the
+//   /v1/proxy/model-registry; this arm reads the same document the
 //   runner did (target.modelRegistryDocument()) and asserts the resolved id
 //   reached the mock — a runner that stops resolving fails here on either
 //   edition. The two ids must differ, or the arm would pass on the identity

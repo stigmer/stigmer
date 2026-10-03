@@ -85,7 +85,7 @@ export interface MessageEntryProps {
  * - `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
  *   consumed by {@link ToolCallGroup})
  *
- * Wrapped in `React.memo` — structural sharing (T04) guarantees that
+ * Wrapped in `React.memo` — structural sharing guarantees that
  * unchanged messages keep the same object reference, so completed
  * messages skip re-renders entirely during streaming.
  *

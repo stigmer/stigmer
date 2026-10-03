@@ -38,8 +38,6 @@ import type { JsonObject } from "@bufbuild/protobuf";
  * const input = parseWorkflowYaml(yaml, "acme");
  * await stigmer.workflow.apply(input);
  * ```
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 export function serializeWorkflowYaml(workflow: Workflow): string {
   const doc: Record<string, unknown> = {
@@ -67,8 +65,6 @@ export function serializeWorkflowYaml(workflow: Workflow): string {
  * @param org - Target organization slug. Overrides `metadata.org` in the YAML.
  * @returns A `WorkflowInput` ready for the SDK apply/update call.
  * @throws {Error} When the YAML is malformed or missing required fields.
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 export function parseWorkflowYaml(
   content: string,

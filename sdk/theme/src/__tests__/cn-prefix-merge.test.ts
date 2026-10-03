@@ -7,7 +7,7 @@ import { cn } from "../utils";
  * `className` utilities still displace the SDK's prefixed defaults. If these
  * pins fail, `cn("stg:p-2", hostClassName)` keeps both classes and the SDK's
  * higher cascade layer silently wins — the documented override channel
- * (DD-019) breaks without any visible error.
+ * breaks without any visible error.
  */
 describe("cn: stg: prefix is transparent for conflict grouping", () => {
   it("host unprefixed utility displaces the SDK's prefixed default", () => {

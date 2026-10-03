@@ -65,7 +65,7 @@ function wrapper(client: unknown) {
   };
 }
 
-describe("conversation polling composition (F-14)", () => {
+describe("conversation polling composition", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });

@@ -10,9 +10,7 @@
  * key preserves position) — the flat start-order model of D-T02-1 with no
  * second ordering source to drift.
  *
- * No React dependency — independently importable and testable (DD-003).
- *
- * @since S8 (Workflow Task Thread)
+ * No React dependency — independently importable and testable.
  */
 
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
@@ -65,14 +63,14 @@ export interface WorkflowThreadItem {
   readonly messagesCount: number;
   readonly toolCallsCount: number;
   /**
-   * Kind-aware one-line preview from `resolveTaskPreview` (T04) — a
+   * Kind-aware one-line preview from `resolveTaskPreview` — a
    * primitive computed HERE (not in a card hook) so the structural-sharing
    * compare below stays a cheap string check. The empty string when there
    * is nothing kind-specific to say.
    */
   readonly previewLine: string;
   /**
-   * Card disclosure mode (T04). Pure function of `taskKind` (like
+   * Card disclosure mode. Pure function of `taskKind` (like
    * `variant`/`kindLabel`), so it is not part of the equality compare.
    */
   readonly disclosure: WorkflowTaskDisclosure;
@@ -85,7 +83,7 @@ export interface WorkflowThreadItem {
   readonly inputSummary: JsonObject | null;
   readonly outputSummary: JsonObject | null;
   /**
-   * The human_input gate's captured request/resolution payloads (T06) —
+   * The human_input gate's captured request/resolution payloads —
    * the in-card review surface's data. Reference-stable like the
    * summaries: the store carries the immutable events' payload messages,
    * so the identity compare below holds across appends and only the

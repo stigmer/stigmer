@@ -144,7 +144,7 @@ async function main() {
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
     log("health service: SERVING");
 
-    // 2. The console lane (DD-012) through the compose topology: the one
+    // 2. The console lane through the compose topology: the one
     // trusted-local /config.json document (test/install/lib/stigmer-smoke.mjs).
     await assertConsoleServed(baseUrl);
     log("console lane: /config.json contract + / html both answer");

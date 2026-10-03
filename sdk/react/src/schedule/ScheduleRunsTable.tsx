@@ -50,7 +50,7 @@ export interface ScheduleRunsTableProps {
  * Owns its data: give it a `scheduleId` and it fetches via
  * {@link useScheduleRuns} with internal page state. To force a refresh
  * from outside (e.g. after triggering a manual run), remount with a
- * React `key` — the standard reset idiom (DD-014); the remount also
+ * React `key` — the standard reset idiom; the remount also
  * returns to page 1, where the new run appears.
  *
  * Handles loading, error, and empty states automatically.

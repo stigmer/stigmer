@@ -4,7 +4,7 @@
  * chrome: the guide's lesson is that this component belongs to the
  * integrator, not to Stigmer, so it must not read like an SDK surface.
  * Styled with `--stgm-*`-token utility classes like the rest of the demo
- * chrome (DD-003).
+ * chrome.
  *
  * Registered through the tour's providers (`.scenar/providers.tsx`), exactly
  * the `StigmerProvider` wiring the guide teaches.

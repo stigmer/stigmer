@@ -44,7 +44,7 @@ export interface WorkflowEditorViewProps {
  * Composes {@link useWorkflowEditor} internally — the caller only needs
  * to provide the initial YAML and org slug.
  *
- * Zero Console dependencies (DD-004). All visual properties flow through
+ * Zero Console dependencies. All visual properties flow through
  * `--stgm-*` design tokens.
  *
  * @example
@@ -55,8 +55,6 @@ export interface WorkflowEditorViewProps {
  *   onSaveSuccess={() => toast.success("Workflow saved")}
  * />
  * ```
- *
- * @since T10 (YAML Editor with Graph Preview)
  */
 /** Editing mode for the workflow editor. */
 export type WorkflowEditorMode = "code" | "visual";

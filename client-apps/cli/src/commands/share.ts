@@ -5,7 +5,7 @@
 // merge-preserving toggle to resources/share, render the result. `--open` is a
 // best-effort browser launch after render (mirrors auth login: the URL is
 // already on screen, so a failed launch costs nothing). Heavy modules are
-// lazy-imported so `--help` stays fast (DD-001).
+// lazy-imported so `--help` stays fast.
 
 import type { Command } from "commander";
 import {

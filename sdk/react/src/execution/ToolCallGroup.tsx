@@ -45,7 +45,7 @@ export interface ToolCallGroupProps {
  *
  * The `toolCalls` array may be a newly allocated subset (e.g.
  * `buildThreadItems` filters out `task` calls). Structural sharing
- * (T04) keeps individual `ToolCall` objects stable, so we compare
+ * keeps individual `ToolCall` objects stable, so we compare
  * array elements by reference rather than the array itself.
  *
  * @internal Exported for testing — not part of the public API.

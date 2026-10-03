@@ -184,8 +184,6 @@ export interface UseWorkflowCanvasReturn {
  *
  * @param yaml - The workflow YAML to initialize from. Changes trigger re-parse.
  * @param options - Optional configuration including a custom layout engine.
- *
- * @since T15 (Visual Canvas Editor)
  */
 export function useWorkflowCanvas(
   yaml: string | null,
@@ -891,7 +889,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Branch-specific insertion (T08)
+  // Branch-specific insertion
   // ---------------------------------------------------------------------------
 
   const addSwitchCase = useCallback(
@@ -916,7 +914,7 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
-  // Branch management (T09)
+  // Branch management
   // ---------------------------------------------------------------------------
 
   const removeSwitchCase = useCallback(
@@ -1113,7 +1111,7 @@ export function useWorkflowCanvas(
   }, [copySelection, getSelectedNodeIds, nodes, onNodesDelete]);
 
   // ---------------------------------------------------------------------------
-  // Batch operations for multi-selection (T11)
+  // Batch operations for multi-selection
   // ---------------------------------------------------------------------------
 
   const duplicateSelection = useCallback(() => {

@@ -195,7 +195,7 @@ function BudgetGauge({
 
 /**
  * One per-task usage row — a static entry: the task's own card in the
- * thread is where its detail lives (T06), so the breakdown reports rather
+ * thread is where its detail lives, so the breakdown reports rather
  * than navigates.
  */
 function UsageRow({ item }: { readonly item: WorkflowUsageItem }) {

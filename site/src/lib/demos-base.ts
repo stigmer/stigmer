@@ -29,7 +29,7 @@ export function resolveDemosBase(): string {
   return process.env.NEXT_PUBLIC_SCENAR_EMBED_BASE ?? DEMOS_BASE_DEFAULT;
 }
 
-/** The two theme variants `scenar shoot` captures for every shot (DD-02 D2). */
+/** The two theme variants `scenar shoot` captures for every shot. */
 export type StillTheme = "light" | "dark";
 
 /** A parsed `<Still>` id: the scenario directory and the declared shot name. */

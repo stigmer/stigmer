@@ -97,7 +97,7 @@ vi.mock("../workflow-architect", () => ({
 
 // The inline child transcript fetches and streams (its own suite covers
 // that); here it only proves the thread mounts it in the AGENT_CALL card
-// with the right child identity (T07).
+// with the right child identity.
 vi.mock("../WorkflowAgentCallTranscript", () => ({
   WorkflowAgentCallTranscript: ({
     childExecutionId,
@@ -255,13 +255,13 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     expect(screen.queryByRole("button", { name: /^Approvals/ })).toBeNull();
   });
 
-  it("wires no selection callbacks into the graph — a passive visualization (T06)", () => {
+  it("wires no selection callbacks into the graph — a passive visualization", () => {
     renderViewer();
     expect("onTaskSelect" in graphProps.last).toBe(false);
     expect("onAutoSelectTask" in graphProps.last).toBe(false);
   });
 
-  it("the open panel offers exactly Artifacts, Changes, and Usage — no Inspect facet exists (T06)", () => {
+  it("the open panel offers exactly Artifacts, Changes, and Usage — no Inspect facet exists", () => {
     renderViewer();
 
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
@@ -327,7 +327,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     expect(screen.getByText("50%")).toBeTruthy();
   });
 
-  it("panel interactions never re-render the graph (DD-009/DD-010)", () => {
+  it("panel interactions never re-render the graph", () => {
     renderViewer();
     const rendersAfterMount = graphRenders.count;
 
@@ -364,7 +364,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
 
     expect(thread.classList.contains("stg:hidden")).toBe(false);
     expect(graph.classList.contains("stg:hidden")).toBe(true);
-    // Mounted, never conditionally rendered (DD-009).
+    // Mounted, never conditionally rendered.
     expect(screen.getByTestId("graph-stub")).toBeTruthy();
     expect(
       screen
@@ -405,7 +405,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     ).toBe("true");
   });
 
-  it("toggling views never re-renders the settled graph (DD-009)", () => {
+  it("toggling views never re-renders the settled graph", () => {
     renderViewer();
     const rendersAfterMount = graphRenders.count;
 
@@ -415,7 +415,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     expect(graphRenders.count).toBe(rendersAfterMount);
   });
 
-  it("a thread card offers no selection or drill-down gesture — the card IS the surface (T06)", () => {
+  it("a thread card offers no selection or drill-down gesture — the card IS the surface", () => {
     renderViewer();
 
     // build-report renders from the snapshot fallback (no events): kind 0
@@ -436,7 +436,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     expect(screen.queryByRole("radio", { name: "Inspect" })).toBeNull();
   });
 
-  it("a gating human_input renders its review form ON the card — the viewer threads the task-approval wiring (T06)", () => {
+  it("a gating human_input renders its review form ON the card — the viewer threads the task-approval wiring", () => {
     arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
     mockedUseEventStream.mockReturnValue({
       events: [],
@@ -474,7 +474,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     ).toHaveBeenCalledWith("review-gate", "ship", undefined, undefined);
   });
 
-  it("an AGENT_CALL card renders the child's inline transcript in the thread — no document tab, no launcher (T07)", () => {
+  it("an AGENT_CALL card renders the child's inline transcript in the thread — no document tab, no launcher", () => {
     // Add a settled agent-call task carrying its child execution id. The
     // stream stage must not be "complete" with zero events, or the viewer's
     // snapshot fallback would replace these derived states (its documented
@@ -546,7 +546,7 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
     } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
   }
 
-  it("a gate opening mid-run refetches the snapshot WITHOUT opening the panel or selecting anything (T06)", () => {
+  it("a gate opening mid-run refetches the snapshot WITHOUT opening the panel or selecting anything", () => {
     const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
     mockStream("running");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);

@@ -5,7 +5,7 @@ import { buildIO } from "../task-detail/task-detail-io";
 // ---------------------------------------------------------------------------
 // The canonical I/O fallback ladder the thread card bodies render from:
 // full snapshot value → truncated event summary → null. Coverage ported
-// from the retired inspector's derive-task-detail suite (T06) — the ladder
+// from the retired inspector's derive-task-detail suite — the ladder
 // itself survived the inspector.
 // ---------------------------------------------------------------------------
 

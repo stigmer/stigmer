@@ -19,7 +19,7 @@ export interface ScheduleColumnsOptions {
 
 /**
  * Column set for a schedule workbench — shared by every console so the
- * list renders identically everywhere (DD-016).
+ * list renders identically everywhere.
  *
  * The columns exist because schedules are listed via the direct query:
  * each row is a full `Schedule` proto, so the operational fields the

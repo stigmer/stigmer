@@ -228,7 +228,7 @@ export const FileReviewCard = memo(function FileReviewCard({
       // reviewer saw (the enforcement gate the runner re-verifies at reconcile).
       // A "Keep all" on a binary-only set carries the acknowledgment: the
       // binaries have no text diff but reconcilable bytes, so the user
-      // consciously keeps the whole set (DD-17). The server honors it only when
+      // consciously keeps the whole set. The server honors it only when
       // every incompleteness is binary and never relaxes the digest gate.
       onSubmit?.(action, {
         scope: FileDecisionScope.CHANGE_SET,
@@ -476,7 +476,7 @@ export const FileReviewCard = memo(function FileReviewCard({
 });
 
 /**
- * Whether the set was kept by the approved-command auto-keep policy (DD-28):
+ * Whether the set was kept by the approved-command auto-keep policy:
  * some decision carries origin POLICY_APPROVED_COMMAND. Origin is audit
  * provenance — the record label derives from it so an automatic keep is never
  * presented as a human review.
@@ -762,7 +762,7 @@ interface FileVerdictControlProps {
  *
  * `Keep` behavior by reviewability: a `reviewable` file keeps normally; a
  * `binary` file has no text diff but reconcilable bytes, so `Keep` is enabled as
- * an explicit "Keep anyway" that carries the acknowledgment (DD-16); an
+ * an explicit "Keep anyway" that carries the acknowledgment; an
  * `unavailable` file (secret-withheld / size-elided) has no keepable bytes, so
  * `Keep` stays disabled — it can only be discarded. `describedById` associates
  * the group with the note explaining the binary/unavailable case.
@@ -976,7 +976,7 @@ function blockReasonText(reviewability: FileReviewability): string | null {
  * present (never the generic "binary or truncated"). Unavailable is reported
  * ahead of binary because it is the stronger "nothing to see" signal.
  *
- * A `binaryOnly` set is the keepable case (DD-17): binary files are the only
+ * A `binaryOnly` set is the keepable case: binary files are the only
  * blocker, so the copy explains that "Keep all" is available rather than saying
  * the set can't be approved. A `blocked` set (something unavailable) keeps the
  * discard-oriented copy.
@@ -1047,7 +1047,7 @@ function deriveFileVerdicts(
 
 /**
  * The whole-set action labels, sharpened by file count and review progress. A
- * `binaryOnly` set (DD-17) reads as "Keep all" rather than "Approve all": the
+ * `binaryOnly` set reads as "Keep all" rather than "Approve all": the
  * bulk keep carries the binary acknowledgment, and "Keep" is the same verb the
  * per-file binary control uses ("Keep anyway").
  */

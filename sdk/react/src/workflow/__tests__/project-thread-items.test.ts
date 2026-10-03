@@ -1,6 +1,6 @@
 // Unit tests for the thread projection (S8): ordering, variant mapping,
 // progress accounting, and the structural sharing that lets memoized card
-// rows bail during streaming (DD-009/DD-010). The fan-out suite (S9) runs
+// rows bail during streaming. The fan-out suite (S9) runs
 // real events through the store derivation to validate the flat
 // start-order model against parallel branches (D-T02-1's revisit hook).
 
@@ -192,7 +192,7 @@ describe("projectThreadItems", () => {
       expect(second.items[0].status).toBe("completed");
     });
 
-    it("keeps the bail when the preview-affecting fields are unchanged (T04)", () => {
+    it("keeps the bail when the preview-affecting fields are unchanged", () => {
       // Same summary OBJECT identity across projections — the store contract
       // (summaries are read off the same immutable stored events).
       const output = { valid: true };
@@ -220,7 +220,7 @@ describe("projectThreadItems", () => {
       expect(second.items[0]).toBe(first.items[0]);
     });
 
-    it("gate payloads ride the identity compare: same capture bails, a gate opening produces a fresh item (T06)", () => {
+    it("gate payloads ride the identity compare: same capture bails, a gate opening produces a fresh item", () => {
       const request = { prompt: "Ship it?" } as never;
       const gated = () =>
         taskState({
@@ -279,7 +279,7 @@ describe("projectThreadItems", () => {
     });
   });
 
-  describe("preview resolution (T04)", () => {
+  describe("preview resolution", () => {
     it("populates previewLine and disclosure from resolveTaskPreview", () => {
       const { items } = projectThreadItems(
         statesOf(

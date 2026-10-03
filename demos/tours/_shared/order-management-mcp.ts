@@ -136,7 +136,7 @@ function frozenState(server: McpServer): UseMcpServerReturn {
 /**
  * The two depicted states, built once at module load. A tour's timeline
  * swaps between these by reference, so a beat can never observe a
- * half-updated resource. No clock, no randomness (DD-006).
+ * half-updated resource. No clock, no randomness.
  */
 export const ORDER_MGMT_REGISTERED: UseMcpServerReturn =
   frozenState(buildRegisteredServer());

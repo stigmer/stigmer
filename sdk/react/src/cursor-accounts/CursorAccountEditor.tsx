@@ -36,7 +36,7 @@ export interface CursorAccountEditorProps {
 /**
  * Create/edit form for one Cursor account: identity, team Admin API key,
  * enablement, and dedicated-org assignments. The account's class is
- * derived (DD-008): listed org ids make it DEDICATED to them, an empty
+ * derived: listed org ids make it DEDICATED to them, an empty
  * list makes it a shared-pool account — there is no flag to manage.
  *
  * Admin-key semantics mirror the server contract: on edit the field
@@ -89,7 +89,7 @@ export function CursorAccountEditor({
         displayName: displayName.trim(),
         adminApiKey: adminApiKey.trim(),
         enabled,
-        // is_platform_default is deprecated (DD-008): the shared pool is
+        // is_platform_default is deprecated: the shared pool is
         // derived from empty orgs, so current clients never write it.
         onDemandUsageDisabled: !onDemandEnabled,
         teamInviteLink: teamInviteLink.trim(),

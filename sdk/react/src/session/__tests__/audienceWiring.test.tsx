@@ -386,7 +386,7 @@ describe("SessionViewer — audience wiring", () => {
     );
   });
 
-  it("guest: approval mechanics are withheld from the thread (DD-014)", () => {
+  it("guest: approval mechanics are withheld from the thread", () => {
     // The HITL gate protects the ORG's tools; an anonymous visitor is not
     // its trustee. Guest executions run unattended server-side, so nothing
     // is ever pending on a new execution — withholding the callback is the

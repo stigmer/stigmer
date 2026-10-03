@@ -36,7 +36,7 @@ export interface MemoryListPanelProps {
 
 /**
  * Lists everything the platform remembers about the caller in an
- * organization, grouped pending-proposals-first (DD-005 D4): proposals
+ * organization, grouped pending-proposals-first: proposals
  * awaiting a decision, then confirmed facts, then rejected proposals
  * kept for audit.
  *
@@ -316,7 +316,7 @@ function MemoryRow({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0 stg:flex-1">
           {/* The exact stored text, verbatim — what is confirmed is what
-              future prompts inject, byte for byte (DD-005 D6). */}
+              future prompts inject, byte for byte. */}
           <p className="stg:text-sm stg:text-foreground stg:whitespace-pre-wrap">
             {content}
           </p>

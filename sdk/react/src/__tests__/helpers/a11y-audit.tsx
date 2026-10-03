@@ -1,4 +1,4 @@
-// The shared harness for the browser-mode accessibility audits (DD-22).
+// The shared harness for the browser-mode accessibility audits.
 //
 // Renders an audited component inside the `.stgm` scope against the SDK's
 // SHIPPED stylesheet (the prebuilt `dist/styles.css`, not a test-time

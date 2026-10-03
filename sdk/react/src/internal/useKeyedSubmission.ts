@@ -52,7 +52,7 @@ export interface KeyedSubmission<T> {
  * rethrows; {@link useWorkflowExecutionActions} swallows it to `null`.
  *
  * The return is `useMemo`'d over stable parts (empty-collection sentinels keep
- * the idle refs constant) so it is safe as a `React.memo` dependency (DD-010).
+ * the idle refs constant) so it is safe as a `React.memo` dependency.
  *
  * @internal Not part of the public API.
  */

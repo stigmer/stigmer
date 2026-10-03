@@ -27,7 +27,7 @@ export interface ChannelConversationsDialogProps {
   /**
    * Maps a session id to the host's session route (the console passes
    * `` (id) => `/sessions/${id}` ``). When absent, rows render without
-   * links — the SDK never assumes a routing scheme (DD-004).
+   * links — the SDK never assumes a routing scheme.
    */
   readonly sessionHref?: (sessionId: string) => string;
   /**

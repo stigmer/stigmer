@@ -1,4 +1,4 @@
-// Unit tests for the headless task-presentation layer (T04): the built-in
+// Unit tests for the headless task-presentation layer: the built-in
 // per-kind preview lines across all 20 task kinds, the status-line
 // precedence, the disclosure taxonomy, defensive Struct parsing (summaries
 // are runner-dependent — malformed shapes must degrade, never break), and

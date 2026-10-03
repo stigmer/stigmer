@@ -1,8 +1,8 @@
 // Content-search capability — the text-grep sibling of WorkspaceFileLister
 // (which does filename/path search over a cached listing). Injected by the host
-// (DD-004) so the SDK never learns how the grep runs: a native ripgrep-backed
+// so the SDK never learns how the grep runs: a native ripgrep-backed
 // walker on desktop; `null` (unsupported) on web/git until a branch-accurate
-// backend search exists (DD-09).
+// backend search exists.
 
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 
@@ -62,7 +62,7 @@ export interface WorkspaceContentSearchResult {
  * - **Desktop:** Tauri `search_workspace_content` (ripgrep `ignore` walker +
  *   `grep-searcher`, respecting `.gitignore`, skipping binary/oversized files).
  * - **Web:** `undefined`/`null` — GitHub code search is default-branch-only and
- *   would disagree with the branch the viewer reads (DD-09).
+ *   would disagree with the branch the viewer reads.
  */
 export type WorkspaceContentSearcher = (
   entry: WorkspaceEntry,

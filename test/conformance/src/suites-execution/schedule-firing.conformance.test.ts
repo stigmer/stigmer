@@ -94,7 +94,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
 
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
 
-    // The two-level contract (DD-017 D-6): the trigger SUCCEEDED — the
+    // The two-level contract: the trigger SUCCEEDED — the
     // run's deterministic failure is honestly reported in the result,
     // never thrown. The reason is the tick's exact vocabulary, pinned
     // byte-identical in both editions.
@@ -123,7 +123,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
 
     await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
 
-    // The fire ledger (DD-017 D-7): a no-execution fire is exactly the
+    // The fire ledger: a no-execution fire is exactly the
     // case status.consecutive_failures alone cannot explain, and exactly
     // the row this surface exists to keep.
     const history = await clients.scheduleQuery.listRuns({

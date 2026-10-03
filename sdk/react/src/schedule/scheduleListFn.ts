@@ -6,7 +6,7 @@
 // run), while the direct `listSchedules` query returns full `Schedule`
 // protos and was explicitly shaped for "the org-context view a console tab
 // needs". Both consoles consume this single implementation — inlining it
-// per-app would duplicate correctness-bearing pagination logic (DD-016).
+// per-app would duplicate correctness-bearing pagination logic.
 
 import { create } from "@bufbuild/protobuf";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";

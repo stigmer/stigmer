@@ -93,7 +93,7 @@ export interface UseSessionPanelOptions {
 
 /**
  * State + actions for the unified session panel, shared by every viewer that
- * hosts it (session + launcher) so they behave identically (DD-016).
+ * hosts it (session + launcher) so they behave identically.
  *
  * The panel is the one right-side surface: a workspace surface whose activity
  * rail hosts the session facets (see `useSessionRailViews`). It replaces the

@@ -66,8 +66,6 @@ export interface ApprovalFormBuilderProps {
  * Organized into collapsible sections: Prompt, Outcomes, Form Fields,
  * Timeout, Approvers, and Notification Channels. Outcome routing uses
  * name-based handle IDs (`outcome_{name}`) per AD-T15-B4.
- *
- * @since T15 Batch 4 (Specialized Task Editors)
  */
 export const ApprovalFormBuilder = memo(function ApprovalFormBuilder({
   nodeId,

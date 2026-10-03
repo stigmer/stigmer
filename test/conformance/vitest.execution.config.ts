@@ -8,7 +8,7 @@
 // in git (vitest.local-ts-execution.config.ts).
 //
 // Separate from vitest.config.ts so the dependency-light CRUD suites stay
-// fast and Temporal-free (DD-002). These suites boot Temporal + the runner
+// fast and Temporal-free. These suites boot Temporal + the runner
 // around the server, so globalSetup also builds the runner and requires the
 // `temporal` CLI, and the boot + execution budget is larger.
 import { defineConfig } from "vitest/config";

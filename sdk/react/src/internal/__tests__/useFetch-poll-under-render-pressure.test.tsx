@@ -50,7 +50,7 @@ function RenderPressureHost({ onFetch }: { readonly onFetch: () => void }) {
   return <PollingConsumer onFetch={onFetch} />;
 }
 
-describe("useFetch — polling under render pressure (F-14)", () => {
+describe("useFetch — polling under render pressure", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });

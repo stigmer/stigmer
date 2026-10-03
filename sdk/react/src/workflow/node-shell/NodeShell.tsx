@@ -207,7 +207,7 @@ function SvgShell({
 }
 
 // ---------------------------------------------------------------------------
-// Execution status styling (T04)
+// Execution status styling
 // ---------------------------------------------------------------------------
 
 /**
@@ -242,7 +242,7 @@ function svgStrokeForStatus(status: NodeExecutionStatus, fallback: string): stri
 }
 
 // ---------------------------------------------------------------------------
-// Diff status styling (T14)
+// Diff status styling
 // ---------------------------------------------------------------------------
 
 /**

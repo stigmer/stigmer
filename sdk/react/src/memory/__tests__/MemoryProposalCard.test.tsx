@@ -1,4 +1,4 @@
-// The in-session consent surface (DD-005 D4): verbatim fact, one-click
+// The in-session consent surface: verbatim fact, one-click
 // Confirm/Reject, and lifecycle honesty — the frozen tool result never
 // shows stale action buttons over a record that was already decided,
 // deleted, or unreachable.
@@ -73,7 +73,7 @@ describe("MemoryProposalCardBody", () => {
 
     renderCard(client);
 
-    // The exact stored text — never paraphrased (DD-005 D6).
+    // The exact stored text — never paraphrased.
     expect(screen.getByText(FACT)).toBeTruthy();
     await waitForAction(`Confirm memory: ${FACT}`);
     expect(screen.getByRole("button", { name: `Reject memory: ${FACT}` })).toBeTruthy();

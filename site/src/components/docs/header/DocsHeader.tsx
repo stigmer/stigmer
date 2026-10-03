@@ -25,7 +25,7 @@ const iconButtonClasses = cn(
 );
 
 /**
- * The docs header (DD-02) — Cursor-style chrome spanning both breakpoints,
+ * The docs header — Cursor-style chrome spanning both breakpoints,
  * passed to `DocsLayout` as `nav.component` (which replaces the stock
  * mobile-only navbar entirely).
  *

@@ -159,7 +159,7 @@ export function ConversationControlBanner({
         ) : (
           <div className="stg:flex stg:items-center stg:gap-2">
             {!supportsStaffReplies && (
-              // Visible text, never a native title (F-18): a disabled
+              // Visible text, never a native title: a disabled
               // Button swallows hover (disabled:pointer-events-none) and
               // leaves the tab order, so a title on it is unreachable by
               // every input method. Kept short — the composer's own

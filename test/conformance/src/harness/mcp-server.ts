@@ -8,7 +8,7 @@
 // referencing a real McpServer that exposes a real tool. This fixture is that
 // tool surface, and (like mock-llm.ts) it is TS-pure on purpose — no reuse of
 // the Go test/integration MCP servers — to preserve the suite's
-// no-cross-language-coupling property (DD-002).
+// no-cross-language-coupling property.
 //
 // Why no `connect`/discovery is needed (and the McpServer just needs `create`):
 // at execution setup the runner resolves MCP servers from their *spec*, connects

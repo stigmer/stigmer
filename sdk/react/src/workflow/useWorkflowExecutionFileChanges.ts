@@ -204,7 +204,7 @@ export interface UseWorkflowExecutionFileChangesReturn {
  * **Stability.** The fetch effect and all derived memos key on the
  * enumeration *signature*, not the `taskStates` map identity (which churns
  * per event during a live run) — so mid-task events cause zero fetches and
- * zero re-derivation. The returned object is memoized (DD-010).
+ * zero re-derivation. The returned object is memoized.
  *
  * @see WorkflowChangesTab — the facet rendering this data
  * @see useSessionFileChanges — the session-side counterpart over the same core

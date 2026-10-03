@@ -7,7 +7,7 @@
  *
  * The canonical URL shape is `<app-origin>/chat/<org>/<slug>` (a T01
  * design decision), and `embed.js` is served from the root of that same
- * app origin (T04). Callers supply the origin — resolving it is a host
+ * app origin. Callers supply the origin — resolving it is a host
  * concern (the console knows its `appUrl`, the CLI resolves it from the
  * backend type) — while the path and snippet shapes live here so every
  * surface emits byte-identical output.

@@ -137,7 +137,7 @@ describe("ConversationTimelineView", () => {
     // Verbatim relay — the provider's own words, never pattern-matched
     // into local copy. Visible (not hover-only): the reason changes what
     // the operator does next, and the footer glyphs are deliberately
-    // non-focusable (F-18), so a tooltip reaches mouse users only.
+    // non-focusable, so a tooltip reaches mouse users only.
     expect(
       screen.getByText(/More than 24 hours have passed since the recipient last replied/),
     ).toBeDefined();
@@ -189,7 +189,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.queryByText("should never render")).toBeNull();
   });
 
-  it("shows a refused send's platform-authored explanation verbatim (cloud#262)", () => {
+  it("shows a refused send's platform-authored explanation verbatim", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -210,7 +210,7 @@ describe("ConversationTimelineView", () => {
     ).toBeDefined();
   });
 
-  it("shows a withdrawn send's structural fact verbatim (cloud#262)", () => {
+  it("shows a withdrawn send's structural fact verbatim", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -228,7 +228,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.getByText("channel deleted")).toBeDefined();
   });
 
-  it("shows this surface's own generic copy for an errored send — the wire carries no detail (cloud#262)", () => {
+  it("shows this surface's own generic copy for an errored send — the wire carries no detail", () => {
     render(
       <ConversationTimelineView
         {...baseProps()}
@@ -351,7 +351,7 @@ describe("ConversationTimelineView", () => {
     expect(screen.getByText("Read")).toBeDefined();
   });
 
-  it("explains status glyphs with tooltips, never native titles, and adds no tab stops (F-18)", () => {
+  it("explains status glyphs with tooltips, never native titles, and adds no tab stops", () => {
     // Every footer status variant at once: failed, suppressed, sending,
     // and the three receipt ticks (sent / delivered / read) plus the
     // receipt-failed arm.

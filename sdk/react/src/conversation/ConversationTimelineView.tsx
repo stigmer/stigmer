@@ -70,7 +70,7 @@ export interface ConversationTimelineViewProps {
   /** Frozen instant for deterministic hosts (tests, documentation tours). */
   readonly now?: Date;
   /**
-   * Scroll-on-send signal (stigmer-cloud#267): increment this counter when
+   * Scroll-on-send signal: increment this counter when
    * the reader dispatches a reply and the view pins to the latest content,
    * re-engaging follow mode so the item stays in view when the timeline
    * refetch delivers it — even for a reader who had deliberately scrolled

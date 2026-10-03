@@ -81,12 +81,12 @@ export class CloudTarget implements TargetProfile {
     organizationEnumeration: false,
     versionTagging: true,
     // Cloud carries the transfer lane over pre-signed R2 URLs
-    // (stigmer-cloud#438) — the full mint → PUT → push-by-ref →
+    // — the full mint → PUT → push-by-ref →
     // download-URL pin block runs against this target.
     skillArtifactTransferLane: true,
     workflowChildApprovalForwarding: true,
     // The hermetic cloud env boots Temporal and the Java service runs the
-    // schedule clock (T04 slice 2) — triggers fire for real.
+    // schedule clock — triggers fire for real.
     scheduleFiring: true,
     // The cloud-execution runner is an embedded runner bootstrapped as the
     // primary user and acts as itself, narrowed by its own exchange; the
@@ -126,7 +126,7 @@ export class CloudTarget implements TargetProfile {
     requiresAuthentication: true,
     // The platform tenant's tokens are verified and their subject resolved to
     // the ida_ at position 1: Java's Auth0 decoder + RequestCallerIdentityMapper
-    // natively, the composition's direct-idp verifier (stigmer-cloud#604).
+    // natively, the composition's direct-idp verifier.
     directLogin: true,
     // The cloud-iam unit composes the IdentityFederation capability, so the
     // four federation RPCs are served for real; the OSS UNIMPLEMENTED pins
@@ -135,7 +135,7 @@ export class CloudTarget implements TargetProfile {
     federatedIdentityAccounts: true,
     // The cloud-iam unit registers every kind's kind_meta roles as the grant
     // scope and wraps its OpenFGA client as the query engine, so per-resource
-    // grants are admitted and the tuple-half queries answer (20260913.01).
+    // grants are admitted and the tuple-half queries answer.
     perResourceGrants: true,
     authorizationQueries: true,
     // The three cloud-capability surfaces (E1, entry 20260906.04): Java

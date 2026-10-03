@@ -112,13 +112,13 @@ rmSync(bundlesDir, { recursive: true, force: true });
  * only 1184px after stage insets — below the 1224px minimum of the
  * then-280px sidebar — so every component occupied an oversized share of
  * the frame and tours read less compact than the product. Tours author at the console's real metrics and this single
- * scale factor at the viewport boundary does all the fitting (DD-008).
+ * scale factor at the viewport boundary does all the fitting.
  *
  * The docs embed pins this ratio pre-handshake (site scenar-embed.tsx); the
  * verify gate holds the two in lockstep (invariant: canonical viewport).
  *
  * `--stage` floats each beat on the backdrop with a window shadow — the
- * screen-recording framing (DD-009).
+ * screen-recording framing.
  */
 const PACK_FLAGS = ["--width", "1440", "--shell-height", "900", "--stage"];
 

@@ -1,4 +1,4 @@
-// TruncatedText's overflow gating in a real Chromium (stigmer-cloud#268).
+// TruncatedText's overflow gating in a real Chromium.
 // The native `title` idiom this helper replaced fired whether or not the
 // text was actually clipped; the helper opens the house tooltip ONLY when
 // CSS truncation really happened. That distinction is a layout fact —

@@ -30,7 +30,7 @@ export interface MemoryEnabledRowProps {
 /**
  * The `memory_enabled` consent toggle — one row, shared verbatim by
  * {@link OrgPreferencesPanel} and {@link AccountPreferencesPanel} so the
- * two scopes of the double opt-in (DD-006 D1) present identically.
+ * two scopes of the double opt-in present identically.
  *
  * INSTANT-APPLY by deliberate exception (UX checkpoint, owner-approved
  * 2026-08-22): both host panels are save-button forms, but a consent bit

@@ -39,8 +39,6 @@ const inputClass =
  * Composes primitive field controls rather than rendering a generic
  * schema form — following the research report guidance that "the forms
  * should educate the user about the semantics of each step."
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const AgentCallForm = memo(function AgentCallForm({
   node,
@@ -304,7 +302,7 @@ interface WorkspaceEntryRow {
  * local_path — no client is connected when a workflow task fires), so
  * the row model is deliberately git-shaped. Private repos need an
  * org-visibility Environment holding GITHUB_TOKEN bound under
- * Environments below (DD-018 D-4).
+ * Environments below.
  */
 function WorkspaceEntriesSection({
   entries,

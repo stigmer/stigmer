@@ -26,8 +26,6 @@ export interface UseNestedTaskEditorReturn {
  *
  * Parses tasks from the specified config path and provides reorder/remove
  * operations that dispatch graph commands through the canvas actions context.
- *
- * @since T09 (Branch Management UX)
  */
 export function useNestedTaskEditor({
   node,

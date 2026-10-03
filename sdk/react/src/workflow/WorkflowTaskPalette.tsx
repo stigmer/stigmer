@@ -26,8 +26,6 @@ export interface WorkflowTaskPaletteProps {
  * Self-contained SDK component (DD-001, AD-T15-B2-005): depends only
  * on `useTaskKindRegistry()` and `--stgm-*` theme tokens. No canvas
  * or React Flow dependency.
- *
- * @since T15 Batch 2 (Node Authoring)
  */
 export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
   className,

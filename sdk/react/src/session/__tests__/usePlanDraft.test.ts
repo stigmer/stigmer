@@ -88,7 +88,7 @@ describe("usePlanDraft", () => {
     expect(result.current.readDraft()).toBeNull();
   });
 
-  it("keeps readDraft referentially stable across draft edits (DD-010)", () => {
+  it("keeps readDraft referentially stable across draft edits", () => {
     const { result, rerender } = renderHook(({ p }) => usePlanDraft(p), {
       initialProps: { p: plan("e1", "aaa") as SessionPlan | undefined },
     });

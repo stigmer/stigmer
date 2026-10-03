@@ -35,8 +35,6 @@ export interface BranchConditionBuilderProps {
  * Edges are the source of truth for routing — the builder reads target
  * tasks from graph edges and writes routing changes via
  * `onUpdateBranchRouting`.
- *
- * @since T15 Batch 4 (Specialized Task Editors)
  */
 export const BranchConditionBuilder = memo(function BranchConditionBuilder({
   nodeId,

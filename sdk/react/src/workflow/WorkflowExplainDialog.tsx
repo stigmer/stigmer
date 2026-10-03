@@ -28,8 +28,6 @@ export interface WorkflowExplainDialogProps {
  * response in real-time.
  *
  * Uses the same `<dialog>` + `showModal()` pattern as `WorkflowArchitectDialog`.
- *
- * @since T14 (AI-Assisted Workflow Creation)
  */
 export function WorkflowExplainDialog({
   open,

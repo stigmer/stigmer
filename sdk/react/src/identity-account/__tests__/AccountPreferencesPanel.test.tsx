@@ -97,7 +97,7 @@ async function findSyncedField(value: string) {
 }
 
 describe("AccountPreferencesPanel", () => {
-  it("renders the form in local mode and reads the account once — the open-source server serves identity accounts (20260911.11)", async () => {
+  it("renders the form in local mode and reads the account once — the open-source server serves identity accounts", async () => {
     // Before the tier flip the panel showed a "requires Stigmer Cloud"
     // notice here. The operator account exists on every self-host since
     // the domain moved into @stigmer/server, so the editor is the truth in

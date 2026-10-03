@@ -84,7 +84,7 @@ async function settled(assertion: () => void): Promise<void> {
 
 afterEach(() => cleanup());
 
-describe("useAutoScroll under real layout (F-09)", () => {
+describe("useAutoScroll under real layout", () => {
   it("pins to the newest content when items arrive after mount", async () => {
     const { rerender } = render(<AsyncThread items={[]} />);
 
@@ -130,7 +130,7 @@ describe("useAutoScroll under real layout (F-09)", () => {
     await settled(() => expect(latest.isFollowing).toBe(false));
 
     // Growth while disengaged (an INCOMING message): the view must NOT
-    // move under them. Unchanged by scroll-on-send (stigmer-cloud#267):
+    // move under them. Unchanged by scroll-on-send:
     // the reader's OWN send now pins via the surface-driven signal
     // (`usePinToLatestOnSignal`, suite below) — the hook's growth pathway
     // itself still never moves a scrolled-up reader.
@@ -149,7 +149,7 @@ describe("useAutoScroll under real layout (F-09)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scroll-on-send: the surface-driven pin signal (stigmer-cloud#267)
+// Scroll-on-send: the surface-driven pin signal
 // ---------------------------------------------------------------------------
 
 /**
@@ -190,7 +190,7 @@ function SignalThread({
   );
 }
 
-describe("usePinToLatestOnSignal under real layout (stigmer-cloud#267)", () => {
+describe("usePinToLatestOnSignal under real layout", () => {
   it("a signal increment pins a scrolled-up reader to the latest content and re-engages follow", async () => {
     const { rerender } = render(<SignalThread items={[]} signal={0} />);
     rerender(<SignalThread items={messages(30)} signal={0} />);

@@ -126,7 +126,7 @@ export function useWorkspaceFileSelectionStore(): WorkspaceFileSelectionStore {
 /**
  * Create or reuse a `WorkspaceFileSelectionStore` instance, preserved across
  * re-renders via ref. `SessionViewer` calls this and provides the result
- * through {@link WorkspaceFileSelectionContext} (DD-07).
+ * through {@link WorkspaceFileSelectionContext}.
  */
 export function useWorkspaceFileSelectionStoreRef(): WorkspaceFileSelectionStore {
   const ref = useRef<WorkspaceFileSelectionStore | null>(null);

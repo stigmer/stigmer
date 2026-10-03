@@ -22,8 +22,6 @@ const inputClass =
  * Organizes HTTP-specific fields into semantic sections: method + URL,
  * headers, request body, and timeout. Body section is only visible
  * for methods that support a request body (POST, PUT, PATCH).
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const HttpCallForm = memo(function HttpCallForm({
   node,

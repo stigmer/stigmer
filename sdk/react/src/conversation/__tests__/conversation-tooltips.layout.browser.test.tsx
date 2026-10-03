@@ -1,4 +1,4 @@
-// Tooltip behavior for the conversation status glyphs (F-18), in a real
+// Tooltip behavior for the conversation status glyphs, in a real
 // Chromium. The fix replaced native `title` hints (OS-delayed, invisible
 // to keyboard and touch, dead on disabled buttons) with the house
 // tooltip. The fast happy-dom suite pins the STRUCTURE (sr-only names
@@ -72,7 +72,7 @@ afterEach(() => {
   document.querySelectorAll(".stgm").forEach((node) => node.remove());
 });
 
-describe("conversation status tooltips (F-18)", () => {
+describe("conversation status tooltips", () => {
   it("reveals the receipt and failure explanations on hover — with zero native titles", async () => {
     const pane = renderInPane(
       <ConversationTimelineView

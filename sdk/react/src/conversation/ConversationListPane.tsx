@@ -338,7 +338,7 @@ function ConversationFilterToggle({
  * The awaiting dot's meaning, shared verbatim by its tooltip and its
  * sr-only text — one string per strength so sighted-hover and
  * screen-reader users hear the identical fact. The copy carries the
- * DISTINCTION, not just the fact (cloud#266): who holds the
+ * DISTINCTION, not just the fact: who holds the
  * conversation is exactly what the two strengths encode, and it names
  * the stake without promising an outcome — a muted dot survives a dead
  * agent turn on purpose (DD-011 D-b's recovery path).
@@ -387,12 +387,12 @@ const ConversationRow = memo(function ConversationRow({
       >
         <div className="stg:min-w-0 stg:flex-1">
           <div className="stg:flex stg:items-center stg:gap-1.5">
-            {/* No truncation title on the label (F-18): the full name
+            {/* No truncation title on the label: the full name
                 renders in the open conversation's header, so a native
                 tooltip here added noise without adding reach. */}
             <p className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">{label}</p>
             {conversation.needsAttention && (
-              // The reason rides the house tooltip (F-18). The trigger
+              // The reason rides the house tooltip. The trigger
               // renders as a span — it sits INSIDE the row button, so a
               // default (button) trigger would nest buttons — and stays
               // out of the tab order; the sr-only text remains the

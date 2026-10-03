@@ -862,7 +862,7 @@ describe("MessageThread", () => {
       expect(onOpenPlan).toHaveBeenCalledWith("exec-live");
     });
 
-    it("keeps the plan streaming inline for hosts without a plan surface (DD-011)", () => {
+    it("keeps the plan streaming inline for hosts without a plan surface", () => {
       render(
         <MessageThread
           executions={[]}

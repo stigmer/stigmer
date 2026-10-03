@@ -83,8 +83,6 @@ export interface WorkflowInspectorPanelProps {
  *
  * The shell renders a tabbed inspector with a consistent header, actions
  * menu, and per-tab content (Configure, Data, Runtime, Advanced, Docs).
- *
- * @since T15 Batch 3 (original), T10 (refactored to tabbed shell)
  */
 export const WorkflowInspectorPanel = memo(function WorkflowInspectorPanel({
   selection,

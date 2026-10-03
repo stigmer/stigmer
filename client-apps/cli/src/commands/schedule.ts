@@ -5,14 +5,14 @@
 // why in status.paused_reason; resume is the owner's explicit act that
 // clears it (the owner's enabled switch is a different lever — see
 // docs/vocabulary.md, "Disabled vs. paused"). Trigger fires the schedule
-// through its own clock (DD-014), so everything a cron fire does applies
+// through its own clock, so everything a cron fire does applies
 // — including feeding the failure streak. Declarative verbs stay in the
 // generic matrix (apply/get/list/delete); this group exists for the
 // kind-specific operational actions, the `stigmer share` shape.
 //
 // Thin handler: resolve credentials/org, delegate to resources/schedule,
 // render the result. Heavy modules are lazy-imported so `--help` stays
-// fast (DD-001).
+// fast.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";

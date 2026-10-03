@@ -250,7 +250,7 @@ export interface SessionViewerProps {
   /**
    * The user's account-level execution defaults, typically from
    * `useAccountExecutionDefaults()` — same seam as
-   * `NewSessionViewer.accountDefaults` (DD-016). On the session page only
+   * `NewSessionViewer.accountDefaults`. On the session page only
    * the `autoApprove` default applies: it seeds the session-scoped
    * auto-approve state so a declared `default_auto_approve` preference
    * covers follow-ups on existing sessions too. An explicit flip of the
@@ -309,7 +309,7 @@ export interface SessionViewerProps {
   /**
    * Slot for host-injected header actions. Rendered in the top-right corner
    * of the viewer, beside the panel chip. Keeps the SDK organism
-   * unopinionated about Console auth (DD-004).
+   * unopinionated about Console auth.
    */
   readonly headerActions?: ReactNode;
   /**
@@ -364,7 +364,7 @@ export interface SessionViewerProps {
  * with {@link NewSessionViewer} — with the chat width persisted per viewer.
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
- * apps inject platform-specific values via props (DD-004/DD-016).
+ * apps inject platform-specific values via props.
  *
  * @example
  * ```tsx
@@ -937,7 +937,7 @@ const ConversationColumn = memo(function ConversationColumn({
   // gives the dock's file list the same path resolution and click routing
   // (open in the panel's viewer; GitHub/copy fallback) as the transcript —
   // one click behavior for a path everywhere in the session. Memoized so the
-  // dock's memoized cards are not invalidated by unrelated renders (DD-010).
+  // dock's memoized cards are not invalidated by unrelated renders.
   const dockFilePathCtx = useMemo<FilePathContextValue>(
     () => ({
       workspaceEntries: conv.workspaceEntries ?? [],
@@ -1018,7 +1018,7 @@ const ConversationColumn = memo(function ConversationColumn({
             settled records; this is the one decision surface. Observers get
             the read-only progress strip but never the decision dock. */}
         <FilePathContext.Provider value={dockFilePathCtx}>
-          {/* Mid-run live capture (DD-32): the "N files changed so far" strip for
+          {/* Mid-run live capture: the "N files changed so far" strip for
               a still-running turn. Mutually exclusive with the dock below —
               progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
               hands off cleanly when review opens. Non-interactive. */}
@@ -1215,7 +1215,7 @@ function SessionPanelRegion({
   // a STREAMING plan owns the tab (live document, no actions); otherwise the
   // resolved `openPlan` renders in the editor (keyed by plan identity so
   // switching plans resets view state cleanly); otherwise an honest empty
-  // notice (DD-006) — reachable only when a streaming plan auto-opened the
+  // notice — reachable only when a streaming plan auto-opened the
   // tab and its turn then ended without publishing, with no earlier plan to
   // fall back to.
   const openPlanIsLatest = openPlan?.executionId === sessionPlan?.executionId;
@@ -1340,7 +1340,7 @@ function SessionPanelRegion({
       // Transcript export is view-scoped, so observers keep it (#814).
       sessionId: exportSessionId,
       // Curated audiences see the configuration but cannot strip it — the
-      // Config facet renders read-only without mutation callbacks (DD-011).
+      // Config facet renders read-only without mutation callbacks.
       mutations: isCurated
         ? undefined
         : {
@@ -1475,7 +1475,7 @@ function SessionStarting() {
  * auto-opened the tab and its turn then ended without publishing (stopped or
  * failed) while the session has no earlier published plan to fall back to.
  * The partial plan reverts to the conversation (the thread un-collapses it),
- * so the notice points there. Never a blank pane (DD-006).
+ * so the notice points there. Never a blank pane.
  */
 function PlanUnavailableNotice() {
   return (

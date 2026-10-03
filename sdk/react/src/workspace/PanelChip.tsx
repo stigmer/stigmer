@@ -31,7 +31,7 @@ export interface PanelChipProps {
  * anywhere else in viewer chrome) — the thread/graph itself communicates run
  * state.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
   const showCount = !isOpen && badgeCount != null && badgeCount > 0;

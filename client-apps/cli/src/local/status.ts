@@ -144,7 +144,7 @@ function addWebUiSection(result: CommandResult, health: HealthState): void {
   if (!temporalRunning && !webRunning) return;
 
   const section = result.addSection("Web UI");
-  // The console shares the server's unified port (DD-012) — same origin as
+  // The console shares the server's unified port — same origin as
   // the API, served by the server itself.
   if (webRunning) section.field("Console", `http://localhost:${SERVER_PORT}`);
   if (temporalRunning) section.field("Temporal", `http://localhost:${TEMPORAL_UI_PORT}`);

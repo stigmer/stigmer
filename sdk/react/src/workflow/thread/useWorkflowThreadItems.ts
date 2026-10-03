@@ -10,7 +10,7 @@ import {
 /**
  * Behavior hook binding {@link projectThreadItems} to a render loop with
  * structural sharing: items whose fields did not change keep their object
- * identity across event appends, so memoized card rows bail (DD-010).
+ * identity across event appends, so memoized card rows bail.
  *
  * The projection is cheap (one pass over the task map), so it recomputes
  * per render of the (memoized) thread organism rather than adding a

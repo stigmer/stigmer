@@ -1,4 +1,4 @@
-// Accessibility audit (DD-22) — the explorer tree and both search surfaces.
+// Accessibility audit — the explorer tree and both search surfaces.
 //
 // Covers the Session 18 hardening for these surfaces: file-tree `role="tree"` +
 // `aria-level` + `aria-hidden` glyphs, the neutral truncation banner + Retry

@@ -100,7 +100,7 @@ describe("ConversationTemplatePickerDialog", () => {
     expect(unsupported.disabled).toBe(true);
     expect(screen.getByText(/FLOW buttons are not supported/)).toBeDefined();
 
-    // The v1 scope cut (cloud#260): the send payload's image link has no
+    // The v1 scope cut: the send payload's image link has no
     // console-side source yet, so the template shows but cannot be picked.
     const imageHeader = screen
       .getByText("hero_image")

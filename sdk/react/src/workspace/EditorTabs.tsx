@@ -56,7 +56,7 @@ export interface EditorTabsProps {
  * activate; Delete/Backspace closes the focused tab. The visual close "X" is a
  * presentational (`aria-hidden`) mouse affordance — assistive tech closes via
  * the keyboard, so the X is not a nested interactive control (WCAG 4.1.2). All
- * visual properties flow through `--stgm-*` tokens (DD-005).
+ * visual properties flow through `--stgm-*` tokens.
  */
 export function EditorTabs({
   editors,

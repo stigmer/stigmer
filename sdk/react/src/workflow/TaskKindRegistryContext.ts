@@ -17,8 +17,6 @@ export interface TaskKindRegistryState {
  * Populated by {@link StigmerProvider} on mount. Consumer hooks read from
  * this context instead of a static JSON import, enabling always-fresh
  * task metadata without npm package updates.
- *
- * @since T04 (Task Schema Registry)
  */
 export const TaskKindRegistryContext = createContext<TaskKindRegistryState>({
   descriptors: [],

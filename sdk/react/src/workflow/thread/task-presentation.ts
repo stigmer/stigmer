@@ -3,7 +3,7 @@ import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { formatDuration } from "../format-utils.js";
 
-// Headless presentation layer for workflow task cards (T04) — the thread's
+// Headless presentation layer for workflow task cards — the thread's
 // sibling of the session's `tool-presenter.ts`.
 //
 // `resolveTaskPreview` turns a `DerivedTaskState` into the two presentation
@@ -18,7 +18,7 @@ import { formatDuration } from "../format-utils.js";
 // projection's `WorkflowThreadItem` (`threadItemEqual`). Preview-affecting
 // values must therefore be primitives on that item, computed once in
 // `projectThreadItems` — NOT in a card hook. Do not "fix" this back to a
-// hook: it would defeat the thread's structural sharing (DD-009/DD-010).
+// hook: it would defeat the thread's structural sharing.
 //
 // DATA HONESTY: the kind-specific lines read the TRUNCATED event summaries
 // (`input_summary` on task_started, `output_summary` on task_completed).

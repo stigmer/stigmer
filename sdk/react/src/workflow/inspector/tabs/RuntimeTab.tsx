@@ -24,8 +24,6 @@ const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "ru
  * - llm_call / eval: timeout, max cost
  * - Invocation kinds: timeout
  * - Container kinds: concurrency, join policy
- *
- * @since T10 (Inspector Panel Refactor)
  */
 export const RuntimeTab = memo(function RuntimeTab({
   node,

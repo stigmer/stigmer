@@ -55,7 +55,7 @@ export interface FileViewerProps {
   /**
    * The session {@link FileChange} that touched this file, when it was changed
    * this session. When present the viewer defaults to the authoritative
-   * `baseline→candidate` diff (DD-06) and — for a non-DELETE change with a
+   * `baseline→candidate` diff and — for a non-DELETE change with a
    * `reader` — offers a labeled toggle to the live "File" view. `undefined`
    * (the default) keeps the viewer a pure read-only browser (backward
    * compatible). Callers correlate the open file to its change with
@@ -112,7 +112,7 @@ export interface FileViewerHandle {
  * shared shell would need context-flag props. Keep them as sibling shells that
  * share the one renderer.
  *
- * Framework-agnostic and themed via `--stgm-*` tokens (DD-004/DD-005): a
+ * Framework-agnostic and themed via `--stgm-*` tokens: a
  * platform builder can mount it directly given a `reader` and a selection.
  *
  * @example
@@ -143,14 +143,14 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
   // View mode is meaningful only for a changed file. A deleted file has no live
   // bytes to browse, and browsing needs a reader, so the live "File" view is
   // gated on both; otherwise a changed file shows the diff alone (no lone
-  // control). The default is the authoritative diff (DD-06). The mount site
+  // control). The default is the authoritative diff. The mount site
   // remounts the viewer per file (`key`), so this initializes correctly for
   // each opened file without deriving during render.
   const canBrowseLive = reader !== undefined && change?.changeType !== FileChangeType.DELETE;
   const showViewToggle = change !== undefined && canBrowseLive;
   // A reveal (jump-to-line) opens in File view even for a changed file — the
   // line number refers to current source, not the diff (DR-1). Absent a reveal,
-  // a changed file still defaults to the authoritative diff (DD-06).
+  // a changed file still defaults to the authoritative diff.
   const [viewMode, setViewMode] = useState<"diff" | "file">(
     reveal ? "file" : change !== undefined ? "diff" : "file",
   );
@@ -399,7 +399,7 @@ function FileViewerBody({
 
   if (isNotFound) {
     // Expected while the agent's write-back is still syncing to the ref —
-    // a calm notice (DD-006), not a failure.
+    // a calm notice, not a failure.
     return (
       <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:gap-2 stg:p-8 stg:text-center">
         <p className="stg:text-xs stg:text-muted-foreground">

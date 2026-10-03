@@ -14,7 +14,7 @@ import {
 } from "../task-detail/task-approval";
 
 // ---------------------------------------------------------------------------
-// The human_input gate's card-side projections (T06): the review-material
+// The human_input gate's card-side projections: the review-material
 // view a pending gate renders, and the decision record a resolved gate
 // reports (task output = the canonical record; the approval_resolved event
 // fills the gaps). Coverage ported from the retired inspector's

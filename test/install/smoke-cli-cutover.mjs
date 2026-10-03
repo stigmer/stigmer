@@ -35,7 +35,7 @@
  * run is still streaming while the smoke decides it, so a step that fails
  * meanwhile ends that run before the smoke reports, rather than leaving it
  * to its own timeout.
- * Since the console restoration (DD-012) it also proves the
+ * Since the console restoration it also proves the
  * unified port serves the bundled web console: /config.json synthesis, a
  * dynamic deep link, and the 404 posture — the P3 acceptance's
  * "`stigmer up` serves the console end-to-end" arm.
@@ -165,7 +165,7 @@ try {
     throw new Error(`expected a node+entry server process, got: ${server.command}`);
   }
 
-  // 3. Console restoration (DD-012): the slim artifact ships the web
+  // 3. Console restoration: the slim artifact ships the web
   //    console and the server serves it from the unified port. Probe the
   //    three load-bearing arms a browser exercises: the synthesized
   //    /config.json (the one trusted-local document, asserted by the shared

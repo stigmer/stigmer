@@ -1,6 +1,6 @@
 "use client";
 
-// The inline child-transcript body of an AGENT_CALL task card (T07): the
+// The inline child-transcript body of an AGENT_CALL task card: the
 // card IS the session experience — live while running, full history when
 // settled — replacing the S4 "Open transcript" document tab.
 
@@ -22,7 +22,7 @@ import { isTerminalPhase } from "../execution/execution-phases.js";
 import { useInViewport } from "../internal/useInViewport.js";
 import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions.js";
 
-/** Stable empty list so the thread's memoized rows keep identity (DD-010). */
+/** Stable empty list so the thread's memoized rows keep identity. */
 const EMPTY_EXECUTIONS: readonly AgentExecution[] = [];
 
 /**
@@ -117,7 +117,7 @@ export interface WorkflowAgentCallTranscriptProps {
  * read-only records in-thread (`showFileReviewRecords`) — the two surfaces
  * partition by the same pending test `MessageThread` uses.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export const WorkflowAgentCallTranscript = memo(
   function WorkflowAgentCallTranscript({
@@ -152,7 +152,7 @@ export const WorkflowAgentCallTranscript = memo(
     }, [execution?.status, terminal]);
 
     // Bind the child id into the dock's card-level submit signature. Deps
-    // are the specific method (DD-010), so the callback survives unrelated
+    // are the specific method, so the callback survives unrelated
     // in-flight churn on the actions instance.
     const submitFileDecision = hitl?.submitFileDecision;
     const handleFileDecision = useCallback(

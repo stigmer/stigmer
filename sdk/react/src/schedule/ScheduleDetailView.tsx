@@ -88,7 +88,7 @@ export interface ScheduleDetailViewProps {
   readonly slug: string;
   /**
    * Called when the user activates the target-agent reference.
-   * Navigation is the consumer's concern (DD-004) — the Console pushes
+   * Navigation is the consumer's concern — the Console pushes
    * a Library route; an embedding host does whatever fits.
    */
   readonly onNavigateToAgent?: (org: string, slug: string) => void;
@@ -213,7 +213,7 @@ export function ScheduleDetailView({
 
   // Last failed inline save, attributed to the field that was edited so
   // only that editor shows the message. The backend's message is the
-  // UX (DD-006) — e.g. the cron validator's copy surfaces verbatim.
+  // UX — e.g. the cron validator's copy surfaces verbatim.
   const [saveError, setSaveError] = useState<{
     field: string;
     message: string;
@@ -753,7 +753,7 @@ export function ScheduleDetailView({
 
       {/* Mounted on demand: the editor serializes the resource and pulls
           the CodeMirror chunk, neither of which should cost anything
-          until the action is actually invoked (DD-013). The dialog
+          until the action is actually invoked. The dialog
           resets its edit state on open, so unmount-on-close loses
           nothing. */}
       {editOpen && (
@@ -864,7 +864,7 @@ function CadenceSummary({
 // Each editor follows the InlineEdit* family's contract: read mode is a
 // click target with a hover pencil; edit mode holds a local draft with
 // explicit Save/Cancel; a failed save keeps the editor open with the
-// server's message rendered verbatim beneath it (DD-006). The editors
+// server's message rendered verbatim beneath it. The editors
 // stay in this file (the AgentDetailView single-organism precedent) and
 // reuse the creation form's field components — CadenceField,
 // TimeZoneField, EnvironmentPicker — so creating and editing a schedule
@@ -940,7 +940,7 @@ function CadenceInlineEditor({
   );
 }
 
-/** Environment bindings edit — org-shared credentials only (DD-017 D-2). */
+/** Environment bindings edit — org-shared credentials only. */
 function EnvironmentsInlineEditor({
   org,
   refs,
@@ -1007,7 +1007,7 @@ function isOrgSharedEnvironment(env: Environment): boolean {
 
 /**
  * Engine & model edit — the composer's own picker, with the creation
- * form's atomic semantics (DD-018 D-5): picking a model pins BOTH the
+ * form's atomic semantics: picking a model pins BOTH the
  * harness and the model (the registry scopes models per harness);
  * clearing the model unpins both, and the platform defaults apply.
  */
@@ -1110,7 +1110,7 @@ function EngineModelInlineEditor({
   );
 }
 
-/** Budget edit — blank inherits the platform default (DD-018 D-2). */
+/** Budget edit — blank inherits the platform default. */
 function BudgetInlineEditor({
   config,
   onSave,
@@ -1476,7 +1476,7 @@ function BudgetSummary({
       ) : (
         <span className="stg:text-sm stg:text-muted-foreground">Platform default</span>
       )}
-      {/* Reachable through the API only (DD-018 D-5) — rendered when
+      {/* Reachable through the API only — rendered when
           set so nothing the spec stores is hidden. */}
       {maxToolRounds > 0 && (
         <span className="stg:text-xs stg:text-muted-foreground">

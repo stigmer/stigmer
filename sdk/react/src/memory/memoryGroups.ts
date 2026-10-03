@@ -49,7 +49,7 @@ export function groupMemoriesByLifecycle(
  * One-line provenance attribution for a memory, or `null` when the
  * record has none (created directly through the API, not by an agent).
  *
- * Trust requires "where did this come from" beside every fact (DD-004);
+ * Trust requires "where did this come from" beside every fact;
  * agent/session display names are not resolvable from the record alone,
  * so ids are shown — they are what links back to the source surfaces.
  */

@@ -12,7 +12,7 @@ interface ListWorkspaceFilesResult {
  * Advisory entry appended when the Rust walker caps a large folder. The SDK's
  * listing cache collapses any `notice` entry into a single `truncated` banner
  * and strips it from the openable list, so this `path` string is never rendered
- * (DD-11) — it only marks the signal. Mirrors the GitHub lister's marker.
+ * — it only marks the signal. Mirrors the GitHub lister's marker.
  */
 const TRUNCATION_MARKER: WorkspaceFileEntry = {
   path: "... (listing truncated — folder has too many files)",

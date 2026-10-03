@@ -11,7 +11,7 @@
 //     once per process, and "does it serve this kind?" is the kind's tier
 //     against that edition — the SDK's isResourceAvailable, the same answer
 //     the console's useResourceAvailable gives. A command never infers a
-//     tier question from the config's backend `type` (20260911.11 A3): the
+//     tier question from the config's backend `type`: the
 //     backend type says where the config file lives and which token is sent,
 //     not which kinds a server serves.
 //

@@ -14,7 +14,7 @@
 //
 // If a live round ever proves this noisy in real screen readers, the
 // planned fallback is a backward-compatible `ariaLive` opt-out prop on
-// MessageThread (DD-011) — not committed speculatively.
+// MessageThread — not committed speculatively.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, within, screen } from "@testing-library/react";

@@ -8,7 +8,7 @@ import { ChevronIcon } from "./glyphs.js";
  * The shared card shell for thread rows — session tool-call cards and
  * workflow task cards compose the SAME chrome, header gestures, and body
  * contract, so the two threads read as one visual language by
- * construction (T05). Extracted from `ToolCallItem`, whose DOM is the
+ * construction. Extracted from `ToolCallItem`, whose DOM is the
  * canonical anatomy; the workflow card adopted it in the same change.
  *
  * Three pieces, composed via children (slots-as-children, never a

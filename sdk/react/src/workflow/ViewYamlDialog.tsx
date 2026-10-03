@@ -24,8 +24,6 @@ export interface ViewYamlDialogProps {
  * block with a copy-to-clipboard button.
  *
  * Styled with `--stgm-*` tokens in `@layer stgm` for embed safety.
- *
- * @since T11 (Context Menus and Keyboard Shortcuts)
  */
 export const ViewYamlDialog = memo(function ViewYamlDialog({
   nodeId,

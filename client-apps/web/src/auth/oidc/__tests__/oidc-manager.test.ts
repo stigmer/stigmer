@@ -4,7 +4,7 @@
 // Pins the two URIs an operator registers with their identity provider
 // (20260913.02, sp.console-login): the redirect URI is `/auth/callback` on
 // the console's own origin, and the post-logout URI is `/login` on the same
-// origin (Q-CL-9) — one signed-out landing for both logout arms, and the
+// origin — one signed-out landing for both logout arms, and the
 // one pair of URIs the authentication guide tells the operator to register.
 // ---------------------------------------------------------------------------
 

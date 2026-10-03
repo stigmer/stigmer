@@ -292,7 +292,7 @@ export interface CapabilityFlags {
   // The four federation RPCs (createFederatedAccount, updateFederatedAccount,
   // deprovisionFederatedAccount, getByExternalSub) are served here: a unit
   // composes the IdentityFederation capability the OSS controller
-  // dispatches to (20260911.11 Q-IA-9).
+  // dispatches to.
   //
   // True for cloud, whose cloud-iam unit provides it for real. The lane's
   // positive behavior needs an IdentityProvider fixture no hermetic target
@@ -317,7 +317,7 @@ export interface CapabilityFlags {
   // roles. False for the local OSS targets BY DESIGN: the OSS controller
   // answers UNIMPLEMENTED with the edition sentence for a grant on any
   // other kind, and checkMyPermission answers `can_grant_access` false
-  // there so the console hides the grant controls (Q-OR-5). Where false,
+  // there so the console hides the grant controls. Where false,
   // the suite PINS both refusals; a kind no edition grants on (one whose
   // kind_meta lists no roles) is INVALID_ARGUMENT everywhere and rides no
   // flag.
@@ -326,7 +326,7 @@ export interface CapabilityFlags {
   // checkAuthorization, listAuthorizedResourceIds, listAuthorizedPrincipalIds,
   // and checkMyPermission carrying contextual policies — the questions only
   // a relationship graph (OpenFGA) can answer, behind
-  // `drivers.authorizationQueries` (20260913.01 Q-OR-8). checkMyPermission
+  // `drivers.authorizationQueries`. checkMyPermission
   // WITHOUT contextual policies rides no flag: it has one definition in
   // every edition over the composed Authorizer.
   //
@@ -428,7 +428,7 @@ export interface DirectLoginTenant {
 // The four kind_meta roles of the organization, in the proto's order — the
 // words an IamPolicy grant carries as `relation`, and the rungs the model
 // reads (each implies the ones after it). The one role set open source
-// grants on (20260913.01 Q-OR-4); support/iampolicies re-exports it.
+// grants on; support/iampolicies re-exports it.
 export const ORGANIZATION_ROLES = ["owner", "admin", "member", "viewer"] as const;
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 

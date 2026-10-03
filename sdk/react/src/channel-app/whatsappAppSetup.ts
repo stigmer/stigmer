@@ -1,5 +1,5 @@
 /**
- * Pure helpers for the "bring your own Meta app" setup surface (T05).
+ * Pure helpers for the "bring your own Meta app" setup surface.
  *
  * A customer-owned Meta app needs two Stigmer-side values wired into its
  * WhatsApp webhook configuration on developers.facebook.com: the app's

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// SharedAgentChatPage audience routing (T07).
+// SharedAgentChatPage audience routing.
 //
 // The page probes the anonymous getSharedProfile once and branches:
 // public share -> guest chat (zero login); NOT_FOUND -> the member path,

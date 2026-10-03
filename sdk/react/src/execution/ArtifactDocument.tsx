@@ -50,9 +50,9 @@ export interface ArtifactDocumentProps {
  * Holds no must-survive local state: the panel region unmounts on collapse and
  * switching tabs remounts the active document, resetting transient apply/copy
  * state exactly as the modal resets on close. A `cacheKey` on the content fetch
- * keeps reopening a recently-viewed artifact instant (DD-014).
+ * keeps reopening a recently-viewed artifact instant.
  *
- * All visual properties flow through `--stgm-*` tokens (DD-005).
+ * All visual properties flow through `--stgm-*` tokens.
  */
 export function ArtifactDocument({
   artifact,

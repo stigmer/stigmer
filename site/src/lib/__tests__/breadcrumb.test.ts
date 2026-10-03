@@ -115,7 +115,7 @@ describe("buildBreadcrumbItems", () => {
 
   it("falls back to the root crumb for pages absent from the tree", () => {
     // Formerly exercised by the generated task-type pages, which were valid
-    // routes shadowed out of the sidebar (DD-01 §5). That last file+folder
+    // routes shadowed out of the sidebar. That last file+folder
     // hybrid was converted to a real folder with a generated index, so those
     // pages now get full crumbs like any collapsible folder child; only a
     // genuinely unlisted route keeps the bare "Docs" crumb.

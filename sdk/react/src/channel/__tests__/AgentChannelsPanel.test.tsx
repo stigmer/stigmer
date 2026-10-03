@@ -429,7 +429,7 @@ describe("AgentChannelsPanel", () => {
     expect(screen.queryByRole("menuitem", { name: /disconnect/i })).toBeNull();
   });
 
-  it("offers Manage access from the card menu — the channel's canonical access home (F-11)", async () => {
+  it("offers Manage access from the card menu — the channel's canonical access home", async () => {
     const client = createMockStigmer({
       channels: [makeChannel({ teamName: "Acme HQ" })],
     });

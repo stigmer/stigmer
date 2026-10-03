@@ -1,4 +1,4 @@
-// Scroll-behavior regression for the conversation timeline (F-09), against
+// Scroll-behavior regression for the conversation timeline, against
 // the REAL component and the shipped stylesheet in a real Chromium — the
 // composition that shipped the bug: `ConversationTimelineView` mounts its
 // content wrapper inside the loading branch, so the auto-scroll machinery
@@ -115,7 +115,7 @@ afterEach(() => {
   document.querySelectorAll(".stgm").forEach((node) => node.remove());
 });
 
-describe("ConversationTimelineView scroll behavior (F-09)", () => {
+describe("ConversationTimelineView scroll behavior", () => {
   it("opens at the newest message after the async first load", async () => {
     // The production sequence: the timeline mounts loading (skeleton, no
     // content wrapper), then the first page lands.
@@ -166,7 +166,7 @@ describe("ConversationTimelineView scroll behavior (F-09)", () => {
     });
   });
 
-  it("pins a scrolled-up reader on their OWN send via pinToLatestSignal, and keeps following as the reply's real item lands (stigmer-cloud#267)", async () => {
+  it("pins a scrolled-up reader on their OWN send via pinToLatestSignal, and keeps following as the reply's real item lands", async () => {
     const { rerender } = renderInPane(
       view({ items: [], isLoading: true, pinToLatestSignal: 0 }),
     );

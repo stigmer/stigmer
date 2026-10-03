@@ -133,7 +133,7 @@ export const LAST_OWNER_MESSAGE =
   "an organization must keep at least one owner; make another member an owner first";
 
 // The three system RPCs' annotation copy (command.proto error_msg), the
-// sentence a wire user hears in every edition (Q-OR-7).
+// sentence a wire user hears in every edition.
 export const BOOTSTRAP_POLICY_DENIED_MESSAGE =
   "unauthorized to bootstrap policy - can_bootstrap_iam permission required";
 export const CLEANUP_RESOURCE_POLICIES_DENIED_MESSAGE =

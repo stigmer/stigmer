@@ -17,7 +17,7 @@ import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexe
  * The map is keyed by `tool_call_id` and rebuilt only when the underlying
  * `pendingApprovals` list changes (not per streaming frame), so subscribing
  * tool rows re-render on approval events, not on every snapshot — preserving
- * the thread's streaming re-render isolation (DD-009 / DD-010).
+ * the thread's streaming re-render isolation.
  */
 export interface ApprovalContextValue {
   /** Unresolved approvals, keyed by the `tool_call_id` they gate. */

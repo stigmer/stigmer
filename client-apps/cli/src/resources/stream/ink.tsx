@@ -8,7 +8,7 @@
 // and a follow-up composer.
 //
 // This module is only ever reached through a dynamic import() in the command
-// action (DD-001), so React/Ink load lazily — non-streaming commands never pay
+// action, so React/Ink load lazily — non-streaming commands never pay
 // for them. Within this already-lazy module, ordinary JSX/imports are fine.
 
 import React from "react";

@@ -38,7 +38,7 @@ import { writeJson } from "@stigmer/test-support/llm-wire";
 
 // The API version the retired Java service's stripe-java 32.1.0 pinned in
 // com.stripe.Stripe.API_VERSION — read from the published jar's class
-// constant pool on 2026-09-06, before the service left (stigmer-cloud#698).
+// constant pool on 2026-09-06, before the service left.
 export const STRIPE_JAVA_API_VERSION = "2026-04-22.dahlia";
 
 // The one card this fixture knows. Every payment method it answers carries

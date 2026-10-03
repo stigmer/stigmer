@@ -1,4 +1,4 @@
-// Scroll-on-send wiring pins for WorkflowTaskThread (stigmer-cloud#267):
+// Scroll-on-send wiring pins for WorkflowTaskThread:
 // the workflow surface's send-analog is a HITL decision submission —
 // submitting pins the thread (default-ON, opt-out via
 // `scrollOnSend={false}`) BEFORE delegating, so the unblocked run's
@@ -96,7 +96,7 @@ function submitShipIt(): void {
   fireEvent.click(within(form).getByRole("button", { name: "Ship It" }));
 }
 
-describe("WorkflowTaskThread — scroll-on-send (stigmer-cloud#267)", () => {
+describe("WorkflowTaskThread — scroll-on-send", () => {
   it("pins the thread when a HITL decision is submitted, then delegates to the workflow-level submit (default-on)", () => {
     const hitl = makeHitl();
     render(

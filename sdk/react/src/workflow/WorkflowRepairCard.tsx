@@ -18,7 +18,7 @@ export interface WorkflowRepairCardProps {
   readonly currentWorkflowYaml?: string;
   /**
    * Called when the user clicks "Apply Fix". Receives the suggested YAML.
-   * The host application handles navigation to the workflow editor (DD-004).
+   * The host application handles navigation to the workflow editor.
    */
   readonly onApplyFix?: (yaml: string) => void;
   /** Called when the panel should close. */
@@ -46,7 +46,7 @@ const COMPOSER_ENABLED_PHASES: ReadonlySet<DiagnosePhase> = new Set([
  * Auto-starts diagnosis on mount (AD-B5-002). Supports multi-turn
  * follow-up questions within the same session (AD-B5-003).
  *
- * Styled via `--stgm-*` design tokens. Zero console dependencies (DD-004).
+ * Styled via `--stgm-*` design tokens. Zero console dependencies.
  */
 export function WorkflowRepairCard({
   executionId,

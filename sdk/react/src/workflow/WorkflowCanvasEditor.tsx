@@ -68,8 +68,6 @@ const LazyCanvasInner = lazy(() =>
  * with undo/redo and auto-layout controls. Wrapped with `React.lazy` +
  * `Suspense` per DD-013 so the `@xyflow/react` bundle is only loaded
  * when this component is mounted.
- *
- * @since T15 (Visual Canvas Editor)
  */
 const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   yaml,
@@ -107,7 +105,7 @@ const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   } | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Keyboard shortcuts (T07)
+  // Keyboard shortcuts
   // ---------------------------------------------------------------------------
 
   const handleKeyboardDismiss = useCallback(() => {

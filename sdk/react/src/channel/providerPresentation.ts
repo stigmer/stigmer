@@ -91,7 +91,7 @@ const whatsappPresentation: ChannelProviderPresentation = {
           .filter(Boolean)
           .join(" \u00b7 ");
       }
-      // Meta emits no revocation events (DD-010), so WhatsApp channels
+      // Meta emits no revocation events, so WhatsApp channels
       // never transition to revoked today — handled anyway so a future
       // server that learns to observe revocation degrades sensibly.
       case AgentChannelInstallState.revoked:

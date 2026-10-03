@@ -84,7 +84,7 @@ export interface FollowCenterResult {
 
 /**
  * Pure function that computes the viewport center point for following an
- * active node. Extracted from hook internals for testability (DD-003).
+ * active node. Extracted from hook internals for testability.
  *
  * When `panelOffsetPx > 0`, the center is shifted leftward in flow coordinates
  * so the node appears centered in the *unoccluded* portion of the viewport.

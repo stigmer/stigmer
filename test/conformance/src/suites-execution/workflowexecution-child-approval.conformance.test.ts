@@ -14,7 +14,7 @@
 //     child's AgentExecution.submitApproval. The parent owns no gate of its own — it
 //     is a conduit.
 //
-// ## History: the forwarder was half-built in OSS by design (DD-012)
+// ## History: the forwarder was half-built in OSS by design
 //
 // The receiver/forwarder was complete in OSS from the start (submitApproval,
 // the runner's call-agent orchestrator, all protos), but the upstream half —

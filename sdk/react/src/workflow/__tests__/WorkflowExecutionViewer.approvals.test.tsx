@@ -1,4 +1,4 @@
-// Composition test for the execution-level HITL surfaces (S10/T06/T07):
+// Composition test for the execution-level HITL surfaces:
 // gating AGENT_CALL cards carry the child's INLINE TRANSCRIPT as their
 // decision surface — the child's gates decide inside it (the transcript's
 // own suite covers the ApprovalCard rendering and workflow-RPC routing) —
@@ -278,7 +278,7 @@ function cardRootOf(taskName: string): HTMLElement {
   return root;
 }
 
-describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
+describe("WorkflowExecutionViewer in-thread HITL", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -324,7 +324,7 @@ describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
     // fork — and never the child's agentExecution.* path (checked
     // exhaustively in WorkflowAgentCallTranscript.test.tsx). State fields
     // pass by IDENTITY; the submit fns are asserted by DELEGATION since
-    // the thread's scroll-on-send wrapper (stigmer-cloud#267) pins the
+    // the thread's scroll-on-send wrapper pins the
     // view before handing each call to the single instance — a per-card
     // duplicate would still fail here, because the delegate IS the
     // viewer's own spy.

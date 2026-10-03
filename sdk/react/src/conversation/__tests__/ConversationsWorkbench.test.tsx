@@ -147,7 +147,7 @@ describe("ConversationsWorkbench", () => {
     expect(screen.getByLabelText("Reply to the customer")).toBeDefined();
     // The header keeps the call-back path visible: the display name wins
     // the title, so the WhatsApp number renders in the sub-line beside
-    // the channel name (F-17).
+    // the channel name.
     expect(screen.getByRole("heading", { name: "Pat" })).toBeDefined();
     // Matched on the sub-line's full text content: the contact and the
     // channel name render as separate nodes (the channel name can be a
@@ -272,7 +272,7 @@ describe("ConversationsWorkbench", () => {
     );
   });
 
-  it("links the header's channel name to the host's channel page (F-11)", async () => {
+  it("links the header's channel name to the host's channel page", async () => {
     render(
       <ConversationsWorkbench
         org="acme"
@@ -293,7 +293,7 @@ describe("ConversationsWorkbench", () => {
     );
   });
 
-  it("keeps the channel name plain text when the host provides no channel route (F-11)", async () => {
+  it("keeps the channel name plain text when the host provides no channel route", async () => {
     render(
       <ConversationsWorkbench org="acme" selected={SELECTED} onSelectionChange={vi.fn()} />,
       { wrapper: wrapper(createMockStigmer()) },
@@ -309,7 +309,7 @@ describe("ConversationsWorkbench", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
 
-  it("hands the selected channel to a function-form headerAccessory (F-11)", async () => {
+  it("hands the selected channel to a function-form headerAccessory", async () => {
     render(
       <ConversationsWorkbench
         org="acme"
@@ -330,7 +330,7 @@ describe("ConversationsWorkbench", () => {
     );
   });
 
-  it("keeps the composer busy after a reply until the sent item is on screen (F-05)", async () => {
+  it("keeps the composer busy after a reply until the sent item is on screen", async () => {
     const user = userEvent.setup();
     const initialItems = [customerItem("wa:1", "where is my order?")];
     let releaseRefetch!: (page: {
@@ -393,7 +393,7 @@ describe("ConversationsWorkbench", () => {
     });
   });
 
-  it("frees the composer immediately on a refused reply — the draft needs editing, not a wait (F-05)", async () => {
+  it("frees the composer immediately on a refused reply — the draft needs editing, not a wait", async () => {
     const user = userEvent.setup();
     const client = createMockStigmer({
       reply: vi.fn().mockResolvedValue(
@@ -528,7 +528,7 @@ describe("ConversationsWorkbench", () => {
     // item is the staff's reply — words Meta later bounced, so the
     // customer never received them. Timeline authorship reads
     // "answered"; the row's awaiting_reply reads the truth, because the
-    // receipt-side void re-opened it (T08, DD-015). The guard must read
+    // receipt-side void re-opened it. The guard must read
     // the fact, never re-derive it from timeline shape — the client-side
     // twin of the re-derivation DD-011 A-1 removed server-side.
     const user = userEvent.setup();
@@ -580,7 +580,7 @@ describe("ConversationsWorkbench", () => {
     expect(agentChannel.handBack).not.toHaveBeenCalled();
   });
 
-  it("keeps the confirm armed when the platform acknowledgment is the newest item (F-28)", async () => {
+  it("keeps the confirm armed when the platform acknowledgment is the newest item", async () => {
     // Platform copy ("someone from our team is looking at this") never
     // answers the customer — it never stamps last_answered_at (DD-011
     // D-b) — yet an authorship-derived guard read `platform ≠ customer`
@@ -632,7 +632,7 @@ describe("ConversationsWorkbench", () => {
     expect(agentChannel.handBack).not.toHaveBeenCalled();
   });
 
-  it("hands back without the confirm once the row says answered — the fact, never the timeline's shape, decides (F-28)", async () => {
+  it("hands back without the confirm once the row says answered — the fact, never the timeline's shape, decides", async () => {
     // The mirror case: the staff answer DELIVERED (the row settled
     // awaiting_reply = false) but the reply's ledger item has not
     // reached the independently-polled timeline window yet, so the
@@ -678,8 +678,8 @@ describe("ConversationsWorkbench", () => {
     ).toBeNull();
   });
 
-  it("resets the composer draft when switching conversations (F-22)", async () => {
-    // The detail column is keyed by conversation identity (DD-014), so a
+  it("resets the composer draft when switching conversations", async () => {
+    // The detail column is keyed by conversation identity, so a
     // switch REMOUNTS it — a half-typed reply to customer A must never
     // sit in the box one Enter away from being sent to customer B. This
     // is the remount's observable contract: remove the key and this
@@ -790,7 +790,7 @@ describe("ConversationsWorkbench", () => {
   it("the 5s detail poll alone carries the advisory over the boundary — no data change, no memo freeze (DD-014 D-b)", async () => {
     // The load-bearing composition fact this test pins: `useConversation`
     // preserves the row's object REFERENCE when a poll answers identical
-    // data (DD-010), so the advisory cannot ride a data change — only the
+    // data, so the advisory cannot ride a data change — only the
     // poll's own re-render refreshes the wall-clock estimate. Wrapping
     // the workbench's advisory computation in a useMemo keyed on
     // [detail.conversation] — a plausible "cleanup" — freezes the warning
