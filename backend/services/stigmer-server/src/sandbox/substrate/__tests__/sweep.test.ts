@@ -429,23 +429,25 @@ describe("failures and races", () => {
       template: "t",
       createTime: new Date(h.t() - 60 * MIN),
     });
+    // While the pass reconciles the sandbox's egress, an ensure queues
+    // behind it and names the session; the orphan check queues after that.
     let release: () => void = () => {};
-    const held = h.driver.internals.serialize(
-      name,
-      () =>
-        new Promise<void>((resolve) => {
+    let ensureQueued: Promise<void> | undefined;
+    const ensureEgress = h.substrate.ensureEgressPolicy.bind(h.substrate);
+    h.substrate.ensureEgressPolicy = async (actorName, rules) => {
+      ensureQueued ??= h.driver.internals.serialize(actorName, async () => {
+        h.driver.internals.sessionByActor.set(name, "ses_late");
+        await new Promise<void>((resolve) => {
           release = resolve;
-        }),
-    );
+        });
+      });
+      return ensureEgress(actorName, rules);
+    };
     const pass = h.pass();
     await new Promise((r) => setImmediate(r));
-    h.driver.internals.sessionByActor.set(name, "ses_late");
-    h.sessions.activities.set("ses_late", {
-      busy: true,
-      lastActiveAt: new Date(h.t()),
-    });
     release();
-    await Promise.all([held, pass]);
+    await Promise.all([ensureQueued, pass]);
+    expect(h.substrate.calls).not.toContain(`suspendActor ${name}`);
     expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);
   });
 

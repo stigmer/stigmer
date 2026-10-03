@@ -311,13 +311,12 @@ async function suspendOrphan(
 ): Promise<void> {
   const { driver, logger } = options;
   await driver.serialize(actor.name, async () => {
+    // An ensure that named it while this waited in the queue wins.
     if (driver.sessionByActor.has(actor.name)) return;
     await driver.gateway.suspendActor(actor.name);
+    logger.error(
+      "Substrate sandbox belongs to no session; suspended it (its workspace is kept)",
+      { actor: actor.name },
+    );
   });
-  logger.error(
-    "Substrate sandbox belongs to no session; suspended it (its workspace is kept)",
-    {
-      actor: actor.name,
-    },
-  );
 }
