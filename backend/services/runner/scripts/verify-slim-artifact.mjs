@@ -21,17 +21,21 @@
  *      second failure: a bundle that flattened the dynamic-import load order
  *      (e.g. an ESM esbuild bundle hoisting node:http2) aborts here. Needs no
  *      Temporal — the guard runs before any network I/O.
- *   3. Cloud mode — boots static mode as a cloud sandbox starts it
- *      (MODE=cloud, a token, a backend endpoint), so the cloud-only paths
- *      (the http checkpointer, the strict URL guard, the stdio MCP refusal)
- *      load from the bundle, and treats reaching the Temporal dial (an
- *      unroutable sentinel address, refused) as success, the signal
- *      verify-dist-boot.mjs uses. A served turn is the cluster's proof.
+ *   3. Cloud mode (not on Windows, see 5) — boots static mode as a cloud
+ *      sandbox starts it (MODE=cloud, a token, a backend endpoint), so the
+ *      cloud-only paths (the http checkpointer, the strict URL guard, the
+ *      stdio MCP refusal) load from the bundle, and treats reaching the
+ *      Temporal dial (an unroutable sentinel address, refused) as success,
+ *      the signal verify-dist-boot.mjs uses. A served turn is the cluster's
+ *      proof.
  *   4. Cursor SDK — @cursor/sdk imports, and its platform package (the
  *      helper binaries) resolves, from the artifact as the runner resolves it.
- *   5. Attach entry — attach/main.js beside the entry serves readiness,
+ *   5. Attach entry (not on Windows) — attach/main.js beside the entry serves readiness,
  *      refuses a foreign push and stops cleanly (verify-attach-boot.mjs, run
- *      by the same Node).
+ *      by the same Node). Skipped on Windows: the waiter runs only in a
+ *      Linux sandbox, and Node on Windows cannot deliver SIGTERM as a signal
+ *      (kill force-terminates), so the clean-stop check could never pass there
+ *      (the desktop's Windows release leg runs this script).
  *   6. Static mode — boots, creates a Worker (native bridge + pre-built
  *      workflow bundle + sandbox worker thread), reaches RUNNING, and shuts
  *      down gracefully on SIGINT.
@@ -426,12 +430,24 @@ try {
   // bundling. This is the check the dev-publish fast path relies on.
   await verifyAuthedGuard();
   console.log("[guard]  OK: authenticated boot passed assertHttp2ConnectPatched (interceptor load order intact)");
-  await verifyCloudMode();
-  console.log("[cloud]  OK: MODE=cloud loaded its configuration and reached the Temporal dial");
+  // Cloud mode and the attach waiter run only in Linux sandboxes; Windows
+  // (the desktop's release leg runs this script there) has neither, and its
+  // Node cannot deliver SIGTERM as a signal, so both are skipped there.
+  const windows = process.platform === "win32";
+  if (windows) {
+    console.log("[cloud]  skipped on Windows: cloud mode runs only in Linux sandboxes");
+  } else {
+    await verifyCloudMode();
+    console.log("[cloud]  OK: MODE=cloud loaded its configuration and reached the Temporal dial");
+  }
   const cursorPlatform = verifyCursorSdk();
   console.log(`[cursor] OK: @cursor/sdk imported; its platform package resolved at ${cursorPlatform}`);
-  verifyAttachEntry();
-  console.log("[attach] OK: the attach entry served readiness, refused a foreign push and stopped cleanly");
+  if (windows) {
+    console.log("[attach] skipped on Windows: the attach waiter runs only in Linux sandboxes");
+  } else {
+    verifyAttachEntry();
+    console.log("[attach] OK: the attach entry served readiness, refused a foreign push and stopped cleanly");
+  }
 
   if (skipTemporalBoots) {
     console.log("verify-slim-artifact: PASS (checks 1–5; Temporal boots skipped via --no-temporal)");

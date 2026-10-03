@@ -17,6 +17,11 @@ name: release.sandbox-cloud
 # Every tag but main-<sha> is added after the smoke, not before as the
 # self-host lane does: that lane smokes the pushed version tag itself, while
 # this one smokes the pushed main-<sha> bytes the other tags then name.
+# A dispatch runs the workflow of the ref it is dispatched from: from a tag
+# whose workflow predates the in-image smoke below, that workflow pushes
+# latest at build time, which would move latest back to an image without
+# /runner/bin/node, the launch path every newer server uses. Re-publish
+# such a release by its version tag only, never by dispatching its build.
 #
 # Triggers:
 #   - push to main: rebuild when runner code, proto stubs, or Dockerfile

@@ -29,9 +29,12 @@ export function nodeImageReferences(text) {
     const instruction = line.trim();
     if (!/^(FROM|COPY)\s/i.test(instruction)) return;
     const candidate = /^FROM/i.test(instruction)
-      ? instruction.split(/\s+/).find((word, i) => i > 0 && !word.startsWith("--"))
+      ? instruction
+          .split(/\s+/)
+          .find((word, i) => i > 0 && !word.startsWith("--"))
       : instruction.match(/--from=(\S+)/)?.[1];
-    if (candidate && NODE_IMAGE.test(` ${candidate}`)) refs.push({ line: index + 1, image: candidate });
+    if (candidate && NODE_IMAGE.test(` ${candidate}`))
+      refs.push({ line: index + 1, image: candidate });
   });
   return refs;
 }
@@ -41,7 +44,8 @@ export function pinProblem(image, version) {
   const match = image.match(/node:([^@\s]+)(@sha256:[0-9a-f]{64})?$/);
   if (!match) return "is not a node:<tag> reference";
   const [, tag, digest] = match;
-  if (tag !== version && !tag.startsWith(`${version}-`)) return `tag ${tag} is not the .nvmrc version ${version}`;
+  if (tag !== version && !tag.startsWith(`${version}-`))
+    return `tag ${tag} is not the .nvmrc version ${version}`;
   if (!digest) return "has no @sha256: digest";
   return null;
 }
@@ -51,9 +55,16 @@ const nvmrc = readFileSync(join(ROOT, ".nvmrc"), "utf8").trim();
 for (const file of PINNED_DOCKERFILES) {
   test(`${file} names Node ${nvmrc} by digest`, () => {
     const refs = nodeImageReferences(readFileSync(join(ROOT, file), "utf8"));
-    assert.ok(refs.length > 0, `${file} names no node: image; remove it from PINNED_DOCKERFILES or pin its Node`);
+    assert.ok(
+      refs.length > 0,
+      `${file} names no node: image; remove it from PINNED_DOCKERFILES or pin its Node`,
+    );
     const problems = refs
-      .map(({ line, image }) => ({ line, image, problem: pinProblem(image, nvmrc) }))
+      .map(({ line, image }) => ({
+        line,
+        image,
+        problem: pinProblem(image, nvmrc),
+      }))
       .filter((r) => r.problem !== null)
       .map((r) => `${file}:${r.line} ${r.image} ${r.problem}`);
     assert.deepEqual(problems, []);
@@ -62,10 +73,22 @@ for (const file of PINNED_DOCKERFILES) {
 
 test("a floating tag, another version and a missing digest are each refused", () => {
   const digest = `@sha256:${"a".repeat(64)}`;
-  assert.equal(pinProblem(`node:22.22.1-bookworm-slim${digest}`, "22.22.1"), null);
-  assert.match(pinProblem(`node:22-slim${digest}`, "22.22.1"), /not the .nvmrc version/);
-  assert.match(pinProblem(`node:22.22.0-bookworm-slim${digest}`, "22.22.1"), /not the .nvmrc version/);
-  assert.match(pinProblem("node:22.22.1-bookworm-slim", "22.22.1"), /no @sha256: digest/);
+  assert.equal(
+    pinProblem(`node:22.22.1-bookworm-slim${digest}`, "22.22.1"),
+    null,
+  );
+  assert.match(
+    pinProblem(`node:22-slim${digest}`, "22.22.1"),
+    /not the .nvmrc version/,
+  );
+  assert.match(
+    pinProblem(`node:22.22.0-bookworm-slim${digest}`, "22.22.1"),
+    /not the .nvmrc version/,
+  );
+  assert.match(
+    pinProblem("node:22.22.1-bookworm-slim", "22.22.1"),
+    /no @sha256: digest/,
+  );
 });
 
 test("FROM and COPY --from are both read; stage names and other images are not", () => {

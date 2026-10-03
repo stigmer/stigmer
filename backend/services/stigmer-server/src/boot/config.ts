@@ -344,12 +344,18 @@ export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
  * (release.sandbox-cloud.yaml tags one per release, `X.Y.Z` and
  * `X.Y.Z-rc.N`), because the launch command (sandbox/runner-launch.ts) is
  * a contract between a server and the image it starts, and `latest` moves
- * on every runner change to `main`. A server with no published image of
- * its own (an unbundled `dev` build, or a dev-channel stamp) falls back to
- * `latest`; isReleaseVersion is the one test of which versions the
- * release lane publishes.
+ * on every runner change to `main`. Only a bundled server knows its version
+ * (the release lane stamps SERVER_VERSION into the server image, the
+ * all-in-one image and @stigmer/server-slim); the @stigmer/server library
+ * and an unbundled build report `dev`, and a dev-channel stamp has no
+ * published image, so those fall back to `latest`, and a composition that
+ * embeds the library names its image itself (the cloud selects the image
+ * of the release it pins). isReleaseVersion is the one test of which
+ * versions the release lane publishes.
  */
-export function defaultSandboxRunnerImage(serverVersion: string = SERVER_VERSION): string {
+export function defaultSandboxRunnerImage(
+  serverVersion: string = SERVER_VERSION,
+): string {
   return isReleaseVersion(serverVersion)
     ? `ghcr.io/stigmer/runner:v${serverVersion}`
     : "ghcr.io/stigmer/runner:latest";

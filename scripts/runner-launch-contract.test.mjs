@@ -16,7 +16,10 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const DOCKERFILE = readFileSync(join(ROOT, "backend/services/runner/Dockerfile.sandbox"), "utf8");
+const DOCKERFILE = readFileSync(
+  join(ROOT, "backend/services/runner/Dockerfile.sandbox"),
+  "utf8",
+);
 const { RUNNER_NODE, RUNNER_ENTRY, runnerCommand } = await import(
   join(ROOT, "backend/services/stigmer-server/src/sandbox/runner-launch.ts")
 );
@@ -24,7 +27,9 @@ const { RUNNER_NODE, RUNNER_ENTRY, runnerCommand } = await import(
 /** The instructions of one stage, from its FROM line to the next. */
 function stage(name) {
   const lines = DOCKERFILE.split("\n");
-  const start = lines.findIndex((line) => new RegExp(`^FROM\\s.*\\sAS\\s+${name}\\s*$`, "i").test(line));
+  const start = lines.findIndex((line) =>
+    new RegExp(`^FROM\\s.*\\sAS\\s+${name}\\s*$`, "i").test(line),
+  );
   assert.notEqual(start, -1, `Dockerfile.sandbox has no stage ${name}`);
   const end = lines.findIndex((line, i) => i > start && /^FROM\s/i.test(line));
   return lines.slice(start, end === -1 ? undefined : end);
@@ -39,7 +44,10 @@ test("the compose runner's CMD is the server's runner command", () => {
 test("the runner layer puts the Node and the artifact where the command starts them", () => {
   const copies = stage("runner-layer").filter((line) => /^COPY\s/.test(line));
   const destinations = copies.map((line) => line.trim().split(/\s+/).at(-1));
-  assert.ok(destinations.includes(RUNNER_NODE), `no COPY lands on ${RUNNER_NODE}: ${destinations.join(", ")}`);
+  assert.ok(
+    destinations.includes(RUNNER_NODE),
+    `no COPY lands on ${RUNNER_NODE}: ${destinations.join(", ")}`,
+  );
   assert.ok(
     destinations.includes(`${dirname(RUNNER_ENTRY)}/`),
     `no COPY lands on ${dirname(RUNNER_ENTRY)}/: ${destinations.join(", ")}`,

@@ -16,7 +16,10 @@ import {
 describe("the runner launch contract", () => {
   it("starts both entries with the runner's own Node, by absolute path", () => {
     expect(RUNNER_NODE).toBe("/runner/bin/node");
-    expect(runnerCommand()).toEqual(["/runner/bin/node", "/runner/dist/main.js"]);
+    expect(runnerCommand()).toEqual([
+      "/runner/bin/node",
+      "/runner/dist/main.js",
+    ]);
     expect(waiterCommand()).toEqual([
       "/runner/bin/node",
       "/runner/dist/attach/main.js",
@@ -26,7 +29,9 @@ describe("the runner launch contract", () => {
   });
 
   it("keeps the waiter beside the runner it starts (its ../main.js)", () => {
-    expect(WAITER_ENTRY.replace("/attach/main.js", "/main.js")).toBe(RUNNER_ENTRY);
+    expect(WAITER_ENTRY.replace("/attach/main.js", "/main.js")).toBe(
+      RUNNER_ENTRY,
+    );
   });
 
   it("returns a fresh array on every call", () => {
