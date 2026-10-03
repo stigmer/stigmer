@@ -214,12 +214,16 @@ The cloud repository has no copy of this code; it depends on the published
 version. A change that the cloud needs therefore follows one order:
 
 1. The OSS pull request lands the seam (the new extension point, the new export,
-   the behaviour) here, with its tests and its conformance coverage.
-2. While the seam is in flight, the cloud pull request may pin a development
-   build of the library to prove the composition against it; it stays red on the
-   cloud's pin guard until the release exists.
-3. The OSS release publishes the library.
-4. The cloud pull request re-pins to the released version and merges.
+   the behaviour) here, with its tests and its conformance coverage. While it is
+   in flight, the cloud side is proven against a local build of this tree.
+2. Once it has merged, a development build of `main` is published
+   (`release.dev.yaml`, `targets=npm`); its version names the commit it was
+   built from (`X.Y.Z-dev.<stamp>.g<sha>`).
+3. The cloud pull request pins that build and merges on it, without waiting for
+   a release; the cloud is expected to refuse a build whose named commit is not
+   on `main`.
+4. A release reaches production through the cloud's re-pin to it, which comes
+   before anything deploys.
 
 A cloud-only behaviour never lands here for parity's sake, and a core behaviour
 is never re-implemented in the composition: if no extension point fits, the

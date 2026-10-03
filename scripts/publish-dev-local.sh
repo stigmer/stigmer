@@ -143,17 +143,20 @@ git rev-parse "v$BASE" >/dev/null 2>&1 && die "v$BASE already exists as a releas
 
 STAMP="$(date -u +%Y%m%d%H%M%S)"
 EPOCH="$(date -u +%s)"
-DIRTY=""; git diff --quiet HEAD 2>/dev/null || DIRTY="-dirty"
+DIRTY=""; [ -z "$(git status --porcelain 2>/dev/null)" ] || DIRTY="-dirty"
 
 MAVEN_VERSION="${BASE}-SNAPSHOT"
-NPM_VERSION="${BASE}-dev.${STAMP}"
+# The same rule release.dev.yaml stamps: a clean tree names its commit
+# (`.g<sha>`); a tree with an uncommitted or untracked file names none, since
+# its build is not that commit's code.
+NPM_VERSION="$(node scripts/lib/dev-version.mjs --base "$BASE" --stamp "$STAMP")"
 PY_VERSION="${BASE}.dev${EPOCH}"
 
 log "Local dev publish — base ${BASE} (targets: ${TARGETS})"
 echo "    maven  : ${MAVEN_VERSION}"
 echo "    npm    : ${NPM_VERSION} (tag: dev)"
 echo "    python : ${PY_VERSION} (TestPyPI)"
-[ -n "$DIRTY" ] && warn "Working tree has uncommitted changes — building from your live working tree."
+[ -n "$DIRTY" ] && warn "Working tree has uncommitted or untracked files — building from your live working tree; the npm version names no commit."
 
 # Set a pyproject/poetry version in place (first version assignment only).
 set_py_version() {
